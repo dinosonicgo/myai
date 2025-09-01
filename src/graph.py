@@ -345,6 +345,18 @@ async def background_world_expansion_node(state: ConversationGraphState) -> Dict
     return {}
 # 節點：觸發背景世界擴展
 
+
+# 節點：圖形結束 finalizing
+async def finalization_node(state: ConversationGraphState) -> Dict:
+    """
+    [節點 8 - 新增] 一個虛擬的最終節點。
+    它的存在確保了在它之前的異步背景任務 (如 background_expansion) 有足夠的時間被事件循環成功調度。
+    """
+    user_id = state['user_id']
+    logger.info(f"[{user_id}] (Graph) Node: finalization_node -> 對話流程圖執行完畢。")
+    return {}
+# 節點：圖形結束 finalizing
+
 # --- 主對話圖的路由 ---
 
 # 路由：在輸入分析後決定流程
@@ -365,7 +377,7 @@ def route_after_input_analysis(state: ConversationGraphState) -> Literal["narrat
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v1.1 簽名修正)
+# 函式：創建主回應圖 (v1.2 - 流程穩定性修正)
 def create_main_response_graph() -> StateGraph:
     """
     組裝並編譯主對話流程的 StateGraph。
@@ -380,6 +392,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     graph.add_node("background_expansion", background_world_expansion_node)
+    # [v1.2 新增] 添加新的虛擬終點
+    graph.add_node("finalization", finalization_node)
 
     # 設定圖的入口點
     graph.set_entry_point("initialize_state")
@@ -401,11 +415,15 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("generate_core_response", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", "background_expansion")
-    graph.add_edge("background_expansion", END)
+    
+    # [v1.2 修正] 將 background_expansion 連接到新的虛擬終點，而不是直接結束
+    graph.add_edge("background_expansion", "finalization")
+    # [v1.2 修正] 將新的虛擬終點設為圖形的真正結束點
+    graph.add_edge("finalization", END)
     
     # 編譯圖形
     return graph.compile()
-# 函式：創建主回應圖 (v1.1 簽名修正)
+# 函式：創建主回應圖 (v1.2 - 流程穩定性修正)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 
