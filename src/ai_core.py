@@ -417,25 +417,22 @@ class AILover:
     # 函式：加載零號指令模板 (v166.0 新增)
 
 
-    # 函式：動態組合模組化提示詞 (v169.0 任務類型分離)
+    # 函式：動態組合模組化提示詞 (v170.1 - 縮排修正)
     # 更新紀錄:
-    # v169.0 (2025-08-31): [重大架構修正] 新增了 `task_type` 參數，使此函式能夠為不同類型的任務（如 'chat' vs 'opening'）生成專用的、不同複雜度的提示詞。現在，在生成開場白時，將不再加載包含 ReAct 框架的 `01_narrative_base` 模組。此修正從提示詞源頭上解決了在單純生成任務中因 ReAct 指令干擾而導致的思考過程洩漏問題。
-    # v168.0 (2025-08-29): [重大架構修正] 重構了此函式，將 `{response_style_prompt}` 作為最終渲染規則追加。
+    # v170.1 (2025-09-02): [BUG修復] 修正了函式定義的縮排錯誤。
+    # v170.0 (2025-09-02): [根本性BUG修復] 徹底移除了對 `01_narrative_base` (ReAct 框架) 的加載。LangGraph 的圖形結構已取代了 ReAct 的作用，在生成節點中保留 ReAct 指令是導致思考過程洩漏的根本原因。
     async def _assemble_dynamic_prompt(self, is_move: bool = False, is_sexual: bool = False, task_type: Literal['chat', 'opening'] = 'chat') -> str:
         """根據當前情境和任務類型，動態地從 `prompts/modular/` 目錄加載並組合一個精簡、高效的系統提示詞。"""
         prompt_parts = []
         
-        # [v169.0 修正] 根據任務類型決定要加載的基礎模組
+        # [v170.0 修正] 徹底移除對 ReAct 框架的依賴，只加載最核心的協議
         prompt_keys_to_load = ['00_core_protocol']
-        if task_type == 'chat':
-            # 只有在標準聊天流程中才需要 ReAct 框架
-            prompt_keys_to_load.append('01_narrative_base')
-
+        
         if is_move:
             prompt_keys_to_load.append('action_macro_movement')
         if is_sexual:
             prompt_keys_to_load.append('action_sexual_content')
-
+    
         for key in prompt_keys_to_load:
             if key not in self.modular_prompts:
                 try:
@@ -444,14 +441,14 @@ class AILover:
                         self.modular_prompts[key] = f.read()
                 except FileNotFoundError:
                     logger.error(f"[{self.user_id}] 關鍵提示詞模組未找到: {key}.txt")
-                    if key in ['00_core_protocol', '01_narrative_base']:
+                    if key in ['00_core_protocol']: # 核心協議是必需的
                         raise
                     continue
             
             prompt_parts.append(self.modular_prompts[key])
         
         base_prompt = "\n\n".join(prompt_parts)
-
+    
         final_output_mandate = f"""
 # ==============================================================================
 # == 🎨 最終輸出強制令 (FINAL OUTPUT MANDATE) 🎨
@@ -468,7 +465,7 @@ class AILover:
         final_prompt = base_prompt + "\n\n" + final_output_mandate
         
         return final_prompt
-    # 函式：動態組合模組化提示詞 (v169.0 任務類型分離)
+    # 函式：動態組合模組化提示詞 (v170.1 - 縮排修正)
 
 
 
