@@ -32,6 +32,7 @@ from src.config import settings
 from .graph import create_main_response_graph, create_setup_graph
 from .graph_state import ConversationGraphState, SetupGraphState
 from langchain_core.messages import HumanMessage
+from langchain_community.chat_message_histories import ChatMessageHistory # [v38.2 新增] 修正錯誤的導入來源
 # [v38.0 新增] 結束
 
 from langchain_core.output_parsers import StrOutputParser
