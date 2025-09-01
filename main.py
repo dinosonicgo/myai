@@ -140,75 +140,68 @@ async def main():
         await server.serve()
     # 函式：啟動 Web 伺服器的異步任務
 
-    # 函式：啟動 GitHub 自動更新檢查器的異步任務 (v4.0 新增)
-    # 說明：一個背景任務，定期檢查遠端 GitHub 倉庫是否有更新。
-    #      如果有，則自動拉取最新程式碼並重啟應用。
-    async def start_github_update_checker_task():
-        """
-        每隔 5 分鐘檢查一次 GitHub 倉庫是否有新的提交。
-        如果有，則自動執行 'git pull' 並重啟程式。
-        """
-        # 等待 10 秒，讓主程式完全啟動後再開始檢查
-        await asyncio.sleep(10)
-        print("✅ 背景任務：GitHub 自動更新檢查器已啟動。")
+# 函式：啟動 GitHub 自動更新檢查器的異步任務 (v4.1 - 穩定性重構)
+# 說明：一個背景任務，定期檢查遠端 GitHub 倉庫是否有更新。
+#      如果有，則自動拉取最新程式碼並重啟應用。
+async def start_github_update_checker_task():
+    """
+    每隔 5 分鐘檢查一次 GitHub 倉庫是否有新的提交。
+    如果有，則自動執行 'git pull' 並重啟程式。
+    """
+    # 等待 10 秒，讓主程式完全啟動後再開始檢查
+    await asyncio.sleep(10)
+    print("✅ 背景任務：GitHub 自動更新檢查器已啟動。")
 
-        while True:
-            try:
-                # 步驟 1: 從遠端獲取最新的分支資訊，但不合併
-                git_fetch_process = await asyncio.create_subprocess_shell(
-                    'git fetch',
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-                await git_fetch_process.wait()
+    def run_git_command(command: list) -> tuple[int, str, str]:
+        """在一個阻塞的執行緒中安全地運行 git 命令。"""
+        process = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            check=False  # 我們手動檢查返回碼
+        )
+        return process.returncode, process.stdout, process.stderr
 
-                # 步驟 2: 檢查本地分支是否落後於遠端分支
-                # -uno 表示不顯示未追蹤的檔案，使輸出更乾淨
-                git_status_process = await asyncio.create_subprocess_shell(
-                    'git status -uno',
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-                stdout, stderr = await git_status_process.communicate()
+    while True:
+        try:
+            # [v4.1 修正] 使用 asyncio.to_thread 來運行阻塞的 subprocess，
+            # 這是處理異步循環中子進程的最佳實踐，可以避免 NotImplementedError。
+            await asyncio.to_thread(run_git_command, ['git', 'fetch'])
+            
+            returncode, stdout, stderr = await asyncio.to_thread(
+                run_git_command, ['git', 'status', '-uno']
+            )
 
-                if git_status_process.returncode == 0:
-                    status_output = stdout.decode('utf-8')
-                    # 不同的 Git 版本和語言環境可能有不同的提示，這裡檢查最常見的一種
-                    if "Your branch is behind" in status_output or "您的分支落後" in status_output:
-                        print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
-                        
-                        # 步驟 3: 拉取最新的程式碼
-                        git_pull_process = await asyncio.create_subprocess_shell(
-                            'git pull',
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE
-                        )
-                        pull_stdout, pull_stderr = await git_pull_process.communicate()
+            if returncode == 0:
+                status_output = stdout
+                if "Your branch is behind" in status_output or "您的分支落後" in status_output:
+                    print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                    
+                    pull_rc, pull_stdout, pull_stderr = await asyncio.to_thread(
+                        run_git_command, ['git', 'pull']
+                    )
 
-                        if git_pull_process.returncode == 0:
-                            print("✅ [自動更新] 程式碼更新成功！")
-                            print("🔄 應用程式將在 3 秒後自動重啟以應用變更...")
-                            await asyncio.sleep(3)
-                            
-                            # 使用與依賴安裝相同的機制來重啟程式
-                            os.execv(sys.executable, [sys.executable] + sys.argv)
-                        else:
-                            print("🔥 [自動更新] 'git pull' 失敗。請手動檢查程式碼目錄。")
-                            print(f"   錯誤訊息: {pull_stderr.decode('utf-8')}")
+                    if pull_rc == 0:
+                        print("✅ [自動更新] 程式碼更新成功！")
+                        print("🔄 應用程式將在 3 秒後自動重啟以應用變更...")
+                        await asyncio.sleep(3)
+                        os.execv(sys.executable, [sys.executable] + sys.argv)
+                    else:
+                        print("🔥 [自動更新] 'git pull' 失敗。請手動檢查程式碼目錄。")
+                        print(f"   錯誤訊息: {pull_stderr}")
 
-                # 每 300 秒（5分鐘）檢查一次
-                await asyncio.sleep(300)
+            # 每 300 秒（5分鐘）檢查一次
+            await asyncio.sleep(300)
 
-            except FileNotFoundError:
-                print("🔥 [自動更新] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
-                print("   請確保您是透過 launcher.py 啟動，並且系統已安裝 Git。")
-                break # 停止循環
-            except Exception as e:
-                # [v4.0 修正] 增加異常類型的輸出，確保能看到錯誤詳情
-                print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
-                # 發生錯誤後，等待更長的時間再重試，避免頻繁報錯
-                await asyncio.sleep(600)
-    # 函式：啟動 GitHub 自動更新檢查器的異步任務 (v4.0 新增)
+        except FileNotFoundError:
+            print("🔥 [自動更新] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
+            print("   請確保您是透過 launcher.py 啟動，並且系統已安裝 Git。")
+            break
+        except Exception as e:
+            print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
+            await asyncio.sleep(600)
+# 函式：啟動 GitHub 自動更新檢查器的異步任務 (v4.1 - 穩定性重構)
 
 
     try:
