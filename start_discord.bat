@@ -1,22 +1,25 @@
 @echo off
-REM ------------------------------------------------------------------
-REM AI Lover Service - Discord Bot 獨立啟動腳本
-REM ------------------------------------------------------------------
+:: AI Lover 啟動器 (Discord 模式) v1.0
+:: 說明: 此批次檔會自動啟動位於同目錄下的 AI 戀人專案，並傳入 'discord' 參數。
 
-REM 自動切換到批次檔所在的目錄
+:: 設置視窗標題，方便識別
+title AI Lover Launcher (Discord Mode)
+
+echo [AI Lover Launcher] 正在準備啟動環境...
+
+:: 核心指令: 切換到此批次檔所在的目錄
+:: %~dp0 會自動展開為此檔案的路徑 (例如: D:\...\ai_lover_service\)
+:: cd /d 確保即使跨磁碟機也能正確切換
 cd /d "%~dp0"
 
-echo.
-echo =======================================================
-echo      AI Lover Service - Discord Bot Mode
-echo =======================================================
-echo.
-echo 正在啟動 Discord Bot 服務...
-echo.
+echo [AI Lover Launcher] 當前目錄: %cd%
+echo [AI Lover Launcher] 準備執行: python launcher.py discord
+echo ----------------------------------------------------
 
-REM 使用系統的 python 來執行 main.py，並明確指定 'discord' 模式
-python main.py discord
+:: 執行主程式
+python launcher.py discord
 
-echo.
-echo 服務已停止或發生錯誤。
+:: 保持視窗開啟，以便查看日誌或錯誤訊息
+echo ----------------------------------------------------
+echo [AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。
 pause
