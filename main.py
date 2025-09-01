@@ -99,6 +99,10 @@ async def read_root(request: Request):
 # 函式：主程式入口
 # 說明：異步函式，初始化並根據命令列參數啟動應用程式的不同部分（Web、Discord 或全部）。
 async def main():
+    # [v5.1 新增] 在最開始打印版本號
+    MAIN_PY_VERSION = "v5.1"
+    print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
+
     # --- 在主流程開始前，執行依賴檢查 ---
     # 這個檢查必須在最前面，確保後續的導入能夠成功
     _check_and_install_dependencies()
@@ -153,16 +157,17 @@ async def main():
                     status_output = stdout
                     if "Your branch is behind" in status_output or "您的分支落後" in status_output:
                         print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                        # [v5.1 修正] 改為使用與啟動器相同的強制同步邏輯
                         pull_rc, _, pull_stderr = await asyncio.to_thread(
-                            run_git_command, ['git', 'pull']
+                            run_git_command, ['git', 'reset', '--hard', 'origin/main']
                         )
                         if pull_rc == 0:
-                            print("✅ [自動更新] 程式碼更新成功！")
+                            print("✅ [自動更新] 程式碼強制同步成功！")
                             print("🔄 應用程式將在 3 秒後自動重啟以應用變更...")
                             await asyncio.sleep(3)
                             os.execv(sys.executable, [sys.executable] + sys.argv)
                         else:
-                            print("🔥 [自動更新] 'git pull' 失敗。請手動檢查程式碼目錄。")
+                            print("🔥 [自動更新] 'git reset' 失敗。請手動檢查。")
                             print(f"   錯誤訊息: {pull_stderr}")
                 await asyncio.sleep(300)
             except FileNotFoundError:
