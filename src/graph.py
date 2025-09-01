@@ -142,6 +142,7 @@ async def generate_core_response_node(state: ConversationGraphState) -> Dict:
     structured_context = state['structured_context']
     rag_context = state['rag_context']
     
+    # [v1.4 新增日誌] 這是識別新舊版本函式的關鍵
     logger.info(f"[{user_id}] (Graph) Node: generate_core_response_node -> 正在為 LLM 組合純創作型 Prompt...")
     
     # [v1.4 核心修正] 廢除所有包含 ReAct 思想的舊提示詞和「導演指令」。
@@ -214,6 +215,9 @@ async def generate_core_response_node(state: ConversationGraphState) -> Dict:
     
     return {"llm_response": llm_response, "dynamic_prompt": final_system_prompt_str}
 # 節點：生成核心回應 (v1.4 - 提示詞與角色定位重構)
+
+
+
 
 # 節點：驗證、重寫並淨化輸出 (v1.1 - 移除驗證與重寫)
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
