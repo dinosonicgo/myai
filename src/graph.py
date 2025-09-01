@@ -4,7 +4,8 @@
 # 1. [災難性BUG修復] 移除了 `create_main_response_graph` 函式的 `ai_instances` 參數。圖形建構器應為無狀態的藍圖定義，不應依賴任何運行時的數據。此修正解決了導致程式無法啟動的 `TypeError`。
 # v1.0 (2025-08-31):
 # 1. [全新創建] 根據 LangGraph 重構藍圖，創建此檔案以集中定義所有圖形、節點和路由。
-
+import sys  # <--- 新增這一行
+print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr) # <--- 新增這一行
 import asyncio
 import json
 import re
