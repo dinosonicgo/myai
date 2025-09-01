@@ -253,55 +253,31 @@ async def generate_core_response_node(state: ConversationGraphState) -> Dict:
     return {"llm_response": llm_response, "dynamic_prompt": final_system_prompt_str}
 # 節點：生成核心回應 (v1.3 - 重複動作檢測修正)
 
-# 節點：驗證、重寫並淨化輸出
+# 節點：驗證、重寫並淨化輸出 (v1.1 - 移除驗證與重寫)
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 5] 驗證 LLM 回應是否違規，如有必要則進行重寫，並執行最終的文本淨化。
+    [節點 5] [v1.1 已停用驗證與重寫] 此節點現在僅作為一個簡單的傳遞節點。
+    它會直接將 LLM 的原始回應設定為最終輸出，以避免因過度審查導致空回應。
     """
     user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
     initial_response = state['llm_response']
 
-    logger.info(f"[{user_id}] (Graph) Node: validate_and_rewrite_node -> 正在驗證與淨化輸出...")
+    logger.info(f"[{user_id}] (Graph) Node: validate_and_rewrite_node -> [已停用] 正在直接傳遞 LLM 原始輸出...")
     
-    if not initial_response or not initial_response.strip():
+    # [v1.1 修正] 移除所有驗證和重寫邏輯，直接使用 LLM 的原始輸出。
+    # 這樣可以避免因驗證/重寫鏈本身被審查而導致輸出為空的問題。
+    final_response = initial_response
+
+    if not final_response or not final_response.strip():
         logger.error(f"[{user_id}] 核心鏈返回了空的或無效的回應。")
-        return {"final_output": "（抱歉，我似乎無法描述那個場景。請您嘗試換一種方式或描述其他內容。）"}
+        # 即使直接傳遞，也保留一個最小的備用回應。
+        return {"final_output": "（...）"}
 
-    # 1. 驗證
-    validation_result_dict = await ai_core.ainvoke_with_rotation(
-        ai_core.output_validation_chain, 
-        {"username": ai_core.profile.user_profile.name, "response_text": initial_response}
-    )
-    
-    # 2. 重寫 (如有必要)
-    if validation_result_dict.get('is_violating', False):
-        logger.warning(f"[{user_id}] 檢測到違反使用者主權原則，啟動重寫鏈...")
-        final_response = await ai_core.ainvoke_with_rotation(
-            ai_core.rewrite_chain, 
-            {"username": ai_core.profile.user_profile.name, "user_input": user_input, "response_text": initial_response}
-        )
-    else:
-        final_response = initial_response
-        
-    # 3. 淨化
+    # 只保留最基礎的頭尾空白字符清理
     clean_response = final_response.strip()
-    delimiter = "最終輸出生成："
-    if delimiter in clean_response:
-        parts = clean_response.rsplit(delimiter, 1)
-        clean_response = parts[1].strip() if len(parts) == 2 and parts[1].strip() else clean_response
 
-    thought_block_pattern = re.compile(r"^\s*思考：[\s\S]*?\n\n", re.MULTILINE)
-    clean_response, subs = thought_block_pattern.subn(clean_response, "", 1)
-    if subs > 0:
-        clean_response = clean_response.strip()
-        
-    characters_to_strip = " \n\t*`【】（）"
-    clean_response = clean_response.strip(characters_to_strip)
-
-    return {"final_output": clean_response or "（...）"}
-# 節點：驗證、重寫並淨化輸出
+    return {"final_output": clean_response}
+# 節點：驗證、重寫並淨化輸出 (v1.1 - 移除驗證與重寫)
 
 # 節點：執行狀態更新與記憶儲存
 async def persist_state_node(state: ConversationGraphState) -> Dict:
