@@ -1,0 +1,104 @@
+AI Lover 診斷日誌 
+======================================== 
+開始時間: 週日 2025/08/03 16:20:13.95 
+ 
+[成功] 找到虛擬環境。 
+ 
+--- 正在檢查 Python 版本 --- 
+Python 3.10.6
+ 
+--- 正在執行 main.py web 模式 --- 
+初始化資料庫...
+2025-08-03 16:20:30,955 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:20:30,987 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("users")
+INFO:sqlalchemy.engine.Engine:PRAGMA main.table_info("users")
+2025-08-03 16:20:30,987 INFO sqlalchemy.engine.Engine [raw sql] ()
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+2025-08-03 16:20:31,003 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("memories")
+INFO:sqlalchemy.engine.Engine:PRAGMA main.table_info("memories")
+2025-08-03 16:20:31,003 INFO sqlalchemy.engine.Engine [raw sql] ()
+INFO:sqlalchemy.engine.Engine:[raw sql] ()
+2025-08-03 16:20:31,003 INFO sqlalchemy.engine.Engine COMMIT
+INFO:sqlalchemy.engine.Engine:COMMIT
+
+啟動 AI戀人系統...
+模式: 只啟動 Web 伺服器
+Web介面將在 http://localhost:8000 運行
+瀏覽器將自動打開本地測試頁面...
+INFO:     Started server process [15584]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
+INFO:     ::1:4696 - "GET / HTTP/1.1" 200 OK
+INFO:     ('::1', 4698) - "WebSocket /ws/web-test-hsntf1k3n" [accepted]
+INFO:src.web_server:Connection opened for client_id: web-test-hsntf1k3n
+INFO:     connection open
+2025-08-03 16:20:33,211 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:20:33,216 INFO sqlalchemy.engine.Engine SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+INFO:sqlalchemy.engine.Engine:SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+2025-08-03 16:20:33,216 INFO sqlalchemy.engine.Engine [generated in 0.00021s] ('web-test-hsntf1k3n',)
+INFO:sqlalchemy.engine.Engine:[generated in 0.00021s] ('web-test-hsntf1k3n',)
+2025-08-03 16:20:33,216 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:sqlalchemy.engine.Engine:ROLLBACK
+INFO:     ::1:4696 - "GET /favicon.ico HTTP/1.1" 200 OK
+2025-08-03 16:21:14,217 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:21:14,217 INFO sqlalchemy.engine.Engine SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+INFO:sqlalchemy.engine.Engine:SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+2025-08-03 16:21:14,217 INFO sqlalchemy.engine.Engine [cached since 41s ago] ('web-test-hsntf1k3n',)
+INFO:sqlalchemy.engine.Engine:[cached since 41s ago] ('web-test-hsntf1k3n',)
+2025-08-03 16:21:14,219 INFO sqlalchemy.engine.Engine INSERT INTO users (user_id, username, ai_name, affinity, world_settings, ai_settings) VALUES (?, ?, ?, ?, ?, ?)
+INFO:sqlalchemy.engine.Engine:INSERT INTO users (user_id, username, ai_name, affinity, world_settings, ai_settings) VALUES (?, ?, ?, ?, ?, ?)
+2025-08-03 16:21:14,220 INFO sqlalchemy.engine.Engine [generated in 0.00021s] ('web-test-hsntf1k3n', 'DINO', 'CC', 0, '這是一個溫馨的世界', '一個名為CC的AI戀人，性格活潑可愛')
+INFO:sqlalchemy.engine.Engine:[generated in 0.00021s] ('web-test-hsntf1k3n', 'DINO', 'CC', 0, '這是一個溫馨的世界', '一個名為CC的AI戀人，性格活潑可愛')
+2025-08-03 16:21:14,245 INFO sqlalchemy.engine.Engine COMMIT
+INFO:sqlalchemy.engine.Engine:COMMIT
+2025-08-03 16:21:14,483 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:21:14,483 INFO sqlalchemy.engine.Engine SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+INFO:sqlalchemy.engine.Engine:SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+2025-08-03 16:21:14,483 INFO sqlalchemy.engine.Engine [cached since 41.28s ago] ('web-test-hsntf1k3n',)
+INFO:sqlalchemy.engine.Engine:[cached since 41.28s ago] ('web-test-hsntf1k3n',)
+2025-08-03 16:21:14,483 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:sqlalchemy.engine.Engine:ROLLBACK
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+INFO:     ::1:4697 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+INFO:     ::1:4707 - "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 Not Found
+2025-08-03 16:21:33,175 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:21:33,175 INFO sqlalchemy.engine.Engine SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+INFO:sqlalchemy.engine.Engine:SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+2025-08-03 16:21:33,176 INFO sqlalchemy.engine.Engine [cached since 59.96s ago] ('web-test-hsntf1k3n',)
+INFO:sqlalchemy.engine.Engine:[cached since 59.96s ago] ('web-test-hsntf1k3n',)
+2025-08-03 16:21:33,176 INFO sqlalchemy.engine.Engine COMMIT
+INFO:sqlalchemy.engine.Engine:COMMIT
+2025-08-03 16:21:33,178 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+INFO:sqlalchemy.engine.Engine:BEGIN (implicit)
+2025-08-03 16:21:33,178 INFO sqlalchemy.engine.Engine SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+INFO:sqlalchemy.engine.Engine:SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.affinity AS users_affinity, users.world_settings AS users_world_settings, users.ai_settings AS users_ai_settings, users.game_state AS users_game_state 
+FROM users 
+WHERE users.user_id = ?
+2025-08-03 16:21:33,178 INFO sqlalchemy.engine.Engine [cached since 59.96s ago] ('web-test-hsntf1k3n',)
+INFO:sqlalchemy.engine.Engine:[cached since 59.96s ago] ('web-test-hsntf1k3n',)
+2025-08-03 16:21:33,178 INFO sqlalchemy.engine.Engine ROLLBACK
+INFO:sqlalchemy.engine.Engine:ROLLBACK

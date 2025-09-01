@@ -1,0 +1,537 @@
+<!-- index.html 的中文註釋(v1.5 - 指令分層架構) -->
+<!-- 更新紀錄: -->
+<!-- v1.5 (2050-08-06): -->
+<!-- 1. [UI新增] 新增了「自訂系統設置」按鈕。 -->
+<!-- 2. [JS重構] 擴充了 Modal 相關函式，現在可以處理多種類型的設定，包括新的「系統設置」。 -->
+<!-- 3. [雙向通訊] 實現了點擊「自訂系統設置」 -> 前端發送 /get_system_settings -> 後端回傳JSON -> 前端解析並填充 Modal 的完整流程。 -->
+<!-- v1.4 (2024-07-28): -->
+<!-- 1. [UI/UX重大升級] 新增了完整的自訂彈出式視窗 (Modal) 系統。 -->
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <title>AI戀人 - 本地測試介面</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            --user-message-bg: #007bff;
+            --ai-message-bg: #e4e6eb;
+            --background-color: #f0f2f5;
+            --container-bg: #ffffff;
+            --text-color: #050505;
+            --border-color: #dddfe2;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #appContainer {
+            width: 100%;
+            max-width: 800px;
+            height: 95vh;
+            max-height: 900px;
+            background-color: var(--container-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        h1 {
+            text-align: center;
+            padding: 20px;
+            margin: 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.5em;
+            color: var(--user-message-bg);
+        }
+        #chatBox {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 18px;
+            line-height: 1.4;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .user {
+            background-color: var(--user-message-bg);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .ai {
+            background-color: var(--ai-message-bg);
+            color: var(--text-color);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .system {
+            text-align: center;
+            color: #888;
+            font-size: 0.9em;
+            margin: 5px 0;
+            width: 100%;
+        }
+        #inputArea {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid var(--border-color);
+            gap: 10px;
+            background-color: var(--container-bg);
+        }
+        #messageInput {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            outline: none;
+            font-size: 1em;
+        }
+        #messageInput:focus {
+            border-color: var(--user-message-bg);
+        }
+        button {
+            padding: 10px 20px;
+            background-color: var(--user-message-bg);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        #controls {
+            padding: 10px 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            border-top: 1px solid var(--border-color);
+            background-color: #f7f7f7;
+        }
+        #controls button {
+            background-color: #6c757d;
+        }
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+        .modal-close {
+            font-size: 1.8em;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .modal-body {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .modal-body textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            box-sizing: border-box; /* Important */
+        }
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
+            margin-top: 15px;
+            text-align: right;
+        }
+        .modal-footer button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="appContainer">
+        <h1>AI戀人 - 本地測試介面</h1>
+        <div id="chatBox"></div>
+        <div id="inputArea">
+            <input type="text" id="messageInput" placeholder="輸入訊息...">
+            <button onclick="sendMessage()">發送</button>
+        </div>
+        <div id="controls">
+            <button onclick="startAdventure()">開始冒險</button>
+            <button onclick="openSettingsChoiceModal()">設定</button>
+            <button onclick="openSettingsModal('system')">自訂系統設置</button>
+            <button onclick="maxAffinity()">好感度MAX</button>
+            <button onclick="clearHistory()">清除歷史記錄</button>
+        </div>
+    </div>
+
+    <!-- Modal HTML Structure -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="modal-title">設定</h2>
+                <button class="modal-close" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-body-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal()" style="background-color: #6c757d;">取消</button>
+                <button id="saveModalButton">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const clientId = 'web-test-' + (sessionStorage.getItem('clientId') || Math.random().toString(36).substring(2, 11));
+        sessionStorage.setItem('clientId', clientId);
+
+        const modal = document.getElementById('settingsModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBodyContent = document.getElementById('modal-body-content');
+        const saveModalButton = document.getElementById('saveModalButton');
+
+        let setupState = {};
+
+        function connect() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws/${clientId}`;
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => console.log('WebSocket connection established.');
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    const settingType = modal.dataset.settingType;
+
+                    if (data.type === 'current_settings' && (settingType === 'worldview' || settingType === 'aisettings')) {
+                        if (settingType === 'worldview') {
+                            modalTitle.textContent = '世界觀設定';
+                            modalBodyContent.innerHTML = `<textarea id="modalTextarea" placeholder="請在此輸入內容...">${data.world_settings}</textarea>`;
+                        } else if (settingType === 'aisettings') {
+                            modalTitle.textContent = 'AI 規範 (性格與行為)';
+                            modalBodyContent.innerHTML = `<textarea id="modalTextarea" placeholder="請在此輸入內容...">${data.ai_settings}</textarea>`;
+                        }
+                        modal.classList.add('visible');
+                    } else if (data.type === 'current_character_profile') {
+                        document.getElementById('char_name').value = data.profile.name || '';
+                        document.getElementById('char_gender').value = data.profile.gender || '';
+                        document.getElementById('char_description').value = data.profile.description || '';
+                        document.getElementById('char_appearance').value = data.profile.appearance || '';
+                    } else if (data.type === 'current_system_settings' && settingType === 'system') {
+                        modalTitle.textContent = '自訂系統設置 (一號指令)';
+                        modalBodyContent.innerHTML = `<textarea id="modalTextarea" placeholder="請在此輸入內容...">${data.one_instruction}</textarea>`;
+                        modal.classList.add('visible');
+                    } else {
+                        addMessage('AI', event.data);
+                    }
+                } catch (e) {
+                    addMessage('AI', event.data);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket connection closed. Reconnecting...');
+                addSystemMessage('連線中斷，正在嘗試重新連接...');
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                addSystemMessage('連線發生錯誤。');
+            };
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            if (message && ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('使用者', message);
+                ws.send(message);
+                input.value = '';
+            } else {
+                addSystemMessage('連線尚未建立，請稍候。');
+            }
+        }
+
+        function addTypingIndicator() {
+            const chatBox = document.getElementById('chatBox');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.id = 'typing-indicator';
+            typingDiv.textContent = 'AI 正在輸入中...';
+            chatBox.appendChild(typingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingIndicator = document.getElementById('typing-indicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        function addMessage(sender, text) {
+            removeTypingIndicator();
+            const chatBox = document.getElementById('chatBox');
+            const messageDiv = document.createElement('div');
+            const isSystem = sender === 'AI' && (text.includes('已連接') || text.includes('歡迎') || text.includes('設定') || text.includes('清除') || text.includes('好感度') || text.includes('更新'));
+            messageDiv.className = `message ${sender === '使用者' ? 'user' : (isSystem ? 'system' : 'ai')}`;
+            try {
+                const jsonObj = JSON.parse(text);
+                if (jsonObj.type === 'typing') {
+                    addTypingIndicator();
+                    return;
+                }
+                messageDiv.textContent = JSON.stringify(jsonObj, null, 2);
+            } catch (e) {
+                messageDiv.textContent = text;
+            }
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addSystemMessage(text) {
+            addMessage('AI', text);
+        }
+
+        function clearHistory() {
+            if (confirm('確定要清除所有對話歷史和設定嗎？')) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send('/clear_history');
+                    document.getElementById('chatBox').innerHTML = '';
+                    addSystemMessage('已發送清除指令。');
+                } else {
+                    addSystemMessage('連線尚未建立，無法清除。');
+                }
+            }
+        }
+
+        function maxAffinity() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('/max_affinity');
+            } else {
+                addSystemMessage('連線尚未建立，無法設定。');
+            }
+        }
+
+        function startAdventure() {
+            if (confirm('確定要開始一段全新的冒險嗎？這將會永久刪除您當前所有的角色、世界、記憶和進度。')) {
+                ws.send('/reset');
+                showWorldSetupModal();
+            }
+        }
+
+        function showWorldSetupModal() {
+            modal.dataset.settingType = 'setup_world';
+            modalTitle.textContent = '步驟 1/3: 世界觀設定';
+            modalBodyContent.innerHTML = `<textarea id="modalTextarea" placeholder="請描述這個世界的基本規則、風格、科技或魔法水平等...">這是一個魔法與科技交織的幻想世界。</textarea>`;
+            saveModalButton.onclick = saveWorldSetup;
+            modal.classList.add('visible');
+        }
+
+        function saveWorldSetup() {
+            const worldSettings = document.getElementById('modalTextarea').value;
+            if (!worldSettings.trim()) return alert('世界觀設定不能為空。');
+            setupState.world_settings = worldSettings.trim();
+            closeModal();
+            showCharacterSetupModal('user');
+        }
+
+        function showCharacterSetupModal(type, isSetupFlow = true) {
+            const isUser = type === 'user';
+            modal.dataset.settingType = `setup_${type}`;
+            modalTitle.textContent = isUser ? (isSetupFlow ? '步驟 2/3: 您的角色設定' : '👤 使用者角色設定') : (isSetupFlow ? '步驟 3/3: AI 戀人設定' : '❤️ AI 戀人設定');
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(`/get_character_profile ${type}`);
+            }
+
+            modalBodyContent.innerHTML = `
+                <input type="text" id="char_name" placeholder="名字 (必填)" style="width: 100%; margin-bottom: 10px; padding: 5px;">
+                <input type="text" id="char_gender" placeholder="性別 (男/女/其他)" style="width: 100%; margin-bottom: 10px; padding: 5px;">
+                <textarea id="char_description" placeholder="性格、背景、種族、年齡等綜合描述" style="width: 100%; height: 100px; margin-bottom: 10px; padding: 5px;"></textarea>
+                <textarea id="char_appearance" placeholder="外觀描述 (髮型/瞳色/身材等)" style="width: 100%; height: 100px; padding: 5px;"></textarea>
+            `;
+            saveModalButton.onclick = () => saveCharacterSetup(type, isSetupFlow);
+            modal.classList.add('visible');
+        }
+
+        function saveCharacterSetup(type, isSetupFlow) {
+            const name = document.getElementById('char_name').value.trim();
+            if (!name) return alert('名字不能為空。');
+            
+            const characterProfile = {
+                name: name,
+                gender: document.getElementById('char_gender').value.trim(),
+                description: document.getElementById('char_description').value.trim(),
+                appearance: document.getElementById('char_appearance').value.trim(),
+            };
+
+            if (isSetupFlow) {
+                if (type === 'user') {
+                    setupState.user_profile = characterProfile;
+                    closeModal();
+                    showCharacterSetupModal('ai');
+                } else {
+                    setupState.ai_profile = characterProfile;
+                    closeModal();
+                    finalizeSetup();
+                }
+            } else {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(`/set_character_profile ${type} ${JSON.stringify(characterProfile)}`);
+                    closeModal();
+                }
+            }
+        }
+
+        function finalizeSetup() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(`/finalize_setup ${JSON.stringify(setupState)}`);
+                addSystemMessage('正在為您創建專屬世界，請稍候...');
+            } else {
+                addSystemMessage('連線尚未建立，無法完成設定。');
+            }
+            setupState = {};
+        }
+
+        function openSettingsChoiceModal() {
+            modal.dataset.settingType = 'choice';
+            modalTitle.textContent = '設定中心';
+            modalBodyContent.innerHTML = `
+                <button onclick="openCharacterSettingsModal('user')" style="width: 100%; margin-bottom: 10px;">👤 使用者角色設定</button>
+                <button onclick="openCharacterSettingsModal('ai')" style="width: 100%; margin-bottom: 10px;">❤️ AI 戀人設定</button>
+                <button onclick="openSettingsModal('worldview')" style="width: 100%;">🌍 世界觀設定</button>
+            `;
+            saveModalButton.style.display = 'none';
+            modal.classList.add('visible');
+        }
+
+        function openCharacterSettingsModal(type) {
+            closeModal();
+            showCharacterSetupModal(type, false);
+        }
+
+        function openSettingsModal(type) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                modal.dataset.settingType = type;
+                saveModalButton.style.display = 'block';
+                saveModalButton.onclick = saveSettings;
+                if (type === 'system') {
+                    ws.send('/get_system_settings');
+                } else {
+                    ws.send('/get_settings');
+                }
+            } else {
+                addSystemMessage('連線尚未建立，無法獲取設定。');
+            }
+        }
+
+        function closeModal() {
+            modal.classList.remove('visible');
+            modalBodyContent.innerHTML = '';
+        }
+
+        function saveSettings() {
+            const type = modal.dataset.settingType;
+            const content = document.getElementById('modalTextarea').value.trim();
+            if (!content) return alert('內容不能為空。');
+
+            let command = '';
+            if (type === 'worldview') {
+                command = `/set_worldview ${content}`;
+            } else if (type === 'aisettings') {
+                command = `/set_aisettings ${content}`;
+            } else if (type === 'system') {
+                command = `/set_system_settings ${content}`;
+            }
+
+            if (command && ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(command);
+                closeModal();
+            } else {
+                addSystemMessage('連線尚未建立，無法保存設定。');
+            }
+        }
+        
+        saveModalButton.onclick = saveSettings;
+        modal.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+
+        document.getElementById('messageInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        connect();
+    </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+# 忽略 Python 相關的暫存檔
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 忽略虛擬環境資料夾
+.venv/
+venv/
+env/
+
+# 忽略使用者數據和資料庫
+data/
+
+# 忽略包含敏感金鑰的設定檔
+config/.env
+
+# 忽略 IDE 相關的設定檔
+.idea/
+.vscode/
