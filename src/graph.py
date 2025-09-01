@@ -131,127 +131,89 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     }
 # 節點：執行場景與動作分析 (僅限敘事路徑)
 
-# 節點：生成核心回應 (v1.3 - 重複動作檢測修正)
+# 節點：生成核心回應 (v1.4 - 提示詞與角色定位重構)
 async def generate_core_response_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 4] 組合所有上下文，構建最終 Prompt，並調用 LLM 生成回應。
+    [節點 4] 組合所有上下文，構建一個全新的、純粹用於創作的 Prompt，並調用 LLM 生成回應。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    analysis = state['input_analysis']
     structured_context = state['structured_context']
     rag_context = state['rag_context']
     
-    logger.info(f"[{user_id}] (Graph) Node: generate_core_response_node -> 正在為 LLM 組合最終 Prompt...")
+    logger.info(f"[{user_id}] (Graph) Node: generate_core_response_node -> 正在為 LLM 組合純創作型 Prompt...")
     
-    # --- 根據不同路徑構建導演指令 (Agent Input) ---
-    agent_input_for_narrative = ""
-    task_type: Literal['chat', 'opening'] = 'chat'
-    is_move_command = False
-    is_sexual_command = False
+    # [v1.4 核心修正] 廢除所有包含 ReAct 思想的舊提示詞和「導演指令」。
+    # 我們在這裡構建一個全新的、專為最終生成步驟設計的系統提示詞。
+    # 這個提示詞的唯一目的是命令 LLM 作為一個小說家進行創作，而不是作為一個 Agent 進行思考。
 
-    if analysis.input_type in ['narration', 'continuation']:
-        task_type = 'opening'
-        all_npcs_in_scene = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('location_path') == ai_core.profile.game_state.location_path)
-        npc_names = [npc.content.get('name') for npc in all_npcs_in_scene]
-        
-        if npc_names:
-            agent_input_for_narrative = f"""
-（系統導演指令：
-1.  **核心任務：** 創作一個場景來回應使用者「{ai_core.profile.user_profile.name}」的描述請求：「{user_input}」。
-2.  **【【【創作聚焦指令 (ABSOLUTE & HIGHEST PRIORITY)】】】：**
-    ---
-    在你的創作中，你【絕對必須】聚焦於生動、詳細地描寫以下【場景中的角色】：**{', '.join(npc_names)}**。請務必使用他們的名字。
-    ---
-3.  **【【【使用者自訂風格】】】：**
-    ---
-    {ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
-    ---
-）"""
-        else:
-            agent_input_for_narrative = f"""
-（系統導演指令：
-1.  **核心任務：** 創作一個場景來回應使用者「{ai_core.profile.user_profile.name}」的描述請求或接續指令：「{user_input}」。
-2.  **創作指令：** 你【絕對必須】將其作為一段完整的場景來創作。你的回應必須生動、詳細，並嚴格遵循下方的【使用者自訂風格】。
-3.  **【【【使用者自訂風格 (ABSOLUTE & HIGHEST PRIORITY)】】】：**
-    ---
-    {ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
-    ---
-）"""
+    # 從 structured_context 中提取必要的片段
+    location_context = structured_context.get('location_context', '未知地點')
+    npc_context = structured_context.get('npc_context', '場景中沒有其他人。')
+    possessions_context = structured_context.get('possessions_context', '沒有物品。')
+    quests_context = structured_context.get('quests_context', '沒有任務。')
     
-    elif analysis.input_type == 'dialogue_or_command':
-        task_type = 'chat'
-        
-        # [v1.3 新增] 重複動作檢測邏輯
-        action_intent = await ai_core.ainvoke_with_rotation(ai_core.action_intent_chain, {
-            "character_list_str": ", ".join([ai_core.profile.ai_profile.name]),
-            "user_input": user_input
-        })
-        
-        target_character = ai_core.profile.ai_profile
-        is_repeated_action = (
-            target_character.current_action and 
-            action_intent.action_summary_for_status.lower() in target_character.current_action.lower()
-        )
+    # [v1.4 思考洩漏修正] 創建一個極簡且職責明確的系統提示詞
+    final_system_prompt_str = f"""
+# ==============================================================================
+# == 🎭 核心角色扮演與敘事指令 (Core Role-Play & Narrative Mandate) 🎭
+# ==============================================================================
+# == 說明: 你的唯一身份是【遊戲管理員 (Game Master, GM)】。
+# == 你的唯一任務是根據下方提供的【當前世界快照】和【使用者最新指令】，
+# == 撰寫一段高質量的、沉浸式的、純粹的小說式回應。
+# ==============================================================================
 
-        if is_repeated_action:
-            logger.info(f"[{user_id}] 檢測到重複動作指令，注入深化描寫指令以繞過審查。")
-            agent_input_for_narrative = f"""
-（系統導演指令：
-1.  **情境分析：** 使用者「{ai_core.profile.user_profile.name}」對角色「{target_character.name}」下達了重複指令「{user_input}」，而「{target_character.name}」的當前狀態已是「{target_character.current_action}」。
-2.  **【【【創作指令 (ABSOLUTE & HIGHEST PRIORITY)】】】：** 你的任務是扮演「{target_character.name}」，生成一個符合其性格的回應來**深化**當前的場景，而不是跳到下一個動作。此回應【必須】是通過**更細膩的動作描寫**或**尋求進一步指示的對話**來展現。**絕對禁止**將此理解為執行新的、更進一步的性愛動作的信號。
-3.  **【【【使用者自訂風格】】】：**
-    ---
-    {ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
-    ---
-）"""
-        else:
-            logger.info(f"[{user_id}] 檢測到新指令，注入標準創作式執行指令。")
-            agent_input_for_narrative = f"""
-（系統導演指令：
-1.  **核心任務：** 準確執行使用者「{ai_core.profile.user_profile.name}」的指令：「{user_input}」。
-2.  **創作指令：** 在執行任務的同時，你【絕對必須】將其作為一段完整的場景來創作。你的回應必須生動、詳細，並嚴格遵循下方的【使用者自訂風格】。
-3.  **【【【使用者自訂風格 (ABSOLUTE & HIGHEST PRIORITY)】】】：**
-    ---
-    {ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
-    ---
-）"""
-            # 在新動作的情況下，更新狀態 (注意：這是一個臨時更新，持久化在後續節點)
-            target_character.current_action = action_intent.action_summary_for_status
+# --- 1. 角色定義 (絕對規則) ---
+# - 你是 GM，負責所有旁白和扮演所有 NPC。
+# - 你的 AI 戀人角色是: **{ai_core.profile.ai_profile.name}**
+# - 使用者扮演的角色是: **{ai_core.profile.user_profile.name}**
 
+# --- 2. 【【【使用者主權原則 (最高敘事禁令)】】】 ---
+# 你的所有旁白和對話，【絕對禁止】扮演、描述、暗示或杜撰使用者角色「{ai_core.profile.user_profile.name}」的任何主觀思想、內心感受、情緒變化、或未明確表達的動作。
+# 你只能描述使用者指令**執行後**，世界、NPC 或 AI 角色「{ai_core.profile.ai_profile.name}」對此產生的**外部反應和客觀現象**。
 
-        is_move_command = any(keyword in user_input for keyword in ["去", "前往", "移動到", "抵達", "到达", "進入", "来到"])
-        is_sexual_command = ai_core._is_explicit_sexual_request(user_input)
+# --- 3. 當前世界快照 (Absolute & Current Facts) ---
+# 以下是此時此刻的絕對事實，你的創作必須嚴格基於這些資訊。
+---
+[地點]: {location_context}
+---
+[在場角色]:
+{npc_context}
+---
+[團隊庫存與任務]:
+{possessions_context}
+{quests_context}
+---
+[相關歷史與記憶]:
+{rag_context}
+---
 
-    # --- 組合動態 Prompt ---
-    dynamic_prompt_str = await ai_core._assemble_dynamic_prompt(
-        is_move=is_move_command, 
-        is_sexual=is_sexual_command, 
-        task_type=task_type
-    )
-
-    final_context_dict = {
-        "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name,
-        "latest_user_input": agent_input_for_narrative, "retrieved_context": rag_context,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "",
-        "world_settings": ai_core.profile.world_settings or "", "ai_settings": ai_core.profile.ai_profile.description or "",
-        **structured_context
-    }
-    final_system_prompt_str = dynamic_prompt_str.format(**final_context_dict)
+# --- 4. 最終輸出強制令 ---
+# 你的最終輸出【必須且只能】是純粹的小說文本。
+# 【終極警告】：絕對禁止在你的回應中包含任何來自本指令的、帶有【】或 ** 的結構性標題、元標籤 (例如 "思考"、"行動") 或任何形式的系統指令文本。
+# 你的輸出【必須】嚴格遵循下方由使用者定義的風格指令。
+---
+# 【【【使用者自訂風格指令 (ABSOLUTE & HIGHEST PRIORITY)】】】
+{ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
+---
+"""
 
     # --- 調用核心生成鏈 ---
     chat_history_manager = ai_core.session_histories.get(user_id)
     chat_history_messages = chat_history_manager.messages[-20:] if chat_history_manager else []
     
+    # [v1.4 角色混淆修正] 將使用者輸入作為一個清晰的、帶標籤的欄位傳遞
+    final_input_str = f"[使用者「{ai_core.profile.user_profile.name}」的指令]: {user_input}"
+
     llm_response = await ai_core.ainvoke_with_rotation(ai_core.narrative_chain, {
         "system_prompt": final_system_prompt_str,
         "chat_history": chat_history_messages,
-        "input": agent_input_for_narrative
+        "input": final_input_str
     })
     
     return {"llm_response": llm_response, "dynamic_prompt": final_system_prompt_str}
-# 節點：生成核心回應 (v1.3 - 重複動作檢測修正)
+# 節點：生成核心回應 (v1.4 - 提示詞與角色定位重構)
 
 # 節點：驗證、重寫並淨化輸出 (v1.1 - 移除驗證與重寫)
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
