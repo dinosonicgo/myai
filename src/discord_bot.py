@@ -1161,7 +1161,7 @@ class BotCog(commands.Cog):
             logger.error(f"【健康檢查 & Keep-Alive】背景任務因未處理的錯誤而意外終止！")
     # 函式：連線監看任務結束後
 
-    # 函式：監聽訊息事件 (v38.1 - 智能備用回應修正)
+    # 函式：監聽訊息事件 (v38.3 - 縮排修正)
     # 說明：處理所有私訊訊息的核心事件監聽器，現在調用 LangGraph 執行流程。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -1184,9 +1184,9 @@ class BotCog(commands.Cog):
         async with message.channel.typing():
             try:
                 # 準備 LangGraph 的初始狀態
-                # [v38.1 修正] 確保在冷啟動時正確創建 ChatMessageHistory
                 if user_id not in ai_instance.session_histories:
-                    ai_instance.session_histories[user_id] = discord.ext.commands.ChatMessageHistory()
+                    # [v38.2 修正] 致命錯誤修正：從 langchain_community 實例化 ChatMessageHistory
+                    ai_instance.session_histories[user_id] = ChatMessageHistory()
                 
                 chat_history_manager = ai_instance.session_histories[user_id]
                 current_messages = chat_history_manager.messages.copy() # 使用副本以避免修改原始列表
@@ -1229,7 +1229,7 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"處理使用者 {user_id} 的 LangGraph 聊天流程時發生未捕獲的異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤，管理員已收到通知。")
-    # 函式：監聽訊息事件 (v38.1 - 智能備用回應修正)
+    # 函式：監聽訊息事件 (v38.3 - 縮排修正)
     
 
 
