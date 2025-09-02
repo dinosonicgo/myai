@@ -125,9 +125,10 @@ async def main():
                     pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command, ['git', 'reset', '--hard', 'origin/main'])
                     if pull_rc == 0:
                         print("✅ [自動更新] 程式碼強制同步成功！")
-                        print("🔄 應用程式將在 3 秒後自動重啟以應用變更...")
+                        print("🔄 應用程式將在 3 秒後發出退出信號，由啟動器負責重啟...")
                         await asyncio.sleep(3)
-                        os.execv(sys.executable, [sys.executable] + sys.argv)
+                        # [v2.0 核心修正] 不再使用 os.execv，而是以返回碼 0 正常退出
+                        sys.exit(0)
                     else:
                         print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
                 await asyncio.sleep(300)
