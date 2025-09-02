@@ -149,22 +149,24 @@ async def define_creature_type(lore_key: str, standardized_name: str, original_n
 
 # --- 任務與世界傳說相關工具 ---
 
-# 類別：新增或更新任務傳說參數 (v2.0 - 增加參數別名)
+# 类别：新增或更新任务传说参数 (v2.0 - 增加参数别名)
+# 更新纪录:
+# v2.0 (2025-09-03): [健壮性] 根据背景任务的 ValidationError 日志，为 `description` 字段增加了 `content` 作为别名。此修改使得该工具能够兼容上游 LLM 可能生成的不同参数名称，从根本上解决了因参数名不匹配而导致的工具调用失败问题。
 class AddOrUpdateQuestLoreArgs(BaseToolArgs):
-    lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
-    standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化任務標題。")
-    original_name: str = Field(description="LLM 在計畫中生成的原始任務標題。")
+    lore_key: str = Field(description="系统内部使用的唯一标识符，由实体解析链生成。")
+    standardized_name: str = Field(description="由实体解析链生成的、用于内部索引的标准化任务标题。")
+    original_name: str = Field(description="LLM 在计画中生成的原始任务标题。")
     description: str = Field(
-        description="任務的詳細描述，包括背景、目標、獎勵等。",
-        validation_alias=AliasChoices('description', 'content', 'quest_description') # <--- 核心修正
+        description="任务的详细描述，包括背景、目标、奖励等。",
+        validation_alias=AliasChoices('description', 'content', 'quest_description')
     )
-    location_path: List[str] = Field(description="觸發或與該任務相關的地點路徑。")
-    status: str = Field(default="可用", description="任務的當前狀態，例如：'可用'、'進行中'、'已完成'。")
+    location_path: List[str] = Field(description="触发或与该任务相关的地点路径。")
+    status: str = Field(default="可用", description="任务的当前状态，例如：'可用'、'进行中'、'已完成'。")
 
-# 工具：新增或更新任務傳說
+# 工具：新增或更新任务传说
 @tool(args_schema=AddOrUpdateQuestLoreArgs)
 async def add_or_update_quest_lore(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: List[str], status: str = "可用") -> str:
-    """用於創建一個新的任務，或用全新的描述覆蓋一個已有的任務。"""
+    """用于创建一个新的任务，或用全新的描述覆盖一个已有的任务。"""
     user_id = tool_context.get_user_id()
     quest_data = {
         "title": standardized_name,
@@ -174,22 +176,24 @@ async def add_or_update_quest_lore(lore_key: str, standardized_name: str, origin
         "aliases": [original_name] if original_name.lower() != standardized_name.lower() else []
     }
     await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
-    return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
+    return f"已成功为任务 '{standardized_name}' 创建或更新了记录。"
 
-# 類別：新增或更新世界傳說參數 (v2.0 - 增加參數別名)
+# 类别：新增或更新世界传说参数 (v2.0 - 增加参数别名)
+# 更新纪录:
+# v2.0 (2025-09-03): [健壮性] 为 `content` 字段增加了 `description` 作为别名。此修改使得该工具能够兼容上游 LLM 可能生成的不同参数名称，提高了背景 LORE 生成任务的成功率。
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
-    lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
-    standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化傳說標題。")
-    original_name: str = Field(description="LLM 在計畫中生成的原始傳說標題。")
+    lore_key: str = Field(description="系统内部使用的唯一标识符，由实体解析链生成。")
+    standardized_name: str = Field(description="由实体解析链生成的、用于内部索引的标准化传说标题。")
+    original_name: str = Field(description="LLM 在计画中生成的原始传说标题。")
     content: str = Field(
-        description="傳說或背景故事的詳細內容。",
-        validation_alias=AliasChoices('content', 'description', 'lore_content') # <--- 核心修正
+        description="传说或背景故事的详细内容。",
+        validation_alias=AliasChoices('content', 'description', 'lore_content')
     )
 
-# 工具：新增或更新世界傳說
+# 工具：新增或更新世界传说
 @tool(args_schema=AddOrUpdateWorldLoreArgs)
 async def add_or_update_world_lore(lore_key: str, standardized_name: str, original_name: str, content: str) -> str:
-    """用於在世界歷史或傳說中記錄一個新的故事、事件或背景設定。"""
+    """用于在世界历史或传说中记录一个新的故事、事件或背景设定。"""
     user_id = tool_context.get_user_id()
     lore_data = {
         "title": standardized_name,
@@ -197,7 +201,7 @@ async def add_or_update_world_lore(lore_key: str, standardized_name: str, origin
         "aliases": [original_name] if original_name.lower() != standardized_name.lower() else []
     }
     await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
-    return f"已成功將 '{standardized_name}' 識別為現有傳說 '{lore_key}' 並更新了其內容。"
+    return f"已成功将 '{standardized_name}' 识别为现有传说 '{lore_key}' 并更新了其内容。"
 
 # --- 工具列表導出 ---
 
