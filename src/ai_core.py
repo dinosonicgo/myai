@@ -508,14 +508,15 @@ class AILover:
 
 
 
-    # 函式：獲取世界創世鏈
-    # 說明：創建或返回一個用於根據世界觀生成初始出生點的鏈。
+    # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_world_genesis_chain(self) -> Runnable:
         if self.world_genesis_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.8)
             genesis_llm = raw_llm.with_structured_output(WorldGenesisResult)
             
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位富有想像力的世界構建師和開場導演。
+            prompt_str = """你是一位富有想像力的世界構建師和開場導演。
 你的任務是根據使用者提供的【核心世界觀】，為他和他的AI角色創造一個獨一無二的、充滿細節和故事潛力的【初始出生點】。
 
 【核心規則】
@@ -543,7 +544,7 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.world_genesis_chain = full_prompt | genesis_llm
         return self.world_genesis_chain
-    # 函式：獲取世界創世鏈
+    # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：獲取批次實體解析鏈
     # 說明：創建或返回一個用於判斷新實體是新的還是已存在的鏈，以避免重複創建。
