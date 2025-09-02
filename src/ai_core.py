@@ -546,14 +546,15 @@ class AILover:
         return self.world_genesis_chain
     # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：獲取批次實體解析鏈
-    # 說明：創建或返回一個用於判斷新實體是新的還是已存在的鏈，以避免重複創建。
+    # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_batch_entity_resolution_chain(self) -> Runnable:
         if self.batch_entity_resolution_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.0)
             resolution_llm = raw_llm.with_structured_output(BatchResolutionPlan)
             
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
+            prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
 你將收到一個【待解析實體名稱列表】和一個【現有實體列表】。你的職責是【遍歷】待解析列表中的【每一個】名稱，並根據語意、上下文和常識，為其精確-判斷這是指向一個已存在的實體，還是一個確實全新的實體。
 
 **【核心判斷原則】**
@@ -574,7 +575,7 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.batch_entity_resolution_chain = full_prompt | resolution_llm
         return self.batch_entity_resolution_chain
-    # 函式：獲取批次實體解析鏈
+    # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：獲取世界聖經解析鏈
     # 說明：創建或返回一個用於從自由文本中解析結構化LORE數據的鏈。
