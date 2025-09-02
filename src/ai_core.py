@@ -135,16 +135,31 @@ class AILover:
     
 
 
-    # 函式：創建一個原始的 LLM 實例 (v170.2 - 安全設定統一)
+    # 函式：創建一個原始的 LLM 實例 (v2.0 - 循環負載均衡)
+    # 更新紀錄:
+    # v2.0 (2025-09-03): [重大性能優化] 實現了循環負載均衡 (Round-Robin Load Balancing)。此函式現在會在每次創建 LLM 實例後，自動將金鑰索引 `current_key_index` 向前推進一位。這使得連續的 API 請求能被自動分發到不同的 API 金鑰上，假設這些金鑰來自不同項目，將極大提高併發處理能力並從根本上解決速率限制問題。
+    # v170.2 (2025-08-29): [安全設定統一] 統一了安全設定。
     def _create_llm_instance(self, temperature: float = 0.7) -> ChatGoogleGenerativeAI:
-        """創建並返回一個原始的 ChatGoogleGenerativeAI 實例，該實例適用於需要 BaseLanguageModel 的地方。"""
-        return ChatGoogleGenerativeAI(
+        """創建並返回一個原始的 ChatGoogleGenerativeAI 實例，並自動輪換到下一個 API 金鑰以實現負載均衡。"""
+        # 使用當前的金鑰創建實例
+        key_to_use = self.api_keys[self.current_key_index]
+        llm = ChatGoogleGenerativeAI(
             model=self.MODEL_NAME,
-            google_api_key=self.api_keys[self.current_key_index],
+            google_api_key=key_to_use,
             temperature=temperature,
-            safety_settings=SAFETY_SETTINGS, # 修正：引用模組級別的全域常量
+            safety_settings=SAFETY_SETTINGS,
         )
-    # 函式：創建一個原始的 LLM 實例 (v170.2 - 安全設定統一)
+        
+        # [v2.0 核心修正] 立即將索引指向下一個金鑰，為下一次調用做準備
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        logger.info(f"[{self.user_id}] LLM 實例已使用 API Key #{self.current_key_index} 創建。下一次將使用 Key #{ (self.current_key_index % len(self.api_keys)) + 1 }。")
+        
+        return llm
+    # 函式：創建一個原始的 LLM 實例 (v2.0 - 循環負載均衡)
+
+
+
+    
     # 函式：初始化AI實例
     # 說明：從資料庫加載使用者設定，並配置所有必要的AI模型和鏈。
     async def initialize(self) -> bool:
@@ -242,21 +257,23 @@ class AILover:
 
 
 
-    # 函式：用新金鑰輕量級重建 Agent (v198.0 - LangGraph 架構重構)
-    # 說明：一個輕量級的輔助函式，專門用於在 API 金鑰輪換後，僅重新構建使用金鑰的模型，避免昂貴的重建。
+    # 函式：輕量級重建核心模型 (v2.0 - 職責簡化)
+    # 更新紀錄:
+    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。它現在只觸發核心模型的重新初始化，讓新的 `_create_llm_instance` 函式來自動處理金鑰的輪換。
+    # v198.0 (2025-08-31): [架構重構] 根據 LangGraph 架構重構。
     async def _rebuild_agent_with_new_key(self):
-        """僅重新初始化使用 API 金鑰的模型。"""
+        """輕量級地重新初始化所有核心模型，以應用新的 API 金鑰策略（如負載均衡）。"""
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下重建 Agent。")
             return
 
-        logger.info(f"[{self.user_id}] 正在使用新的 API 金鑰輕量級重建核心模型...")
+        logger.info(f"[{self.user_id}] 正在輕量級重建核心模型以應用金鑰策略...")
         
-        # [v198.0 修正] 僅重新初始化使用 API 金鑰的模型，不再重建已移除的 AgentExecutor
+        # 這會調用 _create_llm_instance，從而使用下一個可用的金鑰
         self._initialize_models()
         
-        logger.info(f"[{self.user_id}] 核心模型已成功使用新金鑰重建。")
-    # 函式：用新金鑰輕量級重建 Agent (v198.0 - LangGraph 架構重構)
+        logger.info(f"[{self.user_id}] 核心模型已成功重建。")
+    # 函式：輕量級重建核心模型 (v2.0 - 職責簡化)
 
 
 
@@ -1640,72 +1657,65 @@ class AILover:
             raise Exception("所有三個階段的強化重試均失敗，可能遭遇了不可繞過的平台級審查。")
     # 函式：委婉化與強化重試 (v134.1 通用化修正版)
 
-    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v175.0 內容審查優化)
+    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v180.0 - 負載均衡重構)
     # 更新紀錄:
-    # v175.0 (2025-08-31): [根本性BUG修復] 徹底重構了錯誤處理邏輯。此函式現在能夠明確區分「內容安全錯誤」（返回空內容）與「API資源錯誤」。當檢測到內容安全錯誤時，它將【優先】觸發`_euphemize_and_retry`委婉化重試機制，而不是立即進行無效的API金鑰輪換。此修正從根本上提高了系統在遭遇內容審查時的智能應對和自我修復能力。
-    # v174.0 (2025-08-31): [架構優化] 在API金鑰輪換後，不再重建整個AI核心，而是調用輕量級的`_rebuild_agent_with_new_key`函式，大幅提高了輪換效率並降低了不必要的資源消耗。
-    # v1.0 (2025-08-27): [全新創建] 創建了此函式以實現健壯的API調用。
+    # v180.0 (2025-09-03): [重大架構重構] 徹底重構了此函式的錯誤處理邏輯以適配新的循環負載均衡架構。函式本身不再負責手動輪換金鑰。當遭遇 `ResourceExhausted` 錯誤時，它現在會進入一個帶有指數退避和超時機制的重試循環。這使得系統在所有金鑰都達到速率限制的極端情況下，能夠智能地等待配額恢復，而不是無效地快速輪換。
+    # v175.0 (2025-08-31): [根本性BUG修復] 增加了對內容安全錯誤的優先處理。
     async def ainvoke_with_rotation(self, chain: Runnable, params: dict) -> Any:
         if not self.api_keys:
             raise ValueError("No API keys available.")
 
-        initial_key_index = self.current_key_index
-        euphemize_attempted = False
+        max_retries = len(self.api_keys) * 2  # 每個金鑰最多嘗試2次
+        base_delay = 5  # 初始延遲5秒
+        max_delay = 60 # 最大延遲60秒
+        total_timeout = 300 # 總超時300秒 (5分鐘)
+        
+        start_time = time.time()
 
-        # 總共嘗試 (金鑰數量 * 2) 輪，確保每個金鑰在委婉化前後都有機會
-        for i in range(len(self.api_keys) * 2):
+        for attempt in range(max_retries):
+            if time.time() - start_time > total_timeout:
+                raise asyncio.TimeoutError(f"Chain invocation timed out after {total_timeout} seconds.")
+
             try:
-                # 統一的調用邏輯
                 result = await chain.ainvoke(params)
                 
-                # [v175.0 新增] 執行後立即檢查空回應，這是內容審查最明確的信號
                 is_empty_response = (
                     (isinstance(result, AIMessage) and not result.content.strip()) or
                     (isinstance(result, str) and not result.strip()) or
-                    (isinstance(result, dict) and not result) or # 處理解析器返回空字典的情況
-                    (result is None) or
-                    (not result)
+                    (isinstance(result, dict) and not result) or
+                    (result is None) or (not result)
                 )
                 
                 if is_empty_response:
-                    # 拋出一個特定的錯誤，以便在 except 區塊中被識別為內容安全問題
                     raise Exception("SafetyError: The model returned an empty response, likely due to content filtering.")
                     
-                # 如果成功且有內容，直接返回
                 return result
 
             except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded) as e:
-                logger.warning(f"[{self.user_id}] API Key #{self.current_key_index + 1} 遭遇資源或伺服器錯誤: {type(e).__name__}. 正在輪換金鑰並重試...")
-                self._rotate_api_key()
+                delay = min(base_delay * (2 ** attempt), max_delay)
+                logger.warning(f"[{self.user_id}] API 遭遇資源或伺服器錯誤: {type(e).__name__}. 所有金鑰可能均處於速率限制中。將在 {delay:.1f} 秒後重試 (第 {attempt + 1}/{max_retries} 次)...")
+                await asyncio.sleep(delay)
+                # 雖然金鑰在底層自動輪換，但這裡也需要重新構建模型以確保新金鑰生效
                 await self._rebuild_agent_with_new_key()
+
 
             except Exception as e:
                 error_str = str(e).lower()
-                # [v175.0 核心修正] 判斷是否為內容安全錯誤
                 is_safety_error = "blocked" in error_str or "safety" in error_str or "empty response" in error_str
 
-                # 如果是內容安全錯誤，且尚未嘗試過委婉化，則優先執行委婉化
-                if is_safety_error and not euphemize_attempted:
+                if is_safety_error:
                     logger.warning(f"[{self.user_id}] 檢測到內容安全錯誤，正在啟動委婉化重試機制...")
-                    euphemize_attempted = True
                     try:
-                        # 如果委婉化成功，直接返回結果，結束循環
                         return await self._euphemize_and_retry(chain, params)
                     except Exception as retry_e:
-                        logger.warning(f"[{self.user_id}] 委婉化重試機制失敗: {retry_e}. 將繼續嘗試輪換 API Key。")
+                        logger.error(f"[{self.user_id}] 委婉化重試機制失敗: {retry_e}. 可能是不可繞過的平台級審查。")
+                        raise retry_e # 委婉化失敗後直接拋出異常
                 
-                # 如果不是安全錯誤，或是委婉化已失敗，則執行標準的金鑰輪換
-                logger.warning(f"[{self.user_id}] API Key #{self.current_key_index + 1} 遭遇錯誤: {type(e).__name__}. 正在輪換金鑰並重試...")
-                self._rotate_api_key()
-                await self._rebuild_agent_with_new_key()
+                # 對於其他未知錯誤，直接拋出
+                raise e
 
-                # 如果所有金鑰都輪換過一圈了，就判斷為最終失敗
-                if self.current_key_index == initial_key_index and i >= len(self.api_keys) - 1 :
-                    logger.error(f"[{self.user_id}] 已嘗試所有 {len(self.api_keys)} 個 API 金鑰及重試，但均失敗。最後錯誤: {e}")
-                    raise e
-
-        raise Exception(f"All {len(self.api_keys)} API keys and all retry mechanisms failed.")
-    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v175.0 內容審查優化)
+        raise Exception(f"All {max_retries} retry attempts failed. The API may be consistently unavailable or rate-limited.")
+    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v180.0 - 負載均衡重構)
 
 
 
@@ -2042,11 +2052,5 @@ class AILover:
 
     
 
-    # 函式：輪換 API 金鑰
-    # 說明：將當前使用的 API 金鑰索引切換到列表中的下一個。
-    def _rotate_api_key(self):
-        """切換到下一個可用的 API Key。"""
-        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-        logger.info(f"[{self.user_id}] API Key 已切換至索引 #{self.current_key_index + 1}。")
-    # 函式：輪換 API 金鑰
+
 # 類別結束
