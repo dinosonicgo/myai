@@ -12,7 +12,7 @@ import time
 import shutil
 import warnings
 import datetime
-from typing import List, Dict, Optional, Any, Literal, Callable # [v199.0 修正] 新增 Callable
+from typing import List, Dict, Optional, Any, Literal, Callable
 import asyncio
 import gc
 from pathlib import Path
@@ -51,14 +51,14 @@ from pydantic import BaseModel, Field
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
+# [v200.1 修正] 更新導入，新增 ValidationResult 和 ExtractedEntities
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
-                      UserInputAnalysis, SceneAnalysisResult)
+                      UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities)
 from .database import AsyncSessionLocal, UserData, MemoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
-
 # 全局常量：Gemini 安全閥值設定 (v1.0.0 - 與 dino_ai.py 同步)
 # 此設定旨在最大化內容生成自由度，適用於所有 LLM 實例，以確保與主應用程式的行為一致。
 SAFETY_SETTINGS = {
