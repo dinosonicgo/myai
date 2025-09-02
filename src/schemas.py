@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v10.1 - 新增模型定義)
+# src/schemas.py 的中文註釋(v10.2 - 新增單體解析模型)
 # 更新紀錄:
-# v10.1 (2025-09-02): [災難性BUG修復] 新增了之前被遺漏的 `ValidationResult` 和 `ExtractedEntities` 兩個 Pydantic 模型。此修改將所有用於鏈之間數據傳遞的模型集中到此文件中，解決了因模型未定義而導致的 `NameError`，並使代碼結構更清晰、更易於維護。
+# v10.2 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，新增了 `SingleResolutionPlan` 和 `SingleResolutionResult` 兩個 Pydantic 模型。它們將被新的、一次只處理一個實體的 `get_single_entity_resolution_chain` 使用，以取代高負載的批次解析鏈。
+# v10.1 (2025-09-02): [災難性BUG修復] 新增了之前被遺漏的 `ValidationResult` 和 `ExtractedEntities` 兩個 Pydantic 模型。
 # v10.0 (2025-08-31): [功能增強] 在 `CharacterProfile` 中新增了 `alternative_names` 欄位以支持命名衝突備援。
-# v9.2 (2025-08-29): [根本性重構] 在 `CharacterProfile` 中新增了 `current_action` 欄位以實現狀態感知。
 
 import json
 import re
@@ -219,7 +219,7 @@ class CanonParsingResult(BaseModel):
     npc_profiles: List[CharacterProfile] = Field(default_factory=list, description="從文本中解析出的所有 NPC 的完整個人檔案列表。")
     locations: List[LocationInfo] = Field(default_factory=list, description="從文本中解析出的所有地點的詳細資訊列表。")
     items: List[ItemInfo] = Field(default_factory=list, description="從文本中解析出的所有物品的詳細資訊列表。")
-    creatures: List[CreatureInfo] = Field(default_factory=list, description="從文本中解析出的所有生物或物種的詳細資訊列表。")
+    creatures: List[CreatureInfo] = Field(default_factory=list, description="從文本中解析出的所有生物或物종的詳細資訊列表。")
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
@@ -250,6 +250,19 @@ class BatchResolutionResult(BaseModel):
 
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
+
+# [v10.2 新增] 用於單體實體解析的新模型
+class SingleResolutionResult(BaseModel):
+    """單個實體名稱的解析結果。"""
+    original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
+    decision: Literal['NEW', 'EXISTING'] = Field(description="判斷結果：'NEW' 代表這是一個全新的實體，'EXISTING' 代表它指向一個已存在的實體。")
+    standardized_name: Optional[str] = Field(None, description="如果判斷為'NEW'，AI 應為其生成一個更標準、更正式的名稱。如果判斷為'EXISTING'，此欄位可為空。")
+    matched_key: Optional[str] = Field(None, description="如果判斷為'EXISTING'，此欄位必須包含匹配到的、已存在的實體的唯一主鍵 (lore_key)。")
+    reasoning: str = Field(description="AI 做出此判斷的簡短理由。")
+
+class SingleResolutionPlan(BaseModel):
+    """單個實體名稱的完整解析計畫。"""
+    resolution: SingleResolutionResult
 
 class UserInputAnalysis(BaseModel):
     """[第一層分析] 用於結構化地表示對使用者輸入的初步意圖分析結果。"""
