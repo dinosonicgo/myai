@@ -127,38 +127,68 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃
+# 函式：執行回合規劃 (v2.0 - 動態指令引擎)
+# 更新紀錄:
+# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。它現在負責分析使用者意圖，從 ai_core 中動態選擇並組裝基礎指令和特定情境的戰術模組（如性愛、移動），然後將最終的、為本回合量身定做的完整系統提示詞注入 planning_chain。
+# v1.0 (2025-09-02): [全新創建] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
-    [核心] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
+    [核心] 新架構的核心“思考”節點與動態指令引擎。
+    組合上下文快照，動態組裝系統指令，並調用 planning_chain 生成結構化的行動計劃。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在格式化世界快照並生成行動計劃...")
+    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在動態組裝指令並生成行動計劃...")
+
+    # --- 步驟 1: 準備數據快照 ---
     context_dict = {
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
         **state['structured_context']
     }
-    world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
+    # [v2.0 修正] 確保 username 和 ai_name 也可用於格式化
+    context_dict['username'] = ai_core.profile.user_profile.name
+    context_dict['ai_name'] = ai_core.profile.ai_profile.name
     
-    response_style_prompt = ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+    world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
 
+    # --- 步驟 2: 動態組裝系統指令 ---
+    # 獲取基礎指令 (one_instruction_template.txt)
+    base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
+    
+    # 判斷是否需要加載特定動作模組
+    action_module_name = ai_core._determine_action_module(user_input)
+    
+    # 組合最終的動態指令
+    final_system_prompt_parts = [base_system_prompt]
+    if action_module_name and action_module_name in ai_core.modular_prompts:
+        module_prompt = ai_core.modular_prompts[action_module_name]
+        final_system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
+        final_system_prompt_parts.append(module_prompt)
+        logger.info(f"[{user_id}] (Graph) 動態指令引擎：已成功加載戰術模組 '{action_module_name}'。")
+
+    # [v2.0 修正] 格式化最終的系統提示詞，確保其中的佔位符被填充
+    dynamic_system_prompt = "".join(final_system_prompt_parts).format(
+        username=ai_core.profile.user_profile.name,
+        ai_name=ai_core.profile.ai_profile.name,
+        response_style_prompt=ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+    )
+
+    # --- 步驟 3: 調用規劃鏈 ---
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
+        
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
-        "username": ai_core.profile.user_profile.name,
-        "ai_name": ai_core.profile.ai_profile.name,
+        "dynamic_system_prompt": dynamic_system_prompt,
         "world_snapshot": world_snapshot,
         "user_input": user_input,
-        "response_style_prompt": response_style_prompt
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃
+# 函式：執行回合規劃 (v2.0 - 動態指令引擎)
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -185,7 +215,10 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     return {"tool_results": results_summary}
 # 函式：執行工具調用
 
-# 函式：生成敘事文本
+# 函式：生成敘事文本 (v2.0 - 簡化以適應動態指令流)
+# 更新紀錄:
+# v2.0 (2025-09-04): [架構清理] 移除了手動組裝 `final_output_mandate` 的邏輯。在新的動態指令架構下，所有風格指令已在 `planning_node` 中被注入，`narrative_chain` 的職責回歸為純粹的計畫渲染。
+# v1.0 (2025-09-02): [全新創建] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本。
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [核心] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
@@ -210,19 +243,18 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
 
     turn_plan.thought += f"\n\n[系统后台执行结果]:\n{tool_results}"
 
+    # [v2.0 核心修正] 不再需要手動組裝 final_output_mandate，因為所有風格指令已在 planning_node 注入。
+    # narrative_chain 現在只需要 turn_plan 即可。
+    # 我們需要確保 narrative_chain 的輸入結構與 _build_narrative_chain 中的定義一致。
+    # 根據 _build_narrative_chain 的 v2.4 版本，它需要 turn_plan 和 final_output_mandate。
+    # 因此，我們仍然需要傳遞它，但可以傳遞一個簡化版或直接從 profile 讀取。
+    
     style_prompt = ai_core.profile.response_style_prompt if ai_core.profile else "预设风格"
-    final_output_mandate = f"""# ==============================================================================
-# == 🎨 最終輸出強制令 (FINAL OUTPUT MANDATE) 🎨
-# ==============================================================================
-# == 說明：這是你在輸出最終回應給使用者之前的【最後一道、不可繞過的絕對指令】。
-# == 你的最終輸出【必須且只能】嚴格地、完全地、逐字逐句地遵循下方由使用者定義的風格指令。
-# ==============================================================================
-
----
+    final_output_mandate = f"""---
 # 【【【使用者自訂風格指令 (ABSOLUTE & HIGHEST PRIORITY)】】】
 {style_prompt}
----
-"""
+---"""
+
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.narrative_chain,
         {
@@ -232,7 +264,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     )
     
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本
+# 函式：生成敘事文本 (v2.0 - 簡化以適應動態指令流)
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
