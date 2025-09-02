@@ -289,7 +289,10 @@ def route_after_input_analysis(state: ConversationGraphState) -> Literal["narrat
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v5.2 - 安全上下文管理)
+# 函式：創建主回應圖 (v5.3 - 修復背景擴展觸發)
+# 更新紀錄:
+# v5.3 (2025-09-02): [災難性BUG修復] 徹底重構了圖形的拓撲結構。舊結構在“對話流程”中會跳過 `scene_and_action_analysis_node`，導致 `scene_analysis` 狀態為空，從而使 `background_world_expansion_node` 永遠無法觸發背景任務。新結構將 `scene_and_action_analysis_node` 提升為所有流程的必經節點，確保了背景世界擴展功能在每一次對話後都能被可靠地觸發。
+# v5.2 (2025-09-02): [重大架構重構 - 健壯性] 在 `tool_execution_node` 中引入了 `try...finally` 結構，確保工具上下文的絕對清理。
 def create_main_response_graph() -> StateGraph:
     """
     組裝並編譯主對話流程的 StateGraph。
@@ -310,8 +313,13 @@ def create_main_response_graph() -> StateGraph:
     graph.set_entry_point("initialize_state")
 
     graph.add_edge("initialize_state", "analyze_input")
-    graph.add_conditional_edges("analyze_input", route_after_input_analysis, {"narrative_flow": "scene_and_action_analysis", "dialogue_flow": "planning"})
+    
+    # [v5.3 修正] 不再使用條件路由，analyze_input 統一指向 scene_and_action_analysis
+    graph.add_edge("analyze_input", "scene_and_action_analysis")
+    
+    # [v5.3 修正] scene_and_action_analysis 成為 planning 之前的必經節點
     graph.add_edge("scene_and_action_analysis", "planning")
+    
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     graph.add_edge("narrative", "validate_and_rewrite")
@@ -321,7 +329,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v5.2 - 安全上下文管理)
+# 函式：創建主回應圖 (v5.3 - 修復背景擴展觸發)
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
