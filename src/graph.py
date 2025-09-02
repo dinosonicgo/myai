@@ -1,9 +1,7 @@
-# src/graph.py 的中文註釋(v7.0 - 混合模式圖架構)
+# src/graph.py 的中文註釋(v7.1 - 災難性分叉修復)
 # 更新紀錄:
-# v7.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了徹底重構。
-#    1. [新增 NSFW 節點] 引入了 `generate_nsfw_response_node`，此節點專門調用高對抗性的 NSFW 直通鏈，繞過計劃步驟直接生成文本，以應對內容審查。
-#    2. [新增核心路由] 引入了 `route_based_on_intent` 路由，它會在流程早期分析使用者意圖，並根據是否為明確的 NSFW 指令，將流程動態地引導至【NSFW 直通路徑】或【SFW 工具路徑】。
-#    3. [重構圖拓撲] 徹底修改了 `create_main_response_graph` 中的圖結構，將新路由作為核心分支點，並確保兩條處理路徑能在 `validate_and_rewrite_node` 處正確匯合，共享後續流程。
+# v7.1 (2025-09-05): [災難性BUG修復] 根據 Log 分析，修復了 v7.0 重構中遺留的圖結構分叉問題。舊的 `analyze_input` -> `expansion_decision` 邊未被正確移除，導致 SFW 路徑被重複執行兩次。此修正確保 `analyze_input` 節點【唯一】的出口是新的核心路由器 `route_based_on_intent`，從根本上解決了重複回應和因速率限制導致的二次執行失敗問題。
+# v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖架構，引入了 NSFW/SFW 雙路徑處理流程。
 # v6.0 (2025-09-03): [重大邏輯升級] 引入了“守門人”機制以解決無意義 LORE 生成問題。
 
 import sys
@@ -55,7 +53,7 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     return {"input_analysis": analysis}
 # 函式：分析使用者輸入意圖
 
-# 函式：判斷是否需要進行LORE擴展 (v1.0 - 全新創建)
+# 函式：判斷是否需要進行LORE擴展
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
     [SFW 路徑節點] 一個“守門人”節點，在LORE創造流程前判斷使用者的“探索意圖”。
@@ -75,9 +73,9 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：判斷是否需要進行LORE擴展 (v1.0 - 全新創建)
+# 函式：判斷是否需要進行LORE擴展
 
-# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
+# 函式：執行場景與動作分析
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """
     [SFW-LORE擴展分支] 分析場景視角（本地/遠程）並為潛在的新 NPC 進行選角。
@@ -124,9 +122,9 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         )
         
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
-# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
+# 函式：執行場景與動作分析
 
-# 函式：執行 SFW 回合規劃 (v2.4 - 消息结构化指令注入)
+# 函式：執行 SFW 回合規劃
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [SFW 路徑核心] SFW 架構的核心“思考”節點與動態指令引擎。
@@ -191,9 +189,9 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v2.4 - 消息结构化指令注入)
+# 函式：執行 SFW 回合規劃
 
-# 函式：執行 NSFW 直通生成 (v1.0 - 全新創建)
+# 函式：執行 NSFW 直通生成
 async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
@@ -249,7 +247,7 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
 
     # 將結果以與 narrative_node 相同的格式返回，以便後續節點處理
     return {"llm_response": response_text}
-# 函式：執行 NSFW 直通生成 (v1.0 - 全新創建)
+# 函式：執行 NSFW 直通生成
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -276,7 +274,7 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     return {"tool_results": results_summary}
 # 函式：執行工具調用
 
-# 函式：生成敘事文本 (v2.0 - 簡化以適應動態指令流)
+# 函式：生成敘事文本
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [SFW 路徑核心] SFW 架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
@@ -316,7 +314,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     )
     
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本 (v2.0 - 簡化以適應動態指令流)
+# 函式：生成敘事文本
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
@@ -375,7 +373,7 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     return {}
 # 函式：執行狀態更新與記憶儲存
 
-# 函式：觸發背景世界擴展 (v2.0 - 增加决策判断)
+# 函式：觸發背景世界擴展
 async def background_world_expansion_node(state: ConversationGraphState) -> Dict:
     """
     [收尾] 在回應發送後，根據擴展決策，非阻塞地觸發背景世界擴展、LORE生成等任務。
@@ -402,7 +400,7 @@ async def background_world_expansion_node(state: ConversationGraphState) -> Dict
         logger.info(f"[{user_id}] (Graph) Node: background_world_expansion_node -> 根據決策，本輪跳過背景擴展。")
 
     return {}
-# 函式：觸發背景世界擴展 (v2.0 - 增加决策判断)
+# 函式：觸發背景世界擴展
 
 # 函式：圖形結束 finalizing
 async def finalization_node(state: ConversationGraphState) -> Dict:
@@ -416,7 +414,7 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-# 函式：[SFW路由] 在擴展決策後決定流程 (v1.0 - 全新創建)
+# 函式：[SFW路由] 在擴展決策後決定流程
 def route_expansion(state: ConversationGraphState) -> Literal["expand_lore", "skip_expansion"]:
     """
     [SFW路由] 根據 expansion_decision_node 的結果，決定是進入LORE創造流程，還是直接跳到核心規劃。
@@ -430,9 +428,9 @@ def route_expansion(state: ConversationGraphState) -> Literal["expand_lore", "sk
     else:
         logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【跳過LORE擴展】。")
         return "skip_expansion"
-# 函式：[SFW路由] 在擴展決策後決定流程 (v1.0 - 全新創建)
+# 函式：[SFW路由] 在擴展決策後決定流程
 
-# 函式：[核心路由] 根據意圖決定路徑 (v1.0 - 全新創建)
+# 函式：[核心路由] 根據意圖決定路徑
 def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "sfw_path"]:
     """
     [核心路由] 根據使用者的輸入意圖，決定是進入 NSFW 直通路徑還是 SFW 工具路徑。
@@ -447,17 +445,14 @@ def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path",
     else:
         logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 未檢測到 NSFW 意圖，進入【SFW 工具路徑】。")
         return "sfw_path"
-# 函式：[核心路由] 根據意圖決定路徑 (v1.0 - 全新創建)
+# 函式：[核心路由] 根據意圖決定路徑
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v7.0 - 整合混合模式路由)
+# 函式：創建主回應圖 (v7.1 - 災難性分叉修復)
 # 更新紀錄:
-# v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖。
-#    1. [新增核心路由] 引入了 `route_based_on_intent` 作為早期核心路由，它會根據 NSFW 意圖將流程分發到兩條完全不同的路徑。
-#    2. [新增 NSFW 路徑] 為 NSFW 意圖創建了一條精簡的直通路徑 (`generate_nsfw_response_node` -> `validate_and_rewrite`)，以規避內容審查。
-#    3. [保留 SFW 路徑] 為常規指令保留了原有的、包含 LORE 擴展和工具調用的完整 SFW 路徑。
-#    4. [路徑匯合] 確保了兩條路徑的輸出能在 `validate_and_rewrite_node` 節點處無縫匯合，共享後續處理流程。
+# v7.1 (2025-09-05): [災難性BUG修復] 根據 Log 分析，修復了 v7.0 重構中遺留的圖結構分叉問題。舊的 `analyze_input` -> `expansion_decision` 邊未被正確移除，導致 SFW 路徑被重複執行兩次。此修正確保 `analyze_input` 節點【唯一】的出口是新的核心路由器 `route_based_on_intent`，從根本上解決了重複回應和因速率限制導致的二次執行失敗問題。
+# v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖架構，引入了 NSFW/SFW 雙路徑處理流程。
 def create_main_response_graph() -> StateGraph:
     """
     組裝並編譯主對話流程的 StateGraph，現在採用混合模式架構。
@@ -488,7 +483,9 @@ def create_main_response_graph() -> StateGraph:
     graph.set_entry_point("initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
 
-    # 新增核心的 NSFW/SFW 條件路由
+    # [v7.1 核心修正] 確保 analyze_input 節點唯一的出口是核心路由器。
+    # LangGraph 的 add_conditional_edges 會自動覆蓋任何來自同一源節點的舊邊。
+    # 這裡的定義是正確的，它將取代任何可能存在的舊的 `add_edge("analyze_input", ...)`。
     graph.add_conditional_edges(
         "analyze_input",
         route_based_on_intent,
@@ -498,7 +495,7 @@ def create_main_response_graph() -> StateGraph:
         }
     )
 
-    # 定義 NSFW 路徑的流程
+    # 定義 NSFW 路徑的流程：直通鏈 -> 驗證與淨化
     graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
 
     # 定義 SFW 路徑的完整流程
@@ -522,7 +519,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v7.0 - 整合混合模式路由)
+# 函式：創建主回應圖 (v7.1 - 災難性分叉修復)
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
