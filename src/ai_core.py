@@ -895,6 +895,38 @@ class AILover:
 
 
 
+
+    # 函式：建構 RAG 上下文總結鏈 (v1.0 - 全新創建)
+    # 說明：創建一個專門的鏈，用於將 RAG 檢索到的、可能包含完整敘事散文的文檔，提煉成一份只包含核心事實的、要點式的摘要。此舉旨在從根本上解決 AI 直接複製歷史上下文的“偷懶”問題。
+    def _build_rag_summarizer_chain(self) -> Runnable:
+        """創建一個用於將 RAG 檢索結果提煉為要點事實的鏈。"""
+        summarizer_llm = self._create_llm_instance(temperature=0.0)
+        
+        prompt_template = """你的唯一任務是扮演一名情報分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
+
+【核心規則】
+1.  **只提取事實**: 你的輸出【必須且只能】是關鍵事實的列表（例如人物、地點、物品、發生的核心事件）。
+2.  **禁止散文**: 【絕對禁止】在你的輸出中使用任何敘事性、描述性或帶有文采的句子。
+3.  **保持中立**: 不要添加任何原始文本中沒有的推論或評論。
+
+---
+【原始文本】:
+{documents}
+---
+【事實摘要】:
+"""
+        prompt = ChatPromptTemplate.from_template(prompt_template)
+        
+        return (
+            {"documents": lambda docs: "\n\n---\n\n".join([doc.page_content for doc in docs])}
+            | prompt
+            | summarizer_llm
+            | StrOutputParser()
+        )
+    # 函式：建構 RAG 上下文總結鏈 (v1.0 - 全新創建)
+    
+
+
     # 函式：建構重寫鏈 (v167.0 - 提示詞結構修正)
     # 更新紀錄:
     # v167.0 (2025-08-31): [災難性BUG修復] 徹底重構了此鏈的提示詞結構，嚴格遵循 `System/Human` 訊息格式。舊版本將所有指令打包為單一輸入，導致模型在執行重寫任務時，會連同自身的系統指令（如“好的，身為專業小說編輯...”）一起洩漏到輸出中。新結構確保模型清晰地區分其角色和任務，從而只輸出純淨的、修正後的小說文本。
