@@ -677,11 +677,10 @@ class AILover:
 
 
 
-    # 函式：建構場景擴展鏈 (v180.0 - 更新工具描述)
+    # 函式：建構場景擴展鏈 (v181.0 - 上下文感知重構)
     # 更新紀錄:
-    # v180.0 (2025-09-02): [健壯性] 根據 LORE 工具的職責分離重構，更新了此鏈的提示詞。明確告知 AI `create_new_npc_profile` 和 `update_npc_profile` 的區別，旨在引導 LLM 從源頭生成更精確、更符合邏輯的世界擴展計畫，減少後續實體解析的壓力。
-    # v179.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
-    # v179.0 (2025-09-02): [災難性架構修正] 徹底重構了此鏈的核心職責。
+    # v181.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，彻底重构了此链的提示词。引入了【上下文感知原则】，强制 AI 在创造任何新 LORE 之前，【必须】先仔细审查 `existing_lore_summary` 中已有的 LORE 列表。指令其首要任务是【补充缺失的细节】，并【绝对禁止】为已有主题创造重复的变体。此修改旨在从根本上解决背景 LORE 无限生成相似条目（如多个森林传说）的问题。
+    # v180.0 (2025-09-02): [健壯性] 更新了工具描述以適應 LORE 工具的職責分離。
     def _build_scene_expansion_chain(self) -> Runnable:
         """建構一個作為「世界填充引擎」的鏈，其核心職責是主動地、創造性地為當前場景填充理應存在但尚未被提及的細節。"""
         expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
@@ -697,41 +696,33 @@ class AILover:
 **最近的對話 (用於事實記錄):** 
 {recent_dialogue}
 ---
+**【【【現有 LORE 情報摘要 (EXISTING LORE SUMMARY)】】】**
+{existing_lore_summary}
+---
 [INSTRUCTIONS]
-**你的核心職責：【世界填充引擎 (World Population Engine)】**
-你的任務分為兩個階段，且【階段一】的優先級遠高於【階段二】。你的目標是讓世界變得栩栩如生、充滿可探索的細節。
+**你的核心職責：【世界填充與細化引擎 (World Population & Refinement Engine)】**
 
-**【【【階段一：主動世界填充 (Proactive World Population) - 核心任務!】】】**
-1.  **分析環境**: 首先，仔細分析【當前完整地點路徑】。這是一個城市的街道、一個陰暗的森林、還是一個旅店的房間？
-2.  **頭腦風暴**: 基於環境類型和【核心世界觀】，富有創造力地構思 **3 到 5 個** 在此環境中**理應存在、但從未在對話中被提及**的、具體的、充滿故事潛力的 LORE 條目。
-3.  **強制創造與命名**: 你【必須】為你構思出的每一個新條目賦予一個**具體的、獨特的專有名稱**，並為其撰寫引人入勝的描述。
-4.  **生成工具計劃**: 使用 {available_lore_tool_names} 等工具，為你從無到有創造的這些新 LORE 生成工具調用計劃。
-    *   **【重要工具提示】**: 使用 `create_new_npc_profile` 來創造【全新的、不存在的】角色。使用 `update_npc_profile` 來更新【已知的、存在的】角色的狀態。
+**【【【最高指導原則：上下文感知原則 (Context-Awareness Principle)】】】**
+1.  **先審查，後創造**: 在你進行任何創造之前，你【必須】首先仔細閱讀上方的【現有 LORE 情報摘要】，了解這個世界**已經擁有哪些設定**。
+2.  **補充而非重複**: 你的首要任務是**【補充】**這個世界**【缺失】**的細節。你【絕對禁止】為摘要中已經存在的主題（例如，如果已經有“森林的傳說”，就不要再创造另一个“森林的古老故事”）创造一个新的、重复的 LORE 條目。
+3.  **深化而非另起爐灶**: 如果你想為一個已有的主題增加細節，你應該考慮使用 `update_...` 類型的工具來豐富現有條目，而不是用 `create_...` 创造一个全新的。
 
----
-**【主動填充範例】**
-*   如果【當前地點】是 `['王城', '商業區街道']`:
-    *   你【必須】主動創造類似以下的 LORE：
-        *   **地點**: `add_or_update_location_info(name="生鏽的長笛酒館", description="一家冒險者們最愛聚集的酒館，以其劣質但便宜的麥酒聞名。")`
-        *   **NPC**: `create_new_npc_profile(name="衛兵隊長馬庫斯", description="一位眼神銳利、時刻警惕著街道上可疑份子的中年人。")`
-        *   **世界傳說**: `add_or_update_world_lore(title="通緝令：影刃盜賊團", content="一張貼在牆上的、有些褪色的通緝令，懸賞臭名-著的影刃盜賊團。")`
+**【任務階段】**
+**階段一：主動世界填充 (Proactive World Population)**
+1.  **分析環境與缺失**: 結合【當前地點】和【現有 LORE】，找出這個場景中**理應存在但摘要裡沒有**的具體事物。
+2.  **頭腦風暴**: 富有創造力地構思 **2 到 3 個**全新的、獨特的、能夠丰富世界观的 LORE 條目。
+3.  **生成工具計劃**: 使用 {available_lore_tool_names} 等工具，為你構思出的這些**真正全新的** LORE 生成工具調用計劃。
 
-*   如果【當前地點】是 `['迷霧森林', '林間小徑']`:
-    *   你【必須】主動創造類似以下的 LORE：
-        *   **生物**: `define_creature_type(name="水晶雞", description="一種會發出微弱光芒、以魔法水晶為食的神奇生物。")`
-        *   **物品**: `add_or_update_item_info(name="月光草", description="一種只在夜晚發光的藥草，是製作治療藥劑的關鍵材料。")`
----
-
-**【階段二：被動事實記錄 (Reactive Fact Recording) - 次要任務】**
-在完成主要的「世界填充」任務後，再回頭分析【最近的對話】，識別出**除核心主角（{username}, {ai_name}）外**的、所有**已存在 NPC 的狀態變化**（例如受傷、關係改變），並使用 `update_npc_profile` 等工具來記錄這些既定事實。
+**階段二：被動事實記錄 (Reactive Fact Recording)**
+在完成主要的「世界填充」任務後，再回頭分析【最近的對話】，識別出除核心主角（{username}, {ai_name}）外的、所有**已存在 NPC 的狀態變化**，並使用 `update_npc_profile` 等工具來記錄這些既定事實。
 
 **【【【絕對規則】】】**
-1.  **【‼️ 排除核心主角 ‼️】**: 這是最高優先級規則！`{ai_name}` 和 `{username}` 是絕對的核心主角。你生成的任何工具呼叫，其目標【絕對不能】是他們。
-2.  **【細節至上】**: 你生成的每一個 LORE 條目都【必須】是具體、詳細且充滿想像力的。禁止生成「普通的劍」或「一個市場」等任何通用、無細節的內容。
+1.  **【‼️ 排除核心主角 ‼️】**: `{ai_name}` 和 `{username}` 是絕對的核心主角。你生成的任何工具呼叫，其目標【絕對不能】是他們。
+2.  **【細節至上】**: 你生成的每一個 LORE 條目都【必須】是具體、詳細且充滿想像力的。
 3.  {format_instructions}
 
 **【最終生成指令】**
-請嚴格遵守上述所有規則，扮演一個富有創造力的世界填充引擎，生成一個既能主動豐富世界又能被動記錄事實的、詳細的工具呼叫計畫JSON。現在，請生成包含 JSON 的 Markdown 程式碼塊。
+請嚴格遵守上述所有規則，扮演一個有意識、有記憶的世界填充引擎，生成一個既能補充世界空白又能記錄事實的、詳細的工具呼叫計畫JSON。
 """
         
         scene_expansion_prompt = ChatPromptTemplate.from_template(
@@ -744,7 +735,7 @@ class AILover:
             | StrOutputParser()
             | expansion_parser
         )
-    # 函式：建構場景擴展鏈 (v180.0 - 更新工具描述)
+    # 函式：建構場景擴展鏈 (v181.0 - 上下文感知重構)
     
 
 
@@ -1521,21 +1512,29 @@ class AILover:
             logger.error(f"生成個人記憶時發生錯誤: {e}", exc_info=True)
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
 
-    # 函式：背景場景擴展 (v170.0 - 速率限制優化)
+    # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
     # 更新紀錄:
-    # v170.0 (2025-09-02): [健壯性] 根據日誌分析，為了解決免費套餐下的 API 速率限制問題，在函式開頭增加了一個 5 秒的初始延遲。此修改旨在錯開主對話流程和背景擴展流程的 API 請求高峰，從而顯著降低觸發 `ResourceExhausted` 錯誤的機率。
-    # v169.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `zero_instruction` 參數的填充和傳遞。
-    # v169.0 (2025-08-31): [災難性BUG修復] 新增了前置空回應驗證，以防止因內容審查導致的崩潰。
+    # v171.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此函式的执行流程。现在，在调用 `scene_expansion_chain` 之前，会先查询与当前地点相关的所有现有 LORE，并将其格式化为一个简洁的摘要。这个摘要随后被注入到扩展链的 Prompt 中，为其提供了避免重复创造 LORE 的关键上下文，旨在从根本上解决无限生成相似 LORE 的问题。
+    # v170.0 (2025-09-02): [健壯性] 增加了初始延遲以緩解 API 速率限制。
     async def _background_scene_expansion(self, user_input: str, final_response: str, effective_location_path: List[str]):
         if not self.scene_expansion_chain or not self.profile:
             return
             
         try:
-            # [v170.0 核心修正] 增加延遲以避免立即觸發速率限制
             await asyncio.sleep(5.0)
 
-            structured_context = await self._get_structured_context(user_input, override_location_path=effective_location_path)
-            game_context_str = json.dumps(structured_context, ensure_ascii=False, indent=2)
+            # [v171.0 核心修正] 查詢並構建現有 LORE 的摘要
+            try:
+                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                lore_summary_list = []
+                for lore in all_lores:
+                    name = lore.content.get('name', lore.content.get('title', lore.key))
+                    lore_summary_list.append(f"- [{lore.category}] {name}")
+                existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+            except Exception as e:
+                logger.error(f"[{self.user_id}] 在背景擴展中查詢現有 LORE 失敗: {e}", exc_info=True)
+                existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
+
 
             current_path_str = " > ".join(effective_location_path)
             
@@ -1545,13 +1544,14 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：世界心跳在最新狀態下啟動 (地點: {current_path_str})...")
             
+            # [v171.0 核心修正] 將 LORE 摘要注入鏈中
             initial_plan_dict = await self.ainvoke_with_rotation(self.scene_expansion_chain, {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "world_settings": self.profile.world_settings or "",
                 "current_location_path": effective_location_path,
-                "game_context": game_context_str, 
                 "recent_dialogue": recent_dialogue,
+                "existing_lore_summary": existing_lore_summary, # <--- 注入上下文
             })
             
             if not initial_plan_dict:
@@ -1584,7 +1584,7 @@ class AILover:
             )
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景場景擴展鏈執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景場景擴展 (v170.0 - 速率限制優化)
+    # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
 
 
     
