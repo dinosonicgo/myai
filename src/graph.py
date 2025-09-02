@@ -127,10 +127,11 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃 (v2.0 - 動態指令引擎)
+# 函式：執行回合規劃 (v2.1 - 格式化職責分離)
 # 更新紀錄:
-# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。它現在負責分析使用者意圖，從 ai_core 中動態選擇並組裝基礎指令和特定情境的戰術模組（如性愛、移動），然後將最終的、為本回合量身定做的完整系統提示詞注入 planning_chain。
-# v1.0 (2025-09-02): [全新創建] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
+# v2.1 (2025-09-04): [灾难性BUG修复] 修复了因指令模板与数据模板占位符混淆导致的 `KeyError`。现在，`dynamic_system_prompt` 和 `world_snapshot` 会被独立格式化，各自只填充其所需的占位符，确保了数据流的正确性并解决了程序崩溃问题。
+# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。它现在负责分析使用者意图，从 ai_core 中动态选择并组装基础指令和特定情境的战术模组（如性爱、移动），然后将最终的、为本回合量身定做的完整系统提示词注入 planning_chain。
+# v1.0 (2025-09-02): [全新創建] 新架構的核心“思考”節點。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [核心] 新架構的核心“思考”節點與動態指令引擎。
@@ -142,27 +143,31 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在動態組裝指令並生成行動計劃...")
 
-    # --- 步驟 1: 準備數據快照 ---
+    # --- 步驟 1: 準備數據上下文辭典 ---
+    # 這個字典包含了所有可能被 `world_snapshot_template.txt` 使用的數據佔位符
     context_dict = {
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
         **state['structured_context']
     }
-    # [v2.0 修正] 確保 username 和 ai_name 也可用於格式化
-    context_dict['username'] = ai_core.profile.user_profile.name
-    context_dict['ai_name'] = ai_core.profile.ai_profile.name
     
+    # --- 步驟 2: 獨立格式化數據快照 ---
+    # 只使用數據字典來填充數據模板
     world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
 
-    # --- 步驟 2: 動態組裝系統指令 ---
-    # 獲取基礎指令 (one_instruction_template.txt)
+    # --- 步驟 3: 準備指令上下文辭典 ---
+    # 這個字典包含了所有可能被指令模板（one_instruction, modular_prompts）使用的佔位符
+    directive_dict = {
+        "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name,
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+    }
+
+    # --- 步驟 4: 動態組裝並格式化系統指令 ---
     base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
-    
-    # 判斷是否需要加載特定動作模組
     action_module_name = ai_core._determine_action_module(user_input)
     
-    # 組合最終的動態指令
     final_system_prompt_parts = [base_system_prompt]
     if action_module_name and action_module_name in ai_core.modular_prompts:
         module_prompt = ai_core.modular_prompts[action_module_name]
@@ -170,14 +175,10 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         final_system_prompt_parts.append(module_prompt)
         logger.info(f"[{user_id}] (Graph) 動態指令引擎：已成功加載戰術模組 '{action_module_name}'。")
 
-    # [v2.0 修正] 格式化最終的系統提示詞，確保其中的佔位符被填充
-    dynamic_system_prompt = "".join(final_system_prompt_parts).format(
-        username=ai_core.profile.user_profile.name,
-        ai_name=ai_core.profile.ai_profile.name,
-        response_style_prompt=ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
-    )
+    # [v2.1 核心修正] 只使用指令字典來格式化指令模板
+    dynamic_system_prompt = "".join(final_system_prompt_parts).format(**directive_dict)
 
-    # --- 步驟 3: 調用規劃鏈 ---
+    # --- 步驟 5: 調用規劃鏈 ---
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
         
@@ -188,7 +189,11 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v2.0 - 動態指令引擎)
+# 函式：執行回合規劃 (v2.1 - 格式化職責分離)
+
+
+
+
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
