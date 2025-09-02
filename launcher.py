@@ -1,58 +1,63 @@
-# launcher.py 的中文註釋(v2.1 - 強制同步)
+# launcher.py 的中文註釋(v3.2 - 完整性修復)
 # 更新紀錄:
-# v2.1 (2025-09-02):
-# 1. [健壯性] 在 'git pull' 之前增加了 'git reset --hard origin/main'。此命令會強制將本地倉庫與遠端同步，拋棄任何本地意外的修改，從根本上解決了因本地狀態不一致導致更新失敗的問題。
-# v2.0 (2025-09-01):
-# 1. [重大架構重構] 移除了 clone 和切換目錄的邏輯。
+# v3.2 (2025-09-04): [灾难性BUG修复] 提供了完整的文件内容，确保顶层的 `import time` 语句被正确包含，解决了因 NameError 导致的启动器立即退出的问题。
+# v3.1 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `import time`，以解决因调用 `time.sleep()` 而导致的 `NameError: name 'time' is not defined` 致命错误。
+# v3.0 (2025-09-03): [重大架構重構] 引入了守護進程循環。
 
 import os
 import sys
 import subprocess
-import time
 from pathlib import Path
+import time
 
 # 函式：執行命令
 def _run_command(command, working_dir=None):
     """執行一個 shell 命令並返回成功與否。"""
     try:
         print(f"▶️ 正在執行: {' '.join(command)}")
-        subprocess.run(
+        # 修正：确保 working_dir 存在且有效
+        if working_dir and not Path(working_dir).is_dir():
+            print(f"🔥 错误: 工作目录不存在: {working_dir}")
+            return False
+            
+        result = subprocess.run(
             command,
             check=True,
             capture_output=True,
             text=True,
-            encoding='utf-8'
+            encoding='utf-8',
+            cwd=working_dir
         )
         return True
     except FileNotFoundError:
-        print(f"🔥 錯誤: 'git' 命令未找到。")
-        print("請確保您已在系統中安裝 Git，並且其路徑已添加到環境變數中。")
+        print(f"🔥 错误: 'git' 命令未找到。")
+        print("请确保您已在系统中安装 Git，并且其路径已添加到环境变量中。")
         if os.name == 'nt':
             os.system("pause")
         sys.exit(1)
     except subprocess.CalledProcessError as e:
-        print(f"🔥 命令執行失敗: {' '.join(command)}")
-        print(f"   標準錯誤: {e.stderr.strip()}")
+        print(f"🔥 命令执行失败: {' '.join(command)}")
+        print(f"   标准错误: {e.stderr.strip()}")
+        if os.name == 'nt':
+            os.system("pause")
+        sys.exit(1)
+    except Exception as e:
+        print(f"🔥 执行命令时发生未知错误: {e}")
         if os.name == 'nt':
             os.system("pause")
         sys.exit(1)
 # 函式：執行命令
 
-# launcher.py 的中文註釋(v3.1 - 修复依赖)
-# 更新紀錄:
-# v3.1 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `import time`，以解决因调用 `time.sleep()` 而导致的 `NameError: name 'time' is not defined` 致命错误。
-# v3.0 (2025-09-03): [重大架構重構] 引入了守護進程循環。现在 launcher.py 會持續監控 main.py。當 main.py 以返回碼 0（表示需要更新）退出時，launcher 會自動重新拉起一個全新的進程。此修改確保了每次更新後的重啟都是完全乾淨的，從根本上解決了因 os.execv 硬重啟導致的異步 I/O 衝突和 Bot 無法登錄的問題。
-# v2.1 (2025-09-02): [健壯性] 增加了 'git reset --hard origin/main' 來強制同步。
+# 函式：主啟動邏輯 (v3.1 - 修复依赖)
 def main():
     """主啟動函式。"""
     current_dir = Path(__file__).resolve().parent
 
     print("--- AI Lover 啟動器 ---")
 
-    # [v3.0 核心修正] 引入守護循環
     while True:
         print("\n--- 步驟 1/3: 檢查 Git 環境 ---")
-        if not _run_command(["git", "--version"]):
+        if not _run_command(["git", "--version"], working_dir=current_dir):
             return
 
         print("\n--- 步驟 2/3: 正在從 GitHub 同步最新程式碼 ---")
@@ -84,27 +89,28 @@ def main():
             process = subprocess.Popen(command_to_run, text=True, encoding='utf-8')
             return_code = process.wait()
 
-            # [v3.0 核心修正] 檢查返回碼
             if return_code == 0:
                 print("\n[啟動器] 偵測到主程式正常退出 (返回碼 0)，將在 5 秒後自動重啟以應用更新...")
                 time.sleep(5)
-                # 循環將自動繼續
             else:
                 print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
                 print("[啟動器] 守護進程已停止。")
-                break # 發生錯誤，跳出循環
+                break
 
         except KeyboardInterrupt:
             print("\n[啟動器] 偵測到使用者中斷，正在關閉...")
             if process:
                 process.terminate()
-            break # 使用者手動中斷，跳出循環
+            break
         except Exception as e:
             print(f"\n[啟動器] 執行 main.py 時發生錯誤: {e}")
-            break # 未知錯誤，跳出循環
+            break
 
     if os.name == 'nt':
         print("\n----------------------------------------------------")
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
 # 函式：主啟動邏輯 (v3.1 - 修复依赖)
+
+if __name__ == "__main__":
+    main()
