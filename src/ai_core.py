@@ -376,11 +376,12 @@ class AILover:
         return self.profile_parser_prompt
     # 函式：獲取角色檔案解析器 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：獲取角色檔案補完 Prompt
-    # 說明：創建或返回一個用於將不完整的角色JSON補完為完整角色的Prompt模板。
+    # 函式：獲取角色檔案補完 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_profile_completion_prompt(self) -> ChatPromptTemplate:
         if self.profile_completion_prompt is None:
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位资深的角色扮演游戏设定师。你的任务是接收一个不完整的角色 JSON，并将其补完为一个细节豐富、符合逻辑的完整角色。
+            prompt_str = """你是一位资深的角色扮演游戏设定师。你的任务是接收一个不完整的角色 JSON，并将其补完为一个细节豐富、符合逻辑的完整角色。
 【核心規則】
 1.  **絕對保留原則**: 对于輸入JSON中【任何已經存在值】的欄位（特别是 `appearance_details` 字典內的鍵值對），你【絕對必須】原封不動地保留它們，【絕對禁止】修改或覆蓋。
 2.  **增量補完原則**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{{}}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
@@ -392,7 +393,7 @@ class AILover:
 {profile_json}"""
             self.profile_completion_prompt = ChatPromptTemplate.from_template(prompt_str)
         return self.profile_completion_prompt
-    # 函式：獲取角色檔案補完 Prompt
+    # 函式：獲取角色檔案補完 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：獲取角色檔案重寫 Prompt
     # 說明：創建或返回一個用於根據使用者指令重寫角色描述的Prompt模板。
