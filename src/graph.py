@@ -1,10 +1,7 @@
-# src/graph.py 的中文註釋(v5.1 - 簡化圖形流程)
+# src/graph.py 的中文註釋(v5.2 - 安全上下文管理)
 # 更新紀錄:
-# v5.1 (2025-09-02): [重大架構重構 - 流程簡化]
-# 1. [合併節點職責] 將 `assemble_world_snapshot_node` 的職責（填充上下文模板）完全合併進了 `planning_node`。
-# 2. [移除節點] 徹底移除了 `assemble_world_snapshot_node` 的定義和調用。
-# 3. [重構圖形流程] 更新了 `create_main_response_graph`，使數據流直接從分析節點指向 `planning_node`。
-# 這一系列修改使 LangGraph 的流程更加精簡、高效，並減少了一個不必要的節點，提升了代碼的清晰度。
+# v5.2 (2025-09-02): [重大架構重構 - 健壯性] 重構了 `tool_execution_node`，引入了 `try...finally` 結構。此修改確保了無論工具執行成功與否，共享的 `tool_context` 都會被【絕對可靠地】清理。這從根本上解決了因異常導致上下文狀態洩漏到後續對話中的潛在風險，極大地提高了系統的穩定性。
+# v5.1 (2025-09-02): [重大架構重構 - 流程簡化] 移除了 `assemble_world_snapshot_node` 並將其職責合併進 `planning_node`。
 # v5.0 (2025-09-02): [重大架構重構 - 執行分離] 引入了 `tool_execution_node`，完成了“思考->執行->寫作”的閉環。
 
 import sys
@@ -22,6 +19,8 @@ from .logger import logger
 from .graph_state import ConversationGraphState, SetupGraphState
 from . import lore_book, tools
 from .schemas import CharacterProfile, TurnPlan
+# [v5.2 新增] 導入共享的工具上下文
+from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
@@ -76,7 +75,7 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (僅限敘事路徑)
 
-# 函式：執行回合規劃 (v1.1 - 合併上下文組合職責)
+# 函式：執行回合規劃
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [節點 4] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
@@ -85,8 +84,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
-    # [v5.1 新增] 步驟 1: 組合世界快照
-    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在格式化世界快照...")
+    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在格式化世界快照並生成行動計劃...")
     context_dict = {
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
@@ -95,8 +93,6 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     }
     world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
     
-    # 步驟 2: 執行規劃
-    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在為回合生成行動計劃...")
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
@@ -105,25 +101,35 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "user_input": user_input,
     })
 
-    # [v5.1 新增] 將快照也存入 state，以備後續調試或使用
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v1.1 - 合併上下文組合職責)
+# 函式：執行回合規劃
 
-# 函式：執行工具調用
+# 函式：執行工具調用 (v1.1 - 安全上下文管理)
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [節點 5] 新架構的核心“執行”節點。執行計劃中的所有工具調用，並返回結果摘要。
+    [節點 5] 新架構的核心“執行”節點。在安全的上下文中執行計劃中的所有工具調用。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     plan = state['turn_plan']
     logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 正在執行行動計劃中的工具...")
+    
     if not plan:
         return {"tool_results": "系統事件：因行動計劃為空，未執行任何工具。"}
     
-    results_summary = await ai_core._execute_planned_actions(plan)
+    # [v5.2 核心修正] 使用 try...finally 確保上下文被絕對可靠地清理
+    try:
+        results_summary = await ai_core._execute_planned_actions(plan)
+    except Exception as e:
+        logger.error(f"[{user_id}] (Graph) Node: tool_execution_node -> 在執行工具時發生未捕獲的異常: {e}", exc_info=True)
+        results_summary = f"系統事件：工具執行時發生嚴重錯誤: {e}"
+    finally:
+        # 無論成功或失敗，都必須清理上下文，防止狀態洩漏
+        tool_context.set_context(None, None)
+        logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 工具上下文已清理。")
+
     return {"tool_results": results_summary}
-# 函式：執行工具調用
+# 函式：執行工具調用 (v1.1 - 安全上下文管理)
 
 # 函式：生成敘事文本
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -273,7 +279,7 @@ def route_after_input_analysis(state: ConversationGraphState) -> Literal["narrat
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v5.1 - 移除 `assemble_world_snapshot` 節點)
+# 函式：創建主回應圖 (v5.2 - 安全上下文管理)
 def create_main_response_graph() -> StateGraph:
     """
     組裝並編譯主對話流程的 StateGraph。
@@ -305,7 +311,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v5.1 - 移除 `assemble_world_snapshot` 節點)
+# 函式：創建主回應圖 (v5.2 - 安全上下文管理)
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
