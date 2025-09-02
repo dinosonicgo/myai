@@ -1666,12 +1666,14 @@ class AILover:
     # 函式：建構專用敘事鏈 (v1.0 新增)
 
 
-    # 函式：生成開場白 (v177.0 - 洩漏清理強化與提示詞優化)
+
+
+    # 函式：生成開場白 (v177.1 - 提示詞架構適配修正)
     # 更新紀錄:
+    # v177.1 (2025-09-02): [災難性BUG修復] 修正了此函式對 `_assemble_dynamic_prompt` 的調用方式，使其與 v171.0 重構後的新函式簽名（要求傳入 `context_dict`）保持一致，從而解決了導致 /start 流程崩潰的 `TypeError`。
     # v177.0 (2025-08-31): [根本性BUG修復]
     # 1. [提示詞優化] 現在會調用 `_assemble_dynamic_prompt(task_type='opening')` 來獲取一個專用的、不含 ReAct 框架的簡潔提示詞，從源頭上避免思考過程洩漏。
-    # 2. [洩漏清理強化] 新增了基於 `---` 分隔符的備用清理邏輯。即使在極端情況下發生洩漏，新的清理機制也能更有效地剝離前置的元文本，確保返回純淨的小說內容。
-    # v176.0 (2025-08-31): [根本性BUG修復] 移除了多餘的驗證和重寫步驟，避免了因誤判導致的次生問題。
+    # 2. [洩漏清理強化] 新增了基於 `---` 分隔符的備用清理邏輯。
     async def generate_opening_scene(self) -> str:
         if not self.profile or not self.gm_model:
             raise ValueError("AI 核心或 gm_model 未初始化。")
@@ -1683,8 +1685,7 @@ class AILover:
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
         location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
-        # [v177.0 修正] 步驟 1: 獲取專為開場白設計的、不含 ReAct 框架的系統提示詞
-        system_base_prompt = await self._assemble_dynamic_prompt(task_type='opening')
+        # [v177.1 修正] 步驟 1: 準備用於填充提示詞模板的上下文辭典
         system_context = {
             "username": user_profile.name, 
             "ai_name": ai_profile.name,
@@ -1699,7 +1700,10 @@ class AILover:
             "relevant_npc_context": "開場時沒有相關NPC。",
             "latest_user_input": "(無，正在生成開場白)"
         }
-        system_prompt_str = system_base_prompt.format(**system_context)
+        
+        # [v177.1 修正] 步驟 2: 使用新的函式簽名，傳入完整的上下文辭典來生成最終提示詞
+        # 這個單一的調用現在取代了舊的 `_assemble_dynamic_prompt` 調用和後續的 `.format()`。
+        system_prompt_str = await self._assemble_dynamic_prompt(context_dict=system_context)
 
         human_prompt_str = f"""
 [系統指令]：撰寫故事開場白。
@@ -1777,8 +1781,12 @@ class AILover:
             )
 
         return final_opening_scene
-    # 函式：生成開場白 (v177.0 - 洩漏清理強化與提示詞優化)
+    # 函式：生成開場白 (v177.1 - 提示詞架構適配修正)
 
+
+
+
+    
 
 
     
