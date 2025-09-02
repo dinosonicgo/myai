@@ -127,11 +127,11 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃 (v2.2 - 防禦性格式化)
+# 函式：執行回合規劃 (v2.3 - 強制上下文刷新)
 # 更新紀錄:
-# v2.2 (2025-09-04): [灾难性BUG修复] 增加了防禦性格式化邏輯。現在，在格式化指令和數據模板之前，會先創建一個包含所有可能佔位符的超集字典。然後，使用一個自訂的安全格式化函式，該函式會忽略模板中不存在的鍵。這從根本上解決了因模板與數據不匹配而導致的 `KeyError`，使系統更加健壯。
+# v2.3 (2025-09-04): [灾难性BUG修复] 解决了 AI 回应与用户输入完全无关（答非所问）的问题。通过在节点执行的开始阶段，强制、显式地调用 `ai_core._get_structured_context` 来重新获取最新的场景上下文，确保了 `world_snapshot` 在任何情况下都包含正确的、即时的游戏状态数据，从而根除了因潜在的状态传递问题导致的上下文丢失。
+# v2.2 (2025-09-04): [灾难性BUG修复] 增加了防禦性格式化邏輯以解决 `KeyError`。
 # v2.1 (2025-09-04): [灾难性BUG修复] 修复了因指令模板与数据模板占位符混淆导致的 `KeyError`。
-# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [核心] 新架構的核心“思考”節點與動態指令引擎。
@@ -143,7 +143,19 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在動態組裝指令並生成行動計劃...")
 
-    # [v2.2 核心修正] 創建一個包含所有可能佔位符的超集字典
+    # [v2.3 核心修正] 在此節點強制刷新結構化上下文，確保獲取到最新狀態
+    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 強制刷新結構化上下文...")
+    try:
+        structured_context = await ai_core._get_structured_context(user_input)
+        # 手動更新 state，確保後續節點也能看到最新的
+        state['structured_context'] = structured_context
+    except Exception as e:
+        logger.error(f"[{user_id}] 在 planning_node 中刷新上下文失敗: {e}", exc_info=True)
+        # 即使失敗，也提供一個安全的空字典
+        structured_context = {}
+
+
+    # 創建一個包含所有可能佔位符的超集字典
     full_context_dict = {
         # 指令類
         "username": ai_core.profile.user_profile.name,
@@ -153,22 +165,18 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
-        **(state['structured_context'] or {})
+        **(structured_context or {}) # 使用剛剛刷新得到的上下文
     }
 
-    # [v2.2 核心修正] 定義一個安全的格式化輔助函式
+    # 定義一個安全的格式化輔助函式
     def safe_format(template_string: str, data: dict) -> str:
-        # 查找模板中所有的佔位符
         placeholders = re.findall(r'\{(\w+)\}', template_string)
-        # 創建一個只包含模板所需鍵的字典
         filtered_data = {key: data.get(key, f"{{{key}}}") for key in placeholders}
         try:
             return template_string.format(**filtered_data)
         except KeyError as e:
             logger.warning(f"[{user_id}] 安全格式化仍然失敗，鍵: {e}。模板: {template_string[:200]}...")
-            # 即使失敗，也返回一個可用的版本，而不是崩潰
             return template_string
-
 
     # --- 步驟 1: 動態組裝系統指令 ---
     base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
@@ -181,7 +189,6 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         final_system_prompt_parts.append(module_prompt)
         logger.info(f"[{user_id}] (Graph) 動態指令引擎：已成功加載戰術模組 '{action_module_name}'。")
     
-    # 使用安全格式化填充指令
     dynamic_system_prompt = safe_format("".join(final_system_prompt_parts), full_context_dict)
 
     # --- 步驟 2: 格式化數據快照 ---
@@ -198,7 +205,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v2.2 - 防禦性格式化)
+# 函式：執行回合規劃 (v2.3 - 強制上下文刷新)
 
 
 
