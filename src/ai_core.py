@@ -82,11 +82,11 @@ class AILover:
 
 
 
-    # 函式：初始化AI核心 (v198.3 - 統一模板命名)
+    # 函式：初始化AI核心 (v198.4 - 為 Entity Extraction 預留屬性)
     # 更新紀錄:
-    # v198.3 (2025-09-02): [架構清理] 將具有誤導性的屬性 `zero_instruction_template` 重命名為更能準確反映其職責的 `world_snapshot_template`，以徹底清除舊架構的命名痕跡。
+    # v198.4 (2025-09-02): [架構重構] 新增了 `entity_extraction_chain` 屬性，這是實現“LORE感知”情報簡報系統的第一步。
+    # v198.3 (2025-09-02): [架構清理] 將屬性 `zero_instruction_template` 重命名為 `world_snapshot_template`。
     # v198.2 (2025-09-02): [架構重構] 新增了 `planning_chain` 屬性。
-    # v198.1 (2025-09-02): [架構修正] 新增了 `rag_summarizer_chain` 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -101,6 +101,8 @@ class AILover:
         self.action_intent_chain: Optional[Runnable] = None
         self.rag_summarizer_chain: Optional[Runnable] = None
         self.planning_chain: Optional[Runnable] = None
+        self.narrative_chain: Optional[Runnable] = None
+        self.entity_extraction_chain: Optional[Runnable] = None # [v198.4 新增]
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
@@ -109,7 +111,7 @@ class AILover:
         self.canon_parser_chain: Optional[Runnable] = None
         self.param_reconstruction_chain: Optional[Runnable] = None
         self.modular_prompts: Dict[str, str] = {}
-        self.world_snapshot_template: str = "" # [v198.3 重命名]
+        self.world_snapshot_template: str = ""
         self.rendered_tools: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
         self.vector_store: Optional[Chroma] = None
@@ -125,7 +127,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v198.3 - 統一模板命名)
+    # 函式：初始化AI核心 (v198.4 - 為 Entity Extraction 預留屬性)
     
 
 
@@ -1143,11 +1145,11 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.5 - 適配模板加載器)
+    # 函式：配置模型和鏈 (v198.6 - 初始化 Entity Extraction)
     # 更新紀錄:
-    # v198.5 (2025-09-02): [架構清理] 將對 `_load_world_snapshot_template` 的調用更新為 `_load_templates`，以匹配最新的命名規範。
-    # v198.4 (2025-09-02): [架構重構] 重新調用了 `_build_narrative_chain` 以完成新流程。
-    # v198.3 (2025-09-02): [架構重構] 新增了對 `_build_planning_chain` 的調用。
+    # v198.6 (2025-09-02): [架構重構] 新增了對 `_build_entity_extraction_chain` 的調用，以初始化 LORE 感知系統的“偵察兵”組件。
+    # v198.5 (2025-09-02): [架構清理] 統一並簡化了模板加載相關的函式和屬性命名。
+    # v198.4 (2025-09-02): [架構重構] 重構並重新啟用了 `_build_narrative_chain`。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
@@ -1165,6 +1167,7 @@ class AILover:
         self.rag_summarizer_chain = self._build_rag_summarizer_chain()
         self.planning_chain = self._build_planning_chain()
         self.narrative_chain = self._build_narrative_chain()
+        self.entity_extraction_chain = self._build_entity_extraction_chain() # [v198.6 新增]
         
         self.scene_expansion_chain = self._build_scene_expansion_chain()
         self.scene_casting_chain = self._build_scene_casting_chain()
@@ -1175,8 +1178,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.5 (統一模板模式)。")
-    # 函式：配置模型和鏈 (v198.5 - 適配模板加載器)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.6 (LORE 感知模式)。")
+    # 函式：配置模型和鏈 (v198.6 - 初始化 Entity Extraction)
 
 
     # 函式：將世界聖經添加到向量儲存
@@ -1463,58 +1466,123 @@ class AILover:
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
 
 
-    # 函式：獲取結構化上下文 (v146.0 精確匹配修正版)
-    # 說明：從設定檔和資料庫中獲取並格式化當前的遊戲狀態和角色資訊。
-    async def _get_structured_context(self, user_input: str, override_location_path: Optional[List[str]] = None, is_gm_narration: bool = False) -> Dict[str, str]:
+    # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構 - LORE 感知] 徹底重寫了此函式的核心邏輯。它現在使用一個專門的 `entity_extraction_chain` 來識別對話中的關鍵實體，然後並行地、跨類別地查詢 LORE 資料庫，為每一個被提及的實體（NPC、地點、物品等）生成一份詳細的“情報檔案”。這份包含深度 LORE 細節的完整簡報將被注入到上下文，從根本上解決了 AI 因缺乏信息而無法遵循 LORE 的“失憶症”問題。
+    # v146.0 (2025-08-29): [健壯性] 修正了 NPC 匹配邏輯。
+    async def _get_structured_context(self, user_input: str, override_location_path: Optional[List[str]] = None) -> Dict[str, str]:
+        """
+        [v2.0 新架構] 生成一份包含所有相關實體詳細 LORE 檔案的“情報簡報”。
+        """
         if not self.profile: return {}
-        gs = self.profile.game_state
         
+        logger.info(f"[{self.user_id}] (Context Engine) 正在為場景生成情報簡報...")
+        
+        gs = self.profile.game_state
         location_path = override_location_path if override_location_path is not None else gs.location_path
         current_path_str = " > ".join(location_path)
 
-        def format_character_card(profile: CharacterProfile) -> str:
-            card_parts = [f"  - 姓名: {profile.name}", f"  - 簡介: {profile.description or '無'}"]
-            if profile.affinity != 0 and override_location_path is None:
-                card_parts.append(f"  - 對你的好感度: {profile.affinity}")
-            if profile.appearance_details:
-                details = ", ".join([f"{k}: {v}" for k, v in profile.appearance_details.items()])
-                card_parts.append(f"  - 詳細外貌: {details}")
-            card_parts.append(f"  - 當前裝備: {', '.join(profile.equipment) if profile.equipment else '無'}")
-            return "\n".join(card_parts)
+        # --- 步驟 1: 提取場景中的所有關鍵實體 ---
+        chat_history_manager = self.session_histories.get(self.user_id, ChatMessageHistory())
+        recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
+        text_for_extraction = f"{user_input}\n{recent_dialogue}"
         
-        all_npcs_in_scene = await get_lores_by_category_and_filter(
-            self.user_id, 'npc_profile', lambda c: c.get('location_path') == location_path
-        )
-        npc_cards = [f"NPC ({CharacterProfile.model_validate(lore.content).name}):\n{format_character_card(CharacterProfile.model_validate(lore.content))}" for lore in all_npcs_in_scene]
+        entity_result = await self.ainvoke_with_rotation(self.entity_extraction_chain, {"text_input": text_for_extraction})
+        extracted_names = set(entity_result.names if entity_result else [])
         
-        if is_gm_narration:
-            npc_ctx = "場景中的人物:\n" + "\n\n".join(npc_cards) if npc_cards else "場景中沒有已知的特定人物。"
-        else:
-            user_card = f"你的角色 ({self.profile.user_profile.name}):\n{format_character_card(self.profile.user_profile)}"
-            ai_card = f"AI 角色 ({self.profile.ai_profile.name}):\n{format_character_card(self.profile.ai_profile)}"
-            npc_ctx = "周圍所有人物:\n" + "\n\n".join([user_card, ai_card] + npc_cards)
-
-        loc_ctx = f"你當前位於「{current_path_str}」。" if override_location_path is None else f"你正從「{' > '.join(gs.location_path)}」遠程觀察「{current_path_str}」。"
-        poss_ctx = f"團隊庫存 (背包):\n- 金錢: {gs.money} 金幣\n- 物品: {', '.join(gs.inventory) if gs.inventory else '空的'}"
-        quests = await get_lores_by_category_and_filter(self.user_id, 'quest', lambda c: c.get('status') == 'active')
-        quests_ctx = "當前任務:\n" + "\n".join([f"- 《{l.key.split(' > ')[-1]}》: {l.content.get('description', '無')}" for l in quests]) if quests else "沒有進行中的任務。"
-
-        relevant_npcs = []
-        input_keywords = set(re.findall(r'\b\w+\b', user_input.lower()))
-        if input_keywords:
-            for lore in all_npcs_in_scene:
-                profile = CharacterProfile.model_validate(lore.content)
-                searchable_text = (f"{profile.name} {profile.description} {' '.join(profile.aliases)} {' '.join(profile.skills)}").lower()
-                if any(keyword in searchable_text for keyword in input_keywords):
-                    relevant_npcs.append(profile)
+        # 將核心角色和當前地點也加入查詢列表
+        extracted_names.add(self.profile.user_profile.name)
+        extracted_names.add(self.profile.ai_profile.name)
+        extracted_names.update(location_path)
         
-        relevant_npc_ctx = "沒有特別相關的NPC。"
-        if relevant_npcs:
-            relevant_npc_cards = [f"- **{p.name}**: {p.description or '無簡介'}" for p in relevant_npcs]
-            relevant_npc_ctx = "話題相關人物:\n" + "\n".join(relevant_npc_cards)
+        logger.info(f"[{self.user_id}] (Context Engine) 提取到以下關鍵實體: {list(extracted_names)}")
 
-        return {"location_context": loc_ctx, "possessions_context": poss_ctx, "quests_context": quests_ctx, "npc_context": npc_ctx, "relevant_npc_context": relevant_npc_ctx}
-    # 函式：獲取結構化上下文 (v146.0 精確匹配修正版)
+        # --- 步驟 2: 並行查詢所有相關實體的 LORE ---
+        all_lore_categories = ["npc_profile", "location_info", "item_info", "creature_info", "quest", "world_lore"]
+        query_tasks = []
+
+        async def find_lore(name: str):
+            tasks = []
+            for category in all_lore_categories:
+                # 進行模糊查詢，匹配 key 或 content 中的 name
+                task = get_lores_by_category_and_filter(
+                    self.user_id, 
+                    category, 
+                    lambda c: name.lower() in c.get('name', '').lower() or name.lower() in c.get('title', '').lower() or name.lower() in ''.join(c.get('aliases', []))
+                )
+                tasks.append(task)
+            
+            # 執行該名稱在所有類別的並行查詢
+            results_per_name = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            found_lores = []
+            for i, result in enumerate(results_per_name):
+                if isinstance(result, list) and result:
+                    found_lores.extend(result)
+            return found_lores
+
+        for name in extracted_names:
+            if name:
+                query_tasks.append(find_lore(name))
+        
+        all_query_results = await asyncio.gather(*query_tasks, return_exceptions=True)
+        
+        # --- 步驟 3: 將查詢結果格式化為“情報檔案” ---
+        dossiers = []
+        unique_lore_keys = set()
+        
+        # 始終包含主角的檔案
+        dossiers.append(f"--- 檔案: {self.profile.user_profile.name} (使用者角色) ---\n"
+                        f"- 描述: {self.profile.user_profile.description}\n"
+                        f"- 裝備: {', '.join(self.profile.user_profile.equipment) or '無'}\n"
+                        f"--------------------")
+        dossiers.append(f"--- 檔案: {self.profile.ai_profile.name} (AI 角色) ---\n"
+                        f"- 描述: {self.profile.ai_profile.description}\n"
+                        f"- 裝備: {', '.join(self.profile.ai_profile.equipment) or '無'}\n"
+                        f"- 好感度: {self.profile.affinity}\n"
+                        f"--------------------")
+
+        for result_list in all_query_results:
+            if isinstance(result_list, list):
+                for lore in result_list:
+                    if lore.key not in unique_lore_keys:
+                        unique_lore_keys.add(lore.key)
+                        content = lore.content
+                        name = content.get('name') or content.get('title', '未知名稱')
+                        
+                        dossier_content = [f"--- 檔案: {name} ({lore.category}) ---"]
+                        if 'description' in content:
+                            dossier_content.append(f"- 描述: {content['description']}")
+                        if 'status' in content:
+                            dossier_content.append(f"- 狀態: {content['status']}")
+                        if 'equipment' in content:
+                            dossier_content.append(f"- 裝備: {', '.join(content['equipment']) or '無'}")
+                        if 'effect' in content:
+                             dossier_content.append(f"- 效果: {content['effect']}")
+                        dossier_content.append(f"--------------------")
+                        dossiers.append("\n".join(dossier_content))
+
+        # --- 步驟 4: 整合最終的上下文簡報 ---
+        location_context = f"當前地點: {current_path_str}"
+        inventory_context = f"團隊庫存: {', '.join(gs.inventory) or '空的'}"
+        dossier_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
+
+        # [v200.0] 新的上下文結構
+        # 舊的 npc_context 和 relevant_npc_context 已被統一的 dossier_context 取代
+        final_context = {
+            "location_context": location_context,
+            "possessions_context": inventory_context, # 保持舊鍵名以兼容模板
+            "quests_context": "當前任務: (已整合進情報檔案)", # 提示任務信息已轉移
+            "npc_context": dossier_context, # 使用 dossier 替換舊的 npc_context
+            "relevant_npc_context": "" # 不再需要，設為空
+        }
+        
+        logger.info(f"[{self.user_id}] (Context Engine) 情報簡報生成完畢。")
+        return final_context
+    # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
+
+
+    
 
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
     # 更新紀錄:
@@ -1933,6 +2001,46 @@ class AILover:
     # 函式：建構專用敘事鏈 (v2.1 - 清晰數據流重構)
 
 
+
+
+
+
+        # 函式：建構實體提取鏈 (v1.0 - 全新創建)
+    # 說明：創建一個專門的、輕量級的鏈，用於從使用者輸入和對話歷史中快速提取出所有潛在的、需要查詢 LORE 的專有名詞（人名、地名、物品名等）。這是實現“LORE感知”情報簡報系統的第一步。
+    def _build_entity_extraction_chain(self) -> Runnable:
+        """創建一個用於從文本中提取關鍵實體名稱列表的鏈。"""
+        # [v200.0] 需要在 ai_core.py 頂部定義 ExtractedEntities
+        # class ExtractedEntities(BaseModel):
+        #     names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
+        
+        extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
+
+        prompt_template = """你的唯一任務是一位高效的情報分析員。請通讀下方提供的【文本情報】，並從中提取出所有可能是專有名詞的關鍵詞。
+
+【提取目標】
+- **人名**: 包括主角、NPC、神祇等。
+- **地名**: 包括城市、地區、建築、自然景觀等。
+- **物品名**: 包括武器、裝備、道具、特殊材料等。
+- **組織名**: 包括公會、王國、教派等。
+- **概念名**: 包括特殊的魔法、事件、傳說等。
+
+【核心規則】
+1.  **寧可錯抓，不可放過**: 盡可能多地提取所有**看起來像**專有名詞的詞語。
+2.  **合併同類**: 如果同一個實體以不同形式出現（例如“碧”和“蛇人女奴”），將它們都提取出來。
+3.  **純淨列表**: 你的輸出【必須且只能】是一個包含字符串列表的 JSON 物件，格式為 `{"names": ["名稱1", "名稱2", ...]}`。
+
+---
+【文本情報】:
+{text_input}
+---
+
+請開始提取。"""
+        
+        prompt = ChatPromptTemplate.from_template(prompt_template)
+        return prompt | extractor_llm
+    # 函式：建構實體提取鏈 (v1.0 - 全新創建)
+
+    
 
 
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
