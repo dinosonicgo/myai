@@ -1869,11 +1869,11 @@ class AILover:
 
 
 
-    # 函式：建構專用敘事鏈 (v2.3 - 修正數據流)
+    # 函式：建構專用敘事鏈 (v2.4 - 整合所有修正)
     # 更新紀錄:
-    # v2.3 (2025-09-03): [災難性BUG修復] 根據 ValueError 日誌，修正了鏈的數據流。將 `RunnablePassthrough()` 修改為一個精確提取數據的 `lambda x: x["final_output_mandate"]`。此修改確保了只有字串類型的 `final_output_mandate` 被傳遞給提示詞模板，而不是整個輸入字典，從根本上解決了因輸入類型錯誤導致的 LangChain 核心驗證失敗問題。
+    # v2.4 (2025-09-03): [回归性BUG修复] 整合了 v2.2 和 v2.3 的所有修正。恢复了对 `lambda x: x["final_output_mandate"]` 的使用，以解决因 `RunnablePassthrough` 导致的 `ValueError: Invalid input type` 数据流错误，同时保留了对繁体中文的强制指令。
+    # v2.3 (2025-09-03): [災難性BUG修復] 修正了因 `RunnablePassthrough` 导致的 `ValueError` 数据流错误。
     # v2.2 (2025-09-03): [健壯性] 在基礎提示詞中增加了繁體中文的強制令。
-    # v2.1 (2025-09-02): [架構優化] 移除了嵌套輔助函式，改為直接接收 `response_style_prompt`。
     def _build_narrative_chain(self) -> Runnable:
         """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成小說文本。"""
         
@@ -1899,16 +1899,20 @@ class AILover:
 """
         prompt = ChatPromptTemplate.from_template(prompt_template)
 
-        # [v2.3 核心修正] 使用 lambda 函數精確提取所需的數據，而不是傳遞整個輸入
+        # [v2.4 核心修正] 使用 lambda 函數精確提取所需的數據，解決 ValueError
         return (
             {
-                "turn_plan_json": lambda x: x["turn_plan"].model_dump_json(indent=2),
-                "final_output_mandate": lambda x: x["final_output_mandate"]
+                "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
+                "final_output_mandate": lambda x: x.get("final_output_mandate", "")
             }
+            | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構專用敘事鏈 (v2.3 - 修正數據流)
+    # 函式：建構專用敘事鏈 (v2.4 - 整合所有修正)
+
+
+    
 
     # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
     # 更新紀錄:
