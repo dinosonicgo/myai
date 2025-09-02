@@ -2005,14 +2005,12 @@ class AILover:
 
 
 
-        # 函式：建構實體提取鏈 (v1.0 - 全新創建)
-    # 說明：創建一個專門的、輕量級的鏈，用於從使用者輸入和對話歷史中快速提取出所有潛在的、需要查詢 LORE 的專有名詞（人名、地名、物品名等）。這是實現“LORE感知”情報簡報系統的第一步。
+    # 函式：建構實體提取鏈 (v1.1 - 移除本地定义)
+    # 更新紀錄:
+    # v1.1 (2025-09-02): [架構清理] 移除了此函式内部关于 ExtractedEntities 的注释定义。该模型现在从中央的 `schemas.py` 导入，确保了定义的唯一性和代码的整洁性。
+    # v1.0 (2025-09-02): [全新創建] 創建了此“侦察兵”链，是“LORE感知”情报简报系统的第一步。
     def _build_entity_extraction_chain(self) -> Runnable:
         """創建一個用於從文本中提取關鍵實體名稱列表的鏈。"""
-        # [v200.0] 需要在 ai_core.py 頂部定義 ExtractedEntities
-        # class ExtractedEntities(BaseModel):
-        #     names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
-        
         extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
 
         prompt_template = """你的唯一任務是一位高效的情報分析員。請通讀下方提供的【文本情報】，並從中提取出所有可能是專有名詞的關鍵詞。
@@ -2038,7 +2036,7 @@ class AILover:
         
         prompt = ChatPromptTemplate.from_template(prompt_template)
         return prompt | extractor_llm
-    # 函式：建構實體提取鏈 (v1.0 - 全新創建)
+    # 函式：建構實體提取鏈 (v1.1 - 移除本地定义)
 
     
 
