@@ -149,12 +149,15 @@ async def define_creature_type(lore_key: str, standardized_name: str, original_n
 
 # --- 任務與世界傳說相關工具 ---
 
-# 類別：新增或更新任務傳說參數
+# 類別：新增或更新任務傳說參數 (v2.0 - 增加參數別名)
 class AddOrUpdateQuestLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化任務標題。")
     original_name: str = Field(description="LLM 在計畫中生成的原始任務標題。")
-    description: str = Field(description="任務的詳細描述，包括背景、目標、獎勵等。")
+    description: str = Field(
+        description="任務的詳細描述，包括背景、目標、獎勵等。",
+        validation_alias=AliasChoices('description', 'content', 'quest_description') # <--- 核心修正
+    )
     location_path: List[str] = Field(description="觸發或與該任務相關的地點路徑。")
     status: str = Field(default="可用", description="任務的當前狀態，例如：'可用'、'進行中'、'已完成'。")
 
@@ -173,12 +176,15 @@ async def add_or_update_quest_lore(lore_key: str, standardized_name: str, origin
     await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
 
-# 類別：新增或更新世界傳說參數
+# 類別：新增或更新世界傳說參數 (v2.0 - 增加參數別名)
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化傳說標題。")
     original_name: str = Field(description="LLM 在計畫中生成的原始傳說標題。")
-    content: str = Field(description="傳說或背景故事的詳細內容。")
+    content: str = Field(
+        description="傳說或背景故事的詳細內容。",
+        validation_alias=AliasChoices('content', 'description', 'lore_content') # <--- 核心修正
+    )
 
 # 工具：新增或更新世界傳說
 @tool(args_schema=AddOrUpdateWorldLoreArgs)
