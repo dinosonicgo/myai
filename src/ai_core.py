@@ -395,11 +395,12 @@ class AILover:
         return self.profile_completion_prompt
     # 函式：獲取角色檔案補完 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：獲取角色檔案重寫 Prompt
-    # 說明：創建或返回一個用於根據使用者指令重寫角色描述的Prompt模板。
+    # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_profile_rewriting_prompt(self) -> ChatPromptTemplate:
         if self.profile_rewriting_prompt is None:
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位技藝精湛的作家和角色編輯。
+            prompt_str = """你是一位技藝精湛的作家和角色編輯。
 你的任務是根據使用者提出的【修改指令】，重寫一份【原始的角色描述】。
 【核心規則】
 1.  **理解並融合**: 你必須深刻理解【修改指令】的核心意圖，並將其無縫地、創造性地融合進【原始的角色描述】中。
@@ -415,7 +416,7 @@ class AILover:
 【重寫後的角色描述】:"""
             self.profile_rewriting_prompt = ChatPromptTemplate.from_template(prompt_str)
         return self.profile_rewriting_prompt
-    # 函式：獲取角色檔案重寫 Prompt
+    # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：加載世界快照模板 (v171.0 - 重命名與職責變更)
     # 更新紀錄:
