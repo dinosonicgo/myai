@@ -2009,11 +2009,11 @@ class AILover:
 
 
 
-    # 函式：建構實體提取鏈 (v1.2 - 引用修正後的模型)
+    # 函式：建構實體提取鏈 (v1.3 - 提示詞轉義修正)
     # 更新紀錄:
+    # v1.3 (2025-09-02): [災難性BUG修復] 根據錯誤日誌，修正了提示詞模板。將範例JSON中的 `{` 和 `}` 轉義為 `{{` 和 `}}`，以防止 LangChain 模板引擎將其誤認為是需要填充的變數，從而解決了導致 'KeyError: \'{"names"}\'' 的根本性問題。
     # v1.2 (2025-09-02): [災難性BUG修復] 修正了 ExtractedEntities Pydantic 模型中因拼寫錯誤（'"names"' -> 'names'）而導致的啟動時 KeyError。此錯誤的修正基於對 ai_core.py 頂部模型定義的修改。
     # v1.1 (2025-09-02): [架構清理] 移除了此函式内部关于 ExtractedEntities 的注释定义。
-    # v1.0 (2025-09-02): [全新創建] 創建了此“侦察兵”链。
     def _build_entity_extraction_chain(self) -> Runnable:
         """創建一個用於從文本中提取關鍵實體名稱列表的鏈。"""
         extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
@@ -2030,7 +2030,7 @@ class AILover:
 【核心規則】
 1.  **寧可錯抓，不可放過**: 盡可能多地提取所有**看起來像**專有名詞的詞語。
 2.  **合併同類**: 如果同一個實體以不同形式出現（例如“碧”和“蛇人女奴”），將它們都提取出來。
-3.  **純淨列表**: 你的輸出【必須且只能】是一個包含字符串列表的 JSON 物件，格式為 `{"names": ["名稱1", "名稱2", ...]}`。
+3.  **純淨列表**: 你的輸出【必須且只能】是一個包含字符串列表的 JSON 物件，格式為 `{{"names": ["名稱1", "名稱2", ...]}}`。
 
 ---
 【文本情報】:
@@ -2041,7 +2041,7 @@ class AILover:
         
         prompt = ChatPromptTemplate.from_template(prompt_template)
         return prompt | extractor_llm
-    # 函式：建構實體提取鏈 (v1.2 - 引用修正後的模型)
+    # 函式：建構實體提取鏈 (v1.3 - 提示詞轉義修正)
 
     
 
