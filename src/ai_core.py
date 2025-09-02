@@ -1205,10 +1205,11 @@ class AILover:
             raise
     # 函式：將世界聖經添加到向量儲存
 
-   # 函式：執行工具呼叫計畫 (v176.0 - 核心角色保護)
+   # 函式：執行工具呼叫計畫 (v177.0 - 架構清理)
     # 更新紀錄:
-    # v176.0 (2025-08-31): [災難性BUG修復] 根據 LOG 分析和工程師指示，在執行工具計畫前，新增了一個【計畫淨化】步驟。此函式現在會主動過濾掉任何試圖對核心主角（使用者或 AI 角色）執行 NPC 操作的非法工具呼叫。這個硬性護欄確保了即使上游的 AI 鏈產生了錯誤的計畫，這個錯誤的計畫也絕不會被執行，從根本上杜絕了核心角色資料被污染的風險。
-    # v175.0 (2025-08-31): [健壯性] 移除了此處的局部導入，改回依賴模組頂層的全局導入。
+    # v177.0 (2025-09-02): [重大架構重構] 根據下游鏈（`get_batch_entity_resolution_chain`）的 v2.0 獨立化更新，徹底移除了此函式中所有關於構建和傳遞 `zero_instruction_template` 的過時邏輯。此修正使工具執行流程與新的、自包含的鏈提示詞架構完全統一，消除了冗餘的數據流並解決了因此產生的 AttributeError。
+    # v176.0 (2025-08-31): [災難性BUG修復] 新增【計畫淨化】步驟，攔截對核心主角的非法操作。
+    # v175.0 (2025-08-31): [健壯性] 改為依賴模組頂層的全局導入。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -1233,6 +1234,8 @@ class AILover:
                     name_to_check = call.parameters['standardized_name']
                 elif 'lore_key' in call.parameters:
                     name_to_check = call.parameters['lore_key'].split(' > ')[-1]
+                elif 'name' in call.parameters:
+                    name_to_check = call.parameters['name']
                 
                 if name_to_check and name_to_check.lower() in protected_names:
                     is_illegal = True
@@ -1295,22 +1298,15 @@ class AILover:
 
         resolved_entities = {}
         if any(entities_by_category.values()):
-            zero_instruction_str = self.zero_instruction_template.format(
-                username=self.profile.user_profile.name if self.profile else "使用者",
-                ai_name=self.profile.ai_profile.name if self.profile else "AI",
-                latest_user_input="", retrieved_context="", response_style_prompt="",
-                world_settings="", ai_settings="", tool_results="", chat_history="",
-                location_context="", possessions_context="", quests_context="",
-                npc_context="", relevant_npc_context=""
-            )
+            # [v177.0 修正] 移除所有關於 zero_instruction_template 的構建邏輯
             resolution_chain = self.get_batch_entity_resolution_chain()
             for category, entities in entities_by_category.items():
                 if not entities: continue
                 existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
                 existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
                 
+                # [v177.0 修正] 調用鏈時不再傳遞 zero_instruction
                 resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
-                    "zero_instruction": zero_instruction_str,
                     "category": category,
                     "new_entities_json": json.dumps([{"name": e["name"], "location_path": e["location_path"]} for e in entities], ensure_ascii=False),
                     "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
@@ -1393,7 +1389,7 @@ class AILover:
         
         logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
         return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
-# 函式結束
+    # 函式：執行工具呼叫計畫 (v177.0 - 架構清理)
 
 
 
