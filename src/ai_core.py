@@ -1942,16 +1942,18 @@ class AILover:
 
 
 
-    # 函式：建構專用敘事鏈 (v3.0 - 強制注入核心協議)
+    # 函式：建構專用敘事鏈 (v3.1 - 健壮性修正)
     # 更新紀錄:
+    # v3.1 (2025-09-04): [灾难性BUG修复] 修复了当 `self.profile.one_instruction` 在数据库中为 NULL (即 Python 中的 None) 时，导致 `system_prompt_prefix` 变量为 None 并引发 AttributeError 的问题。增加了对 `one_instruction` 本身的 None 值检查，确保在任何情况下都能安全地回退到空字符串。
     # v3.0 (2025-09-04): [重大健壯性修正] 為確保寫作階段與規劃階段的行為一致性，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。這從根本上解決了寫作鏈可能在最後一步對規劃好的露骨內容進行自我審查的問題。
-    # v2.4 (2025-09-03): [回归性BUG修复] 整合了 v2.2 和 v2.3 的所有修正。恢复了对 `lambda x: x["final_output_mandate"]` 的使用，以解决因 `RunnablePassthrough` 导致的 `ValueError: Invalid input type` 数据流错误，同时保留了对繁体中文的强制指令。
-    # v2.3 (2025-09-03): [災難性BUG修復] 修正了因 `RunnablePassthrough` 导致的 `ValueError` 数据流错误。
+    # v2.4 (2025-09-03): [回归性BUG修复] 整合了 v2.2 和 v2.3 的所有修正。
     def _build_narrative_chain(self) -> Runnable:
         """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成小說文本。"""
         
-        # [v3.0 核心修正] 將最高指導原則作為系統級前綴注入
-        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
+        # [v3.1 核心修正] 增加对 one_instruction 本身为 None 的检查
+        system_prompt_prefix = ""
+        if self.profile and self.profile.one_instruction:
+            system_prompt_prefix = self.profile.one_instruction
 
         prompt_template = """{system_prompt_prefix}
 
@@ -1987,11 +1989,10 @@ class AILover:
                 "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
                 "final_output_mandate": lambda x: x.get("final_output_mandate", "")
             }
-            | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構專用敘事鏈 (v3.0 - 強制注入核心協議)
+    # 函式：建構專用敘事鏈 (v3.1 - 健壮性修正)
 
 
     
