@@ -1169,11 +1169,11 @@ class AILover:
 
 
     
-   # 函式：執行工具呼叫計畫 (v182.0 - location_path 注入修正)
+   # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
     # 更新紀錄:
-    # v182.0 (2025-09-03): [災難性BUG修復] 根據 Pydantic ValidationError 日誌，發現在背景擴展流程中，LLM 生成的工具計畫有時會遺漏 `location_path` 參數。此修正增加了防禦性程式碼，在執行工具驗證前，會主動檢查並為需要此參數的工具（如 `create_new_npc_profile`）注入當前的場景路徑，從根本上解決了因缺少必要欄位而導致的驗證失敗問題。
-    # v181.0 (2025-09-02): [健壯性] 將實體解析邏輯從批次處理重構為串行處理，以解決 API 速率限制問題。
-    # v180.0 (2025-09-02): [健壯性] 更新了工具名稱映射以兼容 LORE 工具重構。
+    # v183.0 (2025-09-03): [健壯性] 根據日誌分析，為徹底解決 Google API 免費套餐的 15 RPM 速率限制問題，將串行任務之間的延遲從 1.0 秒增加到 4.0 秒。此修改基於 `60秒 / 15次請求 = 4秒/次` 的計算，旨在從數學上確保背景任務的 API 請求頻率低於配額上限，從而最大限度地提高長時間運行的穩定性。
+    # v182.0 (2025-09-03): [災難性BUG修復] 增加了對 `location_path` 參數的防禦性注入。
+    # v181.0 (2025-09-02): [健壯性] 將實體解析邏輯從批次處理重構為串行處理。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -1222,7 +1222,8 @@ class AILover:
             available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
             for call in purified_plan:
-                await asyncio.sleep(1.0) 
+                # [v183.0 核心修正] 增加延遲以符合 15 RPM 的限制
+                await asyncio.sleep(4.0) 
 
                 category = tool_name_to_category.get(call.tool_name)
                 if category and call.tool_name != 'update_npc_profile':
@@ -1257,7 +1258,6 @@ class AILover:
                             })
                             if name_key_found: call.parameters.pop(name_key_found, None)
 
-                # [v182.0 核心修正] 防禦性地注入 location_path
                 if call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
                     call.parameters['location_path'] = current_location_path
 
@@ -1281,7 +1281,7 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v182.0 - location_path 注入修正)
+    # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
 
 
     
