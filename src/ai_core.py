@@ -484,8 +484,6 @@ class AILover:
     # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
-    # 更新紀錄:
-    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_batch_entity_resolution_chain(self) -> Runnable:
         if self.batch_entity_resolution_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.0)
@@ -513,6 +511,44 @@ class AILover:
             self.batch_entity_resolution_chain = full_prompt | resolution_llm
         return self.batch_entity_resolution_chain
     # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+
+    # 函式：獲取單體實體解析鏈 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，創建了這個新鏈。它一次只處理一個實體，取代了高負載的批次解析鏈，通過化整為零的方式平滑 API 請求。
+    def get_single_entity_resolution_chain(self) -> Runnable:
+        # 延遲導入以避免潛在的循環導入問題
+        from .schemas import SingleResolutionPlan
+        
+        # 使用 hasattr 檢查以確保只初始化一次
+        if not hasattr(self, 'single_entity_resolution_chain') or self.single_entity_resolution_chain is None:
+            raw_llm = self._create_llm_instance(temperature=0.0)
+            resolution_llm = raw_llm.with_structured_output(SingleResolutionPlan)
+            
+            prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
+你將收到一個【待解析實體名稱】和一個【現有實體列表】。你的職責是根據語意、上下文和常識，為其精確判斷這是指向一個已存在的實體，還是一個確實全新的實體。
+
+**【核心判斷原則】**
+1.  **語意優先**: 不要進行簡單的字串比對。「伍德隆市場」和「伍德隆的中央市集」應被視為同一個實體。
+2.  **包容變體**: 必須考慮到錯別字、多餘的空格、不同的簡寫或全稱（例如「晨風城」vs「首都晨風城」）。
+3.  **寧可合併，不可重複**: 為了保證世界的一致性，當存在較高可能性是同一個實體時，你應傾向於判斷為'EXISTING'。只有當新名稱顯然指向一個完全不同概念的實體時，才判斷為'NEW'。
+4.  **上下文路徑**: 對於具有 `location_path` 的實體，其路徑是判斷的關鍵依據。不同路徑下的同名實體是不同實體。
+
+**【輸入】**
+- **實體類別**: {category}
+- **待解析實體 (JSON)**: 
+{new_entity_json}
+- **現有同類別的實體列表 (JSON格式，包含 key 和 name)**: 
+{existing_entities_json}
+
+**【輸出指令】**
+請為【待解析實體】生成一個 `SingleResolutionResult`，並將其包裝在 `SingleResolutionPlan` 的 `resolution` 欄位中返回。"""
+            full_prompt = ChatPromptTemplate.from_template(prompt_str)
+            self.single_entity_resolution_chain = full_prompt | resolution_llm
+        return self.single_entity_resolution_chain
+    # 函式：獲取單體實體解析鏈 (v1.0 - 全新創建)
+
+
+    
 
     # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
     # 更新紀錄:
@@ -1064,11 +1100,11 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.6 - 初始化 Entity Extraction)
+    # 函式：配置模型和鏈 (v199.0 - 註冊新鏈)
     # 更新紀錄:
-    # v198.6 (2025-09-02): [架構重構] 新增了對 `_build_entity_extraction_chain` 的調用，以初始化 LORE 感知系統的“偵察兵”組件。
+    # v199.0 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，新增了對 `get_single_entity_resolution_chain` 的調用，以初始化並註冊新的、輕量級的串行解析鏈。
+    # v198.6 (2025-09-02): [架構重構] 新增了對 `_build_entity_extraction_chain` 的調用。
     # v198.5 (2025-09-02): [架構清理] 統一並簡化了模板加載相關的函式和屬性命名。
-    # v198.4 (2025-09-02): [架構重構] 重構並重新啟用了 `_build_narrative_chain`。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
@@ -1086,7 +1122,10 @@ class AILover:
         self.rag_summarizer_chain = self._build_rag_summarizer_chain()
         self.planning_chain = self._build_planning_chain()
         self.narrative_chain = self._build_narrative_chain()
-        self.entity_extraction_chain = self._build_entity_extraction_chain() # [v198.6 新增]
+        self.entity_extraction_chain = self._build_entity_extraction_chain()
+        
+        # [v199.0 新增] 初始化單體解析鏈
+        self.single_entity_resolution_chain = self.get_single_entity_resolution_chain()
         
         self.scene_expansion_chain = self._build_scene_expansion_chain()
         self.scene_casting_chain = self._build_scene_casting_chain()
@@ -1097,8 +1136,12 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.6 (LORE 感知模式)。")
-    # 函式：配置模型和鏈 (v198.6 - 初始化 Entity Extraction)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v199.0 (串行解析模式)。")
+    # 函式：配置模型和鏈 (v199.0 - 註冊新鏈)
+
+
+
+    
 
 
     # 函式：將世界聖經添加到向量儲存
@@ -1126,11 +1169,11 @@ class AILover:
 
 
     
-   # 函式：執行工具呼叫計畫 (v180.0 - 反映 LORE 工具更名)
+   # 函式：執行工具呼叫計畫 (v181.0 - 串行解析重構)
     # 更新紀錄:
-    # v180.0 (2025-09-02): [健壯性] 更新了 `tool_name_to_category` 字典，加入了對新的 `create_new_npc_profile` 工具名稱的映射，並保留了舊名稱以實現向下相容，確保系統能正確處理由 LORE 工具重構前後生成的不同計畫。
-    # v179.0 (2025-09-02): [健壯性] 將工具執行方式從並行修改為串行，以適應 API 速率限制。
-    # v178.0 (2025-09-02): [災難性BUG修復] 引入了 `try...finally` 結構來進行安全的上下文管理。
+    # v181.0 (2025-09-02): [災難性BUG修復 & 健壯性] 根據日誌分析，為徹底解決 API 速率限制問題，完全重構了實體解析邏輯。廢棄了高負載的批次解析鏈，改為在主循環中對【每一個】待創建的 LORE 條目，【單獨地、串行地】調用新增的、輕量級的 `get_single_entity_resolution_chain`。此修改通過化整為零，將一個巨大的 API 請求壓力分散為多個微小的請求，從根本上避免了觸發免費套餐的速率限制。
+    # v180.0 (2025-09-02): [健壯性] 更新了工具名稱映射以兼容 LORE 工具重構。
+    # v179.0 (2025-09-02): [健壯性] 將工具執行方式從並行修改為串行。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -1151,17 +1194,10 @@ class AILover:
                 is_illegal = False
                 if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "update_npc_profile"]:
                     name_to_check = ""
-                    if 'standardized_name' in call.parameters:
-                        name_to_check = call.parameters['standardized_name']
-                    elif 'lore_key' in call.parameters:
-                        name_to_check = call.parameters['lore_key'].split(' > ')[-1]
-                    elif 'name' in call.parameters:
-                        name_to_check = call.parameters['name']
-                    
+                    if 'name' in call.parameters: name_to_check = call.parameters['name']
                     if name_to_check and name_to_check.lower() in protected_names:
                         is_illegal = True
                         logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
-                
                 if not is_illegal:
                     purified_plan.append(call)
 
@@ -1169,11 +1205,11 @@ class AILover:
                 logger.info(f"[{self.user_id}] 場景擴展計畫在淨化後為空，無需執行。")
                 return "場景擴展計畫在淨化後為空。"
 
-            logger.info(f"--- [{self.user_id}] 開始執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
+            logger.info(f"--- [{self.user_id}] 開始串行執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
             
             tool_name_to_category = {
                 "create_new_npc_profile": "npc_profile",
-                "add_or_update_npc_profile": "npc_profile", # 保留舊名稱以實現向下相容
+                "add_or_update_npc_profile": "npc_profile",
                 "update_npc_profile": "npc_profile",
                 "add_or_update_location_info": "location_info",
                 "add_or_update_item_info": "item_info",
@@ -1181,131 +1217,60 @@ class AILover:
                 "add_or_update_quest_lore": "quest",
                 "add_or_update_world_lore": "world_lore",
             }
-            
-            entities_by_category = defaultdict(list)
-            original_name_keys = {} 
 
-            for i, call in enumerate(purified_plan):
-                params = call.parameters
-                if isinstance(params, dict) and len(params) == 1:
-                    first_key = next(iter(params))
-                    if isinstance(params[first_key], dict):
-                        logger.info(f"[{self.user_id}] 檢測到 LLM 生成了不必要的巢狀參數 '{first_key}'。正在自動解包以進行後續處理。")
-                        call.parameters = params[first_key]
-
-                category = tool_name_to_category.get(call.tool_name)
-                if not category: continue
-                
-                possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
-                entity_name = None
-                name_key_found = None
-                for key in possible_name_keys:
-                    if key in call.parameters:
-                        entity_name = call.parameters[key]
-                        name_key_found = key
-                        break
-
-                if not entity_name and call.tool_name == 'add_or_update_location_info' and 'location_path' in call.parameters and call.parameters['location_path']:
-                    entity_name = call.parameters['location_path'][-1]
-                    name_key_found = 'location_path'
-
-                if entity_name and name_key_found:
-                    if name_key_found != 'location_path':
-                        original_name_keys[i] = name_key_found
-                    entities_by_category[category].append({
-                        "name": entity_name,
-                        "location_path": call.parameters.get('location_path', current_location_path),
-                        "plan_index": i 
-                    })
-
-            resolved_entities = {}
-            if any(entities_by_category.values()):
-                resolution_chain = self.get_batch_entity_resolution_chain()
-                for category, entities in entities_by_category.items():
-                    if not entities: continue
-                    existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
-                    existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
-                    
-                    resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
-                        "category": category,
-                        "new_entities_json": json.dumps([{"name": e["name"], "location_path": e["location_path"]} for e in entities], ensure_ascii=False),
-                        "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
-                    })
-
-                    if not resolution_plan:
-                        logger.warning(f"[{self.user_id}] 批次實體解析鏈返回了 None，可能被審查。跳過解析。")
-                        continue
-
-                    for i, resolution in enumerate(resolution_plan.resolutions):
-                        original_entity_info = entities[i]
-                        plan_index = original_entity_info["plan_index"]
-                        
-                        lore_key: str
-                        std_name = resolution.standardized_name or resolution.original_name
-                        if resolution.decision == 'EXISTING' and resolution.matched_key:
-                            lore_key = resolution.matched_key
-                        else: 
-                            path_prefix = " > ".join(original_entity_info["location_path"])
-                            safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
-                            lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
-
-                        resolved_entities[plan_index] = {
-                            "lore_key": lore_key,
-                            "standardized_name": std_name,
-                            "original_name": resolution.original_name
-                        }
-            
             summaries = []
             available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
-            for i, call in enumerate(purified_plan):
-                if i in resolved_entities:
-                    call.parameters.update(resolved_entities[i])
-                    if i in original_name_keys:
-                        call.parameters.pop(original_name_keys[i], None)
+            # [v181.0 核心重構] 串行處理每一個工具呼叫
+            for call in purified_plan:
+                await asyncio.sleep(1.0) # 在每個工具處理前增加延遲，進一步平滑請求
 
-                if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
-                    call.parameters['location_path'] = current_location_path
-                
+                category = tool_name_to_category.get(call.tool_name)
+                # 對於需要創建新 LORE 的工具，執行單體實體解析
+                if category and call.tool_name != 'update_npc_profile':
+                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                    entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
+
+                    if entity_name:
+                        resolution_chain = self.get_single_entity_resolution_chain()
+                        existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
+                        existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
+                        
+                        resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
+                            "category": category,
+                            "new_entity_json": json.dumps({"name": entity_name, "location_path": call.parameters.get('location_path', current_location_path)}, ensure_ascii=False),
+                            "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                        })
+                        
+                        if resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution:
+                            res = resolution_plan.resolution
+                            std_name = res.standardized_name or res.original_name
+                            if res.decision == 'EXISTING' and res.matched_key:
+                                lore_key = res.matched_key
+                            else:
+                                path_prefix = " > ".join(call.parameters.get('location_path', current_location_path))
+                                safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
+                                lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
+                            
+                            call.parameters.update({
+                                "lore_key": lore_key,
+                                "standardized_name": std_name,
+                                "original_name": res.original_name
+                            })
+                            if name_key_found: call.parameters.pop(name_key_found, None)
+
+                # 執行工具
                 tool_to_execute = available_tools.get(call.tool_name)
-                if not tool_to_execute:
-                    logger.warning(f"[{self.user_id}] 擴展計畫中發現未知工具: '{call.tool_name}'，啟動模糊匹配備援...")
-                    scores = {name: levenshtein_ratio(call.tool_name, name) for name in available_tools.keys()}
-                    best_match, best_score = max(scores.items(), key=lambda item: item[1])
-                    if best_score > 0.7:
-                        logger.info(f"[{self.user_id}] 已將 '{call.tool_name}' 自動修正為 '{best_match}' (相似度: {best_score:.2f})")
-                        tool_to_execute = available_tools[best_match]
-                    else:
-                        logger.error(f"[{self.user_id}] 模糊匹配失敗，找不到與 '{call.tool_name}' 足夠相似的工具。")
-                        continue
+                if not tool_to_execute: continue
+
                 try:
                     validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
                     result = await tool_to_execute.ainvoke(validated_args.model_dump())
                     summary = f"任務成功: {result}"
                     logger.info(f"[{self.user_id}] {summary}")
                     summaries.append(summary)
-                except ValidationError as e:
-                    logger.warning(f"[{self.user_id}] 參數驗證失敗，為工具 '{tool_to_execute.name}' 啟動意圖重構備援... 錯誤: {e}")
-                    try:
-                        reconstruction_chain = self._build_param_reconstruction_chain()
-                        reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
-                            "tool_name": tool_to_execute.name,
-                            "original_params": json.dumps(call.parameters, ensure_ascii=False),
-                            "validation_error": str(e),
-                            "correct_schema": tool_to_execute.args_schema.schema_json()
-                        })
-                        
-                        validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
-                        result = await tool_to_execute.ainvoke(validated_args.model_dump())
-                        summary = f"任務成功 (經重構): {result}"
-                        logger.info(f"[{self.user_id}] {summary}")
-                        summaries.append(summary)
-                    except Exception as recon_e:
-                        summary = f"任務失敗 (重構後): {recon_e}"
-                        logger.error(f"[{self.user_id}] {summary}", exc_info=True)
-                        summaries.append(summary)
-                except Exception as final_e:
-                    summary = f"任務失敗: {final_e}"
+                except Exception as e:
+                    summary = f"任務失敗 for {call.tool_name}: {e}"
                     logger.error(f"[{self.user_id}] {summary}", exc_info=True)
                     summaries.append(summary)
 
@@ -1315,7 +1280,7 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v180.0 - 反映 LORE 工具更名)
+    # 函式：執行工具呼叫計畫 (v181.0 - 串行解析重構)
 
 
     
