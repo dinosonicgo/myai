@@ -1589,24 +1589,35 @@ class AILover:
 
 
 
-    # 函式：RAG 上下文預處理 (v171.0 總結功能廢除)
+
+
+    # 函式：RAG 上下文預處理 (v172.0 - 引入總結鏈)
     # 更新紀錄:
-    # v171.0 (2025-08-29): [根本性BUG修復] 徹底廢除了此函式的 LLM 總結功能。舊的總結邏輯會對檢索到的露骨歷史進行預處理，反而觸發內容審查，導致傳遞給主 Agent 的上下文被“淨化”和污染。新邏輯將只進行簡單的文本拼接，確保未經審查的原始上下文能被直接傳遞給擁有最強 Prompt 保護的主 Agent，從根本上解決了輸出不完整和不夠露骨的問題。
+    # v172.0 (2025-09-02): [災難性BUG修復] 徹底重構了此函式。它現在會調用一個專用的 `rag_summarizer_chain`，將檢索到的、可能包含完整散文的歷史文檔，強制提煉成一份只包含核心事實的要點列表。這徹底改變了上下文的性質，從一份“可以抄寫的答案”變為一份“需要加工的素材”，從根本上解決了 AI 直接複製歷史記錄的“偷懶”行為。
+    # v171.0 (2025-08-29): [根本性BUG修復] 徹底廢除了此函式的 LLM 總結功能。
     # v154.0 (2025-08-29): [根本性BUG修復] 徹底重構了此函式的核心職責。
-    # v153.0 (2025-08-28): [健壯性] 在淨化失敗時實現安全降級，防止污染主流程。
     async def _preprocess_rag_context(self, docs: List[Document]) -> str:
         if not docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # [v171.0 修正] 移除所有 LLM 總結邏輯，直接拼接並返回原始文檔內容。
-        # 這樣可以避免前置處理鏈遭遇審查，並將最原始、最露骨的上下文直接交給
-        # 擁有多層指令保護的主 Agent 進行處理。
-        doc_contents = "\n\n---\n\n".join([doc.page_content for doc in docs])
+        # [v172.0 修正] 調用新的總結鏈來“去散文化”，將其轉換為事實要點
+        if not self.rag_summarizer_chain:
+            logger.warning(f"[{self.user_id}] RAG 總結鏈未初始化，將退回至直接拼接模式。")
+            summarized_context = "\n\n---\n\n".join([doc.page_content for doc in docs])
+        else:
+            summarized_context = await self.ainvoke_with_rotation(self.rag_summarizer_chain, docs)
+
+        if not summarized_context.strip():
+             summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
         
-        logger.info(f"[{self.user_id}] 已直接拼接 RAG 上下文，將未經審查的原始數據傳遞給主 Agent。")
+        logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點，以供主 Agent 創作。")
         
-        return f"【背景歷史參考】:\n{doc_contents}"
-    # 函式：RAG 上下文預處理 (v171.0 總結功能廢除)
+        return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
+    # 函式：RAG 上下文預處理 (v172.0 - 引入總結鏈)
+
+
+
+    
 
 
     # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
