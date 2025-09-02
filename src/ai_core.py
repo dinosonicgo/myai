@@ -402,34 +402,38 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt
 
-    # 函式：加載零號指令模板 (v166.0 新增)
-    # 說明：從 prompts/zero_instruction.txt 文件中讀取核心指令模板並存儲到實例屬性中，供輔助鏈使用。
-    def _load_zero_instruction(self):
-        """從 prompts/zero_instruction.txt 文件中讀取核心指令模板。"""
+    # 函式：加載世界快照模板 (v171.0 - 重命名與職責變更)
+    # 更新紀錄:
+    # v171.0 (2025-09-02): [架構重構] 函式重命名為 `_load_world_snapshot_template`。其職責從加載一個包含所有指令的 "zero_instruction" 變為只加載一個純粹用於格式化上下文的數據模板 `world_snapshot_template.txt`。
+    # v166.0 (2025-08-29): [全新創建] 創建了此函式以加載核心指令。
+    def _load_world_snapshot_template(self):
+        """從 prompts/world_snapshot_template.txt 文件中讀取世界狀態的數據模板。"""
+        # [v171.0 修正] 為了向後兼容，保留舊的屬性名 self.zero_instruction_template，但加載新的模板檔案。
         try:
-            prompt_path = PROJ_DIR / "prompts" / "zero_instruction.txt"
+            prompt_path = PROJ_DIR / "prompts" / "world_snapshot_template.txt"
             with open(prompt_path, "r", encoding="utf-8") as f:
                 self.zero_instruction_template = f.read()
-            logger.info(f"[{self.user_id}] 核心指令 'zero_instruction.txt' 已成功加載。")
+            logger.info(f"[{self.user_id}] 核心數據模板 'world_snapshot_template.txt' 已成功加載。")
         except FileNotFoundError:
-            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心指令文件 'zero_instruction.txt'！")
-            self.zero_instruction_template = ""
-    # 函式：加載零號指令模板 (v166.0 新增)
+            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！請確認您已將 'zero_instruction.txt' 重命名。")
+            self.zero_instruction_template = "錯誤：世界快照模板未找到。"
+    # 函式：加載世界快照模板 (v171.0 - 重命名與職責變更)
 
 
-    # 函式：動態組合模組化提示詞 (v170.3 - 縮排修正)
+    # 函式：動態組合模組化提示詞 (v171.0 - 分層提示詞架構重構)
     # 更新紀錄:
-    # v170.3 (2025-09-02): [災難性BUG修復] 修正了整個函式定義的縮排，使其能被正確識別為 AILover 類別的方法。
-    # v170.2 (2025-09-02): [災難性BUG修復] 根據 LOG 分析，確認舊的 ReAct 框架提示詞 `01_narrative_base.txt` 仍在被加載，導致嚴重的思考過程洩漏和角色扮演錯誤。此版本徹底移除了對該檔案的加載邏輯，確保 LangGraph 流程的提示詞純淨性。
-    # v170.1 (2025-09-02): [BUG修復] 修正了函式定義的縮排錯誤。
-    async def _assemble_dynamic_prompt(self, is_move: bool = False, is_sexual: bool = False, task_type: Literal['chat', 'opening'] = 'chat') -> str:
-        """根據當前情境和任務類型，動態地從 `prompts/modular/` 目錄加載並組合一個精簡、高效的系統提示詞。"""
-        prompt_parts = []
-        
-        # [v170.2 修正] 徹底移除對 ReAct 框架 (`01_narrative_base`) 的依賴，只加載最核心的協議
+    # v171.0 (2025-09-02): [災難性BUG修復] 徹底重構了提示詞的組合邏輯，實現了真正的分層架構。此函式現在是唯一的指令中心，它將【核心指令】(`00_core_protocol`) 與使用 `world_snapshot_template.txt` 填充的【世界狀態】清晰地分開，最後再附加【輸出風格指令】。此修改從根本上解決了因舊 `zero_instruction.txt` 指令污染導致的思考洩漏和角色扮演錯誤。
+    # v170.3 (2025-09-02): [災難性BUG修復] 修正了整個函式定義的縮排。
+    # v170.2 (2025-09-02): [災難性BUG修復] 移除了對 ReAct 框架 `01_narrative_base.txt` 的加載。
+    async def _assemble_dynamic_prompt(self, context_dict: Dict[str, Any], is_move: bool = False, is_sexual: bool = False) -> str:
+        """
+        [v171.0 新架構] 根據當前情境組合一個分層的、清晰的系統提示詞。
+        此函式是唯一的指令中心。
+        """
+        # --- 層次一：加載核心行為指令 ---
+        instruction_parts = []
         prompt_keys_to_load = ['00_core_protocol']
         
-        # 根據場景動態加載必要的動作模組
         if is_move:
             prompt_keys_to_load.append('action_macro_movement')
         if is_sexual:
@@ -443,15 +447,18 @@ class AILover:
                         self.modular_prompts[key] = f.read()
                 except FileNotFoundError:
                     logger.error(f"[{self.user_id}] 關鍵提示詞模組未找到: {key}.txt")
-                    if key in ['00_core_protocol']: # 核心協議是必需的
+                    if key in ['00_core_protocol']:
                         raise
                     continue
-            
-            prompt_parts.append(self.modular_prompts[key])
+            instruction_parts.append(self.modular_prompts[key])
         
-        base_prompt = "\n\n".join(prompt_parts)
-    
-        # 組合最終的提示詞，包含使用者自訂的風格指令
+        core_instructions = "\n\n".join(instruction_parts)
+
+        # --- 層次二：填充世界狀態快照 ---
+        # 使用 world_snapshot_template.txt 作為數據模板來格式化所有上下文
+        world_snapshot = self.zero_instruction_template.format(**context_dict)
+
+        # --- 層次三：定義最終輸出風格 ---
         final_output_mandate = f"""
 # ==============================================================================
 # == 🎨 最終輸出強制令 (FINAL OUTPUT MANDATE) 🎨
@@ -462,13 +469,25 @@ class AILover:
 
 ---
 # 【【【使用者自訂風格指令 (ABSOLUTE & HIGHEST PRIORITY)】】】
-{{response_style_prompt}}
+{context_dict.get('response_style_prompt', '預設風格：平衡的敘事與對話。')}
 ---
 """
-        final_prompt = base_prompt + "\n\n" + final_output_mandate
+        
+        # --- 組合所有層次 ---
+        final_prompt = (
+            f"{core_instructions}\n\n"
+            f"# ==============================================================================\n"
+            f"# == 📖 第二章：世界實時快照 (World Snapshot) 📖\n"
+            f"# ==============================================================================\n"
+            f"# == 說明：此章節包含由系統自動填充的、關於當前世界狀態的即時資訊。\n"
+            f"# ==       你必須將這些信息視為【當前時刻的絕對事實】。\n"
+            f"# ==============================================================================\n\n"
+            f"{world_snapshot}\n\n"
+            f"{final_output_mandate}"
+        )
         
         return final_prompt
-    # 函式：動態組合模組化提示詞 (v170.3 - 縮排修正)
+    # 函式：動態組合模組化提示詞 (v171.0 - 分層提示詞架構重構)
 
 
 
