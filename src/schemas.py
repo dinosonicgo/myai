@@ -203,9 +203,27 @@ class CharacterAction(BaseModel):
         return self
 
 class TurnPlan(BaseModel):
+    """一回合行動的完整結構化計畫。"""
     thought: str = Field(description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
-    character_actions: List[CharacterAction] = Field(description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。這個列表是空的，當且僅當所有 AI/NPC 在情境下都選擇無行動。")
-    narration: str = Field(description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
+    narration: Optional[str] = Field(default="", description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
+    character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。")
+    execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合邏輯而無法執行時，此欄位包含以角色口吻給出的解釋。")
+
+    @model_validator(mode='after')
+    def check_plan_logic(self) -> 'TurnPlan':
+        """驗證計畫的邏輯一致性。"""
+        has_actions = bool(self.character_actions)
+        has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
+
+        if not has_actions and not has_rejection:
+            # 允許一個完全空的計畫（例如，AI決定什麼都不做），但 thought 必須存在
+            if not self.thought:
+                 raise ValueError("一個空的計畫至少需要一個 thought。")
+        
+        if has_actions and has_rejection:
+            raise ValueError("計畫不能同時包含角色行動(character_actions)和拒絕執行的理由(execution_rejection_reason)。")
+            
+        return self
 
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
