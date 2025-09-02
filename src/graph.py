@@ -207,27 +207,56 @@ async def generate_core_response_node(state: ConversationGraphState) -> Dict:
     return {"llm_response": llm_response}
 # 函式：生成核心回應 (v2.0 - 職責簡化與提示詞重構)
 
-# 函式：驗證、重寫並淨化輸出
+# 函式：驗證與淨化輸出 (v2.1 - 內容保全式淨化)
+# 更新紀錄:
+# v2.1 (2025-09-02): [灾难性BUG修复] 根據使用者對“誤判”問題的歷史擔憂，徹底重構了淨化邏輯。新版本採用了“內容保全”策略，分兩階段進行：首先使用保守且精準的 Regex 進行“手術刀式”清理；然後，增加一個備援步驟，該步驟只會移除已知的標籤文本（如'旁白:'），但会保留标签后的所有内容。此修改旨在确保该节点在任何情况下都不会因“误判”而删除有效的叙事内容，从根本上解决了旧版本“净化后为空”的致命缺陷。
+# v2.0 (2025-09-02): [架構修正] 重新啟用此節點，並引入 Regex 進行強制淨化。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 6] [v1.1 已停用驗證與重寫] 此節點現在僅作為一個簡單的傳遞節點。
-    它會直接將 LLM 的原始回應設定為最終輸出，以避免因過度審查導致空回應。
+    [節點 6] [v2.1 已重新啟用] 使用保守且安全的規則，強制淨化 LLM 的原始輸出，同時最大限度地保全有效內容。
     """
     user_id = state['user_id']
     initial_response = state['llm_response']
 
-    logger.info(f"[{user_id}] (Graph) Node: validate_and_rewrite_node -> [已停用] 正在直接傳遞 LLM 原始輸出...")
+    logger.info(f"[{user_id}] (Graph) Node: validate_and_rewrite_node -> [已啟用] 正在對 LLM 原始輸出進行內容保全式淨化...")
     
-    final_response = initial_response
-
-    if not final_response or not final_response.strip():
-        logger.error(f"[{user_id}] 核心鏈返回了空的或無效的回應。")
+    if not initial_response or not initial_response.strip():
+        logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
 
-    clean_response = final_response.strip()
+    clean_response = initial_response
 
-    return {"final_output": clean_response}
-# 函式：驗證、重寫並淨化輸出
+    # --- 阶段一：精准的“手术刀式” Regex 清理 ---
+    # 此阶段只处理我们已知的、非常明确的、完整的泄漏模式。
+    
+    # 规则 1: 移除所有 `（思考...）`、`（行动...）`、`（自我观察...）` 块。
+    # 使用非贪婪匹配 `*?` 确保只匹配到最近的右括号，防止误删。
+    clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
+    
+    # 规则 2: 仅移除【行首】的 `旁白:`、`对话:` 标签。
+    # `^` 锚定行首，`\s*` 匹配任意空白，`flags=re.MULTILINE` 让 `^` 能匹配每一行的开头。
+    clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
+
+    # --- 阶段二：“内容保全”的备援清理 ---
+    # 此阶段处理 Regex 可能遗漏的、格式不规范的标签，但绝不删除标签后的内容。
+
+    # 备援规则 1: 如果文本中仍然存在标签（可能是因为前面有缩排导致 `^` 匹配失败），
+    # 则直接替换掉标签本身，保留后续所有文本。
+    if '旁白:' in clean_response or '對話:' in clean_response:
+        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動備援清理。")
+        clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
+        clean_response = clean_response.replace('旁白：', '').replace('對話：', '') # 處理全形冒號
+
+    # --- 最终处理 ---
+    # 在所有处理完成后，移除头尾可能产生的多余空白和换行符。
+    final_response = clean_response.strip()
+
+    if not final_response:
+        logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
+        return {"final_output": "（...）"}
+
+    return {"final_output": final_response}
+# 函式：驗證與淨化輸出 (v2.1 - 內容保全式淨化)
 
 # 函式：執行狀態更新與記憶儲存
 async def persist_state_node(state: ConversationGraphState) -> Dict:
