@@ -1300,68 +1300,99 @@ class BotCog(commands.Cog):
         
         await interaction.followup.send(f"已成功重置使用者 {user_display_name} ({target_user_id}) 的所有資料。", ephemeral=True)
 
-    # 函式：管理員強制更新 (v40.1 - 異步化修正)
+    # 函式：管理員強制更新 (v40.2 - 背景任務重構)
     # 更新紀錄:
-    # v40.1 (2025-09-04): [灾难性BUG修复] 解决了因同步的 `subprocess.run` 阻塞事件循环，导致 Discord Interaction Token (3秒) 过期并引发 `Unknown Interaction` 错误的问题。通过将耗时的 git 命令移入 `asyncio.to_thread` 中执行，确保了 `interaction.response.defer()` 能够被立即发送，从而维持了交互的有效性。
+    # v40.2 (2025-09-05): [災難性BUG修復] 徹底重構了此函式的執行模式，以根除 `Unknown Interaction` 超時錯誤。現在，指令會立即回應 Discord，然後將耗時的 `git` 操作和重啟邏輯分派到一個由 `asyncio.create_task` 創建的背景任務中執行。此修改確保了對 Discord 的初始回應總能在 3 秒內完成，從根本上解決了因事件循環阻塞導致的互動超時問題。
+    # v40.1 (2025-09-04): [灾难性BUG修复] 解决了因同步的 `subprocess.run` 阻塞事件循环的问题。
     # v40.0 (2025-09-02): [健壯性] 簡化了回應發送邏輯。
-    # v39.0 (2025-09-02): [健壯性] 新增了此指令。
     @app_commands.command(name="admin_force_update", description="[管理員] 強制從 GitHub 同步最新程式碼並重啟機器人。")
     @app_commands.check(is_admin)
     async def admin_force_update(self, interaction: discord.Interaction):
-        # 步骤 1: 立即响应 Discord，防止交互超时
+        # 步驟 1: 立即回應 Discord，確保互動在 3 秒內被確認
         await interaction.response.defer(ephemeral=True, thinking=True)
         
-        logger.info(f"管理員 {interaction.user.id} 觸發了強制更新...")
+        # 步驟 2: 發送一條確認訊息給使用者，表明指令已被接受
+        await interaction.followup.send("✅ **指令已接收！**\n正在背景中為您執行強制同步與重啟，請稍候...", ephemeral=True)
         
-        try:
-            await interaction.followup.send("⏳ **正在強制同步...**\n正在從遠端倉庫 `origin/main` 獲取最新版本...", ephemeral=True)
+        logger.info(f"管理員 {interaction.user.id} 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。")
 
-            # [v40.1 核心修正] 将阻塞的 IO 操作放入线程中执行
+        # 步驟 3: 將所有耗時的操作放入一個背景任務中執行
+        # 這樣，此指令函式可以立即結束，不會阻塞事件循環
+        asyncio.create_task(self._perform_update_and_restart(interaction))
+    # 函式：管理員強制更新 (v40.2 - 背景任務重構)
+
+    # 函式：執行更新與重啟的背景任務 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-05): [全新創建] 創建此輔助函式，用於在背景中安全地執行耗時的 git 操作和程式重啟，作為 admin_force_update 指令重構的一部分。
+    async def _perform_update_and_restart(self, interaction: discord.Interaction):
+        """
+        在背景中執行實際的 git 同步和重啟邏輯。
+        這是一個輔助函式，不應被直接當作指令呼叫。
+        """
+        try:
+            # 在開始耗時操作前，先等待一小段時間，確保主執行緒已完全釋放
+            await asyncio.sleep(1)
+
+            # 定義一個同步函式來執行 git 命令，以便在線程中運行
             def run_git_sync():
                 git_reset_command = ["git", "reset", "--hard", "origin/main"]
-                # 注意：这里我们不需要捕获输出，因为我们只想知道成功与否
                 process = subprocess.run(
                     git_reset_command,
                     capture_output=True,
                     text=True,
                     encoding='utf-8',
-                    check=False  # 我们手动检查 returncode
+                    check=False 
                 )
                 return process
 
+            # 將阻塞的 git 操作放入線程池中執行
             process = await asyncio.to_thread(run_git_sync)
 
             if process.returncode == 0:
-                logger.info("強制同步成功，準備重啟...")
+                logger.info("背景任務：強制同步成功，準備重啟...")
                 success_message = (
                     "✅ **同步成功！**\n"
                     "程式碼已強制更新至最新版本。\n\n"
-                    "🔄 **機器人將在 3 秒後自動重啟...**"
+                    "🔄 **機器人即將重啟...** (您的客戶端可能需要幾秒鐘才能重新連線)"
                 )
-                # 使用 followup 发送最终消息
-                await interaction.followup.send(success_message, ephemeral=True)
+                # 嘗試發送最終的成功訊息，如果互動仍然有效
+                try:
+                    await interaction.followup.send(success_message, ephemeral=True)
+                except discord.errors.NotFound:
+                    logger.warning("背景任務：嘗試發送重啟訊息時互動已失效，但不影響重啟流程。")
+
+                # 等待訊息發送
                 await asyncio.sleep(3)
                 
-                # execv 会替换当前进程，因此这是此函数的最后一步
-                os.execv(sys.executable, [sys.executable] + sys.argv)
+                # 使用 sys.exit(0) 發出一個乾淨的退出信號，讓 launcher.py 來處理重啟
+                sys.exit(0)
             else:
-                logger.error(f"強制同步失敗: {process.stderr}")
+                logger.error(f"背景任務：強制同步失敗: {process.stderr}")
                 error_message = (
                     f"🔥 **同步失敗！**\n"
                     f"Git 返回了錯誤，請檢查後台日誌。\n\n"
                     f"```\n{process.stderr.strip()}\n```"
                 )
-                await interaction.followup.send(error_message, ephemeral=True)
+                # 嘗試發送錯誤訊息
+                try:
+                    await interaction.followup.send(error_message, ephemeral=True)
+                except discord.errors.NotFound:
+                     logger.error("背景任務：嘗試發送失敗訊息時互動已失效。")
+
 
         except FileNotFoundError:
-            logger.error("Git 命令未找到，無法執行強制更新。")
-            await interaction.followup.send("🔥 **錯誤：`git` 命令未找到！**\n請確保伺服器環境已安裝 Git。", ephemeral=True)
+            logger.error("背景任務：Git 命令未找到，無法執行強制更新。")
+            try:
+                await interaction.followup.send("🔥 **錯誤：`git` 命令未找到！**\n請確保伺服器環境已安裝 Git。", ephemeral=True)
+            except discord.errors.NotFound:
+                pass
         except Exception as e:
-            logger.error(f"執行強制更新時發生未預期錯誤: {e}", exc_info=True)
-            # 检查交互是否仍然有效
-            if not interaction.is_expired():
+            logger.error(f"背景任務：執行強制更新時發生未預期錯誤: {e}", exc_info=True)
+            try:
                 await interaction.followup.send(f"🔥 **發生未預期錯誤！**\n執行更新時遇到問題: {e}", ephemeral=True)
-    # 函式：管理員強制更新 (v40.1 - 異步化修正)
+            except discord.errors.NotFound:
+                pass
+    # 函式：執行更新與重啟的背景任務 (v1.0 - 全新創建)
 
     @app_commands.command(name="admin_check_status", description="[管理員] 查詢指定使用者的當前狀態")
     @app_commands.check(is_admin)
