@@ -1205,191 +1205,198 @@ class AILover:
             raise
     # 函式：將世界聖經添加到向量儲存
 
-   # 函式：執行工具呼叫計畫 (v177.0 - 架構清理)
+   # 函式：執行工具呼叫計畫 (v178.0 - 上下文管理修正)
     # 更新紀錄:
-    # v177.0 (2025-09-02): [重大架構重構] 根據下游鏈（`get_batch_entity_resolution_chain`）的 v2.0 獨立化更新，徹底移除了此函式中所有關於構建和傳遞 `zero_instruction_template` 的過時邏輯。此修正使工具執行流程與新的、自包含的鏈提示詞架構完全統一，消除了冗餘的數據流並解決了因此產生的 AttributeError。
+    # v178.0 (2025-09-02): [災難性BUG修復] 徹底重構了此函式的上下文管理。根據錯誤日誌分析，背景擴展任務因缺少 Tool Context 而失敗。此修正引入了與主對話流程一致的 `try...finally` 結構，在執行工具前【設定共享上下文】，並在執行後【絕對確保其被清理】，從根本上解決了 'Tool context user_id is not set' 的錯誤。
+    # v177.0 (2025-09-02): [重大架構重構] 移除了所有關於 `zero_instruction_template` 的過時邏輯。
     # v176.0 (2025-08-31): [災難性BUG修復] 新增【計畫淨化】步驟，攔截對核心主角的非法操作。
-    # v175.0 (2025-08-31): [健壯性] 改為依賴模組頂層的全局導入。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
             return "場景擴展計畫為空，或 AI 判斷本輪無需擴展。"
 
-        # [v176.0 新增] 計畫淨化步驟：移除所有針對核心主角的非法操作
-        if not self.profile:
-            return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
+        # [v178.0 核心修正] 設定工具執行上下文
+        tool_context.set_context(self.user_id, self)
         
-        user_name_lower = self.profile.user_profile.name.lower()
-        ai_name_lower = self.profile.ai_profile.name.lower()
-        protected_names = {user_name_lower, ai_name_lower}
-        
-        purified_plan: List[ToolCall] = []
-        for call in plan.plan:
-            is_illegal = False
-            # 檢查針對 NPC 的工具
-            if call.tool_name in ["add_or_update_npc_profile", "update_npc_profile"]:
-                # 檢查參數中的各種可能的名字欄位
-                name_to_check = ""
-                if 'standardized_name' in call.parameters:
-                    name_to_check = call.parameters['standardized_name']
-                elif 'lore_key' in call.parameters:
-                    name_to_check = call.parameters['lore_key'].split(' > ')[-1]
-                elif 'name' in call.parameters:
-                    name_to_check = call.parameters['name']
-                
-                if name_to_check and name_to_check.lower() in protected_names:
-                    is_illegal = True
-                    logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
+        try:
+            # [v176.0 新增] 計畫淨化步驟：移除所有針對核心主角的非法操作
+            if not self.profile:
+                return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
             
-            if not is_illegal:
-                purified_plan.append(call)
-
-        if not purified_plan:
-            logger.info(f"[{self.user_id}] 場景擴展計畫在淨化後為空，無需執行。")
-            return "場景擴展計畫在淨化後為空。"
-
-        logger.info(f"--- [{self.user_id}] 開始執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
-        
-        tool_name_to_category = {
-            "add_or_update_npc_profile": "npc_profile",
-            "update_npc_profile": "npc_profile",
-            "add_or_update_location_info": "location_info",
-            "add_or_update_item_info": "item_info",
-            "define_creature_type": "creature_info",
-            "add_or_update_quest_lore": "quest",
-            "add_or_update_world_lore": "world_lore",
-        }
-        
-        entities_by_category = defaultdict(list)
-        original_name_keys = {} 
-
-        for i, call in enumerate(purified_plan):
-            params = call.parameters
-            if isinstance(params, dict) and len(params) == 1:
-                first_key = next(iter(params))
-                if isinstance(params[first_key], dict):
-                    logger.info(f"[{self.user_id}] 檢測到 LLM 生成了不必要的巢狀參數 '{first_key}'。正在自動解包以進行後續處理。")
-                    call.parameters = params[first_key]
-
-            category = tool_name_to_category.get(call.tool_name)
-            if not category: continue
+            user_name_lower = self.profile.user_profile.name.lower()
+            ai_name_lower = self.profile.ai_profile.name.lower()
+            protected_names = {user_name_lower, ai_name_lower}
             
-            possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
-            entity_name = None
-            name_key_found = None
-            for key in possible_name_keys:
-                if key in call.parameters:
-                    entity_name = call.parameters[key]
-                    name_key_found = key
-                    break
-
-            if not entity_name and call.tool_name == 'add_or_update_location_info' and 'location_path' in call.parameters and call.parameters['location_path']:
-                entity_name = call.parameters['location_path'][-1]
-                name_key_found = 'location_path'
-
-            if entity_name and name_key_found:
-                if name_key_found != 'location_path':
-                    original_name_keys[i] = name_key_found
-                entities_by_category[category].append({
-                    "name": entity_name,
-                    "location_path": call.parameters.get('location_path', current_location_path),
-                    "plan_index": i 
-                })
-
-        resolved_entities = {}
-        if any(entities_by_category.values()):
-            # [v177.0 修正] 移除所有關於 zero_instruction_template 的構建邏輯
-            resolution_chain = self.get_batch_entity_resolution_chain()
-            for category, entities in entities_by_category.items():
-                if not entities: continue
-                existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
-                existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
-                
-                # [v177.0 修正] 調用鏈時不再傳遞 zero_instruction
-                resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
-                    "category": category,
-                    "new_entities_json": json.dumps([{"name": e["name"], "location_path": e["location_path"]} for e in entities], ensure_ascii=False),
-                    "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
-                })
-
-                if not resolution_plan:
-                    logger.warning(f"[{self.user_id}] 批次實體解析鏈返回了 None，可能被審查。跳過解析。")
-                    continue
-
-                for i, resolution in enumerate(resolution_plan.resolutions):
-                    original_entity_info = entities[i]
-                    plan_index = original_entity_info["plan_index"]
+            purified_plan: List[ToolCall] = []
+            for call in plan.plan:
+                is_illegal = False
+                # 檢查針對 NPC 的工具
+                if call.tool_name in ["add_or_update_npc_profile", "update_npc_profile"]:
+                    # 檢查參數中的各種可能的名字欄位
+                    name_to_check = ""
+                    if 'standardized_name' in call.parameters:
+                        name_to_check = call.parameters['standardized_name']
+                    elif 'lore_key' in call.parameters:
+                        name_to_check = call.parameters['lore_key'].split(' > ')[-1]
+                    elif 'name' in call.parameters:
+                        name_to_check = call.parameters['name']
                     
-                    lore_key: str
-                    std_name = resolution.standardized_name or resolution.original_name
-                    if resolution.decision == 'EXISTING' and resolution.matched_key:
-                        lore_key = resolution.matched_key
-                    else: 
-                        path_prefix = " > ".join(original_entity_info["location_path"])
-                        safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
-                        lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
+                    if name_to_check and name_to_check.lower() in protected_names:
+                        is_illegal = True
+                        logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
+                
+                if not is_illegal:
+                    purified_plan.append(call)
 
-                    resolved_entities[plan_index] = {
-                        "lore_key": lore_key,
-                        "standardized_name": std_name,
-                        "original_name": resolution.original_name
-                    }
-        
-        validated_tasks = []
-        available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
-        for i, call in enumerate(purified_plan):
-            if i in resolved_entities:
-                call.parameters.update(resolved_entities[i])
-                if i in original_name_keys:
-                    call.parameters.pop(original_name_keys[i], None)
+            if not purified_plan:
+                logger.info(f"[{self.user_id}] 場景擴展計畫在淨化後為空，無需執行。")
+                return "場景擴展計畫在淨化後為空。"
 
-            if call.tool_name in ["add_or_update_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
-                call.parameters['location_path'] = current_location_path
+            logger.info(f"--- [{self.user_id}] 開始執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
             
-            tool_to_execute = available_tools.get(call.tool_name)
-            if not tool_to_execute:
-                logger.warning(f"[{self.user_id}] 擴展計畫中發現未知工具: '{call.tool_name}'，啟動模糊匹配備援...")
-                scores = {name: levenshtein_ratio(call.tool_name, name) for name in available_tools.keys()}
-                best_match, best_score = max(scores.items(), key=lambda item: item[1])
-                if best_score > 0.7:
-                    logger.info(f"[{self.user_id}] 已將 '{call.tool_name}' 自動修正為 '{best_match}' (相似度: {best_score:.2f})")
-                    tool_to_execute = available_tools[best_match]
-                else:
-                    logger.error(f"[{self.user_id}] 模糊匹配失敗，找不到與 '{call.tool_name}' 足夠相似的工具。")
-                    continue
+            tool_name_to_category = {
+                "add_or_update_npc_profile": "npc_profile",
+                "update_npc_profile": "npc_profile",
+                "add_or_update_location_info": "location_info",
+                "add_or_update_item_info": "item_info",
+                "define_creature_type": "creature_info",
+                "add_or_update_quest_lore": "quest",
+                "add_or_update_world_lore": "world_lore",
+            }
+            
+            entities_by_category = defaultdict(list)
+            original_name_keys = {} 
 
-            if tool_to_execute:
-                try:
-                    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-                    validated_tasks.append(tool_to_execute.ainvoke(validated_args.model_dump()))
-                except ValidationError as e:
-                    logger.warning(f"[{self.user_id}] 參數驗證失敗，為工具 '{tool_to_execute.name}' 啟動意圖重構備援... 錯誤: {e}")
-                    try:
-                        reconstruction_chain = self._build_param_reconstruction_chain()
-                        reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
-                            "tool_name": tool_to_execute.name,
-                            "original_params": json.dumps(call.parameters, ensure_ascii=False),
-                            "validation_error": str(e),
-                            "correct_schema": tool_to_execute.args_schema.schema_json()
-                        })
+            for i, call in enumerate(purified_plan):
+                params = call.parameters
+                if isinstance(params, dict) and len(params) == 1:
+                    first_key = next(iter(params))
+                    if isinstance(params[first_key], dict):
+                        logger.info(f"[{self.user_id}] 檢測到 LLM 生成了不必要的巢狀參數 '{first_key}'。正在自動解包以進行後續處理。")
+                        call.parameters = params[first_key]
+
+                category = tool_name_to_category.get(call.tool_name)
+                if not category: continue
+                
+                possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                entity_name = None
+                name_key_found = None
+                for key in possible_name_keys:
+                    if key in call.parameters:
+                        entity_name = call.parameters[key]
+                        name_key_found = key
+                        break
+
+                if not entity_name and call.tool_name == 'add_or_update_location_info' and 'location_path' in call.parameters and call.parameters['location_path']:
+                    entity_name = call.parameters['location_path'][-1]
+                    name_key_found = 'location_path'
+
+                if entity_name and name_key_found:
+                    if name_key_found != 'location_path':
+                        original_name_keys[i] = name_key_found
+                    entities_by_category[category].append({
+                        "name": entity_name,
+                        "location_path": call.parameters.get('location_path', current_location_path),
+                        "plan_index": i 
+                    })
+
+            resolved_entities = {}
+            if any(entities_by_category.values()):
+                resolution_chain = self.get_batch_entity_resolution_chain()
+                for category, entities in entities_by_category.items():
+                    if not entities: continue
+                    existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
+                    existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
+                    
+                    resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
+                        "category": category,
+                        "new_entities_json": json.dumps([{"name": e["name"], "location_path": e["location_path"]} for e in entities], ensure_ascii=False),
+                        "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                    })
+
+                    if not resolution_plan:
+                        logger.warning(f"[{self.user_id}] 批次實體解析鏈返回了 None，可能被審查。跳過解析。")
+                        continue
+
+                    for i, resolution in enumerate(resolution_plan.resolutions):
+                        original_entity_info = entities[i]
+                        plan_index = original_entity_info["plan_index"]
                         
-                        validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
-                        validated_tasks.append(tool_to_execute.ainvoke(validated_args.model_dump()))
-                    except Exception as recon_e:
-                        logger.error(f"[{self.user_id}] 意圖重構備援失敗，已跳過此工具呼叫。重構錯誤: {recon_e}\n原始參數: {call.parameters}", exc_info=True)
+                        lore_key: str
+                        std_name = resolution.standardized_name or resolution.original_name
+                        if resolution.decision == 'EXISTING' and resolution.matched_key:
+                            lore_key = resolution.matched_key
+                        else: 
+                            path_prefix = " > ".join(original_entity_info["location_path"])
+                            safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
+                            lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
 
-        summaries = []
-        if validated_tasks:
-            results = await asyncio.gather(*validated_tasks, return_exceptions=True)
-            for res in results:
-                summary = f"任務失败: {res}" if isinstance(res, Exception) else f"任務成功: {res}"
-                if isinstance(res, Exception): logger.error(f"[{self.user_id}] {summary}", exc_info=True)
-                else: logger.info(f"[{self.user_id}] {summary}")
-                summaries.append(summary)
+                        resolved_entities[plan_index] = {
+                            "lore_key": lore_key,
+                            "standardized_name": std_name,
+                            "original_name": resolution.original_name
+                        }
+            
+            validated_tasks = []
+            available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
+            for i, call in enumerate(purified_plan):
+                if i in resolved_entities:
+                    call.parameters.update(resolved_entities[i])
+                    if i in original_name_keys:
+                        call.parameters.pop(original_name_keys[i], None)
+
+                if call.tool_name in ["add_or_update_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
+                    call.parameters['location_path'] = current_location_path
+                
+                tool_to_execute = available_tools.get(call.tool_name)
+                if not tool_to_execute:
+                    logger.warning(f"[{self.user_id}] 擴展計畫中發現未知工具: '{call.tool_name}'，啟動模糊匹配備援...")
+                    scores = {name: levenshtein_ratio(call.tool_name, name) for name in available_tools.keys()}
+                    best_match, best_score = max(scores.items(), key=lambda item: item[1])
+                    if best_score > 0.7:
+                        logger.info(f"[{self.user_id}] 已將 '{call.tool_name}' 自動修正為 '{best_match}' (相似度: {best_score:.2f})")
+                        tool_to_execute = available_tools[best_match]
+                    else:
+                        logger.error(f"[{self.user_id}] 模糊匹配失敗，找不到與 '{call.tool_name}' 足夠相似的工具。")
+                        continue
+
+                if tool_to_execute:
+                    try:
+                        validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
+                        validated_tasks.append(tool_to_execute.ainvoke(validated_args.model_dump()))
+                    except ValidationError as e:
+                        logger.warning(f"[{self.user_id}] 參數驗證失敗，為工具 '{tool_to_execute.name}' 啟動意圖重構備援... 錯誤: {e}")
+                        try:
+                            reconstruction_chain = self._build_param_reconstruction_chain()
+                            reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
+                                "tool_name": tool_to_execute.name,
+                                "original_params": json.dumps(call.parameters, ensure_ascii=False),
+                                "validation_error": str(e),
+                                "correct_schema": tool_to_execute.args_schema.schema_json()
+                            })
+                            
+                            validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
+                            validated_tasks.append(tool_to_execute.ainvoke(validated_args.model_dump()))
+                        except Exception as recon_e:
+                            logger.error(f"[{self.user_id}] 意圖重構備援失敗，已跳過此工具呼叫。重構錯誤: {recon_e}\n原始參數: {call.parameters}", exc_info=True)
+
+            summaries = []
+            if validated_tasks:
+                results = await asyncio.gather(*validated_tasks, return_exceptions=True)
+                for res in results:
+                    summary = f"任務失败: {res}" if isinstance(res, Exception) else f"任務成功: {res}"
+                    if isinstance(res, Exception): logger.error(f"[{self.user_id}] {summary}", exc_info=res) # 傳遞異常對象
+                    else: logger.info(f"[{self.user_id}] {summary}")
+                    summaries.append(summary)
+            
+            logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
+            return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
         
-        logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
-        return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
-    # 函式：執行工具呼叫計畫 (v177.0 - 架構清理)
+        finally:
+            # [v178.0 核心修正] 無論成功或失敗，都必須清理上下文
+            tool_context.set_context(None, None)
+            logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
+    # 函式：執行工具呼叫計畫 (v178.0 - 上下文管理修正)
 
 
 
