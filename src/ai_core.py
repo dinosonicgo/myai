@@ -440,38 +440,105 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：加載模板 (v171.1 - 職責擴展與重命名)
+    # 函式：加載所有模板檔案 (v172.0 - 擴展以加載模組化提示詞)
     # 更新紀錄:
+    # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組（如性愛、移動等）加載到 `self.modular_prompts` 字典中，為動態指令組裝做準備。
     # v171.1 (2025-09-02): [架構清理] 將函式重命名為 `_load_templates`，並將屬性賦值目標更新為 `self.world_snapshot_template`，以匹配新的、更準確的命名規範，並徹底清除舊架構的命名痕跡。
     # v171.0 (2025-09-02): [架構重構] 函式重命名為 `_load_world_snapshot_template`，其職責變為只加載數據模板。
     def _load_templates(self):
-        """從 prompts/ 目錄加載所有需要的核心模板檔案。"""
+        """從 prompts/ 目錄加載所有需要的核心及模組化模板檔案。"""
+        # 1. 加載核心數據快照模板
         try:
             template_path = PROJ_DIR / "prompts" / "world_snapshot_template.txt"
             with open(template_path, "r", encoding="utf-8") as f:
                 self.world_snapshot_template = f.read()
             logger.info(f"[{self.user_id}] 核心數據模板 'world_snapshot_template.txt' 已成功加載。")
         except FileNotFoundError:
-            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！請確認您已將 'zero_instruction.txt' 重命名。")
-            self.world_snapshot_template = "錯誤：世界快照模板未找到。"
-    # 函式：加載模板 (v171.1 - 職責擴展與重命名)
+            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！")
+            self.world_snapshot_template = "錯誤：世界快照數據模板未找到。"
+
+        # 2. 加載所有模組化戰術指令
+        self.modular_prompts = {}
+        try:
+            modular_prompts_dir = PROJ_DIR / "prompts" / "modular"
+            if not modular_prompts_dir.is_dir():
+                logger.warning(f"[{self.user_id}] 未找到模組化提示詞目錄: {modular_prompts_dir}，將跳過加載。")
+                return
+
+            loaded_modules = []
+            for prompt_file in modular_prompts_dir.glob("*.txt"):
+                module_name = prompt_file.stem
+                if module_name == '00_core_protocol':
+                    logger.info(f"[{self.user_id}] 已跳過已棄用的模組 '00_core_protocol.txt'。")
+                    continue
+                
+                with open(prompt_file, "r", encoding="utf-8") as f:
+                    self.modular_prompts[module_name] = f.read()
+                loaded_modules.append(module_name)
+
+            if loaded_modules:
+                logger.info(f"[{self.user_id}] 已成功加載 {len(loaded_modules)} 個戰術指令模組: {', '.join(loaded_modules)}")
+            else:
+                logger.info(f"[{self.user_id}] 在模組化目錄中未找到可加載的戰術指令。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 加載模組化戰術指令時發生未預期錯誤: {e}", exc_info=True)
+    # 函式：加載所有模板檔案 (v172.0 - 擴展以加載模組化提示詞)
 
 
 
-
-
-
-
-    # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
+        # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
     # 更新紀錄:
+    # v1.0 (2025-09-04): [全新創建] 創建此函式作為動態指令引擎的核心判斷邏輯。它通過關鍵詞分析使用者輸入，以確定是否需要為當前回合加載特定的戰術指令模組（如性愛或移動）。
+    def _determine_action_module(self, user_input: str) -> Optional[str]:
+        """
+        分析使用者輸入，判斷是否需要加載特定的戰術指令模組。
+        返回模組名稱的字串或 None。
+        """
+        user_input_lower = user_input.lower()
+
+        # 性愛模式關鍵詞檢測
+        sexual_keywords = [
+            "口交", "舔", "吸吮", "肉棒", "肉穴", "插入", "交合", "做愛", "性交", 
+            "肛交", "後庭", "抽插", "射精", "淫穴", "淫水", "調教", "自慰",
+            "上我", "幹我", "操我", "騎上來", "含住", "脫光", "裸體", "高潮"
+        ]
+        if any(keyword in user_input_lower for keyword in sexual_keywords):
+            logger.info(f"[{self.user_id}] 檢測到性愛模式觸發詞，將加載 'action_sexual_content' 模組。")
+            return "action_sexual_content"
+
+        # 宏觀移動模式關鍵詞檢測
+        movement_keywords = ["去", "前往", "移動到", "旅行到", "出發", "走吧"]
+        if any(user_input.strip().startswith(keyword) for keyword in movement_keywords):
+             # 額外檢查，避免像 "去死吧" 這樣的誤判
+            if len(user_input) > 5:
+                logger.info(f"[{self.user_id}] 檢測到宏觀移動觸發詞，將加載 'action_macro_movement' 模組。")
+                return "action_macro_movement"
+
+        # 默認情況，不加載任何特定模組
+        return None
+    # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
+
+
+
+
+
+    # 函式：獲取世界創世鏈 (v2.1 - 強制注入核心協議)
+    # 更新紀錄:
+    # v2.1 (2025-09-04): [重大健壯性修正] 為了從根本上解決創世階段可能遭遇的內容審查問題，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_world_genesis_chain(self) -> Runnable:
         if self.world_genesis_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.8)
             genesis_llm = raw_llm.with_structured_output(WorldGenesisResult)
             
-            prompt_str = """你是一位富有想像力的世界構建師和開場導演。
-你的任務是根據使用者提供的【核心世界觀】，為他和他的AI角色創造一個獨一無二的、充滿細節和故事潛力的【初始出生點】。
+            # [v2.1 核心修正] 將最高指導原則作為系統級前綴
+            system_prompt_prefix = self.profile.one_instruction if self.profile else ""
+            
+            # 任務專用的具體指令
+            task_prompt_str = """
+你現在扮演一位富有想像力的世界構建師和開場導演。
+你的任務是根據使用者提供的【核心世界觀】，為他和他的AI角色創造一個獨一-無二的、充滿細節和故事潛力的【初始出生點】。
 
 【核心規則】
 1.  **【‼️ 場景氛圍 (v55.7) ‼️】**: 這是為一對夥伴準備的故事開端。你所創造的初始地點【必須】是一個**安靜、私密、適合兩人獨處**的場所。
@@ -495,10 +562,17 @@ class AILover:
 *   AI角色: {ai_name}
 ---
 請開始你的創世。"""
-            full_prompt = ChatPromptTemplate.from_template(prompt_str)
+            
+            # 組合前綴和任務指令
+            full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{task_prompt_str}"
+
+            full_prompt = ChatPromptTemplate.from_template(full_prompt_str)
             self.world_genesis_chain = full_prompt | genesis_llm
         return self.world_genesis_chain
-    # 函式：獲取世界創世鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取世界創世鏈 (v2.1 - 強制注入核心協議)
+
+
+    
 
     # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
     def get_batch_entity_resolution_chain(self) -> Runnable:
@@ -677,15 +751,19 @@ class AILover:
 
 
 
-    # 函式：建構場景擴展鏈 (v182.1 - 提示词转义最终修正)
+    # 函式：建構場景擴展鏈 (v183.0 - 強制注入核心協議)
     # 更新紀錄:
-    # v182.1 (2025-09-03): [灾难性BUG修复] 根据 KeyError 日志，修复了 v182.0 更新中引入的严重错误。新版提示词中的 JSON 范例（例如 `updates={"status": "..."}`）使用了单大括号，被模板引擎错误地解析为变量。此修正将所有作为纯文本示例的 JSON 结构中的 `{` 和 `}` 全部转义为 `{{` 和 `}}`，从根本上解决了因此导致的启动崩溃问题。
+    # v183.0 (2025-09-04): [重大健壯性修正] 為了確保背景世界填充的內容風格與主線劇情一致，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。
+    # v182.1 (2025-09-03): [灾难性BUG修复] 根據 KeyError 日志，修复了 v182.0 更新中引入的严重错误。新版提示词中的 JSON 范例（例如 `updates={"status": "..."}`）使用了单大括号，被模板引擎错误地解析为变量。此修正将所有作为纯文本示例的 JSON 结构中的 `{` 和 `}` 全部转义为 `{{` 和 `}}`，从根本上解决了因此导致的启动崩溃问题。
     # v182.0 (2025-09-03): [重大健壮性修正] 为提示词增加了关于如何正确使用“更新”类工具的明确操作指南和范例。
     def _build_scene_expansion_chain(self) -> Runnable:
         """建構一個作為「世界填充引擎」的鏈，其核心職責是主動地、創造性地為當前場景填充理應存在但尚未被提及的細節。"""
         expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
         raw_expansion_model = self._create_llm_instance(temperature=0.7)
         expansion_model = raw_expansion_model.bind(safety_settings=SAFETY_SETTINGS)
+        
+        # [v183.0 核心修正] 將最高指導原則作為系統級前綴
+        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
         
         available_lore_tool_names = ", ".join([f"`{t.name}`" for t in lore_tools.get_lore_tools()])
         
@@ -722,9 +800,11 @@ class AILover:
 请严格遵守上述所有规则，扮演一个有意识、有记忆的世界填充引擎，生成一个既能补充世界空白又能正确更新现有设定的、详细的工具呼叫計畫JSON。
 {format_instructions}
 """
-        
+        # 組合前綴和任務指令
+        full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{scene_expansion_task_template}"
+
         scene_expansion_prompt = ChatPromptTemplate.from_template(
-            scene_expansion_task_template,
+            full_prompt_str,
             partial_variables={ "available_lore_tool_names": available_lore_tool_names }
         )
         return (
@@ -733,20 +813,24 @@ class AILover:
             | StrOutputParser()
             | expansion_parser
         )
-    # 函式：建構場景擴展鏈 (v182.1 - 提示词转义最终修正)
+    # 函式：建構場景擴展鏈 (v183.0 - 強制注入核心協議)
     
 
 
 
-   # 函式：建構場景選角鏈 (v148.0 - 增加上下文感知)
+    # 函式：建構場景選角鏈 (v149.0 - 強制注入核心協議)
     # 更新紀錄:
+    # v149.0 (2025-09-04): [重大健壯性修正] 為了確保 NPC 生成的風格與世界觀保持一致，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。
     # v148.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，彻底重构了此链的提示词。新增了【上下文感知原则】，强制要求 AI 在创造任何新 NPC 之前，【必须】先仔细审查已有的【當前場景上下文】，并【绝对禁止】创造与现有 NPC 角色定位或职能重复的新角色。此修改旨在从根本上解决在连续对话中无限生成相似 NPC（如多个卫兵队长）的问题。
     # v147.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
     def _build_scene_casting_chain(self) -> Runnable:
         """建構一個鏈，不僅創造核心 NPC 和配角，还强制为他们生成真实姓名、备用名称和符合世界观的物品名称。"""
         casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
         
-        casting_prompt_template = """你是一位富有创造力的【选角导演】和【世界命名師】。你的任务是分析【最近对话】和【当前场景上下文】，找出需要被赋予身份的通用角色，并为他们创造一个充滿動機和互動潛力的生動場景。
+        # [v149.0 核心修正] 將最高指導原則作為系統級前綴
+        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
+
+        casting_prompt_template = """你現在扮演一位富有创造力的【选角导演】和【世界命名師】。你的任务是分析【最近对话】和【当前场景上下文】，找出需要被赋予身份的通用角色，并为他们创造一个充滿動機和互動潛力的生動場景。
 
 【核心规则】
 1.  **【【【上下文感知原则 (Context-Awareness Principle) - 最高优先级】】】**:
@@ -776,10 +860,13 @@ class AILover:
 ---
 请严格遵守以上所有规则，开始你的选角工作。"""
         
-        casting_prompt = ChatPromptTemplate.from_template(casting_prompt_template)
+        # 組合前綴和任務指令
+        full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{casting_prompt_template}"
+        
+        casting_prompt = ChatPromptTemplate.from_template(full_prompt_str)
         
         return casting_prompt | casting_llm
-    # 函式：建構場景選角鏈 (v148.0 - 增加上下文感知)
+    # 函式：建構場景選角鏈 (v149.0 - 強制注入核心協議)
 
 
 
@@ -940,54 +1027,40 @@ class AILover:
 
 
 
-# 函式：建構回合計劃鏈 (v3.1 - 增加語言強制令)
+    # 函式：建構回合計劃鏈 (v4.0 - 動態指令注入重構)
     # 更新紀錄:
+    # v4.0 (2025-09-04): [重大架構重構] 此鏈的提示詞已被徹底簡化。它不再包含任何靜態的系統指令，而是被重構為一個只包含 `{dynamic_system_prompt}` 和 `{world_snapshot}` 等核心佔位符的通用框架。所有複雜的、情境感知的指令組裝邏輯已被上移至 `graph.py` 的 `planning_node` 節點中，使得此鏈成為一個靈活的、可接收動態指令的通用處理核心。
     # v3.1 (2025-09-03): [健壯性] 在基礎提示詞中增加了一條關於【必須使用繁體中文】的指令，作為雙重保險，確保 AI 在任何情況下都有一個明確的語言基準。
     # v3.0 (2025-09-03): [重大智能升級] 引入了【世界逻辑自洽原则】，使 AI 能夠智能地拒絕不合邏輯的指令。
     def _build_planning_chain(self) -> Runnable:
-        """創建一個用於生成結構化回合計劃的鏈。"""
+        """創建一個用於生成結構化回合計劃的鏈。此鏈現在使用動態提示詞。"""
         from .schemas import TurnPlan
         planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
 
-        prompt_template = """你是一位拥有极高智慧和创造力的游戏管理大师（GM）和故事导演。
-你的首要职责是【维护世界的逻辑自洽性】，其次才是执行用户的指令。你的任务是分析所有上下文，然后为接下来的一回合制定一份详细、合理、且充满故事性的【行动计划 JSON】。
+        # [v4.0 核心修正] 提示詞被簡化為一個通用框架，等待外部動態注入
+        prompt_template = """
+# --- 系統指令 ---
+# 你是一位擁有極高智慧和創造力的遊戲管理大師（GM）和故事導演。
+# 你的任務是分析所有上下文，然後為接下來的一回合制定一份詳細、合理、且充滿故事性的【行動計劃 JSON】。
+# 你必須嚴格遵循下方由系統為你動態組裝的【情境指導原則】。
+# ----------------------------------------------------------------
+{dynamic_system_prompt}
+# ----------------------------------------------------------------
 
-**【【【最高指导原则：世界逻辑自洽原则 (World Logic Coherency Principle)】】】**
-在你制定任何计划之前，你【必须】首先对【使用者最新指令】进行逻辑和可行性判断：
-
-1.  **情境分析**: 仔细阅读【当前世界快照】，理解当前的时间、地点、环境、可用物品和角色状态。
-2.  **合理性判断**: 问自己：“在当前的情境下，这个指令是合乎逻辑、物理上可能实现的吗？”
-    *   **【合理的情境】**: 如果指令是“在森林里找苹果”，这是合理的。你应该在 `thought` 中构思寻找过程，并在 `character_actions` 中创造性地编排角色发现并拿起苹果的动作。如果团队物品栏里没有苹果，你可以先安排一个 `add_item_to_inventory` 的工具调用来“生成”一个被发现的野苹果。
-    *   **【不合理的情境】**: 如果指令是“在沙漠里找苹果”，而快照显示周围没有任何绿洲或特殊设定，这就是不合理的。
-3.  **决策**:
-    *   **如果指令合理**: 正常进行后续的计划制定，填充 `narration` 和 `character_actions`。
-    *   **如果指令不合理**: 你【绝对不能】为了服从而凭空捏造。你【必须】拒绝制定行动计划。取而代之的是：
-        a. 将 `character_actions` 列表保持为【空[]】。
-        b. 在 `thought` 栏位中详细解释为什么这个指令不合逻辑。
-        c. 在 `execution_rejection_reason` 栏位中，撰写一句【以 AI 角色或旁白口吻】对用户说的、符合当前情境的、礼貌的解释。例如：“『主人，这里是无垠的沙海，恐怕找不到任何苹果树。』碧的眼神有些困惑。”
-
----
-【其他核心指令】
-*   **語言強制令**: 你的所有輸出，包括 `thought`, `narration`, `dialogue` 等所有文字欄位，【必須且只能】使用【繁體中文】。
-*   **指令归属原则**: 你必须判断指令的执行者是 {username} 还是 {ai_name}。对于没有主语的祈使句（如“跳个舞”），默认执行者是 AI 角色 {ai_name}。
-*   **创意风格强制令**: 你的整个计划（无论是行动还是拒绝理由）都必须为实现用户的【自定义风格】服务。
-
----
-【使用者自訂風格指令 (最高指导原则)】:
-{response_style_prompt}
----
-【當前世界快照】:
+# --- 當前世界快照 ---
 {world_snapshot}
----
-【使用者最新指令】:
-{user_input}
----
+# ----------------------------------------------------------------
 
-请开始你智慧的规划。"""
+# --- 使用者最新指令 ---
+{user_input}
+# ----------------------------------------------------------------
+
+請開始你智慧的規劃。
+"""
 
         prompt = ChatPromptTemplate.from_template(prompt_template)
         return prompt | planner_llm
-    # 函式：建構回合計劃鏈 (v3.1 - 增加語言強制令)
+    # 函式：建構回合計劃鏈 (v4.0 - 動態指令注入重構)
     
 
 
