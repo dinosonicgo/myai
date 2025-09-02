@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v10.2 - 新增單體解析模型)
+# src/schemas.py 的中文註釋(v11.0 - 新增擴展決策模型)
 # 更新紀錄:
-# v10.2 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，新增了 `SingleResolutionPlan` 和 `SingleResolutionResult` 兩個 Pydantic 模型。它們將被新的、一次只處理一個實體的 `get_single_entity_resolution_chain` 使用，以取代高負載的批次解析鏈。
-# v10.1 (2025-09-02): [災難性BUG修復] 新增了之前被遺漏的 `ValidationResult` 和 `ExtractedEntities` 兩個 Pydantic 模型。
-# v10.0 (2025-08-31): [功能增強] 在 `CharacterProfile` 中新增了 `alternative_names` 欄位以支持命名衝突備援。
+# v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。此模型將作為新的“守門人”節點 (`expansion_decision_node`) 的輸出結構，用於在 LORE 創造流程的最前端，就是否需要進行世界擴展做出明確的是/否決策，是解決無意義 LORE 擴展問題的關鍵數據結構。
+# v10.2 (2025-09-03): [健壯性] 新增了 `SingleResolutionPlan` 和 `SingleResolutionResult` 模型以支持串行實體解析。
+# v10.1 (2025-09-02): [災難性BUG修復] 補全了被遺漏的 `ValidationResult` 和 `ExtractedEntities` 模型。
 
 import json
 import re
@@ -190,40 +190,19 @@ class ToolCall(BaseModel):
         return value
 
 class CharacterAction(BaseModel):
-    character_name: str = Field(description="执行此行动的角色的【确切】名字。")
-    reasoning: str = Field(description="【必需】解释该角色【为什么】要采取这个行动。此理由必须与其性格、好感度、当前情境和目标紧密相关。")
-    action_description: Optional[str] = Field(default=None, description="对该角色将要执行的【具體物理動作】的清晰、簡潔的描述。如果行动主要是对话，此栏位可为空。")
-    dialogue: Optional[str] = Field(default=None, description="如果该角色在行动中或行动后会说话，请在此处提供确切的对话内容。")
-    tool_call: Optional[ToolCall] = Field(default=None, description="如果此行动需要呼叫一个工具来改变世界状态（如移动、使用物品），请在此处定义工具呼叫。") 
+    character_name: str = Field(description="執行此行動的角色的【確切】名字。")
+    reasoning: str = Field(description="【必需】解釋該角色【為什麼】要採取這個行動。此理由必須與其性格、好感度、當前情境和目標緊密相關。")
+    action_description: Optional[str] = Field(default=None, description="對該角色將要執行的【具體物理動作】的清晰、簡潔的描述。如果行動主要是對話，此欄位可為空。")
+    dialogue: Optional[str] = Field(default=None, description="如果該角色在行動中或行動後會說話，請在此處提供確切的對話內容。")
+    tool_call: Optional[ToolCall] = Field(default=None, description="如果此行動需要呼叫一個工具來改變世界狀態（如移動、使用物品），請在此處定義工具呼叫。") 
 
     @model_validator(mode='after')
     def check_action_or_dialogue_exists(self) -> 'CharacterAction':
         if not self.action_description and not self.dialogue:
-            raise ValueError("一个 CharacterAction 必须至少包含 action_description 或 dialogue 其中之一。")
+            raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
 
 class TurnPlan(BaseModel):
-    """一回合行动的完整结构化計畫。"""
-    thought: str = Field(description="GM/导演的详细思考过程，解释为何做出此計畫。")
-    narration: Optional[str] = Field(None, description="描述場景變化的客觀旁白。")
-    character_actions: List[CharacterAction] = Field(default_factory=list, description="场景中所有角色（AI、NPC）的具体行动列表。")
-    execution_rejection_reason: Optional[str] = Field(None, description="当且仅当指令因不合逻辑而无法执行时，此栏位包含以角色口吻给出的解释。")
-
-    @model_validator(mode='after')
-    def check_plan_logic(self) -> 'TurnPlan':
-        """验证计划的逻辑一致性。"""
-        has_actions = bool(self.character_actions)
-        has_rejection = bool(self.execution_rejection_reason)
-
-        if not has_actions and not has_rejection:
-            raise ValueError("计划必须包含角色行动(character_actions)或拒绝执行的理由(execution_rejection_reason)。")
-        
-        if has_actions and has_rejection:
-            raise ValueError("计划不能同时包含角色行动(character_actions)和拒绝执行的理由(execution_rejection_reason)。")
-            
-        return self
-
-class ToolCallPlan(BaseModel):
     thought: str = Field(description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
     character_actions: List[CharacterAction] = Field(description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。這個列表是空的，當且僅當所有 AI/NPC 在情境下都選擇無行動。")
     narration: str = Field(description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
@@ -240,7 +219,7 @@ class CanonParsingResult(BaseModel):
     npc_profiles: List[CharacterProfile] = Field(default_factory=list, description="從文本中解析出的所有 NPC 的完整個人檔案列表。")
     locations: List[LocationInfo] = Field(default_factory=list, description="從文本中解析出的所有地點的詳細資訊列表。")
     items: List[ItemInfo] = Field(default_factory=list, description="從文本中解析出的所有物品的詳細資訊列表。")
-    creatures: List[CreatureInfo] = Field(default_factory=list, description="從文本中解析出的所有生物或物종的詳細資訊列表。")
+    creatures: List[CreatureInfo] = Field(default_factory=list, description="從文本中解析出的所有生物或物種的詳細資訊列表。")
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
@@ -272,7 +251,6 @@ class BatchResolutionResult(BaseModel):
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
-# [v10.2 新增] 用於單體實體解析的新模型
 class SingleResolutionResult(BaseModel):
     """單個實體名稱的解析結果。"""
     original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
@@ -316,12 +294,17 @@ class SceneAnalysisResult(BaseModel):
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
 
-# [v10.1 新增]
 class ValidationResult(BaseModel):
     is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
 
 class ExtractedEntities(BaseModel):
     names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
+
+# [v11.0 新增] 用于判断是否需要扩展LORE的模型
+class ExpansionDecision(BaseModel):
+    """用于结构化地表示关于是否应在本回合进行世界LORE扩展的决定。"""
+    should_expand: bool = Field(description="如果当前对话轮次适合进行世界构建和LORE扩展，则为 true；如果对话是简单的、重复的或与已知实体的互动，则为 false。")
+    reasoning: str = Field(description="做出此决定的简短理由。")
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
