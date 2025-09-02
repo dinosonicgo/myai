@@ -1499,11 +1499,11 @@ class AILover:
             logger.error(f"生成個人記憶時發生錯誤: {e}", exc_info=True)
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
 
-    # 函式：背景場景擴展 (v169.0 - 內容審查崩潰修復)
+    # 函式：背景場景擴展 (v169.1 - 移除 zero_instruction 依賴)
     # 更新紀錄:
-    # v169.0 (2025-08-31): [災難性BUG修復] 在從擴展鏈接收到回應後，新增了一個【前置驗證步驟】。此步驟會檢查回應是否為空（內容審查的典型標誌）。如果為空，將立即終止函式執行並記錄警告，從而徹底杜絕了因空回應傳遞給後續Pydantic驗證而導致的`ValidationError`或`OutputParserException`崩潰問題。
-    # v168.0 (2025-08-31): [根本性BUG修復] 新增了`effective_location_path`參數，強制使用由主流程傳遞的有效地點，解決了LORE關聯到舊地點的問題。
-    # v167.0 (2025-08-29): [架構修正] 確保此函式使用`zero_instruction_template`作為基礎Prompt。
+    # v169.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `zero_instruction` 參數的填充和傳遞。此函式現在調用一個完全獨立的 `scene_expansion_chain`，確保了背景擴展任務的穩定性和一致性。
+    # v169.0 (2025-08-31): [災難性BUG修復] 新增了前置空回應驗證，以防止因內容審查導致的崩潰。
+    # v168.0 (2025-08-31): [根本性BUG修復] 新增了 `effective_location_path` 參數，解決了 LORE 關聯到舊地點的問題。
     async def _background_scene_expansion(self, user_input: str, final_response: str, effective_location_path: List[str]):
         if not self.scene_expansion_chain or not self.profile:
             return
@@ -1522,22 +1522,8 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：世界心跳在最新狀態下啟動 (地點: {current_path_str})...")
             
-            zero_instruction_context_dict = {
-                "username": self.profile.user_profile.name,
-                "ai_name": self.profile.ai_profile.name,
-                "latest_user_input": user_input, 
-                "retrieved_context": "",
-                "response_style_prompt": self.profile.response_style_prompt or "",
-                "world_settings": self.profile.world_settings or "",
-                "ai_settings": self.profile.ai_profile.description or "",
-                "tool_results": "",
-                "chat_history": "",
-                **structured_context
-            }
-            zero_instruction_str = self.zero_instruction_template.format(**zero_instruction_context_dict)
-
+            # [v169.1 修正] 不再需要填充和傳遞 zero_instruction
             initial_plan_dict = await self.ainvoke_with_rotation(self.scene_expansion_chain, {
-                "zero_instruction": zero_instruction_str,
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "world_settings": self.profile.world_settings or "",
@@ -1546,10 +1532,9 @@ class AILover:
                 "recent_dialogue": recent_dialogue,
             })
             
-            # [v169.0 新增] 核心崩潰修復：前置空回應檢查
             if not initial_plan_dict:
                 logger.warning(f"[{self.user_id}] 背景場景擴展鏈的 LLM 回應為空，很可能是因為內容審查。已跳過本輪場景擴展。")
-                return # 優雅地終止函式，防止崩潰
+                return
 
             initial_plan: Optional[ToolCallPlan] = None
             try:
@@ -1577,7 +1562,7 @@ class AILover:
             )
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景場景擴展鏈執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景場景擴展 (v169.0 - 內容審查崩潰修復)
+    # 函式：背景場景擴展 (v169.1 - 移除 zero_instruction 依賴)
     
     # 函式：委婉化與強化重試 (v134.1 通用化修正版)
     # 說明：當偵測到潛在的內容審查時，啟動一個三階段的、逐步增強的重試機制。能夠通用地處理任何鏈的失敗。
