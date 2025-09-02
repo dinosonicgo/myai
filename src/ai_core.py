@@ -298,42 +298,43 @@ class AILover:
         logger.info(f"[{self.user_id}] 成功恢復了 {len(recent_memories)} 條對話記錄到短期記憶中。")
     # 函式：從資料庫恢復短期記憶 (v158.0 重構)
 
-    # 函式：關閉 AI 實例並釋放資源 (v198.0 - LangGraph 架構重構)
-    # 說明：安全地關閉和清理 AI 實例的所有組件。
+
+
+        # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
+    # 更新紀錄:
+    # v198.1 (2025-09-02): [災難性BUG修復] 徹底重構了 ChromaDB 的關閉邏輯。現在會先嘗試停止客戶端，然後立即將 self.vector_store 設為 None 並觸發垃圾回收，最後再短暫等待。此修改旨在強制性地、及時地釋放對向量數據庫目錄的檔案鎖定，從根本上解決在 /start 重置流程中因 race condition 導致的 PermissionError。
+    # v198.0 (2025-08-31): [架構重構] 根據 LangGraph 架構重構，清理了相關組件。
     async def shutdown(self):
         logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放資源...")
         
         if self.vector_store:
             try:
-                self.vector_store.delete_collection()
-                logger.info(f"[{self.user_id}] ChromaDB 集合已刪除。")
-                
+                # 步驟 1: 嘗試正常關閉 ChromaDB 的後台客戶端
                 client = self.vector_store._client
                 if client and hasattr(client, '_system') and hasattr(client._system, 'stop'):
                     client._system.stop()
-                    logger.info(f"[{self.user_id}] ChromaDB 後台服務已停止。")
-
-                from chromadb.api.client import SharedSystemClient
-                if client and hasattr(client, '_identifier'):
-                    SharedSystemClient._identifier_to_system.pop(client._identifier, None)
-                    logger.info(f"[{self.user_id}] ChromaDB 共享客戶端引用已清理。")
-
+                    logger.info(f"[{self.user_id}] ChromaDB 後台服務已請求停止。")
             except Exception as e:
-                logger.warning(f"[{self.user_id}] 關閉 ChromaDB 客戶端時發生錯誤: {e}", exc_info=True)
+                logger.warning(f"[{self.user_id}] 關閉 ChromaDB 客戶端時發生非致命錯誤: {e}", exc_info=True)
         
+        # 步驟 2: [核心修正] 立即解除對 Chroma 物件的引用
         self.vector_store = None
         self.retriever = None
     
+        # 步驟 3: [核心修正] 建議 Python 進行垃圾回收，以觸發資源釋放
         gc.collect()
+        
+        # 步驟 4: [核心修正] 短暫等待，給予 OS 足夠的時間來釋放檔案句柄
         await asyncio.sleep(1.0)
         
+        # 步驟 5: 清理其他記憶體中的物件
         self.gm_model = None
         self.personal_memory_chain = None
         self.scene_expansion_chain = None
         self.scene_casting_chain = None
         self.input_analysis_chain = None
         self.scene_analysis_chain = None
-        # [v198.0 移除] 移除了 main_executor 的清理
+        self.rag_summarizer_chain = None
         self.profile_parser_prompt = None
         self.profile_completion_prompt = None
         self.profile_rewriting_prompt = None
@@ -345,7 +346,11 @@ class AILover:
         self.last_generated_scene_context = None
         
         logger.info(f"[{self.user_id}] AI 實例資源已釋放。")
-    # 函式：關閉 AI 實例並釋放資源 (v198.0 - LangGraph 架構重構)
+    # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
+
+
+
+    
 
     # 函式：獲取角色檔案解析器 Prompt
     # 說明：創建或返回一個用於解析使用者自然語言輸入以更新角色JSON的Prompt模板。
