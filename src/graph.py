@@ -175,27 +175,35 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     return {"tool_results": results_summary}
 # 函式：執行工具調用 (v1.1 - 安全上下文管理)
 
-# 函式：生成敘事文本
+# 函式：生成敘事文本 (v2.0 - 增加对拒绝执行的处理逻辑)
+# 更新紀錄:
+# v2.0 (2025-09-03): [重大智能升級] 新增了对行动计划中 `execution_rejection_reason` 字段的处理逻辑。如果该字段存在，本节点将不再渲染常规的小说场景，而是直接将 AI 给出的“拒绝执行的合理解释”作为最终输出。这使得 AI 能够智能地回应不合逻辑的用户指令，是实现“智慧型 GM”的关键一步。
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [節點 6] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成純粹的小說文本。
+    [節點 6] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
     tool_results = state['tool_results']
-    logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在將行動計劃和工具結果渲染為小說文本...")
+    logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在处理行动计划...")
 
     if not turn_plan:
-        logger.error(f"[{user_id}] 敘事節點接收到空的行動計劃，無法生成回應。")
-        return {"llm_response": "（系統錯誤：未能生成有效的行動計劃。）"}
+        logger.error(f"[{user_id}] 叙事节点接收到空的行动计划，无法生成回应。")
+        return {"llm_response": "（系统错误：未能生成有效的行动计划。）"}
 
+    # [v2.0 核心修正] 检查是否存在拒绝执行的理由
+    if turn_plan.execution_rejection_reason:
+        logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 检测到拒绝执行的理由，将直接输出。理由: {turn_plan.execution_rejection_reason}")
+        return {"llm_response": turn_plan.execution_rejection_reason}
+
+    logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在将行动计划和工具结果渲染为小说文本...")
     if not ai_core.narrative_chain:
         raise ValueError("Narrative chain is not initialized.")
 
-    turn_plan.thought += f"\n\n[系統後台執行結果]:\n{tool_results}"
+    turn_plan.thought += f"\n\n[系统后台执行结果]:\n{tool_results}"
 
-    style_prompt = ai_core.profile.response_style_prompt if ai_core.profile else "預設風格"
+    style_prompt = ai_core.profile.response_style_prompt if ai_core.profile else "预设风格"
     final_output_mandate = f"""# ==============================================================================
 # == 🎨 最終輸出強制令 (FINAL OUTPUT MANDATE) 🎨
 # ==============================================================================
@@ -217,7 +225,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     )
     
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本
+# 函式：生成敘事文本 (v2.0 - 增加对拒绝执行的处理逻辑)
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
