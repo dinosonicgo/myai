@@ -75,7 +75,10 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (僅限敘事路徑)
 
-# 函式：執行回合規劃
+# 函式：執行回合規劃 (v1.2 - 傳遞風格指令)
+# 更新紀錄:
+# v1.2 (2025-09-02): [災難性BUG修復] 重構此節點，使其現在負責從 ai_core.profile 中明確讀取 `response_style_prompt`，並將其作為一個關鍵參數傳遞給 `planning_chain`。這確保了“思考”節點能夠感知到使用者的風格要求，從而制定出包含正確元素（如對話）的行動計劃，徹底解決了 AI 忽略風格指令的問題。
+# v1.1 (2025-09-02): [架構重構] 將上下文組合的職責合併進此節點。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [節點 4] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
@@ -84,6 +87,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
+    # 步驟 1: 組合世界快照
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在格式化世界快照並生成行動計劃...")
     context_dict = {
         "world_settings": ai_core.profile.world_settings or "未設定",
@@ -93,16 +97,22 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     }
     world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
     
+    # 步驟 2: [v1.2 新增] 獲取風格指令
+    response_style_prompt = ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+
+    # 步驟 3: 執行規劃，並傳入風格指令
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
         "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name,
         "world_snapshot": world_snapshot,
         "user_input": user_input,
+        "response_style_prompt": response_style_prompt
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃
+# 函式：執行回合規劃 (v1.2 - 傳遞風格指令)
 
 # 函式：執行工具調用 (v1.1 - 安全上下文管理)
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
