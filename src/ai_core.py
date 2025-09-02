@@ -352,11 +352,12 @@ class AILover:
 
     
 
-    # 函式：獲取角色檔案解析器 Prompt
-    # 說明：創建或返回一個用於解析使用者自然語言輸入以更新角色JSON的Prompt模板。
+    # 函式：獲取角色檔案解析器 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_profile_parser_prompt(self) -> ChatPromptTemplate:
         if self.profile_parser_prompt is None:
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位精確的數據分析師。你的任務是將【原始角色JSON】與【使用者的自然語言輸入】相結合，生成一個更新后的、結構化的角色JSON。
+            prompt_str = """你是一位精確的數據分析師。你的任務是將【原始角色JSON】與【使用者的自然語言輸入】相結合，生成一個更新后的、結構化的角色JSON。
 
 【核心規則】
 1.  **以原始JSON為基礎**: 你必須以【原始角色JSON】為基礎進行更新。
@@ -373,7 +374,7 @@ class AILover:
 ---"""
             self.profile_parser_prompt = ChatPromptTemplate.from_template(prompt_str)
         return self.profile_parser_prompt
-    # 函式：獲取角色檔案解析器 Prompt
+    # 函式：獲取角色檔案解析器 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：獲取角色檔案補完 Prompt
     # 說明：創建或返回一個用於將不完整的角色JSON補完為完整角色的Prompt模板。
