@@ -38,9 +38,10 @@ def _run_command(command, working_dir=None):
         sys.exit(1)
 # 函式：執行命令
 
-# 函式：主啟動邏輯 (v3.0 - 守護進程重構)
+# launcher.py 的中文註釋(v3.1 - 修复依赖)
 # 更新紀錄:
-# v3.0 (2025-09-03): [重大架構重構] 引入了守護進程循環。現在 launcher.py 會持續監控 main.py。當 main.py 以返回碼 0（表示需要更新）退出時，launcher 會自動重新拉起一個全新的進程。此修改確保了每次更新後的重啟都是完全乾淨的，從根本上解決了因 os.execv 硬重啟導致的異步 I/O 衝突和 Bot 無法登錄的問題。
+# v3.1 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `import time`，以解决因调用 `time.sleep()` 而导致的 `NameError: name 'time' is not defined` 致命错误。
+# v3.0 (2025-09-03): [重大架構重構] 引入了守護進程循環。现在 launcher.py 會持續監控 main.py。當 main.py 以返回碼 0（表示需要更新）退出時，launcher 會自動重新拉起一個全新的進程。此修改確保了每次更新後的重啟都是完全乾淨的，從根本上解決了因 os.execv 硬重啟導致的異步 I/O 衝突和 Bot 無法登錄的問題。
 # v2.1 (2025-09-02): [健壯性] 增加了 'git reset --hard origin/main' 來強制同步。
 def main():
     """主啟動函式。"""
@@ -106,7 +107,4 @@ def main():
         print("\n----------------------------------------------------")
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
-
-if __name__ == "__main__":
-    main()
-# 函式：主啟動邏輯 (v3.0 - 守護進程重構)
+# 函式：主啟動邏輯 (v3.1 - 修复依赖)
