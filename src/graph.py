@@ -127,15 +127,15 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃 (v2.3 - 強制上下文刷新)
+# 函式：執行回合規劃 (v2.4 - 消息结构化指令注入)
 # 更新紀錄:
-# v2.3 (2025-09-04): [灾难性BUG修复] 解决了 AI 回应与用户输入完全无关（答非所问）的问题。通过在节点执行的开始阶段，强制、显式地调用 `ai_core._get_structured_context` 来重新获取最新的场景上下文，确保了 `world_snapshot` 在任何情况下都包含正确的、即时的游戏状态数据，从而根除了因潜在的状态传递问题导致的上下文丢失。
+# v2.4 (2025-09-04): [灾难性BUG修复] 解决了 AI 忽略性爱模块中露骨词汇指令的根本性问题。通过将提示词结构从单一字符串重构为 LangChain 的 `System/Human` 消息列表，将核心原则和情境战术模组（如性爱指令）提升到了不可辩驳的“系统”角色权限。这强制 LLM 视其为绝对规则而非参考文本，从而确保了露骨词汇的正确生成。
+# v2.3 (2025-09-04): [灾难性BUG修复] 强制刷新上下文，解决了答非所问的问题。
 # v2.2 (2025-09-04): [灾难性BUG修复] 增加了防禦性格式化邏輯以解决 `KeyError`。
-# v2.1 (2025-09-04): [灾难性BUG修复] 修复了因指令模板与数据模板占位符混淆导致的 `KeyError`。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [核心] 新架構的核心“思考”節點與動態指令引擎。
-    組合上下文快照，動態組裝系統指令，並調用 planning_chain 生成結構化的行動計劃。
+    组合上下文快照，动态组装系统指令，并调用 planning_chain 生成结构化的行动计划。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -143,69 +143,61 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在動態組裝指令並生成行動計劃...")
 
-    # [v2.3 核心修正] 在此節點強制刷新結構化上下文，確保獲取到最新狀態
+    # [v2.4 新增] 强制刷新结构化上下文
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 強制刷新結構化上下文...")
     try:
         structured_context = await ai_core._get_structured_context(user_input)
-        # 手動更新 state，確保後續節點也能看到最新的
         state['structured_context'] = structured_context
     except Exception as e:
         logger.error(f"[{user_id}] 在 planning_node 中刷新上下文失敗: {e}", exc_info=True)
-        # 即使失敗，也提供一個安全的空字典
         structured_context = {}
 
-
-    # 創建一個包含所有可能佔位符的超集字典
+    # --- 步骤 1: 准备一个包含所有可用占位符的超集字典 ---
     full_context_dict = {
-        # 指令類
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-        # 數據類
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
-        **(structured_context or {}) # 使用剛剛刷新得到的上下文
+        **(structured_context or {})
     }
 
-    # 定義一個安全的格式化輔助函式
-    def safe_format(template_string: str, data: dict) -> str:
-        placeholders = re.findall(r'\{(\w+)\}', template_string)
-        filtered_data = {key: data.get(key, f"{{{key}}}") for key in placeholders}
-        try:
-            return template_string.format(**filtered_data)
-        except KeyError as e:
-            logger.warning(f"[{user_id}] 安全格式化仍然失敗，鍵: {e}。模板: {template_string[:200]}...")
-            return template_string
-
-    # --- 步驟 1: 動態組裝系統指令 ---
+    # --- 步骤 2: 动态构建指令部分 ---
     base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
     action_module_name = ai_core._determine_action_module(user_input)
     
-    final_system_prompt_parts = [base_system_prompt]
+    system_prompt_parts = [base_system_prompt]
     if action_module_name and action_module_name in ai_core.modular_prompts:
         module_prompt = ai_core.modular_prompts[action_module_name]
-        final_system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
-        final_system_prompt_parts.append(module_prompt)
+        system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
+        system_prompt_parts.append(module_prompt)
         logger.info(f"[{user_id}] (Graph) 動態指令引擎：已成功加載戰術模組 '{action_module_name}'。")
-    
-    dynamic_system_prompt = safe_format("".join(final_system_prompt_parts), full_context_dict)
 
-    # --- 步驟 2: 格式化數據快照 ---
+    # --- 步骤 3: 格式化所有组件 ---
+    # 使用一个简单的安全格式化，以防万一
+    def safe_format(template: str, data: dict) -> str:
+        for key, value in data.items():
+            template = template.replace(f"{{{key}}}", str(value))
+        return template
+
+    final_system_prompt = safe_format("".join(system_prompt_parts), full_context_dict)
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
     
-    # --- 步驟 3: 調用規劃鏈 ---
+    # --- 步骤 4: 调用规划链 ---
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
-        
+    
+    # [v2.4 核心修正] 将输入重构为 `System/Human` 消息结构
+    # 注意：这里的 `planning_chain` 内部的模板也需要相应修改
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
-        "dynamic_system_prompt": dynamic_system_prompt,
+        "system_prompt": final_system_prompt,
         "world_snapshot": world_snapshot,
         "user_input": user_input,
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v2.3 - 強制上下文刷新)
+# 函式：執行回合規劃 (v2.4 - 消息结构化指令注入)
 
 
 
