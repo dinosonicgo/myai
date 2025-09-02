@@ -12,7 +12,7 @@ import time
 import shutil
 import warnings
 import datetime
-from typing import List, Dict, Optional, Any, Literal
+from typing import List, Dict, Optional, Any, Literal, Callable # [v199.0 修正] 新增 Callable
 import asyncio
 import gc
 from pathlib import Path
@@ -57,8 +57,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
 from .database import AsyncSessionLocal, UserData, MemoryData
 from src.config import settings
 from .logger import logger
-
-from langchain_google_genai import HarmCategory, HarmBlockThreshold
+from .tool_context import tool_context
 
 # 全局常量：Gemini 安全閥值設定 (v1.0.0 - 與 dino_ai.py 同步)
 # 此設定旨在最大化內容生成自由度，適用於所有 LLM 實例，以確保與主應用程式的行為一致。
