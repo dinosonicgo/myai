@@ -1169,11 +1169,11 @@ class AILover:
 
 
     
-   # 函式：執行工具呼叫計畫 (v181.0 - 串行解析重構)
+   # 函式：執行工具呼叫計畫 (v182.0 - location_path 注入修正)
     # 更新紀錄:
-    # v181.0 (2025-09-02): [災難性BUG修復 & 健壯性] 根據日誌分析，為徹底解決 API 速率限制問題，完全重構了實體解析邏輯。廢棄了高負載的批次解析鏈，改為在主循環中對【每一個】待創建的 LORE 條目，【單獨地、串行地】調用新增的、輕量級的 `get_single_entity_resolution_chain`。此修改通過化整為零，將一個巨大的 API 請求壓力分散為多個微小的請求，從根本上避免了觸發免費套餐的速率限制。
+    # v182.0 (2025-09-03): [災難性BUG修復] 根據 Pydantic ValidationError 日誌，發現在背景擴展流程中，LLM 生成的工具計畫有時會遺漏 `location_path` 參數。此修正增加了防禦性程式碼，在執行工具驗證前，會主動檢查並為需要此參數的工具（如 `create_new_npc_profile`）注入當前的場景路徑，從根本上解決了因缺少必要欄位而導致的驗證失敗問題。
+    # v181.0 (2025-09-02): [健壯性] 將實體解析邏輯從批次處理重構為串行處理，以解決 API 速率限制問題。
     # v180.0 (2025-09-02): [健壯性] 更新了工具名稱映射以兼容 LORE 工具重構。
-    # v179.0 (2025-09-02): [健壯性] 將工具執行方式從並行修改為串行。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -1221,12 +1221,10 @@ class AILover:
             summaries = []
             available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
-            # [v181.0 核心重構] 串行處理每一個工具呼叫
             for call in purified_plan:
-                await asyncio.sleep(1.0) # 在每個工具處理前增加延遲，進一步平滑請求
+                await asyncio.sleep(1.0) 
 
                 category = tool_name_to_category.get(call.tool_name)
-                # 對於需要創建新 LORE 的工具，執行單體實體解析
                 if category and call.tool_name != 'update_npc_profile':
                     possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
                     entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
@@ -1259,7 +1257,10 @@ class AILover:
                             })
                             if name_key_found: call.parameters.pop(name_key_found, None)
 
-                # 執行工具
+                # [v182.0 核心修正] 防禦性地注入 location_path
+                if call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
+                    call.parameters['location_path'] = current_location_path
+
                 tool_to_execute = available_tools.get(call.tool_name)
                 if not tool_to_execute: continue
 
@@ -1280,7 +1281,7 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v181.0 - 串行解析重構)
+    # 函式：執行工具呼叫計畫 (v182.0 - location_path 注入修正)
 
 
     
