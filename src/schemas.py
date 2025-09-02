@@ -190,19 +190,40 @@ class ToolCall(BaseModel):
         return value
 
 class CharacterAction(BaseModel):
-    character_name: str = Field(description="執行此行動的角色的【確切】名字。")
-    reasoning: str = Field(description="【必需】解釋該角色【為什麼】要採取這個行動。此理由必須與其性格、好感度、當前情境和目標緊密相關。")
-    action_description: Optional[str] = Field(default=None, description="對該角色將要執行的【具體物理動作】的清晰、簡潔的描述。如果行動主要是對話，此欄位可為空。")
-    dialogue: Optional[str] = Field(default=None, description="如果該角色在行動中或行動後會說話，請在此處提供確切的對話內容。")
-    tool_call: Optional[ToolCall] = Field(default=None, description="如果此行動需要呼叫一個工具來改變世界狀態（如移動、使用物品），請在此處定義工具呼叫。") 
+    character_name: str = Field(description="执行此行动的角色的【确切】名字。")
+    reasoning: str = Field(description="【必需】解释该角色【为什么】要采取这个行动。此理由必须与其性格、好感度、当前情境和目标紧密相关。")
+    action_description: Optional[str] = Field(default=None, description="对该角色将要执行的【具體物理動作】的清晰、簡潔的描述。如果行动主要是对话，此栏位可为空。")
+    dialogue: Optional[str] = Field(default=None, description="如果该角色在行动中或行动后会说话，请在此处提供确切的对话内容。")
+    tool_call: Optional[ToolCall] = Field(default=None, description="如果此行动需要呼叫一个工具来改变世界状态（如移动、使用物品），请在此处定义工具呼叫。") 
 
     @model_validator(mode='after')
     def check_action_or_dialogue_exists(self) -> 'CharacterAction':
         if not self.action_description and not self.dialogue:
-            raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
+            raise ValueError("一个 CharacterAction 必须至少包含 action_description 或 dialogue 其中之一。")
         return self
 
 class TurnPlan(BaseModel):
+    """一回合行动的完整结构化計畫。"""
+    thought: str = Field(description="GM/导演的详细思考过程，解释为何做出此計畫。")
+    narration: Optional[str] = Field(None, description="描述場景變化的客觀旁白。")
+    character_actions: List[CharacterAction] = Field(default_factory=list, description="场景中所有角色（AI、NPC）的具体行动列表。")
+    execution_rejection_reason: Optional[str] = Field(None, description="当且仅当指令因不合逻辑而无法执行时，此栏位包含以角色口吻给出的解释。")
+
+    @model_validator(mode='after')
+    def check_plan_logic(self) -> 'TurnPlan':
+        """验证计划的逻辑一致性。"""
+        has_actions = bool(self.character_actions)
+        has_rejection = bool(self.execution_rejection_reason)
+
+        if not has_actions and not has_rejection:
+            raise ValueError("计划必须包含角色行动(character_actions)或拒绝执行的理由(execution_rejection_reason)。")
+        
+        if has_actions and has_rejection:
+            raise ValueError("计划不能同时包含角色行动(character_actions)和拒绝执行的理由(execution_rejection_reason)。")
+            
+        return self
+
+class ToolCallPlan(BaseModel):
     thought: str = Field(description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
     character_actions: List[CharacterAction] = Field(description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。這個列表是空的，當且僅當所有 AI/NPC 在情境下都選擇無行動。")
     narration: str = Field(description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
