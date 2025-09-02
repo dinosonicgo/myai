@@ -53,9 +53,10 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     return {"input_analysis": analysis}
 # 函式：分析使用者輸入意圖
 
-# 函式：執行場景與動作分析 (僅限敘事路徑) (v1.1 - 移除過時參數)
+# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 # 更新紀錄:
-# v1.1 (2025-09-02): [災難性BUG修復] 根據錯誤日誌，移除了在調用 `_get_structured_context` 時傳遞的、已被廢棄的 `is_gm_narration` 關鍵字參數。此修正使節點與 v2.0 架構重構後的上下文引擎完全兼容，解決了導致 TypeError 的問題。
+# v3.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此节点的执行流程。现在，在调用 `scene_casting_chain` 之前，会先调用 `_get_structured_context` 来获取包含【当前所有已知NPC】的完整场景上下文，并将其注入到选角链中。这为选角链提供了避免重复创造角色的关键判断依据，旨在从根本上解决无限生成相似 NPC 的问题。
+# v1.1 (2025-09-02): [災難性BUG修復] 移除了在調用 `_get_structured_context` 時傳遞的過時參數。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """
     [節點 3A - 敘事路徑] 分析場景視角（本地/遠程）並為潛在的新 NPC 進行選角。
@@ -65,7 +66,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 進入敘事路徑分析...")
     
-    # 獲取當前地點路徑
     current_location_path = []
     if ai_core.profile and ai_core.profile.game_state:
         current_location_path = ai_core.profile.game_state.location_path
@@ -79,20 +79,19 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     if scene_analysis and scene_analysis.viewing_mode == 'remote' and scene_analysis.target_location_path:
         effective_location_path = scene_analysis.target_location_path
         
-    # [v1.1 修正] 移除 is_gm_narration=True 參數
+    # [v3.0 核心修正] 先獲取一次完整的上下文，提供給選角鏈
     structured_context_for_casting = await ai_core._get_structured_context(
         user_input, 
         override_location_path=effective_location_path
     )
-    
-    # 準備給選角鏈的上下文
     game_context_for_casting = json.dumps(structured_context_for_casting, ensure_ascii=False, indent=2)
     world_settings_for_casting = ai_core.profile.world_settings if ai_core.profile else ""
 
+    # [v3.0 核心修正] 將獲取到的上下文注入選角鏈
     cast_result = await ai_core.ainvoke_with_rotation(ai_core.scene_casting_chain, {
         "world_settings": world_settings_for_casting,
         "current_location_path": effective_location_path, 
-        "game_context": game_context_for_casting, 
+        "game_context": game_context_for_casting, # <--- 注入上下文
         "recent_dialogue": user_input
     })
     
@@ -100,14 +99,14 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     
     final_structured_context = structured_context_for_casting
     if new_npc_names:
-        # 如果創建了新NPC，重新獲取上下文以包含他們
+        # 如果創建了新NPC，再次獲取上下文以包含他們，確保後續流程能感知到新角色
         final_structured_context = await ai_core._get_structured_context(
             user_input, 
             override_location_path=effective_location_path
         )
         
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
-# 函式：執行場景與動作分析 (僅限敘事路徑) (v1.1 - 移除過時參數)
+# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
 # 函式：執行回合規劃 (v1.2 - 傳遞風格指令)
 # 更新紀錄:
