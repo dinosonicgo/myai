@@ -1108,11 +1108,11 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v199.0 - 註冊新鏈)
+    # 函式：配置模型和鏈 (v200.0 - 註冊決策鏈)
     # 更新紀錄:
-    # v199.0 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，新增了對 `get_single_entity_resolution_chain` 的調用，以初始化並註冊新的、輕量級的串行解析鏈。
+    # v200.0 (2025-09-03): [重大邏輯升級] 新增了對 `_build_expansion_decision_chain` 的調用，以初始化並註冊新的“LORE擴展守門人”鏈，這是實現按需LORE生成的關鍵一步。
+    # v199.0 (2025-09-02): [健壯性] 新增了對 `get_single_entity_resolution_chain` 的調用以解決 API 速率限制問題。
     # v198.6 (2025-09-02): [架構重構] 新增了對 `_build_entity_extraction_chain` 的調用。
-    # v198.5 (2025-09-02): [架構清理] 統一並簡化了模板加載相關的函式和屬性命名。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
@@ -1131,9 +1131,10 @@ class AILover:
         self.planning_chain = self._build_planning_chain()
         self.narrative_chain = self._build_narrative_chain()
         self.entity_extraction_chain = self._build_entity_extraction_chain()
-        
-        # [v199.0 新增] 初始化單體解析鏈
         self.single_entity_resolution_chain = self.get_single_entity_resolution_chain()
+        
+        # [v200.0 新增] 初始化 LORE 擴展決策鏈
+        self.expansion_decision_chain = self._build_expansion_decision_chain()
         
         self.scene_expansion_chain = self._build_scene_expansion_chain()
         self.scene_casting_chain = self._build_scene_casting_chain()
@@ -1144,8 +1145,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v199.0 (串行解析模式)。")
-    # 函式：配置模型和鏈 (v199.0 - 註冊新鏈)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v200.0 (LORE決策模式)。")
+    # 函式：配置模型和鏈 (v200.0 - 註冊決策鏈)
 
 
 
@@ -1904,11 +1905,50 @@ class AILover:
                 "turn_plan_json": lambda x: x["turn_plan"].model_dump_json(indent=2),
                 "final_output_mandate": lambda x: x["final_output_mandate"]
             }
-            | prompt
             | self.gm_model
             | StrOutputParser()
         )
     # 函式：建構專用敘事鏈 (v2.3 - 修正數據流)
+
+    # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-03): [重大邏輯升級] 遵從使用者回饋，創建了此“守門人”鏈。其唯一職責是在 LORE 創造流程的最前端，判斷當前對話是否具有“探索意圖”。只有當使用者移動到新地點、詢問環境或提及新實體時，它才會允許後續的 LORE 創造節點（如選角、背景填充）被激活。此修改旨在從根本上解決在簡單、重複的原地互動中無意義地生成新 LORE 的問題。
+    def _build_expansion_decision_chain(self) -> Runnable:
+        """創建一個鏈，用於判斷當前對話輪次是否適合進行世界構建和LORE擴展。"""
+        from .schemas import ExpansionDecision # 延遲導入
+        
+        decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
+        
+        prompt_template = """你是一位精明的遊戲流程分析師。你的唯一任務是分析使用者的最新輸入和最近的對話歷史，然後判斷【當前這一回合】是否是一個適合進行【世界構建和LORE擴展】的時機。
+
+【核心判斷原則】
+你的判斷【必須】基於使用者的【探索意圖】。
+
+1.  **【應該擴展 (should_expand = true)】的明確信號：**
+    *   **移動到新地點**: 使用者剛剛執行了移動指令，進入了一個全新的或不熟悉的區域。
+    *   **明確的探索行為**: 使用者直接提問關於周圍環境、角色或物體的問題（例如：“我周圍有什麼？”、“那個NPC是誰？”、“這座雕像是關於什麼的？”）。
+    *   **提及未知實體**: 使用者的輸入中包含了一個在對話歷史和已知LORE中從未出現過的新名詞。
+    *   **開啟新話題**: 對話從一個具體的話題轉向了一個更宏觀的、關於世界背景的話題。
+
+2.  **【不應擴展 (should_expand = false)】的明確信號：**
+    *   **原地重複動作**: 使用者正在對一個已知的角色執行簡單、重複的指令（例如：“碧，坐下”、“碧，趴下”、“碧，站起來”）。
+    *   **持續的私人對話**: 對話聚焦於使用者和AI角色之間的情感交流或私人話題，與外部世界無關。
+    *   **已知工具互動**: 使用者正在使用工具與已知的物品或角色進行互動（例如：“裝備長劍”、“和商人交易”）。
+    *   **無實質進展**: 對話內容在原地打轉，沒有引入任何新資訊或探索意圖。
+
+---
+【最近的對話歷史 (用於判斷是否重複)】:
+{recent_dialogue}
+---
+【使用者最新輸入】:
+{user_input}
+---
+
+請根據上述原則做出你的判斷，並提供簡短的理由。"""
+        
+        prompt = ChatPromptTemplate.from_template(prompt_template)
+        return prompt | decision_llm
+    # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
 
 
 
