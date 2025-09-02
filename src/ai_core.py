@@ -1340,6 +1340,80 @@ class AILover:
 
 
 
+        # 函式：執行已規劃的行動 (v1.0 - 全新創建)
+    # 說明：新架構的核心“執行”函式。它接收“思考”節點生成的 TurnPlan，遍歷其中的所有工具調用，並逐一執行。此函式內置了強大的參數驗證和自動修復備援機制，確保了 AI 執行計劃的成功率。它將所有工具的執行結果匯總成一份“系統事件報告”，供下游的“寫作”節點參考，從而完成了“思考->執行->寫作”流程中的關鍵一環。
+    async def _execute_planned_actions(self, plan: TurnPlan) -> str:
+        """遍歷 TurnPlan，執行所有工具調用，並返回結果摘要。"""
+        if not plan or not plan.character_actions:
+            return "系統事件：無任何工具被調用。"
+
+        tool_results = []
+        
+        # 為了能讓工具在執行時訪問到上下文，我們設置一個臨時的上下文管理器
+        # 這是 LangChain 工具設計的一個常見模式
+        from .tools import tool_context
+        tool_context.set_context(self.user_id, self)
+
+        for i, action in enumerate(plan.character_actions):
+            if not action.tool_call:
+                continue
+
+            tool_call = action.tool_call
+            tool_name = tool_call.tool_name
+            tool_params = tool_call.parameters
+
+            logger.info(f"[{self.user_id}] (Executor) 準備執行工具 '{tool_name}'，參數: {tool_params}")
+
+            tool_to_execute = self.available_tools.get(tool_name)
+
+            if not tool_to_execute:
+                log_msg = f"系統事件：計畫中的工具 '{tool_name}' 不存在。"
+                logger.warning(f"[{self.user_id}] {log_msg}")
+                tool_results.append(log_msg)
+                continue
+
+            try:
+                # 嘗試直接驗證和執行
+                validated_args = tool_to_execute.args_schema.model_validate(tool_params)
+                result = await tool_to_execute.ainvoke(validated_args.model_dump())
+                tool_results.append(str(result))
+                logger.info(f"[{self.user_id}] (Executor) 工具 '{tool_name}' 執行成功，結果: {result}")
+
+            except ValidationError as e:
+                logger.warning(f"[{self.user_id}] (Executor) 工具 '{tool_name}' 參數驗證失敗，啟動意圖重構備援... 錯誤: {e}")
+                try:
+                    # 驗證失敗，啟動參數重構鏈
+                    reconstruction_chain = self._build_param_reconstruction_chain()
+                    reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
+                        "tool_name": tool_name,
+                        "original_params": json.dumps(tool_params, ensure_ascii=False),
+                        "validation_error": str(e),
+                        "correct_schema": tool_to_execute.args_schema.schema_json()
+                    })
+                    
+                    # 再次嘗試驗證和執行重構後的參數
+                    validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
+                    result = await tool_to_execute.ainvoke(validated_args.model_dump())
+                    tool_results.append(str(result))
+                    logger.info(f"[{self.user_id}] (Executor) 意圖重構成功！工具 '{tool_name}' 已成功執行，結果: {result}")
+
+                except Exception as recon_e:
+                    log_msg = f"系統事件：工具 '{tool_name}' 在意圖重構後依然執行失敗。錯誤: {recon_e}"
+                    logger.error(f"[{self.user_id}] (Executor) {log_msg}", exc_info=True)
+                    tool_results.append(log_msg)
+            
+            except Exception as invoke_e:
+                log_msg = f"系統事件：工具 '{tool_name}' 在執行時發生未預期錯誤。錯誤: {invoke_e}"
+                logger.error(f"[{self.user_id}] (Executor) {log_msg}", exc_info=True)
+                tool_results.append(log_msg)
+
+        if not tool_results:
+            return "系統事件：計畫中包含工具調用，但均未成功執行。"
+            
+        return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
+    # 函式：執行已規劃的行動 (v1.0 - 全新創建)
+
+
     # 函式：獲取結構化上下文 (v146.0 精確匹配修正版)
     # 說明：從設定檔和資料庫中獲取並格式化當前的遊戲狀態和角色資訊。
     async def _get_structured_context(self, user_input: str, override_location_path: Optional[List[str]] = None, is_gm_narration: bool = False) -> Dict[str, str]:
