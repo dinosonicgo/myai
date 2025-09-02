@@ -83,12 +83,11 @@ class AILover:
 
 
 
-    # 函式：初始化AI核心 (v198.1 - 新增屬性)
+    # 函式：初始化AI核心 (v198.2 - 為 Planning Chain 預留屬性)
     # 更新紀錄:
-    # v198.1 (2025-09-02): [架構修正] 新增了 `rag_summarizer_chain` 屬性，為後續引入 RAG 上下文預處理鏈做準備。
-    # v198.0 (2025-08-31): [重大架構重構]
-    # 1. [移除 chat 函式] 徹底移除了核心的 `chat` 函式。其所有複雜的、線性的流程控制邏輯，現已被分解並遷移至 `src/graph.py` 中定義的一系列獨立、模組化的圖形節點 (Nodes) 中。
-    # 2. [移除 AgentExecutor] 移除了基於 ReAct 的 `main_executor` (AgentExecutor)。新的 LangGraph 架構採用了更簡潔、更穩定的直接 LLM 調用模式 (`narrative_chain`)，從根本上解決了因 Agent 思考過程洩漏導致的輸出污染問題。
+    # v198.2 (2025-09-02): [架構重構] 新增了 `planning_chain` 屬性，這是實現“思考->執行->寫作”分離式架構的第一步。
+    # v198.1 (2025-09-02): [架構修正] 新增了 `rag_summarizer_chain` 屬性。
+    # v198.0 (2025-08-31): [重大架構重構] 移除了 `chat` 函式和 `main_executor`。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -101,7 +100,8 @@ class AILover:
         self.output_validation_chain: Optional[Runnable] = None
         self.rewrite_chain: Optional[Runnable] = None
         self.action_intent_chain: Optional[Runnable] = None
-        self.rag_summarizer_chain: Optional[Runnable] = None # [v198.1 新增]
+        self.rag_summarizer_chain: Optional[Runnable] = None
+        self.planning_chain: Optional[Runnable] = None # [v198.2 新增]
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
@@ -126,7 +126,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v198.1 - 新增屬性)
+    # 函式：初始化AI核心 (v198.2 - 為 Planning Chain 預留屬性)
     
 
 
@@ -937,6 +937,41 @@ class AILover:
             | StrOutputParser()
         )
     # 函式：建構 RAG 上下文總結鏈 (v1.0 - 全新創建)
+
+
+
+
+    # 函式：建構回合計劃鏈 (v1.0 - 全新創建)
+    # 說明：創建一個專門的“思考”鏈，是“思考->執行->寫作”架構的核心。此鏈的唯一職責是分析當前所有上下文，並輸出一份結構化的、供系統內部使用的行動計劃（TurnPlan JSON），而不是直接生成給使用者看的敘事文本。這從架構上分離了“思考”與“寫作”，旨在根除思考過程洩漏問題。
+    def _build_planning_chain(self) -> Runnable:
+        """創建一個用於生成結構化回合計劃的鏈。"""
+        from .schemas import TurnPlan
+        planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
+
+        prompt_template = """你是一位專業的、深思熟慮的遊戲管理員（GM）和故事導演。
+你的唯一任務是分析下方提供的【當前世界快照】和【使用者最新指令】，然後為接下來的回合制定一份詳細的、結構化的【行動計畫 JSON】。
+
+【核心指令】
+1.  **這不是最終輸出**: 你生成的 JSON 是一個【內部計畫】，供後續的系統執行。它【絕對不會】直接展示給使用者。因此，你可以在 `thought` 欄位中自由地、詳細地闡述你的思考過程。
+2.  **分析與規劃**:
+    *   **`thought`**: 這是最重要的部分。詳細寫下你作為導演的完整思考過程：分析使用者意圖 -> 評估 NPC 和 AI 角色的性格與動機 -> 決定他們在本回合應如何反應 -> 構思場景的整體走向。
+    *   **`narration`**: 根據【使用者主權原則】，撰寫一段【客觀的旁白】，只描述使用者「{username}」的指令所產生的【直接後果】或【外部現象】。這是對使用者行動的直接反饋。
+    *   **`character_actions`**: 為場景中的【每一個 AI/NPC 角色】規劃具體的行動。他們的行動必須嚴格符合其性格、動機以及對當前情勢的反應。如果一個角色選擇不行動，也要在 `thought` 中說明理由。
+3.  **嚴格的格式**: 你的最終輸出【必須且只能】是一個符合 `TurnPlan` Pydantic 格式的 JSON 物件。
+
+---
+【當前世界快照】:
+{world_snapshot}
+---
+【使用者最新指令】:
+{user_input}
+---
+
+請開始你的規劃。"""
+
+        prompt = ChatPromptTemplate.from_template(prompt_template)
+        return prompt | planner_llm
+    # 函式：建構回合計劃鏈 (v1.0 - 全新創建)
     
 
 
@@ -1057,11 +1092,11 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.2 - 初始化總結鏈)
+    # 函式：配置模型和鏈 (v198.3 - 初始化 Planning Chain)
     # 更新紀錄:
-    # v198.2 (2025-09-02): [架構修正] 新增了對 `_build_rag_summarizer_chain` 的調用，以初始化用於預處理 RAG 上下文的核心組件。
-    # v198.1 (2025-09-02): [架構修正] 將對 `_load_zero_instruction` 的調用更新為 `_load_world_snapshot_template`。
-    # v198.0 (2025-08-31): [架構重構] 移除了 `main_executor` (AgentExecutor) 的創建邏輯。
+    # v198.3 (2025-09-02): [架構重構] 新增了對 `_build_planning_chain` 的調用，這是實現“思考->執行->寫作”分離式架構的關鍵一步。
+    # v198.2 (2025-09-02): [架構修正] 新增了對 `_build_rag_summarizer_chain` 的調用。
+    # v198.1 (2025-09-02): [架構修正] 更新了對 `_load_world_snapshot_template` 的調用。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
@@ -1076,8 +1111,8 @@ class AILover:
         
         self.retriever = await self._build_retriever()
         
-        # [v198.2 新增] 初始化 RAG 上下文總結鏈
         self.rag_summarizer_chain = self._build_rag_summarizer_chain()
+        self.planning_chain = self._build_planning_chain() # [v198.3 新增]
         
         self.narrative_chain = self._build_narrative_chain()
         self.scene_expansion_chain = self._build_scene_expansion_chain()
@@ -1089,8 +1124,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.2 (帶 RAG 總結器模式)。")
-    # 函式：配置模型和鏈 (v198.2 - 初始化總結鏈)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.3 (帶 Planning Chain 模式)。")
+    # 函式：配置模型和鏈 (v198.3 - 初始化 Planning Chain)
 
 
     # 函式：將世界聖經添加到向量儲存
