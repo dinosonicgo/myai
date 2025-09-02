@@ -59,6 +59,10 @@ from .database import AsyncSessionLocal, UserData, MemoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
+
+
+
+
 # 全局常量：Gemini 安全閥值設定 (v1.0.0 - 與 dino_ai.py 同步)
 # 此設定旨在最大化內容生成自由度，適用於所有 LLM 實例，以確保與主應用程式的行為一致。
 SAFETY_SETTINGS = {
@@ -2005,10 +2009,11 @@ class AILover:
 
 
 
-    # 函式：建構實體提取鏈 (v1.1 - 移除本地定义)
+    # 函式：建構實體提取鏈 (v1.2 - 引用修正後的模型)
     # 更新紀錄:
-    # v1.1 (2025-09-02): [架構清理] 移除了此函式内部关于 ExtractedEntities 的注释定义。该模型现在从中央的 `schemas.py` 导入，确保了定义的唯一性和代码的整洁性。
-    # v1.0 (2025-09-02): [全新創建] 創建了此“侦察兵”链，是“LORE感知”情报简报系统的第一步。
+    # v1.2 (2025-09-02): [災難性BUG修復] 修正了 ExtractedEntities Pydantic 模型中因拼寫錯誤（'"names"' -> 'names'）而導致的啟動時 KeyError。此錯誤的修正基於對 ai_core.py 頂部模型定義的修改。
+    # v1.1 (2025-09-02): [架構清理] 移除了此函式内部关于 ExtractedEntities 的注释定义。
+    # v1.0 (2025-09-02): [全新創建] 創建了此“侦察兵”链。
     def _build_entity_extraction_chain(self) -> Runnable:
         """創建一個用於從文本中提取關鍵實體名稱列表的鏈。"""
         extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
@@ -2036,7 +2041,7 @@ class AILover:
         
         prompt = ChatPromptTemplate.from_template(prompt_template)
         return prompt | extractor_llm
-    # 函式：建構實體提取鏈 (v1.1 - 移除本地定义)
+    # 函式：建構實體提取鏈 (v1.2 - 引用修正後的模型)
 
     
 
