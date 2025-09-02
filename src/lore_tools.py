@@ -1,8 +1,8 @@
-# src/lore_tools.py 的中文註釋(v23.1 - 依賴恢復與保護)
+# src/lore_tools.py 的中文註釋(v24.0 - 上下文統一)
 # 更新紀錄:
-# v23.1.1 (2025-08-31): [災難性BUG修復] 恢復了因先前提交中意外省略而丟失的所有 Pydantic 參數模型（如 `UpdateNpcArgs`）的定義。此修正解決了導致應用程式無法啟動的 `NameError`。
-# v23.1 (2025-08-31): [災難性BUG修復] 在 `update_npc_profile` 工具中增加了【核心角色身份保護】檢查，防止其被錯誤地用於修改核心主角。
-# v23.0 (2025-08-31): [根本性BUG修復] 新增了缺失的 `get_lores_by_category_and_filter` 導入。
+# v24.0 (2025-09-02): [重大架構重構] 移除了本地的 `ToolContext` 類和實例的定義。現在，此模組從新創建的中央 `tool_context.py` 導入共享的 `tool_context` 實例。此修改徹底解決了 LORE 工具因無法獲取正確上下文而執行失敗的嚴重問題。
+# v23.1.1 (2025-08-31): [災難性BUG修復] 恢復了因先前提交中意外省略而丟失的所有 Pydantic 參數模型。
+# v23.1 (2025-08-31): [災難性BUG修復] 在 `update_npc_profile` 工具中增加了【核心角色身份保護】檢查。
 
 import json
 import time
@@ -15,25 +15,10 @@ from .logger import logger
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lore as db_get_lore, get_lores_by_category_and_filter
 from .database import AsyncSessionLocal, UserData
 from .schemas import CharacterProfile, LocationInfo, ItemInfo, WorldLore, Quest, CreatureInfo
+# [v24.0 新增] 導入共享的工具上下文
+from .tool_context import tool_context
 
-# --- 工具上下文管理器 ---
-class ToolContext:
-    def __init__(self):
-        self.user_id = None
-        self.ai_core_instance = None
-    def set_context(self, user_id: str, ai_core_instance: 'AILover'):
-        self.user_id = user_id
-        self.ai_core_instance = ai_core_instance
-    def get_user_id(self) -> str:
-        if not self.user_id:
-            raise ValueError("Tool context user_id is not set.")
-        return self.user_id
-    def get_ai_core(self) -> 'AILover':
-        if not self.ai_core_instance:
-            raise ValueError("Tool context ai_core_instance is not set.")
-        return self.ai_core_instance
-        
-tool_context = ToolContext()
+# [v24.0 移除] 刪除了本地的 ToolContext 類和實例的定義
 
 # --- 通用驗證器 ---
 def _validate_string_to_list(value: Any) -> Any:
@@ -157,7 +142,6 @@ async def add_or_update_npc_profile(
     logger.info(f"[{user_id}] 已新增/更新 NPC Lore，主鍵為: '{lore_key}'")
     return message
 
-# [v23.1.1 恢復] 恢復被意外刪除的 UpdateNpcArgs Pydantic 模型
 class UpdateNpcArgs(BaseToolArgs):
     lore_key: str = Field(description="要更新的 NPC 的絕對唯一資料庫主鍵。")
     description: Optional[str] = Field(default=None, description="NPC 的新版性格、背景故事或職責描述。")
@@ -166,10 +150,6 @@ class UpdateNpcArgs(BaseToolArgs):
     affinity: Optional[int] = Field(default=None, description="NPC 對使用者的新好感度數值。")
     current_action: Optional[str] = Field(default=None, description="NPC 當前正在進行的、持續性的動作或所處的姿態。")
 
-# 函式：更新 NPC 檔案 (v23.1 - 核心角色保護)
-# 更新紀錄:
-# v23.1 (2025-08-31): [災難性BUG修復] 在函式開頭增加了【核心角色身份保護】檢查。此工具現在會拒絕任何試圖修改核心使用者角色或 AI 角色的請求，即使是由上游的 AI 鏈（如背景擴展鏈）錯誤發起的。此修正從根本上杜絕了核心角色資料被當作 NPC LORE 錯誤覆蓋的風險。
-# v23.0 (2025-08-31): [根本性BUG修復] 新增了缺失的 `get_lores_by_category_and_filter` 導入。
 @tool(args_schema=UpdateNpcArgs)
 async def update_npc_profile(
     lore_key: str, 
@@ -179,7 +159,6 @@ async def update_npc_profile(
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
 
-    # [v23.1 新增] 核心角色身份保護檢查
     if ai_core.profile:
         npc_name_from_key = lore_key.split(' > ')[-1]
         user_name = ai_core.profile.user_profile.name
@@ -228,7 +207,6 @@ async def update_npc_profile(
     except Exception as e:
         logger.error(f"[{user_id}] 更新NPC '{lore_key}' 時發生錯誤: {e}", exc_info=True)
         return f"錯誤：更新NPC '{lore_key}' 時發生內部錯誤。"
-# 函式：更新 NPC 檔案 (v23.1 - 核心角色保護)
 
 class AddLocationLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="由實體解析鏈生成的、此地點的絕對唯一資料庫主鍵。")
@@ -495,6 +473,7 @@ async def update_quest_status(
     logger.info(f"[{user_id}] {message}")
     return message
 
+# 函式：獲取所有 LORE 工具
 def get_lore_tools():
     """返回一個包含此檔案中所有用於「寫入」的 LoreBook 相關工具的列表。"""
     return [
@@ -507,3 +486,4 @@ def get_lore_tools():
         add_or_update_world_lore,
         update_quest_status,
     ]
+# 函式：獲取所有 LORE 工具
