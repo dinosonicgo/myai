@@ -1942,23 +1942,28 @@ class AILover:
 
 
 
-    # 函式：建構專用敘事鏈 (v2.4 - 整合所有修正)
+    # 函式：建構專用敘事鏈 (v3.0 - 強制注入核心協議)
     # 更新紀錄:
+    # v3.0 (2025-09-04): [重大健壯性修正] 為確保寫作階段與規劃階段的行為一致性，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。這從根本上解決了寫作鏈可能在最後一步對規劃好的露骨內容進行自我審查的問題。
     # v2.4 (2025-09-03): [回归性BUG修复] 整合了 v2.2 和 v2.3 的所有修正。恢复了对 `lambda x: x["final_output_mandate"]` 的使用，以解决因 `RunnablePassthrough` 导致的 `ValueError: Invalid input type` 数据流错误，同时保留了对繁体中文的强制指令。
     # v2.3 (2025-09-03): [災難性BUG修復] 修正了因 `RunnablePassthrough` 导致的 `ValueError` 数据流错误。
-    # v2.2 (2025-09-03): [健壯性] 在基礎提示詞中增加了繁體中文的強制令。
     def _build_narrative_chain(self) -> Runnable:
         """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成小說文本。"""
         
-        prompt_template = """你是一位技藝精湛的小說家和敘事者。
-你的唯一任務是將下方提供的【回合行動計畫】（一份包含導演筆記和角色行動的結構化JSON），轉化為一段文筆優美的、沉浸式的、統一連貫的小說場景。
+        # [v3.0 核心修正] 將最高指導原則作為系統級前綴注入
+        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
 
-【核心指令】
-1.  **語言強制令**: 你的最終輸出【必須且只能】使用【繁體中文】。
-2.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
-3.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
-4.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
-5.  **風格統一**: 你的寫作風格【必須】嚴格遵循下方由使用者定義的【最終輸出強制令】。
+        prompt_template = """{system_prompt_prefix}
+
+# --- 任務指令 ---
+# 你現在扮演一位技藝精湛的小說家和敘事者。
+# 你的唯一任務是將下方提供的【回合行動計畫】（一份包含導演筆記和角色行動的結構化JSON），轉化為一段文筆優美的、沉浸式的、統一連貫的小說場景。
+
+# 【核心寫作規則】
+# 1.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
+# 2.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
+# 3.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
+# 4.  **風格統一**: 你的寫作風格【必須】嚴格遵循【回合行動計畫】中所體現出的、以及下方由使用者定義的【最終輸出強制令】。
 
 ---
 【回合行動計畫 (JSON)】:
@@ -1972,9 +1977,13 @@ class AILover:
 """
         prompt = ChatPromptTemplate.from_template(prompt_template)
 
-        # [v2.4 核心修正] 使用 lambda 函數精確提取所需的數據，解決 ValueError
         return (
             {
+                "system_prompt_prefix": lambda x: system_prompt_prefix.format(
+                    username=self.profile.user_profile.name if self.profile else "",
+                    ai_name=self.profile.ai_profile.name if self.profile else "",
+                    response_style_prompt=x.get("final_output_mandate", "")
+                ),
                 "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
                 "final_output_mandate": lambda x: x.get("final_output_mandate", "")
             }
@@ -1982,7 +1991,7 @@ class AILover:
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構專用敘事鏈 (v2.4 - 整合所有修正)
+    # 函式：建構專用敘事鏈 (v3.0 - 強制注入核心協議)
 
 
     
