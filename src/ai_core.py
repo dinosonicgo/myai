@@ -577,14 +577,15 @@ class AILover:
         return self.batch_entity_resolution_chain
     # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：獲取世界聖經解析鏈
-    # 說明：創建或返回一個用於從自由文本中解析結構化LORE數據的鏈。
+    # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
     def get_canon_parser_chain(self) -> Runnable:
         if self.canon_parser_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.2)
             parser_llm = raw_llm.with_structured_output(CanonParsingResult)
             
-            prompt_str = f"{{zero_instruction}}\n\n" + """你是一位知識淵博的世界觀分析師和數據結構化專家。你的任務是通讀下方提供的【世界聖經文本】，並將其中包含的所有鬆散的背景設定， meticulously 地解析並填充到對應的結構化列表中。
+            prompt_str = """你是一位知識淵博的世界觀分析師和數據結構化專家。你的任務是通讀下方提供的【世界聖經文本】，並將其中包含的所有鬆散的背景設定， meticulously 地解析並填充到對應的結構化列表中。
 
 **【核心指令】**
 1.  **全面掃描**: 你必須仔細閱讀【世界聖經文本】的每一句話，找出所有關於NPC、地點、物品、生物、任務和世界傳說的描述。
@@ -600,7 +601,7 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.canon_parser_chain = full_prompt | parser_llm
         return self.canon_parser_chain
-    # 函式：獲取世界聖經解析鏈
+    # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
 
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
     # 更新紀錄:
@@ -675,11 +676,11 @@ class AILover:
 
 
 
-    # 函式：建構場景擴展鏈 (v179.0 - 世界填充引擎重構)
+    # 函式：建構場景擴展鏈 (v179.1 - 移除 zero_instruction 依賴)
     # 更新紀錄:
-    # v179.0 (2025-09-02): [災難性架構修正] 根據使用者對架構的明確指示，徹底重構了此鏈的核心職責。它不再是一個被動的「記錄員」，而是一個主動的「世界填充引擎」。新的提示詞強制要求 AI 分析當前地點類型，並從無到有地、主動地創造 3-5 個理應存在但從未被提及的 LORE（如街道旁的酒館、巡邏的衛兵），從而真正實現了對話後的背景世界擴展，極大地豐富了世界的探索潛力。
+    # v179.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
+    # v179.0 (2025-09-02): [災難性架構修正] 徹底重構了此鏈的核心職責，使其成為一個主動的“世界填充引擎”。
     # v178.1 (2025-08-31): [BUG修復] 修正了對 self.safety_settings 的錯誤引用。
-    # v178.0 (2025-08-31): [健壯性強化] 新增了【零號步驟：排除核心主角】規則。
     def _build_scene_expansion_chain(self) -> Runnable:
         """建構一個作為「世界填充引擎」的鏈，其核心職責是主動地、創造性地為當前場景填充理應存在但尚未被提及的細節。"""
         expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
@@ -731,9 +732,8 @@ class AILover:
 請嚴格遵守上述所有規則，扮演一個富有創造力的世界填充引擎，生成一個既能主動豐富世界又能被動記錄事實的、詳細的工具呼叫計畫JSON。現在，請生成包含 JSON 的 Markdown 程式碼塊。
 """
         
-        full_scene_expansion_prompt_template = "{zero_instruction}\n\n" + scene_expansion_task_template
         scene_expansion_prompt = ChatPromptTemplate.from_template(
-            full_scene_expansion_prompt_template,
+            scene_expansion_task_template,
             partial_variables={ "available_lore_tool_names": available_lore_tool_names }
         )
         return (
@@ -742,16 +742,16 @@ class AILover:
             | StrOutputParser()
             | expansion_parser
         )
-    # 函式：建構場景擴展鏈 (v179.0 - 世界填充引擎重構)
+    # 函式：建構場景擴展鏈 (v179.1 - 移除 zero_instruction 依賴)
     
 
 
 
-    # 函式：建構場景選角鏈 (v147.0 命名冲突备援)
+    # 函式：建構場景選角鏈 (v147.1 - 移除 zero_instruction 依賴)
     # 更新紀錄:
-    # v147.0 (2025-08-31): [功能增強] 根据工程师指示，强化了提示词，强制要求AI在生成新NPC时，必须为其提供2-3个备用名称并填充到`alternative_names`栏位中。此修改为解决下游的命名冲突问题提供了前瞻性的数据支持。
+    # v147.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
+    # v147.0 (2025-08-31): [功能增強] 強化了提示詞，強制要求AI在生成新NPC时，必须為其提供備用名稱。
     # v146.0 (2025-08-31): [功能增強] 增加了【獨特命名原則】，引导AI避免使用常见名称。
-    # v145.2 (2025-08-28): [命名規則修正版] 修正命名规则以确保其符合世界观。
     def _build_scene_casting_chain(self) -> Runnable:
         """建構一個鏈，不僅創造核心 NPC 和配角，还强制为他们生成真实姓名、备用名称和符合世界观的物品名称。"""
         casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
@@ -781,11 +781,10 @@ class AILover:
 ---
 请严格遵守以上所有规则，开始你的选角工作。"""
         
-        full_casting_prompt_template = f"{{zero_instruction}}\n\n" + casting_prompt_template
-        casting_prompt = ChatPromptTemplate.from_template(full_casting_prompt_template)
+        casting_prompt = ChatPromptTemplate.from_template(casting_prompt_template)
         
         return casting_prompt | casting_llm
-    # 函式：建構場景選角鏈 (v147.0 命名冲突备援)
+    # 函式：建構場景選角鏈 (v147.1 - 移除 zero_instruction 依賴)
 
 
 
