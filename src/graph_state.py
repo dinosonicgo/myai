@@ -1,13 +1,13 @@
-# src/graph_state.py 的中文註釋(v1.4 - 移除冗餘欄位)
+# src/graph_state.py 的中文註釋(v2.0 - 新增擴展決策欄位)
 # 更新紀錄:
-# v1.4 (2025-09-02): [架構清理] 移除了已廢棄的 `dynamic_prompt` 欄位。在新的“思考->執行->寫作”架構中，提示詞組合已內化至各個節點，不再需要一個統一的預組合提示詞欄位。此修改使狀態定義與最終的圖形架構完全一致。
-# v1.3 (2025-09-02): [架構重構] 新增了 `tool_results` 欄位，用於儲存“執行”節點的結果。
-# v1.2 (2025-09-02): [架構重構] 新增了 `turn_plan` 欄位，作為“思考”節點的核心數據載體。
+# v2.0 (2025-09-03): [災難性BUG修復] 根據 KeyError 日誌，在 `ConversationGraphState` 中新增了 `expansion_decision` 欄位。此修改向 LangGraph 的狀態系統正式“註冊”了這個新的數據鍵，確保它在圖的節點之間能夠被正確地傳遞和訪問，從根本上解決了因缺少狀態定義而導致的 `KeyError: 'expansion_decision'` 問題。
+# v1.4 (2025-09-02): [架構清理] 移除了已廢棄的 `dynamic_prompt` 欄位。
+# v1.3 (2025-09-02): [架構重構] 新增了 `tool_results` 欄位。
 
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
 
-from .schemas import UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, TurnPlan
+from .schemas import UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, TurnPlan, ExpansionDecision
 from .ai_core import AILover
 
 # 類別：對話圖狀態
@@ -25,6 +25,8 @@ class ConversationGraphState(TypedDict):
     
     # --- 中間處理結果 ---
     input_analysis: Optional["UserInputAnalysis"]
+    # [v2.0 新增]
+    expansion_decision: Optional["ExpansionDecision"]
     scene_analysis: Optional["SceneAnalysisResult"]
     rag_context: str
     structured_context: Dict[str, str]
