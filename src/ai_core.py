@@ -653,20 +653,65 @@ class AILover:
         return retriever
     # 函式：建構檢索器
 
-    # 函式：建構場景擴展鏈 (v178.0 - 安全設定統一與核心角色保護)
+
+
+
+
+    # 函式：建構場景擴展鏈 (v179.0 - 世界填充引擎重構)
     # 更新紀錄:
-    # v178.0 (2025-08-31): [健壯性強化] 根據 LOG 分析，徹底重構了提示詞。新增了【零號步驟：排除核心主角】作為最高優先級規則，強制要求 AI 在進行任何分析前，必須將使用者和 AI 戀人從其操作目標中永久排除。此修正旨在從提示詞源頭上解決核心角色被誤判為 NPC 的嚴重問題。
-    # v178.1 (2025-08-31): [BUG修復] 修正了對 self.safety_settings 的錯誤引用，改為使用模組級的 SAFETY_SETTINGS 全域常數，以解決 AttributeError。
+    # v179.0 (2025-09-02): [災難性架構修正] 根據使用者對架構的明確指示，徹底重構了此鏈的核心職責。它不再是一個被動的「記錄員」，而是一個主動的「世界填充引擎」。新的提示詞強制要求 AI 分析當前地點類型，並從無到有地、主動地創造 3-5 個理應存在但從未被提及的 LORE（如街道旁的酒館、巡邏的衛兵），從而真正實現了對話後的背景世界擴展，極大地豐富了世界的探索潛力。
+    # v178.1 (2025-08-31): [BUG修復] 修正了對 self.safety_settings 的錯誤引用。
+    # v178.0 (2025-08-31): [健壯性強化] 新增了【零號步驟：排除核心主角】規則。
     def _build_scene_expansion_chain(self) -> Runnable:
-        """建構用於背景世界LORE動態擴展的鏈，使其具備主動創造和聯想的能力。"""
+        """建構一個作為「世界填充引擎」的鏈，其核心職責是主動地、創造性地為當前場景填充理應存在但尚未被提及的細節。"""
         expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
         raw_expansion_model = self._create_llm_instance(temperature=0.7)
-        # 修正：將 self.safety_settings 改為引用模組級別的全域常量 SAFETY_SETTINGS
         expansion_model = raw_expansion_model.bind(safety_settings=SAFETY_SETTINGS)
         
         available_lore_tool_names = ", ".join([f"`{t.name}`" for t in lore_tools.get_lore_tools()])
         
-        scene_expansion_task_template = """---\n[CONTEXT]\n**核心世界觀:** {world_settings}\n**當前完整地點路徑 (用於工具調用):** {current_location_path}\n**當前遊戲世界狀態 (角色、物品欄等):**\n{game_context}\n**最近的對話 (請基於以下內容的完整情節進行分析):** \n{recent_dialogue}\n---\n[INSTRUCTIONS]\n**1. 你的核心職責：【世界細節構建師】**\n   - 你的任務不僅是記錄，更是【創造】。你必須分析【最近的對話】，並基於場景氛圍和內容，主動地、創造性地為這個世界增添深度和細節。\n\n**2. 【【【工作流程：排除 -> 記錄 -> 創造】】】**\n   - **【‼️ 零號步驟：排除核心主角 (ABSOLUTE & HIGHEST PRIORITY) ‼️】**\n     - 這是最高優先級規則！**`{ai_name}`** 和 **`{username}`** 是絕對的核心主角，他們擁有獨立的狀態系統。\n     - 在你進行任何分析之前，你【必須】將他們的名字從你的潛在操作目標中【永久排除】。\n     - 你生成的任何工具呼叫，其目標【絕對不能】是 `{ai_name}` 或 `{username}`。\n\n   - **第一步：記錄既定事實**\n     - 分析對話，識別出除核心主角外的、所有**已存在 NPC 的狀態變化**（例如受傷、關係改變），並使用 `update_npc_profile` 或 `update_quest_status` 等工具來記錄這些變化。\n\n   - **第二步：創造衍生細節 (核心任務!)**\n     - 這是最重要的部分！你必須超越字面意義，進行【聯想擴展】。仔細審視場景中提到的**任何名詞**（特別是那些沒有專有名稱的），並為它們創造詳細的LORE。\n     - **【擴展範例】**:\n       *   如果對話提到角色吃了「麵包」，你【必須】為這個麵包創造一個獨特的名字和背景，並使用 `add_or_update_item_info` 工具來記錄它 (例如：物品名稱:「晨風城酵母麵包」，描述:「由晨風城百年老店『金麥穗』製作，以其獨特的微甜口感聞名」)。\n       *   如果對話提到角色進入了一家「酒館」，你【必須】為這家酒館命名並創造細節，使用 `add_or_update_location_info` (例如：地點名稱:「醉龍酒館」，描述:「一家龍裔老兵開的酒館，牆上掛著退役的龍鱗盾」)。\n\n**3. 【【【工具使用與內容生成絕對規則】】】**\n   - **可用工具列表**: 你只能從以下列表中選擇工具進行呼叫: {available_lore_tool_names}\n   - **細節至上**: 你生成的每一個 LORE 條目都【必須】是具體、詳細且充滿想像力的。禁止生成「普通的劍」或「一個市場」等任何通用、無細節的內容。\n   - **命名鐵則**: 所有你新創造的實體都【必須】有一個符合 `{world_settings}` 世界觀的、具體的【專有名詞】。\n   - {format_instructions}\n\n**【最終生成指令】**\n請嚴格遵守上述所有規則，扮演一個富有創造力的世界構建師，生成一個既能記錄事實又能豐富世界的、詳細的工具呼叫計畫JSON。現在，請生成包含 JSON 的 Markdown 程式碼塊。\n"""
+        scene_expansion_task_template = """---
+[CONTEXT]
+**核心世界觀:** {world_settings}
+**當前完整地點路徑:** {current_location_path}
+**最近的對話 (用於事實記錄):** 
+{recent_dialogue}
+---
+[INSTRUCTIONS]
+**你的核心職責：【世界填充引擎 (World Population Engine)】**
+你的任務分為兩個階段，且【階段一】的優先級遠高於【階段二】。你的目標是讓世界變得栩栩如生、充滿可探索的細節。
+
+**【【【階段一：主動世界填充 (Proactive World Population) - 核心任務!】】】**
+1.  **分析環境**: 首先，仔細分析【當前完整地點路徑】。這是一個城市的街道、一個陰暗的森林、還是一個旅店的房間？
+2.  **頭腦風暴**: 基於環境類型和【核心世界觀】，富有創造力地構思 **3 到 5 個** 在此環境中**理應存在、但從未在對話中被提及**的、具體的、充滿故事潛力的 LORE 條目。
+3.  **強制創造與命名**: 你【必須】為你構思出的每一個新條目賦予一個**具體的、獨特的專有名稱**，並為其撰寫引人入勝的描述。
+4.  **生成工具計劃**: 使用 {available_lore_tool_names} 等工具，為你從無到有創造的這些新 LORE 生成工具調用計劃。
+
+---
+**【主動填充範例】**
+*   如果【當前地點】是 `['王城', '商業區街道']`:
+    *   你【必須】主動創造類似以下的 LORE：
+        *   **地點**: `add_or_update_location_info(name="生鏽的長笛酒館", description="一家冒險者們最愛聚集的酒館，以其劣質但便宜的麥酒聞名。")`
+        *   **NPC**: `add_or_update_npc_profile(name="衛兵隊長馬庫斯", description="一位眼神銳利、時刻警惕著街道上可疑份子的中年人。")`
+        *   **世界傳說**: `add_or_update_world_lore(title="通緝令：影刃盜賊團", content="一張貼在牆上的、有些褪色的通緝令，懸賞臭名昭著的影刃盜賊團。")`
+
+*   如果【當前地點】是 `['迷霧森林', '林間小徑']`:
+    *   你【必須】主動創造類似以下的 LORE：
+        *   **生物**: `define_creature_type(name="水晶雞", description="一種會發出微弱光芒、以魔法水晶為食的神奇生物。")`
+        *   **物品**: `add_or_update_item_info(name="月光草", description="一種只在夜晚發光的藥草，是製作治療藥劑的關鍵材料。")`
+---
+
+**【階段二：被動事實記錄 (Reactive Fact Recording) - 次要任務】**
+在完成主要的「世界填充」任務後，再回頭分析【最近的對話】，識別出**除核心主角（{username}, {ai_name}）外**的、所有**已存在 NPC 的狀態變化**（例如受傷、關係改變），並使用 `update_npc_profile` 等工具來記錄這些既定事實。
+
+**【【【絕對規則】】】**
+1.  **【‼️ 排除核心主角 ‼️】**: 這是最高優先級規則！`{ai_name}` 和 `{username}` 是絕對的核心主角。你生成的任何工具呼叫，其目標【絕對不能】是他們。
+2.  **【細節至上】**: 你生成的每一個 LORE 條目都【必須】是具體、詳細且充滿想像力的。禁止生成「普通的劍」或「一個市場」等任何通用、無細節的內容。
+3.  {format_instructions}
+
+**【最終生成指令】**
+請嚴格遵守上述所有規則，扮演一個富有創造力的世界填充引擎，生成一個既能主動豐富世界又能被動記錄事實的、詳細的工具呼叫計畫JSON。現在，請生成包含 JSON 的 Markdown 程式碼塊。
+"""
         
         full_scene_expansion_prompt_template = "{zero_instruction}\n\n" + scene_expansion_task_template
         scene_expansion_prompt = ChatPromptTemplate.from_template(
@@ -679,8 +724,8 @@ class AILover:
             | StrOutputParser()
             | expansion_parser
         )
-# 函式結束
-
+    # 函式：建構場景擴展鏈 (v179.0 - 世界填充引擎重構)
+    
 
 
 
