@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v10.1 - 新增模型定义)
+# src/schemas.py 的中文註釋(v10.1 - 新增模型定義)
 # 更新紀錄:
-# v10.1 (2025-09-02): [重大架構重構] 新增了 `ValidationResult` 和 `ExtractedEntities` 两个 Pydantic 模型。此修改将所有用于链之间数据传递的模型集中到此文件中，遵循了单一职责原则，使代码结构更清晰、更易于维护。
-# v10.0 (2025-08-31): [功能增強] 在 `CharacterProfile` 中新增了 `alternative_names` 栏位以支持命名冲突备援。
-# v9.2 (2025-08-29): [根本性重構] 在 `CharacterProfile` 中新增了 `current_action` 栏位以实现状态感知。
+# v10.1 (2025-09-02): [災難性BUG修復] 新增了之前被遺漏的 `ValidationResult` 和 `ExtractedEntities` 兩個 Pydantic 模型。此修改將所有用於鏈之間數據傳遞的模型集中到此文件中，解決了因模型未定義而導致的 `NameError`，並使代碼結構更清晰、更易於維護。
+# v10.0 (2025-08-31): [功能增強] 在 `CharacterProfile` 中新增了 `alternative_names` 欄位以支持命名衝突備援。
+# v9.2 (2025-08-29): [根本性重構] 在 `CharacterProfile` 中新增了 `current_action` 欄位以實現狀態感知。
 
 import json
 import re
