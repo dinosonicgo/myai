@@ -677,7 +677,7 @@ class AILover:
 
 
 
-    # 函式：建構場景擴展鏈 (v181.0 - 上下文感知重構)
+   # 函式：建構場景擴展鏈 (v181.0 - 上下文感知重構)
     # 更新紀錄:
     # v181.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，彻底重构了此链的提示词。引入了【上下文感知原则】，强制 AI 在创造任何新 LORE 之前，【必须】先仔细审查 `existing_lore_summary` 中已有的 LORE 列表。指令其首要任务是【补充缺失的细节】，并【绝对禁止】为已有主题创造重复的变体。此修改旨在从根本上解决背景 LORE 无限生成相似条目（如多个森林传说）的问题。
     # v180.0 (2025-09-02): [健壯性] 更新了工具描述以適應 LORE 工具的職責分離。
@@ -740,7 +740,7 @@ class AILover:
 
 
 
-    # 函式：建構場景選角鏈 (v148.0 - 增加上下文感知)
+   # 函式：建構場景選角鏈 (v148.0 - 增加上下文感知)
     # 更新紀錄:
     # v148.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，彻底重构了此链的提示词。新增了【上下文感知原则】，强制要求 AI 在创造任何新 NPC 之前，【必须】先仔细审查已有的【當前場景上下文】，并【绝对禁止】创造与现有 NPC 角色定位或职能重复的新角色。此修改旨在从根本上解决在连续对话中无限生成相似 NPC（如多个卫兵队长）的问题。
     # v147.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
@@ -1514,7 +1514,7 @@ class AILover:
 
     # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
     # 更新紀錄:
-    # v171.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此函式的执行流程。现在，在调用 `scene_expansion_chain` 之前，会先查询与当前地点相关的所有现有 LORE，并将其格式化为一个简洁的摘要。这个摘要随后被注入到扩展链的 Prompt 中，为其提供了避免重复创造 LORE 的关键上下文，旨在从根本上解决无限生成相似 LORE 的问题。
+    # v171.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此函式的执行流程。现在，在调用 `scene_expansion_chain` 之前，会先调用 `lore_book.get_all_lores_for_user` 来获取所有现有 LORE，并将其格式化为一个简洁的摘要。这个摘要随后被注入到扩展链的 Prompt 中，为其提供了避免重复创造 LORE 的关键上下文，旨在从根本上解决无限生成相似 LORE 的问题。
     # v170.0 (2025-09-02): [健壯性] 增加了初始延遲以緩解 API 速率限制。
     async def _background_scene_expansion(self, user_input: str, final_response: str, effective_location_path: List[str]):
         if not self.scene_expansion_chain or not self.profile:
@@ -1525,6 +1525,7 @@ class AILover:
 
             # [v171.0 核心修正] 查詢並構建現有 LORE 的摘要
             try:
+                # 使用 lore_book 中新封装的函数
                 all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 lore_summary_list = []
                 for lore in all_lores:
@@ -1534,7 +1535,6 @@ class AILover:
             except Exception as e:
                 logger.error(f"[{self.user_id}] 在背景擴展中查詢現有 LORE 失敗: {e}", exc_info=True)
                 existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
-
 
             current_path_str = " > ".join(effective_location_path)
             
@@ -1551,7 +1551,7 @@ class AILover:
                 "world_settings": self.profile.world_settings or "",
                 "current_location_path": effective_location_path,
                 "recent_dialogue": recent_dialogue,
-                "existing_lore_summary": existing_lore_summary, # <--- 注入上下文
+                "existing_lore_summary": existing_lore_summary,
             })
             
             if not initial_plan_dict:
