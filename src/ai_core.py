@@ -1340,8 +1340,10 @@ class AILover:
 
 
 
-        # 函式：執行已規劃的行動 (v1.0 - 全新創建)
-    # 說明：新架構的核心“執行”函式。它接收“思考”節點生成的 TurnPlan，遍歷其中的所有工具調用，並逐一執行。此函式內置了強大的參數驗證和自動修復備援機制，確保了 AI 執行計劃的成功率。它將所有工具的執行結果匯總成一份“系統事件報告”，供下游的“寫作”節點參考，從而完成了“思考->執行->寫作”流程中的關鍵一環。
+    # 函式：執行已規劃的行動 (v1.1 - 適配統一上下文)
+    # 更新紀錄:
+    # v1.1 (2025-09-02): [重大架構重構] 修改了 `tool_context` 的導入路徑，使其從舊的 `tools.py` 指向新創建的中央 `tool_context.py`。此修改是“上下文統一”重構的最後一步，確保了所有工具（無論來自哪個模組）都能從唯一的共享實例中獲取上下文，從而根除了工具執行失敗的問題。
+    # v1.0 (2025-09-02): [全新創建] 創建了此函式作為新架構的核心“執行”單元。
     async def _execute_planned_actions(self, plan: TurnPlan) -> str:
         """遍歷 TurnPlan，執行所有工具調用，並返回結果摘要。"""
         if not plan or not plan.character_actions:
@@ -1349,9 +1351,8 @@ class AILover:
 
         tool_results = []
         
-        # 為了能讓工具在執行時訪問到上下文，我們設置一個臨時的上下文管理器
-        # 這是 LangChain 工具設計的一個常見模式
-        from .tools import tool_context
+        # [v1.1 修正] 從新的中央模組導入共享的 tool_context
+        from .tool_context import tool_context
         tool_context.set_context(self.user_id, self)
 
         for i, action in enumerate(plan.character_actions):
@@ -1407,11 +1408,14 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Executor) {log_msg}", exc_info=True)
                 tool_results.append(log_msg)
 
+        # 清理上下文，防止在其他非工具執行緒程中被意外訪問
+        tool_context.set_context(None, None)
+
         if not tool_results:
-            return "系統事件：計畫中包含工具調用，但均未成功執行。"
+            return "系統事件：計畫中包含工具調用，但均未成功執行或未返回結果。"
             
         return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
-    # 函式：執行已規劃的行動 (v1.0 - 全新創建)
+    # 函式：執行已規劃的行動 (v1.1 - 適配統一上下文)
 
 
     # 函式：獲取結構化上下文 (v146.0 精確匹配修正版)
