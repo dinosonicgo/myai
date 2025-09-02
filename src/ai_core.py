@@ -966,16 +966,17 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.0 - LangGraph 架構重構)
+    # 函式：配置模型和鏈 (v198.1 - 適配模板重命名)
     # 更新紀錄:
+    # v198.1 (2025-09-02): [架構修正] 將對 `_load_zero_instruction` 的調用更新為 `_load_world_snapshot_template`，以適配新的分層提示詞架構。
     # v198.0 (2025-08-31): [架構重構] 移除了 `main_executor` (AgentExecutor) 的創建邏輯。新的 LangGraph 架構不再依賴 ReAct Agent 進行主流程控制，改為使用更直接、更穩定的 `narrative_chain` 進行核心內容生成，從根源上避免了思考過程洩漏的問題。
     # v168.0 (2025-08-31): [架構重構] 新增了對專用敘事鏈 `narrative_chain` 的初始化。
-    # v167.0 (2025-08-29): [重大架構修正] 恢復了模組化Prompt，確立了雙軌Prompt架構。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
         
-        self._load_zero_instruction()
+        # [v171.0 修正] 調用新的模板加載函式
+        self._load_world_snapshot_template()
 
         all_core_action_tools = tools.get_core_action_tools()
         all_lore_tools = lore_tools.get_lore_tools()
@@ -999,8 +1000,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.0 (LangGraph 資源模式)。")
-    # 函式：配置模型和鏈 (v198.0 - LangGraph 架構重構)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.1 (分層提示詞模式)。")
+    # 函式：配置模型和鏈 (v198.1 - 適配模板重命名)
 
 
 
