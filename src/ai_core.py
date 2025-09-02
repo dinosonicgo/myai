@@ -1945,30 +1945,30 @@ class AILover:
 
 
 
-    # 函式：建構專用敘事鏈 (v3.1 - 健壮性修正)
+    # 函式：建構專用敘事鏈 (v3.2 - 逻辑自包含修正)
     # 更新紀錄:
-    # v3.1 (2025-09-04): [灾难性BUG修复] 修复了当 `self.profile.one_instruction` 在数据库中为 NULL (即 Python 中的 None) 时，导致 `system_prompt_prefix` 变量为 None 并引发 AttributeError 的问题。增加了对 `one_instruction` 本身的 None 值检查，确保在任何情况下都能安全地回退到空字符串。
-    # v3.0 (2025-09-04): [重大健壯性修正] 為確保寫作階段與規劃階段的行為一致性，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。這從根本上解決了寫作鏈可能在最後一步對規劃好的露骨內容進行自我審查的問題。
-    # v2.4 (2025-09-03): [回归性BUG修复] 整合了 v2.2 和 v2.3 的所有修正。
+    # v3.2 (2025-09-04): [灾难性BUG修复] 彻底重构了此链的提示词逻辑，以根除顽固的 `KeyError: 'npc_context'`。现在，此链使用一个完全独立的、自包含的系统提示词，该提示词只包含其完成“写作”任务所必需的核心原则（如忠于计划、艺术加工、风格统一等）。它不再依赖或格式化外部的 `one_instruction` 模板，从而彻底切断了导致错误的依赖链，确保了其运行的绝对稳定性。
+    # v3.1 (2025-09-04): [灾难性BUG修复] 修复了当 `self.profile.one_instruction` 为 None 时引发 AttributeError 的问题。
+    # v3.0 (2025-09-04): [重大健壯性修正] 强制注入核心协议以确保写作与规划阶段的行为一致性。
     def _build_narrative_chain(self) -> Runnable:
         """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成小說文本。"""
         
-        # [v3.1 核心修正] 增加对 one_instruction 本身为 None 的检查
-        system_prompt_prefix = ""
-        if self.profile and self.profile.one_instruction:
-            system_prompt_prefix = self.profile.one_instruction
+        # [v3.2 核心修正] 使用一个独立的、自包含的系统提示词，不再依赖外部模板。
+        # 这个提示词只包含写作任务本身需要的指令。
+        # 核心的内容生成许可和用户主权原则，已由上游的 planning_chain 负责思考和规划，
+        # narrative_chain 的职责是忠实地将“规划结果”渲染出来。
+        system_prompt_for_writing = """你是一位技藝精湛的小說家和敘事者。
+你的唯一任務是將下方提供的【回合行動計畫】（一份包含导演筆記和角色行動的結構化JSON），轉化為一段文筆优美的、沉浸式的、統一連貫的小說場景。
 
-        prompt_template = """{system_prompt_prefix}
+【核心寫作規則】
+1.  **語言強制令**: 你的最終輸出【必須且只能】使用【繁體中文】。
+2.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
+3.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
+4.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
+5.  **風格統一**: 你的寫作風格【必須】嚴格遵循下方由使用者定義的【最終輸出強制令】。
+"""
 
-# --- 任務指令 ---
-# 你現在扮演一位技藝精湛的小說家和敘事者。
-# 你的唯一任務是將下方提供的【回合行動計畫】（一份包含導演筆記和角色行動的結構化JSON），轉化為一段文筆優美的、沉浸式的、統一連貫的小說場景。
-
-# 【核心寫作規則】
-# 1.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
-# 2.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
-# 3.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
-# 4.  **風格統一**: 你的寫作風格【必須】嚴格遵循【回合行動計畫】中所體現出的、以及下方由使用者定義的【最終輸出強制令】。
+        prompt_template = """{system_prompt}
 
 ---
 【回合行動計畫 (JSON)】:
@@ -1982,20 +1982,18 @@ class AILover:
 """
         prompt = ChatPromptTemplate.from_template(prompt_template)
 
+        # [v3.2 核心修正] 简化 Runnable 字典，不再进行复杂的格式化。
         return (
             {
-                "system_prompt_prefix": lambda x: system_prompt_prefix.format(
-                    username=self.profile.user_profile.name if self.profile else "",
-                    ai_name=self.profile.ai_profile.name if self.profile else "",
-                    response_style_prompt=x.get("final_output_mandate", "")
-                ),
+                "system_prompt": lambda x: system_prompt_for_writing,
                 "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
                 "final_output_mandate": lambda x: x.get("final_output_mandate", "")
             }
+            | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構專用敘事鏈 (v3.1 - 健壮性修正)
+    # 函式：建構專用敘事鏈 (v3.2 - 逻辑自包含修正)
 
 
     
