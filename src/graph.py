@@ -191,63 +191,64 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 # 函式：執行 SFW 回合規劃
 
-# 函式：執行 NSFW 直通生成
-async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
-    """
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成 NSFW 回應...")
+    # 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
+    # 更新紀錄:
+    # v1.1 (2025-09-05): [災難性BUG修復] 徹底重構了此節點的參數準備邏輯。現在它不再試圖預先格式化任何提示詞，而是將所有從上下文和 profile 中獲取的原始數據（如 npc_context, ai_name 等）連同 user_input 一起，打包成一個【完整的、未經處理的】字典。這個完整的字典將被直接傳遞給 v1.1 版本的 direct_nsfw_chain，由鏈內部的 RunnablePassthrough.assign() 負責處理所有變數的填充，從而根除了因參數傳遞不完整導致的 KeyError。
+    # v1.0 (2025-09-05): [全新創建] 創建此節點作為 NSFW 直通路徑的核心。
+    async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
+        """
+        [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
+        """
+        user_id = state['user_id']
+        ai_core = state['ai_core']
+        user_input = state['messages'][-1].content
+        logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成 NSFW 回應...")
 
-    # 與 planning_node 類似，我們需要為 NSFW 直通鏈準備完整的世界快照
-    try:
-        # 即使是 NSFW 場景，上下文對於保持一致性依然重要
-        structured_context = state.get('structured_context') or await ai_core._get_structured_context(user_input)
-        rag_context = state.get('rag_context') or await ai_core._preprocess_rag_context(await ai_core.retriever.ainvoke(user_input))
-    except Exception as e:
-        logger.error(f"[{user_id}] 在 generate_nsfw_response_node 中準備上下文失敗: {e}", exc_info=True)
-        structured_context = {}
-        rag_context = "上下文加載失敗。"
+        # 步驟 1: 準備一個包含所有鏈所需變數的完整上下文大字典
+        try:
+            structured_context = state.get('structured_context') or await ai_core._get_structured_context(user_input)
+            rag_context = state.get('rag_context') or await ai_core._preprocess_rag_context(await ai_core.retriever.ainvoke(user_input))
+            
+            # [v1.1 核心修正] 創建一個包含所有可能變數的完整字典
+            full_context_for_chain = {
+                "user_input": user_input,
+                "latest_user_input": user_input, # 兼容舊模板
+                "username": ai_core.profile.user_profile.name,
+                "ai_name": ai_core.profile.ai_profile.name,
+                "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+                "world_settings": ai_core.profile.world_settings or "未設定",
+                "ai_settings": ai_core.profile.ai_profile.description or "未設定",
+                "retrieved_context": rag_context,
+                **structured_context
+            }
 
-    # 準備一個包含所有可用占位符的超集字典
-    full_context_dict = {
-        "username": ai_core.profile.user_profile.name,
-        "ai_name": ai_core.profile.ai_profile.name,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-        "world_settings": ai_core.profile.world_settings or "未設定",
-        "ai_settings": ai_core.profile.ai_profile.description or "未設定",
-        "retrieved_context": rag_context,
-        **(structured_context or {})
-    }
-    
-    # 格式化所有組件
-    def safe_format(template: str, data: dict) -> str:
-        for key, value in data.items():
-            template = template.replace(f"{{{key}}}", str(value))
-        return template
+        except Exception as e:
+            logger.error(f"[{user_id}] 在 generate_nsfw_response_node 中準備上下文失敗: {e}", exc_info=True)
+            # 在失敗時提供備援值，以避免後續鏈出錯
+            full_context_for_chain = {
+                "user_input": user_input, "latest_user_input": user_input,
+                "username": "使用者", "ai_name": "AI",
+                "response_style_prompt": "", "world_settings": "", "ai_settings": "",
+                "retrieved_context": "上下文加載失敗。", "location_context": "", 
+                "possessions_context": "", "quests_context": "", "npc_context": "",
+                "relevant_npc_context": ""
+            }
 
-    # 為直通鏈準備 system_prompt 和 world_snapshot
-    one_instruction_prompt = ai_core.profile.one_instruction or ""
-    sexual_content_module = ai_core.modular_prompts.get("action_sexual_content", "")
-    final_system_prompt = f"{one_instruction_prompt}\n\n{sexual_content_module}"
-    
-    world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
+        if not ai_core.direct_nsfw_chain:
+            raise ValueError("Direct NSFW chain is not initialized.")
+            
+        # 步驟 2: [v1.1 核心修正] 將完整的、未經處理的字典直接傳遞給鏈
+        response_text = await ai_core.ainvoke_with_rotation(
+            ai_core.direct_nsfw_chain,
+            full_context_for_chain
+        )
 
-    if not ai_core.direct_nsfw_chain:
-        raise ValueError("Direct NSFW chain is not initialized.")
-        
-    # 調用 NSFW 直通鏈
-    response_text = await ai_core.ainvoke_with_rotation(ai_core.direct_nsfw_chain, {
-        "system_prompt": final_system_prompt,
-        "world_snapshot": world_snapshot,
-        "user_input": user_input,
-    })
+        # 將結果以與 narrative_node 相同的格式返回，以便後續節點處理
+        return {"llm_response": response_text}
+    # 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
 
-    # 將結果以與 narrative_node 相同的格式返回，以便後續節點處理
-    return {"llm_response": response_text}
-# 函式：執行 NSFW 直通生成
+
+
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
