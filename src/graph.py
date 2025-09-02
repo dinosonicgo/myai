@@ -127,11 +127,11 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃 (v2.1 - 格式化職責分離)
+# 函式：執行回合規劃 (v2.2 - 防禦性格式化)
 # 更新紀錄:
-# v2.1 (2025-09-04): [灾难性BUG修复] 修复了因指令模板与数据模板占位符混淆导致的 `KeyError`。现在，`dynamic_system_prompt` 和 `world_snapshot` 会被独立格式化，各自只填充其所需的占位符，确保了数据流的正确性并解决了程序崩溃问题。
-# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。它现在负责分析使用者意图，从 ai_core 中动态选择并组装基础指令和特定情境的战术模组（如性爱、移动），然后将最终的、为本回合量身定做的完整系统提示词注入 planning_chain。
-# v1.0 (2025-09-02): [全新創建] 新架構的核心“思考”節點。
+# v2.2 (2025-09-04): [灾难性BUG修复] 增加了防禦性格式化邏輯。現在，在格式化指令和數據模板之前，會先創建一個包含所有可能佔位符的超集字典。然後，使用一個自訂的安全格式化函式，該函式會忽略模板中不存在的鍵。這從根本上解決了因模板與數據不匹配而導致的 `KeyError`，使系統更加健壯。
+# v2.1 (2025-09-04): [灾难性BUG修复] 修复了因指令模板与数据模板占位符混淆导致的 `KeyError`。
+# v2.0 (2025-09-04): [重大架構重構] 此節點已升級為動態指令引擎。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [核心] 新架構的核心“思考”節點與動態指令引擎。
@@ -143,28 +143,34 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在動態組裝指令並生成行動計劃...")
 
-    # --- 步驟 1: 準備數據上下文辭典 ---
-    # 這個字典包含了所有可能被 `world_snapshot_template.txt` 使用的數據佔位符
-    context_dict = {
+    # [v2.2 核心修正] 創建一個包含所有可能佔位符的超集字典
+    full_context_dict = {
+        # 指令類
+        "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name,
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+        # 數據類
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
-        **state['structured_context']
-    }
-    
-    # --- 步驟 2: 獨立格式化數據快照 ---
-    # 只使用數據字典來填充數據模板
-    world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
-
-    # --- 步驟 3: 準備指令上下文辭典 ---
-    # 這個字典包含了所有可能被指令模板（one_instruction, modular_prompts）使用的佔位符
-    directive_dict = {
-        "username": ai_core.profile.user_profile.name,
-        "ai_name": ai_core.profile.ai_profile.name,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+        **(state['structured_context'] or {})
     }
 
-    # --- 步驟 4: 動態組裝並格式化系統指令 ---
+    # [v2.2 核心修正] 定義一個安全的格式化輔助函式
+    def safe_format(template_string: str, data: dict) -> str:
+        # 查找模板中所有的佔位符
+        placeholders = re.findall(r'\{(\w+)\}', template_string)
+        # 創建一個只包含模板所需鍵的字典
+        filtered_data = {key: data.get(key, f"{{{key}}}") for key in placeholders}
+        try:
+            return template_string.format(**filtered_data)
+        except KeyError as e:
+            logger.warning(f"[{user_id}] 安全格式化仍然失敗，鍵: {e}。模板: {template_string[:200]}...")
+            # 即使失敗，也返回一個可用的版本，而不是崩潰
+            return template_string
+
+
+    # --- 步驟 1: 動態組裝系統指令 ---
     base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
     action_module_name = ai_core._determine_action_module(user_input)
     
@@ -174,11 +180,14 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         final_system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
         final_system_prompt_parts.append(module_prompt)
         logger.info(f"[{user_id}] (Graph) 動態指令引擎：已成功加載戰術模組 '{action_module_name}'。")
+    
+    # 使用安全格式化填充指令
+    dynamic_system_prompt = safe_format("".join(final_system_prompt_parts), full_context_dict)
 
-    # [v2.1 核心修正] 只使用指令字典來格式化指令模板
-    dynamic_system_prompt = "".join(final_system_prompt_parts).format(**directive_dict)
-
-    # --- 步驟 5: 調用規劃鏈 ---
+    # --- 步驟 2: 格式化數據快照 ---
+    world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
+    
+    # --- 步驟 3: 調用規劃鏈 ---
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
         
@@ -189,7 +198,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v2.1 - 格式化職責分離)
+# 函式：執行回合規劃 (v2.2 - 防禦性格式化)
 
 
 
