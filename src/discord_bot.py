@@ -860,7 +860,10 @@ class BotCog(commands.Cog):
         else:
             logger.error(f"【健康檢查 & Keep-Alive】背景任務因未處理的錯誤而意外終止！")
 
-    @commands.Cog.listener()
+    # 函式：處理私訊 (v41.0 - 狀態初始化與錯誤處理強化)
+    # 更新紀錄:
+    # v41.0 (2025-09-04): [健壯性] 1. 移除了 `ConversationGraphState` 初始化中已廢棄的 `dynamic_prompt` 鍵。 2. 為所有可能為 None 的狀態欄位提供了安全的預設值（例如 `structured_context: {}`），以防止下游節點因訪問 None 而崩潰。 3. 強化了 `except` 區塊，使其能向使用者反饋更具體的錯誤類型。
+    # v40.0 (2025-09-02): [架構統一] 修正了多個類別的重複定義。
     async def on_message(self, message: discord.Message):
         if message.author.bot or not isinstance(message.channel, discord.DMChannel):
             return
@@ -886,15 +889,19 @@ class BotCog(commands.Cog):
                 current_messages = chat_history_manager.messages.copy()
                 current_messages.append(HumanMessage(content=message.content))
 
+                # [v41.0 核心修正] 確保所有狀態鍵都有安全的預設值，並移除廢棄的鍵
                 initial_state = ConversationGraphState(
                     user_id=user_id,
                     ai_core=ai_instance,
                     messages=current_messages,
                     input_analysis=None,
+                    expansion_decision=None, # 新增的鍵，給予預設值
                     scene_analysis=None,
                     rag_context="",
-                    structured_context={},
-                    dynamic_prompt="",
+                    structured_context={}, # 確保永不為 None
+                    world_snapshot="",
+                    turn_plan=None,
+                    tool_results="",
                     llm_response="",
                     final_output="",
                     state_updates={}
@@ -918,8 +925,18 @@ class BotCog(commands.Cog):
                     await message.channel.send(fallback_message)
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的 LangGraph 聊天流程時發生未捕獲的異常: {e}", exc_info=True)
-                await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤，管理員已收到通知。")
+                # [v41.0 核心修正] 提供更具體的錯誤回饋
+                error_type = type(e).__name__
+                error_details = str(e)
+                logger.error(f"處理使用者 {user_id} 的 LangGraph 聊天流程時發生未捕獲的異常: {error_type}: {error_details}", exc_info=True)
+                
+                user_feedback = f"處理您的訊息時發生了一個嚴重的內部錯誤，管理員已收到通知。\n\n**錯誤類型**: `{error_type}`"
+                # 如果是 KeyError，給予更具體的提示
+                if isinstance(e, KeyError):
+                    user_feedback += f"\n**提示**: 這通常意味著系統在處理一個數據模板時，找不到名為 `{error_details}` 的欄位。這可能是一個暫時的數據不一致問題，請嘗試重新發送或稍作修改。"
+
+                await message.channel.send(user_feedback)
+    # 函式：處理私訊 (v41.0 - 狀態初始化與錯誤處理強化)
 
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
