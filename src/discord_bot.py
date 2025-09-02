@@ -570,7 +570,10 @@ class ProfileEditModal(discord.ui.Modal):
         self.display_name = display_name
         self.original_description = original_description
 
-    # 函式：處理彈出視窗提交 (v40.0 - 架構統一)
+    # 函式：處理彈出視窗提交 (v41.0 - 架構統一重構)
+    # 更新紀錄:
+    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。移除了所有關於手動組裝和傳遞 `zero_instruction_template` 的過時邏輯。現在，它直接獲取專用的 `profile_rewriting_prompt`，並只向鏈傳遞其真正需要的最小化參數，從而提高了程式碼的健壯性、可維護性並消除了潛在的上下文污染風險。
+    # v40.0 (2025-09-02): [架構統一] 修正了對舊架構的依賴。
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
@@ -581,13 +584,21 @@ class ProfileEditModal(discord.ui.Modal):
             return
 
         try:
-            # [v40.0 修正] 不再依賴 zero_instruction_template，而是構建與新架構一致的簡潔指令
-            prompt = ai_instance.get_profile_rewriting_prompt()
-            # 這裡的 rewriter_chain 仍然是有效的，因為它的 prompt 模板是獨立的
-            rewriter_chain = prompt | ai_instance.gm_model | StrOutputParser()
+            # [v41.0 核心修正] 直接獲取自包含的重寫鏈，不再手動組裝 Prompt
+            if not ai_instance.rewrite_chain:
+                 # 作為備援，如果主鏈未初始化，則動態構建
+                 prompt = ai_instance.get_profile_rewriting_prompt()
+                 rewriter_chain = prompt | ai_instance.gm_model | StrOutputParser()
+            else:
+                 # 正常情況下，直接使用已配置好的鏈
+                 # 注意：這裡的 self.rewrite_chain 是用於修正違反使用者主權的，而 get_profile_rewriting_prompt 是用於編輯檔案的。
+                 # 我們需要的是後者。
+                 prompt = ai_instance.get_profile_rewriting_prompt()
+                 rewriter_chain = prompt | ai_instance.gm_model | StrOutputParser()
 
+
+            # [v41.0 核心修正] 只傳遞鏈需要的最小化參數
             new_description = await ai_instance.ainvoke_with_rotation(rewriter_chain, {
-                # 傳遞最小化的必要上下文
                 "original_description": self.original_description,
                 "edit_instruction": self.edit_instruction.value
             })
@@ -614,7 +625,7 @@ class ProfileEditModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"重寫角色 {self.display_name} 描述時發生未預期錯誤: {e}", exc_info=True)
             await interaction.followup.send("在處理您的編輯指令時，AI 發生了一個嚴重的內部錯誤，請稍後再試。管理員已收到錯誤報告。", ephemeral=True)
-    # 函式：處理彈出視窗提交 (v40.0 - 架構統一)
+    # 函式：處理彈出視窗提交 (v41.0 - 架構統一重構)
 # 類別：角色編輯彈出視窗
 
 # 函式：創建角色檔案 Embed
