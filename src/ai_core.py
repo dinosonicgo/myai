@@ -80,7 +80,15 @@ class ValidationResult(BaseModel):
 class AILover:
     MODEL_NAME = "models/gemini-2.5-flash-lite"
 
-    # 函式：初始化AI核心 (v198.0 - LangGraph 架構重構)
+
+
+
+    # 函式：初始化AI核心 (v198.1 - 新增屬性)
+    # 更新紀錄:
+    # v198.1 (2025-09-02): [架構修正] 新增了 `rag_summarizer_chain` 屬性，為後續引入 RAG 上下文預處理鏈做準備。
+    # v198.0 (2025-08-31): [重大架構重構]
+    # 1. [移除 chat 函式] 徹底移除了核心的 `chat` 函式。其所有複雜的、線性的流程控制邏輯，現已被分解並遷移至 `src/graph.py` 中定義的一系列獨立、模組化的圖形節點 (Nodes) 中。
+    # 2. [移除 AgentExecutor] 移除了基於 ReAct 的 `main_executor` (AgentExecutor)。新的 LangGraph 架構採用了更簡潔、更穩定的直接 LLM 調用模式 (`narrative_chain`)，從根本上解決了因 Agent 思考過程洩漏導致的輸出污染問題。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -93,7 +101,7 @@ class AILover:
         self.output_validation_chain: Optional[Runnable] = None
         self.rewrite_chain: Optional[Runnable] = None
         self.action_intent_chain: Optional[Runnable] = None
-        # [v198.0 移除] 移除了 main_executor，因其已被 LangGraph 的直接 LLM 調用流程取代
+        self.rag_summarizer_chain: Optional[Runnable] = None # [v198.1 新增]
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
@@ -118,8 +126,8 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v198.0 - LangGraph 架構重構)
-
+    # 函式：初始化AI核心 (v198.1 - 新增屬性)
+    
 
 
     # 函式：創建一個原始的 LLM 實例 (v170.2 - 安全設定統一)
