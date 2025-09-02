@@ -548,6 +548,103 @@ class AILover:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
 
+
+
+
+
+
+
+        # 函式：獲取並更新角色檔案 (v2.0 - 精簡提示詞)
+    # 更新紀錄:
+    # v2.0 (2025-09-02): [架構清理] 在調用實體解析鏈時，移除了對 `zero_instruction` 的不必要傳遞。解析鏈的提示詞是自包含的，精簡輸入可以提高其專注度和準確性。
+    async def _get_and_update_character_profile(
+        self,
+        character_name: str, 
+        update_logic: Callable[[CharacterProfile, GameState], str]
+    ) -> str:
+        user_id = tool_context.get_user_id()
+        ai_core = tool_context.get_ai_core()
+        
+        if not ai_core.profile:
+            return f"錯誤：無法獲取當前使用者設定檔。"
+
+        current_profile = ai_core.profile 
+
+        try:
+            gs = current_profile.game_state
+            
+            target_profile_pydantic: Optional[CharacterProfile] = None
+            is_npc = False
+            npc_key: Optional[str] = None
+
+            user_profile_pydantic = current_profile.user_profile
+            ai_profile_pydantic = current_profile.ai_profile
+
+            if character_name.lower() == user_profile_pydantic.name.lower():
+                target_profile_pydantic = user_profile_pydantic
+            elif character_name.lower() == ai_profile_pydantic.name.lower():
+                target_profile_pydantic = ai_profile_pydantic
+            else:
+                logger.info(f"[{user_id}] 正在為更新操作解析 NPC 實體: '{character_name}'...")
+                resolution_chain = ai_core.get_batch_entity_resolution_chain()
+                existing_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
+                existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", "")} for lore in existing_lores]
+                
+                # [v2.0 修正] 不再傳遞不必要的 zero_instruction
+                resolution_plan = await ai_core.ainvoke_with_rotation(resolution_chain, {
+                    "category": "npc_profile",
+                    "new_entities_json": json.dumps([{"name": character_name, "location_path": gs.location_path}], ensure_ascii=False),
+                    "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                })
+
+                if not resolution_plan or not resolution_plan.resolutions:
+                    return f"錯誤：在當前場景中找不到名為 '{character_name}' 的 NPC 檔案可供更新。"
+
+                resolution = resolution_plan.resolutions[0]
+                if resolution.decision == 'NEW' or not resolution.matched_key:
+                    return f"錯誤：在當前場景中找不到名為 '{character_name}' 的 NPC 檔案可供更新。"
+                
+                found_npc_lore = await lore_book.get_lore(user_id, 'npc_profile', resolution.matched_key)
+                if not found_npc_lore:
+                    return f"錯誤：資料庫中找不到 key 為 '{resolution.matched_key}' 的 NPC。"
+
+                target_profile_pydantic = CharacterProfile.model_validate(found_npc_lore.content)
+                is_npc = True
+                npc_key = found_npc_lore.key
+                logger.info(f"[{user_id}] 成功將 '{character_name}' 解析為現有 NPC，key: '{npc_key}'。")
+
+            if target_profile_pydantic is None:
+                return f"錯誤：未能確定角色 '{character_name}' 的檔案。"
+
+            result_message = update_logic(target_profile_pydantic, gs)
+
+            if "錯誤" not in result_message:
+                ai_core.profile.game_state = gs 
+
+                if is_npc and npc_key is not None:
+                    await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, target_profile_pydantic.model_dump())
+                else:
+                    if character_name.lower() == user_profile_pydantic.name.lower():
+                        ai_core.profile.user_profile = target_profile_pydantic
+                    else:
+                        ai_core.profile.ai_profile = target_profile_pydantic
+                
+                await ai_core.update_and_persist_profile({
+                    'user_profile': ai_core.profile.user_profile.model_dump(),
+                    'ai_profile': ai_core.profile.ai_profile.model_dump(),
+                    'game_state': gs.model_dump()
+                })
+
+            return result_message
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 更新角色 '{character_name}' 檔案時發生錯誤: {e}", exc_info=True)
+            return f"更新角色 '{character_name}' 檔案時發生嚴重錯誤: {e}"
+    # 函式：獲取並更新角色檔案 (v2.0 - 精簡提示詞)
+
+
+    
+
     # 函式：建構檢索器
     # 說明：配置並建構RAG系統的檢索器，包括向量儲存、BM25和可選的重排器。
     async def _build_retriever(self) -> Runnable:
@@ -1276,9 +1373,10 @@ class AILover:
 
 
 
-    # 函式：執行已規劃的行動 (v1.1 - 適配統一上下文)
+    # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
     # 更新紀錄:
-    # v1.1 (2025-09-02): [重大架構重構] 修改了 `tool_context` 的導入路徑，使其從舊的 `tools.py` 指向新創建的中央 `tool_context.py`。此修改是“上下文統一”重構的最後一步，確保了所有工具（無論來自哪個模組）都能從唯一的共享實例中獲取上下文，從而根除了工具執行失敗的問題。
+    # v1.2 (2025-09-02): [架構清理] 移除了此函式末尾的 `tool_context.set_context(None, None)` 調用。上下文的清理職責被更可靠地移交給了 `graph.py` 中 `tool_execution_node` 的 `try...finally` 結構，確保了無論執行成功與否都能安全清理。同時優化了無結果時的返回信息。
+    # v1.1 (2025-09-02): [重大架構重構] 修改了 `tool_context` 的導入路徑以適配統一上下文。
     # v1.0 (2025-09-02): [全新創建] 創建了此函式作為新架構的核心“執行”單元。
     async def _execute_planned_actions(self, plan: TurnPlan) -> str:
         """遍歷 TurnPlan，執行所有工具調用，並返回結果摘要。"""
@@ -1287,7 +1385,6 @@ class AILover:
 
         tool_results = []
         
-        # [v1.1 修正] 從新的中央模組導入共享的 tool_context
         from .tool_context import tool_context
         tool_context.set_context(self.user_id, self)
 
@@ -1310,7 +1407,6 @@ class AILover:
                 continue
 
             try:
-                # 嘗試直接驗證和執行
                 validated_args = tool_to_execute.args_schema.model_validate(tool_params)
                 result = await tool_to_execute.ainvoke(validated_args.model_dump())
                 tool_results.append(str(result))
@@ -1319,7 +1415,6 @@ class AILover:
             except ValidationError as e:
                 logger.warning(f"[{self.user_id}] (Executor) 工具 '{tool_name}' 參數驗證失敗，啟動意圖重構備援... 錯誤: {e}")
                 try:
-                    # 驗證失敗，啟動參數重構鏈
                     reconstruction_chain = self._build_param_reconstruction_chain()
                     reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
                         "tool_name": tool_name,
@@ -1328,7 +1423,6 @@ class AILover:
                         "correct_schema": tool_to_execute.args_schema.schema_json()
                     })
                     
-                    # 再次嘗試驗證和執行重構後的參數
                     validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
                     result = await tool_to_execute.ainvoke(validated_args.model_dump())
                     tool_results.append(str(result))
@@ -1344,14 +1438,11 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Executor) {log_msg}", exc_info=True)
                 tool_results.append(log_msg)
 
-        # 清理上下文，防止在其他非工具執行緒程中被意外訪問
-        tool_context.set_context(None, None)
-
         if not tool_results:
-            return "系統事件：計畫中包含工具調用，但均未成功執行或未返回結果。"
+            return "系統事件：計畫中包含工具調用，但均未返回有效結果。"
             
         return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
-    # 函式：執行已規劃的行動 (v1.1 - 適配統一上下文)
+    # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
 
 
     # 函式：獲取結構化上下文 (v146.0 精確匹配修正版)
