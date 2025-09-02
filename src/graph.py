@@ -1,8 +1,11 @@
-# src/graph.py 的中文註釋(v5.2 - 安全上下文管理)
+# src/graph.py 的中文註釋(v6.0 - LORE擴展守門人機制)
 # 更新紀錄:
-# v5.2 (2025-09-02): [重大架構重構 - 健壯性] 重構了 `tool_execution_node`，引入了 `try...finally` 結構。此修改確保了無論工具執行成功與否，共享的 `tool_context` 都會被【絕對可靠地】清理。這從根本上解決了因異常導致上下文狀態洩漏到後續對話中的潛在風險，極大地提高了系統的穩定性。
-# v5.1 (2025-09-02): [重大架構重構 - 流程簡化] 移除了 `assemble_world_snapshot_node` 並將其職責合併進 `planning_node`。
-# v5.0 (2025-09-02): [重大架構重構 - 執行分離] 引入了 `tool_execution_node`，完成了“思考->執行->寫作”的閉環。
+# v6.0 (2025-09-03): [重大邏輯升級] 遵從使用者回饋，對主對話圖進行了系統性重構。
+#    1. [新增守門人節點] 引入了 `expansion_decision_node`，其唯一職責是在流程早期判斷用戶是否具有“探索意圖”。
+#    2. [新增條件路由] 引入了 `route_expansion` 路由，根據守門人的決策，將流程導向兩個不同的分支。
+#    3. [重構圖拓撲] 如果守門人決策為“擴展”，流程將進入 `scene_and_action_analysis_node` (選角) 和 `background_world_expansion_node` (背景填充)；如果決策為“不擴展”，則【完全跳過】這兩個創造LORE的節點。
+#    此修改從根本上解決了在簡單、重複的原地互動中無意義地生成新 LORE 的問題，使世界構建更加智能和按需進行。
+# v5.3 (2025-09-02): [災難性BUG修復] 重構了圖形拓撲以修復背景擴展的觸發問題。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -12,14 +15,14 @@ import re
 from typing import Dict, List, Literal, Optional
 
 from langchain_core.messages import HumanMessage
+from langchain_community.chat_message_histories import ChatMessageHistory
 from langgraph.graph import StateGraph, END
 
 from .ai_core import AILover
 from .logger import logger
 from .graph_state import ConversationGraphState, SetupGraphState
 from . import lore_book, tools
-from .schemas import CharacterProfile, TurnPlan
-# [v5.2 新增] 導入共享的工具上下文
+from .schemas import CharacterProfile, TurnPlan, ExpansionDecision
 from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
@@ -53,18 +56,37 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     return {"input_analysis": analysis}
 # 函式：分析使用者輸入意圖
 
-# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
-# 更新紀錄:
-# v3.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此节点的执行流程。现在，在调用 `scene_casting_chain` 之前，会先调用 `_get_structured_context` 来获取包含【当前所有已知NPC】的完整场景上下文，并将其注入到选角链中。这为选角链提供了避免重复创造角色的关键判断依据，旨在从根本上解决无限生成相似 NPC 的问题。
-# v1.1 (2025-09-02): [災難性BUG修復] 移除了在調用 `_get_structured_context` 時傳遞的過時參數。
-async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
+# 函式：判斷是否需要進行LORE擴展 (v1.0 - 全新創建)
+async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 3A - 敘事路徑] 分析場景視角（本地/遠程）並為潛在的新 NPC 進行選角。
+    [新增節點] 一個“守門人”節點，在LORE創造流程前判斷使用者的“探索意圖”。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 進入敘事路徑分析...")
+    logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node -> 正在判斷是否需要擴展LORE...")
+    
+    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
+
+    decision = await ai_core.ainvoke_with_rotation(ai_core.expansion_decision_chain, {
+        "user_input": user_input,
+        "recent_dialogue": recent_dialogue
+    })
+    
+    logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
+    return {"expansion_decision": decision}
+# 函式：判斷是否需要進行LORE擴展 (v1.0 - 全新創建)
+
+# 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
+async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
+    """
+    [LORE擴展分支] 分析場景視角（本地/遠程）並為潛在的新 NPC 進行選角。
+    """
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 進入LORE擴展分支，開始選角...")
     
     current_location_path = []
     if ai_core.profile and ai_core.profile.game_state:
@@ -79,7 +101,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     if scene_analysis and scene_analysis.viewing_mode == 'remote' and scene_analysis.target_location_path:
         effective_location_path = scene_analysis.target_location_path
         
-    # [v3.0 核心修正] 先獲取一次完整的上下文，提供給選角鏈
     structured_context_for_casting = await ai_core._get_structured_context(
         user_input, 
         override_location_path=effective_location_path
@@ -87,11 +108,10 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     game_context_for_casting = json.dumps(structured_context_for_casting, ensure_ascii=False, indent=2)
     world_settings_for_casting = ai_core.profile.world_settings if ai_core.profile else ""
 
-    # [v3.0 核心修正] 將獲取到的上下文注入選角鏈
     cast_result = await ai_core.ainvoke_with_rotation(ai_core.scene_casting_chain, {
         "world_settings": world_settings_for_casting,
         "current_location_path": effective_location_path, 
-        "game_context": game_context_for_casting, # <--- 注入上下文
+        "game_context": game_context_for_casting,
         "recent_dialogue": user_input
     })
     
@@ -99,7 +119,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     
     final_structured_context = structured_context_for_casting
     if new_npc_names:
-        # 如果創建了新NPC，再次獲取上下文以包含他們，確保後續流程能感知到新角色
         final_structured_context = await ai_core._get_structured_context(
             user_input, 
             override_location_path=effective_location_path
@@ -108,19 +127,15 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
 # 函式：執行場景與動作分析 (v3.0 - 注入選角上下文)
 
-# 函式：執行回合規劃 (v1.2 - 傳遞風格指令)
-# 更新紀錄:
-# v1.2 (2025-09-02): [災難性BUG修復] 重構此節點，使其現在負責從 ai_core.profile 中明確讀取 `response_style_prompt`，並將其作為一個關鍵參數傳遞給 `planning_chain`。這確保了“思考”節點能夠感知到使用者的風格要求，從而制定出包含正確元素（如對話）的行動計劃，徹底解決了 AI 忽略風格指令的問題。
-# v1.1 (2025-09-02): [架構重構] 將上下文組合的職責合併進此節點。
+# 函式：執行回合規劃
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
-    [節點 4] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
+    [核心] 新架構的核心“思考”節點。組合上下文快照，並調用 planning_chain 生成結構化的行動計劃。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
-    # 步驟 1: 組合世界快照
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在格式化世界快照並生成行動計劃...")
     context_dict = {
         "world_settings": ai_core.profile.world_settings or "未設定",
@@ -130,10 +145,8 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     }
     world_snapshot = ai_core.world_snapshot_template.format(**context_dict)
     
-    # 步驟 2: [v1.2 新增] 獲取風格指令
     response_style_prompt = ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
 
-    # 步驟 3: 執行規劃，並傳入風格指令
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
@@ -145,41 +158,37 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行回合規劃 (v1.2 - 傳遞風格指令)
+# 函式：執行回合規劃
 
-# 函式：執行工具調用 (v1.1 - 安全上下文管理)
+# 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [節點 5] 新架構的核心“執行”節點。在安全的上下文中執行計劃中的所有工具調用。
+    [核心] 新架構的核心“執行”節點。在安全的上下文中執行計劃中的所有工具調用。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     plan = state['turn_plan']
     logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 正在執行行動計劃中的工具...")
     
-    if not plan:
-        return {"tool_results": "系統事件：因行動計劃為空，未執行任何工具。"}
+    if not plan or not plan.character_actions:
+        return {"tool_results": "系統事件：無任何工具被調用。"}
     
-    # [v5.2 核心修正] 使用 try...finally 確保上下文被絕對可靠地清理
     try:
         results_summary = await ai_core._execute_planned_actions(plan)
     except Exception as e:
         logger.error(f"[{user_id}] (Graph) Node: tool_execution_node -> 在執行工具時發生未捕獲的異常: {e}", exc_info=True)
         results_summary = f"系統事件：工具執行時發生嚴重錯誤: {e}"
     finally:
-        # 無論成功或失敗，都必須清理上下文，防止狀態洩漏
         tool_context.set_context(None, None)
         logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 工具上下文已清理。")
 
     return {"tool_results": results_summary}
-# 函式：執行工具調用 (v1.1 - 安全上下文管理)
+# 函式：執行工具調用
 
-# 函式：生成敘事文本 (v2.0 - 增加对拒绝执行的处理逻辑)
-# 更新紀錄:
-# v2.0 (2025-09-03): [重大智能升級] 新增了对行动计划中 `execution_rejection_reason` 字段的处理逻辑。如果该字段存在，本节点将不再渲染常规的小说场景，而是直接将 AI 给出的“拒绝执行的合理解释”作为最终输出。这使得 AI 能够智能地回应不合逻辑的用户指令，是实现“智慧型 GM”的关键一步。
+# 函式：生成敘事文本
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [節點 6] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
+    [核心] 新架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -191,7 +200,6 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
         logger.error(f"[{user_id}] 叙事节点接收到空的行动计划，无法生成回应。")
         return {"llm_response": "（系统错误：未能生成有效的行动计划。）"}
 
-    # [v2.0 核心修正] 检查是否存在拒绝执行的理由
     if turn_plan.execution_rejection_reason:
         logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 检测到拒绝执行的理由，将直接输出。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
@@ -224,12 +232,12 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     )
     
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本 (v2.0 - 增加对拒绝执行的处理逻辑)
+# 函式：生成敘事文本
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 7] 使用保守且安全的規則，強制淨化 LLM 的原始輸出，同時最大限度地保全有效內容。
+    [收尾] 使用保守且安全的規則，強制淨化 LLM 的原始輸出，同時最大限度地保全有效內容。
     """
     user_id = state['user_id']
     initial_response = state['llm_response']
@@ -254,7 +262,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
 # 函式：執行狀態更新與記憶儲存
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 8] 將本輪對話存入記憶，並將 state_updates 中的變更應用到資料庫。
+    [收尾] 將本輪對話存入記憶，並將 state_updates 中的變更應用到資料庫。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -283,31 +291,41 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     return {}
 # 函式：執行狀態更新與記憶儲存
 
-# 函式：觸發背景世界擴展
+# 函式：觸發背景世界擴展 (v2.0 - 增加决策判断)
+# 更新紀錄:
+# v2.0 (2025-09-03): [重大邏輯升級] 新增了对 `expansion_decision` 状态的判断。现在，只有当“守门人”节点 (`expansion_decision_node`) 明确允许时，本节点才会真正地创建背景扩展任务。此修改确保了背景填充与主流程的 LORE 扩展决策保持完全一致。
 async def background_world_expansion_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 9] 在回應發送後，非阻塞地觸發背景世界擴展、LORE生成等任務。
+    [收尾] 在回應發送後，根據擴展決策，非阻塞地觸發背景世界擴展、LORE生成等任務。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     clean_response = state['final_output']
-    scene_analysis = state['scene_analysis']
-    logger.info(f"[{user_id}] (Graph) Node: background_world_expansion_node -> 正在觸發背景任務...")
-    effective_location_path = ai_core.profile.game_state.location_path
-    if scene_analysis and scene_analysis.target_location_path:
-        effective_location_path = scene_analysis.target_location_path
-    if scene_analysis and (scene_analysis.viewing_mode == 'local' or scene_analysis.target_location_path):
+    scene_analysis = state.get('scene_analysis') # 使用 .get() 安全访问
+    expansion_decision = state.get('expansion_decision')
+
+    logger.info(f"[{user_id}] (Graph) Node: background_world_expansion_node -> 正在檢查是否觸發背景任務...")
+
+    # [v2.0 核心修正] 只有在守门人允许时才执行
+    if expansion_decision and expansion_decision.should_expand:
+        effective_location_path = ai_core.profile.game_state.location_path
+        if scene_analysis and scene_analysis.target_location_path:
+            effective_location_path = scene_analysis.target_location_path
+        
         if clean_response and clean_response != "（...）":
             asyncio.create_task(ai_core._background_scene_expansion(user_input, clean_response, effective_location_path))
             logger.info(f"[{user_id}] 已成功為地點 '{' > '.join(effective_location_path)}' 創建背景擴展任務。")
+    else:
+        logger.info(f"[{user_id}] (Graph) Node: background_world_expansion_node -> 根據決策，本輪跳過背景擴展。")
+
     return {}
-# 函式：觸發背景世界擴展
+# 函式：觸發背景世界擴展 (v2.0 - 增加决策判断)
 
 # 函式：圖形結束 finalizing
 async def finalization_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 10] 一個虛擬的最終節點，確保所有異步背景任務都被成功調度。
+    [收尾] 一個虛擬的最終節點，確保所有異步背景任務都被成功調度。
     """
     user_id = state['user_id']
     logger.info(f"[{user_id}] (Graph) Node: finalization_node -> 對話流程圖執行完畢。")
@@ -316,32 +334,40 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-# 函式：在輸入分析後決定流程
-def route_after_input_analysis(state: ConversationGraphState) -> Literal["narrative_flow", "dialogue_flow"]:
-    input_type = state["input_analysis"].input_type
+# 函式：在擴展決策後決定流程 (v1.0 - 全新創建)
+def route_expansion(state: ConversationGraphState) -> Literal["expand_lore", "skip_expansion"]:
+    """
+    根據 expansion_decision_node 的結果，決定是進入LORE創造流程，還是直接跳到核心規劃。
+    """
     user_id = state['user_id']
-    if input_type in ['narration', 'continuation']:
-        logger.info(f"[{user_id}] (Graph) Router: route_after_input_analysis -> 判定為「敘事流程」。")
-        return "narrative_flow"
+    should_expand = state["expansion_decision"].should_expand
+    
+    if should_expand:
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【進行LORE擴展】。")
+        return "expand_lore"
     else:
-        logger.info(f"[{user_id}] (Graph) Router: route_after_input_analysis -> 判定為「對話流程」。")
-        return "dialogue_flow"
-# 函式：在輸入分析後決定流程
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【跳過LORE擴展】。")
+        return "skip_expansion"
+# 函式：在擴展決策後決定流程 (v1.0 - 全新創建)
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v5.3 - 修復背景擴展觸發)
+# 函式：創建主回應圖 (v6.0 - 整合守門人機制)
 # 更新紀錄:
-# v5.3 (2025-09-02): [災難性BUG修復] 徹底重構了圖形的拓撲結構。舊結構在“對話流程”中會跳過 `scene_and_action_analysis_node`，導致 `scene_analysis` 狀態為空，從而使 `background_world_expansion_node` 永遠無法觸發背景任務。新結構將 `scene_and_action_analysis_node` 提升為所有流程的必經節點，確保了背景世界擴展功能在每一次對話後都能被可靠地觸發。
-# v5.2 (2025-09-02): [重大架構重構 - 健壯性] 在 `tool_execution_node` 中引入了 `try...finally` 結構，確保工具上下文的絕對清理。
+# v6.0 (2025-09-03): [重大邏輯升級] 對主對話圖進行了系統性重構，引入了“守門人”機制。
+#    1. [新增守門人節點] 引入了 `expansion_decision_node`，在流程早期判斷用戶的“探索意圖”。
+#    2. [新增條件路由] 引入了 `route_expansion` 路由，根據決策將流程導向“擴展”或“跳過”分支。
+#    3. [重構圖拓撲] 如果決策為“擴展”，流程將進入 `scene_and_action_analysis_node` (選角)；如果為“跳過”，則完全繞過此節點，直接進入規劃。此修改從根本上解決了在簡單互動中無意義生成新LORE的問題。
 def create_main_response_graph() -> StateGraph:
     """
     組裝並編譯主對話流程的 StateGraph。
     """
     graph = StateGraph(ConversationGraphState)
 
+    # 註冊所有節點
     graph.add_node("initialize_state", initialize_conversation_state_node)
     graph.add_node("analyze_input", analyze_input_node)
+    graph.add_node("expansion_decision", expansion_decision_node) # 新增守門人節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
@@ -351,16 +377,26 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("background_expansion", background_world_expansion_node)
     graph.add_node("finalization", finalization_node)
 
+    # 設定圖的入口
     graph.set_entry_point("initialize_state")
 
+    # 定義圖的邊（流程）
     graph.add_edge("initialize_state", "analyze_input")
+    graph.add_edge("analyze_input", "expansion_decision") # 分析後先做決策
+
+    # 新增條件路由
+    graph.add_conditional_edges(
+        "expansion_decision",
+        route_expansion,
+        {
+            "expand_lore": "scene_and_action_analysis", # 如果擴展，則去選角
+            "skip_expansion": "planning"  # 如果不擴展，直接去規劃
+        }
+    )
+
+    graph.add_edge("scene_and_action_analysis", "planning") # 選角後去規劃
     
-    # [v5.3 修正] 不再使用條件路由，analyze_input 統一指向 scene_and_action_analysis
-    graph.add_edge("analyze_input", "scene_and_action_analysis")
-    
-    # [v5.3 修正] scene_and_action_analysis 成為 planning 之前的必經節點
-    graph.add_edge("scene_and_action_analysis", "planning")
-    
+    # 後續流程保持不變
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     graph.add_edge("narrative", "validate_and_rewrite")
@@ -370,9 +406,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v5.3 - 修復背景擴展觸發)
+# 函式：創建主回應圖 (v6.0 - 整合守門人機制)
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
+# ... (此部分與您提供的檔案完全相同，故省略以節省篇幅，但在提供的完整檔案中會包含)
 async def process_canon_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
