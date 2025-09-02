@@ -1051,16 +1051,16 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.1 - 適配模板重命名)
+
+    # 函式：配置模型和鏈 (v198.2 - 初始化總結鏈)
     # 更新紀錄:
-    # v198.1 (2025-09-02): [架構修正] 將對 `_load_zero_instruction` 的調用更新為 `_load_world_snapshot_template`，以適配新的分層提示詞架構。
-    # v198.0 (2025-08-31): [架構重構] 移除了 `main_executor` (AgentExecutor) 的創建邏輯。新的 LangGraph 架構不再依賴 ReAct Agent 進行主流程控制，改為使用更直接、更穩定的 `narrative_chain` 進行核心內容生成，從根源上避免了思考過程洩漏的問題。
-    # v168.0 (2025-08-31): [架構重構] 新增了對專用敘事鏈 `narrative_chain` 的初始化。
+    # v198.2 (2025-09-02): [架構修正] 新增了對 `_build_rag_summarizer_chain` 的調用，以初始化用於預處理 RAG 上下文的核心組件。
+    # v198.1 (2025-09-02): [架構修正] 將對 `_load_zero_instruction` 的調用更新為 `_load_world_snapshot_template`。
+    # v198.0 (2025-08-31): [架構重構] 移除了 `main_executor` (AgentExecutor) 的創建邏輯。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
         
-        # [v171.0 修正] 調用新的模板加載函式
         self._load_world_snapshot_template()
 
         all_core_action_tools = tools.get_core_action_tools()
@@ -1071,10 +1071,9 @@ class AILover:
         
         self.retriever = await self._build_retriever()
         
-        # [v198.0 移除] 移除了 main_executor 和相關的 agent prompt/agent 的創建。
-        # LangGraph 的節點將直接調用所需的鏈，不再通過一個統一的 AgentExecutor。
-
-        # [v168.0 新增] 初始化專用的敘事鏈 (現在是核心生成鏈)
+        # [v198.2 新增] 初始化 RAG 上下文總結鏈
+        self.rag_summarizer_chain = self._build_rag_summarizer_chain()
+        
         self.narrative_chain = self._build_narrative_chain()
         self.scene_expansion_chain = self._build_scene_expansion_chain()
         self.scene_casting_chain = self._build_scene_casting_chain()
@@ -1085,9 +1084,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.1 (分層提示詞模式)。")
-    # 函式：配置模型和鏈 (v198.1 - 適配模板重命名)
-
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.2 (帶 RAG 總結器模式)。")
+    # 函式：配置模型和鏈 (v198.2 - 初始化總結鏈)
 
 
     # 函式：將世界聖經添加到向量儲存
