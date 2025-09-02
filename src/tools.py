@@ -1,11 +1,8 @@
-# src/tools.py 的中文註釋(v16.0 - 路徑邏輯修正)
+# src/tools.py 的中文註釋(v17.0 - 上下文統一)
 # 更新紀錄:
-# v16.0 (2025-08-27):
-# 1. [根本性BUG修復] 徹底重構了 `change_location` 的路徑處理邏輯，明確區分絕對路徑 (以'/'開頭) 和相對路徑，並正確處理 '..' 返回上一級的操作。此修正從根本上解決了地點路徑被錯誤拼接導致NPC重複創建的嚴重BUG。
-# v15.3 (2025-08-15):
-# 1. [健壯性] 根據 v4.2 藍圖，為所有工具的 Pydantic 參數模型增加了 `AliasChoices`，以容錯 LLM 可能幻覺出的不同參數名。
-# v15.2 (2025-08-15):
-# 1. [穩定性回歸] 恢復了在所有工具函式上使用 `@tool` 裝飾器的標準 LangChain 模式，解決了 `ToolException`。
+# v17.0 (2025-09-02): [重大架構重構] 移除了本地的 `ToolContext` 類和實例的定義。現在，此模組從新創建的中央 `tool_context.py` 導入共享的 `tool_context` 實例。此修改是解決多個工具模組間上下文不一致問題的關鍵一步，確保了所有工具都能訪問到正確的運行時環境。
+# v16.0 (2025-08-27): [根本性BUG修復] 徹底重構了 `change_location` 的路徑處理邏輯。
+# v15.3 (2025-08-15): [健壯性] 為所有工具的 Pydantic 參數模型增加了 `AliasChoices`。
 
 import asyncio
 import json
@@ -21,10 +18,11 @@ from . import lore_tools
 from .models import CharacterProfile
 from .database import AsyncSessionLocal, UserData
 from .models import GameState
+# [v17.0 新增] 導入共享的工具上下文
+from .tool_context import tool_context
 
 # --- Pydantic 模型與配置 ---
 # 函式：從 schema 中移除 title
-# 說明：一個輔助函式，用於在生成工具的 JSON schema 時移除 Pydantic 自動生成的 'title' 欄位，以簡化傳給 LLM 的 schema。
 def remove_title_from_schema(schema: Dict[str, Any], model: Type['BaseModel']) -> None:
     if 'title' in schema:
         del schema['title']
@@ -34,38 +32,16 @@ def remove_title_from_schema(schema: Dict[str, Any], model: Type['BaseModel']) -
 # 函式：從 schema 中移除 title
 
 # 類別：基礎工具參數
-# 說明：所有工具參數模型的基類，應用了移除 title 的 schema 修改。
 class BaseToolArgs(BaseModel):
     model_config = ConfigDict(
         json_schema_extra=remove_title_from_schema
     )
 # 類別：基礎工具參數
 
-# --- 工具上下文管理器 ---
-# 類別：工具上下文
-# 說明：一個全域上下文管理器，用於在工具執行期間儲存和傳遞使用者ID和AI核心實例，避免在每個工具函式中重複傳遞。
-class ToolContext:
-    def __init__(self):
-        self.user_id = None
-        self.ai_core_instance = None
-    def set_context(self, user_id: str, ai_core_instance: 'AILover'):
-        self.user_id = user_id
-        self.ai_core_instance = ai_core_instance
-    def get_user_id(self) -> str:
-        if not self.user_id:
-            raise ValueError("Tool context user_id is not set.")
-        return self.user_id
-    def get_ai_core(self) -> 'AILover':
-        if not self.ai_core_instance:
-            raise ValueError("Tool context ai_core_instance is not set.")
-        return self.ai_core_instance
-# 類別：工具上下文
-
-tool_context = ToolContext()
+# [v17.0 移除] 刪除了本地的 ToolContext 類和實例的定義
 
 # --- 異步資料庫操作輔助函式 ---
 # 函式：獲取並更新角色檔案
-# 說明：一個核心輔助函式，用於原子化地處理角色檔案的讀取、修改和寫回操作，支持使用者、AI和NPC。
 async def _get_and_update_character_profile(
     character_name: str, 
     update_logic: Callable[[CharacterProfile, GameState], str]
@@ -94,13 +70,11 @@ async def _get_and_update_character_profile(
             target_profile_pydantic = ai_profile_pydantic
         else:
             logger.info(f"[{user_id}] 正在為更新操作解析 NPC 實體: '{character_name}'...")
-            # 使用實體解析鏈來準確地找到NPC
             resolution_chain = ai_core.get_batch_entity_resolution_chain()
             existing_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
             existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", "")} for lore in existing_lores]
             
             resolution_plan = await ai_core.ainvoke_with_rotation(resolution_chain, {
-                "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name,
                 "category": "npc_profile",
                 "new_entities_json": json.dumps([{"name": character_name, "location_path": gs.location_path}], ensure_ascii=False),
                 "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
@@ -125,10 +99,8 @@ async def _get_and_update_character_profile(
         if target_profile_pydantic is None:
              return f"錯誤：未能確定角色 '{character_name}' 的檔案。"
 
-        # 應用傳入的更新邏輯
         result_message = update_logic(target_profile_pydantic, gs)
 
-        # 如果邏輯成功執行，則將更新寫回記憶體和資料庫
         if "錯誤" not in result_message:
             ai_core.profile.game_state = gs 
 
@@ -140,7 +112,6 @@ async def _get_and_update_character_profile(
                 else:
                     ai_core.profile.ai_profile = target_profile_pydantic
             
-            # 持久化所有變更
             await ai_core.update_and_persist_profile({
                 'user_profile': ai_core.profile.user_profile.model_dump(),
                 'ai_profile': ai_core.profile.ai_profile.model_dump(),
@@ -155,7 +126,6 @@ async def _get_and_update_character_profile(
 # 函式：獲取並更新角色檔案
 
 # 函式：更新遊戲狀態
-# 說明：一個核心輔助函式，用於原子化地處理遊戲狀態的讀取、修改和寫回操作。
 async def _update_game_state(update_func: Callable[[GameState], str]) -> str:
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
@@ -165,10 +135,8 @@ async def _update_game_state(update_func: Callable[[GameState], str]) -> str:
 
     gs = ai_core.profile.game_state
     
-    # 應用傳入的更新邏輯
     result_message = update_func(gs)
 
-    # 將更新後的遊戲狀態寫回記憶體和資料庫
     ai_core.profile.game_state = gs
     await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
 
@@ -192,6 +160,9 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     tasks = []
     if ai_core.retriever:
         tasks.append(ai_core.retriever.ainvoke(query))
+    else:
+        tasks.append(asyncio.sleep(0, result=None))
+        
     if category:
         tasks.append(lore_book.get_lore(user_id, category, query))
     else:
@@ -391,18 +362,15 @@ async def change_location(path: str) -> str:
     def logic(gs: GameState) -> str:
         old_location_str = " > ".join(gs.location_path)
         
-        # 清理輸入路徑
         clean_path = path.strip()
         if not clean_path:
             return "錯誤：提供的地點路徑不能為空。"
         
         new_path: List[str]
         if clean_path.startswith('/'):
-            # 處理絕對路徑: 直接替換
             path_parts = [p for p in clean_path.split('/') if p]
             new_path = path_parts
         else:
-            # 處理相對路徑: 在當前路徑上操作
             current_path_list = list(gs.location_path)
             path_parts = [p for p in clean_path.split('/') if p]
             for part in path_parts:
@@ -416,9 +384,8 @@ async def change_location(path: str) -> str:
                     current_path_list.append(part)
             new_path = current_path_list
         
-        # 防止生成空路徑
         if not new_path:
-            new_path = ["時空奇點"] # 如果路徑變為空，則重置到預設的根地點
+            new_path = ["時空奇點"]
 
         gs.location_path = new_path
         new_location_str = " > ".join(gs.location_path)
@@ -470,7 +437,6 @@ async def remove_item_from_inventory(item_name: str) -> str:
 # 工具：從庫存移除物品
 
 # 函式：獲取所有核心動作工具
-# 說明：返回一個列表，包含所有與核心遊戲狀態互動的「核心動作」工具。
 def get_core_action_tools() -> List[Tool]:
     """返回一個列表，包含所有與核心遊戲狀態互動的工具。"""
     return [
