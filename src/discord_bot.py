@@ -1,10 +1,8 @@
-# discord_bot.py 的中文註釋(v40.0 - 重複定義修正與架構統一)
+# src/discord_bot.py 的中文註釋(v42.0 - 響應邏輯修正)
 # 更新紀錄:
-# v40.0 (2025-09-02): [災難性BUG修復 & 重構]
-# 1. [重複定義修正] 移除了因複製貼上錯誤而導致的 `NpcEditSelect`, `_create_profile_embed`, `ConfirmAndEditView` 等多個類別和函式的重複定義，解決了潛在的語法衝突和不穩定問題。
-# 2. [架構統一] 重構了 `ProfileEditModal` 的 `on_submit` 函式，使其不再使用已被棄用的 `zero_instruction_template`，而是構建與新分層提示詞架構一致的簡潔指令，確保了功能的穩定性和 AI 回應的一致性。
-# 3. [健壯性] 簡化了 `start_reset_flow` 函式末尾的回應發送邏輯，使其更加可靠。
-# v39.0 (2025-09-02): [健壯性] 新增了僅限管理員使用的 `/admin_force_update` 指令。
+# v42.0 (2025-09-04): [災難性BUG修復] 徹底重構了 on_message 事件，解決了機器人只在私聊中響應的問題。現在機器人會在【私聊】或【在伺服器頻道被@提及】時觸發，並增加了詳細的日誌以供調試。
+# v41.0 (2025-09-04): [健壯性] 強化了 ConversationGraphState 的初始化和 on_message 中的錯誤處理。
+# v40.0 (2025-09-02): [災難性BUG修復 & 重構] 修正了多個UI類別的重複定義問題並統一了架構。
 
 import discord
 from discord import app_commands, Embed
@@ -860,26 +858,49 @@ class BotCog(commands.Cog):
         else:
             logger.error(f"【健康檢查 & Keep-Alive】背景任務因未處理的錯誤而意外終止！")
 
-    # 函式：處理私訊 (v41.0 - 狀態初始化與錯誤處理強化)
-    # 更新紀錄:
-    # v41.0 (2025-09-04): [健壯性] 1. 移除了 `ConversationGraphState` 初始化中已廢棄的 `dynamic_prompt` 鍵。 2. 為所有可能為 None 的狀態欄位提供了安全的預設值（例如 `structured_context: {}`），以防止下游節點因訪問 None 而崩潰。 3. 強化了 `except` 區塊，使其能向使用者反饋更具體的錯誤類型。
-    # v40.0 (2025-09-02): [架構統一] 修正了多個類別的重複定義。
+    @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot or not isinstance(message.channel, discord.DMChannel):
+        # 步骤 1: 基础过滤
+        if message.author.bot:
+            return
+
+        # [v42.0 新增] 增加初始日志记录，确认事件被接收
+        logger.info(f"[{message.author.id}] 接收到來自 '{message.author.name}' 在頻道 '{message.channel}' 中的消息: '{message.content[:30]}...'")
+
+        # 步骤 2: 判断响应条件（私聊 或 在服务器频道被提及）
+        is_dm = isinstance(message.channel, discord.DMChannel)
+        is_mentioned = self.bot.user in message.mentions
+
+        if not is_dm and not is_mentioned:
+            # 如果不是私聊，也没被提及，则忽略
+            logger.info(f"[{message.author.id}] 消息被忽略：非私聊且未被提及。")
             return
         
+        # 步骤 3: 忽略斜杠指令
         ctx = await self.bot.get_context(message)
         if ctx.valid:
+            logger.info(f"[{message.author.id}] 消息被忽略：被识别为有效指令。")
             return
         
         user_id = str(message.author.id)
         
+        # 步骤 4: 准备并清理输入文本
+        user_input = message.content
+        if is_mentioned:
+            # 如果是在服务器被提及，移除提及部分，只保留真实输入
+            user_input = user_input.replace(f'<@{self.bot.user.id}>', '').strip()
+            if not user_input:
+                logger.info(f"[{user_id}] 消息被忽略：提及后内容为空。")
+                await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？（请在 @我 之后输入具体内容）")
+                return
+
+        # --- 后续逻辑与之前相同 ---
         ai_instance = await self.get_or_create_ai_instance(user_id)
         if not ai_instance:
             await message.channel.send("歡迎！您的設定似乎不完整，請使用 `/start` 指令來開始或重置您的 AI 戀人。")
             return
 
-        logger.info(f"[{user_id}] 接收到訊息 '{message.content[:50]}...'，啟動 LangGraph 對話流程...")
+        logger.info(f"[{user_id}] 响应条件满足，启动 LangGraph 對話流程...")
         async with message.channel.typing():
             try:
                 if user_id not in ai_instance.session_histories:
@@ -887,18 +908,18 @@ class BotCog(commands.Cog):
                 
                 chat_history_manager = ai_instance.session_histories[user_id]
                 current_messages = chat_history_manager.messages.copy()
-                current_messages.append(HumanMessage(content=message.content))
+                # 使用清理后的 user_input
+                current_messages.append(HumanMessage(content=user_input))
 
-                # [v41.0 核心修正] 確保所有狀態鍵都有安全的預設值，並移除廢棄的鍵
                 initial_state = ConversationGraphState(
                     user_id=user_id,
                     ai_core=ai_instance,
                     messages=current_messages,
                     input_analysis=None,
-                    expansion_decision=None, # 新增的鍵，給予預設值
+                    expansion_decision=None,
                     scene_analysis=None,
                     rag_context="",
-                    structured_context={}, # 確保永不為 None
+                    structured_context={},
                     world_snapshot="",
                     turn_plan=None,
                     tool_results="",
@@ -925,18 +946,16 @@ class BotCog(commands.Cog):
                     await message.channel.send(fallback_message)
 
             except Exception as e:
-                # [v41.0 核心修正] 提供更具體的錯誤回饋
                 error_type = type(e).__name__
                 error_details = str(e)
                 logger.error(f"處理使用者 {user_id} 的 LangGraph 聊天流程時發生未捕獲的異常: {error_type}: {error_details}", exc_info=True)
                 
                 user_feedback = f"處理您的訊息時發生了一個嚴重的內部錯誤，管理員已收到通知。\n\n**錯誤類型**: `{error_type}`"
-                # 如果是 KeyError，給予更具體的提示
                 if isinstance(e, KeyError):
                     user_feedback += f"\n**提示**: 這通常意味著系統在處理一個數據模板時，找不到名為 `{error_details}` 的欄位。這可能是一個暫時的數據不一致問題，請嘗試重新發送或稍作修改。"
 
                 await message.channel.send(user_feedback)
-    # 函式：處理私訊 (v41.0 - 狀態初始化與錯誤處理強化)
+    # 函式：處理訊息 (v42.0 - 响应逻辑与日志增强)
 
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
