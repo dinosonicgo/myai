@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v9.2 - 狀態感知強化)
+# src/schemas.py 的中文註釋(v10.1 - 新增模型定义)
 # 更新紀錄:
-# v9.2 (2025-08-29): [根本性重構] 為了讓 AI 具備狀態感知能力，在 `CharacterProfile` 模型中增加了至關重要的 `current_action` 欄位。此欄位用於結構化地記錄角色當前的持續性動作或姿態，為解決 AI 反邏輯地重複歷史動作的問題提供了數據基礎。同時新增了 `ActionIntent` 模型，用於結構化地解析使用者的動作指令。
-# v9.1 (2025-08-29): [根本性BUG修復] 強化了 `CharacterProfile` 模型，使其 `relationships` 欄位能夠兼容並自動轉換多種數據類型，解決了背景工具鏈的 ValidationError。
-# v9.0 (2025-08-27): [功能增強] 在 `CharacterProfile` 模型中新增了 `status` 欄位。
+# v10.1 (2025-09-02): [重大架構重構] 新增了 `ValidationResult` 和 `ExtractedEntities` 两个 Pydantic 模型。此修改将所有用于链之间数据传递的模型集中到此文件中，遵循了单一职责原则，使代码结构更清晰、更易于维护。
+# v10.0 (2025-08-31): [功能增強] 在 `CharacterProfile` 中新增了 `alternative_names` 栏位以支持命名冲突备援。
+# v9.2 (2025-08-29): [根本性重構] 在 `CharacterProfile` 中新增了 `current_action` 栏位以实现状态感知。
 
 import json
 import re
@@ -34,11 +34,7 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
-# 函式：基础 LORE 數據模型 - CharacterProfile (v10.0 命名冲突备援)
-# 更新紀錄:
-# v10.0 (2025-08-31): [功能增強] 根据工程师指示，新增了`alternative_names`栏位。此栏位将用于储存由AI预先生成的备用名称，为解决NPC命名冲突问题提供前瞻性的备援方案。
-# v9.2 (2025-08-29): [根本性重構] 新增了`current_action`栏位以实现状态感知。
-# v9.1 (2025-08-29): [根本性BUG修復] 强化了`relationships`栏位的兼容性。
+# 函式：基础 LORE 數據模型 - CharacterProfile
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -88,7 +84,7 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile (v10.0 命名冲突备援)
+# 函式：基础 LORE 數據模型 - CharacterProfile
 
 class Quest(BaseModel):
     name: str = Field(description="任務的標準化、唯一的官方名稱。")
@@ -285,6 +281,13 @@ class SceneAnalysisResult(BaseModel):
         if self.viewing_mode == 'remote' and not self.target_location_path:
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
+
+# [v10.1 新增]
+class ValidationResult(BaseModel):
+    is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
+
+class ExtractedEntities(BaseModel):
+    names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
