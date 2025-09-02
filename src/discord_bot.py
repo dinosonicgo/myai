@@ -1300,25 +1300,36 @@ class BotCog(commands.Cog):
         
         await interaction.followup.send(f"已成功重置使用者 {user_display_name} ({target_user_id}) 的所有資料。", ephemeral=True)
 
+    # 函式：管理員強制更新 (v40.1 - 異步化修正)
+    # 更新紀錄:
+    # v40.1 (2025-09-04): [灾难性BUG修复] 解决了因同步的 `subprocess.run` 阻塞事件循环，导致 Discord Interaction Token (3秒) 过期并引发 `Unknown Interaction` 错误的问题。通过将耗时的 git 命令移入 `asyncio.to_thread` 中执行，确保了 `interaction.response.defer()` 能够被立即发送，从而维持了交互的有效性。
+    # v40.0 (2025-09-02): [健壯性] 簡化了回應發送邏輯。
+    # v39.0 (2025-09-02): [健壯性] 新增了此指令。
     @app_commands.command(name="admin_force_update", description="[管理員] 強制從 GitHub 同步最新程式碼並重啟機器人。")
     @app_commands.check(is_admin)
     async def admin_force_update(self, interaction: discord.Interaction):
+        # 步骤 1: 立即响应 Discord，防止交互超时
         await interaction.response.defer(ephemeral=True, thinking=True)
         
         logger.info(f"管理員 {interaction.user.id} 觸發了強制更新...")
         
-        await interaction.followup.send("⏳ **正在強制同步...**\n正在從遠端倉庫 `origin/main` 獲取最新版本...", ephemeral=True)
-
         try:
-            git_reset_command = ["git", "reset", "--hard", "origin/main"]
-            process = await asyncio.to_thread(
-                subprocess.run,
-                git_reset_command,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                check=False
-            )
+            await interaction.followup.send("⏳ **正在強制同步...**\n正在從遠端倉庫 `origin/main` 獲取最新版本...", ephemeral=True)
+
+            # [v40.1 核心修正] 将阻塞的 IO 操作放入线程中执行
+            def run_git_sync():
+                git_reset_command = ["git", "reset", "--hard", "origin/main"]
+                # 注意：这里我们不需要捕获输出，因为我们只想知道成功与否
+                process = subprocess.run(
+                    git_reset_command,
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    check=False  # 我们手动检查 returncode
+                )
+                return process
+
+            process = await asyncio.to_thread(run_git_sync)
 
             if process.returncode == 0:
                 logger.info("強制同步成功，準備重啟...")
@@ -1327,9 +1338,11 @@ class BotCog(commands.Cog):
                     "程式碼已強制更新至最新版本。\n\n"
                     "🔄 **機器人將在 3 秒後自動重啟...**"
                 )
+                # 使用 followup 发送最终消息
                 await interaction.followup.send(success_message, ephemeral=True)
                 await asyncio.sleep(3)
                 
+                # execv 会替换当前进程，因此这是此函数的最后一步
                 os.execv(sys.executable, [sys.executable] + sys.argv)
             else:
                 logger.error(f"強制同步失敗: {process.stderr}")
@@ -1345,7 +1358,10 @@ class BotCog(commands.Cog):
             await interaction.followup.send("🔥 **錯誤：`git` 命令未找到！**\n請確保伺服器環境已安裝 Git。", ephemeral=True)
         except Exception as e:
             logger.error(f"執行強制更新時發生未預期錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"🔥 **發生未預期錯誤！**\n執行更新時遇到問題: {e}", ephemeral=True)
+            # 检查交互是否仍然有效
+            if not interaction.is_expired():
+                await interaction.followup.send(f"🔥 **發生未預期錯誤！**\n執行更新時遇到問題: {e}", ephemeral=True)
+    # 函式：管理員強制更新 (v40.1 - 異步化修正)
 
     @app_commands.command(name="admin_check_status", description="[管理員] 查詢指定使用者的當前狀態")
     @app_commands.check(is_admin)
