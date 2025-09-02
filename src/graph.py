@@ -135,10 +135,13 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：執行場景與動作分析 (僅限敘事路徑)
 
-# 函式：組合最終提示詞 (v1.0 - 全新創建)
+# 函式：組合最終提示詞 (v2.1 - 適配分層提示詞架構)
+# 更新紀錄:
+# v2.1 (2025-09-02): [災難性BUG修復] 重構此節點以適配 `ai_core` 中新的 `_assemble_dynamic_prompt` 函式。現在此節點負責從 state 中收集所有上下文，打包成一個 `context_dict`，然後傳遞給 `_assemble_dynamic_prompt` 進行渲染。這確保了主對話流程 100% 使用新的分層提示詞架構，從而根除舊指令污染問題。
+# v1.0 (2025-09-02): [全新創建] 創建了此節點以統一提示詞組合邏輯。
 async def assemble_prompt_node(state: ConversationGraphState) -> Dict:
     """
-    [節點 4] [v2.0 新增] 組合所有上下文，調用統一的提示詞生成邏輯，為 LLM 準備最終的系統提示詞。
+    [節點 4] 收集所有上下文數據，並調用核心提示詞組合器，為 LLM 準備最終的系統提示詞。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -146,32 +149,35 @@ async def assemble_prompt_node(state: ConversationGraphState) -> Dict:
     structured_context = state['structured_context']
     rag_context = state['rag_context']
     
-    logger.info(f"[{user_id}] (Graph) Node: assemble_prompt_node -> 正在組合最終提示詞...")
+    logger.info(f"[{user_id}] (Graph) Node: assemble_prompt_node -> 正在收集上下文以組合最終提示詞...")
     
-    # 1. 獲取模組化的基礎提示詞
-    # 這裡可以根據 input_analysis 的結果來決定 is_move, is_sexual 等參數
-    is_sexual = ai_core._is_explicit_sexual_request(user_input)
-    base_prompt = await ai_core._assemble_dynamic_prompt(is_sexual=is_sexual)
-    
-    # 2. 準備填充模板所需的所有變數
-    prompt_context = {
+    # 1. 準備一個包含所有模板所需變數的字典
+    # 這些數據來自 state 和 ai_core.profile
+    context_dict = {
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
-        "retrieved_context": rag_context,
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
         "latest_user_input": user_input,
-        "chat_history": "", # chat_history 將由 narrative_chain 直接處理
-        "tool_results": "", # tool_results 不在此階段使用
-        **structured_context
+        "retrieved_context": rag_context,
+        **structured_context  # 解包所有結構化上下文 (location, npc, etc.)
     }
+
+    # 2. 判斷是否為特殊場景
+    is_sexual = ai_core._is_explicit_sexual_request(user_input)
+    # is_move 的邏輯可以根據 input_analysis 的結果來擴展
+    is_move = state.get("input_analysis", {}).input_type == 'narration' and "移動" in user_input
     
-    # 3. 填充模板生成最終提示詞
-    final_prompt = base_prompt.format(**prompt_context)
+    # 3. 調用 ai_core 中重構後的、唯一的提示詞組合器
+    final_prompt = await ai_core._assemble_dynamic_prompt(
+        context_dict=context_dict,
+        is_sexual=is_sexual,
+        is_move=is_move
+    )
     
     return {"dynamic_prompt": final_prompt}
-# 函式：組合最終提示詞 (v1.0 - 全新創建)
+# 函式：組合最終提示詞 (v2.1 - 適配分層提示詞架構)
 
 # 函式：生成核心回應 (v2.0 - 職責簡化與提示詞重構)
 async def generate_core_response_node(state: ConversationGraphState) -> Dict:
