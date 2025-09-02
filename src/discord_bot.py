@@ -1033,23 +1033,36 @@ class BotCog(commands.Cog):
             if not is_setup_flow and interaction:
                 await interaction.followup.send(f"❌ **錯誤**：在處理您的世界聖經時發生未預期的錯誤。", ephemeral=True)
 
+
+    
+    
+    
+    
+    
+    # 函式：開始重置流程 (v39.1 - 健壯性審查)
+    # 更新紀錄:
+    # v39.1 (2025-09-02): [健壯性] 審查並確認此函式的重試邏輯。此函式現在依賴於 `AILover.shutdown` (v198.1) 中強化的資源回收機制來確保 `shutil.rmtree` 的成功執行。保留其內部的重試循環作為應對極端情況下的最終保障。
+    # v37.0 (2025-08-31): [災難性BUG修復] 修復了在 Windows 環境下，因檔案鎖定導致的 `/start` 重置時刪除向量目錄失敗的嚴重問題。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
-            logger.info(f"[{user_id}] 後台重置任務開始...")
+            logger.info(f"[{self.user_id}] 後台重置任務開始...")
             
+            # 步驟 1: 關閉並移除記憶體中的 AI 實例 (現在會調用強化版的 shutdown)
             if user_id in self.ai_instances:
                 ai_instance_to_shutdown = self.ai_instances.pop(user_id)
                 await ai_instance_to_shutdown.shutdown()
-                logger.info(f"[{user_id}] 已關閉活躍的 AI 實例。")
+                logger.info(f"[{self.user_id}] 已關閉活躍的 AI 實例並已請求釋放檔案鎖定。")
             
+            # 步驟 2: 從共享資料庫中安全地刪除該使用者的所有數據
             async with AsyncSessionLocal() as session:
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
-                logger.info(f"[{user_id}] 已從資料庫安全地清除了所有相關記錄。")
+                logger.info(f"[{self.user_id}] 已從資料庫安全地清除了所有相關記錄。")
 
+            # 步驟 3: 刪除向量數據庫目錄 (帶重試邏輯)
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists() and vector_store_path.is_dir():
                 max_attempts = 10
@@ -1069,24 +1082,37 @@ class BotCog(commands.Cog):
                                 "刪除舊數據時發生檔案鎖定錯誤，這通常是暫時的。\n\n"
                                 "**建議：** 請等待約 **10-30 秒**，讓系統完全釋放檔案，然後再次嘗試 `/start` 指令。"
                             )
-                            if interaction.response.is_done():
-                                await interaction.edit_original_response(content=error_message, view=None)
+                            if not interaction.response.is_done():
+                                await interaction.response.edit_message(content=error_message, view=None)
                             else:
                                 await interaction.followup.send(content=error_message, ephemeral=True)
                             return
 
             view = StartSetupView(cog=self, user_id=user_id)
-            await interaction.edit_original_response(content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", view=view)
+            if not interaction.response.is_done():
+                await interaction.response.edit_message(content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", view=view)
+            else:
+                 await interaction.followup.send(content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
             error_message = f"執行重置時發生未知的嚴重錯誤: {e}"
-            if interaction.response.is_done():
-                await interaction.edit_original_response(content=error_message, view=None)
+            if not interaction.response.is_done():
+                await interaction.response.edit_message(content=error_message, view=None)
             else:
                 await interaction.followup.send(content=error_message, view=None, ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
+    # 函式：開始重置流程 (v39.1 - 健壯性審查)
+            
+
+
+
+
+
+
+
+    
 
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
