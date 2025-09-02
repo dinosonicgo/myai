@@ -83,11 +83,11 @@ class AILover:
 
 
 
-    # 函式：初始化AI核心 (v198.2 - 為 Planning Chain 預留屬性)
+    # 函式：初始化AI核心 (v198.3 - 統一模板命名)
     # 更新紀錄:
-    # v198.2 (2025-09-02): [架構重構] 新增了 `planning_chain` 屬性，這是實現“思考->執行->寫作”分離式架構的第一步。
+    # v198.3 (2025-09-02): [架構清理] 將具有誤導性的屬性 `zero_instruction_template` 重命名為更能準確反映其職責的 `world_snapshot_template`，以徹底清除舊架構的命名痕跡。
+    # v198.2 (2025-09-02): [架構重構] 新增了 `planning_chain` 屬性。
     # v198.1 (2025-09-02): [架構修正] 新增了 `rag_summarizer_chain` 屬性。
-    # v198.0 (2025-08-31): [重大架構重構] 移除了 `chat` 函式和 `main_executor`。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -101,7 +101,7 @@ class AILover:
         self.rewrite_chain: Optional[Runnable] = None
         self.action_intent_chain: Optional[Runnable] = None
         self.rag_summarizer_chain: Optional[Runnable] = None
-        self.planning_chain: Optional[Runnable] = None # [v198.2 新增]
+        self.planning_chain: Optional[Runnable] = None
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
@@ -110,7 +110,7 @@ class AILover:
         self.canon_parser_chain: Optional[Runnable] = None
         self.param_reconstruction_chain: Optional[Runnable] = None
         self.modular_prompts: Dict[str, str] = {}
-        self.zero_instruction_template: str = ""
+        self.world_snapshot_template: str = "" # [v198.3 重命名]
         self.rendered_tools: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
         self.vector_store: Optional[Chroma] = None
@@ -126,7 +126,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v198.2 - 為 Planning Chain 預留屬性)
+    # 函式：初始化AI核心 (v198.3 - 統一模板命名)
     
 
 
@@ -418,22 +418,21 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：加載世界快照模板 (v171.0 - 重命名與職責變更)
+    # 函式：加載模板 (v171.1 - 職責擴展與重命名)
     # 更新紀錄:
-    # v171.0 (2025-09-02): [架構重構] 函式重命名為 `_load_world_snapshot_template`。其職責從加載一個包含所有指令的 "zero_instruction" 變為只加載一個純粹用於格式化上下文的數據模板 `world_snapshot_template.txt`。
-    # v166.0 (2025-08-29): [全新創建] 創建了此函式以加載核心指令。
-    def _load_world_snapshot_template(self):
-        """從 prompts/world_snapshot_template.txt 文件中讀取世界狀態的數據模板。"""
-        # [v171.0 修正] 為了向後兼容，保留舊的屬性名 self.zero_instruction_template，但加載新的模板檔案。
+    # v171.1 (2025-09-02): [架構清理] 將函式重命名為 `_load_templates`，並將屬性賦值目標更新為 `self.world_snapshot_template`，以匹配新的、更準確的命名規範，並徹底清除舊架構的命名痕跡。
+    # v171.0 (2025-09-02): [架構重構] 函式重命名為 `_load_world_snapshot_template`，其職責變為只加載數據模板。
+    def _load_templates(self):
+        """從 prompts/ 目錄加載所有需要的核心模板檔案。"""
         try:
-            prompt_path = PROJ_DIR / "prompts" / "world_snapshot_template.txt"
-            with open(prompt_path, "r", encoding="utf-8") as f:
-                self.zero_instruction_template = f.read()
+            template_path = PROJ_DIR / "prompts" / "world_snapshot_template.txt"
+            with open(template_path, "r", encoding="utf-8") as f:
+                self.world_snapshot_template = f.read()
             logger.info(f"[{self.user_id}] 核心數據模板 'world_snapshot_template.txt' 已成功加載。")
         except FileNotFoundError:
             logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！請確認您已將 'zero_instruction.txt' 重命名。")
-            self.zero_instruction_template = "錯誤：世界快照模板未找到。"
-    # 函式：加載世界快照模板 (v171.0 - 重命名與職責變更)
+            self.world_snapshot_template = "錯誤：世界快照模板未找到。"
+    # 函式：加載模板 (v171.1 - 職責擴展與重命名)
 
 
     # 函式：動態組合模組化提示詞 (v171.0 - 分層提示詞架構重構)
@@ -1096,16 +1095,16 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v198.4 - 適配新版敘事鏈)
+    # 函式：配置模型和鏈 (v198.5 - 適配模板加載器)
     # 更新紀錄:
-    # v198.4 (2025-09-02): [架構重構] 重新調用了 `_build_narrative_chain`。在新架構下，此鏈的職責已變為將結構化計劃渲染為小說，調用此函式是完成新流程的必要步驟。
+    # v198.5 (2025-09-02): [架構清理] 將對 `_load_world_snapshot_template` 的調用更新為 `_load_templates`，以匹配最新的命名規範。
+    # v198.4 (2025-09-02): [架構重構] 重新調用了 `_build_narrative_chain` 以完成新流程。
     # v198.3 (2025-09-02): [架構重構] 新增了對 `_build_planning_chain` 的調用。
-    # v198.2 (2025-09-02): [架構修正] 新增了對 `_build_rag_summarizer_chain` 的調用。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
         
-        self._load_world_snapshot_template()
+        self._load_templates()
 
         all_core_action_tools = tools.get_core_action_tools()
         all_lore_tools = lore_tools.get_lore_tools()
@@ -1117,7 +1116,7 @@ class AILover:
         
         self.rag_summarizer_chain = self._build_rag_summarizer_chain()
         self.planning_chain = self._build_planning_chain()
-        self.narrative_chain = self._build_narrative_chain() # [v198.4] 重構並重新啟用
+        self.narrative_chain = self._build_narrative_chain()
         
         self.scene_expansion_chain = self._build_scene_expansion_chain()
         self.scene_casting_chain = self._build_scene_casting_chain()
@@ -1128,8 +1127,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.4 (思考分離架構模式)。")
-    # 函式：配置模型和鏈 (v198.4 - 適配新版敘事鏈)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v198.5 (統一模板模式)。")
+    # 函式：配置模型和鏈 (v198.5 - 適配模板加載器)
 
 
     # 函式：將世界聖經添加到向量儲存
