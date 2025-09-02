@@ -1,8 +1,15 @@
-# src/graph_state.py 的中文註釋(v2.1 - 狀態鍵對齊)
+# src/graph_state.py 的中文註釋(v2.2 - 依赖修复)
 # 更新紀錄:
-# v2.1 (2025-09-04): [代碼嚴謹性] 移除了已廢棄的 `dynamic_prompt` 欄位，確保狀態定義與 LangGraph 的實際數據流完全一致，消除了潛在的未定義鍵問題。
-# v2.0 (2025-09-03): [災難性BUG修復] 根據 KeyError 日誌，在 `ConversationGraphState` 中新增了 `expansion_decision` 欄位。此修改向 LangGraph 的狀態系統正式“註冊”了這個新的數據鍵，確保它在圖的節點之間能夠被正確地傳遞和訪問，從根本上解決了因缺少狀態定義而導致的 `KeyError: 'expansion_decision'` 問題。
-# v1.4 (2025-09-02): [架構清理] 移除了已廢棄的 `dynamic_prompt` 欄位。
+# v2.2 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `from typing import TypedDict`，以解决因缺少依赖而导致的 `NameError: name 'TypedDict' is not defined` 致命启动错误。
+# v2.1 (2025-09-04): [代碼嚴謹性] 移除了已廢棄的 `dynamic_prompt` 欄位，確保狀態定義與 LangGraph 的實際數據流完全一致。
+# v2.0 (2025-09-03): [災難性BUG修復] 新增了 `expansion_decision` 欄位。
+
+from typing import TypedDict, List, Dict, Optional, Any
+from langchain_core.messages import BaseMessage
+
+from .schemas import UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, TurnPlan, ExpansionDecision
+from .ai_core import AILover
+
 # 類別：對話圖狀態
 class ConversationGraphState(TypedDict):
     """
