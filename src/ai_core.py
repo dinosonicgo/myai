@@ -1271,6 +1271,95 @@ class AILover:
 
 
 
+    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+    # 更新紀錄:
+    # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
+    #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
+    #    2. [速率限制] 在處理每個實體類別之間加入了 4 秒的強制延遲，以嚴格遵守 API 的速率限制，確保在處理大型設定檔時的穩定性。
+    async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
+        """
+        解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
+        """
+        if not self.profile:
+            logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
+            return
+
+        logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本...")
+        
+        try:
+            # 步驟 1: 使用專門的鏈來解析文本
+            parser_chain = self.get_canon_parser_chain()
+            parsing_result = await self.ainvoke_with_rotation(parser_chain, {"canon_text": content_text})
+
+            if not parsing_result:
+                logger.warning(f"[{self.user_id}] 世界聖經解析鏈返回空結果，可能觸發了內容審查。")
+                return
+
+            # 步驟 2: 定義一個可重用的輔助函式來處理實體解析和儲存
+            async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
+                if not entities:
+                    return
+
+                logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
+                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
+                existing_entities_for_prompt = [
+                    {"key": lore.key, "name": lore.content.get(name_key) or lore.content.get(title_key)}
+                    for lore in existing_lores
+                ]
+                
+                resolution_chain = self.get_single_entity_resolution_chain()
+
+                for entity_data in entities:
+                    original_name = entity_data.get(name_key) or entity_data.get(title_key)
+                    if not original_name:
+                        continue
+                    
+                    # [速率限制] 在每次 API 調用前等待
+                    await asyncio.sleep(4.0)
+
+                    resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
+                        "category": category,
+                        "new_entity_json": json.dumps({"name": original_name}, ensure_ascii=False),
+                        "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                    })
+                    
+                    if not (resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution):
+                        logger.warning(f"[{self.user_id}] 實體解析鏈未能為 '{original_name}' 返回有效結果。")
+                        continue
+
+                    res = resolution_plan.resolution
+                    std_name = res.standardized_name or res.original_name
+                    
+                    if res.decision == 'EXISTING' and res.matched_key:
+                        lore_key = res.matched_key
+                        # 使用合併模式更新現有條目
+                        await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon', merge=True)
+                        logger.info(f"[{self.user_id}] 已將 '{original_name}' 解析為現有實體 '{lore_key}' 並合併了資訊。")
+                    else:
+                        # 創建一個新的 LORE 條目
+                        safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
+                        lore_key = safe_name # 對於來自聖經的頂層 LORE，使用其自身作為主鍵
+                        await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
+                        logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
+
+            # 步驟 3: 依次處理所有解析出的實體類別
+            await _resolve_and_save('npc_profile', [p.model_dump() for p in parsing_result.npc_profiles])
+            await _resolve_and_save('location_info', [loc.model_dump() for loc in parsing_result.locations])
+            await _resolve_and_save('item_info', [item.model_dump() for item in parsing_result.items])
+            await _resolve_and_save('creature_info', [c.model_dump() for c in parsing_result.creatures])
+            await _resolve_and_save('quest', [q.model_dump() for q in parsing_result.quests], title_key='name')
+            await _resolve_and_save('world_lore', [wl.model_dump() for wl in parsing_result.world_lores])
+
+            logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
+            if interaction and not is_setup_flow:
+                await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
+    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+    
+
+
 
 
     
