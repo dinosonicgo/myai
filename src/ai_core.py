@@ -1267,11 +1267,10 @@ class AILover:
 
 
 
-    # 函式：配置模型和鏈 (v201.0 - 註冊混合模式鏈)
+    # 函式：配置模型和鏈 (v201.1 - 註冊場景生成鏈)
     # 更新紀錄:
-    # v201.0 (2025-09-05): [重大架構重構] 新增了對 `_build_direct_nsfw_chain` 的調用，以初始化並註冊混合模式圖中的 NSFW 直通路徑核心鏈。
-    # v200.0 (2025-09-03): [重大邏輯升級] 新增了對 `_build_expansion_decision_chain` 的調用。
-    # v199.0 (2025-09-02): [健壯性] 新增了對 `get_single_entity_resolution_chain` 的調用。
+    # v201.1 (2025-09-05): [重大功能擴展] 新增了對 `_build_remote_scene_generator_chain` 的調用，以初始化並註冊新的“遠程場景生成器”鏈，這是實現“鏡頭切換”功能的關鍵一步。
+    # v201.0 (2025-09-05): [重大架構重構] 註冊了混合模式圖中的 NSFW 直通路徑核心鏈。
     async def _configure_model_and_chain(self):
         if not self.profile:
             raise ValueError("Cannot configure chain without a loaded profile.")
@@ -1289,7 +1288,8 @@ class AILover:
         self.rag_summarizer_chain = self._build_rag_summarizer_chain()
         self.planning_chain = self._build_planning_chain()
         self.narrative_chain = self._build_narrative_chain()
-        self.direct_nsfw_chain = self._build_direct_nsfw_chain() # [v201.0 新增]
+        self.direct_nsfw_chain = self._build_direct_nsfw_chain()
+        self.remote_scene_generator_chain = self._build_remote_scene_generator_chain() # [v201.1 新增]
         self.entity_extraction_chain = self._build_entity_extraction_chain()
         self.single_entity_resolution_chain = self.get_single_entity_resolution_chain()
         
@@ -1304,8 +1304,8 @@ class AILover:
         self.rewrite_chain = self._build_rewrite_chain()
         self.action_intent_chain = self._build_action_intent_chain()
         
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v201.0 (混合模式圖架構)。")
-    # 函式：配置模型和鏈 (v201.0 - 註冊混合模式鏈)
+        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v201.1 (遠程場景模式)。")
+    # 函式：配置模型和鏈 (v201.1 - 註冊場景生成鏈)
 
 
 
