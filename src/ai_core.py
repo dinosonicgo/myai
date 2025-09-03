@@ -1042,16 +1042,16 @@ class AILover:
 
 
 
-    # 函式：建構 SFW 回合計劃鏈 (v5.3 - 風格指令前置)
+    # 函式：建構 SFW 回合計劃鏈 (v5.4 - 問答邏輯強化)
     # 更新紀錄:
-    # v5.3 (2025-09-05): [災難性BUG修復] 根據 SFW 風格不生效的報告，將 `response_style_prompt` 的注入點從 `narrative_chain` 前移至此。現在，規劃鏈（“大腦”）會直接接收到風格指令，並被強制要求生成一個在結構上就符合風格要求的 TurnPlan JSON（例如，包含更多對話）。此修改從根本上解決了因計劃與風格要求衝突而導致的風格失效問題。
-    # v5.2 (2025-09-05): [重大架構修正] 重構了提示詞以接收 `action_module_prompt` 變數。
+    # v5.4 (2025-09-05): [災難性BUG修復] 根據資訊查詢指令引發 ValidationError 的報告，為 SFW 規劃鏈的提示詞新增了“查詢與回應原則”。此原則明確指導 AI 在答案已知的情況下，應如何構建一個包含 `dialogue` 和`reasoning` 的有效回答計劃，而不是因試圖走捷徑而生成不符合 Pydantic 模型的無效 JSON。
+    # v5.3 (2025-09-05): [災難性BUG修復] 將風格指令 (`response_style_prompt`) 的注入點前移至此，以解決 SFW 風格不生效的問題。
     def _build_planning_chain(self) -> Runnable:
         """創建一個專門為 SFW（安全工作）場景生成結構化回合計劃的鏈。"""
         from .schemas import TurnPlan
         planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
 
-        # [v5.3 核心修正] 將 response_style_prompt 注入到 SFW 規劃的“大腦”中
+        # [v5.4 核心修正] 新增了第 6 條規則，專門處理問答場景
         system_prompt_for_sfw_planning = """
 # ==============================================================================
 # == 🧠 系統核心指令 (SFW 規劃模式) 🧠
@@ -1071,6 +1071,10 @@ class AILover:
 #     並在 `character_actions` 中包含 AI 角色的對話和反應。
 # 5.  **【邏輯一致性】**: 如果指令因不合邏輯或無法執行，則應使用 
 #     `execution_rejection_reason` 欄位來解釋原因，此時 `character_actions` 必須為空。
+# 6.  **【查詢與回應原則】**: 如果使用者的指令是一個問題（例如“告訴我關於X的資訊”），
+#     且答案已經存在於【世界快照數據】中，你的計劃【不應】再次呼叫 `search_knowledge_base`。
+#     相反，你的計劃應該是讓一個角色（通常是「{ai_name}」）通過 `dialogue` 將答案告知使用者。
+#     此行動的 `reasoning` 欄位【必須】明確填寫為“為了回答使用者的問題”。
 #
 # --- 【【【最終輸出風格強制令 (Absolute & Highest Priority)】】】 ---
 # 你生成的【行動計劃 JSON】，在結構上【必須】完全遵循下方的風格指令。
@@ -1104,7 +1108,8 @@ class AILover:
         ])
         
         return prompt | planner_llm
-    # 函式：建構 SFW 回合計劃鏈 (v5.3 - 風格指令前置)
+    # 函式：建構 SFW 回合計劃鏈 (v5.4 - 問答邏輯強化)將 response_style_prompt 注入到 SFW 規劃的“大腦”中
+        
 
 
     
