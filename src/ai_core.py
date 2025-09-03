@@ -695,6 +695,49 @@ class AILover:
         return self.canon_parser_chain
     # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
 
+
+
+    # 函式：獲取角色檔案補完鏈 (v1.0 - 延遲加載重構)
+    # 更新紀錄:
+    # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在延遲加載重構中被遺漏的鏈。此鏈負責將不完整的角色檔案 JSON 補完為細節豐富的完整版本，是 /start 流程的關鍵步驟。
+    def get_profile_completion_chain(self) -> Runnable:
+        """獲取或創建角色檔案補完鏈。"""
+        if not hasattr(self, 'profile_completion_chain') or self.profile_completion_chain is None:
+            prompt = self.get_profile_completion_prompt()
+            structured_llm = self.gm_model.with_structured_output(CharacterProfile)
+            self.profile_completion_chain = prompt | structured_llm
+        return self.profile_completion_chain
+    # 函式：獲取角色檔案補完鏈 (v1.0 - 延遲加載重構)
+
+    # 函式：獲取角色檔案解析鏈 (v1.0 - 延遲加載重構)
+    # 更新紀錄:
+    # v1.0 (2025-09-05): [健壯性] 根據延遲加載重構的最佳實踐，為此鏈創建了 get_ 方法。
+    def get_profile_parser_chain(self) -> Runnable:
+        """獲取或創建角色檔案解析鏈。"""
+        if not hasattr(self, 'profile_parser_chain') or self.profile_parser_chain is None:
+            prompt = self.get_profile_parser_prompt()
+            structured_llm = self.gm_model.with_structured_output(CharacterProfile)
+            self.profile_parser_chain = prompt | structured_llm
+        return self.profile_parser_chain
+    # 函式：獲取角色檔案解析鏈 (v1.0 - 延遲加載重構)
+
+    # 函式：獲取角色檔案重寫鏈 (v1.0 - 延遲加載重構)
+    # 更新紀錄:
+    # v1.0 (2025-09-05): [健壯性] 根據延遲加載重構的最佳實踐，為此鏈創建了 get_ 方法。
+    def get_profile_rewriting_chain(self) -> Runnable:
+        """獲取或創建角色檔案重寫鏈。"""
+        if not hasattr(self, 'profile_rewriting_chain') or self.profile_rewriting_chain is None:
+            prompt = self.get_profile_rewriting_prompt()
+            self.profile_rewriting_chain = prompt | self.gm_model | StrOutputParser()
+        return self.profile_rewriting_chain
+    # 函式：獲取角色檔案重寫鏈 (v1.0 - 延遲加載重構)
+
+
+
+
+
+    
+
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
     # 更新紀錄:
     # v1.0.2 (2025-08-29): [BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILover 類別方法的正確性。
