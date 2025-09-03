@@ -128,14 +128,14 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：執行 SFW 回合規劃 (v3.1 - 風格指令前置)
+# 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
 # 更新紀錄:
-# v3.1 (2025-09-05): [災難性BUG修復] 根據 SFW 風格不生效的報告，現在此節點會將 `response_style_prompt` 作為一個關鍵參數，直接傳遞給 SFW 規劃鏈。這確保了“大腦”在制定計劃時就能夠考慮到風格要求。
-# v3.0 (2025-09-05): [重大架構修正] 重構了此節點的職責，使其不再負責組裝 system_prompt。
+# v3.2 (2025-09-05): [重大架構修正] 根據 `/start` 流程崩潰的問題，簡化了此節點的邏輯。由於 `planning_chain` 現在使用靜態提示詞，此節點不再需要處理複雜的外部模組注入，職責回歸為準備並傳遞一個乾淨、完整的上下文給規劃鏈。
+# v3.1 (2025-09-05): [災難性BUG修復] 修正了風格指令的傳遞邏輯。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [SFW 路徑核心] SFW 架構的核心“思考”節點。
-    準備原始材料（上下文、風格指令、動作模組）並調用 planning_chain 生成結構化的行動計劃。
+    準備上下文並調用 planning_chain 生成結構化的行動計劃。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -151,7 +151,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         logger.error(f"[{user_id}] 在 planning_node 中刷新上下文失敗: {e}", exc_info=True)
         structured_context = state.get('structured_context', {})
 
-    # 步驟 2: 準備一個包含所有世界快照所需變數的字典
+    # 步驟 2: 準備一個包含所有模板所需變數的完整字典
     full_context_dict = {
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
@@ -159,40 +159,41 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
+        "user_input": user_input,
         **(structured_context or {})
     }
 
     # 步驟 3: 格式化世界快照
     def safe_format(template: str, data: dict) -> str:
-        for key, value in data.items():
-            template = template.replace(f"{{{key}}}", str(value))
+        # 創建一個數據副本，以防萬一
+        data_copy = data.copy()
+        # 從副本中移除模板自身不需要的鍵，避免 KeyErrors
+        data_copy.pop('world_snapshot', None) 
+        
+        # 遍歷模板中的所有變量
+        keys_in_template = re.findall(r'{(\w+)}', template)
+        
+        for key in keys_in_template:
+            # 使用 .get(key, f"{{{key}}}") 來安全地替換
+            # 如果 data_copy 中有這個 key，就替換它
+            # 如果沒有，就用原始的 '{key}' 字符串來替換，這樣它就不會被改變
+            template = template.replace(f'{{{key}}}', str(data_copy.get(key, f'{{{key}}}')))
+            
         return template
 
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
     
-    # 步驟 4: 只獲取可選的 SFW 動作模組內容
-    action_module_prompt = ""
-    action_module_name = ai_core._determine_action_module(user_input)
-    if action_module_name and action_module_name != "action_sexual_content" and action_module_name in ai_core.modular_prompts:
-        action_module_prompt = ai_core.modular_prompts[action_module_name]
-        logger.info(f"[{user_id}] (Graph) SFW 規劃：已準備加載戰術模組 '{action_module_name}'。")
-
-    # 步驟 5: 調用規劃鏈，傳入所有需要的原始材料
+    # 將格式化好的 world_snapshot 添加到要傳遞給鏈的字典中
+    full_context_dict['world_snapshot'] = world_snapshot
+    
+    # 步驟 4: 調用規劃鏈，傳入所有需要的原始材料
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     
-    # [v3.1 核心修正] 將 full_context_dict 中的所有鍵值對也傳遞進去，以確保鏈能訪問到所有變數
-    params_for_chain = {
-        **full_context_dict,
-        "world_snapshot": world_snapshot,
-        "user_input": user_input,
-        "action_module_prompt": action_module_prompt,
-    }
-
-    plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, params_for_chain)
+    plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, full_context_dict)
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v3.1 - 風格指令前置)
+# 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
 
 
 
