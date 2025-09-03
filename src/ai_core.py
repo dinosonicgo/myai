@@ -724,15 +724,16 @@ class AILover:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
 
-    # 函式：建構檢索器 (v202.1 - 災難性啟動修正)
+    # 函式：建構檢索器 (v202.2 - 競爭條件最終修復)
     # 更新紀錄:
-    # v202.1 (2025-09-05): [災難性BUG修復] 根據 `/start` 流程中反覆出現的 `Could not connect to tenant` 錯誤，徹底重構了資料庫的初始化和恢復邏輯。現在，函式會將 ChromaDB 的【實例化本身】包裹在一個 try...except 區塊中。如果連接時發生任何異常（表明資料庫已損壞或處於不一致狀態），它將觸發一個強制性的“備份並重建”程序，安全地創建一個全新的空資料庫，從而實現自我修復，確保即使在競爭條件下也能穩定啟動。
+    # v202.2 (2025-09-04): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 錯誤，在自我修復流程中加入了一個 1.0 秒的戰術性延遲。此修改旨在解決因競爭條件（Race Condition）導致的檔案鎖定問題，給予作業系統足夠的時間來完全釋放舊資料庫的檔案句柄，然後再嘗試創建新的資料庫實例，從而極大地提高了 `/start` 重置流程的健壯性。
+    # v202.1 (2025-09-05): [災難性BUG修復] 根據 `/start` 流程中反覆出現的 `Could not connect to tenant` 錯誤，徹底重構了資料庫的初始化和恢復邏輯。
     # v202.0 (2025-09-05): 增加了對全新空資料庫的讀取保護。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復能力。"""
         all_docs = []
         try:
-            # 步驟 1: [核心修正] 嘗試實例化 ChromaDB 客戶端。這是最容易出錯的地方。
+            # 步驟 1: 嘗試實例化 ChromaDB 客戶端。這是最容易出錯的地方。
             self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
             
             # 步驟 2: 如果實例化成功，再嘗試安全地讀取數據
@@ -742,7 +743,7 @@ class AILover:
                 for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])
             ]
         except Exception as e:
-            # 步驟 3: [核心修正] 如果在上述任何一步發生異常，則假定資料庫已損壞並啟動恢復程序
+            # 步驟 3: 如果在上述任何一步發生異常，則假定資料庫已損壞並啟動恢復程序
             logger.warning(f"[{self.user_id}] 向量儲存初始化失敗（可能是首次啟動或資料損壞）: {type(e).__name__}: {e}。啟動全自動恢復...")
             try:
                 # 備份並刪除舊的、已損壞的資料夾
@@ -755,6 +756,10 @@ class AILover:
                 
                 # 創建一個全新的空資料夾
                 vector_path.mkdir(parents=True, exist_ok=True)
+                
+                # [v202.2 核心修正] 在重新創建實例前，短暫等待以釋放檔案鎖
+                logger.info(f"[{self.user_id}] 已清理舊目錄，正在等待 1.0 秒以確保檔案鎖已釋放...")
+                await asyncio.sleep(1.0)
                 
                 # 在乾淨的環境下再次嘗試實例化
                 self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
@@ -790,7 +795,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
         return retriever
-    # 函式：建構檢索器 (v202.1 - 災難性啟動修正)
+    # 函式：建構檢索器 (v202.2 - 競爭條件最終修復)
 
     # 函式：獲取場景擴展鏈 (v203.1 - 延遲加載重構)
     def get_scene_expansion_chain(self) -> Runnable:
