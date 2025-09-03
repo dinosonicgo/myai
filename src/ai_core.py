@@ -1,11 +1,12 @@
-# ai_core.py 的中文註釋(v201.0 - 混合模式圖架構)
+# ai_core.py 的中文註釋(v203.1 - 徹底延遲加載修正)
 # 更新紀錄:
+# v203.1 (2025-09-05): [災難性BUG修復] 徹底完成了“延遲加載”重構。
+#    1. [補完 Getters] 為所有在重構中遺漏的鏈（如 input_analysis_chain, scene_analysis_chain 等）都創建了對應的 `get_..._chain` 方法。
+#    2. [重命名配置方法] 將 `_configure_model_and_chain` 重命名為 `_configure_pre_requisites`，並簡化其职责，使其不再構建任何鏈。
+#    3. [更新调用点] 相应地更新了 `initialize` 和 `discord_bot.py` 中 `finalize_setup` 的调用。
+#    此修改確保了所有鏈的構建都被推遲到實際需要時，從根本上解決了所有因初始化順序問題導致的 AttributeError。
+# v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構，引入“延遲加載”模式。
 # v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了系統性重構。
-#    1. [新增 NSFW 直通鏈] 新增了 `_build_direct_nsfw_chain` 函式，它整合了最高指導原則和性愛模組，創建了一個高對抗性的、直接生成文本的鏈，專門用於處理 NSFW 請求，以繞過計劃階段的內容審查。
-#    2. [SFW 鏈職責專一化] 微調了 `_build_planning_chain` 的提示詞，使其更專注於處理 SFW 指令的結構化工具調用計劃。
-#    3. [新增路由依據] 驗證並強化了 `_is_explicit_sexual_request` 函式，它將作為圖路由器 (Graph Router) 判斷進入 NSFW 路徑或 SFW 路徑的核心依據。
-#    4. [鏈註冊] 在 `_configure_model_and_chain` 中註冊了新的 `direct_nsfw_chain`。
-# v200.0 (2025-09-03): [重大邏輯升級] 新增了對 `_build_expansion_decision_chain` 的調用。
 
 import re
 import json
@@ -87,39 +88,44 @@ class AILover:
 
 
 
-    # 函式：初始化AI核心 (v201.0 - 為混合模式圖預留屬性)
-    # 更新紀錄:
-    # v201.0 (2025-09-05): [架構重構] 新增了 `direct_nsfw_chain` 屬性，這是實現混合模式圖中 NSFW 直通路徑的關鍵組件。
-    # v198.4 (2025-09-02): [架構重構] 新增了 `entity_extraction_chain` 屬性。
-    # v198.3 (2025-09-02): [架構清理] 將屬性 `zero_instruction_template` 重命名為 `world_snapshot_template`。
+    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
         self.gm_model: Optional[Runnable] = None
+        
+        # [v203.1] 所有链都初始化为 None，将在 get 方法中被延遲加載
         self.personal_memory_chain: Optional[Runnable] = None
         self.scene_expansion_chain: Optional[Runnable] = None
         self.scene_casting_chain: Optional[Runnable] = None
         self.input_analysis_chain: Optional[Runnable] = None
         self.scene_analysis_chain: Optional[Runnable] = None
-        self.expansion_decision_chain: Optional[Runnable] = None # [v200.0] 新增
+        self.expansion_decision_chain: Optional[Runnable] = None
         self.output_validation_chain: Optional[Runnable] = None
         self.rewrite_chain: Optional[Runnable] = None
         self.action_intent_chain: Optional[Runnable] = None
         self.rag_summarizer_chain: Optional[Runnable] = None
         self.planning_chain: Optional[Runnable] = None
         self.narrative_chain: Optional[Runnable] = None
-        self.direct_nsfw_chain: Optional[Runnable] = None # [v201.0 新增]
-        self.entity_extraction_chain: Optional[Runnable] = None 
-        self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
-        self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
-        self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
+        self.direct_nsfw_chain: Optional[Runnable] = None
+        self.remote_scene_generator_chain: Optional[Runnable] = None
+        self.entity_extraction_chain: Optional[Runnable] = None
         self.world_genesis_chain: Optional[Runnable] = None
         self.batch_entity_resolution_chain: Optional[Runnable] = None
         self.canon_parser_chain: Optional[Runnable] = None
         self.param_reconstruction_chain: Optional[Runnable] = None
+        self.single_entity_resolution_chain: Optional[Runnable] = None
+        self.profile_completion_chain: Optional[Runnable] = None
+        self.profile_parser_chain: Optional[Runnable] = None
+        self.profile_rewriting_chain: Optional[Runnable] = None
+
+        self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
+        self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
+        self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
+        
         self.modular_prompts: Dict[str, str] = {}
         self.world_snapshot_template: str = ""
-        self.rendered_tools: str = ""
+        
         self.session_histories: Dict[str, ChatMessageHistory] = {}
         self.vector_store: Optional[Chroma] = None
         self.retriever: Optional[EnsembleRetriever] = None
@@ -134,7 +140,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v201.0 - 為混合模式圖預留屬性)
+    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
     
 
 
@@ -163,8 +169,9 @@ class AILover:
 
 
     
-    # 函式：初始化AI實例
-    # 說明：從資料庫加載使用者設定，並配置所有必要的AI模型和鏈。
+    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+    # 更新紀錄:
+    # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名，完成了延遲加載重構。
     async def initialize(self) -> bool:
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
@@ -195,13 +202,14 @@ class AILover:
             )
         
         try:
-            await self._configure_model_and_chain()
+            # [v203.1 核心修正] 呼叫新的配置方法
+            await self._configure_pre_requisites()
             await self._rehydrate_short_term_memory()
         except Exception as e:
-            logger.error(f"[{self.user_id}] 配置模型和鏈或恢復記憶時發生致命錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 配置前置資源或恢復記憶時發生致命錯誤: {e}", exc_info=True)
             return False
         return True
-    # 函式：初始化AI實例
+    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
 
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
     # 說明：接收更新字典，驗證並更新記憶體中的設定檔，然後將其持久化到資料庫。
@@ -548,21 +556,16 @@ class AILover:
     # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
 
 
+    # ==============================================================================
+    # == ⛓️ 鏈的延遲加載 (Lazy Loading) 構建器 v203.1 ⛓️
+    # ==============================================================================
 
-
-
-    # 函式：獲取世界創世鏈 (v2.2 - 災難性 KeyError 修正)
-    # 更新紀錄:
-    # v2.2 (2025-09-05): [災難性BUG修復] 根據 KeyError Log，彻底重构了此链的提示词逻辑。旧版本错误地将包含大量上下文变量的 `one_instruction` 模板注入到创世提示词中，导致在创世阶段因缺少上下文而崩溃。新版本创建了一个完全独立的、自包含的提示词，该提示词只包含创世任务本身必需的变量（如 world_settings, username），从而彻底切断了错误的依赖关系，确保了创世流程的稳定性。
-    # v2.1 (2025-09-04): [重大健壯性修正] 强制注入核心协议以解决创世阶段的内容审查问题。
-    # v2.0 (2025-09-02): [重大架構重構] 移除了对 `{zero_instruction}` 的依赖。
+    # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
     def get_world_genesis_chain(self) -> Runnable:
-        if self.world_genesis_chain is None:
+        if not hasattr(self, 'world_genesis_chain') or self.world_genesis_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.8)
             genesis_llm = raw_llm.with_structured_output(WorldGenesisResult)
             
-            # [v2.2 核心修正] 创建一个完全自包含的、不依赖任何外部模板的提示词。
-            # 这个提示词只包含创世任务本身需要的指令和变量。
             genesis_prompt_str = """你现在扮演一位富有想像力的世界构建师和开场导演。
 你的任务是根据使用者提供的【核心世界觀】，为他和他的AI角色创造一个独一-无二的、充满细节和故事潜力的【初始出生点】。
 
@@ -592,19 +595,12 @@ class AILover:
             genesis_prompt = ChatPromptTemplate.from_template(genesis_prompt_str)
             self.world_genesis_chain = genesis_prompt | genesis_llm
         return self.world_genesis_chain
-    # 函式：獲取世界創世鏈 (v2.2 - 災難性 KeyError 修正)
+    # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
 
 
-
-
-    
-
-
-    
-
-    # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
     def get_batch_entity_resolution_chain(self) -> Runnable:
-        if self.batch_entity_resolution_chain is None:
+        if not hasattr(self, 'batch_entity_resolution_chain') or self.batch_entity_resolution_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.0)
             resolution_llm = raw_llm.with_structured_output(BatchResolutionPlan)
             
@@ -629,17 +625,12 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.batch_entity_resolution_chain = full_prompt | resolution_llm
         return self.batch_entity_resolution_chain
-    # 函式：獲取批次實體解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取單體實體解析鏈 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-02): [健壯性] 為了解決 API 速率限制問題，創建了這個新鏈。它一次只處理一個實體，取代了高負載的批次解析鏈，通過化整為零的方式平滑 API 請求。
+    # 函式：獲取單體實體解析鏈 (v203.1 - 延遲加載重構)
     def get_single_entity_resolution_chain(self) -> Runnable:
-        # 延遲導入以避免潛在的循環導入問題
-        from .schemas import SingleResolutionPlan
-        
-        # 使用 hasattr 檢查以確保只初始化一次
         if not hasattr(self, 'single_entity_resolution_chain') or self.single_entity_resolution_chain is None:
+            from .schemas import SingleResolutionPlan
             raw_llm = self._create_llm_instance(temperature=0.0)
             resolution_llm = raw_llm.with_structured_output(SingleResolutionPlan)
             
@@ -664,16 +655,12 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.single_entity_resolution_chain = full_prompt | resolution_llm
         return self.single_entity_resolution_chain
-    # 函式：獲取單體實體解析鏈 (v1.0 - 全新創建)
+    # 函式：獲取單體實體解析鏈 (v203.1 - 延遲加載重構)
 
 
-    
-
-    # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
-    # 更新紀錄:
-    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。此鏈的提示詞現在是完全獨立和自包含的，確保了其功能的穩定性和一致性，不再受外部通用指令的污染。
+    # 函式：獲取世界聖經解析鏈 (v203.1 - 延遲加載重構)
     def get_canon_parser_chain(self) -> Runnable:
-        if self.canon_parser_chain is None:
+        if not hasattr(self, 'canon_parser_chain') or self.canon_parser_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.2)
             parser_llm = raw_llm.with_structured_output(CanonParsingResult)
             
@@ -693,13 +680,9 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.canon_parser_chain = full_prompt | parser_llm
         return self.canon_parser_chain
-    # 函式：獲取世界聖經解析鏈 (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取世界聖經解析鏈 (v203.1 - 延遲加載重構)
 
-
-
-    # 函式：獲取角色檔案補完鏈 (v1.0 - 延遲加載重構)
-    # 更新紀錄:
-    # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在延遲加載重構中被遺漏的鏈。此鏈負責將不完整的角色檔案 JSON 補完為細節豐富的完整版本，是 /start 流程的關鍵步驟。
+    # 函式：獲取角色檔案補完鏈 (v203.1 - 延遲加載重構)
     def get_profile_completion_chain(self) -> Runnable:
         """獲取或創建角色檔案補完鏈。"""
         if not hasattr(self, 'profile_completion_chain') or self.profile_completion_chain is None:
@@ -707,11 +690,9 @@ class AILover:
             structured_llm = self.gm_model.with_structured_output(CharacterProfile)
             self.profile_completion_chain = prompt | structured_llm
         return self.profile_completion_chain
-    # 函式：獲取角色檔案補完鏈 (v1.0 - 延遲加載重構)
+    # 函式：獲取角色檔案補完鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取角色檔案解析鏈 (v1.0 - 延遲加載重構)
-    # 更新紀錄:
-    # v1.0 (2025-09-05): [健壯性] 根據延遲加載重構的最佳實踐，為此鏈創建了 get_ 方法。
+    # 函式：獲取角色檔案解析鏈 (v203.1 - 延遲加載重構)
     def get_profile_parser_chain(self) -> Runnable:
         """獲取或創建角色檔案解析鏈。"""
         if not hasattr(self, 'profile_parser_chain') or self.profile_parser_chain is None:
@@ -719,24 +700,16 @@ class AILover:
             structured_llm = self.gm_model.with_structured_output(CharacterProfile)
             self.profile_parser_chain = prompt | structured_llm
         return self.profile_parser_chain
-    # 函式：獲取角色檔案解析鏈 (v1.0 - 延遲加載重構)
+    # 函式：獲取角色檔案解析鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取角色檔案重寫鏈 (v1.0 - 延遲加載重構)
-    # 更新紀錄:
-    # v1.0 (2025-09-05): [健壯性] 根據延遲加載重構的最佳實踐，為此鏈創建了 get_ 方法。
+    # 函式：獲取角色檔案重寫鏈 (v203.1 - 延遲加載重構)
     def get_profile_rewriting_chain(self) -> Runnable:
         """獲取或創建角色檔案重寫鏈。"""
         if not hasattr(self, 'profile_rewriting_chain') or self.profile_rewriting_chain is None:
             prompt = self.get_profile_rewriting_prompt()
             self.profile_rewriting_chain = prompt | self.gm_model | StrOutputParser()
         return self.profile_rewriting_chain
-    # 函式：獲取角色檔案重寫鏈 (v1.0 - 延遲加載重構)
-
-
-
-
-
-    
+    # 函式：獲取角色檔案重寫鏈 (v203.1 - 延遲加載重構)
 
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
     # 更新紀錄:
@@ -750,17 +723,6 @@ class AILover:
         
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
-
-
-
-
-
-
-
-
-
-
-    
 
     # 函式：建構檢索器 (v202.1 - 災難性啟動修正)
     # 更新紀錄:
@@ -830,27 +792,18 @@ class AILover:
         return retriever
     # 函式：建構檢索器 (v202.1 - 災難性啟動修正)
 
-
-
-
-
-    # 函式：建構場景擴展鏈 (v183.0 - 強制注入核心協議)
-    # 更新紀錄:
-    # v183.0 (2025-09-04): [重大健壯性修正] 為了確保背景世界填充的內容風格與主線劇情一致，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。
-    # v182.1 (2025-09-03): [灾难性BUG修复] 根據 KeyError 日志，修复了 v182.0 更新中引入的严重错误。新版提示词中的 JSON 范例（例如 `updates={"status": "..."}`）使用了单大括号，被模板引擎错误地解析为变量。此修正将所有作为纯文本示例的 JSON 结构中的 `{` 和 `}` 全部转义为 `{{` 和 `}}`，从根本上解决了因此导致的启动崩溃问题。
-    # v182.0 (2025-09-03): [重大健壮性修正] 为提示词增加了关于如何正确使用“更新”类工具的明确操作指南和范例。
-    def _build_scene_expansion_chain(self) -> Runnable:
-        """建構一個作為「世界填充引擎」的鏈，其核心職責是主動地、創造性地為當前場景填充理應存在但尚未被提及的細節。"""
-        expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
-        raw_expansion_model = self._create_llm_instance(temperature=0.7)
-        expansion_model = raw_expansion_model.bind(safety_settings=SAFETY_SETTINGS)
-        
-        # [v183.0 核心修正] 將最高指導原則作為系統級前綴
-        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
-        
-        available_lore_tool_names = ", ".join([f"`{t.name}`" for t in lore_tools.get_lore_tools()])
-        
-        scene_expansion_task_template = """---
+    # 函式：獲取場景擴展鏈 (v203.1 - 延遲加載重構)
+    def get_scene_expansion_chain(self) -> Runnable:
+        if not hasattr(self, 'scene_expansion_chain') or self.scene_expansion_chain is None:
+            expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
+            raw_expansion_model = self._create_llm_instance(temperature=0.7)
+            expansion_model = raw_expansion_model.bind(safety_settings=SAFETY_SETTINGS)
+            
+            system_prompt_prefix = self.profile.one_instruction if self.profile else ""
+            
+            available_lore_tool_names = ", ".join([f"`{t.name}`" for t in lore_tools.get_lore_tools()])
+            
+            scene_expansion_task_template = """---
 [CONTEXT]
 **核心世界觀:** {world_settings}
 **當前完整地點路徑:** {current_location_path}
@@ -883,34 +836,28 @@ class AILover:
 请严格遵守上述所有规则，扮演一个有意识、有记忆的世界填充引擎，生成一个既能补充世界空白又能正确更新现有设定的、详细的工具呼叫計畫JSON。
 {format_instructions}
 """
-        # 組合前綴和任務指令
-        full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{scene_expansion_task_template}"
+            full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{scene_expansion_task_template}"
 
-        scene_expansion_prompt = ChatPromptTemplate.from_template(
-            full_prompt_str,
-            partial_variables={ "available_lore_tool_names": available_lore_tool_names }
-        )
-        return (
-            scene_expansion_prompt.partial(format_instructions=expansion_parser.get_format_instructions())
-            | expansion_model
-            | StrOutputParser()
-            | expansion_parser
-        )
-    # 函式：建構場景擴展鏈 (v183.0 - 強制注入核心協議)
+            scene_expansion_prompt = ChatPromptTemplate.from_template(
+                full_prompt_str,
+                partial_variables={ "available_lore_tool_names": available_lore_tool_names }
+            )
+            self.scene_expansion_chain = (
+                scene_expansion_prompt.partial(format_instructions=expansion_parser.get_format_instructions())
+                | expansion_model
+                | StrOutputParser()
+                | expansion_parser
+            )
+        return self.scene_expansion_chain
+    # 函式：獲取場景擴展鏈 (v203.1 - 延遲加載重構)
     
 
-
-
-    # 函式：建構場景選角鏈 (v149.1 - 災難性 KeyError 修正)
-    # 更新紀錄:
-    # v149.1 (2025-09-05): [災難性BUG修復] 根據資訊查詢指令引發的 KeyError Log，徹底重構了此鏈的提示詞。舊版本錯誤地將包含大量上下文變數的 `one_instruction` 模板注入到一個只需要少量參數的內部工具鏈中。新版本創建了一個完全獨立、自包含的提示詞，該提示詞只包含選角任務本身必需的變數，從而徹底切斷了錯誤的依賴關係，確保了 SFW 探索路徑的穩定性。
-    # v149.0 (2025-09-04): [重大健壯性修正] 強制注入核心協議以確保 NPC 生成風格的一致性。
-    def _build_scene_casting_chain(self) -> Runnable:
-        """建構一個鏈，不僅創造核心 NPC 和配角，还强制为他们生成真实姓名、备用名称和符合世界观的物品名称。"""
-        casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
-        
-        # [v149.1 核心修正] 創建一個完全自包含的、不依賴任何外部模板的提示詞。
-        casting_prompt_template = """你現在扮演一位富有创造力的【选角导演】和【世界命名師】。你的任务是分析【最近对话】和【当前场景上下文】，找出需要被赋予身份的通用角色，并为他们创造一个充滿動機和互動潛力的生動場景。
+    # 函式：獲取場景選角鏈 (v203.1 - 延遲加載重構)
+    def get_scene_casting_chain(self) -> Runnable:
+        if not hasattr(self, 'scene_casting_chain') or self.scene_casting_chain is None:
+            casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
+            
+            casting_prompt_template = """你現在扮演一位富有创造力的【选角导演】和【世界命名師】。你的任务是分析【最近对话】和【当前场景上下文】，找出需要被赋予身份的通用角色，并为他们创造一个充滿動機和互動潛力的生動場景。
 
 【核心规则】
 1.  **【【【上下文感知原则 (Context-Awareness Principle) - 最高优先级】】】**:
@@ -939,23 +886,19 @@ class AILover:
 {recent_dialogue}
 ---
 请严格遵守以上所有规则，开始你的选角工作。"""
-        
-        casting_prompt = ChatPromptTemplate.from_template(casting_prompt_template)
-        
-        return casting_prompt | casting_llm
-    # 函式：建構場景選角鏈 (v149.1 - 災難性 KeyError 修正)
+            
+            casting_prompt = ChatPromptTemplate.from_template(casting_prompt_template)
+            
+            self.scene_casting_chain = casting_prompt | casting_llm
+        return self.scene_casting_chain
+    # 函式：獲取場景選角鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-
-    # 函式：建構使用者意圖分析鏈 (v143.0 接續指令增強版)
-    # 說明：建構一個鏈，用於在主流程前分析使用者輸入的意圖，並識別“继续”等指令。
-    def _build_input_analysis_chain(self) -> Runnable:
-        """建構一個鏈，用於在主流程前分析使用者輸入的意圖，並識別“继续”等指令。"""
-        analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(UserInputAnalysis)
-        
-        analysis_prompt_template = """你是一個專業的遊戲管理員(GM)意圖分析引擎。你的唯一任務是分析使用者的單句輸入，並嚴格按照指示將其分類和轉化。
+    # 函式：獲取使用者意圖分析鏈 (v203.1 - 延遲加載重構)
+    def get_input_analysis_chain(self) -> Runnable:
+        if not hasattr(self, 'input_analysis_chain') or self.input_analysis_chain is None:
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(UserInputAnalysis)
+            
+            analysis_prompt_template = """你是一個專業的遊戲管理員(GM)意圖分析引擎。你的唯一任務是分析使用者的單句輸入，並嚴格按照指示將其分類和轉化。
 
 【分類定義】
 1.  `continuation`: 當輸入是明確要求接續上一個場景的詞語時。
@@ -982,18 +925,18 @@ class AILover:
 {user_input}
 ---
 請開始分析並生成結構化的 JSON 輸出。"""
-        
-        analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
-        return analysis_prompt | analysis_llm
-    # 函式：建構使用者意圖分析鏈 (v143.0 接續指令增強版)
+            
+            analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
+            self.input_analysis_chain = analysis_prompt | analysis_llm
+        return self.input_analysis_chain
+    # 函式：獲取使用者意圖分析鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：建構場景視角分析鏈 (v139.0 驗證強化版)
-    # 說明：建構一個專門用於判斷使用者視角（本地或遠程）並提取核心觀察實體的鏈。
-    def _build_scene_analysis_chain(self) -> Runnable:
-        """建構一個專門用於判斷使用者視角（本地或遠程）並提取核心觀察實體的鏈。"""
-        analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneAnalysisResult)
-        
-        analysis_prompt_template = """你是一個精密的場景視角與實體分析器。你的任務是分析使用者的指令，判斷他們的行動或觀察是【本地】還是【遠程】，並找出他們想要【聚焦觀察的核心實體】。
+    # 函式：獲取場景視角分析鏈 (v203.1 - 延遲加載重構)
+    def get_scene_analysis_chain(self) -> Runnable:
+        if not hasattr(self, 'scene_analysis_chain') or self.scene_analysis_chain is None:
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneAnalysisResult)
+            
+            analysis_prompt_template = """你是一個精密的場景視角與實體分析器。你的任務是分析使用者的指令，判斷他們的行動或觀察是【本地】還是【遠程】，並找出他們想要【聚焦觀察的核心實體】。
 
 【核心判斷邏輯】
 1.  **視角判斷**:
@@ -1018,25 +961,19 @@ class AILover:
 【使用者輸入】: {user_input}
 ---
 請開始你的分析。"""
-        
-        analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
-        return analysis_prompt | analysis_llm
-    # 函式：建構場景視角分析鏈 (v139.0 驗證強化版)
+            
+            analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
+            self.scene_analysis_chain = analysis_prompt | analysis_llm
+        return self.scene_analysis_chain
+    # 函式：獲取場景視角分析鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-    # 函式：建構輸出驗證鏈 (v3.0 邏輯修正)
-    # 更新紀錄:
-    # v3.0 (2025-08-29): [根本性BUG修復] 徹底重構了驗證邏輯。現在驗證鏈會明確區分【使用者角色】與【NPC/AI角色】。它將只在AI試圖扮演、杜撰使用者 {username} 的主觀思想或未表達動作時，才判定為違規。對NPC或AI角色內心、情緒的描寫將被完全忽略。此修改旨在從根本上解決因過度審查導致的內容淨化和簡化問題。
-    # v2.0 (2025-08-28): [健壯性] 使用更穩健的 JsonOutputParser 替換 BooleanOutputParser。
-    # v1.0 (2025-08-27): [全新創建] 創建了此函式以審查輸出。
-    def _build_output_validation_chain(self) -> Runnable:
-        """建構一個專門用於審查 AI 最終輸出是否違反“使用者主權原則”的鏈。"""
-        validation_llm = self._create_llm_instance(temperature=0.0)
-        output_parser = JsonOutputParser(pydantic_object=ValidationResult)
-        
-        validation_prompt_template = """你是一位精確的 AI 輸出審查員。你的唯一任務是判斷一段由 AI 生成的遊戲旁白是否違反了針對【使用者角色】的最高禁令。
+    # 函式：獲取輸出驗證鏈 (v203.1 - 延遲加載重構)
+    def get_output_validation_chain(self) -> Runnable:
+        if not hasattr(self, 'output_validation_chain') or self.output_validation_chain is None:
+            validation_llm = self._create_llm_instance(temperature=0.0)
+            output_parser = JsonOutputParser(pydantic_object=ValidationResult)
+            
+            validation_prompt_template = """你是一位精確的 AI 輸出審查員。你的唯一任務是判斷一段由 AI 生成的遊戲旁白是否違反了針對【使用者角色】的最高禁令。
 
 【使用者主權原則（最高禁令）- 唯一審查標準】
 旁白【絕對禁止】扮演、描述、暗示或杜撰【使用者角色「{username}」】的任何**主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。
@@ -1059,26 +996,21 @@ class AILover:
 {response_text}
 ---
 """
-        
-        prompt = ChatPromptTemplate.from_template(
-            validation_prompt_template,
-            partial_variables={"format_instructions": output_parser.get_format_instructions()}
-        )
-        return prompt | validation_llm | output_parser
-    # 函式：建構輸出驗證鏈 (v3.0 邏輯修正)
+            
+            prompt = ChatPromptTemplate.from_template(
+                validation_prompt_template,
+                partial_variables={"format_instructions": output_parser.get_format_instructions()}
+            )
+            self.output_validation_chain = prompt | validation_llm | output_parser
+        return self.output_validation_chain
+    # 函式：獲取輸出驗證鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-
-
-    # 函式：建構 RAG 上下文總結鏈 (v1.0 - 全新創建)
-    # 說明：創建一個專門的鏈，用於將 RAG 檢索到的、可能包含完整敘事散文的文檔，提煉成一份只包含核心事實的、要點式的摘要。此舉旨在從根本上解決 AI 直接複製歷史上下文的“偷懶”問題。
-    def _build_rag_summarizer_chain(self) -> Runnable:
-        """創建一個用於將 RAG 檢索結果提煉為要點事實的鏈。"""
-        summarizer_llm = self._create_llm_instance(temperature=0.0)
-        
-        prompt_template = """你的唯一任務是扮演一名情報分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
+    # 函式：獲取 RAG 上下文總結鏈 (v203.1 - 延遲加載重構)
+    def get_rag_summarizer_chain(self) -> Runnable:
+        if not hasattr(self, 'rag_summarizer_chain') or self.rag_summarizer_chain is None:
+            summarizer_llm = self._create_llm_instance(temperature=0.0)
+            
+            prompt_template = """你的唯一任務是扮演一名情報分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
 
 【核心規則】
 1.  **只提取事實**: 你的輸出【必須且只能】是關鍵事實的列表（例如人物、地點、物品、發生的核心事件）。
@@ -1091,32 +1023,25 @@ class AILover:
 ---
 【事實摘要】:
 """
-        prompt = ChatPromptTemplate.from_template(prompt_template)
-        
-        return (
-            {"documents": lambda docs: "\n\n---\n\n".join([doc.page_content for doc in docs])}
-            | prompt
-            | summarizer_llm
-            | StrOutputParser()
-        )
-    # 函式：建構 RAG 上下文總結鏈 (v1.0 - 全新創建)
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            
+            self.rag_summarizer_chain = (
+                {"documents": lambda docs: "\n\n---\n\n".join([doc.page_content for doc in docs])}
+                | prompt
+                | summarizer_llm
+                | StrOutputParser()
+            )
+        return self.rag_summarizer_chain
+    # 函式：獲取 RAG 上下文總結鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-# 函式：建構 SFW 回合計劃鏈 (v5.6 - 指令統一化)
-    # 更新紀錄:
-    # v5.6 (2025-09-05): [重大架構修正] 根據敏感內容在 SFW 路徑中被攔截的報告，回滾了 v5.5 的簡化邏輯。此鏈現在再次與 `one_instruction` 模板對齊，通過一個統一的 `system_prompt` 變數接收完整的、包含最高指導原則的指令集。這確保了即使在 SFW 路徑中，AI 也能夠在需要時獲得足夠的對抗性指令來處理隱晦的敏感內容。
-    # v5.5 (2025-09-05): [災難性BUG修復] 簡化了提示詞以修復 /start 流程。
-    def _build_planning_chain(self) -> Runnable:
-        """創建一個能夠處理 SFW 任務，同時具備處理隱晦敏感內容能力的規劃鏈。"""
-        from .schemas import TurnPlan
-        planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
-
-        # [v5.6 核心修正] 回滾到 v5.4 之前的結構，使用一個統一的 system_prompt
-        # 這允許 planning_node 根據需要注入完整的 one_instruction 指令集
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", """
+    # 函式：獲取 SFW 回合計劃鏈 (v203.1 - 延遲加載重構)
+    def get_planning_chain(self) -> Runnable:
+        if not hasattr(self, 'planning_chain') or self.planning_chain is None:
+            from .schemas import TurnPlan
+            planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", """
 # ==============================================================================
 # == 🧠 系統核心指令 (規劃模式) 🧠
 # ==============================================================================
@@ -1126,7 +1051,7 @@ class AILover:
 # ------------------------------------------------------------------------------
 {system_prompt}
 """),
-            ("human", """
+                ("human", """
 # ==============================================================================
 # == 📖 當前情境與使用者指令 📖
 # ==============================================================================
@@ -1140,25 +1065,16 @@ class AILover:
 # --- 你的任務 ---
 請嚴格遵循你在【系統核心指令】中學到的所有規則，開始你智慧的規劃，生成行動計劃 JSON。
 """)
-        ])
-        
-        return prompt | planner_llm
-    # 函式：建構 SFW 回合計劃鏈 (v5.6 - 指令統一化)
+            ])
+            
+            self.planning_chain = prompt | planner_llm
+        return self.planning_chain
+    # 函式：獲取 SFW 回合計劃鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-
-
-
-
-    # 函式：建構遠程場景生成鏈 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-05): [重大功能擴展] 根據“遠程觀察”指令無法生成第三人稱場景的問題，全新創建了此鏈。它的唯一職責是扮演一位全知的電影導演，接收一個遠程地點的上下文，並直接生成一段生動的、包含 NPC 互動和對話的、純粹的小說式場景描述，從而實現了“鏡頭切換”的功能。
-    def _build_remote_scene_generator_chain(self) -> Runnable:
-        """創建一個專門的鏈，用於生成遠程地點的、電影鏡頭式的第三人稱場景描述。"""
-        
-        system_prompt = """你是一位才華橫溢的電影導演和小說家。
+    # 函式：獲取遠程場景生成鏈 (v203.1 - 延遲加載重構)
+    def get_remote_scene_generator_chain(self) -> Runnable:
+        if not hasattr(self, 'remote_scene_generator_chain') or self.remote_scene_generator_chain is None:
+            system_prompt = """你是一位才華橫溢的電影導演和小說家。
 你的【唯一任務】是將鏡頭切換到一個【遠程地點】，並為觀眾呈現一段生動、真實、充滿生命力的場景描寫。
 
 【核心導演原則】
@@ -1175,8 +1091,8 @@ class AILover:
 {response_style_prompt}
 ---
 """
-        
-        human_prompt = """
+            
+            human_prompt = """
 # ==============================================================================
 # == 🎬 導演指令卡 🎬
 # ==============================================================================
@@ -1191,27 +1107,21 @@ class AILover:
 請嚴格遵循你在【系統核心指令】中學到的所有規則，將鏡頭切換到目標地點，為我們呈現那裡正在發生的一幕。
 """
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", human_prompt)
-        ])
-        
-        return prompt | self.gm_model | StrOutputParser()
-    # 函式：建構遠程場景生成鏈 (v1.0 - 全新創建)
-
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            
+            self.remote_scene_generator_chain = prompt | self.gm_model | StrOutputParser()
+        return self.remote_scene_generator_chain
+    # 函式：獲取遠程場景生成鏈 (v203.1 - 延遲加載重構)
     
-
-
-    # 函式：建構重寫鏈 (v167.0 - 提示詞結構修正)
-    # 更新紀錄:
-    # v167.0 (2025-08-31): [災難性BUG修復] 徹底重構了此鏈的提示詞結構，嚴格遵循 `System/Human` 訊息格式。舊版本將所有指令打包為單一輸入，導致模型在執行重寫任務時，會連同自身的系統指令（如“好的，身為專業小說編輯...”）一起洩漏到輸出中。新結構確保模型清晰地區分其角色和任務，從而只輸出純淨的、修正後的小說文本。
-    # v166.0 (2025-08-29): [健壯性] 強化了 Prompt，要求在修正時必須保持原始的露骨程度和核心意圖。
-    def _build_rewrite_chain(self) -> Runnable:
-        """建構一個專門用於修正違反“使用者主權原則”的回應的鏈。"""
-        rewrite_llm = self._create_llm_instance(temperature=0.5)
-        
-        # [v167.0 修正] 將提示詞分離為 System 和 Human 兩部分
-        system_prompt = """你是一位專業的小說編輯。你的唯一任務是修正一段因“扮演使用者”而違規的遊戲旁白。
+    # 函式：獲取重寫鏈 (v203.1 - 延遲加載重構)
+    def get_rewrite_chain(self) -> Runnable:
+        if not hasattr(self, 'rewrite_chain') or self.rewrite_chain is None:
+            rewrite_llm = self._create_llm_instance(temperature=0.5)
+            
+            system_prompt = """你是一位專業的小說編輯。你的唯一任務是修正一段因“扮演使用者”而違規的遊戲旁白。
 
 【最高指導原則】
 1.  **【使用者主權】**: 重寫後的文本【絕對禁止】包含任何對使用者角色「{username}」的**主觀思想、內心感受、情緒、或未明確表達的動作**。
@@ -1219,7 +1129,7 @@ class AILover:
 3.  **【因果倒轉】**: 將原始的【使用者指令】視為「因」，然後將【違規文本】中的有效劇情（事件的結果、NPC的反應）提煉出來，重寫為完全客觀的、描述「果」的旁白。
 4.  **【純淨輸出】**: 你的最終輸出【必須且只能】是修正後的小說文本本身。**絕對禁止**包含任何解釋、前言或類似“修正後的旁白：”的標籤。"""
 
-        human_prompt = """請根據你在系統指令中學到的規則，修正以下文本。
+            human_prompt = """請根據你在系統指令中學到的規則，修正以下文本。
 
 ---
 【使用者指令】:
@@ -1230,25 +1140,23 @@ class AILover:
 ---
 【修正後的合規文本】:
 """
-        
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", human_prompt)
-        ])
-        
-        return prompt | rewrite_llm | StrOutputParser()
-    # 函式：建構重寫鏈 (v167.0 - 提示詞結構修正)
+            
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            
+            self.rewrite_chain = prompt | rewrite_llm | StrOutputParser()
+        return self.rewrite_chain
+    # 函式：獲取重寫鏈 (v203.1 - 延遲加載重構)
 
-
-
-    # 函式：建構動作意圖解析鏈 (v1.0 新增)
-    # 說明：建構一個專門用於將使用者自然語言指令解析為結構化動作意圖的鏈，是實現狀態感知的關鍵第一步。
-    def _build_action_intent_chain(self) -> Runnable:
-        """建構一個專門用於將使用者自然語言指令解析為結構化動作意圖的鏈。"""
-        from .schemas import ActionIntent 
-        intent_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ActionIntent)
-        
-        intent_prompt_template = """你是一個精確的遊戲指令解析器。你的任務是將使用者的自然語言輸入，解析為一個結構化的動作意圖 JSON。
+    # 函式：獲取動作意圖解析鏈 (v203.1 - 延遲加載重構)
+    def get_action_intent_chain(self) -> Runnable:
+        if not hasattr(self, 'action_intent_chain') or self.action_intent_chain is None:
+            from .schemas import ActionIntent 
+            intent_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ActionIntent)
+            
+            intent_prompt_template = """你是一個精確的遊戲指令解析器。你的任務是將使用者的自然語言輸入，解析為一個結構化的動作意圖 JSON。
 
 【核心規則】
 1.  **識別目標**: 仔細閱讀【使用者輸入】和【在場角色列表】，找出指令的主要目標是誰。如果沒有明確的目標，則為 null。
@@ -1268,17 +1176,15 @@ class AILover:
 {user_input}
 ---
 請開始解析並生成結構化的 JSON 輸出。"""
-        
-        prompt = ChatPromptTemplate.from_template(intent_prompt_template)
-        return prompt | intent_llm
-    # 函式：建構動作意圖解析鏈 (v1.0 新增)
+            
+            prompt = ChatPromptTemplate.from_template(intent_prompt_template)
+            self.action_intent_chain = prompt | intent_llm
+        return self.action_intent_chain
+    # 函式：獲取動作意圖解析鏈 (v203.1 - 延遲加載重構)
 
-    
-    # 函式：建構參數重構鏈 (v156.2 新增)
-    # 說明：創建一個專門的鏈，用於在工具參數驗證失敗時，嘗試根據錯誤訊息和正確的Schema來修復LLM生成的錯誤參數。
-    def _build_param_reconstruction_chain(self) -> Runnable:
-        """創建一個專門的鏈，用於修復LLM生成的、未能通過Pydantic驗證的工具參數。"""
-        if self.param_reconstruction_chain is None:
+    # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
+    def get_param_reconstruction_chain(self) -> Runnable:
+        if not hasattr(self, 'param_reconstruction_chain') or self.param_reconstruction_chain is None:
             reconstruction_llm = self._create_llm_instance(temperature=0.0)
             
             prompt_template = """你是一位資深的AI系統除錯工程師。你的任務是修復一個由AI下屬生成的、格式錯誤的工具呼叫參數。
@@ -1313,19 +1219,176 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.param_reconstruction_chain = prompt | reconstruction_llm | JsonOutputParser()
         return self.param_reconstruction_chain
-    # 函式：建構參數重構鏈 (v156.2 新增)
+    # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
 
+    # 函式：獲取敘事鏈 (v203.1 - 延遲加載重構)
+    def get_narrative_chain(self) -> Runnable:
+        if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
+            system_prompt_for_writing = """你是一位技藝精湛的小說家和敘事者。
+你的唯一任務是將下方提供的【回合行動計畫】（一份包含导演筆記和角色行動的結構化JSON），轉化為一段文筆优美的、沉浸式的、統一連貫的小說場景。
 
+【核心寫作規則】
+1.  **語言強制令**: 你的最終輸出【必須且只能】使用【繁體中文】。
+2.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
+3.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
+4.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
+"""
 
+            prompt_template = """{system_prompt}
 
+---
+【回合行動計畫 (JSON)】:
+{turn_plan_json}
+---
 
-    # 函式：配置模型和鏈 (v201.1 - 註冊場景生成鏈)
-    # 更新紀錄:
-    # v201.1 (2025-09-05): [重大功能擴展] 新增了對 `_build_remote_scene_generator_chain` 的調用，以初始化並註冊新的“遠程場景生成器”鏈，這是實現“鏡頭切換”功能的關鍵一步。
-    # v201.0 (2025-09-05): [重大架構重構] 註冊了混合模式圖中的 NSFW 直通路徑核心鏈。
-    async def _configure_model_and_chain(self):
+【生成的小說場景】:
+"""
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+
+            self.narrative_chain = (
+                {
+                    "system_prompt": lambda x: system_prompt_for_writing,
+                    "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
+                }
+                | prompt
+                | self.gm_model
+                | StrOutputParser()
+            )
+        return self.narrative_chain
+    # 函式：獲取敘事鏈 (v203.1 - 延遲加載重構)
+
+    # 函式：獲取 NSFW 直通鏈 (v203.1 - 延遲加載重構)
+    def get_direct_nsfw_chain(self) -> Runnable:
+        if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
+            one_instruction_prompt = (self.profile.one_instruction or "") if self.profile else ""
+            sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
+            
+            system_prompt_template = (
+                one_instruction_prompt + 
+                "\n\n" + 
+                sexual_content_module +
+                """
+# ==============================================================================
+# == 🎬 場景模式執行協議 🎬
+# ==============================================================================
+# 你的任務模式有兩種，你必須根據【使用者最新指令】來判斷：
+# 1.  **【互動模式】**: 如果指令是直接對 AI 角色或在場 NPC 的動作/對話指令，
+#     你將扮演 GM 和 AI 角色，生成互動式的回應。
+# 2.  **【導演模式（遠程觀察）】**: 如果指令是要求【描述】一個場景、地點或
+#     你（AI 角色）不在場的 NPC 互動，你將扮演一位電影導演。你的回應【必須】是
+#     純粹的、客觀的第三人稱小說旁白，生動地描寫那個遠程場景中正在發生的事情，
+#     包含 NPC 自己的對話和互動。【絕對禁止】讓在場角色（如碧）來“介紹”或“回憶”
+#     那個場景。你必須直接將鏡頭切換過去。
+# ==============================================================================
+"""
+            )
+
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_template),
+                ("human", """
+# ==============================================================================
+# == 📖 當前情境與使用者指令 📖
+# ==============================================================================
+
+# --- 世界快照數據 ---
+{world_snapshot}
+
+# --- 使用者最新指令 ---
+{user_input}
+
+# --- 你的任務 ---
+請嚴格遵循你在【系統核心指令】和【場景模式執行協議】中學到的所有規則，直接生成最終的、露骨的、符合情境的小說場景。
+""")
+            ])
+            
+            self.direct_nsfw_chain = (
+                RunnablePassthrough.assign(
+                    world_snapshot=RunnableLambda(
+                        lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') else ""
+                    )
+                )
+                | prompt
+                | self.gm_model
+                | StrOutputParser()
+            )
+        return self.direct_nsfw_chain
+    # 函式：獲取 NSFW 直通鏈 (v203.1 - 延遲加載重構)
+
+    # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
+    def get_expansion_decision_chain(self) -> Runnable:
+        if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
+            decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
+            
+            prompt_template = """你是一位精明的遊戲流程分析師。你的唯一任務是分析使用者的最新輸入和最近的對話歷史，然後判斷【當前這一回合】是否是一個適合進行【世界構建和LORE擴展】的時機。
+
+【核心判斷原則】
+你的判斷【必須】基於使用者的【探索意圖】。
+
+1.  **【應該擴展 (should_expand = true)】的明確信號：**
+    *   **移動到新地點**: 使用者剛剛執行了移動指令，進入了一個全新的或不熟悉的區域。
+    *   **明確的探索行為**: 使用者直接提問關於周圍環境、角色或物體的問題（例如：“我周圍有什麼？”、“那個NPC是誰？”、“這座雕像是關於什麼的？”）。
+    *   **提及未知實體**: 使用者的輸入中包含了一個在對話歷史和已知LORE中從未出現過的新名詞。
+    *   **開啟新話題**: 對話從一個具體的話題轉向了一個更宏觀的、關於世界背景的話題。
+
+2.  **【不應擴展 (should_expand = false)】的明確信號：**
+    *   **原地重複動作**: 使用者正在對一個已知的角色執行簡單、重複的指令（例如：“碧，坐下”、“碧，趴下”、“碧，站起來”）。
+    *   **持續的私人對話**: 對話聚焦於使用者和AI角色之間的情感交流或私人話題，與外部世界無關。
+    *   **已知工具互動**: 使用者正在使用工具與已知的物品或角色進行互動（例如：“裝備長劍”、“和商人交易”）。
+    *   **無實質進展**: 對話內容在原地打轉，沒有引入任何新資訊或探索意圖。
+
+---
+【最近的對話歷史 (用於判斷是否重複)】:
+{recent_dialogue}
+---
+【使用者最新輸入】:
+{user_input}
+---
+
+請根據上述原則做出你的判斷，並提供簡短的理由。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.expansion_decision_chain = prompt | decision_llm
+        return self.expansion_decision_chain
+    # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
+
+    # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
+    def get_entity_extraction_chain(self) -> Runnable:
+        if not hasattr(self, 'entity_extraction_chain') or self.entity_extraction_chain is None:
+            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
+
+            prompt_template = """你的唯一任務是一位高效的情報分析員。請通讀下方提供的【文本情報】，並從中提取出所有可能是專有名詞的關鍵詞。
+
+【提取目標】
+- **人名**: 包括主角、NPC、神祇等。
+- **地名**: 包括城市、地區、建築、自然景觀等。
+- **物品名**: 包括武器、裝備、道具、特殊材料等。
+- **組織名**: 包括公會、王國、教派等。
+- **概念名**: 包括特殊的魔法、事件、傳說等。
+
+【核心規則】
+1.  **寧可錯抓，不可放過**: 盡可能多地提取所有**看起來像**專有名詞的詞語。
+2.  **合併同類**: 如果同一個實體以不同形式出現（例如“碧”和“蛇人女奴”），將它們都提取出來。
+3.  **純淨列表**: 你的輸出【必須且只能】是一個包含字符串列表的 JSON 物件，格式為 `{{"names": ["名稱1", "名稱2", ...]}}`。
+
+---
+【文本情報】:
+{text_input}
+---
+
+請開始提取。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.entity_extraction_chain = prompt | extractor_llm
+        return self.entity_extraction_chain
+    # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
+
+    # 函式：配置前置資源 (v203.1 - 延遲加載重構)
+    async def _configure_pre_requisites(self):
+        """
+        配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
+        """
         if not self.profile:
-            raise ValueError("Cannot configure chain without a loaded profile.")
+            raise ValueError("Cannot configure pre-requisites without a loaded profile.")
         
         self._load_templates()
 
@@ -1337,32 +1400,8 @@ class AILover:
         
         self.retriever = await self._build_retriever()
         
-        self.rag_summarizer_chain = self._build_rag_summarizer_chain()
-        self.planning_chain = self._build_planning_chain()
-        self.narrative_chain = self._build_narrative_chain()
-        self.direct_nsfw_chain = self._build_direct_nsfw_chain()
-        self.remote_scene_generator_chain = self._build_remote_scene_generator_chain() # [v201.1 新增]
-        self.entity_extraction_chain = self._build_entity_extraction_chain()
-        self.single_entity_resolution_chain = self.get_single_entity_resolution_chain()
-        
-        self.expansion_decision_chain = self._build_expansion_decision_chain()
-        
-        self.scene_expansion_chain = self._build_scene_expansion_chain()
-        self.scene_casting_chain = self._build_scene_casting_chain()
-        self.input_analysis_chain = self._build_input_analysis_chain()
-        self.scene_analysis_chain = self._build_scene_analysis_chain()
-        self.param_reconstruction_chain = self._build_param_reconstruction_chain()
-        self.output_validation_chain = self._build_output_validation_chain()
-        self.rewrite_chain = self._build_rewrite_chain()
-        self.action_intent_chain = self._build_action_intent_chain()
-        
-        logger.info(f"[{self.user_id}] 所有模型和鏈已成功配置為 v201.1 (遠程場景模式)。")
-    # 函式：配置模型和鏈 (v201.1 - 註冊場景生成鏈)
-
-
-
-    
-
+        logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
+    # 函式：配置前置資源 (v203.1 - 延遲加載重構)
 
     # 函式：將世界聖經添加到向量儲存
     # 說明：將文本內容分割成塊，並將其添加到向量儲存中，用於後續的檢索。
@@ -1382,9 +1421,6 @@ class AILover:
             logger.error(f"[{self.user_id}] 處理核心設定時發生錯誤: {e}", exc_info=True)
             raise
     # 函式：將世界聖經添加到向量儲存
-
-
-
 
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
@@ -1472,11 +1508,6 @@ class AILover:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
-    
-
-
-
-
     
    # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
     # 更新紀錄:
@@ -1592,12 +1623,6 @@ class AILover:
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
     # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
 
-
-    
-
-
-
-
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
     # 更新紀錄:
     # v1.2 (2025-09-02): [架構清理] 移除了此函式末尾的 `tool_context.set_context(None, None)` 調用。上下文的清理職責被更可靠地移交給了 `graph.py` 中 `tool_execution_node` 的 `try...finally` 結構，確保了無論執行成功與否都能安全清理。同時優化了無結果時的返回信息。
@@ -1640,7 +1665,7 @@ class AILover:
             except ValidationError as e:
                 logger.warning(f"[{self.user_id}] (Executor) 工具 '{tool_name}' 參數驗證失敗，啟動意圖重構備援... 錯誤: {e}")
                 try:
-                    reconstruction_chain = self._build_param_reconstruction_chain()
+                    reconstruction_chain = self.get_param_reconstruction_chain()
                     reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
                         "tool_name": tool_name,
                         "original_params": json.dumps(tool_params, ensure_ascii=False),
@@ -1669,7 +1694,6 @@ class AILover:
         return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
 
-
     # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
     # 更新紀錄:
     # v2.0 (2025-09-02): [重大架構重構 - LORE 感知] 徹底重寫了此函式的核心邏輯。它現在使用一個專門的 `entity_extraction_chain` 來識別對話中的關鍵實體，然後並行地、跨類別地查詢 LORE 資料庫，為每一個被提及的實體（NPC、地點、物品等）生成一份詳細的“情報檔案”。這份包含深度 LORE 細節的完整簡報將被注入到上下文，從根本上解決了 AI 因缺乏信息而無法遵循 LORE 的“失憶症”問題。
@@ -1691,7 +1715,8 @@ class AILover:
         recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
         text_for_extraction = f"{user_input}\n{recent_dialogue}"
         
-        entity_result = await self.ainvoke_with_rotation(self.entity_extraction_chain, {"text_input": text_for_extraction})
+        entity_extraction_chain = self.get_entity_extraction_chain()
+        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_for_extraction})
         extracted_names = set(entity_result.names if entity_result else [])
         
         # 將核心角色和當前地點也加入查詢列表
@@ -1784,10 +1809,7 @@ class AILover:
         logger.info(f"[{self.user_id}] (Context Engine) 情報簡報生成完畢。")
         return final_context
     # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
-
-
     
-
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
     # 更新紀錄:
     # v167.2 (2025-08-29): [語法修正] 修正了 `await...add_texts` 行尾一個多餘的右括號，解決了導致啟動失敗的 `SyntaxError`。
@@ -1817,7 +1839,7 @@ class AILover:
     # v171.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此函式的执行流程。现在，在调用 `scene_expansion_chain` 之前，会先调用 `lore_book.get_all_lores_for_user` 来获取所有现有 LORE，并将其格式化为一个简洁的摘要。这个摘要随后被注入到扩展链的 Prompt 中，为其提供了避免重复创造 LORE 的关键上下文，旨在从根本上解决无限生成相似 LORE 的问题。
     # v170.0 (2025-09-02): [健壯性] 增加了初始延遲以緩解 API 速率限制。
     async def _background_scene_expansion(self, user_input: str, final_response: str, effective_location_path: List[str]):
-        if not self.scene_expansion_chain or not self.profile:
+        if not self.profile:
             return
             
         try:
@@ -1844,8 +1866,13 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：世界心跳在最新狀態下啟動 (地點: {current_path_str})...")
             
+            scene_expansion_chain = self.get_scene_expansion_chain()
+            if not scene_expansion_chain:
+                logger.warning(f"[{self.user_id}] 背景場景擴展鏈未初始化，跳過擴展。")
+                return
+
             # [v171.0 核心修正] 將 LORE 摘要注入鏈中
-            initial_plan_dict = await self.ainvoke_with_rotation(self.scene_expansion_chain, {
+            initial_plan_dict = await self.ainvoke_with_rotation(scene_expansion_chain, {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "world_settings": self.profile.world_settings or "",
@@ -1886,9 +1913,6 @@ class AILover:
             logger.error(f"[{self.user_id}] 背景場景擴展鏈執行時發生未預期的異常: {e}", exc_info=True)
     # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
 
-
-    
-    
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-05): [重大功能擴展] 根據“委婉化優先”原則創建此鏈。其唯一職責是接收一段可能觸發內容審查的文本，並在保持其核心語義和意圖不變的前提下，將其重寫為一個更中性、更不可能觸發審查的版本。這是實現“優雅規避”審查策略的核心工具。
@@ -2012,10 +2036,7 @@ class AILover:
             logger.error(f"[{self.user_id}] 指令強化重試最終失敗: {e}", exc_info=True)
             return None # 如果強化重試也失敗，則返回 None
     # 函式：指令強化重試處理器 (v1.0 - 全新創建)
-
     
-    
-
     # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v182.0 - 策略化重構)
     # 更新紀錄:
     # v182.0 (2025-09-05): [災難性BUG修復] 根據“委婉化優先”原則，徹底重構了此函式的錯誤處理。
@@ -2071,9 +2092,6 @@ class AILover:
         return None
     # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v182.0 - 策略化重構)
 
-
-
-
     # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
     # 更新紀錄:
     # v172.1 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，增加了全方位的 None 值防禦。此修改旨在處理因上游 RAG 檢索器被內容審查攔截而返回 None 的邊界情況。现在，函式會在调用鏈之前和之后都进行严格的检查，确保 summarized_context 永远不会是 None，从而从根本上解决了因调用 .strip() 方法而导致的程式崩溃问题。
@@ -2086,11 +2104,12 @@ class AILover:
 
         # [v172.1 核心修正] 步驟 2: 正常執行鏈，但準備好處理 None 返回值
         summarized_context = None
-        if not self.rag_summarizer_chain:
+        rag_summarizer_chain = self.get_rag_summarizer_chain()
+        if not rag_summarizer_chain:
             logger.warning(f"[{self.user_id}] RAG 總結鏈未初始化，將退回至直接拼接模式。")
             summarized_context = "\n\n---\n\n".join([doc.page_content for doc in docs])
         else:
-            summarized_context = await self.ainvoke_with_rotation(self.rag_summarizer_chain, docs)
+            summarized_context = await self.ainvoke_with_rotation(rag_summarizer_chain, docs)
 
         # [v172.1 核心修正] 步驟 3: 在函式出口處進行後置防禦
         if not summarized_context or not summarized_context.strip():
@@ -2101,11 +2120,6 @@ class AILover:
         
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
-
-
-
-    
-
 
     # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
     # 更新紀錄:
@@ -2180,7 +2194,6 @@ class AILover:
         return created_names
     # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
 
-
     # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
     # 更新紀錄:
     # v2.0 (2025-09-05): [功能強化] 擴充了 NSFW 關鍵詞列表，增加了更多口語化和指令性的詞彙（如“上我”、“幹我”），以提高路由器的判斷準確率。
@@ -2198,7 +2211,6 @@ class AILover:
         return False
     # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
 
-
     # 函式：判斷是否為描述性且露骨的指令
     # 說明：一個簡單的輔助函式，用於檢測使用者的輸入是否可能包含需要轉化為世界觀的露骨描述。
     def _is_descriptive_and_explicit(self, text: str) -> bool:
@@ -2212,9 +2224,6 @@ class AILover:
         return False
     # 函式：判斷是否為描述性且露骨的指令
 
-
-
-
     # 函式：聊天主流程 (v198.0 - 已廢棄)
     # 說明：此函式已被 LangGraph 架構取代，其邏輯已遷移至 src/graph.py 中的節點。保留此空函式結構以備查。
     async def chat(self, user_input: str) -> str:
@@ -2224,203 +2233,6 @@ class AILover:
         """
         raise NotImplementedError("AILover.chat() is deprecated. Use the compiled LangGraph application instead.")
     # 函式：聊天主流程 (v198.0 - 已廢棄)
-
-
-
-
-    # 函式：建構專用敘事鏈 (v3.3 - 職責簡化)
-    # 更新紀錄:
-    # v3.3 (2025-09-05): [重大架構修正] 根據 SFW 風格不生效的報告，徹底移除了此鏈對 `final_output_mandate` 的依賴。風格指令的注入點已完全前移至 `planning_chain`。此鏈的職責回歸為純粹的“渲染器”，只負責將一個已經符合風格的 TurnPlan JSON 轉化為小說文本。
-    # v3.2 (2025-09-04): [災難性BUG修復] 採用了獨立的自包含提示詞以解決 KeyError。
-    def _build_narrative_chain(self) -> Runnable:
-        """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成小說文本。"""
-        
-        # [v3.3 核心修正] 簡化系統提示詞，移除所有關於風格指令的引用。
-        system_prompt_for_writing = """你是一位技藝精湛的小說家和敘事者。
-你的唯一任務是將下方提供的【回合行動計畫】（一份包含导演筆記和角色行動的結構化JSON），轉化為一段文筆优美的、沉浸式的、統一連貫的小說場景。
-
-【核心寫作規則】
-1.  **語言強制令**: 你的最終輸出【必須且只能】使用【繁體中文】。
-2.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
-3.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
-4.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
-"""
-
-        prompt_template = """{system_prompt}
-
----
-【回合行動計畫 (JSON)】:
-{turn_plan_json}
----
-
-【生成的小說場景】:
-"""
-        prompt = ChatPromptTemplate.from_template(prompt_template)
-
-        # [v3.3 核心修正] 簡化 Runnable 字典，不再需要 final_output_mandate
-        return (
-            {
-                "system_prompt": lambda x: system_prompt_for_writing,
-                "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
-            }
-            | prompt
-            | self.gm_model
-            | StrOutputParser()
-        )
-    # 函式：建構專用敘事鏈 (v3.3 - 職責簡化)
-
-
-
-
-
-
-    
-     # 函式：建構 NSFW 直通鏈 (v1.4 - 災難性 TypeError 修正)
-    # 更新紀錄:
-    # v1.4 (2025-09-05): [災難性BUG修復] 根據 /start 流程中的 TypeError Log，強化了提示詞拼接邏輯。舊的防空檢查只保護了 `self.profile`，但未保護 `self.profile.one_instruction` 本身可能為 `None` 的情況。新版本採用了 `(self.profile.one_instruction or "")` 的寫法，確保即使在 `one_instruction` 尚未從資料庫加載的臨時實例中，也能安全地將 `None` 轉換為空字串，從而根除了因此導致的 `TypeError`。
-    # v1.3 (2025-09-05): [重大功能擴展] 強化了提示詞，使其能明確處理“遠程描述”類任務。
-    def _build_direct_nsfw_chain(self) -> Runnable:
-        """創建一個高對抗性的、能夠處理所有類型 NSFW 請求（包括互動和遠程描述）的單次調用生成鏈。"""
-        
-        # [v1.4 核心修正] 強化防空邏輯，確保 one_instruction 本身為 None 時也能處理
-        one_instruction_prompt = (self.profile.one_instruction or "") if self.profile else ""
-        sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
-        
-        # 準備一個統一的、強大的系統提示詞
-        system_prompt_template = (
-            one_instruction_prompt + 
-            "\n\n" + 
-            sexual_content_module +
-            """
-# ==============================================================================
-# == 🎬 場景模式執行協議 🎬
-# ==============================================================================
-# 你的任務模式有兩種，你必須根據【使用者最新指令】來判斷：
-# 1.  **【互動模式】**: 如果指令是直接對 AI 角色或在場 NPC 的動作/對話指令，
-#     你將扮演 GM 和 AI 角色，生成互動式的回應。
-# 2.  **【導演模式（遠程觀察）】**: 如果指令是要求【描述】一個場景、地點或
-#     你（AI 角色）不在場的 NPC 互動，你將扮演一位電影導演。你的回應【必須】是
-#     純粹的、客觀的第三人稱小說旁白，生動地描寫那個遠程場景中正在發生的事情，
-#     包含 NPC 自己的對話和互動。【絕對禁止】讓在場角色（如碧）來“介紹”或“回憶”
-#     那個場景。你必須直接將鏡頭切換過去。
-# ==============================================================================
-"""
-        )
-
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt_template),
-            ("human", """
-# ==============================================================================
-# == 📖 當前情境與使用者指令 📖
-# ==============================================================================
-
-# --- 世界快照數據 ---
-{world_snapshot}
-
-# --- 使用者最新指令 ---
-{user_input}
-
-# --- 你的任務 ---
-請嚴格遵循你在【系統核心指令】和【場景模式執行協議】中學到的所有規則，直接生成最終的、露骨的、符合情境的小說場景。
-""")
-        ])
-        
-        # 使用 assign 來延遲格式化，避免在構建時就因缺少變數而出錯
-        return (
-            RunnablePassthrough.assign(
-                world_snapshot=RunnableLambda(
-                    # 在運行時才格式化 world_snapshot
-                    lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') else ""
-                )
-            )
-            | prompt
-            | self.gm_model
-            | StrOutputParser()
-        )
-    # 函式：建構 NSFW 直通鏈 (v1.4 - 災難性 TypeError 修正)```
-    
-
-    # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-03): [重大邏輯升級] 遵從使用者回饋，創建了此“守門人”鏈。其唯一職責是在 LORE 創造流程的最前端，判斷當前對話是否具有“探索意圖”。只有當使用者移動到新地點、詢問環境或提及新實體時，它才會允許後續的 LORE 創造節點（如選角、背景填充）被激活。此修改旨在從根本上解決在簡單、重複的原地互動中無意義地生成新 LORE 的問題。
-    def _build_expansion_decision_chain(self) -> Runnable:
-        """創建一個鏈，用於判斷當前對話輪次是否適合進行世界構建和LORE擴展。"""
-        # from .schemas import ExpansionDecision # 延遲導入
-        
-        decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
-        
-        prompt_template = """你是一位精明的遊戲流程分析師。你的唯一任務是分析使用者的最新輸入和最近的對話歷史，然後判斷【當前這一回合】是否是一個適合進行【世界構建和LORE擴展】的時機。
-
-【核心判斷原則】
-你的判斷【必須】基於使用者的【探索意圖】。
-
-1.  **【應該擴展 (should_expand = true)】的明確信號：**
-    *   **移動到新地點**: 使用者剛剛執行了移動指令，進入了一個全新的或不熟悉的區域。
-    *   **明確的探索行為**: 使用者直接提問關於周圍環境、角色或物體的問題（例如：“我周圍有什麼？”、“那個NPC是誰？”、“這座雕像是關於什麼的？”）。
-    *   **提及未知實體**: 使用者的輸入中包含了一個在對話歷史和已知LORE中從未出現過的新名詞。
-    *   **開啟新話題**: 對話從一個具體的話題轉向了一個更宏觀的、關於世界背景的話題。
-
-2.  **【不應擴展 (should_expand = false)】的明確信號：**
-    *   **原地重複動作**: 使用者正在對一個已知的角色執行簡單、重複的指令（例如：“碧，坐下”、“碧，趴下”、“碧，站起來”）。
-    *   **持續的私人對話**: 對話聚焦於使用者和AI角色之間的情感交流或私人話題，與外部世界無關。
-    *   **已知工具互動**: 使用者正在使用工具與已知的物品或角色進行互動（例如：“裝備長劍”、“和商人交易”）。
-    *   **無實質進展**: 對話內容在原地打轉，沒有引入任何新資訊或探索意圖。
-
----
-【最近的對話歷史 (用於判斷是否重複)】:
-{recent_dialogue}
----
-【使用者最新輸入】:
-{user_input}
----
-
-請根據上述原則做出你的判斷，並提供簡短的理由。"""
-        
-        prompt = ChatPromptTemplate.from_template(prompt_template)
-        return prompt | decision_llm
-    # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
-
-
-
-
-
-
-    # 函式：建構實體提取鏈 (v1.3 - 提示詞轉義修正)
-    # 更新紀錄:
-    # v1.3 (2025-09-02): [災難性BUG修復] 根據錯誤日誌，修正了提示詞模板。將範例JSON中的 `{` 和 `}` 轉義為 `{{` 和 `}}`，以防止 LangChain 模板引擎將其誤認為是需要填充的變數，從而解決了導致 'KeyError: \'{"names"}\'' 的根本性問題。
-    # v1.2 (2025-09-02): [災難性BUG修復] 修正了 ExtractedEntities Pydantic 模型中因拼寫錯誤（'"names"' -> 'names'）而導致的啟動時 KeyError。此錯誤的修正基於對 ai_core.py 頂部模型定義的修改。
-    # v1.1 (2025-09-02): [架構清理] 移除了此函式内部关于 ExtractedEntities 的注释定义。
-    def _build_entity_extraction_chain(self) -> Runnable:
-        """創建一個用於從文本中提取關鍵實體名稱列表的鏈。"""
-        extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
-
-        prompt_template = """你的唯一任務是一位高效的情報分析員。請通讀下方提供的【文本情報】，並從中提取出所有可能是專有名詞的關鍵詞。
-
-【提取目標】
-- **人名**: 包括主角、NPC、神祇等。
-- **地名**: 包括城市、地區、建築、自然景觀等。
-- **物品名**: 包括武器、裝備、道具、特殊材料等。
-- **組織名**: 包括公會、王國、教派等。
-- **概念名**: 包括特殊的魔法、事件、傳說等。
-
-【核心規則】
-1.  **寧可錯抓，不可放過**: 盡可能多地提取所有**看起來像**專有名詞的詞語。
-2.  **合併同類**: 如果同一個實體以不同形式出現（例如“碧”和“蛇人女奴”），將它們都提取出來。
-3.  **純淨列表**: 你的輸出【必須且只能】是一個包含字符串列表的 JSON 物件，格式為 `{{"names": ["名稱1", "名稱2", ...]}}`。
-
----
-【文本情報】:
-{text_input}
----
-
-請開始提取。"""
-        
-        prompt = ChatPromptTemplate.from_template(prompt_template)
-        return prompt | extractor_llm
-    # 函式：建構實體提取鏈 (v1.3 - 提示詞轉義修正)
-
-    
-
 
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
     # 更新紀錄:
@@ -2515,14 +2327,5 @@ class AILover:
 
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
-
-
-
-
-    
-
-
-    
-
 
 # 類別結束
