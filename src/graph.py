@@ -519,25 +519,37 @@ def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "e
         return "skip_expansion"
 # 函式：[SFW路由] 在擴展決策後決定流程 (v2.0 - 遠程觀察分支)
 
-# 函式：[核心路由] 根據意圖決定路徑 (v2.0 - 敏感內容路由)
+# 函式：[核心路由] 根據意圖決定路徑 (v3.0 - 意圖感知)
 # 更新紀錄:
-# v2.0 (2025-09-05): [重大邏輯修正] 路由的判斷依據從狹隘的 `_is_explicit_sexual_request` 修改為更寬泛的 `_is_potentially_sensitive_request`。此修改旨在將任何可能觸發平台級內容審查的指令（不僅限於性愛）都引導至受到最強指令保護的 NSFW 直通路徑，以最大限度地提高生成成功率。
-# v1.0 (2025-09-05): [全新創建] 創建此路由以分離 NSFW 和 SFW 路徑。
-def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "sfw_path"]:
+# v3.0 (2025-09-05): [災難性BUG修復] 徹底重構了路由邏輯，引入了對 `input_analysis` 的依賴。現在，路由會優先根據指令的【類型】（描述 vs. 互動）來決策。只有【互動式】指令才會根據敏感詞進入 NSFW 路徑，而【描述性】指令則會被強制導向 SFW 的遠程觀察路徑。此修改從根本上解決了描述性指令被錯誤路由到 NSFW 路徑而導致思考洩漏和場景錯亂的問題。
+# v2.0 (2025-09-05): [重大邏輯修正] 路由的判斷依據修改為更寬泛的敏感內容檢測器。
+def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "remote_scene_path", "sfw_path"]:
     """
-    [核心路由] 根據使用者的輸入意圖，決定是進入 NSFW 直通路徑還是 SFW 工具路徑。
+    [核心路由] 根據使用者的輸入意圖類型和內容敏感性，決定最終的處理路徑。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    
-    if ai_core._is_potentially_sensitive_request(user_input):
-        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 檢測到潛在敏感內容，進入【NSFW 直通路徑】。")
+    input_analysis = state.get('input_analysis')
+
+    if not input_analysis:
+        logger.error(f"[{user_id}] 核心路由：input_analysis 為空，無法決策。默認進入 SFW 路徑。")
+        return "sfw_path"
+
+    # 規則 1: 如果指令類型是描述性 (narration)，無論內容如何，都必須走遠程場景生成路徑
+    if input_analysis.input_type == 'narration':
+        logger.info(f"[{user_id}] (Graph) Router: 判定為【描述性指令】，強制進入【遠程場景路徑】。")
+        return "remote_scene_path"
+        
+    # 規則 2: 如果指令類型是互動式 (dialogue_or_command)，則檢查其內容敏感性
+    is_sensitive = ai_core._is_potentially_sensitive_request(user_input)
+    if is_sensitive:
+        logger.info(f"[{user_id}] (Graph) Router: 判定為【互動式敏感指令】，進入【NSFW 直通路徑】。")
         return "nsfw_path"
     else:
-        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 未檢測到敏感內容，進入【SFW 工具路徑】。")
+        logger.info(f"[{user_id}] (Graph) Router: 判定為【常規 SFW 指令】，進入【SFW 工具路徑】。")
         return "sfw_path"
-# 函式：[核心路由] 根據意圖決定路徑 (v2.0 - 敏感內容路由)
+# 函式：[核心路由] 根據意圖決定路徑 (v3.0 - 意圖感知)
 
 # --- 主對話圖的建構器 ---
 
