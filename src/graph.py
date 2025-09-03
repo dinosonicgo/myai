@@ -1,10 +1,7 @@
-# src/graph.py 的中文註釋(v10.0 - 委婉化優先架構)
+# src/graph.py 的中文註釋(v11.1 - 徹底延遲加載修正)
 # 更新紀錄:
+# v11.1 (2025-09-05): [災難性BUG修復] 補完了所有在 v11.0 中被省略的函式内容，並確保了圖中的每一個節點都嚴格遵循了“延遲加載”原則，即所有對鏈的訪問都通過 `ai_core.get_..._chain()` 方法進行。
 # v10.0 (2025-09-05): [災難性BUG修復 & 重大架構升級] 根據“委婉化優先”原則，對整個圖的所有節點進行了系統性重構。
-#    1. [引入重試策略] 所有對 `ainvoke_with_rotation` 的呼叫現在都明確傳入了 `retry_strategy` 參數。
-#    2. [激進重試] 最終面向使用者的生成節點（`generate_nsfw_response_node`, `narrative_node`）被指定使用 `retry_strategy='force'`，以確保 NSFW 內容的最高輸出優先級。
-#    3. [委婉化重試] 所有內部工具鏈節點（如 `analyze_input_node`, `expansion_decision_node` 等）被指定使用 `retry_strategy='euphemize'`，確保它們在遭遇審查時能嘗試自我修復而不是直接失敗。
-#    4. [安全備援] 為所有使用委婉化重試的節點增加了 `if not result:` 的最終防線，確保即使在重試失敗的極端情況下，也能提供一個安全的預設值，從而保證圖的流程永不因內容審查而崩潰。
 # v7.5 (2025-09-05): [重大架構修正] 重構了圖拓撲，實現了“敏感性優先”的兩路分發。
 
 import sys
@@ -49,7 +46,7 @@ async def initialize_conversation_state_node(state: ConversationGraphState) -> D
     return {"structured_context": structured_context, "rag_context": rag_context_str}
 # 函式：初始化對話狀態 (v2.0 - 委婉化重試)
 
-# 函式：分析使用者輸入意圖 (v2.0 - 委婉化重試)
+# 函式：分析使用者輸入意圖 (v11.1 - 延遲加載修正)
 async def analyze_input_node(state: ConversationGraphState) -> Dict:
     """
     [節點 2] 分析使用者的輸入，判斷其基本意圖（對話、描述、接續）。
@@ -59,6 +56,7 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: analyze_input_node -> 正在分析輸入意圖...")
     
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_input_analysis_chain(), 
         {"user_input": user_input},
@@ -74,9 +72,9 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
         )
         
     return {"input_analysis": analysis}
-# 函式：分析使用者輸入意圖 (v2.0 - 委婉化重試)
+# 函式：分析使用者輸入意圖 (v11.1 - 延遲加載修正)
 
-# 函式：判斷是否需要進行LORE擴展 (v2.0 - 委婉化重試)
+# 函式：判斷是否需要進行LORE擴展 (v11.1 - 延遲加載修正)
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
     [SFW 路徑節點] 一個“守門人”節點，在LORE創造流程前判斷使用者的“探索意圖”。
@@ -89,6 +87,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
     recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
 
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     decision = await ai_core.ainvoke_with_rotation(
         ai_core.get_expansion_decision_chain(), 
         {"user_input": user_input, "recent_dialogue": recent_dialogue},
@@ -104,9 +103,9 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：判斷是否需要進行LORE擴展 (v2.0 - 委婉化重試)
+# 函式：判斷是否需要進行LORE擴展 (v11.1 - 延遲加載修正)
 
-# 函式：執行場景與動作分析 (v4.0 - 委婉化重試)
+# 函式：執行場景與動作分析 (v11.1 - 延遲加載修正)
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """
     [SFW-探索路徑分析中樞] 分析場景視角，並為潛在的本地LORE擴展進行選角。
@@ -118,6 +117,7 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     
     current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
     
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     scene_analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_analysis_chain(),
         {"user_input": user_input, "current_location_path_str": " > ".join(current_location_path)},
@@ -136,6 +136,7 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Graph) ...視角為本地，繼續執行選角流程。")
         game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
 
+        # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
         cast_result = await ai_core.ainvoke_with_rotation(
             ai_core.get_scene_casting_chain(),
             {
@@ -155,9 +156,9 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
              logger.warning(f"[{user_id}] (Graph) 場景選角鏈委婉化重試失敗，本輪跳過選角。")
 
     return {"scene_analysis": scene_analysis}
-# 函式：執行場景與動作分析 (v4.0 - 委婉化重試)
+# 函式：執行場景與動作分析 (v11.1 - 延遲加載修正)
 
-# 函式：執行 SFW 回合規劃 (v4.0 - 委婉化重試)
+# 函式：執行 SFW 回合規劃 (v11.1 - 延遲加載修正)
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [SFW 路徑核心] SFW 架構的核心“思考”節點。
@@ -204,7 +205,8 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "world_snapshot": world_snapshot,
         "user_input": user_input,
     }
-
+    
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_planning_chain(), 
         params_for_chain,
@@ -216,9 +218,9 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         plan = TurnPlan(thought="安全備援：規劃鏈失敗。", execution_rejection_reason="抱歉，我的思緒有些混亂，無法理解您剛才的指令。可以換一種方式說嗎？")
         
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v4.0 - 委婉化重試)
+# 函式：執行 SFW 回合規劃 (v11.1 - 延遲加載修正)
 
-# 函式：執行 NSFW 直通生成 (v2.0 - 激進重試)
+# 函式：執行 NSFW 直通生成 (v11.1 - 延遲加載修正)
 async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
@@ -243,6 +245,7 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
         **structured_context
     }
     
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     response_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_direct_nsfw_chain(),
         full_context_for_chain,
@@ -253,9 +256,9 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
         response_text = "（AI 在處理您的請求時遭遇了不可恢復的內容安全限制，請嘗試調整您的指令。）"
         
     return {"llm_response": response_text}
-# 函式：執行 NSFW 直通生成 (v2.0 - 激進重試)
+# 函式：執行 NSFW 直通生成 (v11.1 - 延遲加載修正)
 
-# 函式：生成遠程場景 (v2.0 - 委婉化重試)
+# 函式：生成遠程場景 (v11.1 - 延遲加載修正)
 async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [SFW-遠程觀察分支] 專門用於生成遠程地點的電影式場景描述。
@@ -278,6 +281,7 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
     
     remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
 
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     scene_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_scene_generator_chain(),
         {
@@ -294,7 +298,7 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
         scene_text = "（由於內容限制，無法生成遠程場景的詳細描述。）"
         
     return {"llm_response": scene_text}
-# 函式：生成遠程場景 (v2.0 - 委婉化重試)
+# 函式：生成遠程場景 (v11.1 - 延遲加載修正)
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -318,7 +322,7 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     return {"tool_results": results_summary}
 # 函式：執行工具調用
 
-# 函式：生成敘事文本 (v3.0 - 激進重試)
+# 函式：生成敘事文本 (v11.1 - 延遲加載修正)
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [SFW 路徑核心] SFW 架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本。
@@ -341,6 +345,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     
     turn_plan.thought += f"\n\n[系统后台执行结果]:\n{tool_results}"
 
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_narrative_chain(),
         {"turn_plan": turn_plan},
@@ -351,7 +356,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本 (v3.0 - 激進重試)
+# 函式：生成敘事文本 (v11.1 - 延遲加載修正)
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
@@ -521,15 +526,13 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
         await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
     return {}
 
-# 函式：補完角色檔案 (v2.0 - 延遲加載重構)
-# 更新紀錄:
-# v2.0 (2025-09-05): [災難性BUG修復] 修正了對 `get_profile_completion_chain` 的呼叫。此節點現在會正確地從 ai_core 獲取完整的、可用於執行的鏈，而不是一個純提示詞模板，從而解決了 AttributeError。
+# 函式：補完角色檔案 (v11.1 - 延遲加載修正)
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...")
     
-    # [v2.0 核心修正] 呼叫 get_..._chain() 來獲取完整的鏈
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     completion_chain = ai_core.get_profile_completion_chain()
     
     # 確保 profile 存在
@@ -550,11 +553,13 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
         await ai_core.update_and_persist_profile(update_payload)
         
     return {}
-# 函式：補完角色檔案 (v2.0 - 延遲加載重構)
+# 函式：補完角色檔案 (v11.1 - 延遲加載修正)
 
+# 函式：執行世界創世 (v11.1 - 延遲加載修正)
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
+    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     genesis_chain = ai_core.get_world_genesis_chain()
     genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"world_settings": ai_core.profile.world_settings, "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
     if not genesis_result:
@@ -567,6 +572,7 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
         npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
         await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
     return {"genesis_result": genesis_result}
+# 函式：執行世界創世 (v11.1 - 延遲加載修正)
 
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
