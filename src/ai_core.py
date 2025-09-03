@@ -694,18 +694,31 @@ class AILover:
 
     
 
-    # 函式：建構檢索器
-    # 說明：配置並建構RAG系統的檢索器，包括向量儲存、BM25和可選的重排器。
+    # 函式：建構檢索器 (v202.0 - 災難性啟動修正)
+    # 更新紀錄:
+    # v202.0 (2025-09-05): [災難性BUG修復] 根據 `/start` 流程中的 `Could not connect to tenant` 錯誤，徹底重構了資料庫初始化邏輯。現在，函式會通過一個健壯的 `try...except` 區塊來處理對一個全新創建、內部為空的 ChromaDB 實例的讀取操作。如果捕捉到任何異常，系統會將其安全地視為一個空文檔集合，而不是讓應用程式崩潰，從而確保了重置流程的穩定性。
+    # v201.0 (2025-09-05): 根據混合模式圖藍圖進行重構。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器。"""
+        all_docs = []
         try:
+            # 步驟 1: 初始化 ChromaDB。如果目錄不存在，它會被創建。
             self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
-            all_docs_collection = await asyncio.to_thread(self.vector_store.get)
-            all_docs = [
-                Document(page_content=doc, metadata=meta)
-                for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])
-            ]
+            
+            # 步驟 2: [核心修正] 將讀取操作包裹在 try/except 中，以處理全新的空資料庫
+            try:
+                all_docs_collection = await asyncio.to_thread(self.vector_store.get)
+                all_docs = [
+                    Document(page_content=doc, metadata=meta)
+                    for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])
+                ]
+            except Exception as e:
+                # 捕獲所有可能的讀取錯誤，包括 IndexErrors, ValueErrors, 或特定的 DB 錯誤
+                logger.warning(f"[{self.user_id}] 讀取向量儲存時偵測到邊界情況（可能是全新的資料庫）: {type(e).__name__}: {e}。將其視為空集合處理。")
+                all_docs = []
+
         except InternalError as e:
+            # 處理舊版本資料庫不相容的問題
             if "no such table: tenants" in str(e):
                 logger.warning(f"[{self.user_id}] 偵測到不相容的 ChromaDB 資料庫。正在執行全自動恢復（含備份）...")
                 try:
@@ -718,14 +731,16 @@ class AILover:
                     
                     vector_path.mkdir(parents=True, exist_ok=True)
                     self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
-                    all_docs = []
+                    all_docs = [] # 恢復後，文檔列表自然是空的
                     logger.info(f"[{self.user_id}] 全自動恢復成功。")
                 except Exception as recovery_e:
                     logger.error(f"[{self.user_id}] 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                     raise recovery_e
             else:
+                # 對於其他未知的 InternalError，仍然拋出
                 raise e
-
+        
+        # 步驟 3: 根據是否有文檔來建構檢索器
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
         
         if all_docs:
@@ -737,6 +752,7 @@ class AILover:
             base_retriever = chroma_retriever
             logger.info(f"[{self.user_id}] 資料庫為空，暫時使用純向量檢索器作為基礎。")
 
+        # 步驟 4: (可選) 應用重排器
         if settings.COHERE_KEY:
             from langchain_cohere import CohereRerank
             from langchain.retrievers import ContextualCompressionRetriever
@@ -748,7 +764,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
         return retriever
-    # 函式：建構檢索器
+    # 函式：建構檢索器 (v202.0 - 災難性啟動修正)
 
 
 
