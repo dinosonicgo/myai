@@ -2232,22 +2232,23 @@ class AILover:
 
 
     
-     # 函式：建構 NSFW 直通鏈 (v1.3 - 全能化重構)
+     # 函式：建構 NSFW 直通鏈 (v1.4 - 災難性 TypeError 修正)
     # 更新紀錄:
-    # v1.3 (2025-09-05): [重大功能擴展] 根據路由邏輯的簡化，強化了此鏈的提示詞。新增了明確指令，要求其不僅能處理互動式性愛，還能處理【遠程的、描述性的 NSFW 場景】（例如，描述遠方妓院裡的 NPC 互動）。此修改使該鏈成為一個能夠處理所有類型 NSFW 請求的“全能選手”。
-    # v1.2 (2025-09-05): [災難性BUG修復] 修正了 LCEL 的語法錯誤以解決 TypeError。
+    # v1.4 (2025-09-05): [災難性BUG修復] 根據 /start 流程中的 TypeError Log，強化了提示詞拼接邏輯。舊的防空檢查只保護了 `self.profile`，但未保護 `self.profile.one_instruction` 本身可能為 `None` 的情況。新版本採用了 `(self.profile.one_instruction or "")` 的寫法，確保即使在 `one_instruction` 尚未從資料庫加載的臨時實例中，也能安全地將 `None` 轉換為空字串，從而根除了因此導致的 `TypeError`。
+    # v1.3 (2025-09-05): [重大功能擴展] 強化了提示詞，使其能明確處理“遠程描述”類任務。
     def _build_direct_nsfw_chain(self) -> Runnable:
         """創建一個高對抗性的、能夠處理所有類型 NSFW 請求（包括互動和遠程描述）的單次調用生成鏈。"""
         
-        # 準備一個統一的、強大的系統提示詞
-        system_prompt = (
-            (self.profile.one_instruction if self.profile else "") + 
-            "\n\n" + 
-            self.modular_prompts.get("action_sexual_content", "")
-        )
+        # [v1.4 核心修正] 強化防空邏輯，確保 one_instruction 本身為 None 時也能處理
+        one_instruction_prompt = (self.profile.one_instruction or "") if self.profile else ""
+        sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
         
-        # 新增一個專門處理場景類型的部分
-        system_prompt += """
+        # 準備一個統一的、強大的系統提示詞
+        system_prompt_template = (
+            one_instruction_prompt + 
+            "\n\n" + 
+            sexual_content_module +
+            """
 # ==============================================================================
 # == 🎬 場景模式執行協議 🎬
 # ==============================================================================
@@ -2261,9 +2262,10 @@ class AILover:
 #     那個場景。你必須直接將鏡頭切換過去。
 # ==============================================================================
 """
+        )
 
         prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+            ("system", system_prompt_template),
             ("human", """
 # ==============================================================================
 # == 📖 當前情境與使用者指令 📖
@@ -2280,16 +2282,19 @@ class AILover:
 """)
         ])
         
+        # 使用 assign 來延遲格式化，避免在構建時就因缺少變數而出錯
         return (
             RunnablePassthrough.assign(
-                system_prompt=RunnableLambda(lambda x: system_prompt.format(**x)),
-                world_snapshot=RunnableLambda(lambda x: self.world_snapshot_template.format(**x))
+                world_snapshot=RunnableLambda(
+                    # 在運行時才格式化 world_snapshot
+                    lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') else ""
+                )
             )
             | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構 NSFW 直通鏈 (v1.3 - 全能化重構)
+    # 函式：建構 NSFW 直通鏈 (v1.4 - 災難性 TypeError 修正)```
     
 
     # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
