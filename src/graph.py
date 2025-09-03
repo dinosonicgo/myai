@@ -75,54 +75,142 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     return {"expansion_decision": decision}
 # 函式：判斷是否需要進行LORE擴展
 
-# 函式：執行場景與動作分析
+# 函式：執行場景與動作分析 (v3.1 - 路由前置分析)
+# 更新紀錄:
+# v3.1 (2025-09-05): [重大架構修正] 提升了此節點在 SFW 路徑中的執行順序。它現在會在 LORE 擴展決策之後、但在路由之前立即執行。這樣，它生成的 `scene_analysis` 結果就可以被 `route_expansion` 路由用來判斷是進入遠程觀察還是本地擴展，使其成為 SFW 探索路徑的核心分析中樞。
+# v3.0 (2025-09-03): [功能擴展] 注入了選角上下文以生成更相關的 NPC。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """
-    [SFW-LORE擴展分支] 分析場景視角（本地/遠程）並為潛在的新 NPC 進行選角。
+    [SFW-探索路徑分析中樞] 分析場景視角，並為潛在的本地LORE擴展進行選角。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 進入LORE擴展分支，開始選角...")
+    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 正在進行場景視角分析與潛在選角...")
     
-    current_location_path = []
-    if ai_core.profile and ai_core.profile.game_state:
-        current_location_path = ai_core.profile.game_state.location_path
+    current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
     
+    # 步驟 1: 進行場景視角分析，這是後續路由的關鍵依據
     scene_analysis = await ai_core.ainvoke_with_rotation(ai_core.scene_analysis_chain, {
         "user_input": user_input, 
         "current_location_path_str": " > ".join(current_location_path)
     })
     
-    effective_location_path = current_location_path
-    if scene_analysis and scene_analysis.viewing_mode == 'remote' and scene_analysis.target_location_path:
-        effective_location_path = scene_analysis.target_location_path
-        
-    structured_context_for_casting = await ai_core._get_structured_context(
-        user_input, 
-        override_location_path=effective_location_path
-    )
-    game_context_for_casting = json.dumps(structured_context_for_casting, ensure_ascii=False, indent=2)
-    world_settings_for_casting = ai_core.profile.world_settings if ai_core.profile else ""
-
-    cast_result = await ai_core.ainvoke_with_rotation(ai_core.scene_casting_chain, {
-        "world_settings": world_settings_for_casting,
-        "current_location_path": effective_location_path, 
-        "game_context": game_context_for_casting,
-        "recent_dialogue": user_input
-    })
-    
-    new_npc_names = await ai_core._add_cast_to_scene(cast_result)
-    
-    final_structured_context = structured_context_for_casting
-    if new_npc_names:
-        final_structured_context = await ai_core._get_structured_context(
+    # 步驟 2: 如果是本地擴展模式，則繼續執行選角
+    if scene_analysis.viewing_mode == 'local':
+        logger.info(f"[{user_id}] (Graph) ...視角為本地，繼續執行選角流程。")
+        effective_location_path = current_location_path
+            
+        structured_context_for_casting = await ai_core._get_structured_context(
             user_input, 
             override_location_path=effective_location_path
         )
+        game_context_for_casting = json.dumps(structured_context_for_casting, ensure_ascii=False, indent=2)
+
+        cast_result = await ai_core.ainvoke_with_rotation(ai_core.scene_casting_chain, {
+            "world_settings": ai_core.profile.world_settings or "",
+            "current_location_path": effective_location_path, 
+            "game_context": game_context_for_casting,
+            "recent_dialogue": user_input
+        })
         
-    return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
-# 函式：執行場景與動作分析
+        new_npc_names = await ai_core._add_cast_to_scene(cast_result)
+        
+        # 如果創建了新 NPC，則刷新上下文
+        if new_npc_names:
+            final_structured_context = await ai_core._get_structured_context(
+                user_input, 
+                override_location_path=effective_location_path
+            )
+            return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
+
+    return {"scene_analysis": scene_analysis}
+# 函式：執行場景與動作分析 (v3.1 - 路由前置分析)
+
+
+# 函式：創建主回應圖 (v7.3 - 遠程觀察路徑)
+# 更新紀錄:
+# v7.3 (2025-09-05): [重大功能擴展] 徹底重構了 SFW 探索路徑。
+#    1. [新增節點] 註冊了新的 `remote_scene_generation_node`。
+#    2. [路由升級] `route_expansion` 現在是一個三向路由，可以將流程引導至 `remote_scene` (遠程觀察)、`expand_lore` (本地擴展) 或 `skip_expansion` (規劃)。
+#    3. [拓撲重構] SFW 探索路徑現在是 `expansion_decision` -> `scene_and_action_analysis` -> `route_expansion`，確保路由時擁有足夠的決策資訊。
+#    4. [路徑匯合] 新的遠程場景路徑 (`remote_scene_generation_node`) 會直接連接到 `validate_and_rewrite`，與其他路徑匯合。
+def create_main_response_graph() -> StateGraph:
+    """
+    組裝並編譯主對話流程的 StateGraph，現在採用包含遠程觀察路徑的混合模式架構。
+    """
+    graph = StateGraph(ConversationGraphState)
+
+    # 註冊所有節點
+    graph.add_node("initialize_state", initialize_conversation_state_node)
+    graph.add_node("analyze_input", analyze_input_node)
+    
+    # NSFW 路徑節點
+    graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
+    
+    # SFW 路徑節點
+    graph.add_node("expansion_decision", expansion_decision_node)
+    graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
+    graph.add_node("remote_scene_generation", remote_scene_generation_node) # [v7.3 新增]
+    graph.add_node("planning", planning_node)
+    graph.add_node("tool_execution", tool_execution_node)
+    graph.add_node("narrative", narrative_node)
+
+    # 共享的後續節點
+    graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
+    graph.add_node("persist_state", persist_state_node)
+    graph.add_node("background_expansion", background_world_expansion_node)
+    graph.add_node("finalization", finalization_node)
+
+    # 設定圖的入口和初始流程
+    graph.set_entry_point("initialize_state")
+    graph.add_edge("initialize_state", "analyze_input")
+
+    # 核心的 NSFW/SFW 條件路由
+    graph.add_conditional_edges(
+        "analyze_input",
+        route_based_on_intent,
+        {
+            "nsfw_path": "generate_nsfw_response",
+            "sfw_path": "expansion_decision" 
+        }
+    )
+
+    # NSFW 路徑流程
+    graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
+
+    # SFW 路徑的完整流程
+    # 步驟 1: 判斷是否需要擴展
+    graph.add_edge("expansion_decision", "scene_and_action_analysis")
+    
+    # 步驟 2: 分析場景後，進行三向路由
+    graph.add_conditional_edges(
+        "scene_and_action_analysis",
+        route_expansion,
+        {
+            "remote_scene": "remote_scene_generation", # 新的遠程觀察路徑
+            "expand_lore": "planning", # 本地擴展後直接去規劃
+            "skip_expansion": "planning"  # 跳過擴展也直接去規劃
+        }
+    )
+    
+    # 新的遠程觀察路徑的終點
+    graph.add_edge("remote_scene_generation", "validate_and_rewrite")
+    
+    # 原有的規劃 -> 執行 -> 寫作路徑
+    graph.add_edge("planning", "tool_execution")
+    graph.add_edge("tool_execution", "narrative")
+    graph.add_edge("narrative", "validate_and_rewrite")
+
+    # 所有路徑在此匯合後的共享流程
+    graph.add_edge("validate_and_rewrite", "persist_state")
+    graph.add_edge("persist_state", "background_expansion")
+    graph.add_edge("background_expansion", "finalization")
+    graph.add_edge("finalization", END)
+    
+    return graph.compile()
+# 函式：創建主回應圖 (v7.3 - 遠程觀察路徑)
+    
 
 
 
