@@ -833,18 +833,15 @@ class AILover:
 
 
 
-    # 函式：建構場景選角鏈 (v149.0 - 強制注入核心協議)
+    # 函式：建構場景選角鏈 (v149.1 - 災難性 KeyError 修正)
     # 更新紀錄:
-    # v149.0 (2025-09-04): [重大健壯性修正] 為了確保 NPC 生成的風格與世界觀保持一致，此鏈現在會將 `one_instruction`（最高指導原則）作為一個不可違背的系統級前綴，強制注入到提示詞的最前端。
-    # v148.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，彻底重构了此链的提示词。新增了【上下文感知原则】，强制要求 AI 在创造任何新 NPC 之前，【必须】先仔细审查已有的【當前場景上下文】，并【绝对禁止】创造与现有 NPC 角色定位或职能重复的新角色。此修改旨在从根本上解决在连续对话中无限生成相似 NPC（如多个卫兵队长）的问题。
-    # v147.1 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
+    # v149.1 (2025-09-05): [災難性BUG修復] 根據資訊查詢指令引發的 KeyError Log，徹底重構了此鏈的提示詞。舊版本錯誤地將包含大量上下文變數的 `one_instruction` 模板注入到一個只需要少量參數的內部工具鏈中。新版本創建了一個完全獨立、自包含的提示詞，該提示詞只包含選角任務本身必需的變數，從而徹底切斷了錯誤的依賴關係，確保了 SFW 探索路徑的穩定性。
+    # v149.0 (2025-09-04): [重大健壯性修正] 強制注入核心協議以確保 NPC 生成風格的一致性。
     def _build_scene_casting_chain(self) -> Runnable:
         """建構一個鏈，不僅創造核心 NPC 和配角，还强制为他们生成真实姓名、备用名称和符合世界观的物品名称。"""
         casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
         
-        # [v149.0 核心修正] 將最高指導原則作為系統級前綴
-        system_prompt_prefix = self.profile.one_instruction if self.profile else ""
-
+        # [v149.1 核心修正] 創建一個完全自包含的、不依賴任何外部模板的提示詞。
         casting_prompt_template = """你現在扮演一位富有创造力的【选角导演】和【世界命名師】。你的任务是分析【最近对话】和【当前场景上下文】，找出需要被赋予身份的通用角色，并为他们创造一个充滿動機和互動潛力的生動場景。
 
 【核心规则】
@@ -875,13 +872,10 @@ class AILover:
 ---
 请严格遵守以上所有规则，开始你的选角工作。"""
         
-        # 組合前綴和任務指令
-        full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{casting_prompt_template}"
-        
-        casting_prompt = ChatPromptTemplate.from_template(full_prompt_str)
+        casting_prompt = ChatPromptTemplate.from_template(casting_prompt_template)
         
         return casting_prompt | casting_llm
-    # 函式：建構場景選角鏈 (v149.0 - 強制注入核心協議)
+    # 函式：建構場景選角鏈 (v149.1 - 災難性 KeyError 修正)
 
 
 
