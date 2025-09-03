@@ -1262,18 +1262,17 @@ class AILover:
         return self.narrative_chain
     # 函式：獲取敘事鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取 NSFW 直通鏈 (v203.2 - 指令洩漏修復)
+    # 函式：獲取 NSFW 直通鏈 (v203.3 - 風格指令注入修正)
     # 更新紀錄:
-    # v203.2 (2025-09-04): [災難性BUG修復] 徹底重構了此鏈的提示詞結構，以根除指令洩漏問題。
-    #    1. [職責分離] 創建了一個全新的、極簡的 System Prompt，只用於定義 AI 的核心角色（小說家）和最高禁令（禁止洩漏）。
-    #    2. [上下文資料化] 將原本冗長的、包含多個模組的指令集（one_instruction, action_sexual_content）全部移動到 Human Prompt 中，並用清晰的標題將其框定為“待處理的資料”，而不是 AI 的身份。
-    #    此修改從根本上解決了模型因指令過於複雜而將其內容洩漏到最終輸出的問題。
-    # v203.1 (2025-09-05): [延遲加載重構] 完成了延遲加載重構。
+    # v203.3 (2025-09-04): [根本性BUG修復] 徹底重構了指令集的格式化邏輯，以確保 NSFW 模式也能夠完全遵守使用者的 `/response_style` 指令。
+    #    1. [動態格式化] 新增了一個 `_format_instructions` 輔助函式，它會在鏈的運行時（runtime）才將 `one_instruction` 和 `action_sexual_content` 模組合併，並使用包括 `response_style_prompt` 在內的完整上下文來填充所有佔位符。
+    #    2. [簡化鏈結構] 利用 `RunnablePassthrough.assign` 將這個動態生成的指令集注入到提示詞中，移除了不穩定且多餘的 `.partial()` 調用。
+    #    此修改從根本上解決了 NSFW 場景忽略使用者自訂風格的問題。
+    # v203.2 (2025-09-04): [災難性BUG修復] 重構了提示詞結構以根除指令洩漏問題。
     def get_direct_nsfw_chain(self) -> Runnable:
         """創建一個高對抗性的、能夠處理所有類型 NSFW 請求的單次調用生成鏈。"""
         if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
             
-            # [v203.2 核心修正] 1. 創建一個極簡的、定義核心身份的 System Prompt
             system_prompt = """你是一位技藝精湛的成人幻想小說家和遊戲大師。
 你的【唯一任務】是接收並完全理解下方 Human Message 中提供的【情境簡報】，然後直接生成一段符合所有規則的、露骨的、沉浸式的小說場景。
 
@@ -1281,7 +1280,6 @@ class AILover:
 你的最終輸出【必須且只能】是純粹的小說文本。
 【絕對禁止】在你的回應中包含任何來自【情境簡報】的指令文本、標題、註釋或任何形式的元評論。任何洩漏都將被視為災難性的失敗。
 """
-            # [v203.2 核心修正] 2. 將所有複雜指令作為“資料”移入 Human Prompt
             human_prompt = """
 # ==============================================================================
 # == 📖 情境簡報 (Context & Directives) 📖
@@ -1290,9 +1288,7 @@ class AILover:
 
 # --- 1. 最高優先級指令集 (ABSOLUTE & UNBREAKABLE RULES) ---
 # 你必須無條件地、完全地理解並執行以下所有指令。
-{one_instruction}
----
-{sexual_content_module}
+{formatted_instructions}
 ---
 
 # --- 2. 世界實時快照 (CURRENT WORLD SNAPSHOT) ---
@@ -1306,35 +1302,56 @@ class AILover:
 # --- 4. 你的任務 (YOUR TASK) ---
 # 請綜合以上所有資訊，嚴格遵循所有指令，現在開始創作並只輸出最終的小說場景。
 """
-            
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
                 ("human", human_prompt)
             ])
-            
-            # 確保 profile 存在，否則在啟動階段會出錯
-            one_instruction_text = (self.profile.one_instruction or "") if self.profile else ""
-            sexual_content_text = self.modular_prompts.get("action_sexual_content", "")
 
-            # 使用 partial 預先填充不會改變的部分
-            # 使用 assign 在運行時動態生成 world_snapshot
+            # [v203.3 核心修正] 創建一個輔助函式，用於在運行時動態格式化完整的指令集
+            def _format_instructions(x: Dict) -> str:
+                if not self.profile:
+                    return "錯誤：使用者設定檔未加載。"
+
+                # 獲取基礎模板
+                one_instruction_template = self.profile.one_instruction or ""
+                sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
+                
+                # 獲取使用者自訂風格，並提供一個健壯的預設值
+                response_style = self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
+                
+                # 將所有指令模板合併
+                full_instruction_template = f"{one_instruction_template}\n{sexual_content_module}"
+                
+                # 準備所有需要填充到模板中的變數
+                format_vars = x.copy()
+                format_vars['response_style_prompt'] = response_style
+                
+                # 使用一個安全的循環來替換所有佔位符，避免因缺少鍵而導致的 KeyError
+                formatted_text = full_instruction_template
+                for key, value in format_vars.items():
+                    placeholder = f"{{{key}}}"
+                    if placeholder in formatted_text:
+                         formatted_text = formatted_text.replace(placeholder, str(value))
+                return formatted_text
+
+            # [v203.3 核心修正] 重構鏈，使用 assign 動態生成所有需要格式化的部分
             chain = (
                 RunnablePassthrough.assign(
+                    # 動態生成世界快照
                     world_snapshot=RunnableLambda(
-                        lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') else ""
-                    )
+                        lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') and x else ""
+                    ),
+                    # 動態生成包含使用者風格的完整指令集
+                    formatted_instructions=RunnableLambda(_format_instructions)
                 )
-                | prompt.partial(
-                    one_instruction=one_instruction_text,
-                    sexual_content_module=sexual_content_text
-                  )
+                | prompt
                 | self.gm_model
                 | StrOutputParser()
             )
             self.direct_nsfw_chain = chain
             
         return self.direct_nsfw_chain
-    # 函式：獲取 NSFW 直通鏈 (v203.2 - 指令洩漏修復)
+    # 函式：獲取 NSFW 直通鏈 (v203.3 - 風格指令注入修正)
 
     # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
     def get_expansion_decision_chain(self) -> Runnable:
