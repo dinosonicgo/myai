@@ -128,14 +128,14 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：執行 SFW 回合規劃 (v3.0 - 職責重定義)
+# 函式：執行 SFW 回合規劃 (v3.1 - 風格指令前置)
 # 更新紀錄:
-# v3.0 (2025-09-05): [重大架構修正] 根據依賴鏈分析，徹底重構了此節點的職責。它現在不再負責組裝完整的 system_prompt，從而避免了使用 one_instruction 污染 SFW 鏈。其新職責是：準備好所有原始材料（包括可選的 SFW 動作模組內容），並將它們傳遞給 `planning_chain`，由鏈自身負責最終的提示詞渲染。
-# v2.4 (2025-09-04): [消息结构化修正] 引入了消息結構化指令注入。
+# v3.1 (2025-09-05): [災難性BUG修復] 根據 SFW 風格不生效的報告，現在此節點會將 `response_style_prompt` 作為一個關鍵參數，直接傳遞給 SFW 規劃鏈。這確保了“大腦”在制定計劃時就能夠考慮到風格要求。
+# v3.0 (2025-09-05): [重大架構修正] 重構了此節點的職責，使其不再負責組裝 system_prompt。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [SFW 路徑核心] SFW 架構的核心“思考”節點。
-    準備原始材料（上下文、動作模組）並調用 planning_chain 生成結構化的行動計劃。
+    準備原始材料（上下文、風格指令、動作模組）並調用 planning_chain 生成結構化的行動計劃。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -170,7 +170,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
 
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
     
-    # 步驟 4: [核心修正] 只獲取可選的 SFW 動作模組內容，而不是完整的系統提示
+    # 步驟 4: 只獲取可選的 SFW 動作模組內容
     action_module_prompt = ""
     action_module_name = ai_core._determine_action_module(user_input)
     if action_module_name and action_module_name != "action_sexual_content" and action_module_name in ai_core.modular_prompts:
@@ -181,7 +181,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     
-    # 將 full_context_dict 中的所有鍵值對也傳遞進去，以確保鏈能訪問到 username 等變數
+    # [v3.1 核心修正] 將 full_context_dict 中的所有鍵值對也傳遞進去，以確保鏈能訪問到所有變數
     params_for_chain = {
         **full_context_dict,
         "world_snapshot": world_snapshot,
@@ -192,7 +192,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, params_for_chain)
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v3.0 - 職責重定義)
+# 函式：執行 SFW 回合規劃 (v3.1 - 風格指令前置)
 
 
 
