@@ -1032,30 +1032,43 @@ class BotCog(commands.Cog):
             if not is_setup_flow and interaction:
                 await interaction.followup.send(f"❌ **錯誤**：在處理您的世界聖經時發生未預期的錯誤。", ephemeral=True)
 
-    # 函式：開始重置流程 (v41.0 - 健壯性修正)
+
+    
+    
+    
+    
+    # 函式：開始重置流程 (v41.1 - 競爭條件最終修復)
     # 更新紀錄:
-    # v41.0 (2025-09-02): [災難性BUG修復] 徹底重構了向量數據庫刪除的錯誤處理邏輯。舊版本在刪除失敗後仍會繼續執行，並可能向使用者顯示錯誤的成功訊息。新版本在刪除失敗時會立即終止流程，並向使用者返回一條清晰的、包含解決建議的錯誤訊息，從根本上確保了流程的原子性和用戶體驗的一致性。
+    # v41.1 (2025-09-05): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 錯誤，對 `/start` 流程進行了最終的健壯性強化。現在，在關閉舊的 AI 實例後，會手動觸發垃圾回收 (`gc.collect()`) 並引入一個 1.5 秒的戰術性延遲 (`asyncio.sleep`)。此修改旨在給予作業系統足夠的時間來完全釋放對向量數據庫檔案的鎖定，從而從根本上解決因競爭條件導致 `shutil.rmtree` 刪除不完整、引發後續資料庫創建失敗的頑固問題。
+    # v41.0 (2025-09-02): [災難性BUG修復] 徹底重構了向量數據庫刪除的錯誤處理邏輯。
     # v40.0 (2025-09-02): [健壯性] 簡化了回應發送邏輯。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            # 關閉並移除記憶體中的 AI 實例
+            # 步驟 1: 關閉並移除記憶體中的 AI 實例
             if user_id in self.ai_instances:
                 ai_instance_to_shutdown = self.ai_instances.pop(user_id)
                 await ai_instance_to_shutdown.shutdown()
-                logger.info(f"[{user_id}] 已關閉活躍的 AI 實例並已請求釋放檔案鎖定。")
-            
-            # 從 SQL 資料庫中刪除所有相關數據
+                logger.info(f"[{user_id}] 已請求關閉活躍的 AI 實例並釋放檔案鎖定。")
+                
+                # [v41.1 核心修正] 強制垃圾回收並引入延遲以解決競爭條件
+                del ai_instance_to_shutdown
+                gc.collect()
+                logger.info(f"[{user_id}] 已觸發垃圾回收，準備等待 OS 釋放檔案句柄...")
+                await asyncio.sleep(1.5) # 給予 OS 1.5 秒來完全釋放檔案鎖
+                logger.info(f"[{user_id}] 延遲結束，現在嘗試刪除檔案。")
+
+            # 步驟 2: 從 SQL 資料庫中刪除所有相關數據
             async with AsyncSessionLocal() as session:
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
-                logger.info(f"[{user_id}] 已從資料庫安全地清除了所有相關記錄。")
+                logger.info(f"[{user_id}] 已從 SQL 資料庫安全地清除了所有相關記錄。")
 
-            # 刪除向量數據庫目錄，並增加帶重試的健壯性邏輯
+            # 步驟 3: 刪除向量數據庫目錄，並增加帶重試的健壯性邏輯
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists() and vector_store_path.is_dir():
                 max_attempts = 5
@@ -1080,7 +1093,7 @@ class BotCog(commands.Cog):
                             # 終止函式執行，防止後續代碼被錯誤地執行
                             return
 
-            # 如果所有清理步驟都成功，則發送開始設定的視圖
+            # 步驟 4: 如果所有清理步驟都成功，則發送開始設定的視圖
             view = StartSetupView(cog=self, user_id=user_id)
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
@@ -1093,13 +1106,14 @@ class BotCog(commands.Cog):
             error_message = f"執行重置時發生未知的嚴重錯誤: {e}"
             # 確保即使在未知錯誤下也能安全地回應
             if not interaction.response.is_done():
-                 await interaction.edit_original_response(content=error_message, view=None)
+                 await interaction.response.edit_message(content=error_message, view=None)
             else:
-                await interaction.followup.send(content=error_message, view=None, ephemeral=True)
+                await interaction.followup.send(content=error_message, ephemeral=True)
         finally:
             # 無論成功或失敗，都必須釋放設定鎖
             self.setup_locks.discard(user_id)
-    # 函式：開始重置流程 (v41.0 - 健壯性修正)
+# 函式：開始重置流程 (v41.1 - 競爭條件最終修復)
+    
 
 
     
