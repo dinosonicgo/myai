@@ -1042,17 +1042,16 @@ class AILover:
 
 
 
-    # 函式：建構 SFW 回合計劃鏈 (v5.2 - 職責重定義)
+    # 函式：建構 SFW 回合計劃鏈 (v5.3 - 風格指令前置)
     # 更新紀錄:
-    # v5.2 (2025-09-05): [重大架構修正] 根據依賴鏈分析，再次重構此鏈。它現在接收一個 `action_module_prompt` 變數，允許呼叫者 (`planning_node`) 只傳遞 SFW 模組的內容，而不是一個被污染的完整系統提示詞。此修改確立了由鏈自身負責組裝提示詞的清晰職責劃分。
-    # v5.1 (2025-09-05): [災難性BUG修復] 採用了獨立的 SFW 專用系統提示詞，以解決指令衝突問題。
+    # v5.3 (2025-09-05): [災難性BUG修復] 根據 SFW 風格不生效的報告，將 `response_style_prompt` 的注入點從 `narrative_chain` 前移至此。現在，規劃鏈（“大腦”）會直接接收到風格指令，並被強制要求生成一個在結構上就符合風格要求的 TurnPlan JSON（例如，包含更多對話）。此修改從根本上解決了因計劃與風格要求衝突而導致的風格失效問題。
+    # v5.2 (2025-09-05): [重大架構修正] 重構了提示詞以接收 `action_module_prompt` 變數。
     def _build_planning_chain(self) -> Runnable:
         """創建一個專門為 SFW（安全工作）場景生成結構化回合計劃的鏈。"""
         from .schemas import TurnPlan
         planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
 
-        # [v5.2 核心修正] 這個提示詞現在是 SFW 規劃的唯一“大腦”。
-        # 它接收一個可選的 action_module_prompt，由 planning_node 傳入。
+        # [v5.3 核心修正] 將 response_style_prompt 注入到 SFW 規劃的“大腦”中
         system_prompt_for_sfw_planning = """
 # ==============================================================================
 # == 🧠 系統核心指令 (SFW 規劃模式) 🧠
@@ -1072,6 +1071,14 @@ class AILover:
 #     並在 `character_actions` 中包含 AI 角色的對話和反應。
 # 5.  **【邏輯一致性】**: 如果指令因不合邏輯或無法執行，則應使用 
 #     `execution_rejection_reason` 欄位來解釋原因，此時 `character_actions` 必須為空。
+#
+# --- 【【【最終輸出風格強制令 (Absolute & Highest Priority)】】】 ---
+# 你生成的【行動計劃 JSON】，在結構上【必須】完全遵循下方的風格指令。
+# 例如，如果指令要求“極高的對話比例”，你的 JSON 中就必須包含大量的 `dialogue` 欄位，
+# 並盡可能減少 `narration` 的內容。你的計劃本身就必須是風格的體現。
+# ------------------------------------------------------------------------------
+# {response_style_prompt}
+# ------------------------------------------------------------------------------
 #
 # --- 外部模組指令 (可選) ---
 # {action_module_prompt}
@@ -1097,7 +1104,7 @@ class AILover:
         ])
         
         return prompt | planner_llm
-    # 函式：建構 SFW 回合計劃鏈 (v5.2 - 職責重定義)
+    # 函式：建構 SFW 回合計劃鏈 (v5.3 - 風格指令前置)
 
 
     
