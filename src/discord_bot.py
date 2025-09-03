@@ -958,6 +958,7 @@ class BotCog(commands.Cog):
                 await message.channel.send(user_feedback)
     # 函式：處理訊息 (v42.0 - 响应逻辑与日志增强)
 
+    # finalize_setup (v42.2 - 延遲加載重構)
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         
@@ -967,7 +968,8 @@ class BotCog(commands.Cog):
         
         await interaction.followup.send(initial_message, ephemeral=True)
         
-        ai_instance = await self.get_or_create_ai_instance(user_id)
+        # is_setup_flow=True 確保即使資料庫中沒有記錄，也能創建一個臨時的記憶體實例
+        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
             logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
             await interaction.followup.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。", ephemeral=True)
@@ -976,7 +978,8 @@ class BotCog(commands.Cog):
 
         try:
             logger.info(f"[{user_id}] /start 流程：正在強制初始化 AI 核心組件...")
-            await ai_instance._configure_model_and_chain()
+            # [v42.2 核心修正] 呼叫新的配置方法，該方法只準備前置資源而不構建鏈
+            await ai_instance._configure_pre_requisites()
             
             initial_state = SetupGraphState(
                 user_id=user_id,
@@ -1009,6 +1012,7 @@ class BotCog(commands.Cog):
             await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
+    # finalize_setup (v42.2 - 延遲加載重構)
 
     async def parse_and_create_lore_from_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool = False):
         user_id = str(interaction.user.id)
