@@ -1995,14 +1995,15 @@ class AILover:
 
 
     
-    # 函式：建構 NSFW 直通鏈 (v1.1 - 災難性 KeyErorr 修正)
+    # 函式：建構 NSFW 直通鏈 (v1.2 - 災難性 TypeError 修正)
     # 更新紀錄:
-    # v1.1 (2025-09-05): [災難性BUG修復] 根據 KeyError Log，徹底重構了此鏈的提示詞格式化邏輯。舊版本錯誤地將包含變數的 one_instruction 模板直接注入，導致變數丟失。新版本採用 RunnablePassthrough.assign() 將 one_instruction 和 world_snapshot 的格式化分離為獨立步驟，確保所有必需的上下文變數（如 npc_context, location_context 等）都能被正確傳遞和渲染，從根本上解決了因變數缺失導致的 KeyError。
+    # v1.2 (2025-09-05): [災難性BUG修復] 根據 TypeError Log，修正了 LangChain 表達式語言 (LCEL) 的語法錯誤。舊版本錯誤地對 RunnableParallel 物件使用了 `**` 解包運算符。新版本採用了 `RunnablePassthrough.assign()` 的標準用法，將計算 `system_prompt` 和 `world_snapshot` 的 `RunnableLambda` 作為關鍵字參數直接傳遞，確保了鏈能夠被正確構建和編譯。
+    # v1.1 (2025-09-05): [災難性BUG修復] 重構了提示詞格式化邏輯以解決 KeyError。
     # v1.0 (2025-09-05): [重大架構重構] 根據混合模式圖藍圖全新創建。
     def _build_direct_nsfw_chain(self) -> Runnable:
         """創建一個高對抗性的、單次調用的 NSFW 文本生成鏈。"""
         
-        # 步驟 1: 定義人類消息的模板，它接收格式化後的 system_prompt 和 world_snapshot
+        # 步驟 1: 定義人類消息的模板
         human_prompt_template = """
 # ==============================================================================
 # == 📖 當前情境與使用者指令 📖
@@ -2024,36 +2025,26 @@ class AILover:
             ("human", human_prompt_template)
         ])
 
-        # 步驟 3: [核心修正] 創建一個並行執行的 Runnable 字典，它會分別格式化 system_prompt 和 world_snapshot
-        # 這樣可以確保所有需要的變數都被正確傳遞進去
-        formatter = RunnableParallel(
-            system_prompt=RunnableLambda(
-                lambda x: (
-                    (self.profile.one_instruction if self.profile else "") + 
-                    "\n\n" + 
-                    self.modular_prompts.get("action_sexual_content", "")
-                ).format(**x) # 使用 x (完整的上下文) 來格式化
-            ),
-            world_snapshot=RunnableLambda(
-                lambda x: self.world_snapshot_template.format(**x) # 使用 x (完整的上下文) 來格式化
-            ),
-            user_input=RunnablePassthrough()
-        )
-
-        # 步驟 4: 將格式化器與提示詞模板和模型鏈接起來
-        # 輸入 -> formatter (格式化) -> prompt (組裝) -> model (生成) -> parser (輸出)
+        # 步驟 3: [核心修正] 使用正確的 .assign() 語法來增強輸入字典
+        # .assign() 會接收輸入字典，並行執行提供的 lambda，然後將結果合併回字典中
         return (
-            # RunnablePassthrough.assign 允許我們將原始輸入和格式化後的結果合併
             RunnablePassthrough.assign(
-                # 這一步將會把 formatter 的輸出結果 (包含格式化好的 system_prompt 和 world_snapshot)
-                # 與原始輸入中的 user_input 合併成一個新的字典
-                **formatter
+                system_prompt=RunnableLambda(
+                    lambda x: ( # 'x' 是完整的輸入上下文字典
+                        (self.profile.one_instruction if self.profile else "") + 
+                        "\n\n" + 
+                        self.modular_prompts.get("action_sexual_content", "")
+                    ).format(**x) # 使用完整的上下文來格式化這部分模板
+                ),
+                world_snapshot=RunnableLambda(
+                    lambda x: self.world_snapshot_template.format(**x) # 同樣使用完整的上下文來格式化
+                )
             )
             | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構 NSFW 直通鏈 (v1.1 - 災難性 KeyErorr 修正)
+    # 函式：建構 NSFW 直通鏈 (v1.2 - 災難性 TypeError 修正)
     
 
     # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
