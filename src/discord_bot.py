@@ -19,6 +19,7 @@ from collections import defaultdict
 import os
 import sys
 import subprocess
+import gc
 
 from .logger import logger
 from .ai_core import AILover
