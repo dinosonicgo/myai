@@ -279,10 +279,18 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     return {"tool_results": results_summary}
 # 函式：執行工具調用
 
-# 函式：生成敘事文本
+
+
+
+
+
+# 函式：生成敘事文本 (v2.1 - 職責簡化)
+# 更新紀錄:
+# v2.1 (2025-09-05): [重大架構修正] 根據 SFW 風格不生效的報告，移除了此節點中所有關於準備和傳遞 `final_output_mandate` 的邏輯。此節點的職責回歸為純粹地將 `turn_plan` 和 `tool_results` 傳遞給 `narrative_chain`。
+# v2.0 (2025-09-04): [架構清理] 移除了手動組裝 final_output_mandate 的邏輯。
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [SFW 路徑核心] SFW 架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本，或直接输出 AI 的合理解释。
+    [SFW 路徑核心] SFW 架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -303,23 +311,22 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
         raise ValueError("Narrative chain is not initialized.")
 
     turn_plan.thought += f"\n\n[系统后台执行结果]:\n{tool_results}"
-    
-    style_prompt = ai_core.profile.response_style_prompt if ai_core.profile else "预设风格"
-    final_output_mandate = f"""---
-# 【【【使用者自訂風格指令 (ABSOLUTE & HIGHEST PRIORITY)】】】
-{style_prompt}
----"""
 
+    # [v2.1 核心修正] 不再需要手動組裝和傳遞 final_output_mandate
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.narrative_chain,
         {
-            "turn_plan": turn_plan,
-            "final_output_mandate": final_output_mandate
+            "turn_plan": turn_plan
         }
     )
     
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本
+# 函式：生成敘事文本 (v2.1 - 職責簡化)
+
+
+
+
+
 
 # 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
