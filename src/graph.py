@@ -53,7 +53,15 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     return {"input_analysis": analysis}
 # 函式：分析使用者輸入意圖
 
-# 函式：判斷是否需要進行LORE擴展
+
+
+
+
+
+# 函式：判斷是否需要進行LORE擴展 (v1.1 - 災難性 NoneType 修正)
+# 更新紀錄:
+# v1.1 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，增加了對 `expansion_decision_chain` 返回值的健壯性檢查。現在，如果鏈因為內容審查等原因返回 None，節點會創建一個預設的、`should_expand=False` 的安全備援決策，而不是嘗試訪問 None 的屬性。此修改從根本上解決了因鏈調用失敗而導致圖流程崩潰的問題。
+# v1.0 (2025-09-03): [全新創建] 創建此“守門人”節點以解決無意義 LORE 生成問題。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
     [SFW 路徑節點] 一個“守門人”節點，在LORE創造流程前判斷使用者的“探索意圖”。
@@ -71,9 +79,20 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
         "recent_dialogue": recent_dialogue
     })
     
+    # [v1.1 核心修正] 增加對鏈返回 None 的防禦性處理
+    if decision is None:
+        logger.warning(f"[{user_id}] (Graph) LORE擴展決策鏈返回 None（可能因內容審查）。啟動安全備援，默認不進行擴展。")
+        decision = ExpansionDecision(
+            should_expand=False,
+            reasoning="安全備援：決策鏈未能返回有效結果，默認跳過本輪LORE擴展以確保穩定性。"
+        )
+    
     logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：判斷是否需要進行LORE擴展
+# 函式：判斷是否需要進行LORE擴展 (v1.1 - 災難性 NoneType 修正)
+
+
+
 
 # 函式：執行場景與動作分析 (v3.1 - 路由前置分析)
 # 更新紀錄:
