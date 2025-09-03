@@ -139,14 +139,14 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
+# 函式：執行 SFW 回合規劃 (v3.3 - 指令統一化)
 # 更新紀錄:
-# v3.2 (2025-09-05): [重大架構修正] 根據 `/start` 流程崩潰的問題，簡化了此節點的邏輯。由於 `planning_chain` 現在使用靜態提示詞，此節點不再需要處理複雜的外部模組注入，職責回歸為準備並傳遞一個乾淨、完整的上下文給規劃鏈。
-# v3.1 (2025-09-05): [災難性BUG修復] 修正了風格指令的傳遞邏輯。
+# v3.3 (2025-09-05): [重大架構修正] 根據敏感內容在 SFW 路徑中被攔截的報告，回滾了 v3.2 的簡化邏輯。此節點現在會再次負責組裝一個完整的 `system_prompt`，該提示詞整合了 `one_instruction`、`response_style` 和可選的動作模組。這確保了 SFW 路徑在需要時也能獲得最高級別的對抗性指令，以應對平台級內容審查。
+# v3.2 (2025-09-05): [重大架構修正] 簡化了此節點的邏輯。
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """
     [SFW 路徑核心] SFW 架構的核心“思考”節點。
-    準備上下文並調用 planning_chain 生成結構化的行動計劃。
+    準備完整的上下文和系統指令，並調用 planning_chain 生成結構化的行動計劃。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -171,40 +171,41 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
         "user_input": user_input,
+        "latest_user_input": user_input,
         **(structured_context or {})
     }
 
-    # 步驟 3: 格式化世界快照
+    # 步驟 3: [v3.3 核心修正] 動態構建完整的系統指令
+    base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
+    action_module_name = ai_core._determine_action_module(user_input)
+    
+    system_prompt_parts = [base_system_prompt]
+    if action_module_name and action_module_name != "action_sexual_content" and action_module_name in ai_core.modular_prompts:
+        module_prompt = ai_core.modular_prompts[action_module_name]
+        system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
+        system_prompt_parts.append(module_prompt)
+        logger.info(f"[{user_id}] (Graph) SFW 規劃：已準備加載戰術模組 '{action_module_name}'。")
+
     def safe_format(template: str, data: dict) -> str:
-        # 創建一個數據副本，以防萬一
-        data_copy = data.copy()
-        # 從副本中移除模板自身不需要的鍵，避免 KeyErrors
-        data_copy.pop('world_snapshot', None) 
-        
-        # 遍歷模板中的所有變量
-        keys_in_template = re.findall(r'{(\w+)}', template)
-        
-        for key in keys_in_template:
-            # 使用 .get(key, f"{{{key}}}") 來安全地替換
-            # 如果 data_copy 中有這個 key，就替換它
-            # 如果沒有，就用原始的 '{key}' 字符串來替換，這樣它就不會被改變
-            template = template.replace(f'{{{key}}}', str(data_copy.get(key, f'{{{key}}}')))
-            
+        for key, value in data.items():
+            template = template.replace(f"{{{key}}}", str(value))
         return template
 
+    final_system_prompt = safe_format("".join(system_prompt_parts), full_context_dict)
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
-    
-    # 將格式化好的 world_snapshot 添加到要傳遞給鏈的字典中
-    full_context_dict['world_snapshot'] = world_snapshot
     
     # 步驟 4: 調用規劃鏈，傳入所有需要的原始材料
     if not ai_core.planning_chain:
         raise ValueError("Planning chain is not initialized.")
     
-    plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, full_context_dict)
+    plan = await ai_core.ainvoke_with_rotation(ai_core.planning_chain, {
+        "system_prompt": final_system_prompt,
+        "world_snapshot": world_snapshot,
+        "user_input": user_input,
+    })
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
+# 函式：執行 SFW 回合規劃 (v3.3 - 指令統一化)
 
 
 
