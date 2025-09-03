@@ -521,17 +521,36 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
         await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
     return {}
 
+# 函式：補完角色檔案 (v2.0 - 延遲加載重構)
+# 更新紀錄:
+# v2.0 (2025-09-05): [災難性BUG修復] 修正了對 `get_profile_completion_chain` 的呼叫。此節點現在會正確地從 ai_core 獲取完整的、可用於執行的鏈，而不是一個純提示詞模板，從而解決了 AttributeError。
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
+    logger.info(f"[{user_id}] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...")
+    
+    # [v2.0 核心修正] 呼叫 get_..._chain() 來獲取完整的鏈
     completion_chain = ai_core.get_profile_completion_chain()
+    
+    # 確保 profile 存在
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] 在 complete_profiles_node 中 ai_core.profile 為空，無法繼續。")
+        return {}
+
     completed_user_profile = await ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.user_profile.model_dump_json()}, retry_strategy='euphemize')
     completed_ai_profile = await ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.ai_profile.model_dump_json()}, retry_strategy='euphemize')
+    
+    update_payload = {}
     if completed_user_profile:
-        await ai_core.update_and_persist_profile({'user_profile': completed_user_profile.model_dump()})
+        update_payload['user_profile'] = completed_user_profile.model_dump()
     if completed_ai_profile:
-        await ai_core.update_and_persist_profile({'ai_profile': completed_ai_profile.model_dump()})
+        update_payload['ai_profile'] = completed_ai_profile.model_dump()
+        
+    if update_payload:
+        await ai_core.update_and_persist_profile(update_payload)
+        
     return {}
+# 函式：補完角色檔案 (v2.0 - 延遲加載重構)
 
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
