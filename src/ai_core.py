@@ -1957,29 +1957,33 @@ class AILover:
 
 
 
-    # 函式：RAG 上下文預處理 (v172.0 - 引入總結鏈)
+    # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
     # 更新紀錄:
-    # v172.0 (2025-09-02): [災難性BUG修復] 徹底重構了此函式。它現在會調用一個專用的 `rag_summarizer_chain`，將檢索到的、可能包含完整散文的歷史文檔，強制提煉成一份只包含核心事實的要點列表。這徹底改變了上下文的性質，從一份“可以抄寫的答案”變為一份“需要加工的素材”，從根本上解決了 AI 直接複製歷史記錄的“偷懶”行為。
-    # v171.0 (2025-08-29): [根本性BUG修復] 徹底廢除了此函式的 LLM 總結功能。
-    # v154.0 (2025-08-29): [根本性BUG修復] 徹底重構了此函式的核心職責。
+    # v172.1 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，增加了全方位的 None 值防禦。此修改旨在處理因上游 RAG 檢索器被內容審查攔截而返回 None 的邊界情況。现在，函式會在调用鏈之前和之后都进行严格的检查，确保 summarized_context 永远不会是 None，从而从根本上解决了因调用 .strip() 方法而导致的程式崩溃问题。
+    # v172.0 (2025-09-02): [災難性BUG修復] 重構了此函式，引入了 `rag_summarizer_chain` 以解決 AI 直接複製歷史記錄的問題。
     async def _preprocess_rag_context(self, docs: List[Document]) -> str:
+        # [v172.1 核心修正] 步驟 1: 在函式入口處進行前置防禦
         if not docs:
+            logger.warning(f"[{self.user_id}] _preprocess_rag_context 收到了空的或無效的 'docs' 列表（可能因上游內容審查）。")
             return "沒有檢索到相關的長期記憶。"
 
-        # [v172.0 修正] 調用新的總結鏈來“去散文化”，將其轉換為事實要點
+        # [v172.1 核心修正] 步驟 2: 正常執行鏈，但準備好處理 None 返回值
+        summarized_context = None
         if not self.rag_summarizer_chain:
             logger.warning(f"[{self.user_id}] RAG 總結鏈未初始化，將退回至直接拼接模式。")
             summarized_context = "\n\n---\n\n".join([doc.page_content for doc in docs])
         else:
             summarized_context = await self.ainvoke_with_rotation(self.rag_summarizer_chain, docs)
 
-        if not summarized_context.strip():
-             summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
+        # [v172.1 核心修正] 步驟 3: 在函式出口處進行後置防禦
+        if not summarized_context or not summarized_context.strip():
+             logger.warning(f"[{self.user_id}] RAG 總結鏈返回了空的或無效的內容（可能因內容審查）。")
+             summarized_context = "从記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點，以供主 Agent 創作。")
         
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：RAG 上下文預處理 (v172.0 - 引入總結鏈)
+    # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
 
 
 
