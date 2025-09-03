@@ -519,64 +519,64 @@ def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "e
         return "skip_expansion"
 # 函式：[SFW路由] 在擴展決策後決定流程 (v2.0 - 遠程觀察分支)
 
-# 函式：[核心路由] 根據意圖決定路徑 (v3.0 - 意圖感知)
+# 函式：[核心路由] 根據意圖決定路徑 (v3.1 - 敏感性優先)
 # 更新紀錄:
-# v3.0 (2025-09-05): [災難性BUG修復] 徹底重構了路由邏輯，引入了對 `input_analysis` 的依賴。現在，路由會優先根據指令的【類型】（描述 vs. 互動）來決策。只有【互動式】指令才會根據敏感詞進入 NSFW 路徑，而【描述性】指令則會被強制導向 SFW 的遠程觀察路徑。此修改從根本上解決了描述性指令被錯誤路由到 NSFW 路徑而導致思考洩漏和場景錯亂的問題。
-# v2.0 (2025-09-05): [重大邏輯修正] 路由的判斷依據修改為更寬泛的敏感內容檢測器。
-def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "remote_scene_path", "sfw_path"]:
+# v3.1 (2025-09-05): [重大架構回滾] 根據架構分析，移除了對 `input_analysis` 的依賴。路由邏輯回歸到一個更簡單、更健壯的模式：唯一的判斷標準是內容的【敏感性】。任何潛在的敏感內容都會被發送到全能的 NSFW 鏈，而非敏感內容則進入 SFW 路徑。
+# v3.0 (2025-09-05): [災難性BUG修復] 引入了對 `input_analysis` 的依賴。
+def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "sfw_path"]:
     """
-    [核心路由] 根據使用者的輸入意圖類型和內容敏感性，決定最終的處理路徑。
+    [核心路由] 根據使用者的輸入內容是否敏感，決定是進入 NSFW 直通路徑還是 SFW 工具路徑。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    input_analysis = state.get('input_analysis')
-
-    if not input_analysis:
-        logger.error(f"[{user_id}] 核心路由：input_analysis 為空，無法決策。默認進入 SFW 路徑。")
-        return "sfw_path"
-
-    # 規則 1: 如果指令類型是描述性 (narration)，無論內容如何，都必須走遠程場景生成路徑
-    if input_analysis.input_type == 'narration':
-        logger.info(f"[{user_id}] (Graph) Router: 判定為【描述性指令】，強制進入【遠程場景路徑】。")
-        return "remote_scene_path"
-        
-    # 規則 2: 如果指令類型是互動式 (dialogue_or_command)，則檢查其內容敏感性
-    is_sensitive = ai_core._is_potentially_sensitive_request(user_input)
-    if is_sensitive:
-        logger.info(f"[{user_id}] (Graph) Router: 判定為【互動式敏感指令】，進入【NSFW 直通路徑】。")
+    
+    if ai_core._is_potentially_sensitive_request(user_input):
+        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 檢測到潛在敏感內容，進入【NSFW 全能路徑】。")
         return "nsfw_path"
     else:
-        logger.info(f"[{user_id}] (Graph) Router: 判定為【常規 SFW 指令】，進入【SFW 工具路徑】。")
+        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 未檢測到敏感內容，進入【SFW 工具路徑】。")
         return "sfw_path"
-# 函式：[核心路由] 根據意圖決定路徑 (v3.0 - 意圖感知)
+# 函式：[核心路由] 根據意圖決定路徑 (v3.1 - 敏感性優先)
+
+
+
+
+
+
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v7.4 - 意圖感知路由)
+
+
+
+
+
+
+
+
+# 函式：創建主回應圖 (v7.5 - 敏感性優先路由)
 # 更新紀錄:
-# v7.4 (2025-09-05): [災難性BUG修復] 再次重構了圖的拓撲結構。現在，`analyze_input` 節點被提升為路由前的強制前置步驟。核心路由 `route_based_on_intent` 會在其後執行，並根據 `input_analysis` 的結果將流程分發到三個獨立的分支：NSFW 直通、SFW 遠程觀察、或 SFW 本地互動。此修改確保了指令的【類型】被優先考慮，從根本上解決了描述性指令被錯誤路由的問題。
-# v7.3 (2025-09-05): [重大功能擴展] 徹底重構了 SFW 探索路徑，增加了遠程觀察分支。
+# v7.5 (2025-09-05): [重大架構修正] 根據最新的分析，再次重構了圖的拓撲。移除了複雜的三向路由，回歸到一個更簡單、更強大的兩路分發模型。現在，唯一的路由 `route_based_on_intent` 會在流程早期執行，其判斷的唯一標準是【內容敏感性】。SFW 路徑內部則保留了根據“遠程/本地”意圖進行二次路由的精細化處理能力。
+# v7.4 (2025-09-05): [災難性BUG修復] 重構了圖拓撲，引入了意圖感知路由。
 def create_main_response_graph() -> StateGraph:
     """
-    組裝並編譯主對話流程的 StateGraph，採用意圖感知的多路徑架構。
+    組裝並編譯主對話流程的 StateGraph，採用敏感性優先的兩路分發架構。
     """
     graph = StateGraph(ConversationGraphState)
 
     # 註冊所有節點
     graph.add_node("initialize_state", initialize_conversation_state_node)
-    graph.add_node("analyze_input", analyze_input_node)
     
-    # 路徑 1: NSFW 互動
+    # 統一的分析節點
+    graph.add_node("analyze_all_inputs", scene_and_action_analysis_node) # 複用此節點進行全面的前置分析
+    
+    # 路徑 1: NSFW 全能路徑
     graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
     
-    # 路徑 2: SFW 遠程觀察
-    graph.add_node("remote_scene_analysis", scene_and_action_analysis_node) # 複用分析節點
-    graph.add_node("remote_scene_generation", remote_scene_generation_node)
-    
-    # 路徑 3: SFW 本地互動
+    # 路徑 2: SFW 路徑
     graph.add_node("expansion_decision", expansion_decision_node)
-    graph.add_node("local_scene_analysis", scene_and_action_analysis_node) # 複用分析節點
+    graph.add_node("remote_scene_generation", remote_scene_generation_node)
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative", narrative_node)
@@ -590,31 +590,38 @@ def create_main_response_graph() -> StateGraph:
     # --- 定義圖的流程 ---
     graph.set_entry_point("initialize_state")
     
-    # 步驟 1: 初始化後，先進行意圖分析
-    graph.add_edge("initialize_state", "analyze_input")
-
-    # 步驟 2: 根據意圖分析的結果，進行核心的三向路由
+    # 步驟 1: 初始化後，直接進行核心的敏感性路由
     graph.add_conditional_edges(
-        "analyze_input",
+        "initialize_state",
         route_based_on_intent,
         {
             "nsfw_path": "generate_nsfw_response",
-            "remote_scene_path": "remote_scene_analysis",
             "sfw_path": "expansion_decision" 
         }
     )
 
     # --- 定義各路徑的內部流程 ---
+    
     # 路徑 1 (NSFW) 的終點
     graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
 
-    # 路徑 2 (SFW 遠程觀察) 的流程
-    graph.add_edge("remote_scene_analysis", "remote_scene_generation")
+    # 路徑 2 (SFW) 的內部流程
+    # SFW 路徑首先判斷是否要擴展 LORE
+    graph.add_edge("expansion_decision", "analyze_all_inputs")
+    
+    # 在分析完場景（判斷出是遠程還是本地）後，進行二次路由
+    graph.add_conditional_edges(
+        "analyze_all_inputs",
+        route_expansion, # 這個路由現在只在 SFW 路徑內部工作
+        {
+            "remote_scene": "remote_scene_generation",
+            "expand_lore": "planning",
+            "skip_expansion": "planning"
+        }
+    )
+    
+    # SFW 路徑的各個分支終點
     graph.add_edge("remote_scene_generation", "validate_and_rewrite")
-
-    # 路徑 3 (SFW 本地互動) 的流程
-    graph.add_edge("expansion_decision", "local_scene_analysis")
-    graph.add_edge("local_scene_analysis", "planning") # 簡化：本地擴展後總是去規劃
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     graph.add_edge("narrative", "validate_and_rewrite")
@@ -626,7 +633,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v7.4 - 意圖感知路由)
+# 函式：創建主回應圖 (v7.5 - 敏感性優先路由)
 
 
 
