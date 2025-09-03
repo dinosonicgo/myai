@@ -2187,16 +2187,39 @@ class AILover:
 
 
     
-    # 函式：建構 NSFW 直通鏈 (v1.2 - 災難性 TypeError 修正)
+     # 函式：建構 NSFW 直通鏈 (v1.3 - 全能化重構)
     # 更新紀錄:
-    # v1.2 (2025-09-05): [災難性BUG修復] 根據 TypeError Log，修正了 LangChain 表達式語言 (LCEL) 的語法錯誤。舊版本錯誤地對 RunnableParallel 物件使用了 `**` 解包運算符。新版本採用了 `RunnablePassthrough.assign()` 的標準用法，將計算 `system_prompt` 和 `world_snapshot` 的 `RunnableLambda` 作為關鍵字參數直接傳遞，確保了鏈能夠被正確構建和編譯。
-    # v1.1 (2025-09-05): [災難性BUG修復] 重構了提示詞格式化邏輯以解決 KeyError。
-    # v1.0 (2025-09-05): [重大架構重構] 根據混合模式圖藍圖全新創建。
+    # v1.3 (2025-09-05): [重大功能擴展] 根據路由邏輯的簡化，強化了此鏈的提示詞。新增了明確指令，要求其不僅能處理互動式性愛，還能處理【遠程的、描述性的 NSFW 場景】（例如，描述遠方妓院裡的 NPC 互動）。此修改使該鏈成為一個能夠處理所有類型 NSFW 請求的“全能選手”。
+    # v1.2 (2025-09-05): [災難性BUG修復] 修正了 LCEL 的語法錯誤以解決 TypeError。
     def _build_direct_nsfw_chain(self) -> Runnable:
-        """創建一個高對抗性的、單次調用的 NSFW 文本生成鏈。"""
+        """創建一個高對抗性的、能夠處理所有類型 NSFW 請求（包括互動和遠程描述）的單次調用生成鏈。"""
         
-        # 步驟 1: 定義人類消息的模板
-        human_prompt_template = """
+        # 準備一個統一的、強大的系統提示詞
+        system_prompt = (
+            (self.profile.one_instruction if self.profile else "") + 
+            "\n\n" + 
+            self.modular_prompts.get("action_sexual_content", "")
+        )
+        
+        # 新增一個專門處理場景類型的部分
+        system_prompt += """
+# ==============================================================================
+# == 🎬 場景模式執行協議 🎬
+# ==============================================================================
+# 你的任務模式有兩種，你必須根據【使用者最新指令】來判斷：
+# 1.  **【互動模式】**: 如果指令是直接對 AI 角色或在場 NPC 的動作/對話指令，
+#     你將扮演 GM 和 AI 角色，生成互動式的回應。
+# 2.  **【導演模式（遠程觀察）】**: 如果指令是要求【描述】一個場景、地點或
+#     你（AI 角色）不在場的 NPC 互動，你將扮演一位電影導演。你的回應【必須】是
+#     純粹的、客觀的第三人稱小說旁白，生動地描寫那個遠程場景中正在發生的事情，
+#     包含 NPC 自己的對話和互動。【絕對禁止】讓在場角色（如碧）來“介紹”或“回憶”
+#     那個場景。你必須直接將鏡頭切換過去。
+# ==============================================================================
+"""
+
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", system_prompt),
+            ("human", """
 # ==============================================================================
 # == 📖 當前情境與使用者指令 📖
 # ==============================================================================
@@ -2208,35 +2231,20 @@ class AILover:
 {user_input}
 
 # --- 你的任務 ---
-請嚴格遵循你在【系統核心指令】中學到的所有規則（特別是性愛場景協議），直接生成最終的、露骨的、符合情境的小說場景。
-"""
-        
-        # 步驟 2: 創建完整的 ChatPromptTemplate
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", "{system_prompt}"),
-            ("human", human_prompt_template)
+請嚴格遵循你在【系統核心指令】和【場景模式執行協議】中學到的所有規則，直接生成最終的、露骨的、符合情境的小說場景。
+""")
         ])
-
-        # 步驟 3: [核心修正] 使用正確的 .assign() 語法來增強輸入字典
-        # .assign() 會接收輸入字典，並行執行提供的 lambda，然後將結果合併回字典中
+        
         return (
             RunnablePassthrough.assign(
-                system_prompt=RunnableLambda(
-                    lambda x: ( # 'x' 是完整的輸入上下文字典
-                        (self.profile.one_instruction if self.profile else "") + 
-                        "\n\n" + 
-                        self.modular_prompts.get("action_sexual_content", "")
-                    ).format(**x) # 使用完整的上下文來格式化這部分模板
-                ),
-                world_snapshot=RunnableLambda(
-                    lambda x: self.world_snapshot_template.format(**x) # 同樣使用完整的上下文來格式化
-                )
+                system_prompt=RunnableLambda(lambda x: system_prompt.format(**x)),
+                world_snapshot=RunnableLambda(lambda x: self.world_snapshot_template.format(**x))
             )
             | prompt
             | self.gm_model
             | StrOutputParser()
         )
-    # 函式：建構 NSFW 直通鏈 (v1.2 - 災難性 TypeError 修正)
+    # 函式：建構 NSFW 直通鏈 (v1.3 - 全能化重構)
     
 
     # 函式：建構 LORE 擴展決策鏈 (v1.0 - 全新創建)
