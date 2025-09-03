@@ -34,7 +34,11 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
-# 函式：基础 LORE 數據模型 - CharacterProfile
+
+
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.0 - 靈活性增強)
+# 更新紀錄:
+# v2.0 (2025-09-05): [災難性BUG修復] 根據 Pydantic ValidationError Log，將 `appearance_details` 的類型從 `Dict[str, str]` 修改為 `Dict[str, Any]`。此修改使模型能夠接受 AI 在“補完檔案”時生成的、值為列表或其他非字串類型的數據（例如 `{"特徵": ["蛇鱗", "尖牙"]}`），從根本上解決了因資料模型過於嚴格而導致的啟動崩潰問題。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -43,7 +47,7 @@ class CharacterProfile(BaseModel):
     age: Optional[str] = Field(default="未知", description="角色的年齡或年齡段。")
     race: Optional[str] = Field(default="未知", description="角色的種族。")
     appearance: str = Field(default="", description="角色的外貌特徵的總體描述。")
-    appearance_details: Dict[str, str] = Field(default_factory=dict, description="角色的具體外貌細節。")
+    appearance_details: Dict[str, Any] = Field(default_factory=dict, description="角色的具體外貌細節，值可以是字串或列表。")
     likes: List[str] = Field(default_factory=list, description="角色喜歡的事物列表。")
     dislikes: List[str] = Field(default_factory=list, description="角色不喜歡的事物列表。")
     equipment: List[str] = Field(default_factory=list, description="角色【當前穿戴或持有】的裝備列表。")
@@ -84,7 +88,9 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.0 - 靈活性增強)
+
+
 
 class Quest(BaseModel):
     name: str = Field(description="任務的標準化、唯一的官方名稱。")
