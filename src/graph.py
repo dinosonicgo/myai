@@ -128,6 +128,10 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 
 
 
+
+
+
+
 # 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
 # 更新紀錄:
 # v3.2 (2025-09-05): [重大架構修正] 根據 `/start` 流程崩潰的問題，簡化了此節點的邏輯。由於 `planning_chain` 現在使用靜態提示詞，此節點不再需要處理複雜的外部模組注入，職責回歸為準備並傳遞一個乾淨、完整的上下文給規劃鏈。
@@ -195,6 +199,56 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 # 函式：執行 SFW 回合規劃 (v3.2 - 簡化回滾)
 
+
+
+
+# 函式：生成遠程場景 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-05): [重大功能擴展] 創建此節點作為 SFW 探索路徑的新分支。它的職責是：
+#    1. 獲取由 `scene_and_action_analysis_node` 確定的遠程地點。
+#    2. 為該遠程地點專門生成一個詳細的上下文情報簡報。
+#    3. 調用 `remote_scene_generator_chain` 來生成純粹的小說式場景描述。
+async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[str, str]:
+    """
+    [SFW-遠程觀察分支] 專門用於生成遠程地點的電影式場景描述。
+    """
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    scene_analysis = state['scene_analysis']
+    
+    if not (scene_analysis and scene_analysis.target_location_path):
+        logger.error(f"[{user_id}] 進入了 remote_scene_generation_node，但 scene_analysis 中沒有 target_location_path。")
+        return {"llm_response": "（系統錯誤：無法確定要觀察的遠程目標。）"}
+
+    target_path = scene_analysis.target_location_path
+    logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node -> 正在為遠程地點 '{' > '.join(target_path)}' 生成場景...")
+
+    # 為遠程地點生成專門的上下文
+    remote_context = await ai_core._get_structured_context(
+        user_input="", # 輸入為空，因為我們只關心地點本身
+        override_location_path=target_path
+    )
+    
+    # 將結構化上下文格式化為單一字串
+    remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
+
+    if not ai_core.remote_scene_generator_chain:
+        raise ValueError("Remote Scene Generator chain is not initialized.")
+        
+    # 調用場景生成鏈
+    scene_text = await ai_core.ainvoke_with_rotation(
+        ai_core.remote_scene_generator_chain,
+        {
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+            "world_settings": ai_core.profile.world_settings or "未設定",
+            "remote_scene_context": remote_scene_context_str,
+        }
+    )
+    
+    return {"llm_response": scene_text}
+# 函式：生成遠程場景 (v1.0 - 全新創建)
 
 
 
