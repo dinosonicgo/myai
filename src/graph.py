@@ -1,8 +1,8 @@
-# src/graph.py 的中文註釋(v7.1 - 災難性分叉修復)
+# src/graph.py 的中文註釋(v7.2 - NameError 修正)
 # 更新紀錄:
-# v7.1 (2025-09-05): [災難性BUG修復] 根據 Log 分析，修復了 v7.0 重構中遺留的圖結構分叉問題。舊的 `analyze_input` -> `expansion_decision` 邊未被正確移除，導致 SFW 路徑被重複執行兩次。此修正確保 `analyze_input` 節點【唯一】的出口是新的核心路由器 `route_based_on_intent`，從根本上解決了重複回應和因速率限制導致的二次執行失敗問題。
+# v7.2 (2025-09-05): [災難性BUG修復] 根據 NameError Log，補全了在 v7.1 版本中被意外遺漏的 `generate_nsfw_response_node` 函式的完整定義。此錯誤導致圖在編譯時因找不到節點定義而崩潰。
+# v7.1 (2025-09-05): [災難性BUG修復] 修復了圖結構分叉問題，確保 SFW 路徑不會被重複執行。
 # v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖架構，引入了 NSFW/SFW 雙路徑處理流程。
-# v6.0 (2025-09-03): [重大邏輯升級] 引入了“守門人”機制以解決無意義 LORE 生成問題。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -191,64 +191,61 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 # 函式：執行 SFW 回合規劃
 
-    # 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
-    # 更新紀錄:
-    # v1.1 (2025-09-05): [災難性BUG修復] 徹底重構了此節點的參數準備邏輯。現在它不再試圖預先格式化任何提示詞，而是將所有從上下文和 profile 中獲取的原始數據（如 npc_context, ai_name 等）連同 user_input 一起，打包成一個【完整的、未經處理的】字典。這個完整的字典將被直接傳遞給 v1.1 版本的 direct_nsfw_chain，由鏈內部的 RunnablePassthrough.assign() 負責處理所有變數的填充，從而根除了因參數傳遞不完整導致的 KeyError。
-    # v1.0 (2025-09-05): [全新創建] 創建此節點作為 NSFW 直通路徑的核心。
-    async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
-        """
-        [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
-        """
-        user_id = state['user_id']
-        ai_core = state['ai_core']
-        user_input = state['messages'][-1].content
-        logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成 NSFW 回應...")
+# 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
+# 更新紀錄:
+# v1.1 (2025-09-05): [災難性BUG修復] 徹底重構了此節點的參數準備邏輯。現在它不再試圖預先格式化任何提示詞，而是將所有從上下文和 profile 中獲取的原始數據（如 npc_context, ai_name 等）連同 user_input 一起，打包成一個【完整的、未經處理的】字典。這個完整的字典將被直接傳遞給 v1.1 版本的 direct_nsfw_chain，由鏈內部的 RunnablePassthrough.assign() 負責處理所有變數的填充，從而根除了因參數傳遞不完整導致的 KeyError。
+# v1.0 (2025-09-05): [全新創建] 創建此節點作為 NSFW 直通路徑的核心。
+async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
+    """
+    [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
+    """
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成 NSFW 回應...")
 
-        # 步驟 1: 準備一個包含所有鏈所需變數的完整上下文大字典
-        try:
-            structured_context = state.get('structured_context') or await ai_core._get_structured_context(user_input)
-            rag_context = state.get('rag_context') or await ai_core._preprocess_rag_context(await ai_core.retriever.ainvoke(user_input))
-            
-            # [v1.1 核心修正] 創建一個包含所有可能變數的完整字典
-            full_context_for_chain = {
-                "user_input": user_input,
-                "latest_user_input": user_input, # 兼容舊模板
-                "username": ai_core.profile.user_profile.name,
-                "ai_name": ai_core.profile.ai_profile.name,
-                "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-                "world_settings": ai_core.profile.world_settings or "未設定",
-                "ai_settings": ai_core.profile.ai_profile.description or "未設定",
-                "retrieved_context": rag_context,
-                **structured_context
-            }
+    # 步驟 1: 準備一個包含所有鏈所需變數的完整上下文大字典
+    try:
+        structured_context = state.get('structured_context') or await ai_core._get_structured_context(user_input)
+        rag_context = state.get('rag_context') or await ai_core._preprocess_rag_context(await ai_core.retriever.ainvoke(user_input))
+        
+        # [v1.1 核心修正] 創建一個包含所有可能變數的完整字典
+        full_context_for_chain = {
+            "user_input": user_input,
+            "latest_user_input": user_input, # 兼容舊模板
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+            "world_settings": ai_core.profile.world_settings or "未設定",
+            "ai_settings": ai_core.profile.ai_profile.description or "未設定",
+            "retrieved_context": rag_context,
+            **structured_context
+        }
 
-        except Exception as e:
-            logger.error(f"[{user_id}] 在 generate_nsfw_response_node 中準備上下文失敗: {e}", exc_info=True)
-            # 在失敗時提供備援值，以避免後續鏈出錯
-            full_context_for_chain = {
-                "user_input": user_input, "latest_user_input": user_input,
-                "username": "使用者", "ai_name": "AI",
-                "response_style_prompt": "", "world_settings": "", "ai_settings": "",
-                "retrieved_context": "上下文加載失敗。", "location_context": "", 
-                "possessions_context": "", "quests_context": "", "npc_context": "",
-                "relevant_npc_context": ""
-            }
+    except Exception as e:
+        logger.error(f"[{user_id}] 在 generate_nsfw_response_node 中準備上下文失敗: {e}", exc_info=True)
+        # 在失敗時提供備援值，以避免後續鏈出錯
+        full_context_for_chain = {
+            "user_input": user_input, "latest_user_input": user_input,
+            "username": "使用者", "ai_name": "AI",
+            "response_style_prompt": "", "world_settings": "", "ai_settings": "",
+            "retrieved_context": "上下文加載失敗。", "location_context": "", 
+            "possessions_context": "", "quests_context": "", "npc_context": "",
+            "relevant_npc_context": ""
+        }
 
-        if not ai_core.direct_nsfw_chain:
-            raise ValueError("Direct NSFW chain is not initialized.")
-            
-        # 步驟 2: [v1.1 核心修正] 將完整的、未經處理的字典直接傳遞給鏈
-        response_text = await ai_core.ainvoke_with_rotation(
-            ai_core.direct_nsfw_chain,
-            full_context_for_chain
-        )
+    if not ai_core.direct_nsfw_chain:
+        raise ValueError("Direct NSFW chain is not initialized.")
+        
+    # 步驟 2: [v1.1 核心修正] 將完整的、未經處理的字典直接傳遞給鏈
+    response_text = await ai_core.ainvoke_with_rotation(
+        ai_core.direct_nsfw_chain,
+        full_context_for_chain
+    )
 
-        # 將結果以與 narrative_node 相同的格式返回，以便後續節點處理
-        return {"llm_response": response_text}
-    # 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
-
-
-
+    # 將結果以與 narrative_node 相同的格式返回，以便後續節點處理
+    return {"llm_response": response_text}
+# 函式：執行 NSFW 直通生成 (v1.1 - 災難性 KeyError 修正)
 
 # 函式：執行工具調用
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -450,9 +447,10 @@ def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path",
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v7.1 - 災難性分叉修復)
+# 函式：創建主回應圖 (v7.2 - NameError 修正)
 # 更新紀錄:
-# v7.1 (2025-09-05): [災難性BUG修復] 根據 Log 分析，修復了 v7.0 重構中遺留的圖結構分叉問題。舊的 `analyze_input` -> `expansion_decision` 邊未被正確移除，導致 SFW 路徑被重複執行兩次。此修正確保 `analyze_input` 節點【唯一】的出口是新的核心路由器 `route_based_on_intent`，從根本上解決了重複回應和因速率限制導致的二次執行失敗問題。
+# v7.2 (2025-09-05): [災難性BUG修復] 根據 NameError Log，補全了在 v7.1 版本中被意外遺漏的 `generate_nsfw_response_node` 函式的完整定義。此錯誤導致圖在編譯時因找不到節點定義而崩潰。
+# v7.1 (2025-09-05): [災難性BUG修復] 修復了圖結構分叉問題，確保 SFW 路徑不會被重複執行。
 # v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖架構，引入了 NSFW/SFW 雙路徑處理流程。
 def create_main_response_graph() -> StateGraph:
     """
@@ -484,9 +482,7 @@ def create_main_response_graph() -> StateGraph:
     graph.set_entry_point("initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
 
-    # [v7.1 核心修正] 確保 analyze_input 節點唯一的出口是核心路由器。
-    # LangGraph 的 add_conditional_edges 會自動覆蓋任何來自同一源節點的舊邊。
-    # 這裡的定義是正確的，它將取代任何可能存在的舊的 `add_edge("analyze_input", ...)`。
+    # 新增核心的 NSFW/SFW 條件路由
     graph.add_conditional_edges(
         "analyze_input",
         route_based_on_intent,
@@ -520,7 +516,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v7.1 - 災難性分叉修復)
+# 函式：創建主回應圖 (v7.2 - NameError 修正)
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
