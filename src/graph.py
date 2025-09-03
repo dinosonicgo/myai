@@ -537,14 +537,16 @@ def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path",
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v7.2 - NameError 修正)
+# 函式：創建主回應圖 (v7.3 - 遠程觀察路徑)
 # 更新紀錄:
-# v7.2 (2025-09-05): [災難性BUG修復] 根據 NameError Log，補全了在 v7.1 版本中被意外遺漏的 `generate_nsfw_response_node` 函式的完整定義。此錯誤導致圖在編譯時因找不到節點定義而崩潰。
-# v7.1 (2025-09-05): [災難性BUG修復] 修復了圖結構分叉問題，確保 SFW 路徑不會被重複執行。
-# v7.0 (2025-09-05): [重大架構重構] 實現了混合模式圖架構，引入了 NSFW/SFW 雙路徑處理流程。
+# v7.3 (2025-09-05): [重大功能擴展] 徹底重構了 SFW 探索路徑。
+#    1. [新增節點] 註冊了新的 `remote_scene_generation_node`。
+#    2. [路由升級] `route_expansion` 現在是一個三向路由，可以將流程引導至 `remote_scene` (遠程觀察)、`expand_lore` (本地擴展) 或 `skip_expansion` (規劃)。
+#    3. [拓撲重構] SFW 探索路徑現在是 `expansion_decision` -> `scene_and_action_analysis` -> `route_expansion`，確保路由時擁有足夠的決策資訊。
+#    4. [路徑匯合] 新的遠程場景路徑 (`remote_scene_generation_node`) 會直接連接到 `validate_and_rewrite`，與其他路徑匯合。
 def create_main_response_graph() -> StateGraph:
     """
-    組裝並編譯主對話流程的 StateGraph，現在採用混合模式架構。
+    組裝並編譯主對話流程的 StateGraph，現在採用包含遠程觀察路徑的混合模式架構。
     """
     graph = StateGraph(ConversationGraphState)
 
@@ -558,6 +560,7 @@ def create_main_response_graph() -> StateGraph:
     # SFW 路徑節點
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
+    graph.add_node("remote_scene_generation", remote_scene_generation_node) # [v7.3 新增]
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative", narrative_node)
@@ -572,41 +575,56 @@ def create_main_response_graph() -> StateGraph:
     graph.set_entry_point("initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
 
-    # 新增核心的 NSFW/SFW 條件路由
+    # 核心的 NSFW/SFW 條件路由
     graph.add_conditional_edges(
         "analyze_input",
         route_based_on_intent,
         {
-            "nsfw_path": "generate_nsfw_response", # 如果是 NSFW，走直通路徑
-            "sfw_path": "expansion_decision"      # 如果是 SFW，走原有的 LORE 擴展決策路徑
+            "nsfw_path": "generate_nsfw_response",
+            "sfw_path": "expansion_decision" 
         }
     )
 
-    # 定義 NSFW 路徑的流程：直通鏈 -> 驗證與淨化
+    # NSFW 路徑流程
     graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
 
-    # 定義 SFW 路徑的完整流程
+    # SFW 路徑的完整流程
+    # 步驟 1: 判斷是否需要擴展
+    graph.add_edge("expansion_decision", "scene_and_action_analysis")
+    
+    # 步驟 2: 分析場景後，進行三向路由
     graph.add_conditional_edges(
-        "expansion_decision",
+        "scene_and_action_analysis",
         route_expansion,
         {
-            "expand_lore": "scene_and_action_analysis",
-            "skip_expansion": "planning"
+            "remote_scene": "remote_scene_generation", # 新的遠程觀察路徑
+            "expand_lore": "planning", # 本地擴展後直接去規劃
+            "skip_expansion": "planning"  # 跳過擴展也直接去規劃
         }
     )
-    graph.add_edge("scene_and_action_analysis", "planning")
+    
+    # 新的遠程觀察路徑的終點
+    graph.add_edge("remote_scene_generation", "validate_and_rewrite")
+    
+    # 原有的規劃 -> 執行 -> 寫作路徑
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     graph.add_edge("narrative", "validate_and_rewrite")
 
-    # 兩條路徑在此匯合後的共享流程
+    # 所有路徑在此匯合後的共享流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", "background_expansion")
     graph.add_edge("background_expansion", "finalization")
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v7.2 - NameError 修正)
+# 函式：創建主回應圖 (v7.3 - 遠程觀察路徑)
+
+
+
+
+
+
 
 # --- 設定圖 (Setup Graph) 的節點 (保持不變) ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
