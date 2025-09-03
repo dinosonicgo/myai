@@ -481,21 +481,35 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-# 函式：[SFW路由] 在擴展決策後決定流程
-def route_expansion(state: ConversationGraphState) -> Literal["expand_lore", "skip_expansion"]:
+
+
+
+
+# 函式：[SFW路由] 在擴展決策後決定流程 (v2.0 - 遠程觀察分支)
+# 更新紀錄:
+# v2.0 (2025-09-05): [重大功能擴展] 重構了此路由的邏輯。現在，它會優先檢查 `scene_analysis` 來判斷是否為“遠程觀察”指令。如果是，則將流程引導至新增的 `remote_scene` 分支；否則，才繼續執行原有的 LORE 擴展或跳過的判斷。
+# v1.0 (2025-09-03): [全新創建] 創建此路由以分離 LORE 擴展和常規互動。
+def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "expand_lore", "skip_expansion"]:
     """
-    [SFW路由] 根據 expansion_decision_node 的結果，決定是進入LORE創造流程，還是直接跳到核心規劃。
+    [SFW路由] 根據意圖，決定是進行遠程場景生成、本地LORE擴展，還是直接跳到核心規劃。
     """
     user_id = state['user_id']
-    should_expand = state["expansion_decision"].should_expand
+    scene_analysis = state.get("scene_analysis")
     
-    if should_expand:
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【進行LORE擴展】。")
+    # 優先判斷是否為遠程觀察模式
+    if scene_analysis and scene_analysis.viewing_mode == 'remote':
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【遠程觀察】，進入場景生成路徑。")
+        return "remote_scene"
+    
+    # 如果不是遠程觀察，則執行舊的 LORE 擴展判斷
+    should_expand = state.get("expansion_decision")
+    if should_expand and should_expand.should_expand:
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【本地LORE擴展】。")
         return "expand_lore"
     else:
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【跳過LORE擴展】。")
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【跳過LORE擴展】，進入規劃。")
         return "skip_expansion"
-# 函式：[SFW路由] 在擴展決策後決定流程
+# 函式：[SFW路由] 在擴展決策後決定流程 (v2.0 - 遠程觀察分支)
 
 # 函式：[核心路由] 根據意圖決定路徑
 def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path", "sfw_path"]:
