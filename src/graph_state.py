@@ -1,13 +1,14 @@
-# src/graph_state.py 的中文註釋(v3.0 - 新增意圖分類)
+# src/graph_state.py 的中文註釋(v4.0 - 新增風格分析狀態)
 # 更新紀錄:
-# v3.0 (2025-09-06): [重大架構升級] 新增了 `intent_classification` 欄位。這是為了支持“先分類，後處理”的新圖架構，該欄位將儲存圖入口點的意圖分類結果，並指導主路由器的決策。
+# v4.0 (2025-09-06): [重大架構升級] 新增了 `style_analysis` 欄位。此欄位用於儲存新增的 `style_analysis_node` 的輸出結果，是將風格指令從“軟建議”變為“硬約束”的關鍵數據載體。
+# v3.0 (2025-09-06): [重大架構升級] 新增了 `intent_classification` 欄位。
 # v2.2 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `from typing import TypedDict`。
-# v2.1 (2025-09-04): [代碼嚴謹性] 移除了已廢棄的 `dynamic_prompt` 欄位。
 
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
 
-from .schemas import UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, TurnPlan, ExpansionDecision, IntentClassificationResult
+from .schemas import (UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, 
+                      TurnPlan, ExpansionDecision, IntentClassificationResult, StyleAnalysisResult)
 from .ai_core import AILover
 
 # 類別：對話圖狀態
@@ -24,8 +25,8 @@ class ConversationGraphState(TypedDict):
     messages: List[BaseMessage]
     
     # --- 中間處理結果 ---
-    # [v3.0 新增] 儲存初始的意圖分類結果
     intent_classification: Optional["IntentClassificationResult"]
+    style_analysis: Optional["StyleAnalysisResult"] # [v4.0 新增]
     input_analysis: Optional["UserInputAnalysis"]
     expansion_decision: Optional["ExpansionDecision"]
     scene_analysis: Optional["SceneAnalysisResult"]
