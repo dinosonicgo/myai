@@ -283,6 +283,9 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
         response_text = "（AI 在處理您的請求時遭遇了不可恢復的內容安全限制，請嘗試調整您的指令。）"
     return {"llm_response": response_text}
 
+# 函式：遠程場景生成節點 (v2.0 - 上下文隔離修正)
+# 更新紀錄:
+# v2.0 (2025-09-07): [災難性BUG修復] 在呼叫 _get_structured_context 時，增加了 is_remote_scene=True 參數。此修改是解決“上下文洩漏”問題的關鍵，它指示上下文生成器不要注入任何關於使用者或AI夥伴的本地資訊，確保遠程場景的純淨性。
 async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -292,10 +295,14 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
         return {"llm_response": "（系統錯誤：無法確定要觀察的遠程目標。）"}
     target_path = scene_analysis.target_location_path
     logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node [SFW Path] -> 正在為遠程地點 '{' > '.join(target_path)}' 生成【SFW】場景...")
+    
+    # [v2.0 核心修正] 傳入 is_remote_scene=True，確保只獲取遠程地點的純淨上下文
     remote_context = await ai_core._get_structured_context(
         user_input="", 
-        override_location_path=target_path
+        override_location_path=target_path,
+        is_remote_scene=True
     )
+
     remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
     scene_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_scene_generator_chain(),
@@ -303,13 +310,15 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
             "world_settings": ai_core.profile.world_settings or "未設定",
             "remote_scene_context": remote_scene_context_str,
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
         },
         retry_strategy='euphemize'
     )
     if not scene_text:
         scene_text = "（由於內容限制，無法生成遠程場景的詳細描述。）"
     return {"llm_response": scene_text}
-
+# 函式：遠程場景生成節點 (v2.0 - 上下文隔離修正)
 async def remote_nsfw_scene_generator_node(state: ConversationGraphState) -> Dict[str, str]:
     user_id = state['user_id']
     ai_core = state['ai_core']
