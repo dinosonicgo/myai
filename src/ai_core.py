@@ -2152,14 +2152,14 @@ class AILover:
         return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
 
-    # 函式：獲取結構化上下文 (v2.2 - 上下文隔離修正)
+    # 函式：獲取結構化上下文 (v2.3 - 實體提取源隔離)
     # 更新紀錄:
-    # v2.2 (2025-09-07): [災難性BUG修復] 新增了 is_remote_scene 參數。當此參數為 True 時，函式將跳過注入使用者和AI夥伴的個人檔案。這是解決在描述遠程場景時，主角被錯誤地寫入場景（“上下文洩漏”）問題的根本性修正。
+    # v2.3 (2025-09-08): [災難性BUG修復] 修正了實體提取鏈的數據源。當 is_remote_scene 為 True 時，提取的文本源將被嚴格限制為 user_input，徹底阻止了從 recent_dialogue (歷史對話) 中洩漏本地角色 (如AI夥伴) 名稱的可能性。
+    # v2.2 (2025-09-07): [災難性BUG修復] 新增了 is_remote_scene 參數以阻止主動注入主角檔案。
     # v2.1 (2025-09-06): [健壯性] 強化了 LORE 查詢邏輯。
-    # v2.0 (2025-09-02): [重大架構重構 - LORE 感知] 徹底重寫了此函式的核心邏輯。
     async def _get_structured_context(self, user_input: str, override_location_path: Optional[List[str]] = None, is_remote_scene: bool = False) -> Dict[str, str]:
         """
-        [v2.2 新架構] 生成一份包含所有相關實體詳細 LORE 檔案的“情報簡報”。
+        [v2.3 新架構] 生成一份包含所有相關實體詳細 LORE 檔案的“情報簡報”。
         """
         if not self.profile: return {}
         
@@ -2169,11 +2169,17 @@ class AILover:
         location_path = override_location_path if override_location_path is not None else gs.location_path
         current_path_str = " > ".join(location_path)
 
-        # --- 步驟 1: 提取場景中的所有關鍵實體 ---
-        chat_history_manager = self.session_histories.get(self.user_id, ChatMessageHistory())
-        recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
-        text_for_extraction = f"{user_input}\n{recent_dialogue}"
-        
+        # --- 步驟 1: 根據場景類型準備實體提取的文本源 ---
+        # [v2.3 核心修正] 隔離數據源
+        if is_remote_scene:
+            # 對於遠程場景，只分析使用者當前的指令，避免從歷史對話中污染本地角色
+            text_for_extraction = user_input
+        else:
+            # 對於本地場景，結合當前指令和最近對話以獲取最完整的上下文
+            chat_history_manager = self.session_histories.get(self.user_id, ChatMessageHistory())
+            recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
+            text_for_extraction = f"{user_input}\n{recent_dialogue}"
+
         entity_extraction_chain = self.get_entity_extraction_chain()
         entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_for_extraction})
         extracted_names = set(entity_result.names if entity_result else [])
@@ -2267,7 +2273,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (Context Engine) 情報簡報生成完畢。")
         return final_context
-    # 函式：獲取結構化上下文 (v2.2 - 上下文隔離修正)
+    # 函式：獲取結構化上下文 (v2.3 - 實體提取源隔離)
 
 
 
