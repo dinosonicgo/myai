@@ -418,6 +418,40 @@ class AILover:
             self.intent_classification_chain = prompt | classifier_llm
         return self.intent_classification_chain
     # 函式：獲取意圖分類鏈 (v206.0 - 全新創建)
+
+
+
+        # 函式：獲取風格分析鏈 (v210.0 - 全新創建)
+    # 更新紀錄:
+    # v210.0 (2025-09-06): [重大架構升級] 創建此鏈以解決模型在 SFW 路徑中忽略風格指令的頑固問題。此鏈的唯一職責是將用戶冗長的風格 Prompt 提煉成給規劃器的、結構化的、具體的硬性指令，是確保風格一致性的核心組件。
+    def get_style_analysis_chain(self) -> Runnable:
+        """獲取或創建一個專門用於分析風格指令並將其結構化的鏈。"""
+        if not hasattr(self, 'style_analysis_chain') or self.style_analysis_chain is None:
+            from .schemas import StyleAnalysisResult
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(StyleAnalysisResult)
+            
+            prompt_template = """你是一位專業的 AI 行為分析師。你的唯一任務是仔細閱讀下方由使用者定義的【AI 回覆風格指令】，並將其提煉成一個給後續“規劃器”看的、結構化的、具體的 JSON 指令。
+
+【分析指南】
+1.  **對話要求**: 仔細閱讀風格指令中關於「對話比例」、「角色主動性」或任何與角色是否應該說話相關的描述。將其總結為一句明確的指令。
+    *   如果要求高對話，總結為 "AI角色必須至少說一句符合其性格和情境的話"。
+    *   如果要求低或無對話，總結為 "非必要情況下，AI角色應保持沉默"。
+2.  **旁白等級**: 根據指令中對「旁白比例」或描述細膩程度的要求，將其歸納為 '低', '中等', '高' 三個等級之一。
+3.  **主動性建議**: 綜合整個風格指令和當前情境，給出一個可選的、能推動劇情的行動建議。
+
+---
+【當前使用者輸入 (用於情境判斷)】:
+{user_input}
+---
+【AI 回覆風格指令】:
+{response_style_prompt}
+---
+請開始分析並生成結構化的 JSON 輸出。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.style_analysis_chain = prompt | analysis_llm
+        return self.style_analysis_chain
+    # 函式：獲取風格分析鏈 (v210.0 - 全新創建)
     
 
 
