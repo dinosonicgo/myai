@@ -467,6 +467,12 @@ def route_viewing_mode(state: ConversationGraphState) -> Literal["remote_scene",
 
 # --- 主對話圖的建構器 ---
 
+# 函式：創建主回應圖 (v20.1 - 拓撲最終修正)
+# 更新紀錄:
+# v20.1 (2025-09-06): [災難性BUG修復] 徹底修正了圖的拓撲定義，以解決因錯誤連接路由器導致的 "wrote to unknown channel" 和空回應的致命錯誤。
+#    1. [修正邊連接] 確保了從普通節點 (`lore_expansion` 和 `expansion_decision` 的一個分支) 到路由器節點 (`route_to_final_generator`) 的連接是通過 `graph.add_edge` 建立的。
+#    2. [正確使用條件邊] 確保了 `add_conditional_edges` 只用於從路由器節點出發進行條件分發。
+# v20.0 (2025-09-06): [災難性BUG修復] 對圖的拓撲和節點職責進行了最終的、決定性的修正。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -479,6 +485,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
     
+    # [v20.1 核心修正] 將路由器也註冊為一個節點，以便普通邊可以連接到它
+    graph.add_node("route_to_final_generator", route_to_final_generator)
+
     # SFW 專用路徑節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("style_analysis", style_analysis_node)
@@ -500,7 +509,7 @@ def create_main_response_graph() -> StateGraph:
     
     graph.set_entry_point("classify_intent")
     
-    # [v19.0 核心修正] 建立統一的預處理流程
+    # 建立統一的預處理流程
     graph.add_edge("classify_intent", "initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
     graph.add_edge("analyze_input", "expansion_decision")
@@ -509,18 +518,17 @@ def create_main_response_graph() -> StateGraph:
         route_expansion_decision,
         {
             "expand_lore": "lore_expansion",
-            "continue_without_expansion": "route_to_final_generator" # 跳過擴展，直接進入最終路由
+            "continue_without_expansion": "route_to_final_generator" 
         }
     )
-    # [v20.0 核心修正] 修正路由註冊方式
-    graph.add_conditional_edges(
-        "lore_expansion",
-        route_to_final_generator # LORE擴展完成後，也進入最終路由
-    )
-    graph.add_node("route_to_final_generator", route_to_final_generator) # 註冊路由器節點本身
+    
+    # [v20.1 核心修正] 使用普通邊將 LORE 擴展節點的出口連接到最終路由器
+    graph.add_edge("lore_expansion", "route_to_final_generator")
+
+    # [v20.1 核心修正] 從最終路由器節點出發，進行條件分發
     graph.add_conditional_edges(
         "route_to_final_generator",
-        route_to_final_generator, # 使用路由函式
+        route_to_final_generator,
         {
             "sfw_path": "scene_and_action_analysis",
             "nsfw_interactive_path": "generate_nsfw_response",
@@ -553,7 +561,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v19.0 - LORE 統一架構最終版)
+# 函式：創建主回應圖 (v20.1 - 拓撲最終修正)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
