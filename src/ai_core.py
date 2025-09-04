@@ -2090,10 +2090,10 @@ class AILover:
         return "【系統事件報告】:\n" + "\n".join(f"- {res}" for res in tool_results)
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
 
-    # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
+    # 函式：獲取結構化上下文 (v2.1 - 適配統一LORE)
     # 更新紀錄:
-    # v2.0 (2025-09-02): [重大架構重構 - LORE 感知] 徹底重寫了此函式的核心邏輯。它現在使用一個專門的 `entity_extraction_chain` 來識別對話中的關鍵實體，然後並行地、跨類別地查詢 LORE 資料庫，為每一個被提及的實體（NPC、地點、物品等）生成一份詳細的“情報檔案”。這份包含深度 LORE 細節的完整簡報將被注入到上下文，從根本上解決了 AI 因缺乏信息而無法遵循 LORE 的“失憶症”問題。
-    # v146.0 (2025-08-29): [健壯性] 修正了 NPC 匹配邏輯。
+    # v2.1 (2025-09-06): [健壯性] 強化了 LORE 查詢邏輯，使其能夠更好地處理來自新 `lore_expansion_node` 的即時更新，確保上下文的時效性。
+    # v2.0 (2025-09-02): [重大架構重構 - LORE 感知] 徹底重寫了此函式的核心邏輯。
     async def _get_structured_context(self, user_input: str, override_location_path: Optional[List[str]] = None) -> Dict[str, str]:
         """
         [v2.0 新架構] 生成一份包含所有相關實體詳細 LORE 檔案的“情報簡報”。
@@ -2129,7 +2129,6 @@ class AILover:
         async def find_lore(name: str):
             tasks = []
             for category in all_lore_categories:
-                # 進行模糊查詢，匹配 key 或 content 中的 name
                 task = get_lores_by_category_and_filter(
                     self.user_id, 
                     category, 
@@ -2137,7 +2136,6 @@ class AILover:
                 )
                 tasks.append(task)
             
-            # 執行該名稱在所有類別的並行查詢
             results_per_name = await asyncio.gather(*tasks, return_exceptions=True)
             
             found_lores = []
@@ -2192,19 +2190,21 @@ class AILover:
         inventory_context = f"團隊庫存: {', '.join(gs.inventory) or '空的'}"
         dossier_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
 
-        # [v200.0] 新的上下文結構
-        # 舊的 npc_context 和 relevant_npc_context 已被統一的 dossier_context 取代
         final_context = {
             "location_context": location_context,
-            "possessions_context": inventory_context, # 保持舊鍵名以兼容模板
-            "quests_context": "當前任務: (已整合進情報檔案)", # 提示任務信息已轉移
-            "npc_context": dossier_context, # 使用 dossier 替換舊的 npc_context
-            "relevant_npc_context": "" # 不再需要，設為空
+            "possessions_context": inventory_context,
+            "quests_context": "當前任務: (已整合進情報檔案)",
+            "npc_context": dossier_context,
+            "relevant_npc_context": ""
         }
         
         logger.info(f"[{self.user_id}] (Context Engine) 情報簡報生成完畢。")
         return final_context
-    # 函式：獲取結構化上下文 (v2.0 - 情報簡報系統重構)
+    # 函式：獲取結構化上下文 (v2.1 - 適配統一LORE)
+
+
+
+    
     
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
     # 更新紀錄:
