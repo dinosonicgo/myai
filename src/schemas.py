@@ -340,6 +340,13 @@ class IntentClassificationResult(BaseModel):
 
 
 
+# [v13.0 新增] 用於將風格指令結構化的模型
+class StyleAnalysisResult(BaseModel):
+    """用於結構化地表示對使用者自訂風格的分析結果，以便為規劃器提供具體指令。"""
+    dialogue_requirement: str = Field(description="根據風格指令，對本回合對話的具體要求。例如：'AI角色必須說話' 或 '無需對話'。")
+    narration_level: str = Field(description="對旁白詳細程度的要求。例如：'低', '中等', '高'。")
+    proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
+
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
