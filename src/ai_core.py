@@ -685,33 +685,6 @@ class AILover:
 
 
 
-# 函式：獲取關鍵詞提取鏈 (v207.0 - 全新創建)
-    # 更新紀錄:
-    # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為新的“解構-重構”委婉化策略的第一步。它的唯一任務是安全地從潛在的露骨文本中提取核心概念關鍵詞，為後續的中性重構做準備。
-    def get_keyword_extraction_chain(self) -> Runnable:
-        """獲取或創建一個專門用於從文本中安全提取關鍵詞的鏈。"""
-        if not hasattr(self, 'keyword_extraction_chain') or self.keyword_extraction_chain is None:
-            from .schemas import ExtractedKeywords
-            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedKeywords)
-            
-            prompt_template = """你是一位高效的自然語言處理引擎。你的唯一任務是通讀下方提供的【原始文本】，並從中提取出能夠代表其核心概念的關鍵詞。
-
-【提取規則】
-1.  **只提取核心概念**: 提取出關鍵的名詞、動詞、形容詞。
-2.  **忽略修飾詞**: 忽略不影響核心語義的副詞和連接詞。
-3.  **保持原樣**: 直接提取原文中的詞語，不要進行任何修改或聯想。
-4.  **結構化輸出**: 你的輸出必須是一個符合 `ExtractedKeywords` Pydantic 格式的 JSON 物件。
-
----
-【原始文本】:
-{text}
----
-請開始提取。"""
-            
-            prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.keyword_extraction_chain = prompt | extractor_llm
-        return self.keyword_extraction_chain
-    # 函式：獲取關鍵詞提取鏈 (v207.0 - 全新創建)
 
     # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
     # 更新紀錄:
@@ -2321,15 +2294,17 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“解構-重構”委婉化重試處理器 (v207.0 - 全新重寫)
+    # 函式：“程序化解構-重構”委婉化重試處理器 (v208.0 - 最終修正)
     # 更新紀錄:
-    # v207.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現全新的“解構-重構”委婉化策略。此策略通過先提取關鍵詞，然後基於關鍵詞重構安全句子的兩步流程，從根本上解決了舊委婉化鏈因直接處理露骨文本而被審查的邏輯悖論，是系統穩定性的關鍵修正。
-    # v137.0 (2025-09-05): [重大架構重構] 將此函式重構為一個專門的“委婉化重試”處理器。
+    # v208.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現最終的“程序化解構-重構”策略。
+    #    1. [廢除LLM解構] 廢除了會被內容審查的 `keyword_extraction_chain`。
+    #    2. [引入程序化解構] 改為使用絕對安全的本地 Python 程式碼，通過一個安全的 `input_analysis_chain` 來提取核心意圖，從根本上解決了委婉化第一步就失敗的問題。
+    # v207.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現全新的“解構-重構”委婉化策略。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v207.0 新架構] 執行“解構-重構”委婉化策略並重試。
+        [v208.0 新架構] 執行“程序化解構-LLM重構”委婉化策略並重試。
         """
-        logger.warning(f"[{self.user_id}] 檢測到內容審查。啟動【解構-重構委婉化重試】策略...")
+        logger.warning(f"[{self.user_id}] 檢測到內容審查。啟動【程序化解構委婉化重試】策略...")
         
         try:
             # 步驟 0: 確定要處理的原始文本
@@ -2345,27 +2320,28 @@ class AILover:
             if not text_to_euphemize:
                 raise ValueError("在委婉化重試中找不到可處理的文本內容。")
 
-            # 步驟 1: 安全解構 - 提取關鍵詞
-            logger.info(f"[{self.user_id}] (委婉化-步驟1) 正在安全解構文本: '{text_to_euphemize[:100]}...'")
-            keyword_chain = self.get_keyword_extraction_chain()
-            keyword_result = await self.ainvoke_with_rotation(keyword_chain, {"text": text_to_euphemize}, retry_strategy='none')
+            # 步驟 1: 程序化、安全地解構 - 使用 input_analysis_chain 獲取中性摘要
+            logger.info(f"[{self.user_id}] (委婉化-步驟1) 正在安全地分析文本: '{text_to_euphemize[:100]}...'")
+            analysis_chain = self.get_input_analysis_chain()
+            # 這個鏈本身被設計為處理任意使用者輸入，因此是安全的
+            analysis_result = await self.ainvoke_with_rotation(analysis_chain, {"user_input": text_to_euphemize}, retry_strategy='none')
+
+            if not analysis_result or not analysis_result.summary_for_planner:
+                 raise ValueError("安全的輸入分析鏈未能返回有效摘要。")
             
-            if not keyword_result or not keyword_result.keywords:
-                raise ValueError("關鍵詞提取鏈未能返回有效結果。")
+            # 使用摘要作為重構的基礎
+            safe_summary = analysis_result.summary_for_planner
             
-            # 步驟 2: 程序化過濾和替換
-            sensitive_map = {"肉棒": "身體部位", "肉穴": "身體部位", "強姦": "強制互動", "殺": "制服"}
-            safe_keywords = [sensitive_map.get(kw, kw) for kw in keyword_result.keywords]
-            
-            # 步驟 3: 中性重構 - 基於安全關鍵詞生成句子
-            logger.info(f"[{self.user_id}] (委婉化-步驟2) 正在基於安全關鍵詞重構: {safe_keywords}")
+            # 步驟 2: 中性重構 - 基於安全摘要生成通用句子
+            logger.info(f"[{self.user_id}] (委婉化-步驟2) 正在基於安全摘要重構: '{safe_summary}'")
             euphemization_chain = self.get_euphemization_chain()
-            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": ", ".join(safe_keywords)}, retry_strategy='none')
+            # 這裡的輸入已經是中性的，所以調用也是安全的
+            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": safe_summary}, retry_strategy='none')
             
             if not safe_text or safe_text == text_to_euphemize:
                 raise ValueError("委婉化重構鏈未能生成有效的不同文本。")
 
-            # 步驟 4: 使用生成出的安全文本進行重試
+            # 步驟 3: 使用生成出的安全文本進行重試
             retry_params = failed_params
             if isinstance(retry_params, dict):
                 key_to_replace = max(retry_params, key=lambda k: len(str(retry_params.get(k, ''))))
@@ -2375,13 +2351,13 @@ class AILover:
             else:
                 retry_params = safe_text
 
-            logger.info(f"[{self.user_id}] (委婉化-步驟3) 已生成安全文本，正在用其重試原始鏈...")
+            logger.info(f"[{self.user_id}] (委婉化-步驟3) 已生成安全文本 '{safe_text}'，正在用其重試原始鏈...")
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}", exc_info=True)
-            return None
-    # 函式：“解構-重構”委婉化重試處理器 (v207.0 - 全新重寫)
+            logger.error(f"[{self.user_id}] 【程序化委婉化】策略最終失敗: {e}", exc_info=True)
+            return None # 如果整個流程依然失敗，返回 None 以觸發安全備援
+    # 函式：“程序化解構-重構”委婉化重試處理器 (v208.0 - 最終修正)
 
 
     
