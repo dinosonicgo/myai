@@ -1,9 +1,10 @@
-# src/graph.py 的中文註釋(v14.1 - 異步修正)
+# src/graph.py 的中文註釋(v15.0 - 先分類後處理架構)
 # 更新紀錄:
-# v14.1 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_based_on_intent` 函式的執行模式。將其從同步函式改為異步函式 (`async def`)，並移除了在運行中的事件迴圈內非法調用 `asyncio.run()` 的致命錯誤。此修改從根本上解決了因事件迴圈衝突導致的 `ImportError`。
-# v14.0 (2025-09-06): [重大架構升級] 根據新的語意路由邏輯，對圖的拓撲進行了簡化和重構。
-# v13.1 (2025-09-05): [災難性BUG修復] 根據 "Found edge starting at unknown node" 錯誤，徹底重構了圖的拓撲結構。
-# v12.0 (2025-09-05): [災難性BUG修復] 為了從根本上解決“場景洩漏”和“遠程描述時忘記命名”的問題，對圖的拓撲進行了重大重構。
+# v15.0 (2025-09-06): [災難性BUG修復] 根據“先檢測，後處理”原則，對圖的拓撲進行了根本性的重構。
+#    1. [新入口點] 新增 `classify_intent_node` 作為圖的唯一入口，確保在執行任何潛在危險的操作前，先對使用者輸入進行意圖分類。
+#    2. [污染隔離] 將 `initialize_conversation_state_node`（包含RAG檢索）從全局前置移入 SFW 路徑內部，從根本上杜絕了內部工具鏈被 NSFW 內容污染導致連鎖崩潰的問題。
+#    3. [流程簡化] 新的主路由器 `route_after_classification` 直接將流程分發到隔離的 SFW 或 NSFW 路徑，使整個數據流更清晰、更健壯。
+# v14.1 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_based_on_intent` 函式的執行模式。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -26,32 +27,51 @@ from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# 函式：初始化對話狀態節點 (v2.0 - 健壯性強化)
-# 更新紀錄:
-# v2.0 (2025-09-06): [健壯性] 增加了對 `retrieved_docs` 可能為 None 的防禦性處理。這可以防止當 RAG 檢索因內容審查觸發委婉化並最終失敗時，導致後續節點因 NoneType 錯誤而崩潰的問題。
+# [v15.0 新增] 圖的新入口點
+async def classify_intent_node(state: ConversationGraphState) -> Dict:
+    """圖的新入口點，唯一職責是對原始輸入進行意圖分類。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: classify_intent_node -> 正在對 '{user_input[:30]}...' 進行意圖分類...")
+    
+    classification_chain = ai_core.get_intent_classification_chain()
+    classification_result = await ai_core.ainvoke_with_rotation(
+        classification_chain,
+        {"user_input": user_input},
+        retry_strategy='none' # 分類是核心，不應委婉化，如果失敗則走備援
+    )
+    
+    if not classification_result:
+        logger.warning(f"[{user_id}] (Graph) 意圖分類鏈失敗，啟動安全備援，預設為 SFW。")
+        classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
+        
+    return {"intent_classification": classification_result}
+
 async def initialize_conversation_state_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node -> 正在為 '{user_input[:30]}...' 初始化狀態...")
+    logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node [SFW Path] -> 正在為 '{user_input[:30]}...' 初始化狀態...")
+    
+    # [v15.0 架構變更] 此節點現在只在 SFW 路徑中被調用，輸入是安全的
     rag_task = ai_core.ainvoke_with_rotation(ai_core.retriever, user_input, retry_strategy='euphemize')
     structured_context_task = ai_core._get_structured_context(user_input)
+    
     retrieved_docs, structured_context = await asyncio.gather(rag_task, structured_context_task)
     
-    # [v2.0 核心修正] 增加對委婉化失敗的防禦
     if retrieved_docs is None:
         logger.warning(f"[{user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
         retrieved_docs = []
         
     rag_context_str = await ai_core._preprocess_rag_context(retrieved_docs)
     return {"structured_context": structured_context, "rag_context": rag_context_str}
-# 函式：初始化對話狀態節點 (v2.0 - 健壯性強化)
 
 async def analyze_input_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: analyze_input_node -> 正在分析輸入意圖...")
+    logger.info(f"[{user_id}] (Graph) Node: analyze_input_node [SFW Path] -> 正在分析輸入意圖...")
     analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_input_analysis_chain(), 
         {"user_input": user_input},
@@ -70,7 +90,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node -> 正在判斷是否需要擴展LORE...")
+    logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node [SFW Path] -> 正在判斷是否需要擴展LORE...")
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
     recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
     decision = await ai_core.ainvoke_with_rotation(
@@ -91,7 +111,7 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 正在進行場景視角分析與潛在選角...")
+    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node [SFW Path] -> 正在進行場景視角分析與潛在選角...")
     current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
     scene_analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_analysis_chain(),
@@ -131,7 +151,7 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在為 SFW 規劃鏈準備材料...")
+    logger.info(f"[{user_id}] (Graph) Node: planning_node [SFW Path] -> 正在為 SFW 規劃鏈準備材料...")
     structured_context = state.get('structured_context', {})
     full_context_dict = {
         "username": ai_core.profile.user_profile.name,
@@ -175,12 +195,13 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成【互動式】NSFW 回應...")
-    structured_context = state.get('structured_context', {})
-    rag_context = state.get('rag_context', "沒有檢索到相關的長期記憶。")
+    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node [NSFW Path] -> 正在直接生成【互動式】NSFW 回應...")
+    # [v15.0 架構變更] NSFW 路徑不進行 RAG 檢索，只獲取最基礎的上下文
+    structured_context = await ai_core._get_structured_context(user_input)
+    
     full_context_for_chain = {
         "user_input": user_input,
-        "retrieved_context": rag_context,
+        "retrieved_context": "（NSFW 路徑不執行深度記憶檢索）",
         **structured_context
     }
     response_text = await ai_core.ainvoke_with_rotation(
@@ -193,9 +214,6 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
     return {"llm_response": response_text}
 
 async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [SFW-遠程觀察分支] 專門用於生成遠程地點的電影式場景描述。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     scene_analysis = state['scene_analysis']
@@ -203,7 +221,7 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
         logger.error(f"[{user_id}] 進入了 remote_scene_generation_node，但 scene_analysis 中沒有 target_location_path。")
         return {"llm_response": "（系統錯誤：無法確定要觀察的遠程目標。）"}
     target_path = scene_analysis.target_location_path
-    logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node -> 正在為遠程地點 '{' > '.join(target_path)}' 生成【SFW】場景...")
+    logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node [SFW Path] -> 正在為遠程地點 '{' > '.join(target_path)}' 生成【SFW】場景...")
     remote_context = await ai_core._get_structured_context(
         user_input="", 
         override_location_path=target_path
@@ -225,13 +243,10 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
     return {"llm_response": scene_text}
 
 async def remote_nsfw_scene_generator_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [NSFW-遠程觀察分支] 專門用於呼叫新的遠程NSFW鏈，生成純粹的第三方露骨場景。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: remote_nsfw_scene_generator_node -> 正在為請求 '{user_input[:30]}...' 生成【遠程NSFW】場景...")
+    logger.info(f"[{user_id}] (Graph) Node: remote_nsfw_scene_generator_node [NSFW Path] -> 正在生成【遠程NSFW】場景...")
     remote_context = await ai_core._get_structured_context(user_input)
     remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
     scene_text = await ai_core.ainvoke_with_rotation(
@@ -254,7 +269,7 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     user_id = state['user_id']
     ai_core = state['ai_core']
     plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 正在執行行動計劃中的工具...")
+    logger.info(f"[{user_id}] (Graph) Node: tool_execution_node [SFW Path] -> 正在執行行動計劃中的工具...")
     if not plan or not plan.character_actions:
         return {"tool_results": "系統事件：無任何工具被調用。"}
     try:
@@ -272,7 +287,7 @@ async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
     tool_results = state['tool_results']
-    logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在处理行动计划...")
+    logger.info(f"[{user_id}] (Graph) Node: narrative_node [SFW Path] -> 正在处理行动计划...")
     if not turn_plan:
         logger.error(f"[{user_id}] 叙事节点接收到空的行动计划，无法生成回应。")
         return {"llm_response": "（系统错误：未能生成有效的行动计划。）"}
@@ -358,78 +373,56 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
     return {}
 
 # --- 主對話圖的路由 ---
-def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "expand_lore", "skip_expansion"]:
+
+# [v15.0 新增] 新的主路由器
+async def route_after_classification(state: ConversationGraphState) -> Literal["sfw_path", "nsfw_interactive_path", "nsfw_descriptive_path"]:
+    """根據初始意圖分類結果，將流程路由到隔離的處理路徑。"""
+    intent = state['intent_classification'].intent_type
     user_id = state['user_id']
-    scene_analysis = state.get("scene_analysis")
-    if scene_analysis and scene_analysis.viewing_mode == 'remote':
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【SFW遠程觀察】。")
-        return "remote_scene"
-    should_expand = state.get("expansion_decision")
-    if should_expand and should_expand.should_expand:
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【本地LORE擴展】。")
-        return "expand_lore"
-    else:
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【跳過LORE擴展】。")
-        return "skip_expansion"
-
-# 函式：基於語意意圖路由 (v14.1 - 異步修正)
-# 更新紀錄:
-# v14.1 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的執行模式。將其從同步函式改為異步函式 (`async def`)，並移除了在運行中的事件迴圈內非法調用 `asyncio.run()` 的致命錯誤。此修改從根本上解決了因事件迴圈衝突導致的 `ImportError`。
-# v13.0 (2025-09-06): [重大架構升級] 此路由器被徹底重構。它現在調用專門的 `intent_classification_chain` 來進行語意分析，取代了脆弱的關鍵詞匹配。
-async def route_based_on_intent(state: ConversationGraphState) -> Literal["sfw_path", "nsfw_interactive_path", "nsfw_descriptive_path"]:
-    """根據語意分析結果，將對話流程路由到最合適的處理路徑。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-
-    # [v14.1 核心修正] 因為此函式本身已是 async，所以可以直接 await，不再需要手動處理事件迴圈
-    classification_chain = ai_core.get_intent_classification_chain()
-    classification_result = await ai_core.ainvoke_with_rotation(
-        classification_chain,
-        {"user_input": user_input},
-        retry_strategy='euphemize'
-    )
-    
-    if not classification_result:
-        logger.warning(f"[{user_id}] (Graph) 意圖分類鏈委婉化重試失敗，啟動安全備援，預設為 SFW 路徑。")
-        classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
-
-    intent = classification_result.intent_type
-    logger.info(f"[{user_id}] (Graph) Router: 語意意圖分類結果: {intent}。理由: {classification_result.reasoning}")
-
+    logger.info(f"[{user_id}] (Graph) Router: 主路由器根據意圖 '{intent}' 進行分發。")
     if intent == 'nsfw_interactive':
         return "nsfw_interactive_path"
     elif intent == 'nsfw_descriptive':
         return "nsfw_descriptive_path"
     else: # 'sfw'
         return "sfw_path"
-# 函式：基於語意意圖路由 (v14.1 - 異步修正)
 
+def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "expand_lore", "skip_expansion"]:
+    user_id = state['user_id']
+    scene_analysis = state.get("scene_analysis")
+    if scene_analysis and scene_analysis.viewing_mode == 'remote':
+        logger.info(f"[{user_id}] (Graph) Router: SFW 內部路由判定為【遠程觀察】。")
+        return "remote_scene"
+    should_expand = state.get("expansion_decision")
+    if should_expand and should_expand.should_expand:
+        logger.info(f"[{user_id}] (Graph) Router: SFW 內部路由判定為【本地LORE擴展】。")
+        return "expand_lore"
+    else:
+        logger.info(f"[{user_id}] (Graph) Router: SFW 內部路由判定為【跳過LORE擴展】。")
+        return "skip_expansion"
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v14.1 - 異步修正)
-# 更新紀錄:
-# v14.1 (2025-09-06): [災難性BUG修復] LangGraph 的 `add_conditional_edges` 現在可以直接接受異步的路由函式，無需任何特殊處理。
-# v14.0 (2025-09-06): [重大架構升級] 根據新的語意路由邏輯，對圖的拓撲進行了簡化和重構。
-# v13.1 (2025-09-05): [災難性BUG修復] 根據 "Found edge starting at unknown node" 錯誤，徹底重構了圖的拓撲結構。
+# 函式：創建主回應圖 (v15.0 - 先分類後處理架構)
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
+    
     # --- 1. 註冊所有節點 ---
+    graph.add_node("classify_intent", classify_intent_node)
+    
+    # SFW 路徑節點
     graph.add_node("initialize_state", initialize_conversation_state_node)
     graph.add_node("analyze_input", analyze_input_node)
     graph.add_node("expansion_decision", expansion_decision_node)
-    
-    # NSFW 路徑節點
-    graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
-    graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
-
-    # SFW 路徑節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("remote_scene_generation", remote_scene_generation_node)
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative", narrative_node)
+    
+    # NSFW 路徑節點
+    graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
+    graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
     
     # 共同路徑節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
@@ -437,24 +430,24 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("background_expansion", background_world_expansion_node)
     graph.add_node("finalization", finalization_node)
 
-    # --- 2. 定義圖的拓撲結構 (邊和路由器) ---
-    graph.set_entry_point("initialize_state")
+    # --- 2. 定義圖的拓撲結構 ---
     
-    graph.add_edge("initialize_state", "analyze_input")
-    graph.add_edge("analyze_input", "expansion_decision")
-    
-    # [v14.1 核心修正] 主 SFW / NSFW 語意路由分支，直接傳遞異步函式
+    # [v15.0 核心修正] 設定新的入口點和主路由器
+    graph.set_entry_point("classify_intent")
     graph.add_conditional_edges(
-        "expansion_decision",
-        route_based_on_intent,
+        "classify_intent",
+        route_after_classification,
         {
-            "sfw_path": "scene_and_action_analysis",
+            "sfw_path": "initialize_state",
             "nsfw_interactive_path": "generate_nsfw_response",
             "nsfw_descriptive_path": "remote_nsfw_scene_generation"
         }
     )
     
-    # SFW 內部分支
+    # 定義 SFW 路徑的內部流程
+    graph.add_edge("initialize_state", "analyze_input")
+    graph.add_edge("analyze_input", "expansion_decision")
+    graph.add_edge("expansion_decision", "scene_and_action_analysis")
     graph.add_conditional_edges(
         "scene_and_action_analysis",
         route_expansion,
@@ -464,8 +457,6 @@ def create_main_response_graph() -> StateGraph:
             "skip_expansion": "planning"
         }
     )
-    
-    # 連接 SFW 路徑的後續節點
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     
@@ -482,7 +473,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v14.1 - 異步修正)
+# 函式：創建主回應圖 (v15.0 - 先分類後處理架構)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
