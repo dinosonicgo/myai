@@ -486,7 +486,13 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     
     # [v20.1 核心修正] 將路由器也註冊為一個節點，以便普通邊可以連接到它
-    graph.add_node("route_to_final_generator", route_to_final_generator)
+    # 修正說明：此處的 `route_to_final_generator` 節點不直接執行路由邏輯，
+    # 它的存在是為了作為一個“匯合點”(Junction)。真正的路由邏輯在下面的 add_conditional_edges 中執行。
+    # 為了避免 InvalidUpdateError，我們讓這個匯合點節點不返回任何東西（隱式返回一個空字典）。
+    def junction_passthrough(state: ConversationGraphState) -> Dict:
+        """一個什麼都不做的匯合點節點，只用於傳遞狀態。"""
+        return {}
+    graph.add_node("route_to_final_generator", junction_passthrough)
 
     # SFW 專用路徑節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
@@ -513,22 +519,26 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("classify_intent", "initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
     graph.add_edge("analyze_input", "expansion_decision")
+    
+    # [v20.1 拓撲修正] 從 expansion_decision 出發，根據結果決定是否執行 lore_expansion
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
         {
+            # 如果需要擴展，則先去 lore_expansion 節點
             "expand_lore": "lore_expansion",
+            # 如果不需要擴展，則直接跳到最終的路由匯合點
             "continue_without_expansion": "route_to_final_generator" 
         }
     )
     
-    # [v20.1 核心修正] 使用普通邊將 LORE 擴展節點的出口連接到最終路由器
+    # [v20.1 拓撲修正] lore_expansion 節點執行完畢後，也必須連接到最終的路由匯合點
     graph.add_edge("lore_expansion", "route_to_final_generator")
 
-    # [v20.1 核心修正] 從最終路由器節點出發，進行條件分發
+    # [v20.1 拓撲修正] 現在，從匯合點 "route_to_final_generator" 出發，執行真正的最終路由邏輯
     graph.add_conditional_edges(
         "route_to_final_generator",
-        route_to_final_generator,
+        route_to_final_generator, # 這裡使用真正的路由器函式
         {
             "sfw_path": "scene_and_action_analysis",
             "nsfw_interactive_path": "generate_nsfw_response",
@@ -562,6 +572,9 @@ def create_main_response_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建主回應圖 (v20.1 - 拓撲最終修正)
+
+
+
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
