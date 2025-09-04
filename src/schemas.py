@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v11.0 - 新增擴展決策模型)
+# src/schemas.py 的中文註釋(v12.0 - 新增智慧路由模型)
 # 更新紀錄:
-# v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。此模型將作為新的“守門人”節點 (`expansion_decision_node`) 的輸出結構，用於在 LORE 創造流程的最前端，就是否需要進行世界擴展做出明確的是/否決策，是解決無意義 LORE 擴展問題的關鍵數據結構。
+# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。此模型將作為新的智慧意圖分類鏈的輸出，用來取代脆弱的關鍵詞匹配，從根本上提高路由的準確性。
+# v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。
 # v10.2 (2025-09-03): [健壯性] 新增了 `SingleResolutionPlan` 和 `SingleResolutionResult` 模型以支持串行實體解析。
-# v10.1 (2025-09-02): [災難性BUG修復] 補全了被遺漏的 `ValidationResult` 和 `ExtractedEntities` 模型。
 
 import json
 import re
@@ -213,7 +213,7 @@ class TurnPlan(BaseModel):
     thought: str = Field(description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
     narration: Optional[str] = Field(default="", description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
     character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。")
-    execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合邏輯而無法執行時，此欄位包含以角色口吻給出的解釋。")
+    execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合 lógica而無法執行時，此欄位包含以角色口吻給出的解釋。")
 
     @model_validator(mode='after')
     def check_plan_logic(self) -> 'TurnPlan':
@@ -324,11 +324,19 @@ class ValidationResult(BaseModel):
 class ExtractedEntities(BaseModel):
     names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
 
-# [v11.0 新增] 用于判断是否需要扩展LORE的模型
 class ExpansionDecision(BaseModel):
     """用于结构化地表示关于是否应在本回合进行世界LORE扩展的决定。"""
     should_expand: bool = Field(description="如果当前对话轮次适合进行世界构建和LORE扩展，则为 true；如果对话是简单的、重复的或与已知实体的互动，则为 false。")
     reasoning: str = Field(description="做出此决定的简短理由。")
+
+# [v12.0 新增] 用于智能路由的模型
+class IntentClassificationResult(BaseModel):
+    """用於結構化地表示對使用者輸入意圖的語意分類結果。"""
+    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="""對使用者意圖的最終分類：
+- 'sfw': 安全的、適合所有觀眾的內容。
+- 'nsfw_interactive': 包含露骨或敏感內容的、使用者與 AI/NPC 的直接互動請求。
+- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。""")
+    reasoning: str = Field(description="做出此分類的簡短理由。")
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
