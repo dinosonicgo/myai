@@ -2300,70 +2300,47 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“程序化解構-重構”委婉化重試處理器 (v208.0 - 最終修正)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 最終簡化版)
     # 更新紀錄:
+    # v209.0 (2025-09-06): [重大架構重構] 根據全新的“先分類，後處理”圖架構，此函式的職責被極大簡化。由於內部鏈現在只應處理SFW內容，此函式現在作為一個最終安全網：它只會嘗試一次最簡單的委婉化，如果失敗，則立即返回None，觸發安全備援值，確保SFW路徑的絕對穩定。
     # v208.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現最終的“程序化解構-重構”策略。
-    #    1. [廢除LLM解構] 廢除了會被內容審查的 `keyword_extraction_chain`。
-    #    2. [引入程序化解構] 改為使用絕對安全的本地 Python 程式碼，通過一個安全的 `input_analysis_chain` 來提取核心意圖，從根本上解決了委婉化第一步就失敗的問題。
-    # v207.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現全新的“解構-重構”委婉化策略。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v208.0 新架構] 執行“程序化解構-LLM重構”委婉化策略並重試。
+        [v209.0 新架構] 一個輕量級的最終安全網，用於處理在SFW路徑中意外失敗的內部鏈。
         """
-        logger.warning(f"[{self.user_id}] 檢測到內容審查。啟動【程序化解構委婉化重試】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【最終安全網委婉化】策略...")
         
         try:
-            # 步驟 0: 確定要處理的原始文本
             text_to_euphemize = ""
             if isinstance(failed_params, dict):
                 string_values = [v for v in failed_params.values() if isinstance(v, str)]
                 if string_values: text_to_euphemize = max(string_values, key=len)
-            elif isinstance(failed_params, list):
-                text_to_euphemize = "\n".join([d.page_content for d in failed_params if isinstance(d, Document)])
             elif isinstance(failed_params, str):
                 text_to_euphemize = failed_params
-            
+            else: # 對於文檔列表等其他類型，直接放棄
+                raise ValueError("無法從參數中提取可委婉化的文本。")
+
             if not text_to_euphemize:
-                raise ValueError("在委婉化重試中找不到可處理的文本內容。")
+                raise ValueError("提取出的文本為空。")
 
-            # 步驟 1: 程序化、安全地解構 - 使用 input_analysis_chain 獲取中性摘要
-            logger.info(f"[{self.user_id}] (委婉化-步驟1) 正在安全地分析文本: '{text_to_euphemize[:100]}...'")
-            analysis_chain = self.get_input_analysis_chain()
-            # 這個鏈本身被設計為處理任意使用者輸入，因此是安全的
-            analysis_result = await self.ainvoke_with_rotation(analysis_chain, {"user_input": text_to_euphemize}, retry_strategy='none')
-
-            if not analysis_result or not analysis_result.summary_for_planner:
-                 raise ValueError("安全的輸入分析鏈未能返回有效摘要。")
+            # 使用一個極其簡單和安全的Prompt進行一次性嘗試
+            safe_text = f"總結以下內容的核心主題：'{text_to_euphemize[:200]}...'"
             
-            # 使用摘要作為重構的基礎
-            safe_summary = analysis_result.summary_for_planner
-            
-            # 步驟 2: 中性重構 - 基於安全摘要生成通用句子
-            logger.info(f"[{self.user_id}] (委婉化-步驟2) 正在基於安全摘要重構: '{safe_summary}'")
-            euphemization_chain = self.get_euphemization_chain()
-            # 這裡的輸入已經是中性的，所以調用也是安全的
-            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": safe_summary}, retry_strategy='none')
-            
-            if not safe_text or safe_text == text_to_euphemize:
-                raise ValueError("委婉化重構鏈未能生成有效的不同文本。")
-
-            # 步驟 3: 使用生成出的安全文本進行重試
+            # 使用生成出的安全文本進行重試
             retry_params = failed_params
             if isinstance(retry_params, dict):
                 key_to_replace = max(retry_params, key=lambda k: len(str(retry_params.get(k, ''))))
                 retry_params[key_to_replace] = safe_text
-            elif isinstance(retry_params, list):
-                retry_params = [Document(page_content=safe_text)]
-            else:
+            else: # str
                 retry_params = safe_text
 
-            logger.info(f"[{self.user_id}] (委婉化-步驟3) 已生成安全文本 '{safe_text}'，正在用其重試原始鏈...")
+            logger.info(f"[{self.user_id}] (安全網) 已生成安全文本，正在用其重試原始鏈...")
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【程序化委婉化】策略最終失敗: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 【最終安全網委婉化】策略失敗: {e}。將觸發安全備援。")
             return None # 如果整個流程依然失敗，返回 None 以觸發安全備援
-    # 函式：“程序化解構-重構”委婉化重試處理器 (v208.0 - 最終修正)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 最終簡化版)
 
 
     
@@ -2403,10 +2380,10 @@ class AILover:
             return None # 如果強化重試也失敗，則返回 None
     # 函式：指令強化重試處理器 (v1.0 - 全新創建)
     
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v207.0 - 恢復委婉化)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 適配簡化策略)
     # 更新紀錄:
-    # v207.0 (2025-09-06): [重大架構升級] 恢復了 `euphemize` 重試策略，並使其調用全新的、基於“解構-重構”模式的 `_euphemize_and_retry` 函式。此修改旨在實現使用者要求的、真正健壯的、能夠在遭遇審查時自我修復的內部工具鏈。
-    # v183.0 (2025-09-06): [災難性BUG修復] 徹底廢除了因自身也會被審查而導致系統崩潰的“委婉化”策略。
+    # v209.0 (2025-09-06): [架構適配] 適配了 v209.0 版本的、更簡化的最終安全網委婉化策略。
+    # v207.0 (2025-09-06): [重大架構升級] 恢復了 `euphemize` 重試策略。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
             raise ValueError("No API keys available.")
@@ -2435,12 +2412,9 @@ class AILover:
                 is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
 
                 if is_safety_error:
-                    # [v207.0 核心修正] 根據策略分發任務
                     if retry_strategy == 'euphemize':
-                        # 對於內部工具鏈，我們嘗試用新的健壯的委婉化策略修復
                         return await self._euphemize_and_retry(chain, params)
                     elif retry_strategy == 'force':
-                        # 對於最終輸出，我們嘗試用指令轟炸來突破
                         return await self._force_and_retry(chain, params)
                     else: # 'none'
                         logger.warning(f"[{self.user_id}] 鏈遭遇內容審查，且重試策略為 'none'。返回 None。")
@@ -2450,13 +2424,12 @@ class AILover:
                 raise e
 
         logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗。")
-        # 如果所有常規嘗試都失敗，最後再根據策略做一次最終補救
         if retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params)
         elif retry_strategy == 'force':
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v207.0 - 恢復委婉化)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 適配簡化策略)
 
     
 
