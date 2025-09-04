@@ -1,11 +1,10 @@
-# src/graph.py 的中文註釋(v18.0 - 專用LORE節點架構)
+# src/graph.py 的中文註釋(v19.0 - LORE 統一架構最終版)
 # 更新紀錄:
-# v18.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決LORE生成分散、隱式且不可靠的問題，對SFW路徑進行了終極的架構重構。
-#    1. [新增專用LORE節點] 引入了全新的 `lore_expansion_node`。此節點的唯一職責是在主流程中同步地執行所有LORE創造（選角、場景細化）並立即刷新狀態。
-#    2. [職責單一化] 剝離了 `scene_and_action_analysis` 節點的選角功能，使其只負責視角分析。
-#    3. [廢除背景任務] 徹底刪除了導致資訊延遲和不一致的 `background_world_expansion_node`。
-#    4. [重構圖拓撲] 建立了一個清晰的、線性的SFW處理流程，確保LORE擴展是一個獨立、前置且結果可被後續節點立即利用的步驟。
-# v17.0 (2025-09-06): [災難性BUG修復] 統一了SFW和NSFW路徑的上下文處理架構。
+# v19.0 (2025-09-06): [災難性BUG修復] 根據使用者“LORE應為獨立節點”的核心指摘，對圖的拓撲進行了最終的、根本性的重構。
+#    1. [創建通用預處理模組] 將意圖分類之後、最終生成之前的 LORE 相關節點（初始化、分析、決策、擴展）重構為一個所有路徑（SFW/NSFW）都必須經過的“通用預處理模組”。
+#    2. [新增最終生成路由器] 創建了新的 `route_to_final_generator` 路由器。它會在所有LORE預處理完成後，才根據最初的意圖分類，將流程分發到各自的專用生成節點。
+#    3. [實現架構統一] 此修改從根本上統一了 SFW 和 NSFW 路徑的 LORE 處理流程，確保了系統行為的一致性，徹底解決了因架構分裂導致的 LORE 相關的所有頑固問題。
+# v18.0 (2025-09-06): [災難性BUG修復] 引入了專用的 `lore_expansion_node`。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -30,7 +29,7 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """圖的新入口點，唯一職責是對原始輸入進行意圖分類。"""
+    """圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -53,7 +52,7 @@ async def initialize_conversation_state_node(state: ConversationGraphState) -> D
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node [SFW Path] -> 正在為 '{user_input[:30]}...' 初始化狀態...")
+    logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node [通用] -> 正在為 '{user_input[:30]}...' 初始化狀態...")
     
     rag_task = ai_core.ainvoke_with_rotation(ai_core.retriever, user_input, retry_strategy='euphemize')
     structured_context_task = ai_core._get_structured_context(user_input)
@@ -71,7 +70,7 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: analyze_input_node [SFW Path] -> 正在分析輸入意圖...")
+    logger.info(f"[{user_id}] (Graph) Node: analyze_input_node [通用] -> 正在分析輸入意圖...")
     analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_input_analysis_chain(), 
         {"user_input": user_input},
@@ -90,7 +89,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node [SFW Path] -> 正在判斷是否需要擴展LORE...")
+    logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node [通用] -> 正在判斷是否需要擴展LORE...")
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
     recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
     decision = await ai_core.ainvoke_with_rotation(
@@ -107,7 +106,39 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
 
-# [v18.0 重構] 剝離了選角職責，只負責視角分析
+async def lore_expansion_node(state: ConversationGraphState) -> Dict:
+    """專用的LORE擴展中心。負責同步地進行選角和場景細化，並立即刷新上下文狀態。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
+    logger.info(f"[{user_id}] (Graph) Node: lore_expansion_node [通用] -> 正在為場景進行同步LORE擴展...")
+
+    logger.info(f"[{user_id}] (LORE擴展) ...步驟 1/2: 執行場景選角...")
+    game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
+    cast_result = await ai_core.ainvoke_with_rotation(
+        ai_core.get_scene_casting_chain(),
+        {
+            "world_settings": ai_core.profile.world_settings or "",
+            "current_location_path": current_location_path, 
+            "game_context": game_context_for_casting,
+            "recent_dialogue": user_input
+        },
+        retry_strategy='euphemize'
+    )
+    if cast_result:
+        await ai_core._add_cast_to_scene(cast_result)
+    else:
+         logger.warning(f"[{user_id}] (LORE擴展) 場景選角鏈委婉化重試失敗，本輪跳過選角。")
+
+    logger.info(f"[{user_id}] (LORE擴展) ...步驟 2/2: 執行場景細化...")
+    await ai_core._background_scene_expansion(user_input, "", current_location_path)
+
+    logger.info(f"[{user_id}] (LORE擴展) ...LORE擴展完成，正在刷新結構化上下文...")
+    final_structured_context = await ai_core._get_structured_context(user_input, override_location_path=current_location_path)
+    
+    return {"structured_context": final_structured_context}
+
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -127,48 +158,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
             action_summary=user_input
         )
     return {"scene_analysis": scene_analysis}
-
-# [v18.0 新增] 專用的LORE擴展節點
-async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """
-    專用的LORE擴展中心。負責同步地進行選角和場景細化，並立即刷新上下文狀態。
-    """
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
-    logger.info(f"[{user_id}] (Graph) Node: lore_expansion_node [SFW Path] -> 正在為場景進行同步LORE擴展...")
-
-    # --- 步驟 1: 選角 (Casting) ---
-    logger.info(f"[{user_id}] (LORE擴展) ...步驟 1/2: 執行場景選角...")
-    game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
-    cast_result = await ai_core.ainvoke_with_rotation(
-        ai_core.get_scene_casting_chain(),
-        {
-            "world_settings": ai_core.profile.world_settings or "",
-            "current_location_path": current_location_path, 
-            "game_context": game_context_for_casting,
-            "recent_dialogue": user_input
-        },
-        retry_strategy='euphemize'
-    )
-    if cast_result:
-        await ai_core._add_cast_to_scene(cast_result)
-    else:
-         logger.warning(f"[{user_id}] (LORE擴展) 場景選角鏈委婉化重試失敗，本輪跳過選角。")
-
-    # --- 步驟 2: 場景細化 (Refinement) ---
-    # 這裡的邏輯與舊的 background_world_expansion_node 類似，但現在是同步執行
-    logger.info(f"[{user_id}] (LORE擴展) ...步驟 2/2: 執行場景細化...")
-    await ai_core._background_scene_expansion(user_input, "", current_location_path)
-
-    # --- 步驟 3: 狀態刷新 (State Refresh) ---
-    # 這是最關鍵的一步：立即獲取包含所有新LORE的上下文
-    logger.info(f"[{user_id}] (LORE擴展) ...LORE擴展完成，正在刷新結構化上下文...")
-    final_structured_context = await ai_core._get_structured_context(user_input, override_location_path=current_location_path)
-    
-    return {"structured_context": final_structured_context}
-
 
 async def style_analysis_node(state: ConversationGraphState) -> Dict:
     """分析用戶的風格指令，並將其轉化為給規劃器的結構化硬性指令。"""
@@ -275,14 +264,14 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node [NSFW Path] -> 正在直接生成【互動式】NSFW 回應...")
-    structured_context = await ai_core._get_structured_context(user_input)
+    structured_context = state.get('structured_context', {})
     full_context_dict = {
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
-        "retrieved_context": "（NSFW 路徑不執行深度記憶檢索）",
+        "retrieved_context": state.get('rag_context', "（NSFW 路徑不執行深度記憶檢索）"),
         **structured_context
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
@@ -433,10 +422,6 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         await asyncio.gather(*tasks, return_exceptions=True)
     return {}
 
-# [v18.0 廢除] 不再需要此節點，其職責已被 lore_expansion_node 取代
-# async def background_world_expansion_node(state: ConversationGraphState) -> Dict:
-#    ...
-
 async def finalization_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     logger.info(f"[{user_id}] (Graph) Node: finalization_node -> 對話流程圖執行完畢。")
@@ -444,11 +429,11 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-async def route_after_classification(state: ConversationGraphState) -> Literal["sfw_path", "nsfw_interactive_path", "nsfw_descriptive_path"]:
-    """根據初始意圖分類結果，將流程路由到隔離的處理路徑。"""
+async def route_to_final_generator(state: ConversationGraphState) -> Literal["sfw_path", "nsfw_interactive_path", "nsfw_descriptive_path"]:
+    """在所有通用預處理完成後，根據意圖分類將流程分發到最終的生成器。"""
     intent = state['intent_classification'].intent_type
     user_id = state['user_id']
-    logger.info(f"[{user_id}] (Graph) Router: 主路由器根據意圖 '{intent}' 進行分發。")
+    logger.info(f"[{user_id}] (Graph) Router: 最終生成路由器根據意圖 '{intent}' 進行分發。")
     if intent == 'nsfw_interactive':
         return "nsfw_interactive_path"
     elif intent == 'nsfw_descriptive':
@@ -456,7 +441,6 @@ async def route_after_classification(state: ConversationGraphState) -> Literal["
     else: # 'sfw'
         return "sfw_path"
 
-# [v18.0 重構] 擴展決策現在是一個獨立的路由器
 def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_lore", "continue_without_expansion"]:
     """根據LORE擴展決策，決定是否進入專用的LORE擴展節點。"""
     user_id = state['user_id']
@@ -481,18 +465,20 @@ def route_viewing_mode(state: ConversationGraphState) -> Literal["remote_scene",
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v18.0 - 專用LORE節點架構)
+# 函式：創建主回應圖 (v19.0 - LORE 統一架構最終版)
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
     graph.add_node("classify_intent", classify_intent_node)
     
-    # SFW 路徑節點
+    # 通用預處理節點
     graph.add_node("initialize_state", initialize_conversation_state_node)
     graph.add_node("analyze_input", analyze_input_node)
     graph.add_node("expansion_decision", expansion_decision_node)
-    graph.add_node("lore_expansion", lore_expansion_node) # [v18.0 新增]
+    graph.add_node("lore_expansion", lore_expansion_node)
+    
+    # SFW 專用路徑節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("style_analysis", style_analysis_node)
     graph.add_node("remote_scene_generation", remote_scene_generation_node)
@@ -500,30 +486,21 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative", narrative_node)
     
-    # NSFW 路徑節點
+    # NSFW 專用路徑節點
     graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
     graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
     
-    # 共同路徑節點
+    # 共同收尾節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    # [v18.0 移除] graph.add_node("background_expansion", background_world_expansion_node)
     graph.add_node("finalization", finalization_node)
 
     # --- 2. 定義圖的拓撲結構 ---
     
     graph.set_entry_point("classify_intent")
-    graph.add_conditional_edges(
-        "classify_intent",
-        route_after_classification,
-        {
-            "sfw_path": "initialize_state",
-            "nsfw_interactive_path": "generate_nsfw_response",
-            "nsfw_descriptive_path": "remote_nsfw_scene_generation"
-        }
-    )
     
-    # [v18.0 核心修正] 重構 SFW 路徑，建立清晰的線性流程
+    # [v19.0 核心修正] 建立統一的預處理流程
+    graph.add_edge("classify_intent", "initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
     graph.add_edge("analyze_input", "expansion_decision")
     graph.add_conditional_edges(
@@ -531,10 +508,24 @@ def create_main_response_graph() -> StateGraph:
         route_expansion_decision,
         {
             "expand_lore": "lore_expansion",
-            "continue_without_expansion": "scene_and_action_analysis"
+            "continue_without_expansion": "route_to_final_generator" # 跳過擴展，直接進入最終路由
         }
     )
-    graph.add_edge("lore_expansion", "scene_and_action_analysis")
+    graph.add_edge("lore_expansion", "route_to_final_generator") # 擴展完成後，也進入最終路由
+
+    # [v19.0 核心修正] 創建新的最終生成路由器
+    graph.add_node("route_to_final_generator", route_to_final_generator) # 註冊路由器節點本身
+    graph.add_conditional_edges(
+        "route_to_final_generator",
+        route_to_final_generator, # 使用路由函式
+        {
+            "sfw_path": "scene_and_action_analysis",
+            "nsfw_interactive_path": "generate_nsfw_response",
+            "nsfw_descriptive_path": "remote_nsfw_scene_generation"
+        }
+    )
+    
+    # 定義 SFW 路徑的內部流程
     graph.add_conditional_edges(
         "scene_and_action_analysis",
         route_viewing_mode,
@@ -555,12 +546,11 @@ def create_main_response_graph() -> StateGraph:
     
     # 連接共同的收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
-    # [v1is_setup_flow8.0 移除] 不再有背景擴展，直接進入最終化
     graph.add_edge("persist_state", "finalization")
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v18.0 - 專用LORE節點架構)
+# 函式：創建主回應圖 (v19.0 - LORE 統一架構最終版)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
@@ -604,7 +594,7 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
     await lore_book.add_or_update_lore(user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
     for npc in genesis_result.initial_npcs:
         npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
-        await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
+        await ai_core.db_add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
     return {"genesis_result": genesis_result}
 
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
