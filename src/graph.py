@@ -1,8 +1,10 @@
-# src/graph.py 的中文註釋(v11.1 - 徹底延遲加載修正)
+# src/graph.py 的中文註釋(v12.0 - NSFW路徑分裂)
 # 更新紀錄:
-# v11.1 (2025-09-05): [災難性BUG修復] 補完了所有在 v11.0 中被省略的函式内容，並確保了圖中的每一個節點都嚴格遵循了“延遲加載”原則，即所有對鏈的訪問都通過 `ai_core.get_..._chain()` 方法進行。
-# v10.0 (2025-09-05): [災難性BUG修復 & 重大架構升級] 根據“委婉化優先”原則，對整個圖的所有節點進行了系統性重構。
-# v7.5 (2025-09-05): [重大架構修正] 重構了圖拓撲，實現了“敏感性優先”的兩路分發。
+# v12.0 (2025-09-05): [災難性BUG修復] 為了從根本上解決“場景洩漏”和“遠程描述時忘記命名”的問題，對圖的拓撲進行了重大重構。
+#    1. [新增NSFW路由] 新增了 `route_nsfw_request_type` 路由器。現在，進入 NSFW 路徑的請求會被進一步判斷是“互動式”還是“描述性”。
+#    2. [新增NSFW遠程節點] 新增了 `remote_nsfw_scene_generator_node`。這個節點專門負責呼叫全新的 `get_remote_nsfw_scene_generator_chain`，用於生成純粹的、與玩家位置無關的遠程露骨場景。
+#    3. [拓撲修改] 主圖的 `nsfw_path` 現在指向新的路由器，由該路由器將流量分發到“互動式NSFW節點”或“描述性NSFW節點”，確保為不同類型的請求調用最合適的鏈。
+# v11.1 (2025-09-05): [災難性BUG修復] 確保了圖中的每一個節點都嚴格遵循了“延遲加載”原則。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -25,44 +27,27 @@ from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# 函式：初始化對話狀態 (v2.0 - 委婉化重試)
 async def initialize_conversation_state_node(state: ConversationGraphState) -> Dict:
-    """
-    [節點 1] 在每一輪對話開始時，加載所有必要的上下文數據填充狀態。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node -> 正在為 '{user_input[:30]}...' 初始化狀態...")
-    
-    # [v10.0] 對所有內部鏈使用 'euphemize' 策略
     rag_task = ai_core.ainvoke_with_rotation(ai_core.retriever, user_input, retry_strategy='euphemize')
     structured_context_task = ai_core._get_structured_context(user_input)
-    
     retrieved_docs, structured_context = await asyncio.gather(rag_task, structured_context_task)
-    
     rag_context_str = await ai_core._preprocess_rag_context(retrieved_docs)
-
     return {"structured_context": structured_context, "rag_context": rag_context_str}
-# 函式：初始化對話狀態 (v2.0 - 委婉化重試)
 
-# 函式：分析使用者輸入意圖 (v11.1 - 延遲加載修正)
 async def analyze_input_node(state: ConversationGraphState) -> Dict:
-    """
-    [節點 2] 分析使用者的輸入，判斷其基本意圖（對話、描述、接續）。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: analyze_input_node -> 正在分析輸入意圖...")
-    
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_input_analysis_chain(), 
         {"user_input": user_input},
         retry_strategy='euphemize'
     )
-    
     if not analysis:
         logger.warning(f"[{user_id}] (Graph) 輸入分析鏈委婉化重試失敗，啟動安全備援。")
         analysis = UserInputAnalysis(
@@ -70,60 +55,40 @@ async def analyze_input_node(state: ConversationGraphState) -> Dict:
             summary_for_planner=user_input, 
             narration_for_turn=""
         )
-        
     return {"input_analysis": analysis}
-# 函式：分析使用者輸入意圖 (v11.1 - 延遲加載修正)
 
-# 函式：判斷是否需要進行LORE擴展 (v11.1 - 延遲加載修正)
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """
-    [SFW 路徑節點] 一個“守門人”節點，在LORE創造流程前判斷使用者的“探索意圖”。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: expansion_decision_node -> 正在判斷是否需要擴展LORE...")
-    
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
     recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
-
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     decision = await ai_core.ainvoke_with_rotation(
         ai_core.get_expansion_decision_chain(), 
         {"user_input": user_input, "recent_dialogue": recent_dialogue},
         retry_strategy='euphemize'
     )
-    
     if not decision:
         logger.warning(f"[{user_id}] (Graph) LORE擴展決策鏈委婉化重試失敗，啟動安全備援。")
         decision = ExpansionDecision(
             should_expand=False,
             reasoning="安全備援：決策鏈未能返回有效結果。"
         )
-    
     logger.info(f"[{user_id}] (Graph) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：判斷是否需要進行LORE擴展 (v11.1 - 延遲加載修正)
 
-# 函式：執行場景與動作分析 (v11.1 - 延遲加載修正)
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
-    """
-    [SFW-探索路徑分析中樞] 分析場景視角，並為潛在的本地LORE擴展進行選角。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis_node -> 正在進行場景視角分析與潛在選角...")
-    
     current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
-    
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     scene_analysis = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_analysis_chain(),
         {"user_input": user_input, "current_location_path_str": " > ".join(current_location_path)},
         retry_strategy='euphemize'
     )
-    
     if not scene_analysis:
         logger.warning(f"[{user_id}] (Graph) 場景分析鏈委婉化重試失敗，啟動安全備援。")
         scene_analysis = SceneAnalysisResult(
@@ -131,12 +96,9 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
             reasoning='安全備援：場景分析鏈失敗。', 
             action_summary=user_input
         )
-    
     if scene_analysis.viewing_mode == 'local':
         logger.info(f"[{user_id}] (Graph) ...視角為本地，繼續執行選角流程。")
         game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
-
-        # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
         cast_result = await ai_core.ainvoke_with_rotation(
             ai_core.get_scene_casting_chain(),
             {
@@ -154,24 +116,14 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
                 return {"scene_analysis": scene_analysis, "structured_context": final_structured_context}
         else:
              logger.warning(f"[{user_id}] (Graph) 場景選角鏈委婉化重試失敗，本輪跳過選角。")
-
     return {"scene_analysis": scene_analysis}
-# 函式：執行場景與動作分析 (v11.1 - 延遲加載修正)
 
-# 函式：執行 SFW 回合規劃 (v11.1 - 延遲加載修正)
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """
-    [SFW 路徑核心] SFW 架構的核心“思考”節點。
-    準備完整的上下文和系統指令，並調用 planning_chain 生成結構化的行動計劃。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    
     logger.info(f"[{user_id}] (Graph) Node: planning_node -> 正在為 SFW 規劃鏈準備材料...")
-
     structured_context = state.get('structured_context', {})
-    
     full_context_dict = {
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
@@ -183,82 +135,55 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "latest_user_input": user_input,
         **structured_context
     }
-    
     base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
     action_module_name = ai_core._determine_action_module(user_input)
-    
     system_prompt_parts = [base_system_prompt]
     if action_module_name and action_module_name != "action_sexual_content" and action_module_name in ai_core.modular_prompts:
         system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
         system_prompt_parts.append(ai_core.modular_prompts[action_module_name])
-
     def safe_format(template: str, data: dict) -> str:
         for key, value in data.items():
             template = template.replace(f"{{{key}}}", str(value))
         return template
-
     final_system_prompt = safe_format("".join(system_prompt_parts), full_context_dict)
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
-    
     params_for_chain = {
         "system_prompt": final_system_prompt,
         "world_snapshot": world_snapshot,
         "user_input": user_input,
     }
-    
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_planning_chain(), 
         params_for_chain,
         retry_strategy='euphemize'
     )
-    
     if not plan:
         logger.error(f"[{user_id}] SFW 規劃鏈即使在委婉化後也最終失敗。")
         plan = TurnPlan(thought="安全備援：規劃鏈失敗。", execution_rejection_reason="抱歉，我的思緒有些混亂，無法理解您剛才的指令。可以換一種方式說嗎？")
-        
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：執行 SFW 回合規劃 (v11.1 - 延遲加載修正)
 
-# 函式：執行 NSFW 直通生成 (v11.1 - 延遲加載修正)
 async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [NSFW 路徑核心] 為 NSFW 指令準備上下文，並直接調用高對抗性的 NSFW 直通鏈生成最終文本。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成 NSFW 回應...")
-
+    logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node -> 正在準備上下文並直接生成【互動式】NSFW 回應...")
     structured_context = state.get('structured_context', {})
     rag_context = state.get('rag_context', "沒有檢索到相關的長期記憶。")
-        
     full_context_for_chain = {
         "user_input": user_input,
-        "latest_user_input": user_input,
-        "username": ai_core.profile.user_profile.name,
-        "ai_name": ai_core.profile.ai_profile.name,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-        "world_settings": ai_core.profile.world_settings or "未設定",
-        "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": rag_context,
         **structured_context
     }
-    
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     response_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_direct_nsfw_chain(),
         full_context_for_chain,
         retry_strategy='force'
     )
-    
     if not response_text:
         response_text = "（AI 在處理您的請求時遭遇了不可恢復的內容安全限制，請嘗試調整您的指令。）"
-        
     return {"llm_response": response_text}
-# 函式：執行 NSFW 直通生成 (v11.1 - 延遲加載修正)
 
-# 函式：生成遠程場景 (v11.1 - 延遲加載修正)
+# 函式：生成遠程 SFW 場景 (v12.0 - 命名統一)
 async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [SFW-遠程觀察分支] 專門用於生成遠程地點的電影式場景描述。
@@ -266,22 +191,16 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
     user_id = state['user_id']
     ai_core = state['ai_core']
     scene_analysis = state['scene_analysis']
-    
     if not (scene_analysis and scene_analysis.target_location_path):
         logger.error(f"[{user_id}] 進入了 remote_scene_generation_node，但 scene_analysis 中沒有 target_location_path。")
         return {"llm_response": "（系統錯誤：無法確定要觀察的遠程目標。）"}
-
     target_path = scene_analysis.target_location_path
-    logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node -> 正在為遠程地點 '{' > '.join(target_path)}' 生成場景...")
-
+    logger.info(f"[{user_id}] (Graph) Node: remote_scene_generation_node -> 正在為遠程地點 '{' > '.join(target_path)}' 生成【SFW】場景...")
     remote_context = await ai_core._get_structured_context(
         user_input="", 
         override_location_path=target_path
     )
-    
     remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
-
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     scene_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_scene_generator_chain(),
         {
@@ -293,23 +212,49 @@ async def remote_scene_generation_node(state: ConversationGraphState) -> Dict[st
         },
         retry_strategy='euphemize'
     )
-    
     if not scene_text:
         scene_text = "（由於內容限制，無法生成遠程場景的詳細描述。）"
-        
     return {"llm_response": scene_text}
-# 函式：生成遠程場景 (v11.1 - 延遲加載修正)
+# 函式：生成遠程 SFW 場景 (v12.0 - 命名統一)
 
-# 函式：執行工具調用
+# 函式：生成遠程 NSFW 場景 (v12.0 - 全新創建)
+async def remote_nsfw_scene_generator_node(state: ConversationGraphState) -> Dict[str, str]:
+    """
+    [NSFW-遠程觀察分支] 專門用於呼叫新的遠程NSFW鏈，生成純粹的第三方露骨場景。
+    """
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: remote_nsfw_scene_generator_node -> 正在為請求 '{user_input[:30]}...' 生成【遠程NSFW】場景...")
+
+    # 使用 _get_structured_context 來獲取關於請求主題的LORE
+    remote_context = await ai_core._get_structured_context(user_input)
+    remote_scene_context_str = "\n".join([f"【{k.replace('_context', '').title()}】\n{v}" for k, v in remote_context.items()])
+
+    scene_text = await ai_core.ainvoke_with_rotation(
+        ai_core.get_remote_nsfw_scene_generator_chain(),
+        {
+            "user_input": user_input,
+            "world_settings": ai_core.profile.world_settings or "未設定",
+            "remote_scene_context": remote_scene_context_str,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
+        },
+        retry_strategy='force' # 作為最終輸出，使用激進重試
+    )
+    if not scene_text:
+        scene_text = "（由於內容限制，AI無法生成您所要求的遠程場景的詳細描述。）"
+    return {"llm_response": scene_text}
+# 函式：生成遠程 NSFW 場景 (v12.0 - 全新創建)
+
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     user_id = state['user_id']
     ai_core = state['ai_core']
     plan = state['turn_plan']
     logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 正在執行行動計劃中的工具...")
-    
     if not plan or not plan.character_actions:
         return {"tool_results": "系統事件：無任何工具被調用。"}
-    
     try:
         results_summary = await ai_core._execute_planned_actions(plan)
     except Exception as e:
@@ -318,47 +263,31 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     finally:
         tool_context.set_context(None, None)
         logger.info(f"[{user_id}] (Graph) Node: tool_execution_node -> 工具上下文已清理。")
-
     return {"tool_results": results_summary}
-# 函式：執行工具調用
 
-# 函式：生成敘事文本 (v11.1 - 延遲加載修正)
 async def narrative_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [SFW 路徑核心] SFW 架構的核心“寫作”節點。接收結構化的行動計劃和工具執行結果，並將其渲染成纯粹的小說文本。
-    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
     tool_results = state['tool_results']
     logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在处理行动计划...")
-
     if not turn_plan:
         logger.error(f"[{user_id}] 叙事节点接收到空的行动计划，无法生成回应。")
         return {"llm_response": "（系统错误：未能生成有效的行动计划。）"}
-
     if turn_plan.execution_rejection_reason:
         logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 检测到拒绝执行的理由，将直接输出。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
-
     logger.info(f"[{user_id}] (Graph) Node: narrative_node -> 正在将行动计划和工具结果渲染为小说文本...")
-    
     turn_plan.thought += f"\n\n[系统后台执行结果]:\n{tool_results}"
-
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_narrative_chain(),
         {"turn_plan": turn_plan},
-        retry_strategy='force' # 作為最終輸出，也使用激進重試
+        retry_strategy='force'
     )
-    
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
-        
     return {"llm_response": narrative_text}
-# 函式：生成敘事文本 (v11.1 - 延遲加載修正)
 
-# 函式：驗證與淨化輸出
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     initial_response = state['llm_response']
@@ -378,9 +307,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
         return {"final_output": "（...）"}
     return {"final_output": final_response}
-# 函式：驗證與淨化輸出
 
-# 函式：執行狀態更新與記憶儲存
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -407,15 +334,12 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         tasks.append(save_to_sql())
         await asyncio.gather(*tasks, return_exceptions=True)
     return {}
-# 函式：執行狀態更新與記憶儲存
 
-# 函式：觸發背景世界擴展
 async def background_world_expansion_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     clean_response = state['final_output']
     expansion_decision = state.get('expansion_decision')
-
     if expansion_decision and expansion_decision.should_expand:
         logger.info(f"[{user_id}] (Graph) Node: background_world_expansion_node -> 正在觸發背景任務...")
         scene_analysis = state.get('scene_analysis')
@@ -425,21 +349,18 @@ async def background_world_expansion_node(state: ConversationGraphState) -> Dict
         if clean_response and clean_response != "（...）":
             asyncio.create_task(ai_core._background_scene_expansion(state['messages'][-1].content, clean_response, effective_location_path))
     return {}
-# 函式：觸發背景世界擴展
 
-# 函式：圖形結束 finalizing
 async def finalization_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     logger.info(f"[{user_id}] (Graph) Node: finalization_node -> 對話流程圖執行完畢。")
     return {}
-# 函式：圖形結束 finalizing
 
 # --- 主對話圖的路由 ---
 def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "expand_lore", "skip_expansion"]:
     user_id = state['user_id']
     scene_analysis = state.get("scene_analysis")
     if scene_analysis and scene_analysis.viewing_mode == 'remote':
-        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【遠程觀察】。")
+        logger.info(f"[{user_id}] (Graph) Router: route_expansion -> 判定為【SFW遠程觀察】。")
         return "remote_scene"
     should_expand = state.get("expansion_decision")
     if should_expand and should_expand.should_expand:
@@ -454,11 +375,25 @@ def route_based_on_intent(state: ConversationGraphState) -> Literal["nsfw_path",
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     if ai_core._is_potentially_sensitive_request(user_input):
-        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 檢測到潛在敏感內容，進入【NSFW 全能路徑】。")
+        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 檢測到潛在敏感內容，進入【NSFW路徑】。")
         return "nsfw_path"
     else:
-        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 未檢測到敏感內容，進入【SFW 工具路徑】。")
+        logger.info(f"[{user_id}] (Graph) Router: route_based_on_intent -> 未檢測到敏感內容，進入【SFW路徑】。")
         return "sfw_path"
+
+# 函式：路由 NSFW 請求類型 (v12.0 - 全新創建)
+def route_nsfw_request_type(state: ConversationGraphState) -> Literal["descriptive", "interactive"]:
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    if ai_core._is_nsfw_descriptive_request(user_input):
+        logger.info(f"[{user_id}] (Graph) NSFW Router -> 判定為【描述性】請求。")
+        return "descriptive"
+    else:
+        logger.info(f"[{user_id}] (Graph) NSFW Router -> 判定為【互動性】請求。")
+        return "interactive"
+# 函式：路由 NSFW 請求類型 (v12.0 - 全新創建)
+
 
 # --- 主對話圖的建構器 ---
 def create_main_response_graph() -> StateGraph:
@@ -476,6 +411,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("persist_state", persist_state_node)
     graph.add_node("background_expansion", background_world_expansion_node)
     graph.add_node("finalization", finalization_node)
+    # [v12.0 新增]
+    graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
 
     graph.set_entry_point("initialize_state")
     graph.add_edge("initialize_state", "analyze_input")
@@ -484,12 +421,24 @@ def create_main_response_graph() -> StateGraph:
         "analyze_input",
         route_based_on_intent,
         {
-            "nsfw_path": "generate_nsfw_response",
+            # [v12.0 修改] NSFW 路徑現在指向新的 NSFW 路由器
+            "nsfw_path": "route_nsfw_request_type",
             "sfw_path": "expansion_decision" 
         }
     )
     
+    # [v12.0 新增] NSFW 內部分支
+    graph.add_conditional_edges(
+        "route_nsfw_request_type",
+        route_nsfw_request_type,
+        {
+            "interactive": "generate_nsfw_response",
+            "descriptive": "remote_nsfw_scene_generation"
+        }
+    )
+    
     graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
+    graph.add_edge("remote_nsfw_scene_generation", "validate_and_rewrite")
     
     graph.add_edge("expansion_decision", "scene_and_action_analysis")
     
@@ -526,40 +475,28 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
         await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
     return {}
 
-# 函式：補完角色檔案 (v11.1 - 延遲加載修正)
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...")
-    
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     completion_chain = ai_core.get_profile_completion_chain()
-    
-    # 確保 profile 存在
     if not ai_core.profile:
         logger.error(f"[{user_id}] 在 complete_profiles_node 中 ai_core.profile 為空，無法繼續。")
         return {}
-
     completed_user_profile = await ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.user_profile.model_dump_json()}, retry_strategy='euphemize')
     completed_ai_profile = await ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.ai_profile.model_dump_json()}, retry_strategy='euphemize')
-    
     update_payload = {}
     if completed_user_profile:
         update_payload['user_profile'] = completed_user_profile.model_dump()
     if completed_ai_profile:
         update_payload['ai_profile'] = completed_ai_profile.model_dump()
-        
     if update_payload:
         await ai_core.update_and_persist_profile(update_payload)
-        
     return {}
-# 函式：補完角色檔案 (v11.1 - 延遲加載修正)
 
-# 函式：執行世界創世 (v11.1 - 延遲加載修正)
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v11.1 核心修正] 使用 get_ 方法來延遲加載鏈
     genesis_chain = ai_core.get_world_genesis_chain()
     genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"world_settings": ai_core.profile.world_settings, "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
     if not genesis_result:
@@ -572,7 +509,6 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
         npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
         await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
     return {"genesis_result": genesis_result}
-# 函式：執行世界創世 (v11.1 - 延遲加載修正)
 
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
