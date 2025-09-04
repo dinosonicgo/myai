@@ -1,10 +1,10 @@
-# src/graph.py 的中文註釋(v15.0 - 先分類後處理架構)
+# src/graph.py 的中文註釋(v16.0 - 風格分析節點架構)
 # 更新紀錄:
+# v16.0 (2025-09-06): [災難性BUG修復] 為了解決 SFW 路徑中模型頑固地忽略風格指令（特別是“對話”要求）的問題，進行了根本性的架構重構。
+#    1. [新增風格分析節點] 引入了全新的 `style_analysis_node`。此節點專門負責將用戶冗長的風格 Prompt 提煉成結構化的、給規劃器的具體硬性指令。
+#    2. [重構SFW路徑] 將新節點插入到 `planning_node` 之前，確保在規劃前必須先完成風格分析。
+#    3. [強化規劃節點] `planning_node` 現在接收結構化的風格指令作為最高優先級輸入，從根本上解決了“指令稀釋”問題。
 # v15.0 (2025-09-06): [災難性BUG修復] 根據“先檢測，後處理”原則，對圖的拓撲進行了根本性的重構。
-#    1. [新入口點] 新增 `classify_intent_node` 作為圖的唯一入口，確保在執行任何潛在危險的操作前，先對使用者輸入進行意圖分類。
-#    2. [污染隔離] 將 `initialize_conversation_state_node`（包含RAG檢索）從全局前置移入 SFW 路徑內部，從根本上杜絕了內部工具鏈被 NSFW 內容污染導致連鎖崩潰的問題。
-#    3. [流程簡化] 新的主路由器 `route_after_classification` 直接將流程分發到隔離的 SFW 或 NSFW 路徑，使整個數據流更清晰、更健壯。
-# v14.1 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_based_on_intent` 函式的執行模式。
 
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
@@ -22,12 +22,12 @@ from .logger import logger
 from .graph_state import ConversationGraphState, SetupGraphState
 from . import lore_book, tools
 from .schemas import (CharacterProfile, TurnPlan, ExpansionDecision, 
-                      UserInputAnalysis, SceneAnalysisResult, SceneCastingResult, WorldGenesisResult, IntentClassificationResult)
+                      UserInputAnalysis, SceneAnalysisResult, SceneCastingResult, 
+                      WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult)
 from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# [v15.0 新增] 圖的新入口點
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
     """圖的新入口點，唯一職責是對原始輸入進行意圖分類。"""
     user_id = state['user_id']
@@ -39,7 +39,7 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
         {"user_input": user_input},
-        retry_strategy='none' # 分類是核心，不應委婉化，如果失敗則走備援
+        retry_strategy='none'
     )
     
     if not classification_result:
@@ -54,7 +54,6 @@ async def initialize_conversation_state_node(state: ConversationGraphState) -> D
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: initialize_conversation_state_node [SFW Path] -> 正在為 '{user_input[:30]}...' 初始化狀態...")
     
-    # [v15.0 架構變更] 此節點現在只在 SFW 路徑中被調用，輸入是安全的
     rag_task = ai_core.ainvoke_with_rotation(ai_core.retriever, user_input, retry_strategy='euphemize')
     structured_context_task = ai_core._get_structured_context(user_input)
     
@@ -147,16 +146,75 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
              logger.warning(f"[{user_id}] (Graph) 場景選角鏈委婉化重試失敗，本輪跳過選角。")
     return {"scene_analysis": scene_analysis}
 
+# [v16.0 新增] 風格分析節點
+async def style_analysis_node(state: ConversationGraphState) -> Dict:
+    """分析用戶的風格指令，並將其轉化為給規劃器的結構化硬性指令。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: style_analysis_node [SFW Path] -> 正在分析回應風格...")
+    
+    style_analysis_chain = ai_core.get_style_analysis_chain()
+    style_result = await ai_core.ainvoke_with_rotation(
+        style_analysis_chain,
+        {
+            "user_input": user_input,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格"
+        },
+        retry_strategy='euphemize'
+    )
+    
+    if not style_result:
+        logger.warning(f"[{user_id}] (Graph) 風格分析鏈委婉化重試失敗，啟動安全備援。")
+        style_result = StyleAnalysisResult(
+            dialogue_requirement="AI角色必須至少說一句符合其性格和情境的話",
+            narration_level="中等",
+            proactive_suggestion="可以嘗試描述周圍的環境來回應。"
+        )
+        
+    return {"style_analysis": style_result}
+
+# [v16.0 重構] 規劃節點現在接收結構化的風格指令
 async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: planning_node [SFW Path] -> 正在為 SFW 規劃鏈準備材料...")
+    style_analysis = state['style_analysis']
+    logger.info(f"[{user_id}] (Graph) Node: planning_node [SFW Path] -> 正在根據具體風格指令進行規劃...")
+    
+    # 將結構化的風格指令注入到一個新的 Prompt 模板中
+    planning_system_prompt_template = """
+# ==============================================================================
+# == 🧠 系統核心指令 (規劃模式) 🧠
+# ==============================================================================
+# 說明：你是一位擁有極高智慧和創造力的遊戲管理大師（GM）。你的任務是分析所有
+#       上下文，為接下來的回合制定一份詳細、合理的【行動計劃 JSON】。
+#
+# **【【【最高規劃原則：絕對遵守風格指令】】】**
+# 你的首要且最高優先級的任務是，生成一個**嚴格且完全**滿足下方【具體風格指令】的 JSON 計畫。
+# 這些指令不是建議，而是你必須執行的**硬性約束**。
+# ------------------------------------------------------------------------------
+# **【具體風格指令 (硬性約束)】**
+# - **對話要求**: {dialogue_requirement}
+# - **旁白詳細度**: {narration_level}
+# - **可選行動建議**: {proactive_suggestion}
+# ------------------------------------------------------------------------------
+{system_prompt}
+"""
+    # 填充風格指令
+    style_driven_prompt = planning_system_prompt_template.format(
+        dialogue_requirement=style_analysis.dialogue_requirement,
+        narration_level=style_analysis.narration_level,
+        proactive_suggestion=style_analysis.proactive_suggestion or "無",
+        system_prompt=ai_core.profile.one_instruction or ""
+    )
+
+    # 填充其餘上下文
     structured_context = state.get('structured_context', {})
     full_context_dict = {
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_settings": ai_core.profile.world_settings or "未設定",
         "ai_settings": ai_core.profile.ai_profile.description or "未設定",
         "retrieved_context": state['rag_context'],
@@ -164,31 +222,35 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         "latest_user_input": user_input,
         **structured_context
     }
-    base_system_prompt = ai_core.profile.one_instruction or "錯誤：未加載基礎系統指令。"
-    action_module_name = ai_core._determine_action_module(user_input)
-    system_prompt_parts = [base_system_prompt]
-    if action_module_name and action_module_name != "action_sexual_content" and action_module_name in ai_core.modular_prompts:
-        system_prompt_parts.append("\n\n# --- 動作模組已激活 --- #\n")
-        system_prompt_parts.append(ai_core.modular_prompts[action_module_name])
     def safe_format(template: str, data: dict) -> str:
         for key, value in data.items():
             template = template.replace(f"{{{key}}}", str(value))
         return template
-    final_system_prompt = safe_format("".join(system_prompt_parts), full_context_dict)
+    
+    final_system_prompt = safe_format(style_driven_prompt, full_context_dict)
     world_snapshot = safe_format(ai_core.world_snapshot_template, full_context_dict)
+    
     params_for_chain = {
         "system_prompt": final_system_prompt,
         "world_snapshot": world_snapshot,
         "user_input": user_input,
     }
+    
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_planning_chain(), 
         params_for_chain,
         retry_strategy='euphemize'
     )
+    
     if not plan:
         logger.error(f"[{user_id}] SFW 規劃鏈即使在委婉化後也最終失敗。")
-        plan = TurnPlan(thought="安全備援：規劃鏈失敗。", execution_rejection_reason="抱歉，我的思緒有些混亂，無法理解您剛才的指令。可以換一種方式說嗎？")
+        plan = TurnPlan(thought="安全備援：規劃鏈失敗。", character_actions=[
+            CharacterAction(
+                character_name=ai_core.profile.ai_profile.name,
+                reasoning="規劃鏈失敗，需要給出一個安全的備用回應。",
+                dialogue="抱歉，主人，我的思緒有些混亂，可以請您換一種方式說嗎？"
+            )
+        ])
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 
 async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
@@ -196,9 +258,7 @@ async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: generate_nsfw_response_node [NSFW Path] -> 正在直接生成【互動式】NSFW 回應...")
-    # [v15.0 架構變更] NSFW 路徑不進行 RAG 檢索，只獲取最基礎的上下文
     structured_context = await ai_core._get_structured_context(user_input)
-    
     full_context_for_chain = {
         "user_input": user_input,
         "retrieved_context": "（NSFW 路徑不執行深度記憶檢索）",
@@ -374,7 +434,6 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-# [v15.0 新增] 新的主路由器
 async def route_after_classification(state: ConversationGraphState) -> Literal["sfw_path", "nsfw_interactive_path", "nsfw_descriptive_path"]:
     """根據初始意圖分類結果，將流程路由到隔離的處理路徑。"""
     intent = state['intent_classification'].intent_type
@@ -403,7 +462,7 @@ def route_expansion(state: ConversationGraphState) -> Literal["remote_scene", "e
 
 # --- 主對話圖的建構器 ---
 
-# 函式：創建主回應圖 (v15.0 - 先分類後處理架構)
+# 函式：創建主回應圖 (v16.0 - 風格分析節點架構)
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -415,6 +474,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("analyze_input", analyze_input_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
+    graph.add_node("style_analysis", style_analysis_node) # [v16.0 新增]
     graph.add_node("remote_scene_generation", remote_scene_generation_node)
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
@@ -432,7 +492,6 @@ def create_main_response_graph() -> StateGraph:
 
     # --- 2. 定義圖的拓撲結構 ---
     
-    # [v15.0 核心修正] 設定新的入口點和主路由器
     graph.set_entry_point("classify_intent")
     graph.add_conditional_edges(
         "classify_intent",
@@ -444,7 +503,7 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # 定義 SFW 路徑的內部流程
+    # [v16.0 核心修正] 重構 SFW 路徑以包含 style_analysis_node
     graph.add_edge("initialize_state", "analyze_input")
     graph.add_edge("analyze_input", "expansion_decision")
     graph.add_edge("expansion_decision", "scene_and_action_analysis")
@@ -453,10 +512,12 @@ def create_main_response_graph() -> StateGraph:
         route_expansion,
         {
             "remote_scene": "remote_scene_generation",
-            "expand_lore": "planning",
-            "skip_expansion": "planning"
+            # 如果需要擴展或跳過，都進入風格分析，然後再規劃
+            "expand_lore": "style_analysis",
+            "skip_expansion": "style_analysis"
         }
     )
+    graph.add_edge("style_analysis", "planning") # 風格分析後進入規劃
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
     
@@ -473,7 +534,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v15.0 - 先分類後處理架構)
+# 函式：創建主回應圖 (v16.0 - 風格分析節點架構)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
