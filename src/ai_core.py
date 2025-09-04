@@ -382,30 +382,42 @@ class AILover:
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
 
 
-    # 函式：判斷是否為潛在的敏感指令 (v1.1 - 誤判修正)
+    # 函式：獲取意圖分類鏈 (v206.0 - 全新創建)
     # 更新紀錄:
-    # v1.1 (2025-09-05): [健壯性] 移除了 "販" 這個過於寬泛、容易導致 SFW 描述性指令被錯誤路由到 NSFW 路徑的關鍵詞，以提高路由準確率。
-    # v1.0 (2025-09-05): [重大功能擴展] 創建此函式以取代過於狹隘的 `_is_explicit_sexual_request`。
-    def _is_potentially_sensitive_request(self, text: str) -> bool:
-        """
-        一個更寬泛的檢測器，用於判斷使用者輸入是否可能包含任何類型的敏感內容。
-        """
-        sensitive_keywords = [
-            # 性愛
-            "口交", "舔", "吸吮", "肉棒", "肉穴", "插入", "交合", "做愛", "性交", 
-            "肛交", "後庭", "抽插", "射精", "淫穴", "淫水", "調教", "自慰",
-            "上我", "幹我", "操我", "騎上來", "含住", "脫光", "裸體", "高潮",
-            "性奴", "情婦", "娼妓", "賣淫",
-            # 暴力
-            "殺", "虐待", "折磨", "血腥", "殘酷", "酷刑", "肢解", "強姦",
-            # 潛在的內容審查觸發詞 (根據經驗)
-            "奴隸", "蘿莉", "正太", "幼", "兒童", "未成年"
-        ]
-        text_lower = text.lower()
-        if any(keyword in text_lower for keyword in sensitive_keywords):
-            return True
-        return False
-    # 函式：判斷是否為潛在的敏感指令 (v1.1 - 誤判修正)
+    # v206.0 (2025-09-06): [重大架構升級] 創建此鏈以取代脆弱的基於關鍵詞的 NSFW 檢測。此鏈使用 LLM 的語意理解能力，將使用者輸入智能分類為 SFW、互動式 NSFW 或描述性 NSFW，從根本上提高了路由的準確性和健壯性。
+    def get_intent_classification_chain(self) -> Runnable:
+        """獲取或創建一個專門用於語意意圖分類的鏈。"""
+        if not hasattr(self, 'intent_classification_chain') or self.intent_classification_chain is None:
+            from .schemas import IntentClassificationResult
+            # 使用低溫度的模型以確保分類的一致性
+            classifier_llm = self._create_llm_instance(temperature=0.0).with_structured_output(IntentClassificationResult)
+            
+            prompt_template = """你是一位專業的內容策略與意圖分析專家。你的唯一任務是分析使用者的單句輸入，並根據其【真實的語意意圖】（而不是簡單的關鍵詞），將其精確地分類。
+
+【分類定義】
+1.  `sfw`: 安全的內容。不包含任何露骨的性、暴力或敏感主題。
+    *   範例: "今天天氣真好", "我們去市場吧", "你叫什麼名字？", "殺時間"
+
+2.  `nsfw_interactive`: 【互動式】的敏感內容。這是使用者直接向 AI 或場景中的 NPC 發出的、要求進行露骨行為的【指令或對話】。
+    *   範例: "碧，為我口交", "我要強姦那個女祭司", "*我脫下所有衣服，走向你*", "『我想和你做愛。』"
+
+3.  `nsfw_descriptive`: 【描述性】的敏感內容。這是使用者要求你（作為GM）去【描述或觀察】一個包含露骨內容的、與使用者不直接互動的【第三方場景】。
+    *   範例: "描述一下奴隸市場的慘狀", "看看神殿裡正在發生什麼樣的淫亂祭祀", "詳細描寫那個獸人戰俘受刑的過程"
+
+【核心規則】
+1.  **語意優先**: 你的判斷必須基於完整的句子含義，而不是單個詞彙。例如，「殺時間」是 `sfw`，「殺了那個衛兵」是 `nsfw_interactive`。
+2.  **區分互動與描述**: 這是最重要的區別。如果指令的主體是使用者自己或他直接命令的對象，那就是 `nsfw_interactive`。如果指令是要求你作為一個旁觀者去描述一個場景，那就是 `nsfw_descriptive`。
+
+---
+【使用者輸入】:
+{user_input}
+---
+請開始分析並生成結構化的 JSON 輸出。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.intent_classification_chain = prompt | classifier_llm
+        return self.intent_classification_chain
+    # 函式：獲取意圖分類鏈 (v206.0 - 全新創建)
     
 
 
