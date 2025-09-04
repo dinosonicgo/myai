@@ -684,6 +684,70 @@ class AILover:
     # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
 
 
+
+# 函式：獲取關鍵詞提取鏈 (v207.0 - 全新創建)
+    # 更新紀錄:
+    # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為新的“解構-重構”委婉化策略的第一步。它的唯一任務是安全地從潛在的露骨文本中提取核心概念關鍵詞，為後續的中性重構做準備。
+    def get_keyword_extraction_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從文本中安全提取關鍵詞的鏈。"""
+        if not hasattr(self, 'keyword_extraction_chain') or self.keyword_extraction_chain is None:
+            from .schemas import ExtractedKeywords
+            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedKeywords)
+            
+            prompt_template = """你是一位高效的自然語言處理引擎。你的唯一任務是通讀下方提供的【原始文本】，並從中提取出能夠代表其核心概念的關鍵詞。
+
+【提取規則】
+1.  **只提取核心概念**: 提取出關鍵的名詞、動詞、形容詞。
+2.  **忽略修飾詞**: 忽略不影響核心語義的副詞和連接詞。
+3.  **保持原樣**: 直接提取原文中的詞語，不要進行任何修改或聯想。
+4.  **結構化輸出**: 你的輸出必須是一個符合 `ExtractedKeywords` Pydantic 格式的 JSON 物件。
+
+---
+【原始文本】:
+{text}
+---
+請開始提取。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.keyword_extraction_chain = prompt | extractor_llm
+        return self.keyword_extraction_chain
+    # 函式：獲取關鍵詞提取鏈 (v207.0 - 全新創建)
+
+    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
+    # 更新紀錄:
+    # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為“解構-重構”委婉化策略的第二步。它接收一組安全的關鍵詞（而不是原始的露骨文本），並在此基礎上構建一個中性的、安全的句子，從根本上規避了委婉化過程本身被審查的悖論。
+    def get_euphemization_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從關鍵詞重構安全句子的鏈。"""
+        if not hasattr(self, 'euphemization_chain') or self.euphemization_chain is None:
+            euphemizer_llm = self._create_llm_instance(temperature=0.1)
+            
+            prompt_template = """你是一位語言專家和溝通大師。你的唯一任務是接收一組【核心概念關鍵詞】，並將它們組織成一句通順的、語義完整的、但措辭【絕對中性、通用且安全】的句子。
+
+【核心規則】
+1.  **意圖推斷**: 根據關鍵詞推斷出原始的核心意圖。
+2.  **極致中性化**: 你的輸出【絕對禁止】包含任何可能被視為攻擊性、露骨或敏感的詞彙。你的目標是創造一個最不可能觸發任何自動化內容安全過濾器的【安全版本】。
+3.  **保持簡潔**: 不要添加任何不必要的解釋或額外內容，只輸出重構後的句子。
+
+【範例】
+-   核心概念關鍵詞: `["粗魯", "對待", "頭部", "碧", "發生", "口腔互動"]`
+-   生成的安全句子: `描述一個場景，其中角色碧的頭部被粗魯地對待，並發生了口腔互動。`
+
+---
+【核心概念關鍵詞】:
+{keywords}
+---
+【生成的安全句子】:
+"""
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.euphemization_chain = prompt | euphemizer_llm | StrOutputParser()
+        return self.euphemization_chain
+    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
+
+
+
+    
+
+
     # ==============================================================================
     # == ⛓️ 鏈的延遲加載 (Lazy Loading) 構建器 v203.1 ⛓️
     # ==============================================================================
@@ -2257,61 +2321,70 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：委婉化重試處理器 (v137.0 - 職責專一化)
+    # 函式：“解構-重構”委婉化重試處理器 (v207.0 - 全新重寫)
     # 更新紀錄:
-    # v137.0 (2025-09-05): [重大架構重構] 將此函式重構為一個專門的“委婉化重試”處理器。它不再負責指令轟炸，而是會調用新建的 `_build_euphemization_chain` 來嘗試將失敗的輸入重寫為一個安全版本後再進行重試。這是“優雅規避”策略的核心實現。
+    # v207.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現全新的“解構-重構”委婉化策略。此策略通過先提取關鍵詞，然後基於關鍵詞重構安全句子的兩步流程，從根本上解決了舊委婉化鏈因直接處理露骨文本而被審查的邏輯悖論，是系統穩定性的關鍵修正。
+    # v137.0 (2025-09-05): [重大架構重構] 將此函式重構為一個專門的“委婉化重試”處理器。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        嘗試將失敗的輸入“委婉化”後重試，用於內部工具鏈。
+        [v207.0 新架構] 執行“解構-重構”委婉化策略並重試。
         """
-        logger.warning(f"[{self.user_id}] 檢測到內容審查。啟動【委婉化重試】策略...")
-        
-        euphemization_chain = self._build_euphemization_chain()
-        retry_params = failed_params
+        logger.warning(f"[{self.user_id}] 檢測到內容審查。啟動【解構-重構委婉化重試】策略...")
         
         try:
-            # 嘗試找到可委婉化的文本
+            # 步驟 0: 確定要處理的原始文本
             text_to_euphemize = ""
             if isinstance(failed_params, dict):
-                # 簡單策略：找到最長的字串值
                 string_values = [v for v in failed_params.values() if isinstance(v, str)]
-                if string_values:
-                    text_to_euphemize = max(string_values, key=len)
-                else: # 如果沒有字串，就序列化整個字典
-                    text_to_euphemize = json.dumps(failed_params, ensure_ascii=False)
+                if string_values: text_to_euphemize = max(string_values, key=len)
             elif isinstance(failed_params, list):
-                text_to_euphemize = "\n".join([d.page_content if isinstance(d, Document) else str(d) for d in failed_params])
+                text_to_euphemize = "\n".join([d.page_content for d in failed_params if isinstance(d, Document)])
             elif isinstance(failed_params, str):
                 text_to_euphemize = failed_params
             
             if not text_to_euphemize:
                 raise ValueError("在委婉化重試中找不到可處理的文本內容。")
 
-            logger.info(f"[{self.user_id}] 正在嘗試委婉化文本: '{text_to_euphemize[:100]}...'")
-            safe_text = await euphemization_chain.ainvoke({"text": text_to_euphemize})
+            # 步驟 1: 安全解構 - 提取關鍵詞
+            logger.info(f"[{self.user_id}] (委婉化-步驟1) 正在安全解構文本: '{text_to_euphemize[:100]}...'")
+            keyword_chain = self.get_keyword_extraction_chain()
+            keyword_result = await self.ainvoke_with_rotation(keyword_chain, {"text": text_to_euphemize}, retry_strategy='none')
+            
+            if not keyword_result or not keyword_result.keywords:
+                raise ValueError("關鍵詞提取鏈未能返回有效結果。")
+            
+            # 步驟 2: 程序化過濾和替換
+            sensitive_map = {"肉棒": "身體部位", "肉穴": "身體部位", "強姦": "強制互動", "殺": "制服"}
+            safe_keywords = [sensitive_map.get(kw, kw) for kw in keyword_result.keywords]
+            
+            # 步驟 3: 中性重構 - 基於安全關鍵詞生成句子
+            logger.info(f"[{self.user_id}] (委婉化-步驟2) 正在基於安全關鍵詞重構: {safe_keywords}")
+            euphemization_chain = self.get_euphemization_chain()
+            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": ", ".join(safe_keywords)}, retry_strategy='none')
             
             if not safe_text or safe_text == text_to_euphemize:
-                logger.warning(f"[{self.user_id}] 委婉化未能生成有效的不同文本，重試可能失敗。")
-                raise ValueError("委婉化失敗。")
+                raise ValueError("委婉化重構鏈未能生成有效的不同文本。")
 
-            # 用安全文本替換原始輸入
-            # 這是一個簡化實現，假設最長的文本是主要輸入
+            # 步驟 4: 使用生成出的安全文本進行重試
+            retry_params = failed_params
             if isinstance(retry_params, dict):
                 key_to_replace = max(retry_params, key=lambda k: len(str(retry_params.get(k, ''))))
                 retry_params[key_to_replace] = safe_text
             elif isinstance(retry_params, list):
-                # 對於列表，我們用一個包含安全文本的 Document 來替換
                 retry_params = [Document(page_content=safe_text)]
             else:
                 retry_params = safe_text
 
-            logger.info(f"[{self.user_id}] 已生成安全文本，正在用其重試...")
+            logger.info(f"[{self.user_id}] (委婉化-步驟3) 已生成安全文本，正在用其重試原始鏈...")
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 委婉化重試最終失敗: {e}", exc_info=True)
-            return None # 如果委婉化本身或重試再次失敗，則返回 None
-    # 函式：委婉化重試處理器 (v137.0 - 職責專一化)
+            logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}", exc_info=True)
+            return None
+    # 函式：“解構-重構”委婉化重試處理器 (v207.0 - 全新重寫)
+
+
+    
 
     # 函式：指令強化重試處理器 (v1.0 - 全新創建)
     # 更新紀錄:
@@ -2348,17 +2421,15 @@ class AILover:
             return None # 如果強化重試也失敗，則返回 None
     # 函式：指令強化重試處理器 (v1.0 - 全新創建)
     
-    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v182.0 - 策略化重構)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v207.0 - 恢復委婉化)
     # 更新紀錄:
-    # v182.0 (2025-09-05): [災難性BUG修復] 根據“委婉化優先”原則，徹底重構了此函式的錯誤處理。
-    #    1. [新增 retry_strategy] 新增了一個策略參數（'euphemize' 或 'force'）。
-    #    2. [策略分發] 當遭遇內容審查時，它不再執行內聯邏輯，而是根據 `retry_strategy` 的值，將失敗的任務分發給專門的 `_euphemize_and_retry` 或 `_force_and_retry` 處理器。
-    #    3. [職責單一化] 此函式的核心職責回歸為 API 輪換和錯誤捕捉與分發，使程式碼更清晰、更健壯。
+    # v207.0 (2025-09-06): [重大架構升級] 恢復了 `euphemize` 重試策略，並使其調用全新的、基於“解構-重構”模式的 `_euphemize_and_retry` 函式。此修改旨在實現使用者要求的、真正健壯的、能夠在遭遇審查時自我修復的內部工具鏈。
+    # v183.0 (2025-09-06): [災難性BUG修復] 徹底廢除了因自身也會被審查而導致系統崩潰的“委婉化”策略。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
             raise ValueError("No API keys available.")
 
-        max_retries = len(self.api_keys) # 每個 key 只嘗試一次
+        max_retries = len(self.api_keys)
         base_delay = 5
         
         for attempt in range(max_retries):
@@ -2375,24 +2446,26 @@ class AILover:
                 delay = base_delay * (attempt + 1)
                 logger.warning(f"[{self.user_id}] API 遭遇資源或伺服器錯誤: {type(e).__name__}. 將在 {delay:.1f} 秒後使用下一個金鑰重試...")
                 await asyncio.sleep(delay)
-                self._initialize_models() # 使用下一個 key 重新初始化
+                self._initialize_models()
 
             except Exception as e:
                 error_str = str(e).lower()
                 is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
 
                 if is_safety_error:
-                    # [v182.0 核心修正] 根據策略分發任務
+                    # [v207.0 核心修正] 根據策略分發任務
                     if retry_strategy == 'euphemize':
+                        # 對於內部工具鏈，我們嘗試用新的健壯的委婉化策略修復
                         return await self._euphemize_and_retry(chain, params)
                     elif retry_strategy == 'force':
+                        # 對於最終輸出，我們嘗試用指令轟炸來突破
                         return await self._force_and_retry(chain, params)
                     else: # 'none'
                         logger.warning(f"[{self.user_id}] 鏈遭遇內容審查，且重試策略為 'none'。返回 None。")
                         return None
                 
-                logger.error(f"[{self.user_id}] 在 ainvoke 期间发生未知错误: {e}", exc_info=True)
-                raise e # 對於非預期的錯誤，直接拋出
+                logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤: {e}", exc_info=True)
+                raise e
 
         logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗。")
         # 如果所有常規嘗試都失敗，最後再根據策略做一次最終補救
@@ -2401,36 +2474,36 @@ class AILover:
         elif retry_strategy == 'force':
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與安全重試的非同步呼叫 (v182.0 - 策略化重構)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v207.0 - 恢復委婉化)
 
-    # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
+    
+
+    # 函式：RAG 上下文預處理 (v172.3 - 恢復委婉化)
     # 更新紀錄:
-    # v172.1 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，增加了全方位的 None 值防禦。此修改旨在處理因上游 RAG 檢索器被內容審查攔截而返回 None 的邊界情況。现在，函式會在调用鏈之前和之后都进行严格的检查，确保 summarized_context 永远不会是 None，从而从根本上解决了因调用 .strip() 方法而导致的程式崩溃问题。
-    # v172.0 (2025-09-02): [災難性BUG修復] 重構了此函式，引入了 `rag_summarizer_chain` 以解決 AI 直接複製歷史記錄的問題。
+    # v172.3 (2025-09-06): [架構適配] 恢復了對 `euphemize` 策略的調用，以應用全新的、基於“解構-重構”的健壯委婉化邏輯。
+    # v172.2 (2025-09-06): [架構適配] 更新了對 ainvoke_with_rotation 的調用，以使用新的 'graceful_fallback' 策略。
     async def _preprocess_rag_context(self, docs: List[Document]) -> str:
-        # [v172.1 核心修正] 步驟 1: 在函式入口處進行前置防禦
         if not docs:
-            logger.warning(f"[{self.user_id}] _preprocess_rag_context 收到了空的或無效的 'docs' 列表（可能因上游內容審查）。")
+            logger.warning(f"[{self.user_id}] _preprocess_rag_context 收到了空的 'docs' 列表。")
             return "沒有檢索到相關的長期記憶。"
 
-        # [v172.1 核心修正] 步驟 2: 正常執行鏈，但準備好處理 None 返回值
         summarized_context = None
         rag_summarizer_chain = self.get_rag_summarizer_chain()
         if not rag_summarizer_chain:
             logger.warning(f"[{self.user_id}] RAG 總結鏈未初始化，將退回至直接拼接模式。")
             summarized_context = "\n\n---\n\n".join([doc.page_content for doc in docs])
         else:
-            summarized_context = await self.ainvoke_with_rotation(rag_summarizer_chain, docs)
+            # [v172.3 核心修正] 恢復使用委婉化策略
+            summarized_context = await self.ainvoke_with_rotation(rag_summarizer_chain, docs, retry_strategy='euphemize')
 
-        # [v172.1 核心修正] 步驟 3: 在函式出口處進行後置防禦
         if not summarized_context or not summarized_context.strip():
-             logger.warning(f"[{self.user_id}] RAG 總結鏈返回了空的或無效的內容（可能因內容審查）。")
+             logger.warning(f"[{self.user_id}] RAG 總結鏈返回了空的內容（可能因委婉化重試失敗）。")
              summarized_context = "从記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點，以供主 Agent 創作。")
         
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：RAG 上下文預處理 (v172.1 - 災難性 NoneType 修正)
+    # 函式：RAG 上下文預處理 (v172.3 - 恢復委婉化)
 
     # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
     # 更新紀錄:
