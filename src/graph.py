@@ -427,7 +427,10 @@ async def finalization_node(state: ConversationGraphState) -> Dict:
 
 # --- 主對話圖的路由 ---
 
-async def route_after_classification(state: ConversationGraphState) -> str:
+# 函式：最終生成路由器 (v20.0 - 命名修正)
+# 更新紀錄:
+# v20.0 (2025-09-06): [災難性BUG修復] 將函式名稱從 route_after_classification 重命名為 route_to_final_generator，以與圖拓撲定義中的調用名稱完全一致，解決了導致啟動失敗的 NameError。
+async def route_to_final_generator(state: ConversationGraphState) -> str:
     """在所有通用預處理完成後，根據意圖分類將流程分發到最終的生成器。"""
     intent = state['intent_classification'].intent_type
     user_id = state['user_id']
@@ -438,6 +441,7 @@ async def route_after_classification(state: ConversationGraphState) -> str:
         return "nsfw_descriptive_path"
     else: # 'sfw'
         return "sfw_path"
+# 函式：最終生成路由器 (v20.0 - 命名修正)
 
 def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_lore", "continue_without_expansion"]:
     """根據LORE擴展決策，決定是否進入專用的LORE擴展節點。"""
