@@ -340,10 +340,6 @@ class IntentClassificationResult(BaseModel):
 
 
 
-# [v12.1 新增] 用於安全委婉化的關鍵詞提取模型
-class ExtractedKeywords(BaseModel):
-    """用於結構化地表示從文本中提取出的核心概念關鍵詞。"""
-    keywords: List[str] = Field(description="從原始文本中提取出的、代表核心概念的名詞、動詞、形容詞列表。")
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
