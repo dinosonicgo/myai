@@ -26,6 +26,9 @@ from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
+# 函式：初始化對話狀態節點 (v2.0 - 健壯性強化)
+# 更新紀錄:
+# v2.0 (2025-09-06): [健壯性] 增加了對 `retrieved_docs` 可能為 None 的防禦性處理。這可以防止當 RAG 檢索因內容審查觸發委婉化並最終失敗時，導致後續節點因 NoneType 錯誤而崩潰的問題。
 async def initialize_conversation_state_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -34,8 +37,15 @@ async def initialize_conversation_state_node(state: ConversationGraphState) -> D
     rag_task = ai_core.ainvoke_with_rotation(ai_core.retriever, user_input, retry_strategy='euphemize')
     structured_context_task = ai_core._get_structured_context(user_input)
     retrieved_docs, structured_context = await asyncio.gather(rag_task, structured_context_task)
+    
+    # [v2.0 核心修正] 增加對委婉化失敗的防禦
+    if retrieved_docs is None:
+        logger.warning(f"[{user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
+        retrieved_docs = []
+        
     rag_context_str = await ai_core._preprocess_rag_context(retrieved_docs)
     return {"structured_context": structured_context, "rag_context": rag_context_str}
+# 函式：初始化對話狀態節點 (v2.0 - 健壯性強化)
 
 async def analyze_input_node(state: ConversationGraphState) -> Dict:
     user_id = state['user_id']
