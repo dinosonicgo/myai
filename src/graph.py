@@ -162,6 +162,21 @@ async def planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
         plan = TurnPlan(thought="安全備援：規劃鏈失敗。", execution_rejection_reason="抱歉，我的思緒有些混亂，無法理解您剛才的指令。可以換一種方式說嗎？")
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 
+
+
+# 函式：NSFW 路由器節點 (v13.1 - 全新創建)
+async def nsfw_router_node(state: ConversationGraphState) -> Dict:
+    """
+    [NSFW 路徑掛載點] 這是一個空的掛載點節點。
+    它的唯一作用是在圖中提供一個穩定的錨點，以便在其後附加 NSFW 請求類型的條件路由。
+    """
+    user_id = state['user_id']
+    logger.info(f"[{user_id}] (Graph) Node: nsfw_router_node -> 進入 NSFW 處理路徑...")
+    return {}
+# 函式：NSFW 路由器節點 (v13.1 - 全新創建)
+
+
+
 async def generate_nsfw_response_node(state: ConversationGraphState) -> Dict[str, str]:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -396,40 +411,61 @@ def route_nsfw_request_type(state: ConversationGraphState) -> Literal["descripti
 
 
 # --- 主對話圖的建構器 ---
+
+
+
+# 函式：創建主回應圖 (v13.1 - 拓撲修正)
+# 更新紀錄:
+# v13.1 (2025-09-05): [災難性BUG修復] 根據 "Found edge starting at unknown node" 錯誤，徹底重構了圖的拓撲結構，使其與 v13.1 架構藍圖完全一致。
+#    1. [新增掛載點] 新增了一個空的 `nsfw_router_node`，專門用作 NSFW 內部路由的穩定掛載點。
+#    2. [修正流程順序] 嚴格修正了全局前置節點的執行順序為：`initialize_state` -> `analyze_input` -> `expansion_decision` -> `route_based_on_intent`。
+#    3. [修正邊緣連接] 將 `route_based_on_intent` 的 NSFW 路徑正確地指向了新的 `nsfw_router_node`，並將 `route_nsfw_request_type` 路由邏輯附加在其後，從根本上解決了拓撲定義錯誤。
+# v12.0 (2025-09-05): [災難性BUG修復] 進行了 NSFW 路徑分裂。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
+    # --- 1. 註冊所有節點 ---
     graph.add_node("initialize_state", initialize_conversation_state_node)
     graph.add_node("analyze_input", analyze_input_node)
-    graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
     graph.add_node("expansion_decision", expansion_decision_node)
+    
+    # NSFW 路徑節點
+    graph.add_node("nsfw_router_node", nsfw_router_node) # 新增掛載點
+    graph.add_node("generate_nsfw_response", generate_nsfw_response_node)
+    graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
+
+    # SFW 路徑節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("remote_scene_generation", remote_scene_generation_node)
     graph.add_node("planning", planning_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative", narrative_node)
+    
+    # 共同路徑節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     graph.add_node("background_expansion", background_world_expansion_node)
     graph.add_node("finalization", finalization_node)
-    # [v12.0 新增]
-    graph.add_node("remote_nsfw_scene_generation", remote_nsfw_scene_generator_node)
 
+    # --- 2. 定義圖的拓撲結構 (邊和路由器) ---
     graph.set_entry_point("initialize_state")
+    
+    # [v13.1 核心修正] 嚴格遵循藍圖定義的全局前置流程
     graph.add_edge("initialize_state", "analyze_input")
-
+    graph.add_edge("analyze_input", "expansion_decision")
+    
+    # 主 SFW / NSFW 分支
     graph.add_conditional_edges(
-        "analyze_input",
+        "expansion_decision",
         route_based_on_intent,
         {
-            # [v12.0 修改] NSFW 路徑現在指向新的 NSFW 路由器
-            "nsfw_path": "route_nsfw_request_type",
-            "sfw_path": "expansion_decision" 
+            "nsfw_path": "nsfw_router_node", # NSFW 路徑指向新的掛載點
+            "sfw_path": "scene_and_action_analysis" 
         }
     )
     
-    # [v12.0 新增] NSFW 內部分支
+    # NSFW 內部分支 (從新的掛載點開始)
     graph.add_conditional_edges(
-        "route_nsfw_request_type",
+        "nsfw_router_node",
         route_nsfw_request_type,
         {
             "interactive": "generate_nsfw_response",
@@ -437,11 +473,7 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
-    graph.add_edge("remote_nsfw_scene_generation", "validate_and_rewrite")
-    
-    graph.add_edge("expansion_decision", "scene_and_action_analysis")
-    
+    # SFW 內部分支
     graph.add_conditional_edges(
         "scene_and_action_analysis",
         route_expansion,
@@ -452,18 +484,24 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    graph.add_edge("remote_scene_generation", "validate_and_rewrite")
+    # 連接 SFW 路徑的後續節點
     graph.add_edge("planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative")
+    
+    # 將所有生成路徑的終點匯合到驗證節點
+    graph.add_edge("generate_nsfw_response", "validate_and_rewrite")
+    graph.add_edge("remote_nsfw_scene_generation", "validate_and_rewrite")
+    graph.add_edge("remote_scene_generation", "validate_and_rewrite")
     graph.add_edge("narrative", "validate_and_rewrite")
     
+    # 連接共同的收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", "background_expansion")
     graph.add_edge("background_expansion", "finalization")
     graph.add_edge("finalization", END)
     
     return graph.compile()
-# 函式：創建主回應圖
+# 函式：創建主回應圖 (v13.1 - 拓撲修正)
 
 # --- 設定圖 (Setup Graph) 的節點 ---
 async def process_canon_node(state: SetupGraphState) -> Dict:
