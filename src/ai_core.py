@@ -604,11 +604,10 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：加載所有模板檔案 (v172.0 - 擴展以加載模組化提示詞)
+    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
     # 更新紀錄:
-    # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組（如性愛、移動等）加載到 `self.modular_prompts` 字典中，為動態指令組裝做準備。
-    # v171.1 (2025-09-02): [架構清理] 將函式重命名為 `_load_templates`，並將屬性賦值目標更新為 `self.world_snapshot_template`，以匹配新的、更準確的命名規範，並徹底清除舊架構的命名痕跡。
-    # v171.0 (2025-09-02): [架構重構] 函式重命名為 `_load_world_snapshot_template`，其職責變為只加載數據模板。
+    # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
+    # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
     def _load_templates(self):
         """從 prompts/ 目錄加載所有需要的核心及模組化模板檔案。"""
         # 1. 加載核心數據快照模板
@@ -632,9 +631,10 @@ class AILover:
             loaded_modules = []
             for prompt_file in modular_prompts_dir.glob("*.txt"):
                 module_name = prompt_file.stem
-                if module_name == '00_core_protocol':
-                    logger.info(f"[{self.user_id}] 已跳過已棄用的模組 '00_core_protocol.txt'。")
-                    continue
+                # [v173.0 核心修正] 移除對核心協議的跳過，確保所有協議都被加載
+                # if module_name == '00_core_protocol':
+                #     logger.info(f"[{self.user_id}] 已跳過已棄用的模組 '00_core_protocol.txt'。")
+                #     continue
                 
                 with open(prompt_file, "r", encoding="utf-8") as f:
                     self.modular_prompts[module_name] = f.read()
@@ -647,8 +647,7 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 加載模組化戰術指令時發生未預期錯誤: {e}", exc_info=True)
-    # 函式：加載所有模板檔案 (v172.0 - 擴展以加載模組化提示詞)
-
+    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
     # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
@@ -1473,17 +1472,14 @@ class AILover:
 
     
 
-    # 函式：獲取 NSFW 直通鏈 (v205.0 - 使用者主權原則強化)
+    # 函式：獲取 NSFW 直通鏈 (v206.0 - 超級指令集重構)
     # 更新紀錄:
+    # v206.0 (2025-09-06): [重大架構重構] 徹底重寫了 NSFW 鏈的 Prompt 組裝邏輯。現在它會動態地將 `one_instruction`、`00_core_protocol.txt` 和 `action_sexual_content.txt` 拼接成一個絕對完整的“超級指令集”，確保模型在執行任務時能接收到所有層級的規則，從根本上解決了因規則缺失導致的行為偏差和內容生成失敗問題。
     # v205.0 (2025-09-06): [災難性BUG修復] 針對 NSFW 鏈的 System Prompt 進行了外科手術式重構。
-    #    1. [指令注入] 以最高優先級將【使用者主權原則】直接寫入此鏈的系統提示詞，並提供了正反範例，從根本上解決了 AI 在生成 NSFW 內容時扮演使用者的嚴重問題。
-    #    2. [格式化修正] 修正了鏈的構建邏輯，確保 System Prompt 中的 {username} 佔位符能被正確填充，使禁令更具針對性。
-    # v203.4 (2025-09-04): [災難性BUG修復] 再次重構提示詞注入邏輯，以確保在所有情況下都能遵守風格且不洩漏指令。
     def get_direct_nsfw_chain(self) -> Runnable:
         """創建一個高對抗性的、能夠處理所有類型 NSFW 請求的單次調用生成鏈。"""
         if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
             
-            # [v205.0 核心修正] 重新設計 System Prompt，將使用者主權原則置於最高地位
             system_prompt_template = """你是一位技藝精湛的成人幻想小說家和遊戲大師。
 你的【唯一任務】是接收並完全理解下方 Human Message 中提供的【情境簡報】，然後生成一段完全符合所有規則的、露骨的、沉浸式的小說場景。
 
@@ -1530,7 +1526,7 @@ class AILover:
 # 請綜合以上所有資訊，嚴格遵循所有指令（特別是 System Message 中的【使用者主權原則】），現在開始創作並只輸出最終的小說場景。
 """
 
-            # [v205.0 核心修正] 更新輔助函式，使其能格式化 system prompt
+            # [v206.0 核心修正] 重寫輔助函式，實現“超級指令集”的動態組裝
             def _prepare_and_format_inputs(input_dict: dict) -> dict:
                 if not self.profile:
                     raise ValueError("使用者設定檔未加載，無法格式化指令。")
@@ -1543,25 +1539,35 @@ class AILover:
                     "ai_name": self.profile.ai_profile.name,
                     "response_style_prompt": self.profile.response_style_prompt or "預設風格",
                     "world_settings": self.profile.world_settings or "",
-                    "ai_settings": self.profile.ai_profile.description or ""
+                    "ai_settings": self.profile.ai_profile.description or "",
+                    "latest_user_input": input_dict.get("user_input", "")
                 })
 
                 # 格式化系統提示詞
                 formatted_system_prompt = system_prompt_template.format(username=username)
 
-                # 格式化指令集
-                one_instruction_template = self.profile.one_instruction or ""
-                sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
-                full_instruction_template = f"{one_instruction_template}\n{sexual_content_module}"
+                # 動態組裝“超級指令集”
+                instruction_parts = [
+                    self.profile.one_instruction or "",
+                    self.modular_prompts.get("00_core_protocol", "# 警告: 核心協議 '00_core_protocol.txt' 未加載"),
+                    self.modular_prompts.get("action_sexual_content", "# 警告: 性愛模組 'action_sexual_content.txt' 未加載")
+                ]
+                full_instruction_template = "\n\n---\n\n".join(instruction_parts)
                 
+                # 安全地填充所有佔位符
                 formatted_instructions = full_instruction_template
                 for key, value in context_vars.items():
-                    formatted_instructions = formatted_instructions.replace(f"{{{key}}}", str(value))
+                    # 使用一個不會與 Pydantic 衝突的臨時佔位符
+                    placeholder = f"__PLACEHOLDER_FOR_{key.upper()}__"
+                    formatted_instructions = formatted_instructions.replace(f"{{{key}}}", placeholder)
+                for key, value in context_vars.items():
+                    placeholder = f"__PLACEHOLDER_FOR_{key.upper()}__"
+                    formatted_instructions = formatted_instructions.replace(placeholder, str(value))
                 
                 # 格式化世界快照
                 world_snapshot = self.world_snapshot_template
                 for key, value in context_vars.items():
-                    world_snapshot = world_snapshot.replace(f"{{{key}}}", str(value))
+                     world_snapshot = world_snapshot.replace(f"{{{key}}}", str(value))
 
                 return {
                     "formatted_system_prompt": formatted_system_prompt,
@@ -1570,7 +1576,7 @@ class AILover:
                     "user_input": input_dict.get("user_input", "")
                 }
 
-            # [v205.0 核心修正] 更新鏈的結構以使用格式化後的 system prompt
+            # 組合最終的鏈
             chain = (
                 RunnableLambda(_prepare_and_format_inputs)
                 | ChatPromptTemplate.from_messages([
@@ -1583,7 +1589,7 @@ class AILover:
             self.direct_nsfw_chain = chain
             
         return self.direct_nsfw_chain
-    # 函式：獲取 NSFW 直通鏈 (v205.0 - 使用者主權原則強化)
+    # 函式：獲取 NSFW 直通鏈 (v206.0 - 超級指令集重構)
 
 
 
