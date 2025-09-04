@@ -1226,10 +1226,16 @@ class AILover:
         return self.param_reconstruction_chain
     # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取敘事鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取專用敘事鏈 (v203.4 - 風格指令注入修正)
+    # 更新紀錄:
+    # v203.4 (2025-09-04): [根本性BUG修復] 重構了此鏈的提示詞和輸入結構，強制性地將 `response_style_prompt` 作為最高優先級指令注入到 System Prompt 中。此修改確保了所有 SFW 路徑的最終輸出都能夠嚴格遵守使用者自訂的風格。
+    # v3.3 (2025-09-05): [重大架構修正] 移除了此鏈對 `final_output_mandate` 的依賴。
     def get_narrative_chain(self) -> Runnable:
+        """創建一個專門的“寫作”鏈，負責將結構化的回合計劃渲染成符合使用者風格的小說文本。"""
         if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
-            system_prompt_for_writing = """你是一位技藝精湛的小說家和敘事者。
+            
+            # [v203.4 核心修正] 將風格指令作為最高優先級注入 System Prompt
+            system_prompt_template = """你是一位技藝精湛的小說家和敘事者。
 你的唯一任務是將下方提供的【回合行動計畫】（一份包含导演筆記和角色行動的結構化JSON），轉化為一段文筆优美的、沉浸式的、統一連貫的小說場景。
 
 【核心寫作規則】
@@ -1237,10 +1243,15 @@ class AILover:
 2.  **忠於計畫**: 你【必須】嚴格遵循【回合行動計畫】中的所有指令。`narration` 欄位必須被納入，所有 `character_actions` 中的對話和動作描述都必須被準確地描寫出來。
 3.  **藝術加工**: 你不是一個數據轉換器，而是一位作家。你需要在忠於計畫的基礎上，運用你的文筆，將零散的行動描述和對話，用生動的環境描寫、細膩的表情和心理活動串聯起來，使其成為一個無縫的、富有感染力的故事片段。
 4.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。絕對禁止包含任何來自計畫JSON的鍵名（如 'narration', 'thought'）或任何形式的元標籤。
+
+---
+【【【最終輸出強制令 (ABSOLUTE & HIGHEST PRIORITY)】】】
+你的最終輸出【必須且只能】嚴格地、完全地、逐字逐句地遵循下方由使用者定義的風格指令。
+{response_style_prompt}
+---
 """
 
-            prompt_template = """{system_prompt}
-
+            human_prompt_template = """
 ---
 【回合行動計畫 (JSON)】:
 {turn_plan_json}
@@ -1248,27 +1259,35 @@ class AILover:
 
 【生成的小說場景】:
 """
-            prompt = ChatPromptTemplate.from_template(prompt_template)
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_template),
+                ("human", human_prompt_template)
+            ])
 
+            # [v203.4 核心修正] 重構鏈的輸入，確保 response_style_prompt 被正確傳遞
             self.narrative_chain = (
                 {
-                    "system_prompt": lambda x: system_prompt_for_writing,
                     "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
+                    "response_style_prompt": lambda x: self.profile.response_style_prompt if self.profile else "預設風格"
                 }
                 | prompt
                 | self.gm_model
                 | StrOutputParser()
             )
         return self.narrative_chain
-    # 函式：獲取敘事鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取專用敘事鏈 (v203.4 - 風格指令注入修正)
 
-    # 函式：獲取 NSFW 直通鏈 (v203.3 - 風格指令注入修正)
+
+
+    
+
+    # 函式：獲取 NSFW 直通鏈 (v203.4 - 風格與洩漏最終修正)
     # 更新紀錄:
-    # v203.3 (2025-09-04): [根本性BUG修復] 徹底重構了指令集的格式化邏輯，以確保 NSFW 模式也能夠完全遵守使用者的 `/response_style` 指令。
-    #    1. [動態格式化] 新增了一個 `_format_instructions` 輔助函式，它會在鏈的運行時（runtime）才將 `one_instruction` 和 `action_sexual_content` 模組合併，並使用包括 `response_style_prompt` 在內的完整上下文來填充所有佔位符。
-    #    2. [簡化鏈結構] 利用 `RunnablePassthrough.assign` 將這個動態生成的指令集注入到提示詞中，移除了不穩定且多餘的 `.partial()` 調用。
-    #    此修改從根本上解決了 NSFW 場景忽略使用者自訂風格的問題。
-    # v203.2 (2025-09-04): [災難性BUG修復] 重構了提示詞結構以根除指令洩漏問題。
+    # v203.4 (2025-09-04): [災難性BUG修復] 再次重構提示詞注入邏輯，以確保在所有情況下都能遵守風格且不洩漏指令。
+    #    1. [統一上下文傳遞] _format_instructions 輔助函式被移除，改為在鏈的入口處就將所有需要的上下文變數（包括 user_input）打包傳遞。
+    #    2. [安全的指令格式化] 在 RunnableLambda 中，現在會使用傳入的完整上下文 `x` 來安全地格式化完整的指令集，確保 response_style_prompt 總是被正確注入。
+    #    此修改旨在最終解決 NSFW 模式下的風格忽略和指令洩漏問題。
+    # v203.3 (2025-09-04): [根本性BUG修復] 修正了 response_style_prompt 的注入問題。
     def get_direct_nsfw_chain(self) -> Runnable:
         """創建一個高對抗性的、能夠處理所有類型 NSFW 請求的單次調用生成鏈。"""
         if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
@@ -1280,7 +1299,7 @@ class AILover:
 你的最終輸出【必須且只能】是純粹的小說文本。
 【絕對禁止】在你的回應中包含任何來自【情境簡報】的指令文本、標題、註釋或任何形式的元評論。任何洩漏都將被視為災難性的失敗。
 """
-            human_prompt = """
+            human_prompt_template = """
 # ==============================================================================
 # == 📖 情境簡報 (Context & Directives) 📖
 # ==============================================================================
@@ -1302,56 +1321,61 @@ class AILover:
 # --- 4. 你的任務 (YOUR TASK) ---
 # 請綜合以上所有資訊，嚴格遵循所有指令，現在開始創作並只輸出最終的小說場景。
 """
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", human_prompt)
-            ])
+            prompt = ChatPromptTemplate.from_template(human_prompt_template)
 
-            # [v203.3 核心修正] 創建一個輔助函式，用於在運行時動態格式化完整的指令集
-            def _format_instructions(x: Dict) -> str:
+            # [v203.4 核心修正] 創建一個更強大的輔助函式，用於在運行時動態格式化所有東西
+            def _prepare_and_format_inputs(input_dict: dict) -> dict:
                 if not self.profile:
-                    return "錯誤：使用者設定檔未加載。"
+                    raise ValueError("使用者設定檔未加載，無法格式化指令。")
 
-                # 獲取基礎模板
+                # 準備所有需要的變數
+                context_vars = input_dict.copy()
+                context_vars.update({
+                    "username": self.profile.user_profile.name,
+                    "ai_name": self.profile.ai_profile.name,
+                    "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+                    "world_settings": self.profile.world_settings or "",
+                    "ai_settings": self.profile.ai_profile.description or ""
+                })
+
+                # 格式化指令集
                 one_instruction_template = self.profile.one_instruction or ""
                 sexual_content_module = self.modular_prompts.get("action_sexual_content", "")
-                
-                # 獲取使用者自訂風格，並提供一個健壯的預設值
-                response_style = self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"
-                
-                # 將所有指令模板合併
                 full_instruction_template = f"{one_instruction_template}\n{sexual_content_module}"
                 
-                # 準備所有需要填充到模板中的變數
-                format_vars = x.copy()
-                format_vars['response_style_prompt'] = response_style
+                # 安全地填充所有佔位符
+                formatted_instructions = full_instruction_template
+                for key, value in context_vars.items():
+                    formatted_instructions = formatted_instructions.replace(f"{{{key}}}", str(value))
                 
-                # 使用一個安全的循環來替換所有佔位符，避免因缺少鍵而導致的 KeyError
-                formatted_text = full_instruction_template
-                for key, value in format_vars.items():
-                    placeholder = f"{{{key}}}"
-                    if placeholder in formatted_text:
-                         formatted_text = formatted_text.replace(placeholder, str(value))
-                return formatted_text
+                # 格式化世界快照
+                world_snapshot = self.world_snapshot_template
+                for key, value in context_vars.items():
+                    world_snapshot = world_snapshot.replace(f"{{{key}}}", str(value))
 
-            # [v203.3 核心修正] 重構鏈，使用 assign 動態生成所有需要格式化的部分
+                return {
+                    "formatted_instructions": formatted_instructions,
+                    "world_snapshot": world_snapshot,
+                    "user_input": input_dict.get("user_input", "")
+                }
+
+            # 組合最終的鏈
             chain = (
-                RunnablePassthrough.assign(
-                    # 動態生成世界快照
-                    world_snapshot=RunnableLambda(
-                        lambda x: self.world_snapshot_template.format(**x) if hasattr(self, 'world_snapshot_template') and x else ""
-                    ),
-                    # 動態生成包含使用者風格的完整指令集
-                    formatted_instructions=RunnableLambda(_format_instructions)
-                )
-                | prompt
+                RunnableLambda(_prepare_and_format_inputs)
+                | ChatPromptTemplate.from_messages([
+                    ("system", system_prompt),
+                    ("human", human_prompt_template)
+                ])
                 | self.gm_model
                 | StrOutputParser()
             )
             self.direct_nsfw_chain = chain
             
         return self.direct_nsfw_chain
-    # 函式：獲取 NSFW 直通鏈 (v203.3 - 風格指令注入修正)
+    # 函式：獲取 NSFW 直通鏈 (v203.4 - 風格與洩漏最終修正)
+
+
+    
 
     # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
     def get_expansion_decision_chain(self) -> Runnable:
