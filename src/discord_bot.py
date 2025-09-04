@@ -108,12 +108,14 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# 類別：世界聖經上傳彈出視窗
-class WorldCanonUploadModal(discord.ui.Modal, title="步驟 4/4: 上傳世界聖經 (可選)"):
+# 類別：世界聖經貼上文字彈出視窗 (v2.0 - 重命名與職責單一化)
+# 更新紀錄:
+# v2.0 (2025-09-06): [重大架構重構] 重命名為 WorldCanonPasteModal，並使其職責單一化，專門處理來自 /set_canon_text 指令的文本貼上。
+class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文本"):
     canon_text = discord.ui.TextInput(
         label="請將您的世界觀/角色背景故事貼於此處",
         style=discord.TextStyle.paragraph,
-        placeholder="在此貼上您的 .txt 檔案內容... AI 將在創世時參考這些設定。",
+        placeholder="在此貼上您的 .txt 檔案內容或直接編寫... AI 將在創世時參考這些設定。",
         required=True,
         max_length=4000
     )
@@ -124,58 +126,32 @@ class WorldCanonUploadModal(discord.ui.Modal, title="步驟 4/4: 上傳世界聖
 
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
-        await self.cog.finalize_setup(interaction, self.canon_text.value)
-# 類別：世界聖經上傳彈出視窗
+        # 調用新的、統一的內容處理函式
+        await self.cog._process_canon_content(interaction, self.canon_text.value)
+# 類別：世界聖經貼上文字彈出視窗 (v2.0 - 重命名與職責單一化)
 
-# 類別：繼續世界聖經上傳視圖
-class ContinueToCanonUploadView(discord.ui.View):
+# 類別：繼續世界聖經設定視圖 (v2.0 - 流程重構)
+# 更新紀錄:
+# v2.0 (2025-09-06): [重大架構重構] 徹底重寫了此視圖。它不再包含複雜的按鈕，而是提供清晰的文字指示，引導使用者使用兩個新的、職責單一的指令（/set_canon_text 和 /set_canon_file），並提供一個最終的完成按鈕。
+class ContinueToCanonSetupView(discord.ui.View):
     def __init__(self, *, cog: "BotCog", user_id: str):
-        super().__init__(timeout=300.0)
+        super().__init__(timeout=600.0)
         self.cog = cog
         self.user_id = user_id
 
-    @discord.ui.button(label="📝 貼上文本內容", style=discord.ButtonStyle.primary, row=0)
-    async def paste_text(self, interaction: discord.Interaction, button: discord.ui.Button):
-        modal = WorldCanonUploadModal(self.cog)
-        await interaction.response.send_modal(modal)
-        self.stop()
-        await interaction.edit_original_response(view=None)
-
-    @discord.ui.button(label="📄 上傳 .txt 檔案", style=discord.ButtonStyle.primary, row=0)
-    async def upload_file(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        for item in self.children:
-            item.disabled = True
-        await interaction.edit_original_response(view=self)
-        finalize_view = FinalizeAfterUploadView(cog=self.cog, user_id=self.user_id)
-        guide_message = (
-            "好的，請按以下步驟上傳您的檔案：\n\n"
-            "1️⃣ **點擊下方的訊息輸入框**。\n"
-            "2️⃣ **輸入一個斜線 `/`**，Discord 就會自動彈出一個可用的指令列表。\n"
-            "3️⃣ 從列表中找到並**點擊 `📄 /upload_canon` 指令**。\n"
-            "4️⃣ 點擊指令附帶的 `file` 參數，就可以選擇您的 `.txt` 檔案並發送了。\n\n"
-            "--- \n"
-            "上傳成功後，請點擊下方的 **「✅ 我已上傳完畢」** 按鈕繼續。"
-        )
-        await interaction.followup.send(
-            content=guide_message,
-            view=finalize_view,
-            ephemeral=True
-        )
-        self.stop()
-
-    @discord.ui.button(label="🚀 跳過並完成設定", style=discord.ButtonStyle.secondary, row=1)
-    async def skip_and_finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(label="✅ 完成設定並開始冒險", style=discord.ButtonStyle.success, row=1)
+    async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.defer(ephemeral=True, thinking=True)
+        # 這裡我們不傳遞 canon_text，因為它已經通過新的斜線指令被獨立處理了
         await self.cog.finalize_setup(interaction)
         self.stop()
-        await interaction.edit_original_response(view=None)
+        await interaction.edit_original_response(content="設定流程即將完成...", view=None)
 
     async def on_timeout(self):
         self.cog.setup_locks.discard(self.user_id)
         for item in self.children:
             item.disabled = True
-# 類別：繼續世界聖經上傳視圖
+# 類別：繼續世界聖經設定視圖 (v2.0 - 流程重構)
 
 # 類別：上傳後完成設定視圖
 class FinalizeAfterUploadView(discord.ui.View):
@@ -569,62 +545,68 @@ class ProfileEditModal(discord.ui.Modal):
         self.display_name = display_name
         self.original_description = original_description
 
-    # 函式：處理彈出視窗提交 (v41.0 - 架構統一重構)
+    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
     # 更新紀錄:
-    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。移除了所有關於手動組裝和傳遞 `zero_instruction_template` 的過時邏輯。現在，它直接獲取專用的 `profile_rewriting_prompt`，並只向鏈傳遞其真正需要的最小化參數，從而提高了程式碼的健壯性、可維護性並消除了潛在的上下文污染風險。
-    # v40.0 (2025-09-02): [架構統一] 修正了對舊架構的依賴。
+    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯，使其能夠正確地調用全新的 ContinueToCanonSetupView 視圖，並顯示更新後的使用者引導說明。
+    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
-        
-        ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
         if not ai_instance or not ai_instance.profile:
-            await interaction.followup.send("錯誤：無法初始化 AI 核心來處理您的請求。", ephemeral=True)
+            await interaction.followup.send("錯誤：AI 核心或設定檔案未初始化。", ephemeral=True)
             return
-
-        try:
-            # [v41.0 核心修正] 直接獲取自包含的重寫鏈，不再手動組裝 Prompt
-            if not ai_instance.rewrite_chain:
-                 # 作為備援，如果主鏈未初始化，則動態構建
-                 prompt = ai_instance.get_profile_rewriting_prompt()
-                 rewriter_chain = prompt | ai_instance.gm_model | StrOutputParser()
-            else:
-                 # 正常情況下，直接使用已配置好的鏈
-                 # 注意：這裡的 self.rewrite_chain 是用於修正違反使用者主權的，而 get_profile_rewriting_prompt 是用於編輯檔案的。
-                 # 我們需要的是後者。
-                 prompt = ai_instance.get_profile_rewriting_prompt()
-                 rewriter_chain = prompt | ai_instance.gm_model | StrOutputParser()
-
-
-            # [v41.0 核心修正] 只傳遞鏈需要的最小化參數
-            new_description = await ai_instance.ainvoke_with_rotation(rewriter_chain, {
-                "original_description": self.original_description,
-                "edit_instruction": self.edit_instruction.value
-            })
             
-            if not new_description or not new_description.strip():
-                logger.warning(f"[{user_id}] 角色描述重寫鏈為角色 {self.display_name} 返回了空內容，可能觸發內容審查。")
-                await interaction.followup.send("AI 在生成新的角色描述時遇到了困難，返回了空的內容。這可能是由於觸發了內容安全策略，請嘗試調整您的修改指令。", ephemeral=True)
-                return
+        profile_attr = f"{self.profile_type}_profile"
+        
+        try:
+            updated_profile = getattr(ai_instance.profile, profile_attr)
 
-            embed = Embed(title=f"✍️ 角色檔案預覽：{self.display_name}", color=discord.Color.gold())
-            embed.add_field(name="【原始描述】", value=f"```{self.original_description[:1000] if self.original_description else '（無）'}```", inline=False)
-            embed.add_field(name="【您的指令】", value=f"```{self.edit_instruction.value[:1000]}```", inline=False)
-            embed.add_field(name="【AI 生成的新描述】", value=f"```{new_description[:1000]}```", inline=False)
-            embed.set_footer(text="請確認新描述是否符合您的期望。")
+            updated_profile.name = self.name.value
+            updated_profile.gender = self.gender.value
+            updated_profile.description = self.description.value
+            updated_profile.appearance = self.appearance.value
+            
+            success = await ai_instance.update_and_persist_profile({
+                profile_attr: updated_profile.model_dump()
+            })
 
-            view = ConfirmEditView(
-                cog=self.cog,
-                target_type=self.target_type,
-                target_key=self.target_key,
-                new_description=new_description
-            )
-            await interaction.followup.send("AI 已根據您的指令生成了新的角色描述，請預覽並確認：", embed=embed, view=view, ephemeral=True)
+            if not success:
+                raise Exception("AI 核心更新 profile 失敗。")
+
+            if not self.is_setup_flow:
+                await interaction.followup.send(f"✅ **{updated_profile.name}** 的角色設定已成功更新！", ephemeral=True)
+            elif self.profile_type == 'user': 
+                view = ContinueToAiSetupView(cog=self.cog, user_id=user_id)
+                await interaction.followup.send("✅ 您的角色已設定！\n請點擊下方按鈕，為您的 AI 戀人進行設定。", view=view, ephemeral=True)
+            elif self.profile_type == 'ai':
+                # [v43.0 核心修正] 使用新的設定嚮導視圖
+                view = ContinueToCanonSetupView(cog=self.cog, user_id=user_id)
+                
+                # [v43.0 核心修正] 更新引導文字
+                setup_guide_message = (
+                    "✅ AI 戀人基礎設定完成！\n\n"
+                    "**下一步是可選的，但強烈推薦：**\n"
+                    "您可以上傳一份包含您自訂世界觀、角色背景或故事劇情的「世界聖經」，AI 將在創世時完全基於您的設定來生成一切！\n\n"
+                    "**您有兩種方式提供世界聖經：**\n"
+                    "1️⃣ **貼上文本 (推薦手機用戶)**: 輸入指令 ` /set_canon_text `\n"
+                    "2️⃣ **上傳檔案 (推薦桌面用戶)**: 輸入指令 ` /set_canon_file `\n\n"
+                    "--- \n"
+                    "完成（或跳過）此步驟後，請點擊下方的 **「✅ 完成設定並開始冒險」** 按鈕。"
+                )
+
+                await interaction.followup.send(
+                    content=setup_guide_message,
+                    view=view,
+                    ephemeral=True
+                )
 
         except Exception as e:
-            logger.error(f"重寫角色 {self.display_name} 描述時發生未預期錯誤: {e}", exc_info=True)
-            await interaction.followup.send("在處理您的編輯指令時，AI 發生了一個嚴重的內部錯誤，請稍後再試。管理員已收到錯誤報告。", ephemeral=True)
-    # 函式：處理彈出視窗提交 (v41.0 - 架構統一重構)
+            logger.error(f"[{user_id}] 處理角色設定時出錯: {e}", exc_info=True)
+            await interaction.followup.send("錯誤：在處理您的設定時遇到問題，請稍後再試。", ephemeral=True)
+            return
+    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
 # 類別：角色編輯彈出視窗
 
 # 函式：創建角色檔案 Embed
@@ -1231,35 +1213,66 @@ class BotCog(commands.Cog):
         view = EditProfileRootView(cog=self, original_user_id=interaction.user.id)
         await interaction.response.send_message("請選擇您想編輯的角色檔案：", view=view, ephemeral=True)
         
-    @app_commands.command(name="upload_canon", description="上傳您的個人世界觀設定檔 (txt)")
-    @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
-    async def upload_canon(self, interaction: discord.Interaction, file: discord.Attachment):
+    # 函式：處理世界聖經內容 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [重大架構重構] 創建此統一的輔助函式，用於處理來自文本貼上或檔案上傳的世界聖經內容，避免程式碼重複。
+    async def _process_canon_content(self, interaction: discord.Interaction, content_text: str):
+        """一個統一的內部函式，負責處理、儲存和解析世界聖經文本。"""
         user_id = str(interaction.user.id)
         ai_instance = await self.get_or_create_ai_instance(user_id)
         if not ai_instance:
-            await interaction.response.send_message("錯誤：找不到您的使用者資料。", ephemeral=True)
+            await interaction.followup.send("錯誤：找不到您的使用者資料。", ephemeral=True)
             return
+
+        try:
+            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
+            await interaction.followup.send(f"✅ **世界聖經已接收！**\n內容已被分解為 **{chunk_count}** 個知識片段儲存。\n\n🧠 AI 正在背景中學習您的設定，這可能需要幾分鐘時間...", ephemeral=True)
+
+            # 在背景異步執行耗時的解析任務
+            asyncio.create_task(self.parse_and_create_lore_from_canon(interaction, content_text))
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 處理世界聖經內容時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"處理您的世界聖經時發生內部錯誤。", ephemeral=True)
+    # 函式：處理世界聖經內容 (v1.0 - 全新創建)
+
+    # 指令：通過貼上文本設定世界聖經 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [重大架構重構] 創建此新指令，專門用於通過彈出視窗（Modal）貼上文本，極大地改善了手機用戶的體驗。
+    @app_commands.command(name="set_canon_text", description="通過貼上文字來設定您的世界聖經")
+    async def set_canon_text(self, interaction: discord.Interaction):
+        """彈出一個視窗讓使用者貼上他們的世界聖經文本。"""
+        modal = WorldCanonPasteModal(self)
+        await interaction.response.send_modal(modal)
+    # 指令：通過貼上文本設定世界聖經 (v1.0 - 全新創建)
+
+    # 指令：通過上傳檔案設定世界聖經 (v2.0 - 重命名)
+    # 更新紀錄:
+    # v2.0 (2025-09-06): [重大架構重構] 從 /upload_canon 重命名而來，使其職責更清晰，並改為調用統一的內容處理函式。
+    @app_commands.command(name="set_canon_file", description="通過上傳 .txt 檔案來設定您的世界聖經")
+    @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
+    async def set_canon_file(self, interaction: discord.Interaction, file: discord.Attachment):
+        """處理使用者上傳的世界聖經 .txt 檔案。"""
         if not file.filename.lower().endswith('.txt'):
             await interaction.response.send_message("❌ 檔案格式錯誤！請上傳 `.txt` 檔案。", ephemeral=True)
             return
         if file.size > 5 * 1024 * 1024:
             await interaction.response.send_message("❌ 檔案過大！檔案大小不能超過 5MB。", ephemeral=True)
             return
+            
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             content_bytes = await file.read()
             content_text = content_bytes.decode('utf-8')
-            
-            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-            await interaction.followup.send(f"✅ **核心設定檔上傳成功！**\n檔案 `{file.filename}` 已被分解為 **{chunk_count}** 個知識片段儲存。\n\n🧠 現在將在背景中為您智能合併世界設定，請稍候...", ephemeral=True)
-
-            asyncio.create_task(self.parse_and_create_lore_from_canon(interaction, content_text))
+            # 調用新的、統一的內容處理函式
+            await self._process_canon_content(interaction, content_text)
 
         except UnicodeDecodeError:
             await interaction.followup.send("❌ **檔案編碼錯誤！**\n請將檔案另存為 `UTF-8` 編碼後再試一次。", ephemeral=True)
         except Exception as e:
-            logger.error(f"[{user_id}] 處理上傳的核心設定檔時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"處理檔案時發生內部錯誤。")
+            logger.error(f"[{interaction.user.id}] 處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"處理檔案時發生內部錯誤。", ephemeral=True)
+    # 指令：通過上傳檔案設定世界聖經 (v2.0 - 重命名)
 
     @app_commands.command(name="admin_set_affinity", description="[管理員] 設定指定使用者的好感度")
     @app_commands.check(is_admin)
