@@ -185,9 +185,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 # --- 階段二：規劃 (Planning) ---
 
-# 函式：SFW規劃節點 (v21.1 - 數據流修正)
+# 函式：SFW規劃節點 (v21.2 - 移除風格分析)
 # 更新紀錄:
-# v21.1 (2025-09-12): [災難性BUG修復] 重構了 `full_context_dict` 的構建方式，從隱式的 model_dump() 改為手動明確賦值。此修改確保了模板所需的所有鍵（特別是 `ai_settings`）都被正確提供，從根本上解決了 KeyError。
+# v21.2 (2025-09-15): [架構重構] 移除了對 style_analysis 的依賴，現在直接將完整的 response_style_prompt 傳遞給已強化的規劃鏈。
+# v21.1 (2025-09-12): [災難性BUG修復] 重構了 `full_context_dict` 的構建方式。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -197,13 +198,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
-    # SFW路徑需要額外的風格和場景分析
-    style_analysis_chain = ai_core.get_style_analysis_chain()
-    style_result = await ai_core.ainvoke_with_rotation(style_analysis_chain, {"user_input": state['messages'][-1].content, "response_style_prompt": ai_core.profile.response_style_prompt or ""}, retry_strategy='euphemize')
-    if not style_result:
-        style_result = StyleAnalysisResult(dialogue_requirement="AI角色應做出回應。", narration_level="中等", proactive_suggestion=None)
-
-    # [v21.1 核心修正] 手動、明確地構建上下文辭典，確保所有鍵都存在
+    # [v21.2 核心修正] 移除 style_analysis，直接構建上下文
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -222,16 +217,19 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
         ai_core.get_sfw_planning_chain(), 
         {
             "system_prompt": ai_core.profile.one_instruction, 
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot, 
             "user_input": state['messages'][-1].content, 
-            "style_analysis": style_result.model_dump_json()
         },
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v21.1 - 數據流修正)
+# 函式：SFW規劃節點 (v21.2 - 移除風格分析)
+
+
+
 
 # 函式：NSFW規劃節點 (v21.1 - 數據流修正)
 # 更新紀錄:
@@ -478,13 +476,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v21.5 - 拓撲最終修正)
+# 函式：創建主回應圖 (v21.6 - 移除風格分析節點)
 # 更新紀錄:
-# v21.5 (2025-09-14): [災難性BUG修復] 彻底修复了因路由器返回值与节点名不匹配导致的 `Unknown node` 编译错误。
-#    1. [內聯路由邏輯] 将所有路由器的定义内联到 `create_main_response_graph` 内部，以提高代码内聚性并避免 NameError。
-#    2. [修正路由出口] 修正了 `route_after_perception` 的返回值，确保其 `interactive_planner` 出口正确指向已注册的 `planner_junction` 节点。
-#    3. [简化拓扑] 删除了一个多余的路由器，使整个图的拓扑结构更清晰、更健壮。
-# v21.4 (2025-09-14): [重大架構修正] 再次重构路由拓撲。
+# v21.6 (2025-09-15): [架構簡化] 徹底移除了已废弃的 `style_analysis_node` 及其相關路由，因為所有規劃鏈現在都直接處理完整的風格指令，不再需要此中間步驟。
+# v21.5 (2025-09-14): [災難性BUG修復] 修复了 `Unknown node` 编译错误。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -505,20 +500,17 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
-    # 匯合點 (Junctions)
     graph.add_node("after_perception_junction", lambda state: {})
     graph.add_node("planner_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     
-    # 感知流程
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # LORE擴展分支
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -526,13 +518,11 @@ def create_main_response_graph() -> StateGraph:
     )
     graph.add_edge("lore_expansion", "after_perception_junction")
 
-    # [v21.5 核心修正] 主路由，區分互動和描述
     def route_after_perception(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
         if 'descriptive' in intent:
             return "analyze_scene"
         else:
-            # 修正：返回值 'interactive_planner' 必须指向一个已注册的节点
             return "interactive_planner_entry"
 
     graph.add_conditional_edges(
@@ -540,32 +530,26 @@ def create_main_response_graph() -> StateGraph:
         route_after_perception,
         { 
             "analyze_scene": "scene_and_action_analysis", 
-            "interactive_planner_entry": "planner_junction" # 指向已注册的汇合点
+            "interactive_planner_entry": "planner_junction"
         }
     )
 
-    # 描述性路徑的路由 (SFW vs NSFW)
     def route_descriptive_planner(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
-        # SFW 路径中的远程路由
-        if state.get('scene_analysis') and state['scene_analysis'].viewing_mode == 'remote':
-             return "remote_sfw_planner"
-        # NSFW 描述性路由
         if intent == 'nsfw_descriptive':
             return "remote_nsfw_planner"
-        # 默认或本地 SFW 路由
-        return "local_sfw_planner"
-
+        else:
+            return "remote_sfw_planner"
+            
     graph.add_conditional_edges(
         "scene_and_action_analysis",
-        route_viewing_mode, # 使用这个路由器来决定是本地还是远程
-        {
-            "remote_scene": "remote_sfw_planning",
-            "local_scene": "sfw_planning" 
+        route_descriptive_planner,
+        { 
+            "remote_sfw_planner": "remote_sfw_planning", 
+            "remote_nsfw_planner": "remote_nsfw_planning"
         }
     )
 
-    # 互動性路徑的路由 (SFW vs NSFW)
     def route_interactive_planner(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
         if intent == 'nsfw_interactive':
@@ -582,22 +566,18 @@ def create_main_response_graph() -> StateGraph:
         }
     )
 
-    # 所有規劃器都匯合到工具執行
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("nsfw_planning", "tool_execution")
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
-    # 執行與渲染流程
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
-    
-    # 收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v21.5 - 拓撲最終修正)
+# 函式：創建主回應圖 (v21.6 - 移除風格分析節點)
 
 
 
