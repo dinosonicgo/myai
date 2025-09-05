@@ -1412,8 +1412,9 @@ class AILover:
 
 
 
-    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.0 - 思维链第一步)
+# 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.1 - 指令忠誠度強化)
     # 更新紀錄:
+    # v2.1 (2025-09-05): [災難性BUG修復] 注入了【指令忠誠度鐵則】，並重寫了提示詞，強制此鏈生成【直接執行】使用者命令的計畫，旨在從根本上解決 AI 規避核心性行為、只生成前戲或準備動作的問題。
     # v2.0 (2025-09-15): [重大架構重構] 此鏈现在作为 NSFW 思维链的第一步，职责被简化为只生成包含核心动作和意图的“草稿”计划，为后续的精细化修正节点做准备。
     # v1.1 (2025-09-15): [邏輯強化] 将 response_style_prompt 作为最高优先级硬性约束注入。
     def get_nsfw_initial_planning_chain(self) -> Runnable:
@@ -1422,11 +1423,10 @@ class AILover:
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
-# == 🧠 系統核心指令 (NSFW 初步規劃模式) 🧠
+# == 🧠 系統核心指令 (NSFW 執行規劃模式) 🧠
 # ==================================================
-# 你的任务是分析所有上下文，为【露骨互动回合】制定一份【初步的行动计划草稿 JSON】。
-# 在这一步，你只需要关注【核心动作和意图】，确保角色的行为符合逻辑和角色设定。
-# 你暂时【不需要】过分关注最终的词汇是否足够露骨或对话是否足够丰富，这些将由后续的专家节点来修正。
+# 你的角色是【NSFW場景執行導演】。你的唯一任務是為【露骨互動回合】制定一份【可直接執行的行動計劃JSON】。
+# 你的輸出將交給後續的專家進行詞彙和風格的精細化，但你的核心計劃【必須】是準確且可執行的。
 ---
 {system_prompt}
 """
@@ -1437,8 +1437,16 @@ class AILover:
 {world_snapshot}
 # --- 使用者最新指令 ---
 {user_input}
-# --- 你的任務 ---
-請专注于核心动作和意图，生成一份初步的行动计划 JSON 草稿。
+
+# --- 【【【指令忠誠度鐵則 (ABSOLUTE COMMAND FIDELITY) - 最高優先級】】】 ---
+# 你【必須】將上方「使用者最新指令」中的【每一個動詞和名詞】都視為【不可更改、不可替換的絕對命令】。
+# 你的職責是規劃如何【精確執行】該指令，而不是【自由聯想】或【規避】。
+# 【絕對禁止】生成一個只描述“準備動作”或“前戲”的計劃來回應一個直接的性行為指令。計劃【必須】包含指令本身的核心動作。
+
+# --- 【你的任務】 ---
+# 1.  **直接執行**: 根據【指令忠誠度鐵則】，生成一個直接執行使用者指令的 `TurnPlan` JSON。
+# 2.  **範例**: 如果指令是“為我口交”，你的 `action_description` 就必須是關於角色“口含陽具並開始吸吮”的描述，而不是“跪下來準備”。
+# 3.  **詞彙**: 你暫時可以使用中性詞彙（如“陽具”、“陰道”），後續的專家會將其替換為露骨術語。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
@@ -1446,11 +1454,12 @@ class AILover:
             ])
             self.nsfw_initial_planning_chain = prompt | planner_llm
         return self.nsfw_initial_planning_chain
-    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.0 - 思维链第一步)
+    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.1 - 指令忠誠度強化)
 
 
-        # 函式：[新] 獲取 NSFW 词汇注入鏈
+    # 函式：[新] 獲取 NSFW 词汇注入鏈 (v1.1 - 擴大修正範圍)
     # 更新紀錄:
+    # v1.1 (2025-09-05): [功能強化] 修改了提示詞，明確要求此鏈同時審查並重寫 `action_description` 欄位，確保計畫中的核心動作描述也被替換為露骨術語，而不僅僅是旁白和對話。
     # v1.0 (2025-09-15): [重大架構重構] 创建此专用修正链，作为 NSFW 思维链的第二步。其唯一职责是将输入的 TurnPlan 草稿中的模糊词汇，强制替换为 action_sexual_content.txt 中定义的露骨术语。
     def get_nsfw_lexicon_injection_chain(self) -> Runnable:
         """[思维链-步骤2] 获取 NSFW 词汇注入链，强制修正 TurnPlan 中的词汇。"""
@@ -1476,7 +1485,8 @@ class AILover:
 # --- 行动计划草稿 (JSON) ---
 {turn_plan_json}
 # --- 你的任务 ---
-请严格遵循你在【系统核心指令】中学到的【词汇圣经】，审查并重写上方 JSON 中的 `narration` 和 `dialogue` 字段，确保所有相关描述都替换为指定的露骨词汇。保持 JSON 结构不变。
+请严格遵循你在【系统核心指令】中学到的【词汇圣经】，审查并重写上方 JSON 中的【所有相關文本字段】，包括 `narration`, `dialogue`, 以及 `character_actions` 列表下每一個行動的 `action_description`。
+你的目標是將所有中性或模糊的詞彙，全部替換為【词汇圣经】中定義的、最直接、最露骨的術語。保持 JSON 的原始結構不變。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
@@ -1484,7 +1494,7 @@ class AILover:
             ])
             self.nsfw_lexicon_injection_chain = prompt | corrector_llm
         return self.nsfw_lexicon_injection_chain
-    # 函式：[新] 獲取 NSFW 词汇注入鏈
+    # 函式：[新] 獲取 NSFW 词汇注入鏈 (v1.1 - 擴大修正範圍)
 
 
 
