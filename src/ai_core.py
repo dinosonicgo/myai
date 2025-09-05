@@ -718,6 +718,46 @@ class AILover:
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
+    # 函式：[新] 獲取遠程 SFW 計劃鏈
+    # 更新紀錄:
+    # v1.0 (2025-09-13): [架構重構] 創建此專用規劃鏈，用於處理遠程 SFW 場景描述請求。它只負責輸出結構化的 TurnPlan JSON，確保 SFW 路徑也能準確處理遠景。
+    def get_remote_sfw_planning_chain(self) -> Runnable:
+        """[新] 獲取遠程 SFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
+        if not hasattr(self, 'remote_sfw_planning_chain') or self.remote_sfw_planning_chain is None:
+            planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
+            
+            system_prompt = """# ==================================================
+# == 🧠 系統核心指令 (遠程 SFW 規劃模式) 🧠
+# ==================================================
+# 你的角色是【電影導演】。你的任務是將鏡頭切換到一個遠程的、安全的場景，並構思一幕生動的畫面。
+# 你的輸出不是小說本身，而是一份給“小說家”看的、結構化的【場景行動計劃 JSON】。
+# 【最高禁令】：你的計劃中【絕對禁止】包含使用者「{username}」或其AI夥伴「{ai_name}」。
+---
+{system_prompt}
+"""
+            human_prompt = """# ==================================================
+# == 🎬 導演指令卡 (遠程 SFW 場景) 🎬
+# ==================================================
+# --- 核心世界觀 ---
+{world_settings}
+# --- 遠程地點情報摘要 ---
+{remote_scene_context}
+# --- 使用者的描述指令 ---
+{user_input}
+# --- 你的任務 ---
+請嚴格遵循所有規則，構思一幕發生在遠程地點的 SFW 場景，並將其轉化為一份詳細的 TurnPlan JSON。
+計畫中的 character_actions 必須包含你為此場景創造的【有名有姓】的NPC，以及他們之間正在發生的、符合情境的互動。
+"""
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            self.remote_sfw_planning_chain = prompt | planner_llm
+        return self.remote_sfw_planning_chain
+    # 函式：[新] 獲取遠程 SFW 計劃鏈
+
+    
+
     # 函式：判斷需要加載的動作模組 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-04): [全新創建] 創建此函式作為動態指令引擎的核心判斷邏輯。它通過關鍵詞分析使用者輸入，以確定是否需要為當前回合加載特定的戰術指令模組（如性愛或移動）。
