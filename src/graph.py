@@ -227,6 +227,39 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     return {"turn_plan": plan}
 # 函式：NSFW規劃節點 (v21.1 - 數據流修正)
 
+
+# 函式：遠程 SFW 規劃節點
+# 更新紀錄:
+# v1.0 (2025-09-13): [架構重構] 新增此節點，專門處理 SFW 路徑中的遠程描述請求，確保 SFW 流程的視角分離。
+async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在生成遠程SFW場景計劃...")
+
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+
+    plan = await ai_core.ainvoke_with_rotation(
+        ai_core.get_remote_sfw_planning_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction, 
+            "world_settings": ai_core.profile.world_settings, 
+            "remote_scene_context": json.dumps(state['structured_context'], ensure_ascii=False), 
+            "user_input": state['messages'][-1].content,
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name
+        },
+        retry_strategy='euphemize' # SFW 路徑使用委婉化重試
+    )
+    if not plan:
+        plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
+    return {"turn_plan": plan}
+# 函式：遠程 SFW 規劃節點
+
+
+
+
 # 函式：遠程NSFW規劃節點 (v21.1 - 數據流修正)
 # 更新紀錄:
 # v21.1 (2025-09-12): [災難性BUG修復] 與 sfw_planning_node 同步，此處雖然不使用 world_snapshot，但為了保持代碼風格和未來擴展性，同樣進行了健壯性修正。
@@ -381,35 +414,54 @@ def route_to_planner(state: ConversationGraphState) -> str:
 
 # --- 主對話圖的建構器 v21.1 ---
 
+# 函式：創建主回應圖 (v21.2 - SFW 遠程路徑修正)
+# 更新紀錄:
+# v21.2 (2025-09-13): [重大架構修正] 徹底重構了 SFW 路徑的路由邏輯。
+#    1. [新增 SFW 遠程節點] 註冊了新的 `remote_sfw_planning_node`，專門處理 SFW 遠程描述。
+#    2. [新增 SFW 路由] 在 `classify_intent` 之後，SFW 路徑現在會強制進入 `scene_and_action_analysis_node` 進行視角分析。
+#    3. [新增 SFW 條件邊] `route_viewing_mode` 現在會將 `remote` 流量導向新的 `remote_sfw_planning_node`，`local` 流量則導向原有的本地規劃流程，實現了 SFW 路徑的視角分離。
+# v21.1 (2025-09-10): [災難性BUG修復] 恢復了所有被先前版本錯誤省略的函式。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
+    # 感知
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
+    # [v21.2 新增] SFW 路徑專用的視角分析節點
+    graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
+
+    # 規劃
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("nsfw_planning", nsfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
+    # [v21.2 新增] SFW 遠程規劃節點
+    graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
+
+    # 執行與渲染
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
+    # 收尾
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
-    # [v21.1 健壯化修正] 新增一個空的匯合點節點，以實現更標準的圖拓撲
+    # 匯合點 (Junctions)
     graph.add_node("planner_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     
+    # 感知流程
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
+    # LORE擴展分支
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -420,27 +472,46 @@ def create_main_response_graph() -> StateGraph:
     )
     graph.add_edge("lore_expansion", "planner_junction")
 
+    # 規劃器路由
     graph.add_conditional_edges(
         "planner_junction",
         route_to_planner,
         {
-            "sfw_planner": "sfw_planning",
+            # [v21.2 核心修正] SFW 路徑現在先去視角分析
+            "sfw_planner": "scene_and_action_analysis", 
             "nsfw_planner": "nsfw_planning",
             "remote_nsfw_planner": "remote_nsfw_planning"
         }
     )
     
+    # [v21.2 新增] SFW 路徑的內部路由
+    graph.add_conditional_edges(
+        "scene_and_action_analysis",
+        route_viewing_mode,
+        {
+            # 本地 SFW 走原來的規劃流程
+            "local_scene": "sfw_planning", 
+            # 遠程 SFW 走新的專用規劃流程
+            "remote_scene": "remote_sfw_planning"
+        }
+    )
+
+    # 所有規劃器都匯合到工具執行
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("nsfw_planning", "tool_execution")
     graph.add_edge("remote_nsfw_planning", "tool_execution")
+    graph.add_edge("remote_sfw_planning", "tool_execution")
     
+    # 執行與渲染流程
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     
+    # 收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
+# 函式：創建主回應圖 (v21.2 - SFW 遠程路徑修正)
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
