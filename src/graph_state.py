@@ -1,8 +1,8 @@
-# src/graph_state.py 的中文註釋(v4.0 - 新增風格分析狀態)
+# src/graph_state.py 的中文註釋(v5.0 - 適配精細化節點)
 # 更新紀錄:
-# v4.0 (2025-09-06): [重大架構升級] 新增了 `style_analysis` 欄位。此欄位用於儲存新增的 `style_analysis_node` 的輸出結果，是將風格指令從“軟建議”變為“硬約束”的關鍵數據載體。
+# v5.0 (2025-09-10): [重大架構升級] 新增了 `raw_lore_objects` 欄位。此欄位是實現“LORE查詢”與“上下文組裝”節點分離的關鍵，它作為一個數據載體，負責在兩個新節點之間傳遞原始的、未經處理的 LORE 資料庫對象列表。
+# v4.0 (2025-09-06): [重大架構升級] 新增了 `style_analysis` 欄位。
 # v3.0 (2025-09-06): [重大架構升級] 新增了 `intent_classification` 欄位。
-# v2.2 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `from typing import TypedDict`。
 
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
@@ -24,9 +24,12 @@ class ConversationGraphState(TypedDict):
     # --- 核心對話數據 ---
     messages: List[BaseMessage]
     
+    # --- [v21.0 新增] 精細化節點的數據載體 ---
+    raw_lore_objects: List[Any] # 用於在 query_lore 和 assemble_context 之間傳遞原始LORE對象
+
     # --- 中間處理結果 ---
     intent_classification: Optional["IntentClassificationResult"]
-    style_analysis: Optional["StyleAnalysisResult"] # [v4.0 新增]
+    style_analysis: Optional["StyleAnalysisResult"]
     input_analysis: Optional["UserInputAnalysis"]
     expansion_decision: Optional["ExpansionDecision"]
     scene_analysis: Optional["SceneAnalysisResult"]
@@ -34,7 +37,7 @@ class ConversationGraphState(TypedDict):
     structured_context: Dict[str, str]
     world_snapshot: str
     
-    # 新架構的核心數據載體
+    # "規劃-渲染"模式的核心數據載體
     turn_plan: Optional["TurnPlan"]
     tool_results: str
 
