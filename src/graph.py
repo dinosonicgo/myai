@@ -26,6 +26,53 @@ from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
+
+# 函式：場景與動作分析節點
+# 更新紀錄:
+# v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心节点，用于判断本地/远程视角。
+async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
+    """[SFW Path] 專用節點，分析 SFW 場景的視角（本地 vs 遠程）。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis [SFW Path] -> 正在進行場景視角分析...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph) 在 scene_and_action_analysis 中 ai_core.profile 未加載。")
+        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
+
+    current_location_path = ai_core.profile.game_state.location_path
+    scene_analysis = await ai_core.ainvoke_with_rotation(
+        ai_core.get_scene_analysis_chain(),
+        {"user_input": user_input, "current_location_path_str": " > ".join(current_location_path)},
+        retry_strategy='euphemize'
+    )
+    if not scene_analysis:
+        logger.warning(f"[{user_id}] (Graph) 場景分析鏈委婉化重試失敗，啟動安全備援。")
+        scene_analysis = SceneAnalysisResult(
+            viewing_mode='local', 
+            reasoning='安全備援：場景分析鏈失敗。', 
+            action_summary=user_input
+        )
+    return {"scene_analysis": scene_analysis}
+# 函式：場景與動作分析節點
+
+
+# 函式：視角模式路由器
+# 更新紀錄:
+# v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心路由器，用于分发本地/远程流量。
+def route_viewing_mode(state: ConversationGraphState) -> Literal["remote_scene", "local_scene"]:
+    """[SFW Path] 根據視角分析結果，決定是生成遠程場景還是繼續本地流程。"""
+    user_id = state['user_id']
+    scene_analysis = state.get("scene_analysis")
+    if scene_analysis and scene_analysis.viewing_mode == 'remote':
+        logger.info(f"[{user_id}] (Graph) Router: SFW 視角分析為遠程，進入 remote_sfw_planning。")
+        return "remote_scene"
+    else:
+        logger.info(f"[{user_id}] (Graph) Router: SFW 視角分析為本地，繼續本地主流程。")
+        return "local_scene"
+# 函式：視角模式路由器
+
 # --- 階段一：感知 (Perception) ---
 
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
@@ -432,14 +479,12 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    # [v21.2 新增] SFW 路徑專用的視角分析節點
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
 
     # 規劃
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("nsfw_planning", nsfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
-    # [v21.2 新增] SFW 遠程規劃節點
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
 
     # 執行與渲染
@@ -477,21 +522,18 @@ def create_main_response_graph() -> StateGraph:
         "planner_junction",
         route_to_planner,
         {
-            # [v21.2 核心修正] SFW 路徑現在先去視角分析
             "sfw_planner": "scene_and_action_analysis", 
             "nsfw_planner": "nsfw_planning",
             "remote_nsfw_planner": "remote_nsfw_planning"
         }
     )
     
-    # [v21.2 新增] SFW 路徑的內部路由
+    # SFW 路徑的內部路由
     graph.add_conditional_edges(
         "scene_and_action_analysis",
         route_viewing_mode,
         {
-            # 本地 SFW 走原來的規劃流程
             "local_scene": "sfw_planning", 
-            # 遠程 SFW 走新的專用規劃流程
             "remote_scene": "remote_sfw_planning"
         }
     )
