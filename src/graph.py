@@ -138,63 +138,124 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 # --- 階段二：規劃 (Planning) ---
 
+# 函式：SFW規劃節點 (v21.1 - 數據流修正)
+# 更新紀錄:
+# v21.1 (2025-09-12): [災難性BUG修復] 重構了 `full_context_dict` 的構建方式，從隱式的 model_dump() 改為手動明確賦值。此修改確保了模板所需的所有鍵（特別是 `ai_settings`）都被正確提供，從根本上解決了 KeyError。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在生成SFW行動計劃...")
 
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+
+    # SFW路徑需要額外的風格和場景分析
     style_analysis_chain = ai_core.get_style_analysis_chain()
     style_result = await ai_core.ainvoke_with_rotation(style_analysis_chain, {"user_input": state['messages'][-1].content, "response_style_prompt": ai_core.profile.response_style_prompt or ""}, retry_strategy='euphemize')
     if not style_result:
         style_result = StyleAnalysisResult(dialogue_requirement="AI角色應做出回應。", narration_level="中等", proactive_suggestion=None)
 
-    full_context_dict = { **(ai_core.profile.model_dump() if ai_core.profile else {}), **state }
+    # [v21.1 核心修正] 手動、明確地構建上下文辭典，確保所有鍵都存在
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
+        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+    }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_sfw_planning_chain(), 
-        {"system_prompt": ai_core.profile.one_instruction, "world_snapshot": world_snapshot, "user_input": state['messages'][-1].content, "style_analysis": style_result.model_dump_json()},
+        {
+            "system_prompt": ai_core.profile.one_instruction, 
+            "world_snapshot": world_snapshot, 
+            "user_input": state['messages'][-1].content, 
+            "style_analysis": style_result.model_dump_json()
+        },
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
+# 函式：SFW規劃節點 (v21.1 - 數據流修正)
 
+# 函式：NSFW規劃節點 (v21.1 - 數據流修正)
+# 更新紀錄:
+# v21.1 (2025-09-12): [災難性BUG修復] 與 sfw_planning_node 同步，重構了 `full_context_dict` 的構建方式，改為手動明確賦值，解決了 KeyError。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B] NSFW互動路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在生成NSFW互動行動計劃...")
     
-    full_context_dict = { **(ai_core.profile.model_dump() if ai_core.profile else {}), **state }
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+
+    # [v21.1 核心修正] 手動、明確地構建上下文辭典，確保所有鍵都存在
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
+        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+    }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_planning_chain(),
-        {"system_prompt": ai_core.profile.one_instruction, "world_snapshot": world_snapshot, "user_input": state['messages'][-1].content},
+        {
+            "system_prompt": ai_core.profile.one_instruction, 
+            "world_snapshot": world_snapshot, 
+            "user_input": state['messages'][-1].content
+        },
         retry_strategy='force'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
+# 函式：NSFW規劃節點 (v21.1 - 數據流修正)
 
+# 函式：遠程NSFW規劃節點 (v21.1 - 數據流修正)
+# 更新紀錄:
+# v21.1 (2025-09-12): [災難性BUG修復] 與 sfw_planning_node 同步，此處雖然不使用 world_snapshot，但為了保持代碼風格和未來擴展性，同樣進行了健壯性修正。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Graph|7C) Node: remote_nsfw_planning -> 正在生成遠程NSFW場景計劃...")
 
-    full_context_dict = { **(ai_core.profile.model_dump() if ai_core.profile else {}), **state }
-    
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+
+    # [v21.1 核心修正] 雖然此鏈不直接使用 world_snapshot，但準備好上下文以供 prompt 使用
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_planning_chain(),
-        {"system_prompt": ai_core.profile.one_instruction, "world_settings": ai_core.profile.world_settings, "remote_scene_context": json.dumps(state['structured_context']), "user_input": state['messages'][-1].content},
+        {
+            "system_prompt": ai_core.profile.one_instruction, 
+            "world_settings": ai_core.profile.world_settings, 
+            "remote_scene_context": json.dumps(state['structured_context'], ensure_ascii=False), 
+            "user_input": state['messages'][-1].content,
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name
+        },
         retry_strategy='force'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
+# 函式：遠程NSFW規劃節點 (v21.1 - 數據流修正)
 
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
 
