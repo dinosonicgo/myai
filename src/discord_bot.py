@@ -206,6 +206,10 @@ class CharacterSettingsModal(discord.ui.Modal):
         self.add_item(self.description)
         self.add_item(self.appearance)
 
+    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
+    # 更新紀錄:
+    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯，使其能夠正確地調用全新的 ContinueToCanonSetupView 視圖，並顯示更新後的使用者引導說明。
+    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
@@ -218,31 +222,48 @@ class CharacterSettingsModal(discord.ui.Modal):
         profile_attr = f"{self.profile_type}_profile"
         
         try:
-            updated_profile = getattr(ai_instance.profile, profile_attr)
+            # 獲取要更新的 profile 物件
+            profile_to_update = getattr(ai_instance.profile, profile_attr)
 
-            updated_profile.name = self.name.value
-            updated_profile.gender = self.gender.value
-            updated_profile.description = self.description.value
-            updated_profile.appearance = self.appearance.value
+            # 更新從 modal 獲取的值
+            profile_to_update.name = self.name.value
+            profile_to_update.gender = self.gender.value
+            profile_to_update.description = self.description.value
+            profile_to_update.appearance = self.appearance.value
             
+            # 將更新後的 profile 物件打包進行持久化
             success = await ai_instance.update_and_persist_profile({
-                profile_attr: updated_profile.model_dump()
+                profile_attr: profile_to_update.model_dump()
             })
 
             if not success:
                 raise Exception("AI 核心更新 profile 失敗。")
 
+            # 根據流程決定下一步的操作
             if not self.is_setup_flow:
-                await interaction.followup.send(f"✅ **{updated_profile.name}** 的角色設定已成功更新！", ephemeral=True)
+                await interaction.followup.send(f"✅ **{profile_to_update.name}** 的角色設定已成功更新！", ephemeral=True)
             elif self.profile_type == 'user': 
+                # 如果是設定流程中的使用者角色設定，下一步是設定 AI
                 view = ContinueToAiSetupView(cog=self.cog, user_id=user_id)
                 await interaction.followup.send("✅ 您的角色已設定！\n請點擊下方按鈕，為您的 AI 戀人進行設定。", view=view, ephemeral=True)
             elif self.profile_type == 'ai':
-                view = ContinueToCanonUploadView(cog=self.cog, user_id=user_id)
-                await interaction.followup.send(
+                # [v43.0 核心修正] 將錯誤的 ContinueToCanonUploadView 修正為 ContinueToCanonSetupView
+                view = ContinueToCanonSetupView(cog=self.cog, user_id=user_id)
+                
+                # [v43.0 核心修正] 更新引導文字以匹配新視圖的功能
+                setup_guide_message = (
                     "✅ AI 戀人基礎設定完成！\n\n"
                     "**下一步是可選的，但強烈推薦：**\n"
-                    "您可以上傳一份包含您自訂世界觀、角色背景或故事劇情的「世界聖經」(.txt 內容)，AI 將在創世時完全基於您的設定來生成一切！",
+                    "您可以上傳一份包含您自訂世界觀、角色背景或故事劇情的「世界聖經」，AI 將在創世時完全基於您的設定來生成一切！\n\n"
+                    "**您有兩種方式提供世界聖經：**\n"
+                    "1️⃣ **貼上文本 (推薦手機用戶)**: 輸入指令 ` /set_canon_text `\n"
+                    "2️⃣ **上傳檔案 (推薦桌面用戶)**: 輸入指令 ` /set_canon_file `\n\n"
+                    "--- \n"
+                    "完成（或跳過）此步驟後，請點擊下方的 **「✅ 完成設定並開始冒險」** 按鈕。"
+                )
+
+                await interaction.followup.send(
+                    content=setup_guide_message,
                     view=view,
                     ephemeral=True
                 )
@@ -251,7 +272,7 @@ class CharacterSettingsModal(discord.ui.Modal):
             logger.error(f"[{user_id}] 處理角色設定時出錯: {e}", exc_info=True)
             await interaction.followup.send("錯誤：在處理您的設定時遇到問題，請稍後再試。", ephemeral=True)
             return
-# 類別：角色設定彈出視窗
+    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
 
 # 類別：世界觀設定彈出視窗
 class WorldSettingsModal(discord.ui.Modal):
