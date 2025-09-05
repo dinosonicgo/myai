@@ -230,8 +230,9 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str,
 
 
 
-# 函式：NSFW 词汇注入節點 (v1.1 - 數據流修正)
+# 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
 # 更新紀錄:
+# v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。這是實現“指令淹沒”策略、解決內容審查問題的關鍵一步。
 # v1.1 (2025-09-15): [災難性BUG修復] 修正了 full_context_dict 的构建逻辑，从一个过于简化的版本恢复为包含所有模板所需键的完整版本，解决了因缺少 `world_settings` 等键而导致的 KeyError。
 # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第二步。
 async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
@@ -244,7 +245,6 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     if not ai_core.profile or not turn_plan:
         return {}
 
-    # [v1.1 核心修正] 构建完整的上下文，确保 world_snapshot 模板能被正确填充
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -262,6 +262,8 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     corrected_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_lexicon_injection_chain(),
         {
+            # [v1.2 核心修正] 傳入完整的系統指令
+            "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "world_snapshot": world_snapshot,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
@@ -273,7 +275,7 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
         return {}
         
     return {"turn_plan": corrected_plan}
-# 函式：NSFW 词汇注入節點 (v1.1 - 數據流修正)
+# 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
 
 # 函式：SFW規劃節點 (v21.2 - 移除風格分析)
 # 更新紀錄:
@@ -320,8 +322,9 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
 
 
-# 函式：NSFW 風格合規節點 (v1.1 - 數據流修正)
+# 函式：NSFW 風格合規節點 (v1.2 - 數據流修正)
 # 更新紀錄:
+# v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。這是實現“指令淹沒”策略、解決內容審查問題的關鍵一步。
 # v1.1 (2025-09-15): [災難性BUG修復] 与 nsfw_lexicon_injection_node 同步，修正了 full_context_dict 的构建逻辑，解决了 KeyError。
 # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的最后一步。
 async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
@@ -334,7 +337,6 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     if not ai_core.profile or not turn_plan:
         return {}
 
-    # [v1.1 核心修正] 构建完整的上下文，确保 world_snapshot 模板能被正确填充
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -352,6 +354,8 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     final_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_style_compliance_chain(),
         {
+            # [v1.2 核心修正] 傳入完整的系統指令
+            "system_prompt": ai_core.profile.one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
@@ -363,7 +367,7 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
         return {}
 
     return {"turn_plan": final_plan}
-# 函式：NSFW 風格合規節點 (v1.1 - 數據流修正)
+# 函式：NSFW 風格合規節點 (v1.2 - 數據流修正)
 
 
 # 函式：遠程 SFW 規劃節點 (v1.2 - 數據流修正)
