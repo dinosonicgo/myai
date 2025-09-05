@@ -467,19 +467,7 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
-# 函式：主規劃器路由器 (v21.3 - 路由簡化)
-# 更新紀錄:
-# v21.3 (2025-09-14): [架構簡化] 移除了对 `remote_sfw_planner` 的直接路由。SFW 路径的本地/远程分流现在完全由下游的 `scene_and_action_analysis_node` 和 `route_viewing_mode` 负责。
-def route_to_planner(state: ConversationGraphState) -> str:
-    """根據意圖分類，將流程分發到對應的規劃器或下一級路由器。"""
-    intent = state['intent_classification'].intent_type
-    if intent == 'nsfw_interactive':
-        return "nsfw_planner"
-    elif intent == 'nsfw_descriptive':
-        return "remote_nsfw_planner"
-    else: # 'sfw'
-        return "sfw_planner" # 所有 SFW 請求都先进入 SFW 统一入口
-# 函式：主規劃器路由器 (v21.3 - 路由簡化)
+
 
 # --- 主對話圖的建構器 v21.1 ---
 
@@ -490,13 +478,13 @@ def route_to_planner(state: ConversationGraphState) -> str:
 
 
 
-# 函式：創建主回應圖 (v21.4 - 遠程路徑分析修正)
+# 函式：創建主回應圖 (v21.5 - 拓撲最終修正)
 # 更新紀錄:
-# v21.4 (2025-09-14): [重大架構修正] 再次重構路由拓撲，實現了所有“描述性”意圖在規劃前强制进行场景分析的逻辑。
-#    1. [新增分析節點] 在主路由後為所有 `descriptive` 意圖新增了 `scene_and_action_analysis_node` 作為前置步骤。
-#    2. [路由分流] 主路由現在將 `interactive` 意圖直接送往規劃器，而將 `descriptive` 意圖送往场景分析。
-#    3. [下游統一] 场景分析後的 SFW 和 NSFW 遠程流量分別被導向各自的專用遠程規劃器，确保地點信息被正确传递。
-# v21.3 (2025-09-13): [重大架構修正] 重構了圖的路由拓撲以根除地點錯亂問題。
+# v21.5 (2025-09-14): [災難性BUG修復] 彻底修复了因路由器返回值与节点名不匹配导致的 `Unknown node` 编译错误。
+#    1. [內聯路由邏輯] 将所有路由器的定义内联到 `create_main_response_graph` 内部，以提高代码内聚性并避免 NameError。
+#    2. [修正路由出口] 修正了 `route_after_perception` 的返回值，确保其 `interactive_planner` 出口正确指向已注册的 `planner_junction` 节点。
+#    3. [简化拓扑] 删除了一个多余的路由器，使整个图的拓扑结构更清晰、更健壮。
+# v21.4 (2025-09-14): [重大架構修正] 再次重构路由拓撲。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -516,15 +504,21 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
+    
+    # 匯合點 (Junctions)
     graph.add_node("after_perception_junction", lambda state: {})
+    graph.add_node("planner_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
+    
+    # 感知流程
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
+    # LORE擴展分支
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -532,39 +526,60 @@ def create_main_response_graph() -> StateGraph:
     )
     graph.add_edge("lore_expansion", "after_perception_junction")
 
-    # [v21.4 核心修正] 主路由現在只區分互動和描述
+    # [v21.5 核心修正] 主路由，區分互動和描述
     def route_after_perception(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
         if 'descriptive' in intent:
-            return "analyze_scene" # 所有描述性請求都先去分析場景
-        else: # sfw 或 nsfw_interactive
-            return "interactive_planner"
+            return "analyze_scene"
+        else:
+            # 修正：返回值 'interactive_planner' 必须指向一个已注册的节点
+            return "interactive_planner_entry"
 
     graph.add_conditional_edges(
         "after_perception_junction",
         route_after_perception,
-        { "analyze_scene": "scene_and_action_analysis", "interactive_planner": "planner_junction" }
+        { 
+            "analyze_scene": "scene_and_action_analysis", 
+            "interactive_planner_entry": "planner_junction" # 指向已注册的汇合点
+        }
     )
 
-    # 描述性路徑的二次路由
+    # 描述性路徑的路由 (SFW vs NSFW)
     def route_descriptive_planner(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
+        # SFW 路径中的远程路由
+        if state.get('scene_analysis') and state['scene_analysis'].viewing_mode == 'remote':
+             return "remote_sfw_planner"
+        # NSFW 描述性路由
         if intent == 'nsfw_descriptive':
             return "remote_nsfw_planner"
-        else: # SFW descriptive
-            return "remote_sfw_planner"
-            
+        # 默认或本地 SFW 路由
+        return "local_sfw_planner"
+
     graph.add_conditional_edges(
         "scene_and_action_analysis",
-        route_descriptive_planner,
-        { "remote_sfw_planner": "remote_sfw_planning", "remote_nsfw_planner": "remote_nsfw_planning" }
+        route_viewing_mode, # 使用这个路由器来决定是本地还是远程
+        {
+            "remote_scene": "remote_sfw_planning",
+            "local_scene": "sfw_planning" 
+        }
     )
 
-    # 互動性路徑的二次路由
+    # 互動性路徑的路由 (SFW vs NSFW)
+    def route_interactive_planner(state: ConversationGraphState) -> str:
+        intent = state['intent_classification'].intent_type
+        if intent == 'nsfw_interactive':
+            return "nsfw_planner"
+        else: # sfw (interactive)
+            return "sfw_planner"
+
     graph.add_conditional_edges(
         "planner_junction",
-        route_to_planner, # 這裡的 route_to_planner 只處理互動性意圖
-        { "sfw_planner": "sfw_planning", "nsfw_planner": "nsfw_planning" }
+        route_interactive_planner,
+        { 
+            "sfw_planner": "sfw_planning", 
+            "nsfw_planner": "nsfw_planning"
+        }
     )
 
     # 所有規劃器都匯合到工具執行
@@ -573,14 +588,16 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
+    # 執行與渲染流程
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
+    
+    # 收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v21.4 - 遠程路徑分析修正)
-
+# 函式：創建主回應圖 (v21.5 - 拓撲最終修正)
 
 
 
