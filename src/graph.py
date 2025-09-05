@@ -230,8 +230,9 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str,
 
 
 
-# 函式：NSFW 词汇注入節點
+# 函式：NSFW 词汇注入節點 (v1.1 - 數據流修正)
 # 更新紀錄:
+# v1.1 (2025-09-15): [災難性BUG修復] 修正了 full_context_dict 的构建逻辑，从一个过于简化的版本恢复为包含所有模板所需键的完整版本，解决了因缺少 `world_settings` 等键而导致的 KeyError。
 # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第二步。
 async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B.2] NSFW思维链-步骤2: 强制修正计划中的词汇为露骨术语。"""
@@ -243,7 +244,19 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     if not ai_core.profile or not turn_plan:
         return {}
 
-    full_context_dict = { 'username': ai_core.profile.user_profile.name, 'ai_name': ai_core.profile.ai_profile.name }
+    # [v1.1 核心修正] 构建完整的上下文，确保 world_snapshot 模板能被正确填充
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
+        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+    }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
     corrected_plan = await ai_core.ainvoke_with_rotation(
@@ -260,7 +273,7 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
         return {}
         
     return {"turn_plan": corrected_plan}
-# 函式：NSFW 词汇注入節點
+# 函式：NSFW 词汇注入節點 (v1.1 - 數據流修正)
 
 # 函式：SFW規劃節點 (v21.2 - 移除風格分析)
 # 更新紀錄:
@@ -307,8 +320,9 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
 
 
-# 函式：NSFW 風格合規節點
+# 函式：NSFW 風格合規節點 (v1.1 - 數據流修正)
 # 更新紀錄:
+# v1.1 (2025-09-15): [災難性BUG修復] 与 nsfw_lexicon_injection_node 同步，修正了 full_context_dict 的构建逻辑，解决了 KeyError。
 # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的最后一步。
 async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B.3] NSFW思维链-步骤3: 检查并补充对话，确保计划符合用户风格。"""
@@ -320,7 +334,19 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     if not ai_core.profile or not turn_plan:
         return {}
 
-    full_context_dict = { 'username': ai_core.profile.user_profile.name, 'ai_name': ai_core.profile.ai_profile.name }
+    # [v1.1 核心修正] 构建完整的上下文，确保 world_snapshot 模板能被正确填充
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
+        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+    }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
     final_plan = await ai_core.ainvoke_with_rotation(
@@ -337,7 +363,7 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
         return {}
 
     return {"turn_plan": final_plan}
-# 函式：NSFW 風格合規節點
+# 函式：NSFW 風格合規節點 (v1.1 - 數據流修正)
 
 
 # 函式：遠程 SFW 規劃節點 (v1.2 - 數據流修正)
