@@ -275,9 +275,10 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
 # 函式：NSFW規劃節點 (v21.1 - 數據流修正)
 
 
-# 函式：遠程 SFW 規劃節點
+# 函式：遠程 SFW 規劃節點 (v1.1 - 接收場景分析)
 # 更新紀錄:
-# v1.0 (2025-09-13): [架構重構] 新增此節點，專門處理 SFW 路徑中的遠程描述請求，確保 SFW 流程的視角分離。
+# v1.1 (2025-09-14): [架構重構] 修改此節點，使其能接收並使用上游 `scene_and_action_analysis_node` 解析出的 `target_location_path`，確保地点正确。
+# v1.0 (2025-09-13): [架構重構] 新增此節點。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -287,29 +288,38 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
+    # [v1.1 核心修正] 從 state 中獲取場景分析結果
+    scene_analysis = state.get('scene_analysis')
+    if not scene_analysis or not scene_analysis.target_location_path:
+        logger.error(f"[{user_id}] (Graph|7D) 錯誤：進入 remote_sfw_planning_node 但未找到 target_location_path。")
+        return {"turn_plan": TurnPlan(thought="錯誤：未能解析出遠程觀察的目標地點。", character_actions=[])}
+    
+    target_location_path_str = " > ".join(scene_analysis.target_location_path)
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_sfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction, 
             "world_settings": ai_core.profile.world_settings, 
+            "target_location_path_str": target_location_path_str,
             "remote_scene_context": json.dumps(state['structured_context'], ensure_ascii=False), 
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
             "ai_name": ai_core.profile.ai_profile.name
         },
-        retry_strategy='euphemize' # SFW 路徑使用委婉化重試
+        retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點
+# 函式：遠程 SFW 規劃節點 (v1.1 - 接收場景分析)
 
 
 
 
-# 函式：遠程NSFW規劃節點 (v21.1 - 數據流修正)
+# 函式：遠程NSFW規劃節點 (v21.1 - 接收場景分析)
 # 更新紀錄:
-# v21.1 (2025-09-12): [災難性BUG修復] 與 sfw_planning_node 同步，此處雖然不使用 world_snapshot，但為了保持代碼風格和未來擴展性，同樣進行了健壯性修正。
+# v21.1 (2025-09-14): [架構重構] 修改此節點，使其能接收並使用上游 `scene_and_action_analysis_node` 解析出的 `target_location_path`，確保地点正确。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -319,12 +329,20 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
-    # [v21.1 核心修正] 雖然此鏈不直接使用 world_snapshot，但準備好上下文以供 prompt 使用
+    # [v21.1 核心修正] 從 state 中獲取場景分析結果
+    scene_analysis = state.get('scene_analysis')
+    if not scene_analysis or not scene_analysis.target_location_path:
+        logger.error(f"[{user_id}] (Graph|7C) 錯誤：進入 remote_nsfw_planning_node 但未找到 target_location_path。")
+        return {"turn_plan": TurnPlan(thought="錯誤：未能解析出遠程觀察的目標地點。", character_actions=[])}
+
+    target_location_path_str = " > ".join(scene_analysis.target_location_path)
+
     plan = await ai_core.ainvoke_with_rotation(
-        ai_core.get_remote_planning_chain(),
+        ai_core.get_remote_nsfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction, 
-            "world_settings": ai_core.profile.world_settings, 
+            "world_settings": ai_core.profile.world_settings,
+            "target_location_path_str": target_location_path_str,
             "remote_scene_context": json.dumps(state['structured_context'], ensure_ascii=False), 
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
@@ -335,7 +353,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v21.1 - 數據流修正)
+# 函式：遠程NSFW規劃節點 (v21.1 - 接收場景分析)
 
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
 
@@ -449,25 +467,36 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
+# 函式：主規劃器路由器 (v21.3 - 路由簡化)
+# 更新紀錄:
+# v21.3 (2025-09-14): [架構簡化] 移除了对 `remote_sfw_planner` 的直接路由。SFW 路径的本地/远程分流现在完全由下游的 `scene_and_action_analysis_node` 和 `route_viewing_mode` 负责。
 def route_to_planner(state: ConversationGraphState) -> str:
-    """根據意圖分類，將流程分發到對應的規劃器。"""
+    """根據意圖分類，將流程分發到對應的規劃器或下一級路由器。"""
     intent = state['intent_classification'].intent_type
     if intent == 'nsfw_interactive':
         return "nsfw_planner"
     elif intent == 'nsfw_descriptive':
         return "remote_nsfw_planner"
     else: # 'sfw'
-        return "sfw_planner"
+        return "sfw_planner" # 所有 SFW 請求都先进入 SFW 统一入口
+# 函式：主規劃器路由器 (v21.3 - 路由簡化)
 
 # --- 主對話圖的建構器 v21.1 ---
 
-# 函式：創建主回應圖 (v21.3 - 遠程LORE擴展修正)
+
+
+
+
+
+
+
+# 函式：創建主回應圖 (v21.4 - 遠程路徑分析修正)
 # 更新紀錄:
-# v21.3 (2025-09-13): [重大架構修正] 再次重構了圖的路由拓撲，以根除遠程描述時的地點錯亂問題。
-#    1. [LORE擴展前置] 將 LORE 擴展相關節點 (`expansion_decision`, `lore_expansion`) 的執行順序提前，使其在主規劃器路由之前完成。
-#    2. [遠程路徑分離] `route_to_planner` 現在會將所有遠程描述意圖 (`remote_...`) 直接路由到各自的專用規劃器，完全繞過通用的 LORE 擴展流程。
-#    3. [權力下放] LORE 擴展的職責現在被清晰地劃分：通用擴展由 `lore_expansion_node` 處理，而遠程場景的 LORE 創造則完全由遠程規劃器在內部完成。
-# v21.2 (2025-09-13): [重大架構修正] 徹底重構了 SFW 路徑的路由邏輯。
+# v21.4 (2025-09-14): [重大架構修正] 再次重構路由拓撲，實現了所有“描述性”意圖在規劃前强制进行场景分析的逻辑。
+#    1. [新增分析節點] 在主路由後為所有 `descriptive` 意圖新增了 `scene_and_action_analysis_node` 作為前置步骤。
+#    2. [路由分流] 主路由現在將 `interactive` 意圖直接送往規劃器，而將 `descriptive` 意圖送往场景分析。
+#    3. [下游統一] 场景分析後的 SFW 和 NSFW 遠程流量分別被導向各自的專用遠程規劃器，确保地點信息被正确传递。
+# v21.3 (2025-09-13): [重大架構修正] 重構了圖的路由拓撲以根除地點錯亂問題。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -487,50 +516,55 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    
-    # 匯合點 (Junction)
     graph.add_node("after_perception_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
-    
-    # 感知流程
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # LORE擴展分支 (僅對本地場景生效)
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
-        {
-            "expand_lore": "lore_expansion",
-            "continue_to_planner": "after_perception_junction"
-        }
+        { "expand_lore": "lore_expansion", "continue_to_planner": "after_perception_junction" }
     )
     graph.add_edge("lore_expansion", "after_perception_junction")
 
-    # [v21.3 核心修正] 主規劃器路由
+    # [v21.4 核心修正] 主路由現在只區分互動和描述
+    def route_after_perception(state: ConversationGraphState) -> str:
+        intent = state['intent_classification'].intent_type
+        if 'descriptive' in intent:
+            return "analyze_scene" # 所有描述性請求都先去分析場景
+        else: # sfw 或 nsfw_interactive
+            return "interactive_planner"
+
     graph.add_conditional_edges(
         "after_perception_junction",
-        route_to_planner,
-        {
-            "sfw_planner": "scene_and_action_analysis", # SFW 本地/遠程的二次路由
-            "nsfw_planner": "nsfw_planning", # NSFW 本地互動
-            "remote_nsfw_planner": "remote_nsfw_planning", # NSFW 遠程描述
-            "remote_sfw_planner": "remote_sfw_planning" # SFW 遠程描述
-        }
+        route_after_perception,
+        { "analyze_scene": "scene_and_action_analysis", "interactive_planner": "planner_junction" }
     )
-    
-    # SFW 路徑的內部二次路由
+
+    # 描述性路徑的二次路由
+    def route_descriptive_planner(state: ConversationGraphState) -> str:
+        intent = state['intent_classification'].intent_type
+        if intent == 'nsfw_descriptive':
+            return "remote_nsfw_planner"
+        else: # SFW descriptive
+            return "remote_sfw_planner"
+            
     graph.add_conditional_edges(
         "scene_and_action_analysis",
-        route_viewing_mode,
-        {
-            "local_scene": "sfw_planning", 
-            "remote_scene": "remote_sfw_planning"
-        }
+        route_descriptive_planner,
+        { "remote_sfw_planner": "remote_sfw_planning", "remote_nsfw_planner": "remote_nsfw_planning" }
+    )
+
+    # 互動性路徑的二次路由
+    graph.add_conditional_edges(
+        "planner_junction",
+        route_to_planner, # 這裡的 route_to_planner 只處理互動性意圖
+        { "sfw_planner": "sfw_planning", "nsfw_planner": "nsfw_planning" }
     )
 
     # 所有規劃器都匯合到工具執行
@@ -539,16 +573,16 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
-    # 執行與渲染流程
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
-    
-    # 收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v21.3 - 遠程LORE擴展修正)
+# 函式：創建主回應圖 (v21.4 - 遠程路徑分析修正)
+
+
+
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
