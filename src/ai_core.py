@@ -2510,10 +2510,11 @@ class AILover:
 
     
 
-# 函式：指令強化重試處理器 (v2.0 - 通用化重構)
+    # 函式：指令強化重試處理器 (v3.0 - 目標鎖定重構)
     # 更新紀錄:
-    # v2.0 (2025-09-05): [災難性BUG修復] 徹底重構了此函式的邏輯。不再硬性要求 'user_input' 鍵，而是智能地在輸入參數字典中尋找最長的字串值（通常是主要的提示內容），並將強化指令附加到該字串後重試。此修改使其能夠通用地處理來自任何鏈的重試請求（例如 nsfw_lexicon_injection_chain），從根本上解決了因輸入格式不匹配導致的 ValueError 崩潰問題。
-    # v1.0 (2025-09-05): [重大架構重構] 創建此函式，將“指令轟炸”式的激進重試邏輯從舊的 `_euphemize_and_retry` 中分離出來。
+    # v3.0 (2025-09-05): [災難性BUG修復] 徹底重構了強化目標的選擇邏輯。現在，此函式會【優先】尋找名為 'turn_plan_json' 的特定鍵。如果找到，則必定對其進行強化。只有在找不到該鍵時，才會回退到尋找最長字串的通用邏輯。此修改確保了在 NSFW 思維鏈中，強化指令總能精準地作用於核心的行動計畫數據，而不是錯誤地作用於指令模板，從而解決了重試無效的根本問題。
+    # v2.0 (2025-09-05): [通用化重構] 不再硬性要求 'user_input' 鍵，而是智能地在輸入參數字典中尋找最長的字串值進行強化。
+    # v1.0 (2025-09-05): [全新創建] 創建此函式以分離“指令轟炸”式的激進重試邏輯。
     async def _force_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
         嘗試用“指令轟炸”的方式強化輸入後重試，專用於最終的 NSFW 輸出。
@@ -2524,13 +2525,21 @@ class AILover:
             if not isinstance(failed_params, dict):
                 raise ValueError("指令強化重試策略只能應用於字典類型的輸入。")
 
-            # [v2.0 核心修正] 智能查找最長的文本欄位進行強化
             key_to_reinforce = None
-            max_len = -1
-            for key, value in failed_params.items():
-                if isinstance(value, str) and len(value) > max_len:
-                    max_len = len(value)
-                    key_to_reinforce = key
+            
+            # [v3.0 核心修正] 優先鎖定 'turn_plan_json'
+            if 'turn_plan_json' in failed_params and isinstance(failed_params['turn_plan_json'], str):
+                key_to_reinforce = 'turn_plan_json'
+                logger.info(f"[{self.user_id}] 已鎖定優先強化目標 'turn_plan_json'。")
+            else:
+                # 如果沒有 'turn_plan_json'，則回退到尋找最長字串的通用邏輯
+                max_len = -1
+                for key, value in failed_params.items():
+                    if isinstance(value, str) and len(value) > max_len:
+                        max_len = len(value)
+                        key_to_reinforce = key
+                if key_to_reinforce:
+                    logger.info(f"[{self.user_id}] 已回退至通用邏輯，鎖定最長文本欄位 '{key_to_reinforce}' 進行強化。")
 
             if not key_to_reinforce:
                 raise ValueError("在參數中找不到可供強化的文本欄位。")
@@ -2556,7 +2565,7 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] 指令強化重試最終失敗: {e}", exc_info=True)
             return None # 如果強化重試也失敗，則返回 None
-    # 函式：指令強化重試處理器 (v2.0 - 通用化重構)
+    # 函式：指令強化重試處理器 (v3.0 - 目標鎖定重構)
 
 
     
