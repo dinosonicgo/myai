@@ -16,7 +16,7 @@
 # v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了系統性重構。
 
 # ==============================================================================
-# == 🤖 AI Lover 核心對話處理流程架構 v20.0 (統一預處理最終版) 🤖
+# == 🤖 AI Lover 核心對話處理流程架構 v22.1 (NSFW思維鏈最終版) 🤖
 # ==============================================================================
 # == 警告：這是指導未來程式碼修正的【最終正確架構藍圖】，而非對當前
 # ==       程式碼的描述。所有對 src/graph.py 的修改都必須以此藍圖為唯一標準。
@@ -27,16 +27,16 @@
 #   1. 【📜 LORE / 既成事實一致性原則】: AI 的所有行動和描述【必須】與已知的 LORE 完全一致。
 #   2. 【🎭 角色扮演真實性原則】: 所有角色的行為、對話和決策都【必須】嚴格基於其角色設定。
 #   3. 【🧠 上下文與記憶連貫性原則】: AI 的回應【必須】緊密銜接上一輪的對話、歷史和場景上下文。
-#   4. 【🎨 風格指令強制性原則】: 最終生成的小說文本【必須】完全符合 `response_style_prompt` 的指導。
+#   4. 【🎨 風格指令強制性原則】: 最終的行動計劃和渲染文本【必須】嚴格符合 `response_style_prompt` 的指導。
 #   5. 【🖋️ LORE 具體化擴展原則】: 所有新生成的 LORE 實體【必須】被賦予具體的專有名稱。
 #
 # ===【【【全局錯誤處理原則 (Universal Error Handling Principles)】】】===
 #
-#   1. 【🚀 激進重試 (Force Retry)】: 用於【所有最終面向使用者的內容生成節點】。
+#   1. 【🚀 激進重試 (Force Retry)】: 用於【所有最終面向使用者的內容生成/規劃節點】。
 #      遭遇內容審查時，系統將強化原始指令，以最高力度嘗試突破審查。
 #   2. 【🛡️ 委婉化重試 (Euphemize Retry)】: 用於【所有內部的、輔助性的工具鏈節點】。
 #      遭遇審查時，系統將嘗試重寫輸入為更中性的版本後重試，以確保功能存活。
-#   3. 【🚧 安全備援 (Graceful Fallback)】: 若委婉化重試最終失敗，節點【必須】返回一個
+#   3. 【🚧 安全備援 (Graceful Fallback)】: 若重試最終失敗，節點【必須】返回一個
 #      安全的中性預設值，【絕對禁止】讓圖的流程因內容審查而崩潰。
 #
 # ==============================================================================
@@ -44,80 +44,88 @@
 # 【START】
 #     |
 #     V
-# 1. [節點] classify_intent_node (全新入口點)
-#    |  - 功能: 【守門人】。對原始使用者輸入進行語意分析，將其分類為 SFW, NSFW-互動, 或 NSFW-描述。
-#    |  - **重試策略**: 【無】(若失敗，直接備援為 SFW，防止污染)
+# 1. [節點] classify_intent_node (統一感知)
+#    |  - 功能: 【守門人】。將輸入分類為 SFW, NSFW-互動, NSFW-描述。
 #    |
 #     V
-# 2. [節點] initialize_conversation_state_node (全局共享預處理)
-#    |  - 功能: 收集決策所需的所有情報（RAG 檢索、當前 LORE 上下文）。
-#    |  - **重試策略**: 【🛡️ 委婉化】(RAG 檢索器)
+# 2. [節點] retrieve_memories_node (統一感知)
+#    |  - 功能: 【記憶官】。執行 RAG，檢索長期記憶。
 #    |
 #     V
-# 3. [節點] analyze_input_node (全局共享預處理)
-#    |  - 功能: 初步分析使用者輸入的意圖。
-#    |  - **重試策略**: 【🛡️ 委婉化】
+# 3. [節點] query_lore_node (統一感知)
+#    |  - 功能: 【檔案員】。從資料庫查詢原始 LORE。
 #    |
 #     V
-# 4. [節點] expansion_decision_node (全局共享預處理)
-#    |  - 功能: 判斷本回合是否具有“探索意圖”。
-#    |  - **重試策略**: 【🛡️ 委婉化】
+# 4. [節點] assemble_context_node (統一感知)
+#    |  - 功能: 【情報官】。將所有資訊組裝成上下文。
 #    |
 #     V
-# 5. [路由器] route_expansion_decision
+# 5. [節點] expansion_decision_node (本地LORE決策)
+#    |  - 功能: 判斷【本地場景】是否需要擴展 LORE。
 #    |
-#    +---- [IF: should_expand = TRUE] ----> 5A. [節點] lore_expansion_node (全局共享LORE中心)
-#    |          |                              - 功能: 【世界之心】。同步執行所有LORE創造（選角、場景細化）並立即刷新上下文。
-#    |          |                              - **重試策略**: 【🛡️ 委婉化】(內部所有鏈)
-#    |          |
-#    |          +-----------------------------------> 6. [路由器] route_to_final_generator
+#     V
+# 6. [路由器] route_expansion_decision
 #    |
-#    +---- [IF: should_expand = FALSE] ---> 6. [路由器] route_to_final_generator (跳過LORE擴展)
+#    +---- [IF: 擴展] ----> 6A. [節點] lore_expansion_node --> 7. [節點] after_perception_junction
+#    |
+#    +---- [IF: 不擴展] -------------------------------------> 7. [節點] after_perception_junction
 #
-# 6. [路由器] route_to_final_generator (最終生成器分發)
-#    |  - 功能: 根據步驟 1 的分類結果，將已完成預處理的流程分發到各自的專用生成器。
+# 7. [節點] after_perception_junction (感知流程匯合點)
 #    |
-#    +---- [IF: NSFW-互動] ----> 6A. [節點] generate_nsfw_response_node
-#    |          |                   - 功能: 生成包含玩家互動的近景露骨場景。
-#    |          |                   - **重試策略**: 【🚀 激進重試】
+#    V
+# 8. [路由器] route_after_perception (主路由：互動 vs. 描述)
+#    |
+#    +---- [IF: 描述性意圖] ----> 9A. [節點] scene_and_action_analysis_node
+#    |          |                   - 功能: 【勘探員】。解析遠程目標地點。
 #    |          |
-#    |          +-----------------------------------> 10. [節點] validate_and_rewrite_node
-#    |
-#    +---- [IF: NSFW-描述] ----> 6B. [節點] remote_nsfw_scene_generator_node
-#    |          |                   - 功能: 生成純粹的、遠程的、露骨的場景。
-#    |          |                   - **重試策略**: 【🚀 激進重試】
+#    |          V
+#    |      9B. [路由器] route_descriptive_planner
 #    |          |
-#    |          +-----------------------------------> 10. [節點] validate_and_rewrite_node
+#    |          +---- [IF: SFW 描述] ----> 9B.1 [節點] remote_sfw_planning_node --> 11. [節點] tool_execution_node
+#    |          |                              - 功能: 【SFW遠景導演】。生成遠程SFW場景的【行動計劃JSON】。
+#    |          |                              - **重試策略**: 【🛡️ 委婉化】
+#    |          |
+#    |          +---- [IF: NSFW 描述] ---> 9B.2 [節點] remote_nsfw_planning_node --> 11. [節點] tool_execution_node
+#    |                                         - 功能: 【NSFW遠景導演】。生成遠程NSFW場景的【行動計劃JSON】。
+#    |                                         - **重試策略**: 【🚀 激進重試】
 #    |
-#    +---- [IF: SFW] --------> 7C. [節點] scene_and_action_analysis_node (SFW路徑專用)
-#               |                  - 功能: 分析 SFW 場景的視角（本地 vs 遠程）。
-#               |                  - **重試策略**: 【🛡️ 委婉化】
+#    +---- [IF: 互動性意圖] ----> 10A. [路由器] route_interactive_planner
 #               |
-#               V
-#           8C. [路由器] route_viewing_mode
-#               |
-#               +---- [IF: 遠程] ----> 8C.1 [節點] remote_scene_generation_node
-#               |          |                  - 功能: 生成遠程 SFW 場景。
-#               |          |                  - **重試策略**: 【🛡️ 委婉化】
+#               +---- [IF: SFW 互動] ----> 10A.1 [節點] sfw_planning_node --> 11. [節點] tool_execution_node
+#               |          |                   - 功能: 【SFW導演】。生成SFW互動的【行動計劃JSON】。
+#               |          |                   - **重試策略**: 【🛡️ 委婉化】
 #               |          |
-#               |          +---------------------------> 10. [節點] validate_and_rewrite_node
+#               |          +---- [IF: NSFW 互動] ---> 10B.1 [節點] nsfw_initial_planning_node (NSFW思維鏈 Pt.1)
+#               |                     |                 - 功能: 【NSFW劇本初稿】。生成核心動作的【草稿計劃JSON】。
+#               |                     |                 - **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     V
+#               |                 10B.2 [節點] nsfw_lexicon_injection_node (NSFW思維鏈 Pt.2)
+#               |                     |                 - 功能: 【詞彙修正專家】。將草稿計劃中的詞彙強制替換為露骨術語。
+#               |                     |                 - **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     V
+#               |                 10B.3 [節點] nsfw_style_compliance_node (NSFW思維鏈 Pt.3)
+#               |                                     - 功能: 【風格對話專家】。為計劃補充符合風格的主動/淫穢對話。
+#               |                                     - **重試策略**: 【🚀 激進重試】
 #               |
-#               +---- [IF: 本地] ----> 9C. [節點] style_analysis_node -> planning_node -> tool_execution_node -> narrative_node
-#                          |                  - 功能: SFW 路徑的核心“大腦”，分析風格、生成計劃、執行工具並渲染成小說。
-#                          |                  - **重試策略**: 【🛡️ 委婉化】(分析與規劃) / 【🚀 激進重試】(敘事)
-#                          |
-#                          +---------------------------> 10. [節點] validate_and_rewrite_node
+#               +----------------------------------------> 11. [節點] tool_execution_node
 #
-# 10. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
-#     |  - 功能: 淨化輸出，移除潛在的指令洩漏。
+# 11. [節點] tool_execution_node (所有路徑的共同匯合點)
+#     |  - 功能: 【執行者】。執行所有計劃中定義的工具調用。
 #     |
 #     V
-# 11. [節點] persist_state_node
-#     |  - 功能: 將成功的互動結果存入記憶。
+# 12. [節點] narrative_rendering_node (所有路徑的共同匯合點)
+#     |  - 功能: 【小說家】。將【最終的行動計劃JSON】渲染成統一風格的小說文本。
+#     |  - **重試策略**: 【🚀 激進重試】
 #     |
 #     V
-# 12. [節點] finalization_node
-#     |  - 功能: 標記流程結束。
+# 13. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
+#     |  - 功能: 【淨化器】。移除指令洩漏，處理“扮演用戶”的違規。
+#     |
+#     V
+# 14. [節點] persist_state_node (所有路徑的共同匯合點)
+#     |  - 功能: 【記錄員】。將結果存入長期和短期記憶。
 #     |
 #     V
 # 【END】
