@@ -345,6 +345,57 @@ class AILover:
         return self.profile_parser_prompt
     # 函式：獲取角色檔案解析器 Prompt
 
+    # 函式：將世界聖經添加到向量儲存 (v1.0 - 恢復)
+    # 更新紀錄:
+    # v1.0 (2025-09-10): [災難性BUG修復] 恢復這個在 v210.0 重構中被意外刪除的核心函式。此函式負責處理世界聖經文本，將其分塊並存入向量數據庫，是 RAG 功能的基礎。
+    async def add_canon_to_vector_store(self, text_content: str) -> int:
+        """
+        將世界聖經（canon）文本內容分割成塊，並將其添加到向量儲存中，用於後續的檢索。
+        在添加新內容前，會先清除所有舊的 'canon' 來源數據。
+        """
+        if not self.vector_store:
+            logger.error(f"[{self.user_id}] 嘗試將聖經添加到未初始化的向量儲存中。")
+            raise ValueError("Vector store is not initialized.")
+            
+        try:
+            # 步驟 1: 刪除舊的聖經條目以確保數據最新
+            collection = await asyncio.to_thread(self.vector_store.get)
+            ids_to_delete = [
+                doc_id for i, doc_id in enumerate(collection['ids']) 
+                if collection['metadatas'][i].get('source') == 'canon'
+            ]
+            if ids_to_delete:
+                await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
+                logger.info(f"[{self.user_id}] 已從向量儲存中刪除 {len(ids_to_delete)} 條舊的聖經條目。")
+
+            # 步驟 2: 初始化文本分割器
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000, 
+                chunk_overlap=200, 
+                length_function=len
+            )
+            
+            # 步驟 3: 創建文檔塊
+            docs = text_splitter.create_documents([text_content])
+            
+            # 步驟 4: 將新文檔添加到向量儲存
+            if docs:
+                await asyncio.to_thread(
+                    self.vector_store.add_texts, 
+                    texts=[doc.page_content for doc in docs], 
+                    metadatas=[{"source": "canon"} for _ in docs]
+                )
+                logger.info(f"[{self.user_id}] 已成功將聖經文本分割並添加為 {len(docs)} 個知識片段。")
+                return len(docs)
+                
+            return 0
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 在處理世界聖經並添加到向量儲存時發生錯誤: {e}", exc_info=True)
+            raise
+    # 函式：將世界聖經添加到向量儲存 (v1.0 - 恢復)
+
+    
+
     # 函式：獲取角色檔案補完 Prompt
     def get_profile_completion_prompt(self) -> ChatPromptTemplate:
         if self.profile_completion_prompt is None:
