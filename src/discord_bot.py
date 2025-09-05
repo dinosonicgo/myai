@@ -130,19 +130,36 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         await self.cog._process_canon_content(interaction, self.canon_text.value)
 # 類別：世界聖經貼上文字彈出視窗 (v2.0 - 重命名與職責單一化)
 
-# 類別：繼續世界聖經設定視圖 (v2.0 - 流程重構)
+# 類別：繼續世界聖經設定視圖 (v2.1 - 圖形化按鈕重構)
 # 更新紀錄:
-# v2.0 (2025-09-06): [重大架構重構] 徹底重寫了此視圖。它不再包含複雜的按鈕，而是提供清晰的文字指示，引導使用者使用兩個新的、職責單一的指令（/set_canon_text 和 /set_canon_file），並提供一個最終的完成按鈕。
+# v2.1 (2025-09-11): [重大UX優化] 徹底重構了此視圖，將原本的文字指令引導改為圖形化按鈕。
+#    1. [新增功能按鈕] 新增了一個功能性的“貼上文本”按鈕，點擊可直接彈出 Modal。
+#    2. [新增引導按鈕] 新增了一個灰色的、禁用的“上傳檔案”按鈕，其標籤用於指導用戶使用正確的斜線指令，在提供圖形化選項的同時解決了Discord API的限制。
+# v2.0 (2025-09-06): [重大架構重構] 重寫了此視圖以適應新的指令流程。
 class ContinueToCanonSetupView(discord.ui.View):
     def __init__(self, *, cog: "BotCog", user_id: str):
         super().__init__(timeout=600.0)
         self.cog = cog
         self.user_id = user_id
 
-    @discord.ui.button(label="✅ 完成設定並開始冒險", style=discord.ButtonStyle.success, row=1)
+    @discord.ui.button(label="📄 貼上世界聖經 (文字)", style=discord.ButtonStyle.success, row=0)
+    async def paste_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """彈出一個 Modal 讓使用者貼上他們的設定文本。"""
+        modal = WorldCanonPasteModal(self.cog)
+        await interaction.response.send_modal(modal)
+        # 注意：Modal 提交後會發送 thinking=True 的 defer，所以這裡不需要
+
+    @discord.ui.button(label="📁 上傳檔案 (請使用 /set_canon_file 指令)", style=discord.ButtonStyle.secondary, row=0, disabled=True)
+    async def upload_canon_placeholder(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """這是一個被禁用的佔位符按鈕，僅用於引導。"""
+        # 因為按鈕是禁用的，這段程式碼永遠不會被執行。
+        pass
+
+    @discord.ui.button(label="✅ 完成設定並開始冒險 (或跳過聖經)", style=discord.ButtonStyle.primary, row=1)
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """完成設定流程並開始遊戲。"""
         await interaction.response.defer(ephemeral=True, thinking=True)
-        # 這裡我們不傳遞 canon_text，因為它已經通過新的斜線指令被獨立處理了
+        # 調用 finalize_setup，不傳遞 canon_text，因為它已通過其他方式獨立處理
         await self.cog.finalize_setup(interaction)
         self.stop()
         await interaction.edit_original_response(content="設定流程即將完成...", view=None)
@@ -151,7 +168,7 @@ class ContinueToCanonSetupView(discord.ui.View):
         self.cog.setup_locks.discard(self.user_id)
         for item in self.children:
             item.disabled = True
-# 類別：繼續世界聖經設定視圖 (v2.0 - 流程重構)
+# 類別：繼續世界聖經設定視圖 (v2.1 - 圖形化按鈕重構)
 
 # 類別：上傳後完成設定視圖
 class FinalizeAfterUploadView(discord.ui.View):
@@ -206,10 +223,10 @@ class CharacterSettingsModal(discord.ui.Modal):
         self.add_item(self.description)
         self.add_item(self.appearance)
 
-    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
+    # 函式：處理彈出視窗提交 (v43.1 - 適配圖形化按鈕)
     # 更新紀錄:
-    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯，使其能夠正確地調用全新的 ContinueToCanonSetupView 視圖，並顯示更新後的使用者引導說明。
-    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。
+    # v43.1 (2025-09-11): [UX優化] 簡化了 AI 角色設定完成後發送的引導訊息，因為大部分引導功能已由新的 ContinueToCanonSetupView 圖形化按鈕承擔。
+    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯。
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
@@ -222,16 +239,13 @@ class CharacterSettingsModal(discord.ui.Modal):
         profile_attr = f"{self.profile_type}_profile"
         
         try:
-            # 獲取要更新的 profile 物件
             profile_to_update = getattr(ai_instance.profile, profile_attr)
 
-            # 更新從 modal 獲取的值
             profile_to_update.name = self.name.value
             profile_to_update.gender = self.gender.value
             profile_to_update.description = self.description.value
             profile_to_update.appearance = self.appearance.value
             
-            # 將更新後的 profile 物件打包進行持久化
             success = await ai_instance.update_and_persist_profile({
                 profile_attr: profile_to_update.model_dump()
             })
@@ -239,27 +253,19 @@ class CharacterSettingsModal(discord.ui.Modal):
             if not success:
                 raise Exception("AI 核心更新 profile 失敗。")
 
-            # 根據流程決定下一步的操作
             if not self.is_setup_flow:
                 await interaction.followup.send(f"✅ **{profile_to_update.name}** 的角色設定已成功更新！", ephemeral=True)
             elif self.profile_type == 'user': 
-                # 如果是設定流程中的使用者角色設定，下一步是設定 AI
                 view = ContinueToAiSetupView(cog=self.cog, user_id=user_id)
                 await interaction.followup.send("✅ 您的角色已設定！\n請點擊下方按鈕，為您的 AI 戀人進行設定。", view=view, ephemeral=True)
             elif self.profile_type == 'ai':
-                # [v43.0 核心修正] 將錯誤的 ContinueToCanonUploadView 修正為 ContinueToCanonSetupView
                 view = ContinueToCanonSetupView(cog=self.cog, user_id=user_id)
                 
-                # [v43.0 核心修正] 更新引導文字以匹配新視圖的功能
+                # [v43.1 核心修正] 簡化引導文字
                 setup_guide_message = (
                     "✅ AI 戀人基礎設定完成！\n\n"
-                    "**下一步是可選的，但強烈推薦：**\n"
-                    "您可以上傳一份包含您自訂世界觀、角色背景或故事劇情的「世界聖經」，AI 將在創世時完全基於您的設定來生成一切！\n\n"
-                    "**您有兩種方式提供世界聖經：**\n"
-                    "1️⃣ **貼上文本 (推薦手機用戶)**: 輸入指令 ` /set_canon_text `\n"
-                    "2️⃣ **上傳檔案 (推薦桌面用戶)**: 輸入指令 ` /set_canon_file `\n\n"
-                    "--- \n"
-                    "完成（或跳過）此步驟後，請點擊下方的 **「✅ 完成設定並開始冒險」** 按鈕。"
+                    "**下一步 (可選，但強烈推薦):**\n"
+                    "請點擊下方按鈕提供您的「世界聖經」，或直接點擊「完成設定」以開始冒險。"
                 )
 
                 await interaction.followup.send(
@@ -272,7 +278,7 @@ class CharacterSettingsModal(discord.ui.Modal):
             logger.error(f"[{user_id}] 處理角色設定時出錯: {e}", exc_info=True)
             await interaction.followup.send("錯誤：在處理您的設定時遇到問題，請稍後再試。", ephemeral=True)
             return
-    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
+    # 函式：處理彈出視窗提交 (v43.1 - 適配圖形化按鈕)
 
 # 類別：世界觀設定彈出視窗
 class WorldSettingsModal(discord.ui.Modal):
