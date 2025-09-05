@@ -108,9 +108,10 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# 類別：世界聖經貼上文字彈出視窗 (v2.0 - 重命名與職責單一化)
+# 類別：世界聖經貼上文字彈出視窗 (v2.1 - 流程自動化)
 # 更新紀錄:
-# v2.0 (2025-09-06): [重大架構重構] 重命名為 WorldCanonPasteModal，並使其職責單一化，專門處理來自 /set_canon_text 指令的文本貼上。
+# v2.1 (2025-09-12): [重大UX優化] 新增 is_setup_flow 旗標。當在 /start 流程中提交文本後，會自動觸發最終的創世流程，無需使用者再手動點擊“完成”按鈕。
+# v2.0 (2025-09-06): [重大架構重構] 重命名為 WorldCanonPasteModal，並使其職責單一化。
 class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文本"):
     canon_text = discord.ui.TextInput(
         label="請將您的世界觀/角色背景故事貼於此處",
@@ -120,22 +121,42 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         max_length=4000
     )
 
-    def __init__(self, cog: "BotCog"):
+    def __init__(self, cog: "BotCog", is_setup_flow: bool = False):
         super().__init__(timeout=600.0)
         self.cog = cog
+        # [v2.1 新增] 增加 is_setup_flow 旗標
+        self.is_setup_flow = is_setup_flow
 
     async def on_submit(self, interaction: discord.Interaction):
+        # 由於後續可能有長時間的創世過程，我們先 defer
         await interaction.response.defer(ephemeral=True, thinking=True)
-        # 調用新的、統一的內容處理函式
-        await self.cog._process_canon_content(interaction, self.canon_text.value)
-# 類別：世界聖經貼上文字彈出視窗 (v2.0 - 重命名與職責單一化)
+        
+        # [v2.1 核心修正] 根據是否在設定流程中，決定後續操作
+        if self.is_setup_flow:
+            # 如果是設定流程，直接呼叫 finalize_setup 並傳入文本
+            # finalize_setup 內部會處理文本並完成所有創世步驟
+            await self.cog.finalize_setup(interaction, canon_text=self.canon_text.value)
+            
+            # 編輯原始包含按鈕的訊息，告知使用者流程已自動完成
+            try:
+                original_message = await interaction.original_response()
+                await original_message.edit(content="✅ 世界聖經已提交，創世流程已自動觸發！請在私訊頻道查看結果。", view=None)
+            except discord.NotFound:
+                # 如果原始訊息找不到了，也沒關係，流程依然繼續
+                pass
+        else:
+            # 如果是遊戲中途設定，則只處理文本，不觸發創世
+            await self.cog._process_canon_content(interaction, self.canon_text.value)
+# 類別：世界聖經貼上文字彈出視窗 (v2.1 - 流程自動化)
 
-# 類別：繼續世界聖經設定視圖 (v2.1 - 圖形化按鈕重構)
+
+
+
+
+# 類別：繼續世界聖經設定視圖 (v2.2 - 適配流程自動化)
 # 更新紀錄:
-# v2.1 (2025-09-11): [重大UX優化] 徹底重構了此視圖，將原本的文字指令引導改為圖形化按鈕。
-#    1. [新增功能按鈕] 新增了一個功能性的“貼上文本”按鈕，點擊可直接彈出 Modal。
-#    2. [新增引導按鈕] 新增了一個灰色的、禁用的“上傳檔案”按鈕，其標籤用於指導用戶使用正確的斜線指令，在提供圖形化選項的同時解決了Discord API的限制。
-# v2.0 (2025-09-06): [重大架構重構] 重寫了此視圖以適應新的指令流程。
+# v2.2 (2025-09-12): [UX優化] 在創建 WorldCanonPasteModal 時傳入 is_setup_flow=True，以啟用提交流程自動化功能。
+# v2.1 (2025-09-11): [重大UX優化] 將文字指令引導改為圖形化按鈕。
 class ContinueToCanonSetupView(discord.ui.View):
     def __init__(self, *, cog: "BotCog", user_id: str):
         super().__init__(timeout=600.0)
@@ -145,22 +166,23 @@ class ContinueToCanonSetupView(discord.ui.View):
     @discord.ui.button(label="📄 貼上世界聖經 (文字)", style=discord.ButtonStyle.success, row=0)
     async def paste_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         """彈出一個 Modal 讓使用者貼上他們的設定文本。"""
-        modal = WorldCanonPasteModal(self.cog)
+        # [v2.2 核心修正] 傳入 is_setup_flow=True
+        modal = WorldCanonPasteModal(self.cog, is_setup_flow=True)
         await interaction.response.send_modal(modal)
-        # 注意：Modal 提交後會發送 thinking=True 的 defer，所以這裡不需要
+        # 彈出 Modal 後，這個 View 的任務就完成了，可以停止
+        self.stop()
 
     @discord.ui.button(label="📁 上傳檔案 (請使用 /set_canon_file 指令)", style=discord.ButtonStyle.secondary, row=0, disabled=True)
     async def upload_canon_placeholder(self, interaction: discord.Interaction, button: discord.ui.Button):
         """這是一個被禁用的佔位符按鈕，僅用於引導。"""
-        # 因為按鈕是禁用的，這段程式碼永遠不會被執行。
         pass
 
-    @discord.ui.button(label="✅ 完成設定並開始冒險 (或跳過聖經)", style=discord.ButtonStyle.primary, row=1)
+    @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, row=1)
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
-        """完成設定流程並開始遊戲。"""
+        """完成設定流程並開始遊戲（不提供世界聖經）。"""
         await interaction.response.defer(ephemeral=True, thinking=True)
-        # 調用 finalize_setup，不傳遞 canon_text，因為它已通過其他方式獨立處理
-        await self.cog.finalize_setup(interaction)
+        # 不傳遞 canon_text，表示使用者選擇跳過此步驟
+        await self.cog.finalize_setup(interaction, canon_text=None)
         self.stop()
         await interaction.edit_original_response(content="設定流程即將完成...", view=None)
 
@@ -168,7 +190,10 @@ class ContinueToCanonSetupView(discord.ui.View):
         self.cog.setup_locks.discard(self.user_id)
         for item in self.children:
             item.disabled = True
-# 類別：繼續世界聖經設定視圖 (v2.1 - 圖形化按鈕重構)
+# 類別：繼續世界聖經設定視圖 (v2.2 - 適配流程自動化)
+
+
+
 
 # 類別：上傳後完成設定視圖
 class FinalizeAfterUploadView(discord.ui.View):
@@ -1282,15 +1307,21 @@ class BotCog(commands.Cog):
 
     
 
-    # 指令：通過貼上文本設定世界聖經 (v1.0 - 全新創建)
+    # 指令：通過貼上文本設定世界聖經 (v1.1 - 適配流程自動化)
     # 更新紀錄:
-    # v1.0 (2025-09-06): [重大架構重構] 創建此新指令，專門用於通過彈出視窗（Modal）貼上文本，極大地改善了手機用戶的體驗。
+    # v1.1 (2025-09-12): [健壯性] 在創建 Modal 時明確傳入 is_setup_flow=False，確保遊戲中途的設定不會錯誤地觸發創世流程。
+    # v1.0 (2025-09-06): [重大架構重構] 創建此新指令，專門用於通過彈出視窗（Modal）貼上文本。
     @app_commands.command(name="set_canon_text", description="通過貼上文字來設定您的世界聖經")
     async def set_canon_text(self, interaction: discord.Interaction):
         """彈出一個視窗讓使用者貼上他們的世界聖經文本。"""
-        modal = WorldCanonPasteModal(self)
+        # [v1.1 核心修正] 明確 is_setup_flow 為 False
+        modal = WorldCanonPasteModal(self, is_setup_flow=False)
         await interaction.response.send_modal(modal)
-    # 指令：通過貼上文本設定世界聖經 (v1.0 - 全新創建)
+    # 指令：通過貼上文本設定世界聖經 (v1.1 - 適配流程自動化)
+
+
+
+    
 
     # 指令：通過上傳檔案設定世界聖經 (v2.0 - 重命名)
     # 更新紀錄:
