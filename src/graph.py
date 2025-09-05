@@ -461,18 +461,17 @@ def route_to_planner(state: ConversationGraphState) -> str:
 
 # --- 主對話圖的建構器 v21.1 ---
 
-# 函式：創建主回應圖 (v21.2 - SFW 遠程路徑修正)
+# 函式：創建主回應圖 (v21.3 - 遠程LORE擴展修正)
 # 更新紀錄:
+# v21.3 (2025-09-13): [重大架構修正] 再次重構了圖的路由拓撲，以根除遠程描述時的地點錯亂問題。
+#    1. [LORE擴展前置] 將 LORE 擴展相關節點 (`expansion_decision`, `lore_expansion`) 的執行順序提前，使其在主規劃器路由之前完成。
+#    2. [遠程路徑分離] `route_to_planner` 現在會將所有遠程描述意圖 (`remote_...`) 直接路由到各自的專用規劃器，完全繞過通用的 LORE 擴展流程。
+#    3. [權力下放] LORE 擴展的職責現在被清晰地劃分：通用擴展由 `lore_expansion_node` 處理，而遠程場景的 LORE 創造則完全由遠程規劃器在內部完成。
 # v21.2 (2025-09-13): [重大架構修正] 徹底重構了 SFW 路徑的路由邏輯。
-#    1. [新增 SFW 遠程節點] 註冊了新的 `remote_sfw_planning_node`，專門處理 SFW 遠程描述。
-#    2. [新增 SFW 路由] 在 `classify_intent` 之後，SFW 路徑現在會強制進入 `scene_and_action_analysis_node` 進行視角分析。
-#    3. [新增 SFW 條件邊] `route_viewing_mode` 現在會將 `remote` 流量導向新的 `remote_sfw_planning_node`，`local` 流量則導向原有的本地規劃流程，實現了 SFW 路徑的視角分離。
-# v21.1 (2025-09-10): [災難性BUG修復] 恢復了所有被先前版本錯誤省略的函式。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    # 感知
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
@@ -480,22 +479,17 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
-
-    # 規劃
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("nsfw_planning", nsfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-
-    # 執行與渲染
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
-    # 收尾
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
-    # 匯合點 (Junctions)
-    graph.add_node("planner_junction", lambda state: {})
+    # 匯合點 (Junction)
+    graph.add_node("after_perception_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
@@ -506,29 +500,30 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # LORE擴展分支
+    # LORE擴展分支 (僅對本地場景生效)
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
         {
             "expand_lore": "lore_expansion",
-            "continue_to_planner": "planner_junction"
+            "continue_to_planner": "after_perception_junction"
         }
     )
-    graph.add_edge("lore_expansion", "planner_junction")
+    graph.add_edge("lore_expansion", "after_perception_junction")
 
-    # 規劃器路由
+    # [v21.3 核心修正] 主規劃器路由
     graph.add_conditional_edges(
-        "planner_junction",
+        "after_perception_junction",
         route_to_planner,
         {
-            "sfw_planner": "scene_and_action_analysis", 
-            "nsfw_planner": "nsfw_planning",
-            "remote_nsfw_planner": "remote_nsfw_planning"
+            "sfw_planner": "scene_and_action_analysis", # SFW 本地/遠程的二次路由
+            "nsfw_planner": "nsfw_planning", # NSFW 本地互動
+            "remote_nsfw_planner": "remote_nsfw_planning", # NSFW 遠程描述
+            "remote_sfw_planner": "remote_sfw_planning" # SFW 遠程描述
         }
     )
     
-    # SFW 路徑的內部路由
+    # SFW 路徑的內部二次路由
     graph.add_conditional_edges(
         "scene_and_action_analysis",
         route_viewing_mode,
@@ -553,7 +548,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v21.2 - SFW 遠程路徑修正)
+# 函式：創建主回應圖 (v21.3 - 遠程LORE擴展修正)
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
