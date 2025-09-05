@@ -1240,28 +1240,47 @@ class BotCog(commands.Cog):
         view = EditProfileRootView(cog=self, original_user_id=interaction.user.id)
         await interaction.response.send_message("請選擇您想編輯的角色檔案：", view=view, ephemeral=True)
         
-    # 函式：處理世界聖經內容 (v1.0 - 全新創建)
+
+    
+    
+    
+    
+    # 函式：處理世界聖經內容 (v1.1 - 健壯性修正)
     # 更新紀錄:
+    # v1.1 (2025-09-12): [災難性BUG修復] 增加了對向量儲存的前置初始化檢查。此修改解決了在 `/start` 設定流程中，因 AI 實例未完全初始化而導致 `vector_store` 為 None 的致命錯誤。
     # v1.0 (2025-09-06): [重大架構重構] 創建此統一的輔助函式，用於處理來自文本貼上或檔案上傳的世界聖經內容，避免程式碼重複。
     async def _process_canon_content(self, interaction: discord.Interaction, content_text: str):
         """一個統一的內部函式，負責處理、儲存和解析世界聖經文本。"""
         user_id = str(interaction.user.id)
-        ai_instance = await self.get_or_create_ai_instance(user_id)
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance:
             await interaction.followup.send("錯誤：找不到您的使用者資料。", ephemeral=True)
             return
 
         try:
+            # [v1.1 核心修正] 檢查並手動初始化 RAG 相關組件
+            if not ai_instance.vector_store:
+                logger.info(f"[{user_id}] 在處理世界聖經前檢測到 vector_store 未初始化，正在進行輕量級初始化...")
+                # 初始化 RAG 所需的最小依賴
+                ai_instance._initialize_models()
+                ai_instance.retriever = await ai_instance._build_retriever()
+                logger.info(f"[{user_id}] 輕量級 RAG 初始化完成。")
+
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
             await interaction.followup.send(f"✅ **世界聖經已接收！**\n內容已被分解為 **{chunk_count}** 個知識片段儲存。\n\n🧠 AI 正在背景中學習您的設定，這可能需要幾分鐘時間...", ephemeral=True)
 
             # 在背景異步執行耗時的解析任務
-            asyncio.create_task(self.parse_and_create_lore_from_canon(interaction, content_text))
+            asyncio.create_task(self.cog.parse_and_create_lore_from_canon(interaction, content_text))
 
         except Exception as e:
             logger.error(f"[{user_id}] 處理世界聖經內容時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"處理您的世界聖經時發生內部錯誤。", ephemeral=True)
-    # 函式：處理世界聖經內容 (v1.0 - 全新創建)
+    # 函式：處理世界聖經內容 (v1.1 - 健壯性修正)
+
+
+
+
+    
 
     # 指令：通過貼上文本設定世界聖經 (v1.0 - 全新創建)
     # 更新紀錄:
