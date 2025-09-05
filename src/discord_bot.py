@@ -108,9 +108,10 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# 類別：世界聖經貼上文字彈出視窗 (v2.1 - 流程自動化)
+# 類別：世界聖經貼上文字彈出視窗 (v2.2 - 異步任務重構)
 # 更新紀錄:
-# v2.1 (2025-09-12): [重大UX優化] 新增 is_setup_flow 旗標。當在 /start 流程中提交文本後，會自動觸發最終的創世流程，無需使用者再手動點擊“完成”按鈕。
+# v2.2 (2025-09-14): [災難性BUG修復] 徹底重構了此函式的執行邏輯。現在它會立即回應使用者，然後將所有耗時操作（包括向量化和LORE解析）作為一個整體的背景任務啟動，從根本上解決了因 `add_canon_to_vector_store` 阻塞事件循環導致的互動超時問題。
+# v2.1 (2025-09-12): [重大UX優化] 新增 is_setup_flow 旗標以實現流程自動化。
 # v2.0 (2025-09-06): [重大架構重構] 重命名為 WorldCanonPasteModal，並使其職責單一化。
 class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文本"):
     canon_text = discord.ui.TextInput(
@@ -124,30 +125,22 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
     def __init__(self, cog: "BotCog", is_setup_flow: bool = False):
         super().__init__(timeout=600.0)
         self.cog = cog
-        # [v2.1 新增] 增加 is_setup_flow 旗標
         self.is_setup_flow = is_setup_flow
 
     async def on_submit(self, interaction: discord.Interaction):
-        # 由於後續可能有長時間的創世過程，我們先 defer
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        
-        # [v2.1 核心修正] 根據是否在設定流程中，決定後續操作
-        if self.is_setup_flow:
-            # 如果是設定流程，直接呼叫 finalize_setup 並傳入文本
-            # finalize_setup 內部會處理文本並完成所有創世步驟
-            await self.cog.finalize_setup(interaction, canon_text=self.canon_text.value)
-            
-            # 編輯原始包含按鈕的訊息，告知使用者流程已自動完成
-            try:
-                original_message = await interaction.original_response()
-                await original_message.edit(content="✅ 世界聖經已提交，創世流程已自動觸發！請在私訊頻道查看結果。", view=None)
-            except discord.NotFound:
-                # 如果原始訊息找不到了，也沒關係，流程依然繼續
-                pass
-        else:
-            # 如果是遊戲中途設定，則只處理文本，不觸發創世
-            await self.cog._process_canon_content(interaction, self.canon_text.value)
-# 類別：世界聖經貼上文字彈出視窗 (v2.1 - 流程自動化)
+        # 步驟 1: 立即回應，避免超時
+        await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經，這可能需要幾分鐘時間，完成後會通過私訊通知您...", ephemeral=True)
+
+        # 步驟 2: 將所有耗時的操作打包到一個背景任務中
+        # asyncio.create_task 會立即返回，不會阻塞當前函式的執行
+        asyncio.create_task(
+            self.cog._background_process_canon(
+                interaction=interaction,
+                content_text=self.canon_text.value,
+                is_setup_flow=self.is_setup_flow
+            )
+        )
+# 類別：世界聖經貼上文字彈出視窗 (v2.2 - 異步任務重構)
 
 
 
@@ -1270,37 +1263,49 @@ class BotCog(commands.Cog):
     
     
     
-    # 函式：處理世界聖經內容 (v1.1 - 健壯性修正)
+    # 函式：背景處理世界聖經 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.1 (2025-09-12): [災難性BUG修復] 增加了對向量儲存的前置初始化檢查。此修改解決了在 `/start` 設定流程中，因 AI 實例未完全初始化而導致 `vector_store` 為 None 的致命錯誤。
-    # v1.0 (2025-09-06): [重大架構重構] 創建此統一的輔助函式，用於處理來自文本貼上或檔案上傳的世界聖經內容，避免程式碼重複。
-    async def _process_canon_content(self, interaction: discord.Interaction, content_text: str):
-        """一個統一的內部函式，負責處理、儲存和解析世界聖經文本。"""
+    # v1.0 (2025-09-14): [架構重構] 創建此專用的背景任務函式，將所有與聖經相關的耗時操作（向量化、LORE解析）封裝於此，以解決互動超時問題。
+    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+        """一個統一的背景任務，負責處理、儲存和解析世界聖經文本，並在完成後通知使用者。"""
         user_id = str(interaction.user.id)
-        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=True)
-        if not ai_instance:
-            await interaction.followup.send("錯誤：找不到您的使用者資料。", ephemeral=True)
-            return
+        user = self.bot.get_user(interaction.user.id)
+        if not user:
+             user = await self.bot.fetch_user(interaction.user.id)
 
         try:
-            # [v1.1 核心修正] 檢查並手動初始化 RAG 相關組件
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance:
+                await user.send("❌ **處理失敗！**\n錯誤：在後台任務中找不到您的使用者資料。")
+                return
+
+            # 步驟 1: 輕量級初始化 (如果需要)
             if not ai_instance.vector_store:
-                logger.info(f"[{user_id}] 在處理世界聖經前檢測到 vector_store 未初始化，正在進行輕量級初始化...")
-                # 初始化 RAG 所需的最小依賴
                 ai_instance._initialize_models()
                 ai_instance.retriever = await ai_instance._build_retriever()
-                logger.info(f"[{user_id}] 輕量級 RAG 初始化完成。")
 
+            # 步驟 2: 向量化存儲 (第一個耗時操作)
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-            await interaction.followup.send(f"✅ **世界聖經已接收！**\n內容已被分解為 **{chunk_count}** 個知識片段儲存。\n\n🧠 AI 正在背景中學習您的設定，這可能需要幾分鐘時間...", ephemeral=True)
+            
+            # 步驟 3: 如果是設定流程，直接觸發最終創世
+            if is_setup_flow:
+                # finalize_setup 內部會處理後續的 LORE 解析和開場白生成
+                await self.finalize_setup(interaction, canon_text)
+                # finalize_setup 會自己發送最終消息，所以這裡直接返回
+                return
 
-            # 在背景異步執行耗時的解析任務
-            asyncio.create_task(self.cog.parse_and_create_lore_from_canon(interaction, content_text))
+            # --- 以下是遊戲中途更新的流程 ---
+            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段儲存。\n\n🧠 AI 正在進行更深層的智能解析，這可能需要幾分鐘，完成後會再次通知您...")
+
+            # 步驟 4: LORE 解析 (第二個更耗時的操作)
+            await self.parse_and_create_lore_from_canon(interaction, content_text)
+
+            await user.send("✅ **智能解析完成！**\nAI 已學習完您的世界觀，相關的 NPC、地點等資訊將在後續對話中體現。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 處理世界聖經內容時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"處理您的世界聖經時發生內部錯誤。", ephemeral=True)
-    # 函式：處理世界聖經內容 (v1.1 - 健壯性修正)
+            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            await user.send(f"❌ **處理失敗！**\n在後台處理您的世界聖經時發生了嚴重錯誤: `{type(e).__name__}`")
+    # 函式：背景處理世界聖經 (v1.0 - 全新創建)
 
 
 
@@ -1323,9 +1328,10 @@ class BotCog(commands.Cog):
 
     
 
-    # 指令：通過上傳檔案設定世界聖經 (v2.0 - 重命名)
+    # 指令：通過上傳檔案設定世界聖經 (v2.1 - 異步任務重構)
     # 更新紀錄:
-    # v2.0 (2025-09-06): [重大架構重構] 從 /upload_canon 重命名而來，使其職責更清晰，並改為調用統一的內容處理函式。
+    # v2.1 (2025-09-14): [災難性BUG修復] 與 Modal 版本同步，重構了此函式的執行邏輯，改為立即回應並啟動背景任務，解決了處理大檔案時可能導致的互動超時問題。
+    # v2.0 (2025-09-06): [重大架構重構] 從 /upload_canon 重命名而來。
     @app_commands.command(name="set_canon_file", description="通過上傳 .txt 檔案來設定您的世界聖經")
     @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
     async def set_canon_file(self, interaction: discord.Interaction, file: discord.Attachment):
@@ -1337,19 +1343,32 @@ class BotCog(commands.Cog):
             await interaction.response.send_message("❌ 檔案過大！檔案大小不能超過 5MB。", ephemeral=True)
             return
             
-        await interaction.response.defer(ephemeral=True, thinking=True)
         try:
             content_bytes = await file.read()
             content_text = content_bytes.decode('utf-8')
-            # 調用新的、統一的內容處理函式
-            await self._process_canon_content(interaction, content_text)
+            
+            # 步驟 1: 立即回應，避免超時
+            await interaction.response.send_message("✅ 檔案已接收！正在後台為您處理世界聖經，完成後會通知您...", ephemeral=True)
+
+            # 步驟 2: 將所有耗時的操作打包到一個背景任務中
+            asyncio.create_task(
+                self._background_process_canon(
+                    interaction=interaction,
+                    content_text=content_text,
+                    is_setup_flow=False # 直接指令總是在遊戲中途
+                )
+            )
 
         except UnicodeDecodeError:
             await interaction.followup.send("❌ **檔案編碼錯誤！**\n請將檔案另存為 `UTF-8` 編碼後再試一次。", ephemeral=True)
         except Exception as e:
             logger.error(f"[{interaction.user.id}] 處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"處理檔案時發生內部錯誤。", ephemeral=True)
-    # 指令：通過上傳檔案設定世界聖經 (v2.0 - 重命名)
+            # 如果在讀取檔案階段就出錯，可以用 followup
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"讀取檔案時發生內部錯誤。", ephemeral=True)
+            else:
+                await interaction.followup.send(f"讀取檔案時發生內部錯誤。", ephemeral=True)
+    # 指令：通過上傳檔案設定世界聖經 (v2.1 - 異步任務重構)
 
     @app_commands.command(name="admin_set_affinity", description="[管理員] 設定指定使用者的好感度")
     @app_commands.check(is_admin)
