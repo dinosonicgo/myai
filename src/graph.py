@@ -1,10 +1,7 @@
-# src/graph.py 的中文註釋(v21.0 - “一功能一節點”精細化重構)
+# src/graph.py 的中文註釋(v21.1 - 完整性修正與拓撲健壯化)
 # 更新紀錄:
-# v21.0 (2025-09-09): [重大架構重構] 根據“極致準確”藍圖，對圖的拓撲結構進行了根本性的精細化重構。
-#    1. [初始化拆分] 將原有的 `initialize_conversation_state_node` 徹底拆分為三個獨立、可觀察的節點：`retrieve_memories_node` (RAG檢索), `query_lore_node` (LORE查詢), `assemble_context_node` (上下文組裝)。
-#    2. [規劃器專職化] 廢棄了所有一步到位的生成節點，為 SFW、NSFW-互動、NSFW-描述 三條路徑分別創建了專用的規劃器節點 (`sfw_planning_node`, `nsfw_planning_node`, `remote_nsfw_planning_node`)，它們的唯一職責是輸出結構化的 TurnPlan JSON。
-#    3. [渲染器統一化] 創建了單一的 `narrative_rendering_node` 作為所有路徑的共同出口，它只負責將傳入的 TurnPlan JSON 渲染成最終的小說文本。
-#    4. [拓撲重構] 重新設計了圖的邊連接，以適配新的節點拆分和“規劃-渲染”統一模式，確保了數據流的清晰、可追蹤和準確性。
+# v21.1 (2025-09-10): [災難性BUG修復] 恢復了所有被先前版本錯誤省略的 `SetupGraph` 相關節點的完整程式碼，解決了 NameError 問題。同時，對主圖的路由匯合點 (Junction) 進行了標準化重構，提高了圖拓撲的健壯性。
+# v21.0 (2025-09-09): [重大架構重構] 根據“一功能一節點”藍圖，對圖的拓撲結構進行了根本性的精細化重構。
 # v20.1 (2025-09-06): [災難性BUG修復] 徹底修正了圖的拓撲定義。
 
 import sys
@@ -27,7 +24,7 @@ from .schemas import (CharacterProfile, TurnPlan, ExpansionDecision,
                       WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult)
 from .tool_context import tool_context
 
-# --- 主對話圖 (Main Conversation Graph) 的節點 v21.0 ---
+# --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 # --- 階段一：感知 (Perception) ---
 
@@ -58,6 +55,7 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在檢索相關長期記憶...")
     
+    # 這是 ai_core.py 中為新節點準備的輔助函式
     rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
     return {"rag_context": rag_context_str}
 
@@ -70,6 +68,7 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體...")
     
     is_remote = intent_type == 'nsfw_descriptive'
+    # 這是 ai_core.py 中為新節點準備的輔助函式
     raw_lore_objects = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
     return {"raw_lore_objects": raw_lore_objects}
 
@@ -82,6 +81,7 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|4) Node: assemble_context -> 正在組裝最終上下文簡報...")
     
     is_remote = intent_type == 'nsfw_descriptive'
+    # 這是 ai_core.py 中為新節點準備的輔助函式
     structured_context = ai_core._assemble_context_from_lore(raw_lore, is_remote_scene=is_remote)
     return {"structured_context": structured_context}
     
@@ -126,7 +126,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
         await ai_core._add_cast_to_scene(cast_result)
         logger.info(f"[{user_id}] (Graph|6A) 選角完成，正在刷新LORE和上下文...")
-        # 刷新 LORE 和上下文
         intent_type = state['intent_classification'].intent_type
         is_remote = intent_type == 'nsfw_descriptive'
         refreshed_lore = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
@@ -145,11 +144,10 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在生成SFW行動計劃...")
 
-    # SFW路徑需要額外的風格和場景分析
     style_analysis_chain = ai_core.get_style_analysis_chain()
     style_result = await ai_core.ainvoke_with_rotation(style_analysis_chain, {"user_input": state['messages'][-1].content, "response_style_prompt": ai_core.profile.response_style_prompt or ""}, retry_strategy='euphemize')
     if not style_result:
-        style_result = StyleAnalysisResult(dialogue_requirement="AI角色應做出回應。", narration_level="中等")
+        style_result = StyleAnalysisResult(dialogue_requirement="AI角色應做出回應。", narration_level="中等", proactive_suggestion=None)
 
     full_context_dict = { **(ai_core.profile.model_dump() if ai_core.profile else {}), **state }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
@@ -245,11 +243,28 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
+    ai_core = state['ai_core']
     initial_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在淨化LLM輸出...")
-    # ... (此處省略了淨化邏輯的詳細實現，因為它保持不變)
-    clean_response = initial_response.strip()
-    return {"final_output": clean_response}
+    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
+    
+    if not initial_response or not initial_response.strip():
+        logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
+        return {"final_output": "（...）"}
+    
+    clean_response = initial_response
+    clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
+    clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
+    if '旁白:' in clean_response or '對話:' in clean_response:
+        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動備援清理。")
+        clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
+        clean_response = clean_response.replace('旁白：', '').replace('對話：', '')
+    
+    final_response = clean_response.strip()
+    if not final_response:
+        logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
+        return {"final_output": "（...）"}
+        
+    return {"final_output": final_response}
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點。"""
@@ -258,10 +273,33 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     clean_response = state['final_output']
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
-    # ... (此處省略了持久化邏輯的詳細實現，因為它保持不變)
+    
+    if clean_response and clean_response != "（...）":
+        chat_history_manager = ai_core.session_histories.get(user_id)
+        if chat_history_manager:
+            chat_history_manager.add_user_message(user_input)
+            chat_history_manager.add_ai_message(clean_response)
+        
+        last_interaction_text = f"使用者 '{ai_core.profile.user_profile.name}' 說: {user_input}\n\n[場景回應]:\n{clean_response}"
+        tasks = []
+        tasks.append(ai_core._generate_and_save_personal_memory(last_interaction_text))
+        if ai_core.vector_store:
+            tasks.append(asyncio.to_thread(ai_core.vector_store.add_texts, [last_interaction_text], metadatas=[{"source": "history"}]))
+        
+        async def save_to_sql():
+            from .database import AsyncSessionLocal, MemoryData
+            import time
+            timestamp = time.time()
+            async with AsyncSessionLocal() as session:
+                session.add(MemoryData(user_id=user_id, content=last_interaction_text, timestamp=timestamp, importance=1))
+                await session.commit()
+        
+        tasks.append(save_to_sql())
+        await asyncio.gather(*tasks, return_exceptions=True)
+        
     return {}
 
-# --- 主對話圖的路由 v21.0 ---
+# --- 主對話圖的路由 v21.1 ---
 
 def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_lore", "continue_to_planner"]:
     """根據LORE擴展決策，決定是否進入擴展節點。"""
@@ -280,54 +318,49 @@ def route_to_planner(state: ConversationGraphState) -> str:
     else: # 'sfw'
         return "sfw_planner"
 
-# --- 主對話圖的建構器 v21.0 ---
+# --- 主對話圖的建構器 v21.1 ---
 
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    # 感知
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    # 規劃
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("nsfw_planning", nsfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
-    # 執行與渲染
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
-    # 收尾
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
+    
+    # [v21.1 健壯化修正] 新增一個空的匯合點節點，以實現更標準的圖拓撲
+    graph.add_node("planner_junction", lambda state: {})
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     
-    # 感知流程
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # LORE擴展分支
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
         {
             "expand_lore": "lore_expansion",
-            "continue_to_planner": "route_to_planner" # 使用一個虛擬節點作為匯合點
+            "continue_to_planner": "planner_junction"
         }
     )
-    # 擴展完成後，也匯合到規劃器路由
-    graph.add_edge("lore_expansion", "route_to_planner")
+    graph.add_edge("lore_expansion", "planner_junction")
 
-    # 規劃器路由
     graph.add_conditional_edges(
-        "route_to_planner", # 虛擬節點
+        "planner_junction",
         route_to_planner,
         {
             "sfw_planner": "sfw_planning",
@@ -336,41 +369,93 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # 所有規劃器都匯合到工具執行
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("nsfw_planning", "tool_execution")
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     
-    # 執行與渲染流程
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     
-    # 收尾流程
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
-    # 編譯圖時，需要為虛擬節點提供一個passthrough函式
-    return graph.compile(checkpointer=None, interrupt_after=None, known_nodes=["route_to_planner"])
+    return graph.compile()
 
-# --- 設定圖 (Setup Graph) 的節點與建構器 (保持不變) ---
+# --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
-    # ... (保持不變)
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    canon_text = state['canon_text']
+    if canon_text:
+        await ai_core.add_canon_to_vector_store(canon_text)
+        await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
     return {}
 
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
-    # ... (保持不變)
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    logger.info(f"[{user_id}] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...")
+    completion_chain = ai_core.get_profile_completion_chain()
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] 在 complete_profiles_node 中 ai_core.profile 為空，無法繼續。")
+        return {}
+    
+    completed_user_profile_task = ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.user_profile.model_dump_json()}, retry_strategy='euphemize')
+    completed_ai_profile_task = ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.ai_profile.model_dump_json()}, retry_strategy='euphemize')
+    
+    completed_user_profile, completed_ai_profile = await asyncio.gather(completed_user_profile_task, completed_ai_profile_task)
+
+    update_payload = {}
+    if completed_user_profile:
+        update_payload['user_profile'] = completed_user_profile.model_dump()
+    if completed_ai_profile:
+        update_payload['ai_profile'] = completed_ai_profile.model_dump()
+        
+    if update_payload:
+        await ai_core.update_and_persist_profile(update_payload)
+        
     return {}
 
 async def world_genesis_node(state: SetupGraphState) -> Dict:
-    # ... (保持不變)
-    return {"genesis_result": WorldGenesisResult(...)}
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    
+    if not ai_core.profile:
+        raise Exception("AI Profile is not loaded for world genesis.")
+
+    genesis_chain = ai_core.get_world_genesis_chain()
+    genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"world_settings": ai_core.profile.world_settings, "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
+    
+    if not genesis_result:
+        raise Exception("世界創世鏈返回了空結果，可能是內容審查。")
+        
+    gs = ai_core.profile.game_state
+    gs.location_path = genesis_result.location_path
+    await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+    
+    await lore_book.add_or_update_lore(user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
+    
+    for npc in genesis_result.initial_npcs:
+        npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
+        await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
+        
+    return {"genesis_result": genesis_result}
 
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
-    # ... (保持不變)
-    return {"opening_scene": "..."}
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    opening_scene = await ai_core.generate_opening_scene()
+    
+    if not opening_scene or not opening_scene.strip():
+        opening_scene = (f"在一片柔和的光芒中，你和 {ai_core.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡...")
+        
+    return {"opening_scene": opening_scene}
 
 def create_setup_graph() -> StateGraph:
+    """
+    創建設定圖
+    """
     graph = StateGraph(SetupGraphState)
     graph.add_node("process_canon", process_canon_node)
     graph.add_node("complete_profiles", complete_profiles_node)
@@ -382,3 +467,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+# 函式：創建設定圖
