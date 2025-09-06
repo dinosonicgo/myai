@@ -170,20 +170,55 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
 
+# 函式：專用的LORE擴展執行節點 (v2.0 - 輸入委婉化)
+# 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的執行邏輯。在調用 `scene_casting_chain` 之前，強制使用 `euphemization_chain` 將可能包含露骨內容的 `recent_dialogue` 進行“去威脅化”處理。此修改旨在從根本上解決因將 NSFW 指令直接傳遞給內部工具鏈而導致 LORE 創建（特別是 NPC 創造）被內容審查攔截的致命問題。
+# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角並刷新上下文。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角...")
+    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
     
-    current_location_path = ai_core.profile.game_state.location_path if ai_core.profile else []
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
+        return {}
+
+    current_location_path = ai_core.profile.game_state.location_path
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
     
+    # [v2.0 核心修正] 對輸入進行委婉化處理
+    euphemization_chain = ai_core.get_euphemization_chain()
+    
+    # 提取可能包含露骨內容的關鍵詞
+    entity_extraction_chain = ai_core.get_entity_extraction_chain()
+    entity_result = await ai_core.ainvoke_with_rotation(entity_extraction_chain, {"text_input": user_input})
+    keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else user_input.split()
+    
+    # 生成安全的對話上下文
+    safe_dialogue_context = await ai_core.ainvoke_with_rotation(
+        euphemization_chain,
+        {"keywords": keywords_for_euphemization},
+        retry_strategy='none' # 委婉化本身失敗就沒辦法了
+    )
+    
+    if not safe_dialogue_context:
+        logger.warning(f"[{user_id}] (Graph|6A) 委婉化對話上下文失敗，將使用原始輸入，這可能存在風險。")
+        safe_dialogue_context = user_input
+
+    logger.info(f"[{user_id}] (Graph|6A) 已生成用於選角鏈的安全上下文: '{safe_dialogue_context}'")
+
+    # 使用安全的上下文調用選角鏈
     cast_result = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_casting_chain(),
-        {"world_settings": ai_core.profile.world_settings or "", "current_location_path": current_location_path, "game_context": game_context_for_casting, "recent_dialogue": user_input},
-        retry_strategy='euphemize'
+        {
+            "world_settings": ai_core.profile.world_settings or "", 
+            "current_location_path": current_location_path, 
+            "game_context": game_context_for_casting, 
+            "recent_dialogue": safe_dialogue_context # 使用淨化後的版本
+        },
+        retry_strategy='euphemize' # 即使委婉化後，仍然保留備援重試
     )
     
     updates: Dict[str, Any] = {}
@@ -196,9 +231,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         refreshed_context = ai_core._assemble_context_from_lore(refreshed_lore, is_remote_scene=is_remote)
         updates = {"raw_lore_objects": refreshed_lore, "structured_context": refreshed_context}
     else:
-         logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色，無需刷新。")
+         logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色（可能因內容審查或無創造必要），無需刷新。")
 
     return updates
+# 函式：專用的LORE擴展執行節點 (v2.0 - 輸入委婉化)
 
 # --- 階段二：規劃 (Planning) ---
 
