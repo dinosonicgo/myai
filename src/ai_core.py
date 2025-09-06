@@ -585,11 +585,11 @@ class AILover:
             logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}' (路徑: {original_path})，無需更新。")
     # 函式：[重構] 更新並持久化導演視角模式 (v2.0 - 狀態保持)
 
-    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.2 - 事實鎖定)
+# 函式：獲取統一 NSFW 回合計劃鏈 (v4.3 - LORE數據格式修正)
     # 更新紀錄:
-    # v4.2 (2025-09-06): [災難性BUG修復] 在 world_snapshot 模板中增加了 `full_lore_records_json` 佔位符，並在 human_prompt 中增加了對應的“LORE事實鎖定指令”。此修改旨在將完整的 LORE 數據提供給 LLM，並強制其遵循既定事實，從根本上解決 AI 篡改 LORE 的問題。
+    # v4.3 (2025-09-06): [災難性BUG修復] 更新了 Prompt 中關於 LORE 事實鎖定的指令和描述，使其能夠正確處理從 SQLAlchemy 的 Lore 物件中提取出的 `content` 字典列表，而不是錯誤地期望 `Lore.model_dump()` 的結果。
+    # v4.2 (2025-09-06): [災難性BUG修復] 在 world_snapshot 模板中增加了 `full_lore_records_json` 佔位符和對應的“LORE事實鎖定指令”。
     # v4.1 (2025-09-06): [災難性BUG修復] 為 format() 增加了對新加入的導演視角佔位符的處理。
-    # v4.0 (2025-09-05): [災難性BUG修復] 創建此統一規劃鏈，將 NSFW 規劃的三個步驟合併為單一的 LLM 調用。
     def get_nsfw_planning_chain(self) -> Runnable:
         """獲取或創建 NSFW 路徑的統一規劃鏈，直接輸出最終的、用詞露骨的 TurnPlan JSON。"""
         if not hasattr(self, 'nsfw_planning_chain') or self.nsfw_planning_chain is None:
@@ -632,8 +632,9 @@ class AILover:
 # --- 世界快照數據 ---
 {world_snapshot}
 
-# --- 【【【LORE 事實鎖定指令 (ABSOLUTE & UNBREAKABLE RULE)】】】 ---
-# 警告：以下是關於當前場景所有相關角色的【【【完整 LORE 記錄 JSON】】】。
+# --- 【【【LORE 事實鎖定指令 (ABSOLUTE & UNBREAKABLE RULE) - v4.3 數據格式修正】】】 ---
+# 警告：以下是關於當前場景所有相關角色的【【【完整 LORE 內容字典列表 (JSON 格式)】】】。
+# 列表中的每一個字典都代表一個角色的完整檔案。
 # 你的所有計畫（包括 `narration`, `dialogue`, `action_description`）中對這些角色的任何描述，
 # 【【【絕對禁止】】】與下方 JSON 中記錄的任何事實（特別是 `description`, `race`, `gender`, `skills` 等核心設定）產生任何矛盾。
 # 任何對既定 LORE 的篡改、遺忘或矛盾行為，都將被視為一次【災難性的規劃失敗】。
@@ -653,8 +654,7 @@ class AILover:
             ])
             self.nsfw_planning_chain = prompt | planner_llm
         return self.nsfw_planning_chain
-    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.2 - 事實鎖定)
-
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.3 - LORE數據格式修正)
 
     # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
     # 更新紀錄:
