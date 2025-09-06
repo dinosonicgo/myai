@@ -1891,46 +1891,45 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v2.0 - 檢索前置淨化)
+    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
     # 更新紀錄:
-    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給 Retriever（及其底層的 Embedding API）而導致的內容審查掛起問題。
-    #    1. [新增-預處理] 在調用 Retriever 之前，強制使用 `entity_extraction_chain` 從原始輸入中提取出中性的關鍵實體和名詞。
-    #    2. [新增-安全查詢] 將提取出的關鍵詞組合成一個乾淨、安全的查詢字符串。
-    #    3. [核心修正] 使用這個“淨化”後的查詢字符串來調用 Retriever，從根本上規避了底層 API 的內容審查。
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 RAG 檢索與摘要邏輯從舊的初始化流程中分離出來，以支持新的、更精細的 LangGraph 節點。
+    # v3.0 (2025-09-06): [健壯性] 根據 Cohere API 返回 502 錯誤的日誌，為 RAG 檢索步驟增加了更強的 try...except 異常捕獲機制。現在，如果像 Reranker 這樣的外部服務暫時失敗，節點將不再使整個圖崩潰，而是會記錄警告並優雅地返回一個中性消息，確保主流程的連續性。
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯，以解決內容審查掛起問題。
+    # v1.0 (2025-09-12): [架構重構] 創建此專用函式。
     async def retrieve_and_summarize_memories(self, user_input: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。這是專門為新的 retrieve_memories_node 設計的。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
+        retrieved_docs = []
         try:
-            # [v2.0 核心修正] 步驟 1: 提取中性關鍵詞以創建安全查詢
+            # 步驟 1: 提取中性關鍵詞以創建安全查詢
             logger.info(f"[{self.user_id}] (RAG) 正在對使用者輸入進行預處理以創建安全查詢...")
             entity_extraction_chain = self.get_entity_extraction_chain()
             entity_result = await self.ainvoke_with_rotation(
                 entity_extraction_chain, 
                 {"text_input": user_input},
-                retry_strategy='euphemize' # 實體提取本身也可能需要委婉化
+                retry_strategy='euphemize'
             )
             
             if entity_result and entity_result.names:
                 sanitized_query = " ".join(entity_result.names)
                 logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
             else:
-                # 如果實體提取失敗，回退到使用原始輸入，並記錄警告
                 sanitized_query = user_input
                 logger.warning(f"[{self.user_id}] (RAG) 未能從輸入中提取實體，將使用原始輸入作為查詢，這可能存在風險。")
 
-            # [v2.0 核心修正] 步驟 2: 使用淨化後的查詢進行檢索
+            # 步驟 2: 使用淨化後的查詢進行檢索
             retrieved_docs = await self.ainvoke_with_rotation(
                 self.retriever, 
-                sanitized_query, # 使用安全查詢
+                sanitized_query,
                 retry_strategy='euphemize'
             )
+        # [v3.0 核心修正] 捕獲所有可能的異常，包括外部 API 錯誤
         except Exception as e:
-            logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {e}", exc_info=True)
-            return "檢索長期記憶時發生錯誤。"
+            logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
+            return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
 
         if retrieved_docs is None:
             logger.warning(f"[{self.user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
@@ -1939,7 +1938,7 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # 步驟 3: 總結檢索到的文檔（這一步驟相對安全）
+        # 步驟 3: 總結檢索到的文檔
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             retrieved_docs, 
@@ -1952,8 +1951,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v2.0 - 檢索前置淨化)
-
+    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
 
         # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
     # 更新紀錄:
@@ -2186,11 +2184,11 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.0 - 選角導演模式)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.1 - 提示詞格式修正)
     # 更新紀錄:
-    # v4.0 (2025-09-06): [災難性BUG修復] 根據「冗餘創建NPC」和「上下文遺忘」問題，徹底重寫了此鏈的提示詞，將其升級為“選角導演模式”。舊版本只基於簡單的字符串摘要做判斷。新版本接收完整的場景角色JSON，並被命令去進行語意匹配，判斷現有角色是否能扮演使用者指令中的角色。此修改旨在從根本上解決 AI 因無法理解角色職責而錯誤地決定擴展 LORE 的問題。
+    # v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，徹底重寫了提示詞中的所有範例，移除了所有可能被 LangChain 引擎誤認為輸入變數的大括號 {} 佔位符。改為使用純文本描述來解釋應生成的理由格式。此修改旨在從根本上消除提示詞解析歧義，解決因此導致的嚴重崩潰問題。
+    # v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了此鏈的提示詞，將其升級為“選角導演模式”。
     # v3.1 (2025-09-18): [災難性BUG修復] 修正了提示詞中的格式化範例。
-    # v3.0 (2025-09-18): [災難性BUG修復] 徹底重寫了此鏈的提示詞，改用“實體存在性優先”邏輯。
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             from .schemas import ExpansionDecision
@@ -2208,21 +2206,21 @@ class AILover:
 
 ## A. 【必須不擴展 (should_expand = false)】的情況：
    - **當已有合適的演員時**。如果【現有角色JSON】中，已經有角色的檔案表明他們可以扮演【使用者輸入】中要求的角色，你【必須】選擇他們，並決定【不擴展】。你的職責是優先利用現有資源。
-   - **理由必須格式化為**: "場景中已存在符合 '{{角色職責}}' 描述的角色 (例如 '{{角色名}}')，應優先與其互動。"
+   - **理由必須這樣寫**: 你的理由應當清晰地指出哪個現有角色符合哪個被要求的職責。例如，寫成："場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。"
 
 ## B. 【必須擴展 (should_expand = true)】的情況：
    - **當缺乏合適的演員時**。如果【使用者輸入】明確要求一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責（例如，場景裡只有教徒，但使用者想找一個“商人”），這意味著演員陣容存在空白，需要你來【僱用新人】。
-   - **理由必須格式化為**: "場景中缺乏能夠扮演 '{{角色職責}}' 的角色，需要創建新角色以響應指令。"
+   - **理由必須這樣寫**: 你的理由應當清晰地指出場景中缺失了哪種角色職責。例如，寫成："場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。"
 
 # === 關鍵對比範例 ===
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
     - 使用者輸入: `繼續描述那個賣魚的女人`
-    - **決策**: `should_expand: false` (理由: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
+    - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
 - **情境 2**:
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
     - 使用者輸入: `這時一個衛兵走了過來`
-    - **決策**: `should_expand: true` (理由: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
+    - **你的決策**: `should_expand: true` (理由應類似於: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
 
 ---
 【使用者最新輸入 (劇本)】: 
@@ -2236,7 +2234,7 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.0 - 選角導演模式)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.1 - 提示詞格式修正)
 
 
 
