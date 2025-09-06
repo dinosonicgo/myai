@@ -338,42 +338,59 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：專用LORE查詢節點 (v3.0 - 主角過濾)
+# 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
 # 更新紀錄:
-# v3.0 (2025-09-06): [災難性BUG修復] 根據「AI角色被當作NPC」的錯誤，增加了“主角光環”過濾機制。現在，在返回場景中的所有NPC之前，節點會獲取玩家和AI戀人的名字，並從結果中剔除任何與主角同名的LORE。此修改確保了核心主角不會被錯誤地注入到NPC處理流程中。
-# v2.0 (2025-09-06): [災難性BUG修復] 引入了“場景記憶”機制。
-# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
+# v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了LORE的檢索邏輯，以解決因檢索到其他地點的同名NPC而導致的上下文污染問題。新版本實現了「上下文優先」原則：
+#    1. [確定有效場景] 首先明確當前的工作場景（本地或遠程）。
+#    2. [場景內優先] 優先獲取所有物理上存在於該場景的NPC。
+#    3. [召喚式補充] 然後再檢索使用者明確提及的、可能不在場的角色。
+#    4. [智能合併] 最後將兩者智能合併，確保了傳遞給規劃器的上下文是以當前場景為絕對核心的，從根本上杜絕了地點錯亂的問題。
+# v3.0 (2025-09-06): [災難性BUG修復] 增加了“主角光環”過濾機制。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
     """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    intent_type = state['intent_classification'].intent_type
-    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體 (主角過濾模式)...")
+    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在執行【上下文優先】的LORE查詢...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (LORE Querier) ai_core.profile 未加載，無法查詢LORE。")
+        return {"raw_lore_objects": []}
 
     gs = ai_core.profile.game_state
-    target_location_path: List[str]
-    if gs.viewing_mode == 'remote' and gs.remote_target_path:
-        target_location_path = gs.remote_target_path
-    else:
-        target_location_path = gs.location_path
-
-    is_remote = 'descriptive' in intent_type
-    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
     
+    # --- [v4.0 核心修正] 步驟 1: 確定有效場景 ---
+    effective_location_path: List[str]
+    if gs.viewing_mode == 'remote' and gs.remote_target_path:
+        effective_location_path = gs.remote_target_path
+    else:
+        effective_location_path = gs.location_path
+    
+    logger.info(f"[{user_id}] (LORE Querier) 已鎖定有效場景: {' > '.join(effective_location_path)}")
+
+    # --- [v4.0 核心修正] 步驟 2: 場景內實體優先 ---
     lores_in_scene = await lore_book.get_lores_by_category_and_filter(
         user_id,
         'npc_profile',
-        lambda c: c.get('location_path') == target_location_path
+        lambda c: c.get('location_path') == effective_location_path
     )
-    logger.info(f"[{user_id}] (LORE Querier) 在地點 '{' > '.join(target_location_path)}' 中找到 {len(lores_in_scene)} 位常駐NPC。")
+    logger.info(f"[{user_id}] (LORE Querier) 在有效場景中找到 {len(lores_in_scene)} 位常駐NPC。")
 
-    final_lores_map = {lore.key: lore for lore in lores_from_input}
-    for lore in lores_in_scene:
+    # --- [v4.0 核心修正] 步驟 3: 召喚式實體補充 ---
+    is_remote = gs.viewing_mode == 'remote'
+    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
+    logger.info(f"[{user_id}] (LORE Querier) 從使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
+
+    # --- [v4.0 核心修正] 步驟 4: 智能合併與去重 ---
+    # 使用字典以 lore.key 作為鍵，可以高效地合併和去重
+    # 將場景內的NPC首先放入，確保它們的優先級
+    final_lores_map = {lore.key: lore for lore in lores_in_scene}
+    # 然後補充使用者明確提到的、但可能不在場景內的NPC
+    for lore in lores_from_input:
         if lore.key not in final_lores_map:
             final_lores_map[lore.key] = lore
             
-    # [v3.0 核心修正] "主角光環" 過濾
+    # "主角光環" 過濾 (保留此重要邏輯)
     protected_names = {
         ai_core.profile.user_profile.name.lower(),
         ai_core.profile.ai_profile.name.lower()
@@ -387,11 +404,10 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
         else:
             logger.warning(f"[{user_id}] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '{lore.content.get('name')}'")
 
-    logger.info(f"[{user_id}] (LORE Querier) 過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
+    logger.info(f"[{user_id}] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
     
     return {"raw_lore_objects": filtered_lores_list}
-# 函式：專用LORE查詢節點 (v3.0 - 主角過濾)
-
+# 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
 
 
 
