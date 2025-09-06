@@ -104,21 +104,57 @@ def route_viewing_mode(state: ConversationGraphState) -> Literal["remote_scene",
 
 # --- 階段一：感知 (Perception) ---
 
-# 函式：[新建] 導演視角狀態管理節點 (v1.0)
+# 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 # 更新紀錄:
-# v1.0 (2025-09-06): [災難性BUG修復] 創建此新節點，專門用於調用 ai_core._update_viewing_mode。將其插入圖的早期流程中，確保在任何規劃開始之前，系統的“導演視角”（本地或遠程）狀態都已被明確設定和持久化。
+# v2.0 (2025-09-06): [災難性BUG修復] 根據「遠程視角管理失敗」的問題，徹底重構了此節點的邏輯，使其變得更加確定和可靠。新版本不再依賴複雜的、容易出錯的 `scene_analysis` 來判斷視角，而是直接由更可靠的 `intent_classification` 結果來驅動。如果意圖是描述性的，則強制切換到遠程模式，並調用一個專門的、更簡單的地點提取鏈來獲取目標路徑。此修改從根本上解決了視角模式判斷錯誤的問題。
+# v1.0 (2025-09-06): [災難性BUG修復] 創建此新節點。
 async def update_viewing_mode_node(state: ConversationGraphState) -> None:
-    """調用 ai_core 中的輔助函式來更新並持久化導演視角模式。"""
+    """根據意圖分類，更新並持久化導演視角模式和遠程目標。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph) Node: update_viewing_mode -> 正在更新並持久化導演視角...")
+    intent = state['intent_classification'].intent_type
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: update_viewing_mode -> 正在基於意圖 '{intent}' 更新導演視角...")
     
-    await ai_core._update_viewing_mode(state)
-    
-    # 這個節點不直接返回更新到 state，因為 ai_core 的方法會直接修改資料庫
-    # 和 ai_core 實例內的 GameState。後續節點將讀取到這個最新的狀態。
+    if not ai_core.profile:
+        return
+
+    gs = ai_core.profile.game_state
+    original_mode = gs.viewing_mode
+    original_path = gs.remote_target_path
+    changed = False
+
+    if 'descriptive' in intent:
+        # 意圖是描述性的，強制進入或保持遠程模式
+        logger.info(f"[{user_id}] (View Mode) 檢測到描述性意圖，準備進入/更新遠程視角。")
+        location_chain = ai_core.get_location_extraction_chain()
+        location_result = await ai_core.ainvoke_with_rotation(location_chain, {"user_input": user_input})
+        
+        new_target_path = location_result.get("location_path") if location_result else None
+        
+        if new_target_path:
+            if gs.viewing_mode != 'remote' or gs.remote_target_path != new_target_path:
+                gs.viewing_mode = 'remote'
+                gs.remote_target_path = new_target_path
+                changed = True
+        else:
+            logger.warning(f"[{user_id}] (View Mode) 描述性意圖未能提取出有效地點，視角可能不會按預期更新。")
+
+    else: # 意圖是互動性的
+        if gs.viewing_mode != 'local':
+            logger.info(f"[{user_id}] (View Mode) 檢測到互動性意圖，強制切換回本地視角。")
+            gs.viewing_mode = 'local'
+            gs.remote_target_path = None
+            changed = True
+
+    if changed:
+        logger.info(f"[{user_id}] 導演視角模式已從 '{original_mode}' (路徑: {original_path}) 更新為 '{gs.viewing_mode}' (路徑: {gs.remote_target_path})")
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+    else:
+        logger.info(f"[{user_id}] 導演視角模式保持為 '{original_mode}' (路徑: {original_path})，無需更新。")
+
     return {}
-# 函式：[新建] 導演視角狀態管理節點 (v1.0)
+# 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
@@ -152,19 +188,27 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
     return {"rag_context": rag_context_str}
 
-# 函式：專用LORE查詢節點 (v2.0 - 場景記憶強化)
+
+
+
+
+
+
+
+
+# 函式：專用LORE查詢節點 (v3.0 - 主角過濾)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 根據「上下文遺忘」問題，徹底重構了此節點的查詢邏輯。舊版本只查詢當前輸入中提到的實體。新版本引入了“場景記憶”機制：它會額外查詢當前地點路徑下的所有 NPC，並將他們與當前輸入查詢到的實體合併。此修改確保了只要玩家不離開場景，上一輪互動過的 NPC 就會被“鎖定”在上下文中，從根本上解決了因使用者使用代詞而導致的劇情連續性失敗問題。
+# v3.0 (2025-09-06): [災難性BUG修復] 根據「AI角色被當作NPC」的錯誤，增加了“主角光環”過濾機制。現在，在返回場景中的所有NPC之前，節點會獲取玩家和AI戀人的名字，並從結果中剔除任何與主角同名的LORE。此修改確保了核心主角不會被錯誤地注入到NPC處理流程中。
+# v2.0 (2025-09-06): [災難性BUG修復] 引入了“場景記憶”機制。
 # v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
-    """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有原始LORE對象。"""
+    """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     intent_type = state['intent_classification'].intent_type
-    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體 (場景記憶強化模式)...")
+    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體 (主角過濾模式)...")
 
-    # [v2.0 核心修正] 確定查詢的目標地點路徑
     gs = ai_core.profile.game_state
     target_location_path: List[str]
     if gs.viewing_mode == 'remote' and gs.remote_target_path:
@@ -172,11 +216,9 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     else:
         target_location_path = gs.location_path
 
-    # 步驟 1: 查詢當前輸入中明確提到的實體 (舊邏輯)
-    is_remote = intent_type == 'nsfw_descriptive'
+    is_remote = 'descriptive' in intent_type
     lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
     
-    # 步驟 2: [v2.0 核心修正] 查詢當前地點路徑下的所有 NPC，建立場景記憶
     lores_in_scene = await lore_book.get_lores_by_category_and_filter(
         user_id,
         'npc_profile',
@@ -184,17 +226,32 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     )
     logger.info(f"[{user_id}] (LORE Querier) 在地點 '{' > '.join(target_location_path)}' 中找到 {len(lores_in_scene)} 位常駐NPC。")
 
-    # 步驟 3: 合併並去重
     final_lores_map = {lore.key: lore for lore in lores_from_input}
     for lore in lores_in_scene:
         if lore.key not in final_lores_map:
             final_lores_map[lore.key] = lore
             
-    final_lores_list = list(final_lores_map.values())
-    logger.info(f"[{user_id}] (LORE Querier) 合併去重後，共鎖定 {len(final_lores_list)} 條LORE作為本回合上下文。")
+    # [v3.0 核心修正] "主角光環" 過濾
+    protected_names = {
+        ai_core.profile.user_profile.name.lower(),
+        ai_core.profile.ai_profile.name.lower()
+    }
     
-    return {"raw_lore_objects": final_lores_list}
-# 函式：專用LORE查詢節點 (v2.0 - 場景記憶強化)
+    filtered_lores_list = []
+    for lore in final_lores_map.values():
+        lore_name = lore.content.get('name', '').lower()
+        if lore_name not in protected_names:
+            filtered_lores_list.append(lore)
+        else:
+            logger.warning(f"[{user_id}] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '{lore.content.get('name')}'")
+
+    logger.info(f"[{user_id}] (LORE Querier) 過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
+    
+    return {"raw_lore_objects": filtered_lores_list}
+# 函式：專用LORE查詢節點 (v3.0 - 主角過濾)
+
+
+
 
 # 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
 # 更新紀錄:
