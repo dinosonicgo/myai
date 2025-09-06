@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v12.0 - 新增智慧路由模型)
+# src/schemas.py 的中文註釋(v13.0 - TurnPlan 自我修復)
 # 更新紀錄:
-# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。此模型將作為新的智慧意圖分類鏈的輸出，用來取代脆弱的關鍵詞匹配，從根本上提高路由的準確性。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。此驗證器會自動檢測並修復 LLM 在生成 character_actions 列表時常見的「省略連續角色名稱」的錯誤。它會將缺失的 character_name 用前一個動作的角色名稱來填補，從根本上解決了因 Pydantic ValidationError 導致整個圖崩潰的問題，極大增強了系統的健壯性。
+# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
 # v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。
-# v10.2 (2025-09-03): [健壯性] 新增了 `SingleResolutionPlan` 和 `SingleResolutionResult` 模型以支持串行實體解析。
 
 import json
 import re
@@ -208,13 +208,31 @@ class CharacterAction(BaseModel):
             raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
 
+# 類別：回合計劃 (v14.0 - 自我修復)
 class TurnPlan(BaseModel):
     """一回合行動的完整結構化計畫。"""
-    # [v13.0 核心修正] 將 thought 設為可選，以容納錯誤處理流程
     thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
     narration: Optional[str] = Field(default="", description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
     character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。")
     execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合 lógica而無法執行時，此欄位包含以角色口吻給出的解釋。")
+
+    # [v13.0 核心修正] 新增自我修復驗證器
+    @model_validator(mode='before')
+    @classmethod
+    def repair_missing_character_names(cls, data: Any) -> Any:
+        """
+        在正式驗證前，嘗試修復 LLM 常見的錯誤：在連續動作中省略 character_name。
+        """
+        if isinstance(data, dict) and 'character_actions' in data and isinstance(data['character_actions'], list):
+            last_valid_name = None
+            for action in data['character_actions']:
+                if isinstance(action, dict):
+                    if 'character_name' in action and action['character_name']:
+                        last_valid_name = action['character_name']
+                    elif 'character_name' not in action and last_valid_name:
+                        # 這是錯誤發生的點，進行修復
+                        action['character_name'] = last_valid_name
+        return data
 
     @model_validator(mode='after')
     def check_plan_logic(self) -> 'TurnPlan':
@@ -222,8 +240,6 @@ class TurnPlan(BaseModel):
         has_thought_or_actions = bool(self.thought) or bool(self.character_actions)
         has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
 
-        # [v13.0 核心修正] 更新驗證邏輯
-        # 一個有效的計畫，要麼是一個正常的計畫（有思考或行動），要麼是一個拒絕執行的計畫。不能兩者都是，也不能兩者都不是。
         if not has_thought_or_actions and not has_rejection:
             raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
         
