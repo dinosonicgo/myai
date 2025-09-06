@@ -119,3 +119,6 @@ def main():
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
 # 函式：主啟動邏輯 (v3.2 - 增加重啟旗標)
+
+if __name__ == "__main__":
+    main()
