@@ -734,11 +734,11 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v24.0 - 視角狀態管理)
+# 函式：創建主回應圖 (v24.1 - 路由修正)
 # 更新紀錄:
-# v24.0 (2025-09-06): [災難性BUG修復] 引入了全新的 `update_viewing_mode_node` 節點，並將其插入到 `scene_and_action_analysis` 和 `retrieve_memories` 之間。此修改確保了系統的“導演視角”（本地 vs 遠程）在每次互動的早期就被明確設定和持久化，從根本上解決了場景連續性混亂的問題。
+# v24.1 (2025-09-06): [災難性BUG修復] 修正了 `planner_junction` 的路由邏輯。`nsfw_interactive` 意圖現在被正確地路由到 `nsfw_planning_node`，而不是錯誤地流向遠程規劃器。此修改解決了在連續的遠程觀察後發出本地互動指令時，系統仍然嘗試生成遠程場景的錯誤。
+# v24.0 (2025-09-06): [災難性BUG修復] 引入了全新的 `update_viewing_mode_node` 節點以解決場景連續性混亂的問題。
 # v23.0 (2025-09-05): [災難性BUG修復] 根據 ai_core.py v4.0 的重構，徹底移除了舊的 NSFW 思維鏈三節點。
-# v22.0 (2025-09-15): [重大架構重構] 彻底重构了 NSFW 互动路径的拓扑。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -750,7 +750,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
-    graph.add_node("update_viewing_mode", update_viewing_mode_node) # [v24.0 新增]
+    graph.add_node("update_viewing_mode", update_viewing_mode_node)
     
     # SFW & 远景规划
     graph.add_node("sfw_planning", sfw_planning_node)
@@ -770,7 +770,6 @@ def create_main_response_graph() -> StateGraph:
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     
-    # [v24.0 核心修正] 插入新的視角管理流程
     graph.add_edge("classify_intent", "scene_and_action_analysis")
     graph.add_edge("scene_and_action_analysis", "update_viewing_mode")
     graph.add_edge("update_viewing_mode", "retrieve_memories")
@@ -782,25 +781,36 @@ def create_main_response_graph() -> StateGraph:
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
-        { "expand_lore": "lore_expansion", "continue_to_planner": "planner_junction" } # 直接去規劃器
+        { "expand_lore": "lore_expansion", "continue_to_planner": "planner_junction" }
     )
     graph.add_edge("lore_expansion", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
-        """根據意圖分類將流量路由到不同的規劃器。"""
+        """根據意圖分類和導演視角將流量路由到不同的規劃器。"""
+        user_id = state['user_id']
+        ai_core = state['ai_core']
         intent = state['intent_classification'].intent_type
-        if intent == 'nsfw_interactive':
-            return "nsfw_planner"
-        elif intent == 'nsfw_descriptive':
-            return "remote_nsfw_planner"
-        elif intent == 'sfw':
-            scene_analysis = state.get("scene_analysis")
-            if scene_analysis and scene_analysis.viewing_mode == 'remote':
-                return "remote_sfw_planner"
+        viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
+        
+        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Viewing Mode: '{viewing_mode}'")
+        
+        # [v24.1 核心路由修正]
+        # 即使意圖是互動式的，如果導演視角仍然是 remote，則繼續遠程規劃
+        if viewing_mode == 'remote':
+            if 'nsfw' in intent:
+                logger.info(f"[{user_id}] (Router) Mode is remote, intent is NSFW-like -> remote_nsfw_planning")
+                return "remote_nsfw_planner"
             else:
+                logger.info(f"[{user_id}] (Router) Mode is remote, intent is SFW-like -> remote_sfw_planning")
+                return "remote_sfw_planning"
+        else: # viewing_mode == 'local'
+            if intent == 'nsfw_interactive':
+                logger.info(f"[{user_id}] (Router) Mode is local, intent is nsfw_interactive -> nsfw_planning")
+                return "nsfw_planner"
+            else: # sfw_interactive or any other local intent
+                logger.info(f"[{user_id}] (Router) Mode is local, intent is SFW-like -> sfw_planning")
                 return "sfw_planner"
-        else: # 備援
-            return "sfw_planner"
+
 
     graph.add_conditional_edges(
         "planner_junction",
@@ -826,7 +836,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v24.0 - 視角狀態管理)
+# 函式：創建主回應圖 (v24.1 - 路由修正)
 
 
 
