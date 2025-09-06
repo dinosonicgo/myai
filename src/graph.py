@@ -905,11 +905,11 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v29.0 - 路由邏輯終極修正)
+# 函式：創建主回應圖 (v30.0 - 終極路由修正)
 # 更新紀錄:
-# v29.0 (2025-09-18): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。舊版本會錯誤地將 `nsfw_descriptive` 意圖在 `local` 視角下路由到 SFW 管道。新版本採用“意圖優先”原則：只要意圖包含 'nsfw'，就必定進入 NSFW 分支，然後再根據視角分發到遠程或本地 NSFW 規劃器。此修改從根本上解決了 NSFW 內容被錯誤地用 SFW 鏈處理的問題。
+# v30.0 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。舊版本會錯誤地將 `nsfw_descriptive` 意圖在 `local` 視角下路由到 SFW 或本地 NSFW 管道。新版本採用“意圖優先”原則：只要意圖包含 'descriptive'，就必定進入遠程分支；只要意圖包含 'nsfw'，就必定進入 NSFW 分支。此修改從根本上解決了 NSFW 描述內容被錯誤鏈處理的問題。
+# v29.0 (2025-09-18): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
 # v28.0 (2025-09-18): [重大架構重構] 修正了 LORE 擴展分支的數據流。
-# v27.0 (2025-09-18): [重大架構升級] 引入了“淨化層”來解決內容審查問題。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -970,31 +970,29 @@ def create_main_response_graph() -> StateGraph:
     
     graph.add_edge("sanitize_input", "planner_junction")
 
-    # [v29.0 核心修正] 重寫主規劃器路由
+    # [v30.0 核心修正] 重寫主規劃器路由，採用“意圖優先”原則
     def route_to_planner(state: ConversationGraphState) -> str:
-        """根據意圖分類和導演視角將流量路由到不同的規劃器。"""
+        """根據意圖分類將流量路由到不同的規劃器，意圖優先於視角模式。"""
         user_id = state['user_id']
-        ai_core = state['ai_core']
         intent = state['intent_classification'].intent_type
-        viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         
-        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Viewing Mode: '{viewing_mode}'")
+        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}'")
         
-        # 採用“意圖優先”的路由邏輯
-        if 'nsfw' in intent:
-            # 只要是 NSFW 意圖，就進入 NSFW 處理分支
-            if viewing_mode == 'remote':
-                logger.info(f"[{user_id}] (Router) Intent is NSFW & Mode is remote -> remote_nsfw_planner")
-                return "remote_nsfw_planner"
-            else: # local
-                logger.info(f"[{user_id}] (Router) Intent is NSFW & Mode is local -> nsfw_planner")
-                return "nsfw_planner"
-        else:
-            # 所有非 NSFW 意圖，進入 SFW 處理分支
+        # 意圖優先的路由邏輯
+        if intent == 'nsfw_descriptive':
+            logger.info(f"[{user_id}] (Router) Intent is 'nsfw_descriptive' -> remote_nsfw_planner")
+            return "remote_nsfw_planner"
+        elif intent == 'nsfw_interactive':
+            logger.info(f"[{user_id}] (Router) Intent is 'nsfw_interactive' -> nsfw_planner")
+            return "nsfw_planner"
+        else: # sfw
+            # 對於 SFW，我們仍然可以參考視角模式
+            ai_core = state['ai_core']
+            viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
             if viewing_mode == 'remote':
                 logger.info(f"[{user_id}] (Router) Intent is SFW & Mode is remote -> remote_sfw_planner")
                 return "remote_sfw_planner"
-            else: # local
+            else:
                 logger.info(f"[{user_id}] (Router) Intent is SFW & Mode is local -> sfw_planner")
                 return "sfw_planner"
 
@@ -1020,7 +1018,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v29.0 - 路由邏輯終極修正)
+# 函式：創建主回應圖 (v30.0 - 終極路由修正)
 
 
 
