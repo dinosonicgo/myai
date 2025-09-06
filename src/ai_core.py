@@ -468,6 +468,48 @@ class AILover:
     
 
 
+    # 函式：獲取上下文地點推斷鏈 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [全新創建] 根據「遠程視角管理徹底失敗」的分析，創建了這個全新的、最強大的地點推斷鏈。它接收完整的世界觀和場景LORE作為上下文，被賦予了從模糊指令中（無論是明確提及還是需要從角色LORE回溯）推斷出最合理目標地點的權力。它將被新的 `perceive_and_set_view_node` 調用，是解決地點信息丟失問題的最終方案。
+    def get_contextual_location_chain(self) -> Runnable:
+        """獲取或創建一個基於完整上下文來推斷目標地點的鏈。"""
+        if not hasattr(self, 'contextual_location_chain') or self.contextual_location_chain is None:
+            
+            class LocationPath(BaseModel):
+                location_path: Optional[List[str]] = Field(default=None, description="推斷出的、層級式的地點路徑列表。如果無法推斷出任何合理地點，則為 null。")
+
+            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(LocationPath)
+            
+            prompt_template = """你是一位精明的【地理情報分析師】。你的唯一任務是綜合所有已知情報，從【使用者輸入】中，推斷出他們想要觀察的【最可能的遠程目標地點】。
+
+# === 【【【核心分析原則】】】 ===
+1.  **【直接提取優先】**: 如果【使用者輸入】中明確提及了一個地理位置（例如 "性神城"、"市場"），你【必須】優先提取這個地點，並將其格式化為層級路徑。
+2.  **【上下文回溯備援】**: 如果輸入中【沒有】明確地點，但提到了【特定角色】（例如 "海妖吟"），你【必須】在【場景上下文JSON】中查找該角色的 `location_path`，並使用它作為目標地點。
+3.  **【世界觀推斷終極備援】**: 如果以上兩點都失敗，你【必須】基於【核心世界觀】和指令的內容，為這個場景推斷出一個【最符合邏輯的、全新的】地點。例如，關於“性神教徒魚販”的場景，一個名為 `["性神城", "瀆神者市集"]` 的地點就是一個合理的推斷。
+4.  **【絕對的地點定義】**: 你的輸出【只能】是地理或建築學上的地點。
+5.  **【無法推斷則為Null】**: 如果窮盡所有方法都無法推斷出一個合理的地點，則返回 `null`。
+
+---
+【核心世界觀（用於終極備援推斷）】:
+{world_settings}
+---
+【場景上下文JSON（用於回溯查詢角色位置）】:
+{scene_context_json}
+---
+【使用者輸入（主要分析對象）】: 
+{user_input}
+---
+請開始你的分析，並返回一個包含 `location_path` 的JSON。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.contextual_loc
+
+
+
+
+
+    
+
     # 函式：輕量級重建核心模型 (v2.0 - 職責簡化)
     # 更新紀錄:
     # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。它現在只觸發核心模型的重新初始化，讓新的 `_create_llm_instance` 函式來自動處理金鑰的輪換。
