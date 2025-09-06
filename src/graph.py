@@ -207,7 +207,75 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
 
 
 
+# 函式：[全新] 感知與視角設定中樞 (v1.0)
+# 更新紀錄:
+# v1.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的分析，創建了這個全新的、統一的感知中樞節點。它取代了舊的、分裂的 `scene_and_action_analysis_node` 和 `update_viewing_mode_node`。此節點以意圖為驅動，原子性地完成“判斷視角 -> 推斷地點 -> 更新全局狀態”的完整流程，從根本上解決了因多節點數據不一致而導致的狀態污染和邏輯斷鏈問題。
+async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
+    """一個統一的節點，負責分析場景、根據意圖設定視角、並持久化狀態。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    intent = state['intent_classification'].intent_type
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph) Node: perceive_and_set_view -> 正在基於意圖 '{intent}' 統一處理感知與視角...")
 
+    if not ai_core.profile:
+        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
+
+    gs = ai_core.profile.game_state
+    changed = False
+    new_viewing_mode = gs.viewing_mode
+    new_target_path = gs.remote_target_path
+
+    if 'descriptive' in intent:
+        # 意圖是描述性的，強制進入/更新遠程模式
+        new_viewing_mode = 'remote'
+        
+        scene_context_lores = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
+        scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
+        
+        location_chain = ai_core.get_contextual_location_chain()
+        location_result = await ai_core.ainvoke_with_rotation(
+            location_chain, 
+            {
+                "user_input": user_input,
+                "world_settings": ai_core.profile.world_settings or "未設定",
+                "scene_context_json": scene_context_json_str
+            }
+        )
+        
+        extracted_path = location_result.get("location_path") if location_result else None
+        
+        if extracted_path:
+            new_target_path = extracted_path
+        else:
+            logger.warning(f"[{user_id}] (Perception Hub) 描述性意圖未能推斷出有效地點，將回退到本地模式。")
+            new_viewing_mode = 'local'
+            new_target_path = None
+            
+    else: # 意圖是互動性的
+        new_viewing_mode = 'local'
+        new_target_path = None
+
+    # 檢查狀態是否真的發生了變化
+    if gs.viewing_mode != new_viewing_mode or gs.remote_target_path != new_target_path:
+        gs.viewing_mode = new_viewing_mode
+        gs.remote_target_path = new_target_path
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+        logger.info(f"[{user_id}] (Perception Hub) GameState 已更新: mode={gs.viewing_mode}, path={gs.remote_target_path}")
+    else:
+        logger.info(f"[{user_id}] (Perception Hub) GameState 無需更新。")
+
+    # 構建並返回 SceneAnalysisResult 以供下游使用
+    scene_analysis = SceneAnalysisResult(
+        viewing_mode=gs.viewing_mode,
+        reasoning=f"基於意圖 '{intent}' 的統一感知結果。",
+        target_location_path=gs.remote_target_path,
+        focus_entity=None, # 此欄位可以後續由更專精的鏈填充，或暫時棄用
+        action_summary=user_input
+    )
+    
+    return {"scene_analysis": scene_analysis}
+# 函式：[全新] 感知與視角設定中樞 (v1.0)
 
 
 
@@ -1072,25 +1140,27 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v31.0 - 廢除淨化層)
+# 函式：創建主回應圖 (v32.0 - 感知中樞重構)
 # 更新紀錄:
-# v31.0 (2025-09-06): [災難性BUG修復] 根據「指令遵循失敗」和「上下文遺忘」的最終分析，確認 `sanitize_input` 淨化層弊大於利，是導致規劃器接收到被稀釋指令的根源。此版本從圖的拓撲結構中【徹底移除】了 `sanitize_input` 節點及其相關邊。系統將回歸更穩健的“端對端”強化策略，讓規劃器直接處理原始指令，並在必要時依靠重試機制突破審查，從根本上恢復劇情的連續性和指令的遵循性。
+# v32.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的根本原因分析，廢除了舊的、分裂的 `scene_and_action_analysis_node` 和 `update_viewing_mode_node`。引入了一個全新的、統一的【感知與視角設定中樞】節點 `perceive_and_set_view_node`。此修改將所有與場景感知、視角判斷、地點推斷和狀態更新相關的邏輯全部集中在一個原子性節點中，從根本上解決了因多節點數據不一致而導致的所有問題。
+# v31.0 (2025-09-06): [災難性BUG修復] 徹底移除了 `sanitize_input` 節點。
 # v30.0 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
-# v29.0 (2025-09-18): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
     graph.add_node("classify_intent", classify_intent_node)
+    
+    # [v32.0 核心修正] 註冊新節點，註銷舊節點
+    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
+    # graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
+    # graph.add_node("update_viewing_mode", update_viewing_mode_node)
+
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
-    graph.add_node("update_viewing_mode", update_viewing_mode_node)
-    # [v31.0 核心修正] 移除 sanitize_input 節點的註冊
-    # graph.add_node("sanitize_input", sanitize_input_node)
 
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
@@ -1105,7 +1175,6 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("planner_junction", lambda state: {})
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
-        """如果決定不擴展LORE，則將現有的NPC打包成規劃主體。"""
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
         logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已將 {len(planning_subjects)} 個現有NPC打包為規劃主體。")
@@ -1117,12 +1186,12 @@ def create_main_response_graph() -> StateGraph:
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     
-    graph.add_edge("classify_intent", "scene_and_action_analysis")
-    graph.add_edge("scene_and_action_analysis", "update_viewing_mode")
-    graph.add_edge("update_viewing_mode", "retrieve_memories")
-    
+    # [v32.0 核心修正] 重構感知流程
+    graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    graph.add_edge("query_lore", "assemble_context")
+    graph.add_edge("query_lore", "perceive_and_set_view") # 在查詢 LORE 後進行感知
+    graph.add_edge("perceive_and_set_view", "assemble_context")
+
     graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
@@ -1134,32 +1203,29 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # [v31.0 核心修正] 修改數據流，繞過 sanitize_input
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
-        """根據意圖分類將流量路由到不同的規劃器，意圖優先於視角模式。"""
         user_id = state['user_id']
         intent = state['intent_classification'].intent_type
+        # [v32.0 核心修正] 直接從 GameState 讀取已確定的視角
+        ai_core = state['ai_core']
+        viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         
-        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}'")
+        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        if intent == 'nsfw_descriptive':
-            logger.info(f"[{user_id}] (Router) Intent is 'nsfw_descriptive' -> remote_nsfw_planner")
-            return "remote_nsfw_planner"
-        elif intent == 'nsfw_interactive':
-            logger.info(f"[{user_id}] (Router) Intent is 'nsfw_interactive' -> nsfw_planner")
-            return "nsfw_planner"
-        else: # sfw
-            ai_core = state['ai_core']
-            viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
-            if viewing_mode == 'remote':
-                logger.info(f"[{user_id}] (Router) Intent is SFW & Mode is remote -> remote_sfw_planner")
-                return "remote_sfw_planner"
+        if 'descriptive' in intent:
+            if 'nsfw' in intent:
+                return "remote_nsfw_planner"
             else:
-                logger.info(f"[{user_id}] (Router) Intent is SFW & Mode is local -> sfw_planner")
-                return "sfw_planner"
+                return "remote_sfw_planner"
+        else: # interactive
+            # 即使意圖是互動，也應該是本地 NSFW
+            if 'nsfw' in intent:
+                 return "nsfw_planner"
+            else:
+                 return "sfw_planner"
 
     graph.add_conditional_edges(
         "planner_junction",
@@ -1183,7 +1249,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v31.0 - 廢除淨化層)
+# 函式：創建主回應圖 (v32.0 - 感知中樞重構)
 
 
 
