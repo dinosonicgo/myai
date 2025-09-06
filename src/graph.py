@@ -701,9 +701,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：NSFW 初步規劃節點 (v2.0 - 思維鏈最終版)
+# 函式：NSFW 初步規劃節點 (v3.1 - 參數同步修正)
 # 更新紀錄:
-# v2.0 (2025-09-07): [終極強化] 此節點現在負責為整個NSFW思維鏈準備統一的上下文（特別是`world_snapshot`），並將其保存到狀態中，以確保後續所有流水線節點都能訪問到一致的數據。
+# v3.1 (2025-09-07): [災難性BUG修復] 根據 KeyError Log，在傳遞給 `ainvoke_with_rotation` 的參數字典中，補上了缺失的 `action_sexual_content_prompt` 變數。此修改確保了呼叫參數與 Prompt 模板的期望變數完全同步，從根本上解決了因此導致的 KeyError 崩潰問題。
+# v3.0 (2025-09-07): [終極強化] 此節點現在會將【原始使用者輸入】明確地作為一個欄位注入到 `world_snapshot` 的生成過程中。
 async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
     """[7B.1] NSFW思維鏈-步驟1: 生成初步的、突破性的行動計劃粗稿。"""
     user_id = state['user_id']
@@ -720,7 +721,6 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
     gs = ai_core.profile.game_state
     user_input = state['messages'][-1].content
     
-    # 為整個流水線準備並儲存 world_snapshot
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -745,19 +745,19 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
         chain_to_call,
         {
             "system_prompt": ai_core.profile.one_instruction, 
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"), # [v3.1 核心修正]
             "world_snapshot": world_snapshot, 
             "chat_history": chat_history_str,
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input
         },
-        # 這是我們的突破口，必須強制執行
         retry_strategy='force'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：NSFW突破性規劃鏈最終失敗，API已徹底拒絕生成此內容。")
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
-# 函式：NSFW 初步規劃節點 (v2.0 - 思維鏈最終版)
+# 函式：NSFW 初步規劃節點 (v3.1 - 參數同步修正)
 
 
 # 函式：NSFW 詞彙校準節點 (v2.0 - 思維鏈最終版)
