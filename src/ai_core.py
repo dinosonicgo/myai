@@ -2299,11 +2299,11 @@ class AILover:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     
-   # 函式：執行工具呼叫計畫 (v183.1 - 委婉化重試)
+   # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
-    # v183.1 (2025-09-06): [災難性BUG修復] 增加了對工具執行失敗的委婉化重試備援機制。如果工具調用因內容審查（或其他可重試錯誤）而失敗，系統會嘗試將參數委婉化後重試一次。此修改旨在確保 LORE 更新等後台任務在處理 NSFW 相關描述時的健壯性。
+    # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。在執行任何工具調用前，此函式會強制檢查所有針對 NPC 的創建/更新操作，如果目標名稱與使用者角色或 AI 戀人匹配，則該操作將被立即攔截並移除。此修改旨在從工具執行層面徹底杜絕核心主角被錯誤地當作 NPC 寫入 LORE 的嚴重問題。
+    # v183.1 (2025-09-06): [健壯性] 增加了對工具執行失敗的委婉化重試備援機制。
     # v183.0 (2025-09-03): [健壯性] 將串行任務之間的延遲增加到 4.0 秒。
-    # v182.0 (2025-09-03): [災難性BUG修復] 增加了對 `location_path` 參數的防禦性注入。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -2315,6 +2315,7 @@ class AILover:
             if not self.profile:
                 return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
             
+            # [v183.2 核心修正] 計畫淨化步驟
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
@@ -2322,12 +2323,18 @@ class AILover:
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
                 is_illegal = False
+                # 檢查所有可能操作 NPC 的工具
                 if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "update_npc_profile"]:
+                    # 檢查參數中是否有名稱字段
                     name_to_check = ""
                     if 'name' in call.parameters: name_to_check = call.parameters['name']
+                    elif 'standardized_name' in call.parameters: name_to_check = call.parameters['standardized_name']
+                    elif 'original_name' in call.parameters: name_to_check = call.parameters['original_name']
+                    
                     if name_to_check and name_to_check.lower() in protected_names:
                         is_illegal = True
                         logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
+                
                 if not is_illegal:
                     purified_plan.append(call)
 
@@ -2400,24 +2407,20 @@ class AILover:
                     logger.info(f"[{self.user_id}] {summary}")
                     summaries.append(summary)
                 except Exception as e:
-                    # [v183.1 核心修正] 啟動委婉化重試備援
                     logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 首次執行失敗: {e}。啟動【委婉化重試】策略...")
                     try:
                         euphemization_chain = self.get_euphemization_chain()
                         
-                        # 尋找最長的文本參數進行委婉化
                         text_params = {k: v for k, v in call.parameters.items() if isinstance(v, str)}
                         if not text_params: raise ValueError("參數中無可委婉化的文本。")
                         
                         key_to_euphemize = max(text_params, key=lambda k: len(text_params[k]))
                         text_to_euphemize = text_params[key_to_euphemize]
                         
-                        # 提取關鍵詞
                         entity_extraction_chain = self.get_entity_extraction_chain()
                         entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
                         keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
 
-                        # 生成安全的文本
                         safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
                         if not safe_text: raise ValueError("委婉化鏈未能生成安全文本。")
 
@@ -2443,7 +2446,11 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v183.1 - 委婉化重試)
+    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
+
+
+
+    
 
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
     # 更新紀錄:
