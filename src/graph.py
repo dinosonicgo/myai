@@ -215,50 +215,53 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
-# 函式：意圖分類節點 (v2.0 - 適配淨化層)
+# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 進行意圖分類。這確保了此分析節點不會因直接接觸原始的露骨輸入而被內容審查攔截，是解決路由失敗問題的關鍵修正。
+# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。此節點現在回歸到最原始、最直接的模式：直接使用未經修改的 `state['messages'][-1].content` 進行意圖分類，將所有突破審查的壓力交給 `ainvoke_with_rotation` 和其後續的重試策略。
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
     """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v2.0 核心修正] 優先使用淨化後的輸入，如果不存在則備援至原始輸入
-    user_input_for_classification = state.get('sanitized_user_input', state['messages'][-1].content)
+    # [v3.0 核心修正] 始終使用最原始的使用者輸入
+    user_input_for_classification = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對 '{user_input_for_classification[:30]}...' 進行意圖分類...")
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對原始輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
     
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
         {"user_input": user_input_for_classification},
-        retry_strategy='none' # 分類鏈不應重試，失敗則啟用備援
+        retry_strategy='euphemize' # 分類鏈本身可以使用較溫和的重試
     )
     
     if not classification_result:
-        logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 SFW。")
-        classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
+        logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 nsfw_descriptive。")
+        # 備援時，傾向於最可能觸發審查的類型，以確保能進入強大的NSFW規劃鏈
+        classification_result = IntentClassificationResult(intent_type='nsfw_descriptive', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v2.0 - 適配淨化層)
+# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
 
-# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
+# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 作為 RAG 檢索的查詢。這確保了檢索過程本身不會因觸發內容審查而失敗，提高了整個 RAG 鏈路的穩定性。
+# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。此節點現在直接使用原始使用者輸入調用 `retrieve_and_summarize_memories`，後者已被修改為不再進行內部淨化。
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """[2] 專用記憶檢索節點，執行RAG操作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v2.0 核心修正] 優先使用淨化後的輸入進行檢索
-    user_input_for_retrieval = state.get('sanitized_user_input', state['messages'][-1].content)
+    # [v3.0 核心修正] 始終使用最原始的使用者輸入
+    user_input_for_retrieval = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於安全查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
     
-    # ai_core.py 中的輔助函式會處理總結邏輯
+    # ai_core.py 中的輔助函式已被修改為不再進行內部淨化
     rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input_for_retrieval)
     return {"rag_context": rag_context_str}
-# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
+# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
 
 
 
@@ -1161,19 +1164,18 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v36.0 - 動作分解架構)
+# 函式：創建主回應圖 (v37.0 - 廢除淨化層)
 # 更新紀錄:
-# v36.0 (2025-09-07): [終極架構重構] 根據全新的「動作分解原則」對圖的拓撲進行了最終簡化。
-#    1. [移除] 徹底廢棄並移除了舊的、複雜的「NSFW思維鏈」流水線（`nsfw_initial_planning`, `nsfw_lexicon_injection`, `nsfw_style_compliance`）。
-#    2. [替換] 引入了全新的、統一的 `nsfw_planning_node` 和 `remote_nsfw_planning_node`，它們現在是各自路徑的唯一規劃器。
-#    3. [重連] 修改了 `route_to_planner` 路由器，使其現在將 NSFW 流量精確地分發到對應的本地或遠程 NSFW 規劃器。
-#    此修改使圖的結構回歸到一個更簡潔、更強大、且完全基於創意生成的「統一規劃 -> 統一渲染」模型。
-# v34.0 (2025-09-06): [災難性BUG修復] 引入了NSFW思維鏈。
+# v37.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，對圖的拓撲進行了決定性的簡化。
+#    1. [移除] 徹底廢棄並移除了 `pre_process_input` 節點（又名淨化層）。
+#    2. [重設入口] 將圖的入口點（Entry Point）直接設置回 `classify_intent` 節點。
+#    此修改確保了最原始、最充滿力量的使用者指令能夠未經修改地直接驅動整個圖的流程，將所有突破審查的壓力集中在配置了 `force` 重試策略的核心規劃與渲染鏈上，是解決因前期委婉化失敗導致鏈式崩潰的根本性修正。
+# v36.0 (2025-09-07): [終極架構重構] 部署了“動作分解原則”架構。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("pre_process_input", pre_process_input_node)
+    # [v37.0 移除] 不再註冊 pre_process_input 節點
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1181,20 +1183,14 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-
-    # 註冊所有統一規劃器
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("nsfw_planning", nsfw_planning_node) # v36.0 新增
-    graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node) # v36.0 新增
-    
-    # 註冊後續通用節點
+    graph.add_node("nsfw_planning", nsfw_planning_node)
+    graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    
-    # 註冊匯合點與輔助節點
     graph.add_node("planner_junction", lambda state: {})
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
@@ -1205,10 +1201,9 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-
     # --- 2. 定義圖的拓撲結構 ---
-    graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "classify_intent")
+    # [v37.0 核心修正] 將入口點直接設置為 classify_intent
+    graph.set_entry_point("classify_intent")
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
@@ -1240,16 +1235,15 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v36.0 核心修正] 精確路由到對應的規劃器
         if 'nsfw' in intent:
             if viewing_mode == 'remote':
                 return "remote_nsfw_planning"
-            else: # local
+            else:
                 return "nsfw_planning"
-        else: # sfw
+        else:
             if viewing_mode == 'remote':
                 return "remote_sfw_planning"
-            else: # local
+            else:
                 return "sfw_planning"
 
     graph.add_conditional_edges(
@@ -1263,20 +1257,18 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # 所有規劃器的出口都統一連接到工具執行
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("nsfw_planning", "tool_execution")
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     
-    # 後續流程保持統一
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v36.0 - 動作分解架構)
+# 函式：創建主回應圖 (v37.0 - 廢除淨化層)
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
