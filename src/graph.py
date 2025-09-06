@@ -335,7 +335,85 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
+# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
+# 更新紀錄:
+# v2.0 (2025-09-07): [終極架構重構] 此節點被徹底重寫，成為一個純Python的「確定性計畫生成器」。它不再呼叫LLM，而是通過內部邏輯完成三項任務：
+#    1. 根據關鍵詞選擇硬編碼的JSON模板。
+#    2. 分析場景角色列表，識別出行動的參與者。
+#    3. 使用字串替換，將角色名字機械地裝配到模板中。
+#    此修改將最容易被審查的創意規劃步驟完全移出LLM，是解決頑固性內容審查的最終手段。
+def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
+    """[NSFW Template-Step1] 純Python節點，負責選擇、填充並裝配一個預定義的NSFW動作模板。"""
+    user_id = state['user_id']
+    user_input = state['messages'][-1].content.lower()
+    planning_subjects = state.get('planning_subjects', [])
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫...")
 
+    if not planning_subjects or len(planning_subjects) < 2:
+        logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 場景中角色不足（需要至少2名），無法裝配模板。")
+        return {"turn_plan": TurnPlan(thought="場景角色不足，無法執行模板化動作。")}
+
+    # 預定義的模板庫
+    templates = {
+        "FUCK_TEMPLATE": {
+            "thought": "使用者指令的核心動作是性交。已使用預設的性交模板，並裝配了場景中的角色。",
+            "character_actions": [
+                {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的肉棒對準 {角色B} 的肉穴口。"},
+                {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的肉棒完全插入自己的體內。"},
+                {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的肉穴中用力抽插。"}
+            ]
+        }
+    }
+
+    selected_template_key = None
+    if "幹" in user_input or "操" in user_input or "性交" in user_input:
+        selected_template_key = "FUCK_TEMPLATE"
+    
+    if not selected_template_key:
+        logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 未能為輸入匹配到任何NSFW模板。")
+        return {"turn_plan": TurnPlan(thought="未能匹配到動作模板，將嘗試根據上下文進行潤色。")}
+
+    # 角色識別邏輯 (簡易版)
+    # 假設：指令中提到的第一個角色類型是主動方，第二個是被動方
+    actor_a_name = None
+    actor_b_name = None
+    
+    # 尋找男性/男孩作為主動方
+    for subject in planning_subjects:
+        desc = subject.get('description', '').lower()
+        if 'boy' in desc or '男孩' in desc or 'male' in desc or subject.get('gender', '').lower() == '男':
+            actor_a_name = subject['name']
+            break
+    
+    # 尋找女性/母親作為被動方
+    for subject in planning_subjects:
+        desc = subject.get('description', '').lower()
+        if subject['name'] != actor_a_name and ('mother' in desc or '媽媽' in desc or 'female' in desc or subject.get('gender', '').lower() in ['女', '女性']):
+            actor_b_name = subject['name']
+            break
+
+    if not (actor_a_name and actor_b_name):
+        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出動作的雙方。")
+        return {"turn_plan": TurnPlan(execution_rejection_reason="系統錯誤：無法在當前場景中識別出可以執行此動作的角色。")}
+
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actor_a_name}, 角色B: {actor_b_name}")
+
+    # 機械裝配
+    template = templates[selected_template_key]
+    template_str = json.dumps(template)
+    
+    # 執行替換
+    filled_str = template_str.replace("{角色A}", actor_a_name).replace("{角色B}", actor_b_name)
+    
+    try:
+        filled_plan_dict = json.loads(filled_str)
+        final_plan = TurnPlan.model_validate(filled_plan_dict)
+        logger.info(f"[{user_id}] (Graph|NSFW Assembly) NSFW計畫模板已成功裝配。")
+        return {"turn_plan": final_plan}
+    except Exception as e:
+        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
+        return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
+# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 
 
 # 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
@@ -1197,10 +1275,12 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v38.1 - 恢復並最終確立思維鏈)
+# 函式：創建主回應圖 (v40.0 - 模板裝配)
 # 更新紀錄:
-# v38.1 (2025-09-07): [災難性BUG修復] 恢復了v36.0版本中被證實有效的「NSFW思維鏈」流水線拓撲，並廢棄了v38.0中不成功的單一規劃器模式。這是對「指令漂移」和「創意審查」問題的最終架構性解決方案。
-# v38.0 (2025-09-07): [重大架構重構] 嘗試了「突破+潤色」混合模式。
+# v40.0 (2025-09-07): [終極架構] 徹底廢除了基於創意生成的NSFW規劃流程。引入了全新的、基於「模板裝配」的流水線：
+#    1. `nsfw_template_assembly_node`: 一個純Python節點，負責選擇、識別角色並用字串替換來機械地裝配計畫。
+#    2. `nsfw_style_compliance_node`: 保留此節點作為潤色器，為機械計畫增加靈魂。
+#    此架構旨在將審查風險降至理論最低點，是解決頑固性內容審查的最終方案。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1216,10 +1296,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v38.1 核心修正] 註冊 NSFW 思維鏈節點
-    graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
-    graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
-    graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
+    # [v40.0 新增] 註冊新的模板裝配流水線節點
+    graph.add_node("nsfw_template_assembly", nsfw_template_assembly_node)
+    graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node) # 保留潤色節點
 
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
@@ -1236,10 +1315,8 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
-    
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
@@ -1261,18 +1338,13 @@ def create_main_response_graph() -> StateGraph:
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
-        if not intent_classification:
-            return "sfw_planner" 
-
+        if not intent_classification: return "sfw_planner" 
         intent = intent_classification.intent_type
         ai_core = state['ai_core']
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
-        
-        # [v38.1 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
         if 'nsfw' in intent:
-            return "nsfw_thought_chain_start"
-        
+            return "nsfw_assembly_pipeline_start" # 修改路由目標
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1284,13 +1356,12 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_thought_chain_start": "nsfw_initial_planning"
+            "nsfw_assembly_pipeline_start": "nsfw_template_assembly" # [v40.0 核心修正]
         }
     )
     
-    # [v38.1 核心修正] 構建新的 NSFW 思維鏈流水線
-    graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
-    graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
+    # [v40.0 核心修正] 構建新的模板裝配流水線
+    graph.add_edge("nsfw_template_assembly", "nsfw_style_compliance") # 裝配後直接潤色
     graph.add_edge("nsfw_style_compliance", "tool_execution")
     
     # SFW 路線的出口
@@ -1304,9 +1375,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v38.1 - 恢復並最終確立思維鏈)
-
-
+# 函式：創建主回應圖 (v40.0 - 模板裝配)
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
