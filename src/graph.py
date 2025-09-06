@@ -870,11 +870,11 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
-# 函式：統一的敘事渲染節點 (v22.0 - 數據流修正)
+# 函式：統一的敘事渲染節點 (v23.0 - 數據流修正)
 # 更新紀錄:
-# v22.0 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt` 和 `response_style_prompt`。這是實現“指令淹沒”策略、解決最終渲染環節被內容審查攔截的關鍵一步。
-# v21.0 (2025-09-12): [架構重構] 強化此鏈，使其成為能夠處理所有類型 TurnPlan (SFW, NSFW, 遠景) 的統一“小說家”節點。
-# v204.0 (2025-09-06): [重大功能修正] 賦予敘事鏈在計畫對話不足時，根據風格指令補充對話的權力。
+# v23.0 (2025-09-06): [災難性BUG修復] 根據 ValueError，修正了傳遞給渲染鏈的參數結構。現在它會將所有需要的變數（system_prompt, turn_plan 等）打包成一個單一的字典傳入，以匹配 `get_narrative_chain` v212.0 的新輸入結構，從根本上解決了因輸入類型錯誤導致的崩潰問題。
+# v22.0 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt` 和 `response_style_prompt`。
+# v21.0 (2025-09-12): [架構重構] 強化此鏈，使其成為能夠處理所有類型 TurnPlan 的統一“小說家”節點。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
     user_id = state['user_id']
@@ -887,20 +887,22 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if turn_plan.execution_rejection_reason:
         return {"llm_response": turn_plan.execution_rejection_reason}
         
+    # [v23.0 核心修正] 將所有參數打包成一個字典
+    chain_input = {
+        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
+        "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
+        "turn_plan": turn_plan
+    }
+        
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_narrative_chain(),
-        {
-            # [v22.0 核心修正] 傳入完整的系統指令和風格指令
-            "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
-            "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
-            "turn_plan": turn_plan
-        },
+        chain_input, # 傳遞打包好的字典
         retry_strategy='force'
     )
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v22.0 - 數據流修正)
+# 函式：統一的敘事渲染節點 (v23.0 - 數據流修正)
 
 # --- 階段四：收尾 (Finalization) ---
 
