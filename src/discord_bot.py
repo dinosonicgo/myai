@@ -1449,19 +1449,17 @@ class BotCog(commands.Cog):
         asyncio.create_task(self._perform_update_and_restart(interaction))
     # 函式：管理員強制更新 (v40.2 - 背景任務重構)
 
-    # 函式：執行更新與重啟的背景任務 (v1.0 - 全新創建)
+# 函式：執行更新與重啟的背景任務 (v1.1 - 優雅關閉)
     # 更新紀錄:
-    # v1.0 (2025-09-05): [全新創建] 創建此輔助函式，用於在背景中安全地執行耗時的 git 操作和程式重啟，作為 admin_force_update 指令重構的一部分。
+    # v1.1 (2025-09-06): [災難性BUG修復] 移除了 `sys.exit(0)` 調用，改為設置一個從 main.py 傳入的全局 `shutdown_event`。此修改遵循了異步程式設計的最佳實踐，將關閉信號傳遞給主事件循環進行統一的、優雅的關閉，從而徹底解決了 `Task exception was never retrieved` 的警告。
+    # v1.0 (2025-09-05): [全新創建] 創建此輔助函式，用於在背景中安全地執行耗時的 git 操作和程式重啟。
     async def _perform_update_and_restart(self, interaction: discord.Interaction):
         """
-        在背景中執行實際的 git 同步和重啟邏輯。
-        這是一個輔助函式，不應被直接當作指令呼叫。
+        在背景中執行實際的 git 同步和優雅的關閉信號。
         """
         try:
-            # 在開始耗時操作前，先等待一小段時間，確保主執行緒已完全釋放
             await asyncio.sleep(1)
 
-            # 定義一個同步函式來執行 git 命令，以便在線程中運行
             def run_git_sync():
                 git_reset_command = ["git", "reset", "--hard", "origin/main"]
                 process = subprocess.run(
@@ -1473,27 +1471,29 @@ class BotCog(commands.Cog):
                 )
                 return process
 
-            # 將阻塞的 git 操作放入線程池中執行
             process = await asyncio.to_thread(run_git_sync)
 
             if process.returncode == 0:
-                logger.info("背景任務：強制同步成功，準備重啟...")
+                logger.info("背景任務：強制同步成功，準備發送優雅關閉信號...")
                 success_message = (
                     "✅ **同步成功！**\n"
                     "程式碼已強制更新至最新版本。\n\n"
-                    "🔄 **機器人即將重啟...** (您的客戶端可能需要幾秒鐘才能重新連線)"
+                    "🔄 **正在觸發優雅重啟...** (您的客戶端可能需要幾秒鐘才能重新連線)"
                 )
-                # 嘗試發送最終的成功訊息，如果互動仍然有效
                 try:
                     await interaction.followup.send(success_message, ephemeral=True)
                 except discord.errors.NotFound:
                     logger.warning("背景任務：嘗試發送重啟訊息時互動已失效，但不影響重啟流程。")
 
-                # 等待訊息發送
                 await asyncio.sleep(3)
                 
-                # 使用 sys.exit(0) 發出一個乾淨的退出信號，讓 launcher.py 來處理重啟
-                sys.exit(0)
+                # [v1.1 核心修正] 設置全局關閉事件，而不是直接退出
+                if self.bot.shutdown_event:
+                    self.bot.shutdown_event.set()
+                    logger.info("背景任務：已設置全局關閉事件，主程式將優雅退出。")
+                else:
+                    logger.error("背景任務：無法觸發優雅重啟，Bot對象上未找到 shutdown_event！")
+
             else:
                 logger.error(f"背景任務：強制同步失敗: {process.stderr}")
                 error_message = (
@@ -1501,12 +1501,10 @@ class BotCog(commands.Cog):
                     f"Git 返回了錯誤，請檢查後台日誌。\n\n"
                     f"```\n{process.stderr.strip()}\n```"
                 )
-                # 嘗試發送錯誤訊息
                 try:
                     await interaction.followup.send(error_message, ephemeral=True)
                 except discord.errors.NotFound:
                      logger.error("背景任務：嘗試發送失敗訊息時互動已失效。")
-
 
         except FileNotFoundError:
             logger.error("背景任務：Git 命令未找到，無法執行強制更新。")
@@ -1520,7 +1518,7 @@ class BotCog(commands.Cog):
                 await interaction.followup.send(f"🔥 **發生未預期錯誤！**\n執行更新時遇到問題: {e}", ephemeral=True)
             except discord.errors.NotFound:
                 pass
-    # 函式：執行更新與重啟的背景任務 (v1.0 - 全新創建)
+    # 函式：執行更新與重啟的背景任務 (v1.1 - 優雅關閉)
 
     @app_commands.command(name="admin_check_status", description="[管理員] 查詢指定使用者的當前狀態")
     @app_commands.check(is_admin)
@@ -1577,10 +1575,13 @@ class BotCog(commands.Cog):
                 await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 # 類別：機器人核心功能集 (Cog)
 
-# 類別：AI 戀人機器人主體
+# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
+# 更新紀錄:
+# v1.1 (2025-09-06): [重大架構重構] 修改了 `__init__` 方法，使其能夠接收並存儲一個 `asyncio.Event` 作為關閉信號。這使得機器人內部（如 Cog）可以訪問並觸發這個事件，從而實現與主事件循環的解耦和優雅的關閉流程。
 class AILoverBot(commands.Bot):
-    def __init__(self):
+    def __init__(self, shutdown_event: asyncio.Event):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
+        self.shutdown_event = shutdown_event
     
     async def setup_hook(self):
         await self.add_cog(BotCog(self))
@@ -1589,4 +1590,4 @@ class AILoverBot(commands.Bot):
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-# 類別：AI 戀人機器人主體
+# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
