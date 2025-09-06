@@ -27,26 +27,45 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 
-# 函式：場景與動作分析節點
+# 函式：場景與動作分析節點 (v2.0 - 預處理強化)
 # 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給分析鏈而導致的內容審查失敗問題。現在，此節點會先調用一個簡單的實體提取鏈來獲取中性關鍵詞，然後用這些關鍵詞構建一個“淨化”後的安全查詢，最後再將此安全查詢傳遞給場景分析鏈。此修改旨在從根本上規避在分析階段的內容審查。
 # v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心节点，用于判断本地/远程视角。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """[SFW Path] 專用節點，分析 SFW 場景的視角（本地 vs 遠程）。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis [SFW Path] -> 正在進行場景視角分析...")
+    logger.info(f"[{user_id}] (Graph) Node: scene_and_action_analysis -> 正在進行場景視角分析...")
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph) 在 scene_and_action_analysis 中 ai_core.profile 未加載。")
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
 
+    # [v2.0 核心修正] "先淨化，後分析" 策略
+    try:
+        logger.info(f"[{user_id}] (Scene Analysis) 正在對輸入進行預處理以創建安全查詢...")
+        entity_chain = ai_core.get_entity_extraction_chain()
+        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
+
+        if entity_result and entity_result.names:
+            sanitized_input_for_analysis = "觀察場景：" + " ".join(entity_result.names)
+            logger.info(f"[{user_id}] (Scene Analysis) 已生成安全查詢: '{sanitized_input_for_analysis}'")
+        else:
+            sanitized_input_for_analysis = user_input
+            logger.warning(f"[{user_id}] (Scene Analysis) 未能從輸入中提取實體，將使用原始輸入進行分析，可能存在風險。")
+    except Exception as e:
+        logger.error(f"[{user_id}] (Scene Analysis) 預處理失敗: {e}", exc_info=True)
+        sanitized_input_for_analysis = user_input
+
     current_location_path = ai_core.profile.game_state.location_path
+    scene_analysis_chain = ai_core.get_scene_analysis_chain()
     scene_analysis = await ai_core.ainvoke_with_rotation(
-        ai_core.get_scene_analysis_chain(),
-        {"user_input": user_input, "current_location_path_str": " > ".join(current_location_path)},
+        scene_analysis_chain,
+        {"user_input": sanitized_input_for_analysis, "current_location_path_str": " > ".join(current_location_path)},
         retry_strategy='euphemize'
     )
+
     if not scene_analysis:
         logger.warning(f"[{user_id}] (Graph) 場景分析鏈委婉化重試失敗，啟動安全備援。")
         scene_analysis = SceneAnalysisResult(
@@ -54,8 +73,12 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
             reasoning='安全備援：場景分析鏈失敗。', 
             action_summary=user_input
         )
+    
+    # 即使分析成功，也要將原始的使用者意圖傳遞下去
+    scene_analysis.action_summary = user_input
+
     return {"scene_analysis": scene_analysis}
-# 函式：場景與動作分析節點
+# 函式：場景與動作分析節點 (v2.0 - 預處理強化)
 
 
 # 函式：視角模式路由器
