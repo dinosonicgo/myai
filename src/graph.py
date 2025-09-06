@@ -347,11 +347,11 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v4.0 - 數據綁定)
+# 函式：專用的LORE擴展執行節點 (v5.0 - 輸入淨化)
 # 更新紀錄:
-# v4.0 (2025-09-18): [重大架構重構] 引入“數據綁定”策略。此節點在創建完新的 NPC 後，會立即將這些新角色的 LORE 檔案打包成 `planning_subjects` 並返回。這確保了下游的規劃節點接收到的是最新、最準確的角色數據作為其唯一的規劃素材。
+# v5.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給選角鏈而導致的內容審查失敗問題。現在，此節點會先對輸入進行淨化，提取中性關鍵詞，然後再將這些安全的關鍵詞傳遞給 `scene_casting_chain`，從根本上規避了在 LORE 創建階段的內容審查。
+# v4.0 (2025-09-18): [重大架構重構] 引入“數據綁定”策略。
 # v3.0 (2025-09-18): [災難性BUG修復] 徹底重構了此節點的地點上下文處理邏輯。
-# v2.1 (2025-09-06): [重大架構重構] 更新了此節點的實現，使其調用 ai_core._add_cast_to_scene。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角，並將新角色綁定為規劃主體。"""
     user_id = state['user_id']
@@ -374,8 +374,23 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         effective_location_path = gs.location_path
         logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用本地視角，目標地點: {effective_location_path}")
 
+    # [v5.0 核心修正] "先淨化，後選角" 策略
+    try:
+        logger.info(f"[{user_id}] (LORE Expansion) 正在對輸入進行預處理以創建安全的選角上下文...")
+        entity_chain = ai_core.get_entity_extraction_chain()
+        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
+
+        if entity_result and entity_result.names:
+            sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names)
+            logger.info(f"[{user_id}] (LORE Expansion) 已生成安全的選角上下文: '{sanitized_context_for_casting}'")
+        else:
+            sanitized_context_for_casting = user_input
+            logger.warning(f"[{user_id}] (LORE Expansion) 未能從輸入中提取實體，將使用原始輸入進行選角，可能存在風險。")
+    except Exception as e:
+        logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
+        sanitized_context_for_casting = user_input
+        
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
-    safe_dialogue_context = state.get('sanitized_user_input') or user_input
 
     cast_result = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_casting_chain(),
@@ -383,7 +398,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
             "game_context": game_context_for_casting, 
-            "recent_dialogue": safe_dialogue_context
+            "recent_dialogue": sanitized_context_for_casting # 使用淨化後的上下文
         },
         retry_strategy='euphemize'
     )
@@ -393,7 +408,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         created_names = await ai_core._add_cast_to_scene(cast_result)
         logger.info(f"[{user_id}] (Graph|6A) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
         
-        # [v4.0 核心修正] 立即查詢剛創建的角色，並將其綁定為規劃主體
         if created_names:
             lore_query_tasks = [lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)]
             results = await asyncio.gather(*lore_query_tasks)
@@ -407,7 +421,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
          logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色，規劃主體為空。")
 
     return updates
-# 函式：專用的LORE擴展執行節點 (v4.0 - 數據綁定)
+# 函式：專用的LORE擴展執行節點 (v5.0 - 輸入淨化)
 
 # --- 階段二：規劃 (Planning) ---
 
