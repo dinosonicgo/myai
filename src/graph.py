@@ -160,14 +160,17 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v2.0 - 注入對話歷史)
+# 函式：統一NSFW規劃節點 (v3.0 - 適配淨化輸入)
 # 更新紀錄:
-# v2.0 (2025-09-17): [災難性BUG修復] 創建此統一節點以取代舊的思維鏈。它會調用 get_nsfw_planning_chain，並為其傳遞包括對話歷史在內的完整上下文，旨在通過單一、強力的 Prompt 直接生成最終的露骨計劃。
+# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`，確保傳遞給規劃器的指令是安全的，以規避內容審查。
+# v2.0 (2025-09-17): [災難性BUG修復] 創建此統一節點以取代舊的思維鏈。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在生成統一NSFW行動計劃...")
+    # [v3.0 核心修正] 使用淨化後的輸入
+    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
@@ -205,7 +208,7 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
             "world_snapshot": world_snapshot,
             "full_lore_records_json": full_lore_records_json,
             "chat_history": chat_history_str,
-            "user_input": state['messages'][-1].content,
+            "user_input": user_input, # [v3.0 核心修正]
             "username": ai_core.profile.user_profile.name,
         },
         retry_strategy='force'
@@ -213,7 +216,10 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     if not plan:
         plan = TurnPlan(thought="安全備援：NSFW統一規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v2.0 - 注入對話歷史)
+# 函式：統一NSFW規劃節點 (v3.0 - 適配淨化輸入)
+
+
+
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
@@ -275,7 +281,44 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 # 函式：LORE擴展決策節點 (v3.0 - 實體存在性優先)
 
 
+# 函式：無害化輸入節點 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-18): [重大架構升級] 創建此專用節點，作為所有規劃器前的“淨化層”。它調用委婉化鏈，將可能觸發內容審查的原始使用者輸入，轉化為一個保留核心意圖但用詞中性的安全指令，旨在從根本上解決因輸入“投毒”導致整個規劃鏈被 API 攔截的問題。
+async def sanitize_input_node(state: ConversationGraphState) -> Dict:
+    """將原始使用者輸入轉化為一個對規劃器安全的、中性的指令。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    intent_type = state['intent_classification'].intent_type
+    
+    # 只有 NSFW 相關的意圖需要淨化
+    if 'nsfw' not in intent_type:
+        logger.info(f"[{user_id}] (Graph) Node: sanitize_input -> 意圖為 SFW，跳過淨化。")
+        return {"sanitized_user_input": user_input}
 
+    logger.info(f"[{user_id}] (Graph) Node: sanitize_input -> 正在對 NSFW 指令進行無害化處理...")
+    
+    entity_extraction_chain = ai_core.get_entity_extraction_chain()
+    entity_result = await ai_core.ainvoke_with_rotation(entity_extraction_chain, {"text_input": user_input})
+    
+    if not (entity_result and entity_result.names):
+        logger.warning(f"[{user_id}] (Sanitizer) 未能從輸入中提取實體，將使用原始輸入作為安全備援。")
+        return {"sanitized_user_input": user_input}
+        
+    euphemization_chain = ai_core.get_euphemization_chain()
+    sanitized_input = await ai_core.ainvoke_with_rotation(
+        euphemization_chain,
+        {"keywords": entity_result.names},
+        retry_strategy='none' # 委婉化本身失敗則無法挽救
+    )
+    
+    if not sanitized_input:
+        logger.error(f"[{user_id}] (Sanitizer) 委婉化重構鏈失敗，將使用原始輸入，這極可能導致後續規劃失敗！")
+        sanitized_input = user_input
+    
+    logger.info(f"[{user_id}] (Sanitizer) 指令淨化成功: '{user_input}' -> '{sanitized_input}'")
+    return {"sanitized_user_input": sanitized_input}
+# 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
 # 函式：專用的LORE擴展執行節點 (v3.0 - 地點上下文感知)
@@ -458,16 +501,18 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
 
 
 
-    # 函式：SFW規劃節點 (v22.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v22.0 (2025-09-16): [重大邏輯強化] 調用 `_get_formatted_chat_history` 輔助函式來獲取最近的對話歷史，並將其作為 `chat_history` 參數傳遞給規劃鏈，以確保劇情連貫性。
-    # v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
-    # v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數。
+# 函式：SFW規劃節點 (v23.0 - 適配淨化輸入)
+# 更新紀錄:
+# v23.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，不再使用原始的 `user_input`，而是改為使用由 `sanitize_input_node` 生成的 `sanitized_user_input`，確保所有傳遞給規劃器的指令都是安全的。
+# v22.0 (2025-09-16): [重大邏輯強化] 調用 `_get_formatted_chat_history` 輔助函式來獲取最近的對話歷史。
+# v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在生成SFW行動計劃...")
+    # [v23.0 核心修正] 使用淨化後的輸入
+    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
@@ -475,10 +520,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     gs = ai_core.profile.game_state
     
     raw_lore_objects = state.get('raw_lore_objects', [])
-    # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
-
-    # [v22.0 新增] 獲取格式化的對話歷史
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
@@ -505,16 +547,15 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
             "system_prompt": ai_core.profile.one_instruction, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot, 
-            "chat_history": chat_history_str, # [v22.0 核心修正] 傳遞對話歷史
-            "user_input": state['messages'][-1].content, 
+            "chat_history": chat_history_str,
+            "user_input": user_input, # [v23.0 核心修正]
         },
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-    # 函式：SFW規劃節點 (v22.0 - 注入對話歷史)
-
+# 函式：SFW規劃節點 (v23.0 - 適配淨化輸入)
 
 
 
@@ -570,16 +611,18 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
 
 
-    # 函式：遠程 SFW 規劃節點 (v2.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保遠程場景規劃能參考到觸發前的對話上下文。
-    # v1.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
-    # v1.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
+# 函式：遠程 SFW 規劃節點 (v3.0 - 適配淨化輸入)
+# 更新紀錄:
+# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
+# v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞。
+# v1.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在生成遠程SFW場景計劃...")
+    # [v3.0 核心修正] 使用淨化後的輸入
+    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程SFW場景計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
@@ -594,10 +637,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     target_location_path_str = " > ".join(scene_analysis.target_location_path)
     
     raw_lore_objects = state.get('raw_lore_objects', [])
-    # [v1.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
-
-    # [v2.0 新增] 獲取格式化的對話歷史
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
@@ -625,9 +665,9 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "full_lore_records_json": full_lore_records_json,
-            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
+            "chat_history": chat_history_str,
             "target_location_path_str": target_location_path_str,
-            "user_input": state['messages'][-1].content,
+            "user_input": user_input, # [v3.0 核心修正]
             "username": ai_core.profile.user_profile.name,
             "ai_name": ai_core.profile.ai_profile.name
         },
@@ -636,20 +676,22 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-    # 函式：遠程 SFW 規劃節點 (v2.0 - 注入對話歷史)
+# 函式：遠程 SFW 規劃節點 (v3.0 - 適配淨化輸入)
 
 
 
-    # 函式：遠程NSFW規劃節點 (v2.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保遠程 NSFW 場景規劃能參考觸發前的對話上下文。
-    # v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
-    # v21.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
+# 函式：遠程NSFW規劃節點 (v3.0 - 適配淨化輸入)
+# 更新紀錄:
+# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
+# v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞。
+# v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7C) Node: remote_nsfw_planning -> 正在生成遠程NSFW場景計劃...")
+    # [v3.0 核心修正] 使用淨化後的輸入
+    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7C) Node: remote_nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程NSFW場景計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
@@ -664,10 +706,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     target_location_path_str = " > ".join(scene_analysis.target_location_path)
 
     raw_lore_objects = state.get('raw_lore_objects', [])
-    # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
-    
-    # [v2.0 新增] 獲取格式化的對話歷史
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
@@ -695,9 +734,9 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "full_lore_records_json": full_lore_records_json,
-            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
+            "chat_history": chat_history_str,
             "target_location_path_str": target_location_path_str,
-            "user_input": state['messages'][-1].content,
+            "user_input": user_input, # [v3.0 核心修正]
             "username": ai_core.profile.user_profile.name,
             "ai_name": ai_core.profile.ai_profile.name
         },
@@ -706,7 +745,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-    # 函式：遠程NSFW規劃節點 (v2.0 - 注入對話歷史)
+# 函式：遠程NSFW規劃節點 (v3.0 - 適配淨化輸入)
 
 
 
@@ -846,13 +885,12 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v26.0 - 統一NSFW規劃鏈)
+# 函式：創建主回應圖 (v27.0 - 引入淨化層)
 # 更新紀錄:
+# v27.0 (2025-09-18): [重大架構升級] 引入了“淨化層”來解決內容審查問題。
+#    1. [新增] 註冊了全新的 `sanitize_input_node` 節點。
+#    2. [修正] 調整了圖的拓撲，將 `sanitize_input_node` 插入到 LORE 擴展流程之後、所有規劃器的統一入口之前，確保所有規劃器接收到的都是無害化處理後的安全指令。
 # v26.0 (2025-09-17): [災難性BUG修復] 根據反審查策略的演進，徹底重構了 NSFW 路由。
-#    1. [移除] 刪除了舊的 `nsfw_initial_planning`, `nsfw_lexicon_injection`, `nsfw_style_compliance` 思維鏈三節點。
-#    2. [新增] 註冊了新的、統一的 `nsfw_planning_node` 節點。
-#    3. [修正] 將 `nsfw_interactive` 意圖的路由正確地指向了 `nsfw_planning_node`，以啟用新的、更強力的反審查 Prompt。
-# v25.0 (2025-09-16): [重大架構升級] 引入了 NSFW 思維鏈並修復了路由。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -866,11 +904,13 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("update_viewing_mode", update_viewing_mode_node)
     
+    # [v27.0 新增] 淨化層節點
+    graph.add_node("sanitize_input", sanitize_input_node)
+
     # 規劃節點
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
-    # [v26.0 新增] 統一的 NSFW 規劃節點
     graph.add_node("nsfw_planning", nsfw_planning_node)
 
     # 統一出口節點
@@ -898,9 +938,12 @@ def create_main_response_graph() -> StateGraph:
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
-        { "expand_lore": "lore_expansion", "continue_to_planner": "planner_junction" }
+        { "expand_lore": "lore_expansion", "continue_to_planner": "sanitize_input" } # [v27.0 修正] 指向淨化層
     )
-    graph.add_edge("lore_expansion", "planner_junction")
+    graph.add_edge("lore_expansion", "sanitize_input") # [v27.0 修正] 指向淨化層
+    
+    # [v27.0 新增] 淨化層連接到規劃器入口
+    graph.add_edge("sanitize_input", "planner_junction")
 
     # 主規劃器路由
     def route_to_planner(state: ConversationGraphState) -> str:
@@ -914,18 +957,13 @@ def create_main_response_graph() -> StateGraph:
         
         if viewing_mode == 'remote':
             if 'nsfw' in intent:
-                logger.info(f"[{user_id}] (Router) Mode is remote, intent is NSFW-like -> remote_nsfw_planning")
                 return "remote_nsfw_planner"
             else:
-                logger.info(f"[{user_id}] (Router) Mode is remote, intent is SFW-like -> remote_sfw_planning")
-                return "remote_sfw_planning"
+                return "remote_sfw_planner"
         else: # viewing_mode == 'local'
             if intent == 'nsfw_interactive':
-                # [v26.0 核心修正] 指向統一的 NSFW 規劃節點
-                logger.info(f"[{user_id}] (Router) Mode is local, intent is nsfw_interactive -> nsfw_planning")
                 return "nsfw_planner"
             else: 
-                logger.info(f"[{user_id}] (Router) Mode is local, intent is SFW-like -> sfw_planning")
                 return "sfw_planner"
 
     graph.add_conditional_edges(
@@ -933,7 +971,7 @@ def create_main_response_graph() -> StateGraph:
         route_to_planner,
         { 
             "sfw_planner": "sfw_planning", 
-            "nsfw_planner": "nsfw_planning", # [v26.0 核心修正]
+            "nsfw_planner": "nsfw_planning",
             "remote_sfw_planner": "remote_sfw_planning",
             "remote_nsfw_planner": "remote_nsfw_planning"
         }
@@ -943,7 +981,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("remote_nsfw_planning", "tool_execution")
-    graph.add_edge("nsfw_planning", "tool_execution") # [v26.0 核心修正]
+    graph.add_edge("nsfw_planning", "tool_execution")
     
     # 統一出口流程
     graph.add_edge("tool_execution", "narrative_rendering")
@@ -952,7 +990,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v26.0 - 統一NSFW規劃鏈)
+# 函式：創建主回應圖 (v27.0 - 引入淨化層)
 
 
 
