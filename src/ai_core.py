@@ -468,11 +468,13 @@ class AILover:
     
 
 
-    # 函式：獲取上下文地點推斷鏈 (v1.0 - 全新創建)
+    # 函式：獲取上下文地點推斷鏈 (v1.1 - 變數名修正)
     # 更新紀錄:
-    # v1.0 (2025-09-06): [全新創建] 根據「遠程視角管理徹底失敗」的分析，創建了這個全新的、最強大的地點推斷鏈。它接收完整的世界觀和場景LORE作為上下文，被賦予了從模糊指令中（無論是明確提及還是需要從角色LORE回溯）推斷出最合理目標地點的權力。它將被新的 `perceive_and_set_view_node` 調用，是解決地點信息丟失問題的最終方案。
+    # v1.1 (2025-09-06): [災難性BUG修復] 根據 AttributeError，修正了函式內部所有因複製貼上錯誤而導致的變數名稱錯誤（`contextual_loc` -> `contextual_location_chain`），解決了因此導致的嚴重崩潰問題。
+    # v1.0 (2025-09-06): [全新創建] 創建了這個全新的、最強大的地點推斷鏈。
     def get_contextual_location_chain(self) -> Runnable:
         """獲取或創建一個基於完整上下文來推斷目標地點的鏈。"""
+        # [v1.1 核心修正] 修正所有屬性名稱
         if not hasattr(self, 'contextual_location_chain') or self.contextual_location_chain is None:
             
             class LocationPath(BaseModel):
@@ -502,7 +504,11 @@ class AILover:
 請開始你的分析，並返回一個包含 `location_path` 的JSON。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.contextual_loc
+            # [v1.1 核心修正] 修正屬性賦值
+            self.contextual_location_chain = prompt | extractor_llm
+        # [v1.1 核心修正] 修正返回值
+        return self.contextual_location_chain
+    # 函式：獲取上下文地點推斷鏈 (v1.1 - 變數名修正)
 
 
 
