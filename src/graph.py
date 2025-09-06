@@ -1198,21 +1198,18 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v33.0 - 新增前置淨化層)
+# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
 # 更新紀錄:
-# v33.0 (2025-09-06): [重大架構升級] 根據「意圖分類鏈被審查」的根本原因，對圖的拓撲結構進行了重大修改。
-#    1. [新增] 引入了一個全新的 `pre_process_input_node` 節點。
-#    2. [修改] 將圖的入口點從 `classify_intent` 更改為 `pre_process_input`。
-#    3. [修改] 新的流程是 `pre_process_input` -> `classify_intent`，確保了分類器接收到的是經過淨化的安全指令。
-#    此修改是解決因極端輸入導致路由失敗的根本性修正。
-# v32.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的根本原因分析，廢除了舊的、分裂的節點。
+# v34.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決極端NSFW指令被模型自我審查的問題，徹底重構了圖的NSFW處理路徑。
+#    1. [替換] 廢棄了舊的、單一的 `nsfw_planning` 和 `remote_nsfw_planning` 節點。
+#    2. [新增] 引入了全新的三節點「NSFW思維鏈」流水線：`nsfw_initial_planning` -> `nsfw_lexicon_injection` -> `nsfw_style_compliance`。
+#    3. [重連] 修改了 `route_to_planner` 路由器，使其現在將所有NSFW流量（本地和遠程）都導向這個新的、更健壯的流水線的入口點。
+#    此修改是解決頑固性內容審查問題的根本性架構升級。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    # [v33.0 新增] 註冊新的預處理節點
     graph.add_node("pre_process_input", pre_process_input_node)
-    
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1221,10 +1218,14 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
+    # SFW 規劃器保持不變
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
-    graph.add_node("nsfw_planning", nsfw_planning_node)
+    
+    # [v34.0 新增] 註冊新的 NSFW 思維鏈節點
+    graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
+    graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
+    graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
 
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
@@ -1243,18 +1244,12 @@ def create_main_response_graph() -> StateGraph:
 
 
     # --- 2. 定義圖的拓撲結構 ---
-    # [v33.0 核心修正] 更改圖的入口點為新的預處理節點
     graph.set_entry_point("pre_process_input")
-    
-    # [v33.0 核心修正] 定義新的執行流程
     graph.add_edge("pre_process_input", "classify_intent")
-    
-    # 後續流程與之前類似，但都建立在正確的分類之上
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
-
     graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
@@ -1271,11 +1266,10 @@ def create_main_response_graph() -> StateGraph:
 
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
-        # 路由依據的是 classify_intent 的結果，它現在是安全的
         intent_classification = state.get('intent_classification')
         if not intent_classification:
             logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
-            return "sfw_planner" # 絕對安全的備援
+            return "sfw_planner" 
 
         intent = intent_classification.intent_type
         ai_core = state['ai_core']
@@ -1283,40 +1277,45 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        if 'descriptive' in intent:
-            if 'nsfw' in intent:
-                return "remote_nsfw_planner"
-            else:
-                return "remote_sfw_planner"
-        else: # interactive
-            if 'nsfw' in intent:
-                 return "nsfw_planner"
-            else:
-                 return "sfw_planner"
+        # [v34.0 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
+        if 'nsfw' in intent:
+            return "nsfw_thought_chain_start"
+        
+        # SFW 路由保持不變
+        if viewing_mode == 'remote':
+            return "remote_sfw_planner"
+        else:
+            return "sfw_planner"
 
     graph.add_conditional_edges(
         "planner_junction",
         route_to_planner,
         { 
             "sfw_planner": "sfw_planning", 
-            "nsfw_planner": "nsfw_planning",
             "remote_sfw_planner": "remote_sfw_planning",
-            "remote_nsfw_planner": "remote_nsfw_planning"
+            # [v34.0 核心修正] 新的路由目標
+            "nsfw_thought_chain_start": "nsfw_initial_planning"
         }
     )
     
+    # [v34.0 核心修正] 構建新的 NSFW 思維鏈流水線
+    graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
+    graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
+    # 流水線的出口統一連接到工具執行節點
+    graph.add_edge("nsfw_style_compliance", "tool_execution")
+    
+    # SFW 路線的出口
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
-    graph.add_edge("remote_nsfw_planning", "tool_execution")
-    graph.add_edge("nsfw_planning", "tool_execution")
     
+    # 後續流程保持統一
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v33.0 - 新增前置淨化層)
+# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
 
 
 
