@@ -465,13 +465,13 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v7.0 - LORE 地點修正)
+# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
 # 更新紀錄:
-# v7.0 (2025-09-06): [災難性BUG修復] 根據「LORE地點錯誤」問題，徹底重構了此節點的地點判斷邏輯。現在，它會嚴格遵循“視角優先”原則：如果當前處於遠程視角模式，則【必須】使用從 `scene_analysis` 中解析出的遠程目標路徑作為新 LORE 的創建地點；否則，才使用玩家的物理位置。此修改確保了為遠程場景創建的 NPC 會被正確地記錄在遠程地點。
+# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。在調用選角鏈後，此節點會檢查結果中是否包含一個推斷出的 `implied_location`。如果有，它會立即將該地點存入LORE，並【強制更新GameState】，將系統的視角模式切換到 remote 並設置好遠程目標路徑。此修改從根本上解決了因首次描述時地點信息缺失而導致的後續流程崩潰問題。
+# v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
 # v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
-# v5.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決內容審查失敗問題。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 專用的LORE擴展執行節點，執行選角，並將【所有】場景角色（新舊合併）綁定為規劃主體。"""
+    """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -483,29 +483,21 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
-    # [v7.0 核心修正] "視角優先" 地點判斷邏輯
+    # 地點判斷邏輯保持不變，為選角鏈提供一個基礎參考點
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
     effective_location_path: List[str]
 
     if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
         effective_location_path = scene_analysis.target_location_path
-        logger.info(f"[{user_id}] (Graph|6A) LORE擴展檢測到【遠程視角】，目標地點: {effective_location_path}")
     else:
         effective_location_path = gs.location_path
-        logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用【本地視角】，目標地點: {effective_location_path}")
 
+    # ... (輸入淨化邏輯保持不變) ...
     try:
-        logger.info(f"[{user_id}] (LORE Expansion) 正在對輸入進行預處理以創建安全的選角上下文...")
         entity_chain = ai_core.get_entity_extraction_chain()
         entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
-
-        if entity_result and entity_result.names:
-            sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names)
-            logger.info(f"[{user_id}] (LORE Expansion) 已生成安全的選角上下文: '{sanitized_context_for_casting}'")
-        else:
-            sanitized_context_for_casting = user_input
-            logger.warning(f"[{user_id}] (LORE Expansion) 未能從輸入中提取實體，將使用原始輸入進行選角，可能存在風險。")
+        sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
     except Exception as e:
         logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
         sanitized_context_for_casting = user_input
@@ -523,6 +515,24 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
     
+    # [v8.0 核心修正] 持久化場景錨點
+    if cast_result and cast_result.implied_location:
+        location_info = cast_result.implied_location
+        # 假設 location_info.name 是單一字符串，需要構建路徑
+        # 一個簡單的策略是將它附加到玩家當前的頂層區域
+        base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
+        new_location_path = base_path + [location_info.name]
+        lore_key = " > ".join(new_location_path)
+        
+        await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
+        logger.info(f"[{user_id}] (Scene Anchor) 已成功為場景錨定並創建新地點LORE: '{lore_key}'")
+        
+        # 強制更新 GameState
+        gs.viewing_mode = 'remote'
+        gs.remote_target_path = new_location_path
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+        logger.info(f"[{user_id}] (Scene Anchor) GameState 已強制更新為遠程視角，目標: {new_location_path}")
+
     planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
     
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
@@ -536,12 +546,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             
             if newly_created_lores:
                 planning_subjects.extend([lore.content for lore in newly_created_lores])
-    else:
-         logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色。")
-
+    
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v7.0 - LORE 地點修正)
+# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
 
 
 
