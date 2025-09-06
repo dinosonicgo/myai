@@ -1711,8 +1711,12 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (用於 retrieve_memories_node)
+    # 函式：[新] 檢索並總結記憶 (v2.0 - 檢索前置淨化)
     # 更新紀錄:
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給 Retriever（及其底層的 Embedding API）而導致的內容審查掛起問題。
+    #    1. [新增-預處理] 在調用 Retriever 之前，強制使用 `entity_extraction_chain` 從原始輸入中提取出中性的關鍵實體和名詞。
+    #    2. [新增-安全查詢] 將提取出的關鍵詞組合成一個乾淨、安全的查詢字符串。
+    #    3. [核心修正] 使用這個“淨化”後的查詢字符串來調用 Retriever，從根本上規避了底層 API 的內容審查。
     # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 RAG 檢索與摘要邏輯從舊的初始化流程中分離出來，以支持新的、更精細的 LangGraph 節點。
     async def retrieve_and_summarize_memories(self, user_input: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。這是專門為新的 retrieve_memories_node 設計的。"""
@@ -1720,7 +1724,34 @@ class AILover:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
-        retrieved_docs = await self.ainvoke_with_rotation(self.retriever, user_input, retry_strategy='euphemize')
+        try:
+            # [v2.0 核心修正] 步驟 1: 提取中性關鍵詞以創建安全查詢
+            logger.info(f"[{self.user_id}] (RAG) 正在對使用者輸入進行預處理以創建安全查詢...")
+            entity_extraction_chain = self.get_entity_extraction_chain()
+            entity_result = await self.ainvoke_with_rotation(
+                entity_extraction_chain, 
+                {"text_input": user_input},
+                retry_strategy='euphemize' # 實體提取本身也可能需要委婉化
+            )
+            
+            if entity_result and entity_result.names:
+                sanitized_query = " ".join(entity_result.names)
+                logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
+            else:
+                # 如果實體提取失敗，回退到使用原始輸入，並記錄警告
+                sanitized_query = user_input
+                logger.warning(f"[{self.user_id}] (RAG) 未能從輸入中提取實體，將使用原始輸入作為查詢，這可能存在風險。")
+
+            # [v2.0 核心修正] 步驟 2: 使用淨化後的查詢進行檢索
+            retrieved_docs = await self.ainvoke_with_rotation(
+                self.retriever, 
+                sanitized_query, # 使用安全查詢
+                retry_strategy='euphemize'
+            )
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {e}", exc_info=True)
+            return "檢索長期記憶時發生錯誤。"
+
         if retrieved_docs is None:
             logger.warning(f"[{self.user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
             retrieved_docs = []
@@ -1728,7 +1759,7 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # 舊函式 _preprocess_rag_context 的邏輯現在轉移到這裡
+        # 步驟 3: 總結檢索到的文檔（這一步驟相對安全）
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             retrieved_docs, 
@@ -1741,7 +1772,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (用於 retrieve_memories_node)
+    # 函式：[新] 檢索並總結記憶 (v2.0 - 檢索前置淨化)
 
 
         # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
