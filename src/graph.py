@@ -157,6 +157,26 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
         "raw_lore_objects": raw_lore 
     }
 # 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
+
+
+
+def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
+    """從 AI 核心實例中提取並格式化最近的對話歷史。"""
+    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    if not chat_history_manager.messages:
+        return "（沒有最近的對話歷史）"
+    
+    # 提取最近的 N 條訊息
+    recent_messages = chat_history_manager.messages[-num_messages:]
+    
+    formatted_history = []
+    for msg in recent_messages:
+        role = "使用者" if isinstance(msg, HumanMessage) else ai_core.profile.ai_profile.name if ai_core.profile else "AI"
+        formatted_history.append(f"{role}: {msg.content}")
+        
+    return "\n".join(formatted_history)
+
+
     
 # 函式：LORE擴展決策節點 (v2.0 - 飽和度分析)
 # 更新紀錄:
@@ -283,9 +303,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：NSFW 初步規劃節點
-# 更新紀錄:
-# v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第一步。
+    # 函式：NSFW 初步規劃節點 (v2.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保初步規劃時能緊密銜接上下文。
+    # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第一步。
 async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B.1] NSFW思维链-步骤1: 生成初步的行动计划草稿。"""
     user_id = state['user_id']
@@ -309,11 +330,15 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str,
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
+    # [v2.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_initial_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction, 
             "world_snapshot": world_snapshot, 
+            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
             "user_input": state['messages'][-1].content
         },
         retry_strategy='force'
@@ -321,15 +346,14 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str,
     if not plan:
         plan = TurnPlan(thought="安全備援：NSFW初步規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：NSFW 初步規劃節點
+    # 函式：NSFW 初步規劃節點 (v2.0 - 注入對話歷史)
 
 
-
-# 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
-# 更新紀錄:
-# v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。這是實現“指令淹沒”策略、解決內容審查問題的關鍵一步。
-# v1.1 (2025-09-15): [災難性BUG修復] 修正了 full_context_dict 的构建逻辑，从一个过于简化的版本恢复为包含所有模板所需键的完整版本，解决了因缺少 `world_settings` 等键而导致的 KeyError。
-# v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第二步。
+    # 函式：NSFW 词汇注入節點 (v2.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v2.0 (2025-09-16): [功能強化] 新增了對話歷史的提取與傳遞，為詞彙修正提供更完整的上下文。
+    # v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。
+    # v1.1 (2025-09-15): [災難性BUG修復] 修正了 full_context_dict 的构建逻辑。
 async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B.2] NSFW思维链-步骤2: 强制修正计划中的词汇为露骨术语。"""
     user_id = state['user_id']
@@ -354,6 +378,9 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
+    # [v2.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    
     corrected_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_lexicon_injection_chain(),
         {
@@ -361,6 +388,7 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
         },
         retry_strategy='force'
@@ -370,13 +398,16 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
         return {}
         
     return {"turn_plan": corrected_plan}
-# 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
+    # 函式：NSFW 词汇注入節點 (v2.0 - 注入對話歷史)
 
-# 函式：SFW規劃節點 (v21.5 - SQLAlchemy模型修正)
-# 更新紀錄:
-# v21.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
-# v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數以實現“LORE事實鎖定”。
-# v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
+
+
+
+    # 函式：SFW規劃節點 (v22.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v22.0 (2025-09-16): [重大邏輯強化] 調用 `_get_formatted_chat_history` 輔助函式來獲取最近的對話歷史，並將其作為 `chat_history` 參數傳遞給規劃鏈，以確保劇情連貫性。
+    # v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
+    # v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -391,6 +422,9 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     raw_lore_objects = state.get('raw_lore_objects', [])
     # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+
+    # [v22.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -416,6 +450,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
             "system_prompt": ai_core.profile.one_instruction, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot, 
+            "chat_history": chat_history_str, # [v22.0 核心修正] 傳遞對話歷史
             "user_input": state['messages'][-1].content, 
         },
         retry_strategy='euphemize'
@@ -423,16 +458,16 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v21.5 - SQLAlchemy模型修正)
+    # 函式：SFW規劃節點 (v22.0 - 注入對話歷史)
 
 
 
 
-# 函式：NSFW 風格合規節點 (v1.2 - 數據流修正)
-# 更新紀錄:
-# v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。這是實現“指令淹沒”策略、解決內容審查問題的關鍵一步。
-# v1.1 (2025-09-15): [災難性BUG修復] 与 nsfw_lexicon_injection_node 同步，修正了 full_context_dict 的构建逻辑，解决了 KeyError。
-# v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的最后一步。
+    # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v2.0 (2025-09-16): [功能強化] 新增了對話歷史的提取與傳遞，為風格修正提供更完整的上下文，以生成更貼切的對話。
+    # v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。
+    # v1.1 (2025-09-15): [災難性BUG修復] 与 nsfw_lexicon_injection_node 同步，修正了 full_context_dict 的构建逻辑。
 async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B.3] NSFW思维链-步骤3: 检查并补充对话，确保计划符合用户风格。"""
     user_id = state['user_id']
@@ -457,6 +492,9 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
+    # [v2.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+
     final_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_style_compliance_chain(),
         {
@@ -464,6 +502,7 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
             "system_prompt": ai_core.profile.one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
         },
         retry_strategy='force'
@@ -473,14 +512,14 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
         return {}
 
     return {"turn_plan": final_plan}
-# 函式：NSFW 風格合規節點 (v1.2 - 數據流修正)
+    # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
 
 
-# 函式：遠程 SFW 規劃節點 (v1.5 - SQLAlchemy模型修正)
-# 更新紀錄:
-# v1.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
-# v1.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
-# v1.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
+    # 函式：遠程 SFW 規劃節點 (v2.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保遠程場景規劃能參考到觸發前的對話上下文。
+    # v1.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
+    # v1.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -502,6 +541,9 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     raw_lore_objects = state.get('raw_lore_objects', [])
     # [v1.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+
+    # [v2.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -528,6 +570,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "full_lore_records_json": full_lore_records_json,
+            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
             "target_location_path_str": target_location_path_str,
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
@@ -538,16 +581,15 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v1.5 - SQLAlchemy模型修正)
+    # 函式：遠程 SFW 規劃節點 (v2.0 - 注入對話歷史)
 
 
 
-
-# 函式：遠程NSFW規劃節點 (v21.5 - SQLAlchemy模型修正)
-# 更新紀錄:
-# v21.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
-# v21.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
-# v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
+    # 函式：遠程NSFW規劃節點 (v2.0 - 注入對話歷史)
+    # 更新紀錄:
+    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保遠程 NSFW 場景規劃能參考觸發前的對話上下文。
+    # v21.5 (2025-09-06): [災難性BUG修復] 修正了 SQLAlchemy 模型錯誤。
+    # v21.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -569,6 +611,9 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     raw_lore_objects = state.get('raw_lore_objects', [])
     # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
     full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+    
+    # [v2.0 新增] 獲取格式化的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -595,6 +640,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "full_lore_records_json": full_lore_records_json,
+            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
             "target_location_path_str": target_location_path_str,
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
@@ -605,7 +651,12 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v21.5 - SQLAlchemy模型修正)
+    # 函式：遠程NSFW規劃節點 (v2.0 - 注入對話歷史)
+
+
+
+
+
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
