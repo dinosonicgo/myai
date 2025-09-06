@@ -136,39 +136,78 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     raw_lore_objects = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
     return {"raw_lore_objects": raw_lore_objects}
 
+# 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
+# 更新紀錄:
+# v1.1 (2025-09-06): [災難性BUG修復] 修改此節點的返回值，使其除了生成格式化的 `structured_context` 外，還將未經修改的 `raw_lore_objects` 直接透傳下去。這是實現“LORE事實鎖定”機制的關鍵一步，確保後續的規劃節點能夠訪問到完整的、未經摘要的原始 LORE 數據。
+# v1.0 (2025-09-12): [架構重構] 創建此專用函式，將上下文格式化邏輯分離。
 async def assemble_context_node(state: ConversationGraphState) -> Dict:
-    """[4] 專用上下文組裝節點，將原始LORE格式化為LLM可讀的字符串。"""
+    """[4] 專用上下文組裝節點，將原始LORE格式化為LLM可讀的字符串，並透傳原始LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     raw_lore = state['raw_lore_objects']
     intent_type = state['intent_classification'].intent_type
-    logger.info(f"[{user_id}] (Graph|4) Node: assemble_context -> 正在組裝最終上下文簡報...")
+    logger.info(f"[{user_id}] (Graph|4) Node: assemble_context -> 正在組裝最終上下文簡報並透傳原始LORE...")
     
     is_remote = intent_type == 'nsfw_descriptive'
-    # 這是 ai_core.py 中為新節點準備的輔助函式
     structured_context = ai_core._assemble_context_from_lore(raw_lore, is_remote_scene=is_remote)
-    return {"structured_context": structured_context}
     
+    # [v1.1 核心修正] 將原始 LORE 對象也加入返回字典中，以便後續節點使用
+    return {
+        "structured_context": structured_context,
+        "raw_lore_objects": raw_lore 
+    }
+# 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
+    
+# 函式：LORE擴展決策節點 (v2.0 - 飽和度分析)
+# 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯。現在，它會在調用決策鏈之前，先對當前場景的 LORE 數據（特別是在場 NPC 數量）進行量化分析，得到“飽和度”指標。然後將此飽和度信息作為強力約束注入到 Prompt 中，指示 LLM 只有在場景確實“空曠”時才進行擴展。此修改旨在從根本上解決 AI 在細節豐富的場景中無限創造新 LORE 的問題。
+# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """[5] LORE擴展決策節點。"""
+    """[5] LORE擴展決策節點，引入飽和度分析以避免無限擴展。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在判斷是否需要擴展LORE...")
+    raw_lore_objects = state.get('raw_lore_objects', [])
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在結合LORE飽和度分析，判斷是否擴展...")
     
+    # [v2.0 核心修正] LORE 飽和度分析
+    npc_count = 0
+    location_has_description = False
+    if isinstance(raw_lore_objects, list):
+        for lore in raw_lore_objects:
+            if lore.category == 'npc_profile':
+                npc_count += 1
+            elif lore.category == 'location_info':
+                if lore.content and lore.content.get('description'):
+                    location_has_description = True
+
+    saturation_analysis = (
+        f"- **當前在場NPC數量**: {npc_count}\n"
+        f"- **當前地點是否有詳細描述**: {'是' if location_has_description else '否'}"
+    )
+    logger.info(f"[{user_id}] (Graph|5) LORE飽和度分析結果:\n{saturation_analysis}")
+
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
     recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
+    
+    decision_chain = ai_core.get_expansion_decision_chain()
     decision = await ai_core.ainvoke_with_rotation(
-        ai_core.get_expansion_decision_chain(), 
-        {"user_input": user_input, "recent_dialogue": recent_dialogue},
+        decision_chain, 
+        {
+            "user_input": user_input, 
+            "recent_dialogue": recent_dialogue,
+            "saturation_analysis": saturation_analysis # 將飽和度分析注入 Prompt
+        },
         retry_strategy='euphemize'
     )
+
     if not decision:
         logger.warning(f"[{user_id}] (Graph|5) LORE擴展決策鏈失敗，安全備援為不擴展。")
         decision = ExpansionDecision(should_expand=False, reasoning="安全備援：決策鏈失敗。")
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
+# 函式：LORE擴展決策節點 (v2.0 - 飽和度分析)
 
 
 
@@ -333,11 +372,11 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     return {"turn_plan": corrected_plan}
 # 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
 
-# 函式：SFW規劃節點 (v21.3 - 適配新世界快照)
+# 函式：SFW規劃節點 (v21.4 - 事實鎖定)
 # 更新紀錄:
-# v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯，以傳遞新的 `player_location`, `viewing_mode`, `remote_target_path_str` 變數給 `world_snapshot` 模板，解決了因模板更新而導致的 KeyError。
+# v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數，並將其注入到 `world_snapshot` 模板中。這是實現“LORE事實鎖定”機制的關鍵一步，它將完整的、未經摘要的 LORE 數據以 JSON 形式提供給 LLM，並通過模板中的指令強制 LLM 遵循這些既定事實，從根本上解決 AI 篡改或遺忘 LORE（如將“鐵匠”變為“獵人”）的問題。
+# v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
 # v21.2 (2025-09-15): [架構重構] 移除了對 style_analysis 的依賴。
-# v21.1 (2025-09-12): [災難性BUG修復] 重構了 `full_context_dict` 的構建方式。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -346,8 +385,12 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
-    
+
     gs = ai_core.profile.game_state
+    
+    # [v21.4 核心修正] 準備完整的 LORE JSON 數據
+    raw_lore_objects = state.get('raw_lore_objects', [])
+    full_lore_records_json = json.dumps([lore.model_dump() for lore in raw_lore_objects], ensure_ascii=False, indent=2)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -360,10 +403,11 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
         'location_context': state.get('structured_context', {}).get('location_context', ''),
         'npc_context': state.get('structured_context', {}).get('npc_context', ''),
         'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
-        # [v21.3 新增] 傳遞視角狀態給模板
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
-        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定"
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        # [v21.4 新增]
+        'full_lore_records_json': full_lore_records_json
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
@@ -380,7 +424,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v21.3 - 適配新世界快照)
+# 函式：SFW規劃節點 (v21.4 - 事實鎖定)
 
 
 
