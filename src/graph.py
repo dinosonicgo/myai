@@ -214,16 +214,17 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v6.0 - 錯誤處理修正)
+# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
 # 更新紀錄:
-# v6.0 (2025-09-06): [健壯性] 與遠程版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
-# v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞，確保 `action_sexual_content_prompt` 被正確注入。
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
+# v7.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
+# v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
+# v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    # [v7.0 核心修正] 移除對 sanitized_user_input 的引用
+    user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
 
     if not ai_core.profile:
@@ -270,10 +271,9 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
         retry_strategy='force'
     )
     if not plan:
-        # [v6.0 核心修正]
         plan = TurnPlan(execution_rejection_reason="安全備援：NSFW統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v6.0 - 錯誤處理修正)
+# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
 
 
 
@@ -386,17 +386,16 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v6.0 - 角色合併)
+# 函式：專用的LORE擴展執行節點 (v7.0 - LORE 地點修正)
 # 更新紀錄:
-# v6.0 (2025-09-06): [災難性BUG修復] 根據「上下文遺忘」問題，修正了此節點的輸出邏輯。舊版本只返回新創建的角色。新版本會將新創建的角色與從上游 `raw_lore_objects` 傳入的、已存在於場景中的舊角色進行合併，然後將這個完整的角色列表作為 `planning_subjects` 返回。此修改確保了規劃器能接收到包含【所有】場景角色的完整素材。
+# v7.0 (2025-09-06): [災難性BUG修復] 根據「LORE地點錯誤」問題，徹底重構了此節點的地點判斷邏輯。現在，它會嚴格遵循“視角優先”原則：如果當前處於遠程視角模式，則【必須】使用從 `scene_analysis` 中解析出的遠程目標路徑作為新 LORE 的創建地點；否則，才使用玩家的物理位置。此修改確保了為遠程場景創建的 NPC 會被正確地記錄在遠程地點。
+# v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
 # v5.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決內容審查失敗問題。
-# v4.0 (2025-09-18): [重大架構重構] 引入“數據綁定”策略。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角，並將【所有】場景角色（新舊合併）綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    # [v6.0 新增] 獲取已存在的角色
     existing_lores = state.get('raw_lore_objects', [])
     
     logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
@@ -405,16 +404,17 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
+    # [v7.0 核心修正] "視角優先" 地點判斷邏輯
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
     effective_location_path: List[str]
 
     if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
         effective_location_path = scene_analysis.target_location_path
-        logger.info(f"[{user_id}] (Graph|6A) LORE擴展檢測到遠程視角，目標地點: {effective_location_path}")
+        logger.info(f"[{user_id}] (Graph|6A) LORE擴展檢測到【遠程視角】，目標地點: {effective_location_path}")
     else:
         effective_location_path = gs.location_path
-        logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用本地視角，目標地點: {effective_location_path}")
+        logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用【本地視角】，目標地點: {effective_location_path}")
 
     try:
         logger.info(f"[{user_id}] (LORE Expansion) 正在對輸入進行預處理以創建安全的選角上下文...")
@@ -444,7 +444,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
     
-    # [v6.0 核心修正] 合併新舊角色
     planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
     
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
@@ -457,14 +456,16 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             newly_created_lores = results[0]
             
             if newly_created_lores:
-                # 將新角色的 content 添加到列表中
                 planning_subjects.extend([lore.content for lore in newly_created_lores])
     else:
          logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色。")
 
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v6.0 - 角色合併)
+# 函式：專用的LORE擴展執行節點 (v7.0 - LORE 地點修正)
+
+
+
 
 # --- 階段二：規劃 (Planning) ---
 
@@ -571,16 +572,17 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：SFW規劃節點 (v25.0 - 錯誤處理修正)
+# 函式：SFW規劃節點 (v26.0 - KeyError 修正)
 # 更新紀錄:
-# v25.0 (2025-09-06): [健壯性] 與遠程版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
-# v24.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
-# v23.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
+# v26.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
+# v25.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
+# v24.0 (2025-09-18): [重大架構重構] 修改了數據源。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    # [v26.0 核心修正] 移除對 sanitized_user_input 的引用
+    user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
 
     if not ai_core.profile:
@@ -625,10 +627,9 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
         retry_strategy='euphemize'
     )
     if not plan:
-        # [v25.0 核心修正]
         plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v25.0 - 錯誤處理修正)
+# 函式：SFW規劃節點 (v26.0 - KeyError 修正)
 
 
 
@@ -684,16 +685,17 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
 
 
-# 函式：遠程 SFW 規劃節點 (v6.0 - 錯誤處理修正)
+# 函式：遠程 SFW 規劃節點 (v7.0 - KeyError 修正)
 # 更新紀錄:
-# v6.0 (2025-09-06): [健壯性] 與遠程 NSFW 版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
+# v7.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
+# v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
 # v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯。
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    # [v7.0 核心修正] 移除對 sanitized_user_input 的引用
+    user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程SFW場景計劃...")
 
     if not ai_core.profile:
@@ -757,22 +759,22 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         retry_strategy='euphemize'
     )
     if not plan:
-        # [v6.0 核心修正]
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v6.0 - 錯誤處理修正)
+# 函式：遠程 SFW 規劃節點 (v7.0 - KeyError 修正)
 
 
-# 函式：遠程NSFW規劃節點 (v7.0 - 錯誤處理修正)
+# 函式：遠程NSFW規劃節點 (v8.0 - KeyError 修正)
 # 更新紀錄:
-# v7.0 (2025-09-06): [災難性BUG修復] 根據「AI輸出內部錯誤」的問題，徹底修改了此節點的備援邏輯。當規劃鏈失敗時，不再將錯誤訊息填入 `thought` 欄位，而是填入專用的 `execution_rejection_reason` 欄位。此修改旨在從根本上分離“劇情”與“系統錯誤”，防止下游的渲染節點將錯誤訊息錯誤地小說化。
+# v8.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用，改為直接從 `state['messages']` 獲取原始使用者輸入。此修改是“廢除淨化層”策略的後續清理工作。
+# v7.0 (2025-09-06): [災難性BUG修復] 徹底修改了此節點的備援邏輯。
 # v6.0 (2025-09-06): [災難性BUG修復] 修正了調用鏈時的參數傳遞。
-# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['sanitized_user_input'] or state['messages'][-1].content
+    # [v8.0 核心修正] 移除對 sanitized_user_input 的引用
+    user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7C) Node: remote_nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程NSFW場景計劃...")
 
     if not ai_core.profile:
@@ -837,10 +839,9 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         retry_strategy='force'
     )
     if not plan:
-        # [v7.0 核心修正]
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程NSFW規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v7.0 - 錯誤處理修正)
+# 函式：遠程NSFW規劃節點 (v8.0 - KeyError 修正)
 
 
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
