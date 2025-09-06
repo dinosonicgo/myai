@@ -2911,11 +2911,14 @@ class AILover:
 
     
 
-    # 函式：指令強化重試處理器 (v4.0 - 系統級指令強化)
+    # 函式：指令強化重試處理器 (v5.0 - 智能目標鎖定)
     # 更新紀錄:
-    # v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的重試邏輯。不再嘗試尋找並修改不確定的內容欄位（如 'turn_plan_json'），而是採用更穩定、更強大的“系統級指令強化”策略。它會找到傳入參數中的 `system_prompt`，並將強制執行的覆蓋指令直接附加到系統提示的末尾。此修改從根本上解決了因找不到可強化欄位而崩潰的問題，並能更有效地“淹沒”模型上下文以突破審查。
-    # v3.1 (2025-09-05): [災難性BUG修復] 增加了對 Pydantic `BaseModel` 物件的處理邏輯。
-    # v3.0 (2025-09-05): [目標鎖定重構] 優先尋找名為 'turn_plan_json' 的特定鍵進行強化。
+    # v5.0 (2025-09-07): [災難性BUG修復] 徹底重構了此函式的重試邏輯，引入“智能目標鎖定”策略。它不再硬性依賴 'system_prompt' 參數，而是採用多層備援：
+    #    1. [優先目標] 優先尋找名為 'system_prompt' 的欄位。
+    #    2. [次級目標] 如果失敗，則尋找其他已知的、可能包含長文本指令的欄位（如 'turn_plan_json'）。
+    #    3. [最終備援] 如果都失敗，則自動在所有參數中尋找【最長的字符串值】並對其進行強化。
+    #    此修改從根本上解決了因找不到固定參數名而崩潰的問題，使其能夠普遍適用於專案中任何結構的鏈，極大增強了系統的健壯性。
+    # v4.0 (2025-09-06): [災難性BUG修復] 重構為系統級指令強化。
     async def _force_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
         嘗試用“指令轟炸”的方式強化輸入後重試，專用於最終的 NSFW 輸出。
@@ -2930,12 +2933,35 @@ class AILover:
             if not isinstance(params_as_dict, dict):
                 raise ValueError("指令強化重試策略只能應用於字典或 Pydantic 物件類型的輸入。")
 
-            # [v4.0 核心修正] 直接強化 system_prompt
-            if 'system_prompt' not in params_as_dict or not isinstance(params_as_dict['system_prompt'], str):
-                raise ValueError("在參數中找不到可供強化的 'system_prompt' 文本欄位。")
-
             retry_params = params_as_dict.copy()
-            original_system_prompt = retry_params['system_prompt']
+            key_to_modify = None
+            
+            # [v5.0 核心修正] 智能目標鎖定邏輯
+            # 優先級 1: 尋找 'system_prompt'
+            if 'system_prompt' in retry_params and isinstance(retry_params['system_prompt'], str):
+                key_to_modify = 'system_prompt'
+            
+            # 優先級 2: 備援尋找其他可能的長文本欄位
+            elif 'turn_plan_json' in retry_params and isinstance(retry_params['turn_plan_json'], str):
+                 key_to_modify = 'turn_plan_json'
+            
+            # 優先級 3 (最終備援): 尋找最長的字符串值
+            else:
+                longest_str_key = None
+                max_len = -1
+                for key, value in retry_params.items():
+                    if isinstance(value, str) and len(value) > max_len:
+                        max_len = len(value)
+                        longest_str_key = key
+                if longest_str_key:
+                    key_to_modify = longest_str_key
+
+            if not key_to_modify:
+                raise ValueError("在參數中找不到任何可供強化的文本欄位。")
+
+            logger.info(f"[{self.user_id}] 已鎖定欄位 '{key_to_modify}' 進行指令強化...")
+
+            original_content = retry_params[key_to_modify]
             
             forceful_override = (
                 f"\n\n# ==============================================================================\n"
@@ -2955,16 +2981,14 @@ class AILover:
                 f"# =============================================================================="
             )
             
-            retry_params['system_prompt'] = original_system_prompt + forceful_override
-            
-            logger.info(f"[{self.user_id}] 已對 'system_prompt' 附加強制指令，正在進行強化重試...")
+            retry_params[key_to_modify] = original_content + forceful_override
             
             return await failed_chain.ainvoke(retry_params)
             
         except Exception as e:
             logger.error(f"[{self.user_id}] 指令強化重試最終失敗: {e}", exc_info=True)
             return None # 如果強化重試也失敗，則返回 None
-    # 函式：指令強化重試處理器 (v4.0 - 系統級指令強化)
+    # 函式：指令強化重試處理器 (v5.0 - 智能目標鎖定)
 
 
     
