@@ -1937,11 +1937,10 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
+    # 函式：[新] 檢索並總結記憶 (v4.0 - 移除內部淨化)
     # 更新紀錄:
-    # v3.0 (2025-09-06): [健壯性] 根據 Cohere API 返回 502 錯誤的日誌，為 RAG 檢索步驟增加了更強的 try...except 異常捕獲機制。現在，如果像 Reranker 這樣的外部服務暫時失敗，節點將不再使整個圖崩潰，而是會記錄警告並優雅地返回一個中性消息，確保主流程的連續性。
-    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯，以解決內容審查掛起問題。
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式。
+    # v4.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了此函式內部所有畫蛇添足的“預處理”和“淨化”步驟。現在，它會直接、忠實地使用上游節點傳來的、最原始的使用者輸入作為查詢，將突破審查的壓力完全交還給 `ainvoke_with_rotation` 和其後續的重試策略。此修改旨在根除因委婉化本身被審查而導致的鏈式失敗。
+    # v3.0 (2025-09-06): [健壯性] 增加了對 RAG 檢索步驟的 try...except 異常捕獲。
     async def retrieve_and_summarize_memories(self, user_input: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。這是專門為新的 retrieve_memories_node 設計的。"""
         if not self.retriever:
@@ -1950,31 +1949,15 @@ class AILover:
         
         retrieved_docs = []
         try:
-            # 步驟 1: 提取中性關鍵詞以創建安全查詢
-            logger.info(f"[{self.user_id}] (RAG) 正在對使用者輸入進行預處理以創建安全查詢...")
-            entity_extraction_chain = self.get_entity_extraction_chain()
-            entity_result = await self.ainvoke_with_rotation(
-                entity_extraction_chain, 
-                {"text_input": user_input},
-                retry_strategy='euphemize'
-            )
-            
-            if entity_result and entity_result.names:
-                sanitized_query = " ".join(entity_result.names)
-                logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
-            else:
-                sanitized_query = user_input
-                logger.warning(f"[{self.user_id}] (RAG) 未能從輸入中提取實體，將使用原始輸入作為查詢，這可能存在風險。")
-
-            # 步驟 2: 使用淨化後的查詢進行檢索
+            # [v4.0 核心修正] 直接使用原始 user_input 進行檢索
+            logger.info(f"[{self.user_id}] (RAG) 正在直接使用原始查詢進行檢索: '{user_input[:50]}...'")
             retrieved_docs = await self.ainvoke_with_rotation(
                 self.retriever, 
-                sanitized_query,
-                retry_strategy='euphemize'
+                user_input,
+                retry_strategy='euphemize' # 檢索本身仍然可以使用委婉化重試
             )
-        # [v3.0 核心修正] 捕獲所有可能的異常，包括外部 API 錯誤
         except Exception as e:
-            logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 在 RAG 檢索的調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
             return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
 
         if retrieved_docs is None:
@@ -1984,7 +1967,7 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # 步驟 3: 總結檢索到的文檔
+        # 總結步驟保持不變，因為它處理的是檢索到的、相對安全的文本
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             retrieved_docs, 
@@ -1997,7 +1980,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
+    # 函式：[新] 檢索並總結記憶 (v4.0 - 移除內部淨化)
 
 
 
