@@ -1398,18 +1398,16 @@ class AILover:
     
     
 
-    # 函式：獲取場景選角鏈 (v210.0 - 強制命名)
+    # 函式：獲取場景選角鏈 (v211.0 - 轉義特殊字符)
     # 更新紀錄:
-    # v210.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決 AI 生成通用名稱NPC（如“男孩”、“母親”）的問題，對此鏈的 Prompt 進行了決定性強化。
-    #    1. [新增] 注入了【命名強制令 (The Mandate of Naming)】，明確禁止使用通用描述詞作為角色名字，並強制 AI 為所有新角色發明具體的專有名稱。
-    #    2. [新增] 引入了【負面範例教學】，通過展示一個“災難性錯誤”的範例來強化 AI 對指令的理解。
-    #    此修改旨在將 AI 從被動的“數據錄入員”轉變為主動的“世界創造者”。
-    # v209.0 (2025-09-06): [重大架構升級] 賦予此鏈推斷並錨定場景地點的新職責。
+    # v211.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，對 Prompt 模板中的 JSON 範例進行了特殊字符轉義。將所有作為範例的單大括號 `{}` 修改為雙大括號 `{{}}`，以防止 LangChain 的解析器將其錯誤地識別為需要填充的變數。此修改從根本上解決了因模板語法歧義導致的 KeyError 崩潰問題。
+    # v210.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決 AI 生成通用名稱NPC的問題，對此鏈的 Prompt 進行了決定性強化。
     def get_scene_casting_chain(self) -> Runnable:
         if not hasattr(self, 'scene_casting_chain') or self.scene_casting_chain is None:
             from .schemas import SceneCastingResult
             casting_llm = self._create_llm_instance(temperature=0.7).with_structured_output(SceneCastingResult)
             
+            # [v211.0 核心修正] 轉義所有作為範例的 JSON 中的大括號
             casting_prompt_template = """你現在扮演一位【富有創造力的世界構建師】兼【嚴謹的 LORE 數據錄入員】。你的任務是分析【最近對話】，為其中描述的所有新角色【發明具體的名字並創建數據檔案】，並在必要時為這個場景【錨定一個地理位置】。
 
 # === 【【【最高指導原則：命名強制令 (THE MANDATE OF NAMING) - 絕對鐵則】】】 ===
@@ -1422,13 +1420,13 @@ class AILover:
 #
 #   - **情境**: 使用者輸入 "描述一個10歲男孩和他的母親"
 #   - **【❌ 災難性錯誤的輸出】**:
-#     `"newly_created_npcs": [{"name": "男孩", ...}, {"name": "母親", ...}]`
+#     `"newly_created_npcs": [{{"name": "男孩", ...}}, {{"name": "母親", ...}}]`
 #     **(失敗原因: 直接使用了通用描述詞作為名字，這是最嚴重的失職)**
 #
 #   - **【✅ 唯一正確的輸出】**:
 #     `"newly_created_npcs": [`
-#     `  {"name": "凱爾", "age": "10", "description": "一個眼神明亮的10歲男孩...", ...},`
-#     `  {"name": "艾拉", "description": "凱爾的母親，一位面容憔悴但溫柔的女性...", ...}`
+#     `  {{"name": "凱爾", "age": "10", "description": "一個眼神明亮的10歲男孩...", ...}},`
+#     `  {{"name": "艾拉", "description": "凱爾的母親，一位面容憔悴但溫柔的女性...", ...}}`
 #     `]`
 #     **(成功原因: 成功地為角色發明了具體的專有名稱，並將描述性詞語正確地放入了描述欄位)**
 #
@@ -1454,7 +1452,7 @@ class AILover:
             
             self.scene_casting_chain = casting_prompt | casting_llm
         return self.scene_casting_chain
-    # 函式：獲取場景選角鏈 (v210.0 - 強制命名)
+    # 函式：獲取場景選角鏈 (v211.0 - 轉義特殊字符)
 
 
     
