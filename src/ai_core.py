@@ -153,7 +153,7 @@ from sqlalchemy import select, or_
 from collections import defaultdict
 import functools
 
-from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded
+from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI, 
@@ -173,6 +173,7 @@ from langchain_core._api.deprecation import LangChainDeprecationWarning
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
+import chromadb # [v10.1 新增] 導入 chromadb
 from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import EnsembleRetriever
@@ -184,10 +185,10 @@ from pydantic import BaseModel, Field
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
-# [v200.1 修正] 更新導入，新增 ValidationResult 和 ExtractedEntities
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
-                      UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, ExpansionDecision)
+                      UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
+                      ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, SingleResolutionPlan)
 from .database import AsyncSessionLocal, UserData, MemoryData
 from src.config import settings
 from .logger import logger
