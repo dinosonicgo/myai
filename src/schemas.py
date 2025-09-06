@@ -304,6 +304,11 @@ class SceneCastingResult(BaseModel):
         description="一個為核心角色創造的、用於互動的臨時配角列表（例如顧客、同伴等）。",
         default_factory=list
     )
+    # [v15.0 核心修正] 增加場景錨點欄位
+    implied_location: Optional[LocationInfo] = Field(
+        default=None,
+        description="如果能從上下文中推斷出一個合理的、符合世界觀的場景地點，則在此處提供該地點的詳細信息。"
+    )
 
 class SceneAnalysisResult(BaseModel):
     """[第二層分析] 用於結構化地表示對使用者意圖和場景視角的分析結果，解決'遠程觀察'問題。"""
