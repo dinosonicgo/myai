@@ -278,11 +278,11 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：專用的LORE擴展執行節點 (v2.1 - 架構遷移適配)
+# 函式：專用的LORE擴展執行節點 (v3.0 - 地點上下文感知)
 # 更新紀錄:
-# v2.1 (2025-09-06): [重大架構重構] 更新了此節點的實現，使其調用 ai_core._add_cast_to_scene 而不是依賴於 discord_bot.py。此修改是為了配合 _add_cast_to_scene 函式向 ai_core.py 的遷移，理順了數據流並消除了不健康的模組間依賴。
-# v2.0 (2025-09-06): [災難性BUG修復] 引入了輸入委婉化處理，以解決 LORE 創建被內容審查攔截的問題。
-# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
+# v3.0 (2025-09-18): [災難性BUG修復] 徹底重構了此節點的地點上下文處理邏輯。現在它會檢查 viewing_mode，並根據是本地還是遠程場景，選擇正確的 "有效地點路徑" (effective_location_path) 傳遞給選角鏈。此修改旨在從根本上解決 AI 在遠程場景中，卻在玩家本地創建 LORE 的嚴重問題。
+# v2.1 (2025-09-06): [重大架構重構] 更新了此節點的實現，使其調用 ai_core._add_cast_to_scene。
+# v2.0 (2025-09-06): [災難性BUG修復] 引入了輸入委婉化處理。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角並刷新上下文。"""
     user_id = state['user_id']
@@ -294,7 +294,18 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
-    current_location_path = ai_core.profile.game_state.location_path
+    # [v3.0 核心修正] 判斷並選擇正確的地點上下文
+    scene_analysis = state.get('scene_analysis')
+    gs = ai_core.profile.game_state
+    effective_location_path: List[str]
+
+    if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
+        effective_location_path = scene_analysis.target_location_path
+        logger.info(f"[{user_id}] (Graph|6A) LORE擴展檢測到遠程視角，目標地點: {effective_location_path}")
+    else:
+        effective_location_path = gs.location_path
+        logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用本地視角，目標地點: {effective_location_path}")
+
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
     
     euphemization_chain = ai_core.get_euphemization_chain()
@@ -319,7 +330,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         ai_core.get_scene_casting_chain(),
         {
             "world_settings": ai_core.profile.world_settings or "", 
-            "current_location_path": current_location_path, 
+            "current_location_path": effective_location_path, # [v3.0 核心修正] 使用有效地點
             "game_context": game_context_for_casting, 
             "recent_dialogue": safe_dialogue_context
         },
@@ -328,7 +339,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     
     updates: Dict[str, Any] = {}
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
-        # [v2.1 核心修正] 直接調用 ai_core 上的方法
         await ai_core._add_cast_to_scene(cast_result)
         
         logger.info(f"[{user_id}] (Graph|6A) 選角完成，正在刷新LORE和上下文...")
@@ -341,7 +351,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
          logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色（可能因內容審查或無創造必要），無需刷新。")
 
     return updates
-# 函式：專用的LORE擴展執行節點 (v2.1 - 架構遷移適配)
+# 函式：專用的LORE擴展執行節點 (v3.0 - 地點上下文感知)
 
 # --- 階段二：規劃 (Planning) ---
 
