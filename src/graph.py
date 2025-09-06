@@ -27,12 +27,13 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 
-# 函式：場景與動作分析節點 (v2.0 - 預處理強化)
+# 函式：場景與動作分析節點 (v3.0 - 上下文注入)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給分析鏈而導致的內容審查失敗問題。現在，此節點會先調用一個簡單的實體提取鏈來獲取中性關鍵詞，然後用這些關鍵詞構建一個“淨化”後的安全查詢，最後再將此安全查詢傳遞給場景分析鏈。此修改旨在從根本上規避在分析階段的內容審查。
-# v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心节点，用于判断本地/远程视角。
+# v3.0 (2025-09-06): [災難性BUG修復] 根據 ValidationError，重構了此節點的數據準備邏輯。現在，它會從 `raw_lore_objects` 中提取與場景相關的所有角色 LORE，並將其序列化為 `scene_context_json`，動態注入到場景分析鏈中。這為分析鏈提供了進行“上下文回溯”以查找角色位置所需的關鍵數據，從根本上解決了因輸入簡化而導致的地點信息丟失問題。
+# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，引入了“先淨化，後分析”策略。
+# v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心节点。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
-    """[SFW Path] 專用節點，分析 SFW 場景的視角（本地 vs 遠程）。"""
+    """分析場景的視角（本地 vs 遠程），並注入必要的上下文以供分析。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -42,7 +43,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph) 在 scene_and_action_analysis 中 ai_core.profile 未加載。")
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
 
-    # [v2.0 核心修正] "先淨化，後分析" 策略
     try:
         logger.info(f"[{user_id}] (Scene Analysis) 正在對輸入進行預處理以創建安全查詢...")
         entity_chain = ai_core.get_entity_extraction_chain()
@@ -58,11 +58,19 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Scene Analysis) 預處理失敗: {e}", exc_info=True)
         sanitized_input_for_analysis = user_input
 
+    # [v3.0 核心修正] 準備並注入場景上下文
+    scene_context_lores = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
+    scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
+
     current_location_path = ai_core.profile.game_state.location_path
     scene_analysis_chain = ai_core.get_scene_analysis_chain()
     scene_analysis = await ai_core.ainvoke_with_rotation(
         scene_analysis_chain,
-        {"user_input": sanitized_input_for_analysis, "current_location_path_str": " > ".join(current_location_path)},
+        {
+            "user_input": sanitized_input_for_analysis, 
+            "current_location_path_str": " > ".join(current_location_path),
+            "scene_context_json": scene_context_json_str
+        },
         retry_strategy='euphemize'
     )
 
@@ -74,12 +82,10 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
             action_summary=user_input
         )
     
-    # 即使分析成功，也要將原始的使用者意圖傳遞下去
     scene_analysis.action_summary = user_input
 
     return {"scene_analysis": scene_analysis}
-# 函式：場景與動作分析節點 (v2.0 - 預處理強化)
-
+# 函式：場景與動作分析節點 (v3.0 - 上下文注入)
 
 # 函式：視角模式路由器
 # 更新紀錄:
