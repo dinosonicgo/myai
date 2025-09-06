@@ -3080,11 +3080,11 @@ class AILover:
 
 
 
-    # 函式：將新角色加入場景 (v178.2 - 架構遷移)
+     # 函式：將新角色加入場景 (v179.0 - 遠程LORE錨定)
     # 更新紀錄:
-    # v178.2 (2025-09-06): [重大架構重構] 將此函式從 discord_bot.py 遷移至 ai_core.py。此修改遵循了“關注點分離”原則，將核心的 LORE 操作邏輯與 Discord 表現層完全解耦，理順了數據流並提高了程式碼的可維護性。
-    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制，防止創建與使用者或 AI 戀人同名的 NPC。
-    # v178.0 (2025-08-31): [重大功能升級] 彻底重构了NPC创建逻辑，引入多層備援機制以解決命名衝突。
+    # v179.0 (2025-09-06): [災難性BUG修復] 徹底重構了新LORE的地理位置錨定邏輯。此函式現在會檢查當前的 `viewing_mode`。如果在 `remote` 模式下，它會強制將所有新創建的NPC的地點設置為 `remote_target_path`，而不是錯誤地回退到玩家的物理位置。此修改從根本上解決了在遠程描述中創建的LORE被錯誤地放置在玩家身邊的嚴重問題。
+    # v178.2 (2025-09-06): [重大架構重構] 將此函式從 discord_bot.py 遷移至 ai_core.py。
+    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制。
     async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[str]:
         """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并在遇到命名冲突时启动多层备援机制。"""
         if not self.profile:
@@ -3146,10 +3146,27 @@ class AILover:
 
                 character.name = final_name_to_use
                 
-                if not character.location_path:
-                    character.location_path = self.profile.game_state.location_path
+                # --- [v179.0 核心修正] ---
+                # 實現具有場景感知能力的 LORE 地點錨定邏輯
+                final_location_path: List[str]
+                gs = self.profile.game_state
+
+                if character.location_path:
+                    # 優先級 1: 相信 LLM 在選角時直接提供的地點
+                    final_location_path = character.location_path
+                elif gs.viewing_mode == 'remote' and gs.remote_target_path:
+                    # 優先級 2: 如果處於遠程觀察模式，強制使用遠程目標路徑
+                    final_location_path = gs.remote_target_path
+                    logger.info(f"[{self.user_id}] (LORE Anchor) 新NPC '{character.name}' 地點未指定，已根據【遠程視角】狀態強制錨定至: {' > '.join(final_location_path)}")
+                else:
+                    # 優先級 3 (備援): 在本地模式下，使用玩家的物理位置
+                    final_location_path = gs.location_path
                 
-                path_prefix = " > ".join(character.location_path)
+                # 將最終確定的地點寫回角色檔案，以確保數據一致性
+                character.location_path = final_location_path
+                # --- 修正結束 ---
+                
+                path_prefix = " > ".join(final_location_path)
                 lore_key = f"{path_prefix} > {character.name}"
                 
                 await db_add_or_update_lore(self.user_id, 'npc_profile', lore_key, character.model_dump())
@@ -3160,7 +3177,7 @@ class AILover:
                 logger.error(f"[{self.user_id}] 在将新角色 '{character.name}' 添加到 LORE 时发生错误: {e}", exc_info=True)
         
         return created_names
-    # 函式：將新角色加入場景 (v178.2 - 架構遷移)
+    # 函式：將新角色加入場景 (v179.0 - 遠程LORE錨定)
 
 
     
