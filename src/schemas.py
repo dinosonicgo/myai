@@ -201,6 +201,7 @@ class CharacterAction(BaseModel):
     action_description: Optional[str] = Field(default=None, description="對該角色將要執行的【具體物理動作】的清晰、簡潔的描述。如果行動主要是對話，此欄位可為空。")
     dialogue: Optional[str] = Field(default=None, description="如果該角色在行動中或行動後會說話，請在此處提供確切的對話內容。")
     tool_call: Optional[ToolCall] = Field(default=None, description="如果此行動需要呼叫一個工具來改變世界狀態（如移動、使用物品），請在此處定義工具呼叫。") 
+    template_id: Optional[str] = Field(default=None, description="[系統專用] 用於標識此動作來源於哪個預設模板。")
 
     @model_validator(mode='after')
     def check_action_or_dialogue_exists(self) -> 'CharacterAction':
