@@ -2196,11 +2196,11 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v3.0 - 實體存在性優先)
+     # 函式：獲取 LORE 擴展決策鏈 (v3.1 - 提示詞變數轉義修正)
     # 更新紀錄:
-    # v3.0 (2025-09-18): [災難性BUG修復] 根據使用者指示，徹底重寫了此鏈的提示詞。新的核心邏輯是“實體存在性優先”：AI 必須先檢查使用者輸入的核心實體是否已存在於 LORE 中。只有當核心實體不存在時，才允許進行擴展。此修改旨在從根本上解決 AI 要嘛不擴展、要嘛無限擴展的矛盾問題。
+    # v3.1 (2025-09-18): [災難性BUG修復] 修正了提示詞中的格式化範例。將 `{實體名}` 修改為 `{{實體名}}` 進行轉義，以防止 LangChain 的提示詞引擎將其誤認為需要傳入的變數，從而解決了 KeyError。
+    # v3.0 (2025-09-18): [災難性BUG修復] 根據使用者指示，徹底重寫了此鏈的提示詞，改用“實體存在性優先”邏輯。
     # v2.0 (2025-09-06): [災難性BUG修復] 徹底重寫了此鏈的 Prompt，引入飽和度分析。
-    # v203.1 (2025-09-05): [延遲加載重構]
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             from .schemas import ExpansionDecision
@@ -2218,11 +2218,11 @@ class AILover:
 
 ## A. 【必須不擴展 (should_expand = false)】的唯一情況：
    - **當核心實體已存在時**。如果【使用者最新輸入】中提到的核心角色、地點或物品，已經出現在【當前場景已知 LORE 列表】中，這意味著世界中已有可供互動的對象。你的職責是利用現有設定，而不是創造重複的。
-   - **理由必須格式化為**: "核心實體 '{實體名}' 已存在於場景 LORE 中，應優先互動。"
+   - **理由必須格式化為**: "核心實體 '{{實體名}}' 已存在於場景 LORE 中，應優先互動。"
 
 ## B. 【必須擴展 (should_expand = true)】的唯一情況：
    - **當核心實體不存在時**。如果【使用者最新輸入】明確描述或指向一個在【當前場景已知 LORE 列表】中**完全不存在**的、具體的、需要被定義的新實體（例如，一個有名有姓的新角色，或一個之前從未提及的職業角色如“性神教徒魚販”），這意味著場景存在空白，需要你來填充。
-   - **理由必須格式化為**: "核心實體 '{實體名}' 在場景 LORE 中不存在，需要創建以響應使用者指令。"
+   - **理由必須格式化為**: "核心實體 '{{實體名}}' 在場景 LORE 中不存在，需要創建以響應使用者指令。"
 
 # === 關鍵對比範例 ===
 - **情境 1**: 
@@ -2246,7 +2246,11 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v3.0 - 實體存在性優先)
+    # 函式：獲取 LORE 擴展決策鏈 (v3.1 - 提示詞變數轉義修正)
+
+
+
+    
 
     # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
     def get_entity_extraction_chain(self) -> Runnable:
