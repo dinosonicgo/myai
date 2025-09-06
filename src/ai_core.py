@@ -2295,24 +2295,84 @@ class AILover:
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
 
-    # 函式：將世界聖經添加到向量儲存
-    # 說明：將文本內容分割成塊，並將其添加到向量儲存中，用於後續的檢索。
+    # 函式：將世界聖經添加到向量儲存 (v2.0 - 批次處理與金鑰輪換)
+    # 更新紀錄:
+    # v2.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式以解決 API 速率超限問題。
+    #    1. [分批處理] 將待處理的文本塊分割成大小為 100 的小批次。
+    #    2. [金鑰輪換] 為每個批次都實現了完整的重試與金鑰輪換邏輯。如果一個批次因 ResourceExhausted 失敗，會自動切換到下一個 API 金鑰並重新初始化 self.embeddings 和 self.vector_store，然後重試。
+    #    3. [延遲機制] 在每批次處理成功後，強制加入 10 秒延遲以進一步緩解 API 壓力。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
-        if not self.vector_store: raise ValueError("Vector store is not initialized.")
+        if not self.vector_store:
+            raise ValueError("Vector store is not initialized.")
+        
         try:
+            # 步驟 1: 清理舊的 'canon' 數據
             collection = await asyncio.to_thread(self.vector_store.get)
             ids_to_delete = [doc_id for i, doc_id in enumerate(collection['ids']) if collection['metadatas'][i].get('source') == 'canon']
-            if ids_to_delete: await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
+            if ids_to_delete:
+                await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
+                logger.info(f"[{self.user_id}] 已從向量儲存中清理了 {len(ids_to_delete)} 條舊的 'canon' 記錄。")
+
+            # 步驟 2: 分割文本
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
             docs = text_splitter.create_documents([text_content])
-            if docs:
-                await asyncio.to_thread(self.vector_store.add_texts, texts=[doc.page_content for doc in docs], metadatas=[{"source": "canon"} for _ in docs])
-                return len(docs)
-            return 0
+            
+            if not docs:
+                return 0
+
+            # 步驟 3: [核心修正] 分批處理與金鑰輪換
+            batch_size = 100  # Google 官方建議的批次大小
+            total_docs_processed = 0
+            
+            for i in range(0, len(docs), batch_size):
+                batch_docs = docs[i:i + batch_size]
+                batch_texts = [doc.page_content for doc in batch_docs]
+                batch_metadatas = [{"source": "canon"} for _ in batch_docs]
+                
+                max_retries = len(self.api_keys)
+                for attempt in range(max_retries):
+                    try:
+                        logger.info(f"[{self.user_id}] 正在處理 'canon' 向量化批次 {i//batch_size + 1}/{ -(-len(docs)//batch_size)} (使用 API Key #{self.current_key_index + 1})...")
+                        await asyncio.to_thread(
+                            self.vector_store.add_texts,
+                            texts=batch_texts,
+                            metadatas=batch_metadatas
+                        )
+                        total_docs_processed += len(batch_docs)
+                        logger.info(f"[{self.user_id}] 批次 {i//batch_size + 1} 成功處理。")
+                        break # 當前批次成功，跳出重試循環
+                    
+                    except ResourceExhausted as e:
+                        logger.warning(f"[{self.user_id}] (第 {attempt + 1}/{max_retries} 次嘗試) 批次處理遭遇速率限制: {e}。正在輪換 API 金鑰並重試...")
+                        
+                        # 手動輪換金鑰並重新初始化相關服務
+                        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                        self.embeddings = GoogleGenerativeAIEmbeddings(
+                            model="models/embedding-001",
+                            google_api_key=self.api_keys[self.current_key_index]
+                        )
+                        # ChromaDB 需要用新的 embedding function 重新實例化才能生效
+                        self.vector_store = Chroma(
+                            persist_directory=self.vector_store_path,
+                            embedding_function=self.embeddings
+                        )
+                        
+                        if attempt < max_retries - 1:
+                            await asyncio.sleep(5) # 在重試前短暫等待
+                        else:
+                            logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗，無法處理批次 {i//batch_size + 1}。")
+                            raise e # 達到最大重試次數，向上拋出異常
+                
+                # 每批次成功後，強制延遲
+                logger.info(f"[{self.user_id}] 批次處理成功，為避免速率超限，將等待 10 秒...")
+                await asyncio.sleep(10)
+
+            return total_docs_processed
+
         except Exception as e:
-            logger.error(f"[{self.user_id}] 處理核心設定時發生錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-    # 函式：將世界聖經添加到向量儲存
+    # 函式：將世界聖經添加到向量儲存 (v2.0 - 批次處理與金鑰輪換)
 
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
