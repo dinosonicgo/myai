@@ -569,15 +569,15 @@ class AILover:
             logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}'，無需更新。")
     # 函式：[新建] 更新並持久化導演視角模式 (v1.0)
 
-        # 函式：獲取統一 NSFW 回合計劃鏈 (v4.1 - 適配新世界快照)
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.2 - 事實鎖定)
     # 更新紀錄:
-    # v4.1 (2025-09-06): [災難性BUG修復] 為 format() 增加了對新加入的 `player_location`, `viewing_mode`, `remote_target_path_str` 佔位符的處理，以避免 KeyError。
+    # v4.2 (2025-09-06): [災難性BUG修復] 在 world_snapshot 模板中增加了 `full_lore_records_json` 佔位符，並在 human_prompt 中增加了對應的“LORE事實鎖定指令”。此修改旨在將完整的 LORE 數據提供給 LLM，並強制其遵循既定事實，從根本上解決 AI 篡改 LORE 的問題。
+    # v4.1 (2025-09-06): [災難性BUG修復] 為 format() 增加了對新加入的導演視角佔位符的處理。
     # v4.0 (2025-09-05): [災難性BUG修復] 創建此統一規劃鏈，將 NSFW 規劃的三個步驟合併為單一的 LLM 調用。
     def get_nsfw_planning_chain(self) -> Runnable:
         """獲取或創建 NSFW 路徑的統一規劃鏈，直接輸出最終的、用詞露骨的 TurnPlan JSON。"""
         if not hasattr(self, 'nsfw_planning_chain') or self.nsfw_planning_chain is None:
             from .schemas import TurnPlan
-            # 使用稍高的溫度以鼓勵在 NSFW 場景中的創造性
             planner_llm = self._create_llm_instance(temperature=0.75).with_structured_output(TurnPlan)
             
             system_prompt = """# ==============================================================================
@@ -615,11 +615,21 @@ class AILover:
 # ==============================================================================
 # --- 世界快照數據 ---
 {world_snapshot}
+
+# --- 【【【LORE 事實鎖定指令 (ABSOLUTE & UNBREAKABLE RULE)】】】 ---
+# 警告：以下是關於當前場景所有相關角色的【【【完整 LORE 記錄 JSON】】】。
+# 你的所有計畫（包括 `narration`, `dialogue`, `action_description`）中對這些角色的任何描述，
+# 【【【絕對禁止】】】與下方 JSON 中記錄的任何事實（特別是 `description`, `race`, `gender`, `skills` 等核心設定）產生任何矛盾。
+# 任何對既定 LORE 的篡改、遺忘或矛盾行為，都將被視為一次【災難性的規劃失敗】。
+# ------------------------------------------------------------------------------
+{full_lore_records_json}
+# ------------------------------------------------------------------------------
+
 # --- 使用者最新指令 ---
 {user_input}
 # --- 你的任務 ---
-請嚴格遵循你在【系統核心指令】中學到的【所有三條鐵則】（指令忠誠度、詞彙聖經、風格指令），
-開始你大膽的創作與規劃，生成一份最終的、用詞完全露骨的行動計劃 JSON。
+請嚴格遵循你在【系統核心指令】中學到的所有規則，特別是【三條鐵則】和【LORE 事實鎖定指令】，
+開始你大膽的創作與規劃，生成一份最終的、用詞完全露骨且符合既定事實的行動計劃 JSON。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
@@ -627,7 +637,7 @@ class AILover:
             ])
             self.nsfw_planning_chain = prompt | planner_llm
         return self.nsfw_planning_chain
-    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.1 - 適配新世界快照)
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.2 - 事實鎖定)
 
 
     # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
@@ -2104,42 +2114,48 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
+# 函式：獲取 LORE 擴展決策鏈 (v2.0 - 飽和度分析)
+    # 更新紀錄:
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重寫了此鏈的 Prompt。現在它會接收一個關於“LORE飽和度”的量化分析結果，並被明確指示只有在場景 LORE 確實稀疏的情況下才進行擴展。此修改旨在從根本上解決 AI 在細節豐富的場景中無限創造新 LORE 的問題。
+    # v203.1 (2025-09-05): [延遲加載重構]
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
             
-            prompt_template = """你是一位精明的遊戲流程分析師。你的唯一任務是分析使用者的最新輸入和最近的對話歷史，然後判斷【當前這一回合】是否是一個適合進行【世界構建和LORE擴展】的時機。
+            prompt_template = """你是一位精明的遊戲流程與敘事節奏分析師。你的唯一任務是分析所有上下文，判斷【當前這一回合】是否是一個適合進行【世界構建和LORE擴展】的時機。
 
-【核心判斷原則】
-你的判斷【必須】基於使用者的【探索意圖】。
+# === 核心判斷原則 ===
+你的決策必須綜合考慮【使用者的探索意圖】和【當前場景的LORE飽和度】。
 
-1.  **【應該擴展 (should_expand = true)】的明確信號：**
-    *   **移動到新地點**: 使用者剛剛執行了移動指令，進入了一個全新的或不熟悉的區域。
-    *   **明確的探索行為**: 使用者直接提問關於周圍環境、角色或物體的問題（例如：“我周圍有什麼？”、“那個NPC是誰？”、“這座雕像是關於什麼的？”）。
-    *   **提及未知實體**: 使用者的輸入中包含了一個在對話歷史和已知LORE中從未出現過的新名詞。
-    *   **開啟新話題**: 對話從一個具體的話題轉向了一個更宏觀的、關於世界背景的話題。
+## 1. 【當前場景LORE飽和度分析 (由系統提供)】
+這是你決策的【關鍵依據】。
+{saturation_analysis}
 
-2.  **【不應擴展 (should_expand = false)】的明確信號：**
-    *   **原地重複動作**: 使用者正在對一個已知的角色執行簡單、重複的指令（例如：“碧，坐下”、“碧，趴下”、“碧，站起來”）。
-    *   **持續的私人對話**: 對話聚焦於使用者和AI角色之間的情感交流或私人話題，與外部世界無關。
-    *   **已知工具互動**: 使用者正在使用工具與已知的物品或角色進行互動（例如：“裝備長劍”、“和商人交易”）。
-    *   **無實質進展**: 對話內容在原地打轉，沒有引入任何新資訊或探索意圖。
+## 2. 【使用者探索意圖分析 (基於對話)】
+-   **最近的對話歷史**: {recent_dialogue}
+-   **使用者最新輸入**: {user_input}
+
+# === 決策規則 ===
+
+## A. 【優先不擴展 (should_expand = false)】的強烈信號：
+1.  **高飽和度**: 如果【LORE飽和度分析】顯示當前在場NPC數量已經達到 **2個或更多**，通常意味著場景已經足夠豐富，應優先與現有NPC互動，而不是創造新的。
+2.  **持續互動**: 如果對話歷史和最新輸入表明，使用者正在與一個【已知的角色或物體】進行【持續的、有意義的】互動（例如，深入對話、執行多步任務、親密互動）。
+3.  **私人對話**: 對話聚焦於使用者和AI角色之間的情感交流或私人話題，與外部世界無關。
+4.  **已知工具互動**: 使用者正在使用工具與已知的物品或角色進行互動。
+
+## B. 【可以擴展 (should_expand = true)】的明確信號：
+1.  **低飽和度**: 【LORE飽和度分析】顯示場景非常“空曠”（例如，NPC數量為0或1，且地點描述缺失）。
+2.  **明確的探索行為**: 使用者明確提問關於【未知】的周圍環境、角色或物體的問題（例如：“我周圍有什麼？”、“那個遠處的人影是誰？”、“這座從未見過的雕像是關於什麼的？”）。
+3.  **進入新地點**: 使用者剛剛執行了移動指令，進入了一個全新的、且LORE數據庫中信息稀疏的區域。
+4.  **提及全新實體**: 使用者的輸入中包含了一個在對話歷史和已知LORE中從未出現過的、顯然需要被定義的新名詞。
 
 ---
-【最近的對話歷史 (用於判斷是否重複)】:
-{recent_dialogue}
----
-【使用者最新輸入】:
-{user_input}
----
-
-請根據上述原則做出你的判斷，並提供簡短的理由。"""
+請嚴格根據以上所有規則，特別是【LORE飽和度分析】，做出你的判斷，並提供簡短的理由。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取 LORE 擴展決策鏈 (v2.0 - 飽和度分析)
 
     # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
     def get_entity_extraction_chain(self) -> Runnable:
