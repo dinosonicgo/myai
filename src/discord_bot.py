@@ -1263,8 +1263,9 @@ class BotCog(commands.Cog):
     
     
     
-    # 函式：背景處理世界聖經 (v1.0 - 全新創建)
+    # 函式：背景處理世界聖經 (v1.1 - 變數名稱修正)
     # 更新紀錄:
+    # v1.1 (2025-09-06): [災難性BUG修復] 修正了在 is_setup_flow 分支中調用 self.finalize_setup 時，因變數名稱不匹配（應為 content_text 而非 canon_text）而導致的 NameError 致命錯誤。
     # v1.0 (2025-09-14): [架構重構] 創建此專用的背景任務函式，將所有與聖經相關的耗時操作（向量化、LORE解析）封裝於此，以解決互動超時問題。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         """一個統一的背景任務，負責處理、儲存和解析世界聖經文本，並在完成後通知使用者。"""
@@ -1289,8 +1290,8 @@ class BotCog(commands.Cog):
             
             # 步驟 3: 如果是設定流程，直接觸發最終創世
             if is_setup_flow:
-                # finalize_setup 內部會處理後續的 LORE 解析和開場白生成
-                await self.finalize_setup(interaction, canon_text)
+                # [v1.1 核心修正] 將錯誤的變數名稱 canon_text 修正為 content_text
+                await self.finalize_setup(interaction, content_text)
                 # finalize_setup 會自己發送最終消息，所以這裡直接返回
                 return
 
@@ -1305,8 +1306,7 @@ class BotCog(commands.Cog):
         except Exception as e:
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n在後台處理您的世界聖經時發生了嚴重錯誤: `{type(e).__name__}`")
-    # 函式：背景處理世界聖經 (v1.0 - 全新創建)
-
+    # 函式：背景處理世界聖經 (v1.1 - 變數名稱修正)
 
 
 
