@@ -27,13 +27,13 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 
-# 函式：場景與動作分析節點 (v3.0 - 上下文注入)
+# 函式：場景與動作分析節點 (v4.0 - 業務邏輯強制校準)
 # 更新紀錄:
-# v3.0 (2025-09-06): [災難性BUG修復] 根據 ValidationError，重構了此節點的數據準備邏輯。現在，它會從 `raw_lore_objects` 中提取與場景相關的所有角色 LORE，並將其序列化為 `scene_context_json`，動態注入到場景分析鏈中。這為分析鏈提供了進行“上下文回溯”以查找角色位置所需的關鍵數據，從根本上解決了因輸入簡化而導致的地點信息丟失問題。
-# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，引入了“先淨化，後分析”策略。
-# v1.0 (2025-09-13): [恢復] 恢复在重构中被遗漏的 SFW 路径核心节点。
+# v4.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 ValidationError，徹底重構了此節點的實現。不再盲目信任 LLM 的輸出，而是在節點內部增加了【程式碼層面的業務邏輯校準】。在接收到 LLM 的初步分析後，此節點會用確定性的 Python 程式碼強制檢查其邏輯一致性：如果 AI 判斷為 remote 但未提供有效路徑，則強制將其修正為 local。此修改將最終決策權從不確定的 LLM 轉移回可靠的程式碼，從根本上杜絕了因 AI 邏輯矛盾而導致的驗證崩潰。
+# v3.0 (2025-09-06): [災難性BUG修復] 重構了此節點的數據準備邏輯，注入了場景上下文。
+# v2.0 (2025-09-06): [災難性BUG修復] 引入了“先淨化，後分析”策略。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
-    """分析場景的視角（本地 vs 遠程），並注入必要的上下文以供分析。"""
+    """分析場景的視角，並在程式碼層面強制校準結果以確保邏輯一致性。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -47,24 +47,17 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Scene Analysis) 正在對輸入進行預處理以創建安全查詢...")
         entity_chain = ai_core.get_entity_extraction_chain()
         entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
-
-        if entity_result and entity_result.names:
-            sanitized_input_for_analysis = "觀察場景：" + " ".join(entity_result.names)
-            logger.info(f"[{user_id}] (Scene Analysis) 已生成安全查詢: '{sanitized_input_for_analysis}'")
-        else:
-            sanitized_input_for_analysis = user_input
-            logger.warning(f"[{user_id}] (Scene Analysis) 未能從輸入中提取實體，將使用原始輸入進行分析，可能存在風險。")
+        sanitized_input_for_analysis = "觀察場景：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
     except Exception as e:
         logger.error(f"[{user_id}] (Scene Analysis) 預處理失敗: {e}", exc_info=True)
         sanitized_input_for_analysis = user_input
 
-    # [v3.0 核心修正] 準備並注入場景上下文
     scene_context_lores = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
     scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
-
     current_location_path = ai_core.profile.game_state.location_path
+    
     scene_analysis_chain = ai_core.get_scene_analysis_chain()
-    scene_analysis = await ai_core.ainvoke_with_rotation(
+    initial_analysis = await ai_core.ainvoke_with_rotation(
         scene_analysis_chain,
         {
             "user_input": sanitized_input_for_analysis, 
@@ -74,18 +67,32 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
 
-    if not scene_analysis:
+    if not initial_analysis:
         logger.warning(f"[{user_id}] (Graph) 場景分析鏈委婉化重試失敗，啟動安全備援。")
-        scene_analysis = SceneAnalysisResult(
-            viewing_mode='local', 
-            reasoning='安全備援：場景分析鏈失敗。', 
-            action_summary=user_input
-        )
-    
-    scene_analysis.action_summary = user_input
+        final_analysis = SceneAnalysisResult(viewing_mode='local', reasoning='安全備援：場景分析鏈失敗。', action_summary=user_input)
+    else:
+        # [v4.0 核心修正] 在程式碼層面強制執行業務邏輯
+        final_analysis = initial_analysis
+        logger.info(f"[{user_id}] (Analysis Corrector) 收到初步分析: mode={final_analysis.viewing_mode}, path={final_analysis.target_location_path}")
 
-    return {"scene_analysis": scene_analysis}
-# 函式：場景與動作分析節點 (v3.0 - 上下文注入)
+        if final_analysis.viewing_mode == 'remote':
+            # 規則：remote 模式必須有有效的 target_location_path
+            if not final_analysis.target_location_path:
+                logger.warning(f"[{user_id}] (Analysis Corrector) 邏輯衝突：初步分析為 remote 但缺少路徑。強制修正為 local。")
+                final_analysis.viewing_mode = 'local'
+                final_analysis.reasoning += " [校準：因缺少目標路徑，已強制修正為local模式]"
+
+        # 規則：action_summary 必須有值
+        if not final_analysis.action_summary:
+            final_analysis.action_summary = user_input
+        
+    logger.info(f"[{user_id}] (Analysis Corrector) 已校準最終分析結果: mode={final_analysis.viewing_mode}, path={final_analysis.target_location_path}")
+    return {"scene_analysis": final_analysis}
+# 函式：場景與動作分析節點 (v4.0 - 業務邏輯強制校準)
+
+
+
+
 
 # 函式：視角模式路由器
 # 更新紀錄:
