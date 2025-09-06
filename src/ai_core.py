@@ -534,40 +534,56 @@ class AILover:
 
 
 
-# 函式：[新建] 更新並持久化導演視角模式 (v1.0)
+    # 函式：[重構] 更新並持久化導演視角模式 (v2.0 - 狀態保持)
     # 更新紀錄:
-    # v1.0 (2025-09-06): [災難性BUG修復] 創建此核心輔助函式，其唯一職責是根據最新的意圖和場景分析，更新並持久化 GameState 中的 viewing_mode 和 remote_target_path。這是解決遠程/本地場景混淆問題的狀態管理核心。
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了狀態更新邏輯。現在，如果當前視角為 'remote'，只有當新指令是明確的【本地移動】或【與在場 AI 的直接互動】時，才會將視角切換回 'local'。對於其他所有輸入（如“繼續”、“歡呼”、“描述更多細節”），視角將【保持為 'remote'】。此修改旨在從根本上解決在連續的遠程觀察中，視角被錯誤重置導致上下文崩潰的致命問題。
+    # v1.0 (2025-09-06): [災難性BUG修復] 創建此核心輔助函式，用於管理導演視角狀態。
     async def _update_viewing_mode(self, state: Dict[str, Any]) -> None:
-        """根據意圖和場景分析，更新並持久化導演視角模式。"""
+        """根據意圖和場景分析，更新並持久化導演視角模式，並增加遠程視角下的狀態保持邏輯。"""
         if not self.profile:
             return
 
         gs = self.profile.game_state
         intent_classification = state.get('intent_classification')
         scene_analysis = state.get('scene_analysis')
+        user_input = state.get('messages', [HumanMessage(content="")])[-1].content
         
         original_mode = gs.viewing_mode
+        original_path = gs.remote_target_path
         changed = False
 
-        if intent_classification:
-            intent_type = intent_classification.intent_type
-            if intent_type == 'nsfw_descriptive' or (intent_type == 'sfw' and scene_analysis and scene_analysis.viewing_mode == 'remote'):
-                if gs.viewing_mode != 'remote' or gs.remote_target_path != scene_analysis.target_location_path:
-                    gs.viewing_mode = 'remote'
-                    gs.remote_target_path = scene_analysis.target_location_path if scene_analysis else None
+        # [v2.0 核心邏輯]
+        if gs.viewing_mode == 'remote':
+            # 當前處於遠程模式，檢查是否需要切換回本地
+            is_local_move = '去' in user_input or '前往' in user_input or '移動到' in user_input
+            is_direct_ai_interaction = self.profile.ai_profile.name in user_input
+            
+            if is_local_move or is_direct_ai_interaction or (intent_classification and 'interactive' in intent_classification.intent_type and not scene_analysis.viewing_mode == 'remote'):
+                gs.viewing_mode = 'local'
+                gs.remote_target_path = None
+                changed = True
+                logger.info(f"[{self.user_id}] 檢測到本地移動或直接 AI 互動，導演視角從 'remote' 切換回 'local'。")
+            else:
+                # 保持遠程模式，但如果新的描述指令指向了新地點，則更新遠程路徑
+                if scene_analysis and scene_analysis.viewing_mode == 'remote' and gs.remote_target_path != scene_analysis.target_location_path:
+                    gs.remote_target_path = scene_analysis.target_location_path
                     changed = True
-            else: # 所有互動式意圖或本地SFW描述都應重置為本地視角
-                if gs.viewing_mode != 'local' or gs.remote_target_path is not None:
-                    gs.viewing_mode = 'local'
-                    gs.remote_target_path = None
-                    changed = True
+                    logger.info(f"[{self.user_id}] 在遠程模式下更新了觀察目標地點為: {gs.remote_target_path}")
         
+        else: # 當前處於本地模式
+            if intent_classification and ('descriptive' in intent_classification.intent_type or (intent_classification.intent_type == 'sfw' and scene_analysis and scene_analysis.viewing_mode == 'remote')):
+                 if scene_analysis and scene_analysis.viewing_mode == 'remote':
+                    gs.viewing_mode = 'remote'
+                    gs.remote_target_path = scene_analysis.target_location_path
+                    changed = True
+                    logger.info(f"[{self.user_id}] 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {gs.remote_target_path}")
+
         if changed:
-            logger.info(f"[{self.user_id}] 導演視角模式已從 '{original_mode}' 更新為 '{gs.viewing_mode}'。遠程目標: {gs.remote_target_path}")
+            logger.info(f"[{self.user_id}] 導演視角模式已從 '{original_mode}' (路徑: {original_path}) 更新為 '{gs.viewing_mode}' (路徑: {gs.remote_target_path})")
             await self.update_and_persist_profile({'game_state': gs.model_dump()})
         else:
-            logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}'，無需更新。")
-    # 函式：[新建] 更新並持久化導演視角模式 (v1.0)
+            logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}' (路徑: {original_path})，無需更新。")
+    # 函式：[重構] 更新並持久化導演視角模式 (v2.0 - 狀態保持)
 
     # 函式：獲取統一 NSFW 回合計劃鏈 (v4.2 - 事實鎖定)
     # 更新紀錄:
