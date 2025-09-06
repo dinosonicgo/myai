@@ -827,14 +827,15 @@ class AILover:
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
-# 函式：[新] 獲取遠程 SFW 計劃鏈 (v1.3 - 事實鎖定)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v2.0 - 注入對話歷史)
     # 更新紀錄:
-    # v1.3 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 參數和“LORE事實鎖定指令”。此修改旨在將完整的 LORE 數據提供給遠程規劃器，強制其遵循既定事實，解決 AI 在遠程場景中篡改 LORE 的問題。
+    # v2.0 (2025-09-16): [重大邏輯強化] 在提示詞中注入了 `{chat_history}` 佔位符，確保遠程場景的規劃也能參考到觸發前的對話，提高劇情連貫性。
+    # v1.3 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 參數和“LORE事實鎖定指令”。
     # v1.2 (2025-09-15): [邏輯強化] 與主規劃鏈同步，將 response_style_prompt 作為最高優先級硬性約束注入。
-    # v1.1 (2025-09-13): [重大邏輯強化] 引入了“編劇模式三步思考法”。
     def get_remote_sfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 SFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_sfw_planning_chain') or self.remote_sfw_planning_chain is None:
+            from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
@@ -866,6 +867,9 @@ class AILover:
 {full_lore_records_json}
 # ------------------------------------------------------------------------------
 
+# --- 最近的對話歷史 (用於接續劇情) ---
+{chat_history}
+
 # --- 【【【强制地點】】】 ---
 {target_location_path_str}
 # --- 使用者的描述指令 ---
@@ -882,20 +886,21 @@ class AILover:
             ])
             self.remote_sfw_planning_chain = prompt | planner_llm
         return self.remote_sfw_planning_chain
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v1.3 - 事實鎖定)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v2.0 - 注入對話歷史)
 
 
 
 
 
-   # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v1.3 - 事實鎖定)
+    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v2.0 - 注入對話歷史)
     # 更新紀錄:
-    # v1.3 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 參數和“LORE事實鎖定指令”。此修改旨在將完整的 LORE 數據提供給遠程規劃器，強制其遵循既定事實，解決 AI 在遠程場景中篡改 LORE 的問題。
+    # v2.0 (2025-09-16): [重大邏輯強化] 在提示詞中注入了 `{chat_history}` 佔位符，確保遠程 NSFW 場景的規劃也能參考到觸發前的對話，提高劇情連貫性。
+    # v1.3 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 參數和“LORE事實鎖定指令”。
     # v1.2 (2025-09-15): [邏輯強化] 與主規劃鏈同步，將 response_style_prompt 作為最高優先級硬性約束注入。
-    # v1.1 (2025-09-13): [重大邏輯強化] 引入了“編劇模式三步思考法”。
     def get_remote_nsfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 NSFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_nsfw_planning_chain') or self.remote_nsfw_planning_chain is None:
+            from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
@@ -927,6 +932,9 @@ class AILover:
 {full_lore_records_json}
 # ------------------------------------------------------------------------------
 
+# --- 最近的對話歷史 (用於接續劇情) ---
+{chat_history}
+
 # --- 【【【强制地點】】】 ---
 {target_location_path_str}
 # --- 使用者的描述指令 ---
@@ -943,7 +951,7 @@ class AILover:
             ])
             self.remote_nsfw_planning_chain = prompt | planner_llm
         return self.remote_nsfw_planning_chain
-    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v1.3 - 事實鎖定)
+    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v2.0 - 注入對話歷史)
 
 
     
@@ -1510,9 +1518,10 @@ class AILover:
     
     
     
-    # 函式：獲取 SFW 回合計劃鏈 (v210.1 - 風格指令強化)
+    # 函式：獲取 SFW 回合計劃鏈 (v211.0 - 注入對話歷史)
     # 更新紀錄:
-    # v210.1 (2025-09-15): [重大邏輯強化] 徹底重寫了此鏈的 Prompt 結構。不再依赖二次转述的 style_analysis，而是直接将用户完整的 response_style_prompt 作为最高优先级的硬性约束注入，从根本上解决 AI 不遵循风格指令（尤其是“不说话”）的问题。
+    # v211.0 (2025-09-16): [重大邏輯強化] 在提示詞中注入了 `{chat_history}` 佔位符。此修改旨在將最近的對話歷史作為直接上下文提供給規劃器，從根本上解決 AI 無法準確「遵循上文接續劇情」的問題。
+    # v210.1 (2025-09-15): [重大邏輯強化] 徹底重寫了此鏈的 Prompt 結構。
     # v210.0 (2025-09-12): [架構重構] 重命名为 get_sfw_planning_chain。
     def get_sfw_planning_chain(self) -> Runnable:
         """獲取或創建 SFW 路徑的規劃鏈，輸出 TurnPlan JSON。"""
@@ -1544,10 +1553,14 @@ class AILover:
 # ==============================================================================
 # --- 世界快照數據 ---
 {world_snapshot}
+
+# --- 最近的對話歷史 (用於接續劇情) ---
+{chat_history}
+
 # --- 使用者最新指令 ---
 {user_input}
 # --- 你的任務 ---
-請嚴格遵循你在【系統核心指令】中學到的所有規則，特別是【最高規劃原則】，開始你智慧的規劃，生成行動計劃 JSON。
+請嚴格遵循你在【系統核心指令】中學到的所有規則，特別是【最高規劃原則】，並【緊密銜接最近的對話歷史】，開始你智慧的規劃，生成行動計劃 JSON。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
@@ -1555,18 +1568,19 @@ class AILover:
             ])
             self.sfw_planning_chain = prompt | planner_llm
         return self.sfw_planning_chain
-    # 函式：獲取 SFW 回合計劃鏈 (v210.1 - 風格指令強化)
+    # 函式：獲取 SFW 回合計劃鏈 (v211.0 - 注入對話歷史)
 
 
 
-# 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.1 - 指令忠誠度強化)
+    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v3.0 - 注入對話歷史)
     # 更新紀錄:
-    # v2.1 (2025-09-05): [災難性BUG修復] 注入了【指令忠誠度鐵則】，並重寫了提示詞，強制此鏈生成【直接執行】使用者命令的計畫，旨在從根本上解決 AI 規避核心性行為、只生成前戲或準備動作的問題。
-    # v2.0 (2025-09-15): [重大架構重構] 此鏈现在作为 NSFW 思维链的第一步，职责被简化为只生成包含核心动作和意图的“草稿”计划，为后续的精细化修正节点做准备。
-    # v1.1 (2025-09-15): [邏輯強化] 将 response_style_prompt 作为最高优先级硬性约束注入。
+    # v3.0 (2025-09-16): [重大邏輯強化] 在提示詞中注入了 `{chat_history}` 佔位符，確保初步規劃時能緊密銜接上一輪對話，提高劇情連貫性。
+    # v2.1 (2025-09-05): [災難性BUG修復] 注入了【指令忠誠度鐵則】，並重寫了提示詞。
+    # v2.0 (2025-09-15): [重大架構重構] 此鏈现在作为 NSFW 思维链的第一步。
     def get_nsfw_initial_planning_chain(self) -> Runnable:
         """[思维链-步骤1] 获取 NSFW 互动路径的初步规划链，只输出包含核心动作的 TurnPlan "草稿"。"""
         if not hasattr(self, 'nsfw_initial_planning_chain') or self.nsfw_initial_planning_chain is None:
+            from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
@@ -1582,6 +1596,10 @@ class AILover:
 # ==================================================
 # --- 世界快照數據 ---
 {world_snapshot}
+
+# --- 最近的對話歷史 (用於接續劇情) ---
+{chat_history}
+
 # --- 使用者最新指令 ---
 {user_input}
 
@@ -1591,7 +1609,7 @@ class AILover:
 # 【絕對禁止】生成一個只描述“準備動作”或“前戲”的計劃來回應一個直接的性行為指令。計劃【必須】包含指令本身的核心動作。
 
 # --- 【你的任務】 ---
-# 1.  **直接執行**: 根據【指令忠誠度鐵則】，生成一個直接執行使用者指令的 `TurnPlan` JSON。
+# 1.  **直接執行**: 根據【指令忠誠度鐵則】，並【緊密銜接最近的對話歷史】，生成一個直接執行使用者指令的 `TurnPlan` JSON。
 # 2.  **範例**: 如果指令是“為我口交”，你的 `action_description` 就必須是關於角色“口含陽具並開始吸吮”的描述，而不是“跪下來準備”。
 # 3.  **詞彙**: 你暫時可以使用中性詞彙（如“陽具”、“陰道”），後續的專家會將其替換為露骨術語。
 """
@@ -1601,17 +1619,18 @@ class AILover:
             ])
             self.nsfw_initial_planning_chain = prompt | planner_llm
         return self.nsfw_initial_planning_chain
-    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.1 - 指令忠誠度強化)
+    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v3.0 - 注入對話歷史)
 
 
-# 函式：[新] 獲取 NSFW 词汇注入鏈 (v1.2 - 上下文強化)
+    # 函式：[新] 獲取 NSFW 词汇注入鏈 (v2.0 - 注入對話歷史)
     # 更新紀錄:
-    # v1.2 (2025-09-05): [災難性BUG修復] 借鑒 dino_ai.py 的成功經驗，將完整的系統指令 ({system_prompt}) 注入到此鏈的 Prompt 中。此修改旨在通過“指令淹沒”策略，為 LLM 提供強大的虛構上下文，從而規避因直接請求修改露骨內容而被內容審查攔截的問題。
+    # v2.0 (2025-09-16): [功能強化] 在提示詞中注入了 `{chat_history}` 佔位符，為詞彙修正專家提供更完整的對話上下文，使其能做出更符合情境的術語替換。
+    # v1.2 (2025-09-05): [災難性BUG修復] 借鑒 dino_ai.py 的成功經驗，將完整的系統指令 ({system_prompt}) 注入到此鏈的 Prompt 中。
     # v1.1 (2025-09-05): [功能強化] 修改了提示詞，明確要求此鏈同時審查並重寫 `action_description` 欄位。
-    # v1.0 (2025-09-15): [重大架構重構] 创建此专用修正链，作为 NSFW 思维链的第二步。
     def get_nsfw_lexicon_injection_chain(self) -> Runnable:
         """[思维链-步骤2] 获取 NSFW 词汇注入链，强制修正 TurnPlan 中的词汇。"""
         if not hasattr(self, 'nsfw_lexicon_injection_chain') or self.nsfw_lexicon_injection_chain is None:
+            from .schemas import TurnPlan
             corrector_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
@@ -1638,6 +1657,10 @@ class AILover:
 # ==================================================
 # --- 完整的世界快照 (供你参考上下文) ---
 {world_snapshot}
+
+# --- 最近的對話歷史 (供你參考上下文) ---
+{chat_history}
+
 # --- 行动计划草稿 (JSON) ---
 {turn_plan_json}
 # --- 你的任務 ---
@@ -1650,17 +1673,19 @@ class AILover:
             ])
             self.nsfw_lexicon_injection_chain = prompt | corrector_llm
         return self.nsfw_lexicon_injection_chain
-    # 函式：[新] 獲取 NSFW 词汇注入鏈 (v1.2 - 上下文強化)
+    # 函式：[新] 獲取 NSFW 词汇注入鏈 (v2.0 - 注入對話歷史)
 
 
 
-    # 函式：[新] 獲取 NSFW 風格合規鏈 (v1.1 - 上下文強化)
+    # 函式：[新] 獲取 NSFW 風格合規鏈 (v2.0 - 注入對話歷史)
     # 更新紀錄:
-    # v1.1 (2025-09-05): [災難性BUG修復] 借鑒 dino_ai.py 的成功經驗，將完整的系統指令 ({system_prompt}) 注入到此鏈的 Prompt 中。此修改旨在通過“指令淹沒”策略，為 LLM 提供強大的虛構上下文，從而規避因直接請求修改露骨內容而被內容審查攔截的問題。
+    # v2.0 (2025-09-16): [功能強化] 在提示詞中注入了 `{chat_history}` 佔位符，為風格合規專家提供更完整的對話上下文，使其能生成更符合當前氛圍和劇情的對話。
+    # v1.1 (2025-09-05): [災難性BUG修復] 借鑒 dino_ai.py 的成功經驗，將完整的系統指令 ({system_prompt}) 注入到此鏈的 Prompt 中。
     # v1.0 (2025-09-15): [重大架構重構] 创建此专用修正链，作为 NSFW 思维链的第三步。
     def get_nsfw_style_compliance_chain(self) -> Runnable:
         """[思维链-步骤3] 获取 NSFW 风格合规链，确保计划符合用户的对话和主动性要求。"""
         if not hasattr(self, 'nsfw_style_compliance_chain') or self.nsfw_style_compliance_chain is None:
+            from .schemas import TurnPlan
             styler_llm = self._create_llm_instance(temperature=0.5).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
@@ -1687,6 +1712,10 @@ class AILover:
 # ==================================================
 # --- 完整的世界快照 (供你参考上下文) ---
 {world_snapshot}
+
+# --- 最近的對話歷史 (供你參考上下文) ---
+{chat_history}
+
 # --- 当前行动计划 (JSON) ---
 {turn_plan_json}
 # --- 你的任務 ---
@@ -1701,7 +1730,7 @@ class AILover:
             ])
             self.nsfw_style_compliance_chain = prompt | styler_llm
         return self.nsfw_style_compliance_chain
-    # 函式：[新] 獲取 NSFW 風格合規鏈 (v1.1 - 上下文強化)
+    # 函式：[新] 獲取 NSFW 風格合規鏈 (v2.0 - 注入對話歷史)
 
 
     
