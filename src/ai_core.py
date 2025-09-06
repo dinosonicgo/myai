@@ -1193,17 +1193,33 @@ class AILover:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
 
-    # 函式：建構檢索器 (v202.2 - 競爭條件最終修復)
+    # 函式：建構檢索器 (v203.0 - ChromaDB底層修復)
     # 更新紀錄:
-    # v202.2 (2025-09-04): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 錯誤，在自我修復流程中加入了一個 1.0 秒的戰術性延遲。此修改旨在解決因競爭條件（Race Condition）導致的檔案鎖定問題，給予作業系統足夠的時間來完全釋放舊資料庫的檔案句柄，然後再嘗試創建新的資料庫實例，從而極大地提高了 `/start` 重置流程的健壯性。
+    # v203.0 (2025-09-18): [災難性BUG修復] 根據 "Could not connect to tenant" 錯誤，徹底重構了 ChromaDB 的初始化邏輯。不再依賴 LangChain 的高層級封裝來創建 PersistentClient，而是改為使用 chromadb 函式庫的底層方法，手動創建一個配置好持久化路徑的 chromadb.Client 實例，然後再將此客戶端實例傳遞給 LangChain 的 Chroma 類。此修改旨在繞過高層級封裝中的初始化 BUG，從根本上解決在空目錄下創建向量數據庫失敗的問題。
+    # v202.2 (2025-09-04): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 錯誤，在自我修復流程中加入了一個 1.0 秒的戰術性延遲。
     # v202.1 (2025-09-05): [災難性BUG修復] 根據 `/start` 流程中反覆出現的 `Could not connect to tenant` 錯誤，徹底重構了資料庫的初始化和恢復邏輯。
-    # v202.0 (2025-09-05): 增加了對全新空資料庫的讀取保護。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復能力。"""
         all_docs = []
+        
+        # 輔助函式，用於創建健壯的 ChromaDB 客戶端
+        def _create_chroma_instance(path: str, embedding_func: Any) -> Chroma:
+            # [v203.0 核心修正] 使用底層 chromadb Client 進行手動初始化
+            client_settings = chromadb.Settings(
+                is_persistent=True,
+                persist_directory=path,
+            )
+            chroma_client = chromadb.Client(client_settings)
+            
+            # 將手動創建的 client 傳遞給 LangChain 的 Chroma 封裝
+            return Chroma(
+                client=chroma_client,
+                embedding_function=embedding_func,
+            )
+
         try:
-            # 步驟 1: 嘗試實例化 ChromaDB 客戶端。這是最容易出錯的地方。
-            self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
+            # 步驟 1: 嘗試實例化 ChromaDB 客戶端。
+            self.vector_store = _create_chroma_instance(self.vector_store_path, self.embeddings)
             
             # 步驟 2: 如果實例化成功，再嘗試安全地讀取數據
             all_docs_collection = await asyncio.to_thread(self.vector_store.get)
@@ -1226,12 +1242,11 @@ class AILover:
                 # 創建一個全新的空資料夾
                 vector_path.mkdir(parents=True, exist_ok=True)
                 
-                # [v202.2 核心修正] 在重新創建實例前，短暫等待以釋放檔案鎖
                 logger.info(f"[{self.user_id}] 已清理舊目錄，正在等待 1.0 秒以確保檔案鎖已釋放...")
                 await asyncio.sleep(1.0)
                 
                 # 在乾淨的環境下再次嘗試實例化
-                self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
+                self.vector_store = _create_chroma_instance(self.vector_store_path, self.embeddings)
                 all_docs = [] # 我們明確知道這是一個全新的空資料庫
                 logger.info(f"[{self.user_id}] 全自動恢復成功，已創建全新的向量儲存。")
 
@@ -1264,66 +1279,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
         return retriever
-    # 函式：建構檢索器 (v202.2 - 競爭條件最終修復)
-
-    # 函式：獲取場景擴展鏈 (v203.1 - 延遲加載重構)
-    def get_scene_expansion_chain(self) -> Runnable:
-        if not hasattr(self, 'scene_expansion_chain') or self.scene_expansion_chain is None:
-            expansion_parser = JsonOutputParser(pydantic_object=ToolCallPlan)
-            raw_expansion_model = self._create_llm_instance(temperature=0.7)
-            expansion_model = raw_expansion_model.bind(safety_settings=SAFETY_SETTINGS)
-            
-            system_prompt_prefix = self.profile.one_instruction if self.profile else ""
-            
-            available_lore_tool_names = ", ".join([f"`{t.name}`" for t in lore_tools.get_lore_tools()])
-            
-            scene_expansion_task_template = """---
-[CONTEXT]
-**核心世界觀:** {world_settings}
-**當前完整地點路徑:** {current_location_path}
-**最近的對話 (用於事實記錄):** 
-{recent_dialogue}
----
-**【【【現有 LORE 情報摘要 (EXISTING LORE SUMMARY)】】】**
-{existing_lore_summary}
----
-[INSTRUCTIONS]
-**你的核心職責：【世界填充與細化引擎 (World Population & Refinement Engine)】**
-
-**【【【最高指導原則：LORE 操作手冊】】】**
-1.  **先審查，後操作**: 在你進行任何操作之前，你【必須】首先仔細閱讀上方的【現有 LORE 情報摘要】，了解这个世界**已经拥有哪些设定**。
-2.  **补充缺失**: 你的首要任务是使用 `create_...` 或 `add_or_update_...` 类工具来**【补充】**这个世界**【缺失】**的细节。你【绝对禁止】为摘要中已经存在的主题创造一个新的、重复的 LORE 條目。
-3.  **深化现有 (关键!)**: 如果你想为一个**已存在**的主题增加细节或记录状态变化，你【必须】使用 `update_npc_profile` 工具。
-    *   **用法**: `update_npc_profile(lore_key="<必须是摘要中提供的完整主键>", updates={{"<要更新的字段>": "<新的值>"}})`
-    *   **`lore_key`**: 你【必须】从【現有 LORE 情報摘要】中**完整、准确地复制**目标 NPC 的主键 (例如: "艾瑟利亞大陸 > 迷霧森林 > 老树精")。
-    *   **`updates`**: 这是一个字典，你可以用它来更新一个或多个字段，例如 `{{"status": "正在沉睡"}}` 或 `{{"description": "它的树皮上多了一道新的魔法符文。"}}`。
-
-**【工作流程範例】**
-*   **情境**: LORE 摘要中已有 `[npc_profile] 老树精`。你想补充说明“老树精守护着一个秘密”。
-*   **【❌ 错误操作】**: `create_new_npc_profile(name="守护秘密的老树精", ...)` -> 这是重复创造，是严重错误。
-*   **【✅ 正确操作】**: `update_npc_profile(lore_key="艾瑟利亞大陸 > 迷霧森林 > 老树精", updates={{"description": "據說，這位古老的森林守護者知道一個關於森林核心秘密的線索。"}})`
-
-*   **情境**: 你想在场景中加入一家之前不存在的“铁匠铺”。
-*   **【✅ 正确操作】**: `add_or_update_location_info(name="热火铁匠铺", ...)` -> 这是正确的补充缺失细节。
-
-**【你的任务】**
-请严格遵守上述所有规则，扮演一个有意识、有记忆的世界填充引擎，生成一个既能补充世界空白又能正确更新现有设定的、详细的工具呼叫計畫JSON。
-{format_instructions}
-"""
-            full_prompt_str = f"{system_prompt_prefix}\n\n---\n\n{scene_expansion_task_template}"
-
-            scene_expansion_prompt = ChatPromptTemplate.from_template(
-                full_prompt_str,
-                partial_variables={ "available_lore_tool_names": available_lore_tool_names }
-            )
-            self.scene_expansion_chain = (
-                scene_expansion_prompt.partial(format_instructions=expansion_parser.get_format_instructions())
-                | expansion_model
-                | StrOutputParser()
-                | expansion_parser
-            )
-        return self.scene_expansion_chain
-    # 函式：獲取場景擴展鏈 (v203.1 - 延遲加載重構)
+    # 函式：建構檢索器 (v203.0 - ChromaDB底層修復)
     
 
     # 函式：獲取場景選角鏈 (v207.0 - Few-Shot 終極強化)
