@@ -2874,39 +2874,65 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-   # 函式：“安全備援”委婉化重試處理器 (v208.0 - 解構-重構)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 通用類型處理)
     # 更新紀錄:
-    # v208.0 (2025-09-07): [災難性BUG修復] 徹底重寫了此函式的實現，以部署全新的「程序化解構-重構」終極委婉化策略。此策略從根本上瓦解了 API 審查的基礎，旨在無限接近 100% 的 NSFW 生成成功率。
-    #    1. [解構] 調用 `get_entity_extraction_chain` 將露骨輸入「粉碎」成一組中性的名詞關鍵詞。
-    #    2. [重構] 調用全新的 `get_euphemization_chain` 將這些安全關鍵詞重組成一句安全的指令。
-    #    3. [重試] 使用這句安全指令重試最初失敗的鏈。
-    # v207.0 (2025-09-06): [重大架構升級] 恢復了此函式。
+    # v209.0 (2025-09-07): [災難性BUG修復] 為了從根本上解決因處理複雜數據類型（如 List[Document]）而導致的 ValueError，徹底重寫了此函式的實現，使其成為一個真正通用的、絕不失敗的重試處理器。
+    #    1. [類型分派] 新增了對 `dict`, `str`, `List[Document]` 和其他 `list` 類型的分支處理邏輯。
+    #    2. [智能提取] 能夠根據不同的數據類型，智能地提取出最適合進行委婉化的核心文本內容。
+    #    3. [終極備援] 引入了 `repr()` 作為處理任何未知數據類型的最終備援，確保此函式本身永遠不會再因無法處理輸入而崩潰。
+    # v208.0 (2025-09-07): [重大架構升級] 部署了“程序化解構-重構”策略。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v208.0 新架構] 執行“程序化解構-重構”策略，以極高的可靠性繞過內容審查。
+        [v209.0 新架構] 一個通用的、能夠處理多種數據類型的重試處理器，
+        執行“程序化解構-重構”策略以繞過內容審查。
         """
-        logger.warning(f"[{self.user_id}] 內部鏈遭遇審查。啟動【解構-重構委婉化】終極策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈遭遇審查。啟動【通用解構-重構委婉化】終極策略...")
         
         try:
-            # 步驟 1: 從失敗的參數中，找到最核心的、需要被解構的文本
+            # 步驟 1: [v209.0 核心] 通用化地提取核心文本和重構方法
             text_to_deconstruct = ""
-            key_to_replace = None
+            reconstruct_func = None
 
+            # 類型 1: 處理字典
             if isinstance(failed_params, dict):
                 string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
-                if not string_values: raise ValueError("參數中無可供解構的文本。")
-                # 優先解構 user_input，如果不存在，則解構最長的字符串
+                if not string_values: raise ValueError("參數字典中無可供解構的文本。")
+                
                 key_to_replace = 'user_input' if 'user_input' in string_values else max(string_values, key=lambda k: len(string_values[k]))
                 text_to_deconstruct = string_values[key_to_replace]
+                
+                def reconstruct(safe_text: str):
+                    retry_params = failed_params.copy()
+                    retry_params[key_to_replace] = safe_text
+                    return retry_params
+                reconstruct_func = reconstruct
+
+            # 類型 2: 處理字符串
             elif isinstance(failed_params, str):
                 text_to_deconstruct = failed_params
-            else: # 對於文檔列表等其他類型，直接放棄
-                raise ValueError("無法從參數中提取可供解構的文本。")
+                reconstruct_func = lambda safe_text: safe_text
+
+            # 類型 3: 處理文檔列表 (RAG鏈的常見輸入)
+            elif isinstance(failed_params, list) and all(isinstance(item, Document) for item in failed_params):
+                text_to_deconstruct = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
+                # 重構時，我們無法恢復原始文檔結構，因此返回一個包含安全文本的單一文檔
+                reconstruct_func = lambda safe_text: [Document(page_content=safe_text)]
+
+            # 類型 4: 處理其他列表 (例如，規劃主體列表)
+            elif isinstance(failed_params, list):
+                text_to_deconstruct = json.dumps(failed_params, ensure_ascii=False)
+                # 嘗試將其作為JSON字符串重構
+                reconstruct_func = lambda safe_text: safe_text
+            
+            # 類型 5 (終極備援): 處理任何其他未知類型
+            else:
+                text_to_deconstruct = repr(failed_params)
+                reconstruct_func = lambda safe_text: safe_text
 
             if not text_to_deconstruct:
                 raise ValueError("提取出的待解構文本為空。")
-            
-            logger.info(f"[{self.user_id}] (Euphemize) 步驟A - 解構: 正在從 '{text_to_deconstruct[:50]}...' 中提取核心實體...")
+
+            logger.info(f"[{self.user_id}] (Euphemize) 步驟A - 解構: 正在從 (類型: {type(failed_params).__name__}) '{text_to_deconstruct[:70]}...' 中提取核心實體...")
 
             # 步驟 2: 【程序化解構】 - 提取核心名詞
             entity_extraction_chain = self.get_entity_extraction_chain()
@@ -2928,20 +2954,15 @@ class AILover:
             
             logger.info(f"[{self.user_id}] (Euphemize) 重構成功，生成安全指令: '{safe_text}'")
 
-            # 步驟 4: 【安全重試】 - 使用重構後的安全文本進行重試
-            retry_params = failed_params
-            if isinstance(retry_params, dict) and key_to_replace:
-                retry_params[key_to_replace] = safe_text
-            else: # str
-                retry_params = safe_text
-
-            logger.info(f"[{self.user_id}] (Euphemize) 步驟C - 重試: 正在用安全指令重試原始鏈...")
+            # 步驟 4: 【安全重試】 - 使用重構後的安全文本和對應的重構方法來準備重試參數
+            retry_params = reconstruct_func(safe_text)
+            logger.info(f"[{self.user_id}] (Euphemize) 步驟C - 重試: 正在用安全參數重試原始鏈...")
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【解構-重構委婉化】終極策略失敗: {e}。將觸發最終安全備援。", exc_info=True)
+            logger.error(f"[{self.user_id}] 【通用解構-重構委婉化】終極策略失敗: {e}。將觸發最終安全備援。", exc_info=True)
             return None # 如果整個流程依然失敗，返回 None 以觸發安全備援
-    # 函式：“安全備援”委婉化重試處理器 (v208.0 - 解構-重構)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 通用類型處理)
 
     
 
