@@ -531,7 +531,42 @@ class AILover:
         logger.info(f"[{self.user_id}] 成功恢復了 {len(recent_memories)} 條對話記錄到短期記憶中。")
     # 函式：從資料庫恢復短期記憶 (v158.0 重構)
 
+    # 函式：獲取地點提取鏈 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [全新創建] 根據「遠程視角管理失敗」的分析，創建了這個全新的、職責單一的鏈。其唯一任務是從使用者輸入中，以最高的精度提取出地理學或建築學意義上的地點路徑。它將被意圖驅動的 `update_viewing_mode_node` 調用，以取代舊的、不可靠的綜合分析鏈，從而確保遠程目標路徑的數據質量。
+    def get_location_extraction_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從文本中提取地點路徑的鏈。"""
+        if not hasattr(self, 'location_extraction_chain') or self.location_extraction_chain is None:
+            
+            # 定義一個簡單的 Pydantic 模型來規範輸出
+            class LocationPath(BaseModel):
+                location_path: Optional[List[str]] = Field(default=None, description="從文本中提取出的、層級式的地點路徑列表。如果找不到地點，則為 null。")
 
+            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(LocationPath)
+            
+            prompt_template = """你是一位精確的地理信息系統 (GIS) 分析員。你的唯一任務是從【使用者輸入】中，提取出一個明確的【地理位置】，並將其轉換為層級式的路徑列表。
+
+# === 【【【核心規則】】】 ===
+1.  **【只找地點】**: 你【只能】提取地理或建築學上的地點（如城市、市場、神殿、森林）。
+2.  **【忽略其他】**: 【絕對禁止】將角色、物品、概念或任何非地點的實體提取出來。
+3.  **【層級化】**: 如果地點有層級關係（例如 “性神城的市場”），請將其解析為 `["性神城", "市場"]`。
+4.  **【找不到則為Null】**: 如果輸入中【完全沒有】任何地點信息，你的輸出JSON中 `location_path` 欄位的值【必須】是 `null`。
+
+# === 範例 ===
+- 輸入: "描述一下性神城中央市場的情況" -> 輸出: `{"location_path": ["性神城", "中央市場"]}`
+- 輸入: "看看森林" -> 輸出: `{"location_path": ["森林"]}`
+- 輸入: "繼續幹她" -> 輸出: `{"location_path": null}`
+
+---
+【使用者輸入】:
+{user_input}
+---
+請開始分析並生成結構化的 JSON 輸出。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.location_extraction_chain = prompt | extractor_llm
+        return self.location_extraction_chain
+    # 函式：獲取地點提取鏈 (v1.0 - 全新創建)
 
 
 
@@ -1395,46 +1430,57 @@ class AILover:
         return self.input_analysis_chain
     # 函式：獲取使用者意圖分析鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取場景視角分析鏈 (v205.0 - 上下文回溯)
+
+
+
+
+    
+    # 函式：獲取場景實體分析鏈 (v206.0 - 職責簡化)
     # 更新紀錄:
-    # v205.0 (2025-09-06): [災難性BUG修復] 根據 ValidationError，為此鏈引入了“上下文回溯”機制。舊版本只分析當前輸入，當輸入只含角色名時會因找不到地點而崩潰。新版本接收一個額外的 `scene_context_json` 參數，並被賦予一條新規則：如果當前輸入缺少地點，【必須】從上下文JSON中查找核心角色的 `location_path` 作為回退。此修改旨在從根本上解決因指令簡化而導致的地點信息丟失問題。
+    # v206.0 (2025-09-06): [重大架構重構] 根據「意圖驅動視角管理」的新策略，此鏈的職責被極大簡化。它不再負責判斷 `viewing_mode` 或提取 `target_location_path`。其唯一的、新的任務是從使用者輸入中，提取出互動的【核心實體 (Focus Entity)】，例如 "魚販"。這將為未來的、更精細的 LORE 查詢或場景互動提供數據支持。
+    # v205.0 (2025-09-06): [災難性BUG修復] 引入了“上下文回溯”機制。
     # v204.0 (2025-09-06): [災難性BUG修復] 徹底重寫了此鏈的提示詞，引入了【地點提取鐵則】。
-    # v203.1 (2025-09-05): [延遲加載重構] 完成延遲加載重構。
     def get_scene_analysis_chain(self) -> Runnable:
         if not hasattr(self, 'scene_analysis_chain') or self.scene_analysis_chain is None:
-            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneAnalysisResult)
+            # 簡化輸出模型，只關心 focus_entity
+            class FocusEntityResult(BaseModel):
+                focus_entity: Optional[str] = Field(default=None, description="如果指令是關於某個特定對象，則為該對象的名稱；否則為 null。")
+
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(FocusEntityResult)
             
-            analysis_prompt_template = """你是一個精密的場景視角與地理實體分析器。你的任務是分析所有上下文，判斷使用者的視角，並【極其精確地】提取出他們想要觀察的【地理位置】。
+            analysis_prompt_template = """你是一個精密的語義分析器。你的唯一任務是從【使用者輸入】中，找出他們想要【聚焦互動或觀察的核心實體】。
 
-# === 【【【核心規則 v205.0】】】 ===
+# === 【核心規則】 ===
+1.  **【提取核心】**: 仔細閱讀指令，找出使用者最想看的那個【具體的人或物】。
+2.  **【忽略地點】**: 你【不需要】關心地點信息。
+3.  **【找不到則為Null】**: 如果指令只是一個通用的描述請求（例如 "看看周圍"）或是一個動作指令（例如 "去市場"），並沒有特定的聚焦目標，則 `focus_entity` 欄位【必須】為 `null`。
 
-# 1.  **【上下文回溯鐵則 (CONTEXTUAL LOOK-BEHIND)】 - 最高優先級**
-#     如果【使用者輸入】中**只**提到了角色/實體名（例如 "觀察海妖吟"），而**沒有**明確的地理位置，你【絕對必須】執行以下操作：
-#     A.  在下方提供的【場景上下文JSON】中，找到該核心實體（例如 "海妖吟"）的 LORE 檔案。
-#     B.  提取其 `location_path` 欄位的數值。
-#     C.  將這個提取出的路徑作為本次分析的 `target_location_path` 返回。
-
-# 2.  **【地點提取鐵則】**
-#     `target_location_path` 欄位【只能且必須】包含【地理學或建築學意義上的地點名稱】。
-#     【絕對禁止】將角色、物品、身體部位或概念提取為地點。
-
-# 3.  **【無法推斷則為本地】**
-#     如果【使用者輸入】中沒有地點，且【場景上下文JSON】中也找不到相關角色的位置信息，則 `viewing_mode`【必須】被設為 `local`。
+# === 範例 ===
+- 輸入: "詳細描述市場裡的那個**魚販**" -> 輸出: `{"focus_entity": "魚販"}`
+- 輸入: "觀察酒館裡的**吟遊詩人**" -> 輸出: `{"focus_entity": "吟遊詩人"}`
+- 輸入: "看看市場" -> 輸出: `{"focus_entity": null}`
+- 輸入: "你好嗎？" -> 輸出: `{"focus_entity": null}` (這是一個通用對話，沒有特定實體焦點)
 
 ---
-【當前玩家物理位置（備用參考）】: {current_location_path_str}
+【使用者輸入】: {user_input}
 ---
-【場景上下文JSON（用於回溯查詢角色位置）】:
-{scene_context_json}
----
-【使用者輸入（主要分析對象）】: {user_input}
----
-請嚴格遵循以上所有規則，開始你的分析。"""
+請開始你的分析。"""
             
+            # 為了保持 SceneAnalysisResult 的結構完整性，我們需要一個轉換層
+            def _convert_to_scene_analysis(result: FocusEntityResult) -> SceneAnalysisResult:
+                # 這個轉換後的結果不再決定視角，只攜帶 focus_entity 信息
+                return SceneAnalysisResult(
+                    viewing_mode='local', # 預設值，不再由此鏈決定
+                    reasoning="此鏈只負責提取核心實體。",
+                    target_location_path=None, # 不再由此鏈決定
+                    focus_entity=result.focus_entity,
+                    action_summary="" # 由調用點填充
+                )
+
             analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
-            self.scene_analysis_chain = analysis_prompt | analysis_llm
+            self.scene_analysis_chain = analysis_prompt | analysis_llm | _convert_to_scene_analysis
         return self.scene_analysis_chain
-    # 函式：獲取場景視角分析鏈 (v205.0 - 上下文回溯)
+    # 函式：獲取場景實體分析鏈 (v206.0 - 職責簡化)
 
 
     
