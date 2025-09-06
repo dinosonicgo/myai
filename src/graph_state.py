@@ -1,8 +1,8 @@
-# src/graph_state.py 的中文註釋(v6.0 - 新增淨化輸入)
+# src/graph_state.py 的中文註釋(v6.1 - 完整性還原)
 # 更新紀錄:
-# v6.0 (2025-09-18): [重大架構升級] 新增了 `sanitized_user_input` 欄位。此欄位將用於儲存經過“無害化”處理後的使用者指令，旨在將帶有攻擊性的原始輸入與核心規劃鏈隔離，從根本上解決因輸入觸發內容審查導致規劃失敗的問題。
+# v6.1 (2025-09-18): [災難性BUG修復] 恢復了被先前版本錯誤省略的 SetupGraphState 類別的完整程式碼，以解決 ImportError。
+# v6.0 (2025-09-18): [重大架構升級] 新增了 `sanitized_user_input` 欄位。
 # v5.0 (2025-09-10): [重大架構升級] 新增了 `raw_lore_objects` 欄位。
-# v4.0 (2025-09-06): [重大架構升級] 新增了 `style_analysis` 欄位。
 
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
@@ -49,3 +49,16 @@ class ConversationGraphState(TypedDict):
     final_output: str
     state_updates: Dict[str, Any]
 # 類別：對話圖狀態
+
+# 類別：設定圖狀態
+class SetupGraphState(TypedDict):
+    """
+    /start 創世流程的狀態容器。
+    負責在創世的各個步驟（處理聖經、補完角色、生成世界）之間傳遞數據。
+    """
+    user_id: str
+    ai_core: "AILover"
+    canon_text: Optional[str]
+    genesis_result: Optional["WorldGenesisResult"]
+    opening_scene: str
+# 類別：設定圖狀態
