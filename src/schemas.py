@@ -319,6 +319,20 @@ class SceneAnalysisResult(BaseModel):
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
 
+
+
+
+# [v14.0 新增] 用於安全接收 LLM 原始場景分析結果的寬鬆模型
+class RawSceneAnalysis(BaseModel):
+    """一個沒有複雜內部驗證的 Pydantic 模型，專門用於安全地接收來自 LLM 的、可能存在邏輯矛盾的初步場景分析結果。"""
+    viewing_mode: Literal['local', 'remote'] = Field(description="對視角的初步判斷。")
+    reasoning: str = Field(description="做出判斷的理由。")
+    target_location_path: Optional[List[str]] = Field(default=None, description="初步提取的地點路徑。")
+    focus_entity: Optional[str] = Field(default=None, description="初步提取的核心實體。")
+    action_summary: str = Field(description="對使用者意圖的摘要。")
+
+
+
 class ValidationResult(BaseModel):
     is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
 
