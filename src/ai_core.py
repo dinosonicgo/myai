@@ -1209,25 +1209,24 @@ class AILover:
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.2 - 縮排修正)
 
-    # 函式：建構檢索器 (v203.0 - ChromaDB底層修復)
+
+
+
+    
+    # 函式：建構檢索器 (v204.0 - ChromaDB 初始化修正)
     # 更新紀錄:
-    # v203.0 (2025-09-18): [災難性BUG修復] 根據 "Could not connect to tenant" 錯誤，徹底重構了 ChromaDB 的初始化邏輯。不再依賴 LangChain 的高層級封裝來創建 PersistentClient，而是改為使用 chromadb 函式庫的底層方法，手動創建一個配置好持久化路徑的 chromadb.Client 實例，然後再將此客戶端實例傳遞給 LangChain 的 Chroma 類。此修改旨在繞過高層級封裝中的初始化 BUG，從根本上解決在空目錄下創建向量數據庫失敗的問題。
-    # v202.2 (2025-09-04): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 錯誤，在自我修復流程中加入了一個 1.0 秒的戰術性延遲。
-    # v202.1 (2025-09-05): [災難性BUG修復] 根據 `/start` 流程中反覆出現的 `Could not connect to tenant` 錯誤，徹底重構了資料庫的初始化和恢復邏輯。
+    # v204.0 (2025-09-06): [災難性BUG修復] 根據 "Could not connect to tenant" 致命錯誤，徹底重構了 ChromaDB 的初始化邏輯。不再使用通用的、行為不穩定的 `chromadb.Client()` 建構函式，而是改為使用官方推薦的、專為本地持久化設計的 `chromadb.PersistentClient(path=...)`。此修改旨在從根本上繞過 chromadb 函式庫在高層級 API 上的初始化 Bug，確保在 /start 重置流程後能夠穩定地創建新的向量數據庫。
+    # v203.0 (2025-09-18): [災難性BUG修復] 徹底重構了 ChromaDB 的初始化邏輯。
+    # v202.2 (2025-09-04): [災難性BUG修復] 增加了戰術性延遲。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復能力。"""
         all_docs = []
         
         # 輔助函式，用於創建健壯的 ChromaDB 客戶端
         def _create_chroma_instance(path: str, embedding_func: Any) -> Chroma:
-            # [v203.0 核心修正] 使用底層 chromadb Client 進行手動初始化
-            client_settings = chromadb.Settings(
-                is_persistent=True,
-                persist_directory=path,
-            )
-            chroma_client = chromadb.Client(client_settings)
+            # [v204.0 核心修正] 使用專為本地持久化設計的、更穩定的 PersistentClient
+            chroma_client = chromadb.PersistentClient(path=path)
             
-            # 將手動創建的 client 傳遞給 LangChain 的 Chroma 封裝
             return Chroma(
                 client=chroma_client,
                 embedding_function=embedding_func,
@@ -1295,7 +1294,10 @@ class AILover:
             logger.warning(f"[{self.user_id}] RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
         return retriever
-    # 函式：建構檢索器 (v203.0 - ChromaDB底層修復)
+    # 函式：建構檢索器 (v204.0 - ChromaDB 初始化修正)
+
+
+    
     
 
     # 函式：獲取場景選角鏈 (v207.0 - Few-Shot 終極強化)
