@@ -1085,17 +1085,22 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
 
 # --- 階段四：收尾 (Finalization) ---
 
+# 函式：統一的輸出驗證與淨化節點 (v2.0 - 代碼替換)
+# 更新紀錄:
+# v2.0 (2025-09-08): [災難性BUG修復] 根據“代碼化委婉”策略，此節點現在被賦予了最終的“解碼”職責。它會在所有清理工序完成後，執行一個確定性的字符串替換，將文本中所有安全的代碼（如 `[MALE_GENITALIA]`）還原為最終的、使用者期望的露骨詞彙（如「肉棒」）。這是確保100%露骨內容輸出的最後、也是最關鍵的一環。
+# v1.0 (2025-09-09): [架構重構] 創建此節點。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
-    """[10] 統一的輸出驗證與淨化節點。"""
+    """[10] 統一的輸出驗證與淨化節點，並執行最終的代碼還原。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     initial_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
+    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行淨化與最終解碼...")
     
     if not initial_response or not initial_response.strip():
         logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
     
+    # 步驟 1: 清理指令洩漏
     clean_response = initial_response
     clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
@@ -1104,12 +1109,28 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
         clean_response = clean_response.replace('旁白：', '').replace('對話：', '')
     
-    final_response = clean_response.strip()
-    if not final_response:
+    clean_response = clean_response.strip()
+    if not clean_response:
         logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
         return {"final_output": "（...）"}
+
+    # 步驟 2: [v2.0 核心修正] 執行代碼還原
+    final_response = clean_response
+    replacement_map = {
+        "[MALE_GENITALIA]": "肉棒",
+        "[FEMALE_GENITALIA]": "肉穴",
+        "[MALE_FLUID]": "精液",
+        "[FEMALE_FLUID]": "淫水",
+        "[CLITORIS]": "陰蒂",
+        "[ANUS]": "後庭"
+    }
+    for code, word in replacement_map.items():
+        final_response = final_response.replace(code, word)
+    
+    logger.info(f"[{user_id}] (Decoder) 已成功將輸出中的NSFW代碼還原為露骨詞彙。")
         
     return {"final_output": final_response}
+# 函式：統一的輸出驗證與淨化節點 (v2.0 - 代碼替換)
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點。"""
