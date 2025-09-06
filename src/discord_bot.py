@@ -1263,10 +1263,11 @@ class BotCog(commands.Cog):
     
     
     
-    # 函式：背景處理世界聖經 (v1.1 - 變數名稱修正)
+    # 函式：背景處理世界聖經 (v2.0 - 增加長文本處理提示)
     # 更新紀錄:
-    # v1.1 (2025-09-06): [災難性BUG修復] 修正了在 is_setup_flow 分支中調用 self.finalize_setup 時，因變數名稱不匹配（應為 content_text 而非 canon_text）而導致的 NameError 致命錯誤。
-    # v1.0 (2025-09-14): [架構重構] 創建此專用的背景任務函式，將所有與聖經相關的耗時操作（向量化、LORE解析）封裝於此，以解決互動超時問題。
+    # v2.0 (2025-09-18): [UX優化] 在開始向量化之前，增加了對文本長度的檢查。如果內容較多，會向使用者發送一條關於處理時間可能較長的預期管理訊息，以避免使用者因長時間等待而感到困惑。
+    # v1.1 (2025-09-06): [災難性BUG修復] 修正了 finalize_setup 的變數名稱錯誤。
+    # v1.0 (2025-09-14): [架構重構] 創建此專用的背景任務函式。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         """一個統一的背景任務，負責處理、儲存和解析世界聖經文本，並在完成後通知使用者。"""
         user_id = str(interaction.user.id)
@@ -1280,12 +1281,25 @@ class BotCog(commands.Cog):
                 await user.send("❌ **處理失敗！**\n錯誤：在後台任務中找不到您的使用者資料。")
                 return
 
+            # [v2.0 新增] 長文本處理提示
+            if len(content_text) > 5000: # 如果文本長度超過 5000 字符
+                long_text_warning = (
+                    "⏳ **請注意：**\n"
+                    "您提供的世界聖經內容較多，系統正在分批進行向量化處理以避免 API 速率超限，"
+                    "這可能需要 **幾分鐘** 的時間。請您耐心等待最終的完成通知。"
+                )
+                if is_setup_flow:
+                    await interaction.followup.send(long_text_warning, ephemeral=True)
+                else:
+                    await user.send(long_text_warning)
+
+
             # 步驟 1: 輕量級初始化 (如果需要)
             if not ai_instance.vector_store:
                 ai_instance._initialize_models()
                 ai_instance.retriever = await ai_instance._build_retriever()
 
-            # 步驟 2: 向量化存儲 (第一個耗時操作)
+            # 步驟 2: 向量化存儲 (現在是帶有重試和延遲的健壯版本)
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
             
             # 步驟 3: 如果是設定流程，直接觸發最終創世
@@ -1305,9 +1319,12 @@ class BotCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
-            await user.send(f"❌ **處理失敗！**\n在後台處理您的世界聖經時發生了嚴重錯誤: `{type(e).__name__}`")
-    # 函式：背景處理世界聖經 (v1.1 - 變數名稱修正)
-
+            error_message = f"❌ **處理失敗！**\n在後台處理您的世界聖經時發生了嚴重錯誤: `{type(e).__name__}`"
+            # 檢查錯誤訊息是否與速率限制相關
+            if "ResourceExhausted" in str(e) or "quota" in str(e).lower():
+                error_message += "\n\n**原因分析**：這通常是由於所有備用 API 金鑰在短時間內均達到了 Google 的免費速率上限。建議您等待一段時間（可能是幾分鐘到一小時）後再嘗試提交。"
+            await user.send(error_message)
+    # 函式：背景處理世界聖經 (v2.0 - 增加長文本處理提示)
 
 
     
