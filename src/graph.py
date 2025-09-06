@@ -100,7 +100,49 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 # 函式：場景與動作分析節點 (v5.0 - 兩階段驗證)
 
 
+# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
+# 更新紀錄:
+# v1.0 (2025-09-06): [重大架構升級] 創建此全新的「前置淨化層」節點，作為圖的新入口。它負責調用實體提取鏈和委婉化鏈，將原始的、可能觸發審查的露骨使用者輸入，轉化為一個保留核心意圖但用詞中性的安全版本。此節點是從根本上解決因輸入「投毒」導致早期分析節點（如意圖分類）被 API 攔截的關鍵性修正。
+async def pre_process_input_node(state: ConversationGraphState) -> Dict:
+    """[0] 圖的新入口點。將原始使用者輸入轉化為一個對分析節點安全的、中性的指令。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|0) Node: pre_process_input -> 正在對原始輸入進行淨化...")
 
+    try:
+        # 使用一個不易被審查的鏈（實體提取）來獲取核心名詞
+        entity_extraction_chain = ai_core.get_entity_extraction_chain()
+        entity_result = await ai_core.ainvoke_with_rotation(
+            entity_extraction_chain,
+            {"text_input": user_input},
+            retry_strategy='euphemize' # 使用委婉化重試確保它能成功
+        )
+        
+        if not (entity_result and entity_result.names):
+            logger.warning(f"[{user_id}] (Sanitizer) 未能從輸入中提取實體，將使用原始輸入作為淨化版本，這可能存在風險。")
+            return {"sanitized_user_input": user_input}
+            
+        # 使用另一個安全的鏈，從核心名詞重構出一個中性的句子
+        euphemization_chain = ai_core.get_euphemization_chain()
+        sanitized_input = await ai_core.ainvoke_with_rotation(
+            euphemization_chain,
+            {"keywords": entity_result.names},
+            retry_strategy='none' # 如果重構失敗，則無法挽救
+        )
+        
+        if not sanitized_input:
+            logger.error(f"[{user_id}] (Sanitizer) 委婉化重構鏈失敗！將回退到使用原始輸入，這極可能導致後續分析失敗！")
+            sanitized_input = user_input
+        
+        logger.info(f"[{user_id}] (Sanitizer) 輸入淨化成功: '{user_input[:50]}...' -> '{sanitized_input[:50]}...'")
+        return {"sanitized_user_input": sanitized_input}
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Sanitizer) 在預處理節點發生未知嚴重錯誤: {e}", exc_info=True)
+        # 發生任何未知錯誤時，都返回原始輸入以確保流程繼續，即使後續可能失敗
+        return {"sanitized_user_input": user_input}
+# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
 
 
 # 函式：視角模式路由器
@@ -173,18 +215,24 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
+# 函式：意圖分類節點 (v2.0 - 適配淨化層)
+# 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 進行意圖分類。這確保了此分析節點不會因直接接觸原始的露骨輸入而被內容審查攔截，是解決路由失敗問題的關鍵修正。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
     """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對 '{user_input[:30]}...' 進行意圖分類...")
+    
+    # [v2.0 核心修正] 優先使用淨化後的輸入，如果不存在則備援至原始輸入
+    user_input_for_classification = state.get('sanitized_user_input', state['messages'][-1].content)
+    
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對 '{user_input_for_classification[:30]}...' 進行意圖分類...")
     
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
-        {"user_input": user_input},
-        retry_strategy='none'
+        {"user_input": user_input_for_classification},
+        retry_strategy='none' # 分類鏈不應重試，失敗則啟用備援
     )
     
     if not classification_result:
@@ -192,18 +240,25 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
+# 函式：意圖分類節點 (v2.0 - 適配淨化層)
 
+# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
+# 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 作為 RAG 檢索的查詢。這確保了檢索過程本身不會因觸發內容審查而失敗，提高了整個 RAG 鏈路的穩定性。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """[2] 專用記憶檢索節點，執行RAG操作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在檢索相關長期記憶...")
     
-    # 這是 ai_core.py 中為新節點準備的輔助函式
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
+    # [v2.0 核心修正] 優先使用淨化後的輸入進行檢索
+    user_input_for_retrieval = state.get('sanitized_user_input', state['messages'][-1].content)
+    
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於安全查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
+    
+    # ai_core.py 中的輔助函式會處理總結邏輯
+    rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input_for_retrieval)
     return {"rag_context": rag_context_str}
-
+# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
 
 
 
@@ -1143,22 +1198,23 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v32.0 - 感知中樞重構)
+# 函式：創建主回應圖 (v33.0 - 新增前置淨化層)
 # 更新紀錄:
-# v32.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的根本原因分析，廢除了舊的、分裂的 `scene_and_action_analysis_node` 和 `update_viewing_mode_node`。引入了一個全新的、統一的【感知與視角設定中樞】節點 `perceive_and_set_view_node`。此修改將所有與場景感知、視角判斷、地點推斷和狀態更新相關的邏輯全部集中在一個原子性節點中，從根本上解決了因多節點數據不一致而導致的所有問題。
-# v31.0 (2025-09-06): [災難性BUG修復] 徹底移除了 `sanitize_input` 節點。
-# v30.0 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
+# v33.0 (2025-09-06): [重大架構升級] 根據「意圖分類鏈被審查」的根本原因，對圖的拓撲結構進行了重大修改。
+#    1. [新增] 引入了一個全新的 `pre_process_input_node` 節點。
+#    2. [修改] 將圖的入口點從 `classify_intent` 更改為 `pre_process_input`。
+#    3. [修改] 新的流程是 `pre_process_input` -> `classify_intent`，確保了分類器接收到的是經過淨化的安全指令。
+#    此修改是解決因極端輸入導致路由失敗的根本性修正。
+# v32.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的根本原因分析，廢除了舊的、分裂的節點。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("classify_intent", classify_intent_node)
+    # [v33.0 新增] 註冊新的預處理節點
+    graph.add_node("pre_process_input", pre_process_input_node)
     
-    # [v32.0 核心修正] 註冊新節點，註銷舊節點
+    graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
-    # graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
-    # graph.add_node("update_viewing_mode", update_viewing_mode_node)
-
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
@@ -1187,12 +1243,16 @@ def create_main_response_graph() -> StateGraph:
 
 
     # --- 2. 定義圖的拓撲結構 ---
-    graph.set_entry_point("classify_intent")
+    # [v33.0 核心修正] 更改圖的入口點為新的預處理節點
+    graph.set_entry_point("pre_process_input")
     
-    # [v32.0 核心修正] 重構感知流程
+    # [v33.0 核心修正] 定義新的執行流程
+    graph.add_edge("pre_process_input", "classify_intent")
+    
+    # 後續流程與之前類似，但都建立在正確的分類之上
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    graph.add_edge("query_lore", "perceive_and_set_view") # 在查詢 LORE 後進行感知
+    graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
 
     graph.add_edge("assemble_context", "expansion_decision")
@@ -1211,8 +1271,13 @@ def create_main_response_graph() -> StateGraph:
 
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
-        intent = state['intent_classification'].intent_type
-        # [v32.0 核心修正] 直接從 GameState 讀取已確定的視角
+        # 路由依據的是 classify_intent 的結果，它現在是安全的
+        intent_classification = state.get('intent_classification')
+        if not intent_classification:
+            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
+            return "sfw_planner" # 絕對安全的備援
+
+        intent = intent_classification.intent_type
         ai_core = state['ai_core']
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         
@@ -1224,7 +1289,6 @@ def create_main_response_graph() -> StateGraph:
             else:
                 return "remote_sfw_planner"
         else: # interactive
-            # 即使意圖是互動，也應該是本地 NSFW
             if 'nsfw' in intent:
                  return "nsfw_planner"
             else:
@@ -1252,7 +1316,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v32.0 - 感知中樞重構)
+# 函式：創建主回應圖 (v33.0 - 新增前置淨化層)
 
 
 
