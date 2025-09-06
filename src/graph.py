@@ -372,11 +372,11 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
     return {"turn_plan": corrected_plan}
 # 函式：NSFW 词汇注入節點 (v1.2 - 數據流修正)
 
-# 函式：SFW規劃節點 (v21.4 - 事實鎖定)
+# 函式：SFW規劃節點 (v21.5 - SQLAlchemy模型修正)
 # 更新紀錄:
-# v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數，並將其注入到 `world_snapshot` 模板中。這是實現“LORE事實鎖定”機制的關鍵一步，它將完整的、未經摘要的 LORE 數據以 JSON 形式提供給 LLM，並通過模板中的指令強制 LLM 遵循這些既定事實，從根本上解決 AI 篡改或遺忘 LORE（如將“鐵匠”變為“獵人”）的問題。
+# v21.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
+# v21.4 (2025-09-06): [災難性BUG修復] 增加了 `full_lore_records_json` 參數以實現“LORE事實鎖定”。
 # v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
-# v21.2 (2025-09-15): [架構重構] 移除了對 style_analysis 的依賴。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -388,9 +388,9 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
     gs = ai_core.profile.game_state
     
-    # [v21.4 核心修正] 準備完整的 LORE JSON 數據
     raw_lore_objects = state.get('raw_lore_objects', [])
-    full_lore_records_json = json.dumps([lore.model_dump() for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+    # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
+    full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -406,7 +406,6 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        # [v21.4 新增]
         'full_lore_records_json': full_lore_records_json
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
@@ -424,7 +423,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if not plan:
         plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v21.4 - 事實鎖定)
+# 函式：SFW規劃節點 (v21.5 - SQLAlchemy模型修正)
 
 
 
@@ -477,11 +476,11 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
 # 函式：NSFW 風格合規節點 (v1.2 - 數據流修正)
 
 
-# 函式：遠程 SFW 規劃節點 (v1.4 - 事實鎖定)
+# 函式：遠程 SFW 規劃節點 (v1.5 - SQLAlchemy模型修正)
 # 更新紀錄:
-# v1.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。這是實現“LORE事實鎖定”機制的關鍵一步，旨在解決 AI 在遠程場景中篡改 LORE 的問題。
+# v1.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
+# v1.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
 # v1.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
-# v1.2 (2025-09-15): [災難性BUG修復] 在 ainvoke 的參數中補上了缺失的 `response_style_prompt`。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -500,9 +499,9 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     
     target_location_path_str = " > ".join(scene_analysis.target_location_path)
     
-    # [v1.4 核心修正] 準備完整的 LORE JSON 數據
     raw_lore_objects = state.get('raw_lore_objects', [])
-    full_lore_records_json = json.dumps([lore.model_dump() for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+    # [v1.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
+    full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -518,7 +517,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': 'remote',
         'remote_target_path_str': target_location_path_str,
-        'full_lore_records_json': "" # SFW 規劃中暫不鎖定，以鼓勵創造
+        'full_lore_records_json': ""
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
@@ -527,8 +526,8 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         {
             "system_prompt": ai_core.profile.one_instruction, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot, # 傳遞包含導演視角的世界快照
-            "full_lore_records_json": full_lore_records_json, # [v1.4 新增]
+            "world_snapshot": world_snapshot,
+            "full_lore_records_json": full_lore_records_json,
             "target_location_path_str": target_location_path_str,
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
@@ -539,16 +538,16 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v1.4 - 事實鎖定)
+# 函式：遠程 SFW 規劃節點 (v1.5 - SQLAlchemy模型修正)
 
 
 
 
-# 函式：遠程NSFW規劃節點 (v21.4 - 事實鎖定)
+# 函式：遠程NSFW規劃節點 (v21.5 - SQLAlchemy模型修正)
 # 更新紀錄:
-# v21.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。這是實現“LORE事實鎖定”機制的關鍵一步，旨在解決 AI 在遠程場景中篡改 LORE 的問題。
+# v21.5 (2025-09-06): [災難性BUG修復] 修正了在生成 full_lore_records_json 時，對 SQLAlchemy 的 Lore 物件錯誤調用 .model_dump() 的問題。現在改為正確地提取 lore.content 字典，從而解決了 AttributeError。
+# v21.4 (2025-09-06): [災難性BUG修復] 與主規劃鏈同步，增加了 `full_lore_records_json` 的準備和傳遞。
 # v21.3 (2025-09-06): [災難性BUG修復] 更新了 `full_context_dict` 的構建邏輯以適配新的導演視角。
-# v21.2 (2025-09-15): [災難性BUG修復] 在 ainvoke 的參數中補上了缺失的 `response_style_prompt`。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -567,9 +566,9 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
 
     target_location_path_str = " > ".join(scene_analysis.target_location_path)
 
-    # [v21.4 核心修正] 準備完整的 LORE JSON 數據
     raw_lore_objects = state.get('raw_lore_objects', [])
-    full_lore_records_json = json.dumps([lore.model_dump() for lore in raw_lore_objects], ensure_ascii=False, indent=2)
+    # [v21.5 核心修正] 從 SQLAlchemy Lore 物件中提取 content 字典
+    full_lore_records_json = json.dumps([lore.content for lore in raw_lore_objects], ensure_ascii=False, indent=2)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -585,7 +584,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': 'remote',
         'remote_target_path_str': target_location_path_str,
-        'full_lore_records_json': "" # 在快照中留空，將通過專用參數傳遞
+        'full_lore_records_json': ""
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
@@ -594,8 +593,8 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         {
             "system_prompt": ai_core.profile.one_instruction, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot, # 傳遞包含導演視角的世界快照
-            "full_lore_records_json": full_lore_records_json, # [v21.4 新增]
+            "world_snapshot": world_snapshot,
+            "full_lore_records_json": full_lore_records_json,
             "target_location_path_str": target_location_path_str,
             "user_input": state['messages'][-1].content,
             "username": ai_core.profile.user_profile.name,
@@ -606,8 +605,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v21.4 - 事實鎖定)
-
+# 函式：遠程NSFW規劃節點 (v21.5 - SQLAlchemy模型修正)
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
