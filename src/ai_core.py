@@ -2834,11 +2834,11 @@ class AILover:
 
 
 
-    # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
+    # 函式：將新角色加入場景 (v178.1 - 核心主角保護)
     # 更新紀錄:
-    # v178.0 (2025-08-31): [重大功能升級] 彻底重构了NPC创建逻辑。此函数现在会优先尝试使用角色的主名称，如果发生冲突，则会自动、依次地尝试其`alternative_names`列表中的备用名称。如果所有备用名称都已存在，它将触发一个最终的LLM调用来强制生成一个全新的名称，从而确保在几乎所有情况下都能成功创建NPC，而不是消极地跳过。
+    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制。在創建任何新 NPC 的 LORE 之前，此函式會強制檢查其名稱是否與使用者角色或 AI 戀人衝突。如果衝突，則該 NPC 將被跳過，從而杜絕核心主角被錯誤地創建為 NPC LORE 的嚴重問題。
+    # v178.0 (2025-08-31): [重大功能升級] 彻底重构了NPC创建逻辑，引入多層備援機制以解決命名衝突。
     # v177.0 (2025-08-30): [功能增強] 此函式现在会返回一个包含所有新创建角色姓名的列表。
-    # v176.0 (2025-08-31): [重大功能升級] 实现了NPC命名的全域唯一性硬约束检查。
     async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[str]:
         """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并在遇到命名冲突时启动多层备援机制。"""
         if not self.profile:
@@ -2848,16 +2848,31 @@ class AILover:
         if not all_new_characters:
             logger.info(f"[{self.user_id}] 場景選角鏈沒有創造新的角色。")
             return []
+        
+        # [v178.1 核心修正] 獲取受保護的核心主角名稱
+        user_name_lower = self.profile.user_profile.name.lower()
+        ai_name_lower = self.profile.ai_profile.name.lower()
+        protected_names = {user_name_lower, ai_name_lower}
 
         created_names = []
         for character in all_new_characters:
             try:
-                # [v178.0 新增] 备援名称尝试逻辑
+                # [v178.1 核心修正] 在創建前進行保護性檢查
+                if character.name.lower() in protected_names:
+                    logger.warning(f"[{self.user_id}] 【LORE 保護】：已攔截一個試圖創建與核心主角 '{character.name}' 同名的 NPC LORE。此創建請求已被跳過。")
+                    continue
+
                 names_to_try = [character.name] + character.alternative_names
                 final_name_to_use = None
                 conflicted_names = []
 
                 for name_attempt in names_to_try:
+                    # [v178.1 核心修正] 再次檢查備用名是否衝突
+                    if name_attempt.lower() in protected_names:
+                        logger.warning(f"[{self.user_id}] 【LORE 保護】：NPC 的備用名 '{name_attempt}' 與核心主角衝突，已跳過此備用名。")
+                        conflicted_names.append(name_attempt)
+                        continue
+
                     existing_npcs = await get_lores_by_category_and_filter(
                         self.user_id, 'npc_profile', lambda c: c.get('name', '').lower() == name_attempt.lower()
                     )
@@ -2867,11 +2882,9 @@ class AILover:
                     else:
                         conflicted_names.append(name_attempt)
                 
-                # [v178.0 新增] 最终备援：如果所有名称都冲突，调用LLM强制重命名
                 if final_name_to_use is None:
-                    logger.warning(f"[{self.user_id}] 【NPC 命名冲突】: 角色 '{character.name}' 的所有预生成名称 ({', '.join(names_to_try)}) 均已存在。启动最终备援：强制LLM重命名。")
+                    logger.warning(f"[{self.user_id}] 【NPC 命名冲突】: 角色 '{character.name}' 的所有预生成名称 ({', '.join(names_to_try)}) 均已存在或與核心主角衝突。启动最终备援：强制LLM重命名。")
                     
-                    # 准备一个简单的重命名链
                     renaming_prompt = PromptTemplate.from_template(
                         "你是一个创意命名师。为一个角色想一个全新的名字。\n"
                         "角色描述: {description}\n"
@@ -2882,13 +2895,12 @@ class AILover:
                     
                     new_name = await self.ainvoke_with_rotation(renaming_chain, {
                         "description": character.description,
-                        "conflicted_names": ", ".join(conflicted_names)
+                        "conflicted_names": ", ".join(conflicted_names + list(protected_names)) # 將保護名單也加入衝突列表
                     })
                     
                     final_name_to_use = new_name.strip().replace('"', '').replace("'", "")
                     logger.info(f"[{self.user_id}] 最终备援成功，AI为角色生成了新名称: '{final_name_to_use}'")
 
-                # 使用最终确定的名称更新角色对象并创建
                 character.name = final_name_to_use
                 
                 if not character.location_path:
@@ -2905,7 +2917,10 @@ class AILover:
                 logger.error(f"[{self.user_id}] 在将新角色 '{character.name}' 添加到 LORE 时发生错误: {e}", exc_info=True)
         
         return created_names
-    # 函式：將新角色加入場景 (v178.0 - 命名冲突备援強化)
+    # 函式：將新角色加入場景 (v178.1 - 核心主角保護)
+
+
+    
 
     # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
     # 更新紀錄:
