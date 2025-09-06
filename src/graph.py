@@ -701,19 +701,24 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 
 
-    # 函式：NSFW 初步規劃節點 (v2.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞，確保初步規劃時能緊密銜接上下文。
-    # v1.0 (2025-09-15): [重大架構重構] 创建此新节点，作为 NSFW 思维链的第一步。
-async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7B.1] NSFW思维链-步骤1: 生成初步的行动计划草稿。"""
+# 函式：NSFW 初步規劃節點 (v1.0 - 思維鏈)
+# 更新紀錄:
+# v1.0 (2025-09-06): [重大架構升級] 創建此新節點，作為「NSFW思維鏈」的第一步。它負責調用 `get_nsfw_initial_planning_chain` 來生成一個用詞安全的行動計畫草稿，並將結果傳遞給下一個節點。
+async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
+    """[7B.1] NSFW思維鏈-步驟1: 生成初步的行動計劃草稿。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7B.1) Node: nsfw_initial_planning -> 正在生成NSFW初步行动计划...")
+    logger.info(f"[{user_id}] (Graph|7B.1) Node: nsfw_initial_planning -> 正在生成NSFW初步行動計劃...")
     
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
+    planning_subjects_raw = state.get('planning_subjects', [])
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    
+    # 準備 World Snapshot
+    gs = ai_core.profile.game_state
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -723,80 +728,72 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict[str,
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
-        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+        'npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-
-    # [v2.0 新增] 獲取格式化的對話歷史
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-
+    
+    # 由於NSFW流水線處理本地和遠程，我們在此統一調用
+    # 未來可根據 viewing_mode 選擇不同的 initial_planning_chain
+    chain_to_call = ai_core.get_nsfw_initial_planning_chain()
+    
     plan = await ai_core.ainvoke_with_rotation(
-        ai_core.get_nsfw_initial_planning_chain(),
+        chain_to_call,
         {
             "system_prompt": ai_core.profile.one_instruction, 
             "world_snapshot": world_snapshot, 
-            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
             "user_input": state['messages'][-1].content
         },
-        retry_strategy='force'
+        # 使用委婉化重試，因為這一步的目標是安全地生成骨架
+        retry_strategy='euphemize'
     )
     if not plan:
-        plan = TurnPlan(thought="安全備援：NSFW初步規劃鏈失敗。", character_actions=[])
-    return {"turn_plan": plan}
-    # 函式：NSFW 初步規劃節點 (v2.0 - 注入對話歷史)
+        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW初步規劃鏈失敗，可能因為內容審查或API臨時故障。")
+
+    # 將 world_snapshot 保存到狀態中，供後續流水線節點使用
+    return {"turn_plan": plan, "world_snapshot": world_snapshot}
+# 函式：NSFW 初步規劃節點 (v1.0 - 思維鏈)
 
 
-    # 函式：NSFW 词汇注入節點 (v2.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v2.0 (2025-09-16): [功能強化] 新增了對話歷史的提取與傳遞，為詞彙修正提供更完整的上下文。
-    # v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。
-    # v1.1 (2025-09-15): [災難性BUG修復] 修正了 full_context_dict 的构建逻辑。
+# 函式：NSFW 詞彙注入節點 (v1.0 - 思維鏈)
+# 更新紀錄:
+# v1.0 (2025-09-06): [重大架構升級] 創建此新節點，作為「NSFW思維鏈」的第二步。它接收上一步生成的安全計畫草稿，調用 `get_nsfw_lexicon_injection_chain`，將其轉換為一個用詞極度露骨的版本，並傳遞給下一步。
 async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7B.2] NSFW思维链-步骤2: 强制修正计划中的词汇为露骨术语。"""
+    """[7B.2] NSFW思維鏈-步驟2: 強制修正計畫中的詞彙為露骨術語。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|7B.2) Node: nsfw_lexicon_injection -> 正在注入NSFW露骨词汇...")
+    logger.info(f"[{user_id}] (Graph|7B.2) Node: nsfw_lexicon_injection -> 正在注入NSFW露骨詞彙...")
 
-    if not ai_core.profile or not turn_plan:
-        return {}
+    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
+        return {} # 如果上一步失敗，直接跳過
 
-    full_context_dict = {
-        'username': ai_core.profile.user_profile.name,
-        'ai_name': ai_core.profile.ai_profile.name,
-        'world_settings': ai_core.profile.world_settings or "未設定",
-        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': state.get('rag_context', ''),
-        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
-        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
-        'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
-        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
-    }
-    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-    
-    # [v2.0 新增] 獲取格式化的對話歷史
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-    
+    world_snapshot = state.get('world_snapshot', '') # 從上一步獲取 world_snapshot
+
     corrected_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_lexicon_injection_chain(),
         {
-            # [v1.2 核心修正] 傳入完整的系統指令
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "world_snapshot": world_snapshot,
-            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
+            "chat_history": chat_history_str,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
         },
+        # 詞彙注入是關鍵，必須強制執行
         retry_strategy='force'
     )
     if not corrected_plan:
-        logger.warning(f"[{user_id}] (Graph|7B.2) NSFW词汇注入鏈返回空值，保留原始计划。")
+        logger.warning(f"[{user_id}] (Graph|7B.2) NSFW詞彙注入鏈返回空值，保留原始計畫。")
         return {}
         
     return {"turn_plan": corrected_plan}
-    # 函式：NSFW 词汇注入節點 (v2.0 - 注入對話歷史)
+# 函式：NSFW 詞彙注入節點 (v1.0 - 思維鏈)
 
 
 
@@ -862,56 +859,43 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
 
 
-    # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
-    # 更新紀錄:
-    # v2.0 (2025-09-16): [功能強化] 新增了對話歷史的提取與傳遞，為風格修正提供更完整的上下文，以生成更貼切的對話。
-    # v1.2 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt`。
-    # v1.1 (2025-09-15): [災難性BUG修復] 与 nsfw_lexicon_injection_node 同步，修正了 full_context_dict 的构建逻辑。
+# 函式：NSFW 風格合規節點 (v1.0 - 思維鏈)
+# 更新紀錄:
+# v1.0 (2025-09-06): [重大架構升級] 創建此新節點，作為「NSFW思維鏈」的第三步。它接收已注入露骨詞彙的計畫，調用 `get_nsfw_style_compliance_chain`，為其補充對話和細節以符合使用者風格，生成最終的、可供執行的完整計畫。
 async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7B.3] NSFW思维链-步骤3: 检查并补充对话，确保计划符合用户风格。"""
+    """[7B.3] NSFW思維鏈-步驟3: 檢查並補充對話，確保計畫符合用戶風格。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|7B.3) Node: nsfw_style_compliance -> 正在进行NSFW风格合规检查...")
+    logger.info(f"[{user_id}] (Graph|7B.3) Node: nsfw_style_compliance -> 正在進行NSFW風格合規檢查...")
 
-    if not ai_core.profile or not turn_plan:
-        return {}
+    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
+        return {} # 如果上一步失敗，直接跳過
 
-    full_context_dict = {
-        'username': ai_core.profile.user_profile.name,
-        'ai_name': ai_core.profile.ai_profile.name,
-        'world_settings': ai_core.profile.world_settings or "未設定",
-        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': state.get('rag_context', ''),
-        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
-        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
-        'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
-        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
-    }
-    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-
-    # [v2.0 新增] 獲取格式化的對話歷史
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    world_snapshot = state.get('world_snapshot', '') # 從上一步獲取 world_snapshot
 
     final_plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_style_compliance_chain(),
         {
-            # [v1.2 核心修正] 傳入完整的系統指令
             "system_prompt": ai_core.profile.one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
-            "chat_history": chat_history_str, # [v2.0 核心修正] 傳遞對話歷史
+            "chat_history": chat_history_str,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
         },
+        # 風格是最後一步，也需要強制
         retry_strategy='force'
     )
     if not final_plan:
-        logger.warning(f"[{user_id}] (Graph|7B.3) NSFW风格合规鏈返回空值，保留修正前计划。")
+        logger.warning(f"[{user_id}] (Graph|7B.3) NSFW風格合規鏈返回空值，保留修正前計畫。")
         return {}
 
     return {"turn_plan": final_plan}
-    # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
+# 函式：NSFW 風格合規節點 (v1.0 - 思維鏈)
+
+
+
 
 
 # 函式：遠程 SFW 規劃節點 (v7.0 - KeyError 修正)
