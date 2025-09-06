@@ -1435,52 +1435,50 @@ class AILover:
 
 
     
-    # 函式：獲取場景實體分析鏈 (v206.0 - 職責簡化)
+    # 函式：獲取場景分析鏈 (v207.0 - 直接生成修正)
     # 更新紀錄:
-    # v206.0 (2025-09-06): [重大架構重構] 根據「意圖驅動視角管理」的新策略，此鏈的職責被極大簡化。它不再負責判斷 `viewing_mode` 或提取 `target_location_path`。其唯一的、新的任務是從使用者輸入中，提取出互動的【核心實體 (Focus Entity)】，例如 "魚販"。這將為未來的、更精細的 LORE 查詢或場景互動提供數據支持。
+    # v207.0 (2025-09-06): [災難性BUG修復] 根據 KeyError，徹底重構了此鏈的結構。廢除了導致驗證錯誤的、不必要的中間 Pydantic 模型（FocusEntityResult）和轉換層。新版本讓 LLM 直接生成最終的 SceneAnalysisResult 對象，並重寫了提示詞以匹配這一新的、更簡單、更健壯的輸出模式。提示詞保留了上下文回溯和地點提取的核心邏輯，同時明確了此節點的輸出僅為“初步建議”，真正的視角狀態由下游節點決定。
+    # v206.0 (2025-09-06): [重大架構重構] 簡化了此鏈的職責。
     # v205.0 (2025-09-06): [災難性BUG修復] 引入了“上下文回溯”機制。
-    # v204.0 (2025-09-06): [災難性BUG修復] 徹底重寫了此鏈的提示詞，引入了【地點提取鐵則】。
     def get_scene_analysis_chain(self) -> Runnable:
         if not hasattr(self, 'scene_analysis_chain') or self.scene_analysis_chain is None:
-            # 簡化輸出模型，只關心 focus_entity
-            class FocusEntityResult(BaseModel):
-                focus_entity: Optional[str] = Field(default=None, description="如果指令是關於某個特定對象，則為該對象的名稱；否則為 null。")
-
-            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(FocusEntityResult)
+            # [v207.0 核心修正] 讓 LLM 直接輸出最終需要的模型
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneAnalysisResult)
             
-            analysis_prompt_template = """你是一個精密的語義分析器。你的唯一任務是從【使用者輸入】中，找出他們想要【聚焦互動或觀察的核心實體】。
+            analysis_prompt_template = """你是一位精密的場景與語義分析專家。你的唯一任務是分析所有上下文，為後續的流程生成一份【初步的場景分析報告JSON】。
 
-# === 【核心規則】 ===
-1.  **【提取核心】**: 仔細閱讀指令，找出使用者最想看的那個【具體的人或物】。
-2.  **【忽略地點】**: 你【不需要】關心地點信息。
-3.  **【找不到則為Null】**: 如果指令只是一個通用的描述請求（例如 "看看周圍"）或是一個動作指令（例如 "去市場"），並沒有特定的聚焦目標，則 `focus_entity` 欄位【必須】為 `null`。
+# === 【【【核心分析規則 v207.0】】】 ===
 
-# === 範例 ===
-- 輸入: "詳細描述市場裡的那個**魚販**" -> 輸出: `{"focus_entity": "魚販"}`
-- 輸入: "觀察酒館裡的**吟遊詩人**" -> 輸出: `{"focus_entity": "吟遊詩人"}`
-- 輸入: "看看市場" -> 輸出: `{"focus_entity": null}`
-- 輸入: "你好嗎？" -> 輸出: `{"focus_entity": null}` (這是一個通用對話，沒有特定實體焦點)
+# 1.  **【視角初步判斷 (viewing_mode)】**:
+#     *   如果【使用者輸入】包含 "觀察", "看看", "描述" 等詞語，並且指向一個【地理位置】，則初步判斷為 `remote`。
+#     *   在所有其他情況下（如直接對話、動作指令），初步判斷為 `local`。
 
+# 2.  **【地點路徑提取 (target_location_path)】**:
+#     *   **上下文回溯鐵則**: 如果【使用者輸入】中**只**提到了角色/實體名（例如 "觀察海妖吟"），而**沒有**明確的地理位置，你【必須】從下方提供的【場景上下文JSON】中，查找該角色的 `location_path`，並將其作為 `target_location_path` 返回。
+#     *   **地點提取鐵則**: `target_location_path` 欄位【只能】包含【地理學或建築學意義上的地點名稱】。絕對禁止將角色、物品或概念提取為地點。
+#     *   **本地則為空**: 如果視角被判斷為 `local`，此欄位應為 `null`。
+
+# 3.  **【核心實體提取 (focus_entity)】**:
+#     *   從【使用者輸入】中，找出他們想要【聚焦互動或觀察的核心實體】（例如 "魚販", "吟遊詩人"）。如果沒有特定目標，則為 `null`。
+
+# 4.  **【摘要生成 (action_summary)】**:
+#     *   始終使用【未經修改的原始使用者輸入】來填充此欄位。
+
+# ---
+【當前玩家物理位置（備用參考）】: {current_location_path_str}
 ---
-【使用者輸入】: {user_input}
+【場景上下文JSON（用於回溯查詢角色位置）】:
+{scene_context_json}
 ---
-請開始你的分析。"""
+【使用者輸入（主要分析對象）】: {user_input}
+---
+請嚴格遵循以上所有規則，開始你的分析並生成一份結構完整的 `SceneAnalysisResult` JSON 報告。"""
             
-            # 為了保持 SceneAnalysisResult 的結構完整性，我們需要一個轉換層
-            def _convert_to_scene_analysis(result: FocusEntityResult) -> SceneAnalysisResult:
-                # 這個轉換後的結果不再決定視角，只攜帶 focus_entity 信息
-                return SceneAnalysisResult(
-                    viewing_mode='local', # 預設值，不再由此鏈決定
-                    reasoning="此鏈只負責提取核心實體。",
-                    target_location_path=None, # 不再由此鏈決定
-                    focus_entity=result.focus_entity,
-                    action_summary="" # 由調用點填充
-                )
-
             analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
-            self.scene_analysis_chain = analysis_prompt | analysis_llm | _convert_to_scene_analysis
+            # [v207.0 核心修正] 移除多餘的轉換層
+            self.scene_analysis_chain = analysis_prompt | analysis_llm
         return self.scene_analysis_chain
-    # 函式：獲取場景實體分析鏈 (v206.0 - 職責簡化)
+    # 函式：獲取場景分析鏈 (v207.0 - 直接生成修正)
 
 
     
