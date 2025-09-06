@@ -531,42 +531,51 @@ class AILover:
         logger.info(f"[{self.user_id}] 成功恢復了 {len(recent_memories)} 條對話記錄到短期記憶中。")
     # 函式：從資料庫恢復短期記憶 (v158.0 重構)
 
-    # 函式：獲取地點提取鏈 (v1.0 - 全新創建)
+
+
+
+
+
+    
+    # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
     # 更新紀錄:
-    # v1.0 (2025-09-06): [全新創建] 根據「遠程視角管理失敗」的分析，創建了這個全新的、職責單一的鏈。其唯一任務是從使用者輸入中，以最高的精度提取出地理學或建築學意義上的地點路徑。它將被意圖驅動的 `update_viewing_mode_node` 調用，以取代舊的、不可靠的綜合分析鏈，從而確保遠程目標路徑的數據質量。
+    # v2.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 KeyError，徹底重構了此鏈的實現。放棄了不穩定且容易引發解析錯誤的 `with_structured_output` 方法。新版本回歸到更基礎、更可靠的模式：明確地在提示詞中指導 LLM 輸出一個 JSON 字符串，然後在鏈的末尾使用標準的 `JsonOutputParser` 進行解析。此修改旨在從根本上解決所有與 Pydantic 模型和 LangChain 內部驗證相關的崩潰問題。
+    # v1.0 (2025-09-06): [全新創建] 創建了這個全新的、職責單一的鏈。
     def get_location_extraction_chain(self) -> Runnable:
         """獲取或創建一個專門用於從文本中提取地點路徑的鏈。"""
         if not hasattr(self, 'location_extraction_chain') or self.location_extraction_chain is None:
             
-            # 定義一個簡單的 Pydantic 模型來規範輸出
-            class LocationPath(BaseModel):
-                location_path: Optional[List[str]] = Field(default=None, description="從文本中提取出的、層級式的地點路徑列表。如果找不到地點，則為 null。")
+            # [v2.0 核心修正] 使用更穩定的 JsonOutputParser
+            from langchain_core.output_parsers import JsonOutputParser
 
-            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(LocationPath)
+            extractor_llm = self._create_llm_instance(temperature=0.0)
             
-            prompt_template = """你是一位精確的地理信息系統 (GIS) 分析員。你的唯一任務是從【使用者輸入】中，提取出一個明確的【地理位置】，並將其轉換為層級式的路徑列表。
+            prompt_template = """你是一位精確的地理信息系統 (GIS) 分析員。你的唯一任務是從【使用者輸入】中，提取出一個明確的【地理位置】，並將其轉換為一個包含層級式路徑列表的 JSON 字符串。
 
 # === 【【【核心規則】】】 ===
 1.  **【只找地點】**: 你【只能】提取地理或建築學上的地點（如城市、市場、神殿、森林）。
 2.  **【忽略其他】**: 【絕對禁止】將角色、物品、概念或任何非地點的實體提取出來。
 3.  **【層級化】**: 如果地點有層級關係（例如 “性神城的市場”），請將其解析為 `["性神城", "市場"]`。
 4.  **【找不到則為Null】**: 如果輸入中【完全沒有】任何地點信息，你的輸出JSON中 `location_path` 欄位的值【必須】是 `null`。
+5.  **【JSON 格式強制】**: 你的最終輸出【必須且只能】是一個格式如下的 JSON 字符串:
+    `{{"location_path": ["路徑1", "路徑2"]}}` 或 `{{"location_path": null}}`
 
 # === 範例 ===
-- 輸入: "描述一下性神城中央市場的情況" -> 輸出: `{"location_path": ["性神城", "中央市場"]}`
-- 輸入: "看看森林" -> 輸出: `{"location_path": ["森林"]}`
-- 輸入: "繼續幹她" -> 輸出: `{"location_path": null}`
+- 輸入: "描述一下性神城中央市場的情況" -> 輸出: `{{"location_path": ["性神城", "中央市場"]}}`
+- 輸入: "看看森林" -> 輸出: `{{"location_path": ["森林"]}}`
+- 輸入: "繼續幹她" -> 輸出: `{{"location_path": null}}`
 
 ---
 【使用者輸入】:
 {user_input}
 ---
-請開始分析並生成結構化的 JSON 輸出。"""
+【JSON 輸出】:
+"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.location_extraction_chain = prompt | extractor_llm
+            self.location_extraction_chain = prompt | extractor_llm | JsonOutputParser()
         return self.location_extraction_chain
-    # 函式：獲取地點提取鏈 (v1.0 - 全新創建)
+    # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
 
