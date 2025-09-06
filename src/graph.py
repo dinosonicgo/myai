@@ -295,35 +295,31 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：LORE擴展決策節點 (v3.0 - 實體存在性優先)
+# 函式：LORE擴展決策節點 (v4.0 - 完整上下文注入)
 # 更新紀錄:
-# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。不再進行飽和度分析，而是生成一個簡潔的 LORE 摘要 (lore_summary)，並將其注入到新的決策鏈中，以實現“實體存在性優先”的決策邏輯。
+# v4.0 (2025-09-06): [災難性BUG修復] 根據「冗餘創建NPC」問題，徹底重構了此節點的數據傳遞邏輯。舊版本只傳遞一個簡化的 LORE 摘要字符串，導致決策鏈無法進行語意判斷。新版本將完整的 `raw_lore_objects` 序列化為 JSON 字符串，並將其注入到決策鏈中。這為 AI 提供了做出智能判斷所需的全部上下文，是解決決策失誤的根本性修正。
+# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。
 # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，引入飽和度分析。
-# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """[5] LORE擴展決策節點，基於核心實體是否已存在於LORE中來做決定。"""
+    """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於實體存在性，判斷是否擴展...")
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
-    # [v3.0 核心修正] 生成 LORE 摘要以供決策鏈使用
-    lore_summary_list = []
-    if isinstance(raw_lore_objects, list):
-        for lore in raw_lore_objects:
-            name = lore.content.get('name', lore.content.get('title', lore.key))
-            lore_summary_list.append(f"- [{lore.category}] {name}")
-    lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "（當前場景無任何已知 LORE）"
+    # [v4.0 核心修正] 將完整的 LORE 對象轉換為 JSON 字串以供決策鏈使用
+    lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
+    lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
     
-    logger.info(f"[{user_id}] (Graph|5) 生成的LORE摘要:\n{lore_summary}")
+    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
 
     decision_chain = ai_core.get_expansion_decision_chain()
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
             "user_input": user_input, 
-            "lore_summary": lore_summary # 將 LORE 摘要注入 Prompt
+            "existing_characters_json": lore_json_str # 傳遞完整的 JSON
         },
         retry_strategy='euphemize'
     )
@@ -334,7 +330,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v3.0 - 實體存在性優先)
+# 函式：LORE擴展決策節點 (v4.0 - 完整上下文注入)
 
 
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
