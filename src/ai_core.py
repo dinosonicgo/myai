@@ -2048,11 +2048,11 @@ class AILover:
 
 
     
-    # 函式：獲取統一敘事渲染鏈 (v211.0 - 感官渲染強化)
+    # 函式：獲取統一敘事渲染鏈 (v212.0 - 健壯性重構)
     # 更新紀錄:
-    # v211.0 (2025-09-06): [重大描寫強化] 根據使用者對描寫深度的要求，徹底重寫了此鏈的提示詞。新版本引入了【感官擴寫原則】，強制 AI 在渲染最終文本時，必須對劇本中的動作描述進行充滿五感（視覺、聽覺、觸覺、嗅覺、味覺）細節的藝術加工和擴寫，旨在將小說的沉浸感和衝擊力提升到極致。
+    # v212.0 (2025-09-06): [災難性BUG修復] 根據 ValueError，徹底重構了此鏈的構建方式。舊的隱式字典結構在重試時會導致類型錯誤。新版本使用 RunnablePassthrough.assign 和更明確的數據流定義，確保無論在初次調用還是重試循環中，傳遞給最終模型的都必定是經過 PromptTemplate 正確格式化的 PromptValue 對象，從根本上解決了因數據類型不匹配而導致的崩潰問題。
+    # v211.0 (2025-09-06): [重大描寫強化] 引入了【感官擴寫原則】。
     # v210.1 (2025-09-05): [災難性BUG修復] 注入了完整的系統指令 ({system_prompt})。
-    # v210.0 (2025-09-12): [架構重構] 強化此鏈，使其成為統一的“小說家”節點。
     def get_narrative_chain(self) -> Runnable:
         """[強化] 創建一個統一的“小說家”鏈，負責將任何結構化的回合計劃渲染成符合使用者風格的小說文本。"""
         if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
@@ -2097,18 +2097,18 @@ class AILover:
                 ("system", system_prompt_template),
                 ("human", human_prompt_template)
             ])
-
+            
+            # [v212.0 核心修正] 使用更健壯的鏈結構
             self.narrative_chain = (
-                {
-                    "system_prompt": lambda x: x.get("system_prompt"),
-                    "response_style_prompt": lambda x: x.get("response_style_prompt"),
-                    "turn_plan_json": lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
-                }
+                RunnablePassthrough.assign(
+                    turn_plan_json=lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}"
+                )
+                | prompt
                 | self.gm_model
                 | StrOutputParser()
             )
         return self.narrative_chain
-    # 函式：獲取統一敘事渲染鏈 (v211.0 - 感官渲染強化)
+    # 函式：獲取統一敘事渲染鏈 (v212.0 - 健壯性重構)
 
 
     
