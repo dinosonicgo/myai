@@ -1,10 +1,12 @@
-# main.py 的中文註釋(v5.2 - 快取清理與自我修復)
+# main.py 的中文註釋(v6.0 - 優雅重啟)
 # 更新紀錄:
-# v5.2 (2025-09-02):
-# 1. [根本性BUG修復] 在程式啟動的最前端增加了自動清理 __pycache__ 的功能。此修改將從根本上解決因 Python 加載舊的編譯快取而導致 Git 更新不生效的頑固問題。
-# 2. [健壯性] 在 main 函式開頭增加了版本號打印，方便遠程診斷當前運行的程式碼版本。
-# v5.1 (2025-09-02):
-# 1. [健壯性] 修改了自動更新邏輯，改為使用與啟動器相同的 'git reset --hard'，確保更新的絕對性。
+# v6.0 (2025-09-06): [災難性BUG修復] 徹底重構了程式的關閉與重啟機制。
+#    1. [新增] 引入了全局的 `asyncio.Event` 作為優雅關閉信號。
+#    2. [修正] `_perform_update_and_restart` 不再調用 `sys.exit(0)`，而是設置此事件。
+#    3. [修正] `main` 函式現在會等待此事件，然後再正常退出。
+#    此修改遵循了異步程式設計的最佳實踐，從根本上解決了因在背景任務中使用 `sys.exit` 而導致的 `Task exception was never retrieved` 警告。
+# v5.2 (2025-09-02): [根本性BUG修復] 增加了自動清理 __pycache__ 的功能。
+# v5.1 (2025-09-02): [健壯性] 修改了自動更新邏輯，改為使用與啟動器相同的 'git reset --hard'。
 
 import os
 import sys
@@ -20,7 +22,9 @@ from fastapi.templating import Jinja2Templates
 import subprocess
 import importlib.metadata
 
-# [v5.2 新增] 在所有導入之前，先執行一次快取清理
+# [v6.0 新增] 創建一個全局的關閉事件
+shutdown_event = asyncio.Event()
+
 def _clear_pycache():
     """遞歸地查找並刪除當前目錄及其子目錄下的所有 __pycache__ 資料夾。"""
     root_dir = Path(__file__).resolve().parent
@@ -36,8 +40,9 @@ _clear_pycache()
 from src.database import init_db
 from src.config import settings
 from src.web_server import router as web_router
+# [v6.0 新增] 導入 bot 實例以傳遞關閉事件
+from src.discord_bot import AILoverBot
 
-# FastAPI 應用實例化
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -87,19 +92,19 @@ async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 async def main():
-    MAIN_PY_VERSION = "v5.2"
+    MAIN_PY_VERSION = "v6.0"
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
     _check_and_install_dependencies()
 
     async def start_discord_bot_task():
-        from src.discord_bot import AILoverBot
         if not settings.DISCORD_BOT_TOKEN:
             print("錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。")
             await asyncio.sleep(10)
             return
         try:
-            bot = AILoverBot()
+            # [v6.0 修正] 傳入關閉事件
+            bot = AILoverBot(shutdown_event=shutdown_event)
             async with bot:
                 await bot.start(settings.DISCORD_BOT_TOKEN)
         except Exception as e:
@@ -108,7 +113,11 @@ async def main():
     async def start_web_server_task():
         config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
         server = uvicorn.Server(config)
-        await server.serve()
+        # [v6.0 新增] 讓 web server 也能響應關閉事件
+        web_task = asyncio.create_task(server.serve())
+        await shutdown_event.wait()
+        server.should_exit = True
+        await web_task
 
     async def start_github_update_checker_task():
         await asyncio.sleep(10)
@@ -116,7 +125,7 @@ async def main():
         def run_git_command(command: list) -> tuple[int, str, str]:
             process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False)
             return process.returncode, process.stdout, process.stderr
-        while True:
+        while not shutdown_event.is_set():
             try:
                 await asyncio.to_thread(run_git_command, ['git', 'fetch'])
                 rc, stdout, _ = await asyncio.to_thread(run_git_command, ['git', 'status', '-uno'])
@@ -125,12 +134,14 @@ async def main():
                     pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command, ['git', 'reset', '--hard', 'origin/main'])
                     if pull_rc == 0:
                         print("✅ [自動更新] 程式碼強制同步成功！")
-                        print("🔄 應用程式將在 3 秒後發出退出信號，由啟動器負責重啟...")
+                        print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
                         await asyncio.sleep(3)
-                        # [v2.0 核心修正] 不再使用 os.execv，而是以返回碼 0 正常退出
-                        sys.exit(0)
+                        # [v6.0 核心修正] 設置事件，而不是退出
+                        shutdown_event.set()
+                        break 
                     else:
                         print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+                # [v6.0 修正] 使用 asyncio.sleep 進行非阻塞等待
                 await asyncio.sleep(300)
             except FileNotFoundError:
                 print("🔥 [自動更新] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
@@ -142,30 +153,37 @@ async def main():
     try:
         print("初始化資料庫...")
         await init_db()
-        update_checker_task = asyncio.create_task(start_github_update_checker_task())
-        print("\n啟動 AI戀人系統...")
-        mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+        
         tasks_to_run = []
-        if mode == "web":
-            print("模式: 只啟動 Web 伺服器")
-            tasks_to_run.append(start_web_server_task())
-        elif mode == "discord":
-            print("模式: 只啟動 Discord Bot")
-            tasks_to_run.append(start_discord_bot_task())
-        else:
-            print("模式: 同時啟動 Web 伺服器與 Discord Bot")
-            tasks_to_run.append(start_discord_bot_task())
-            tasks_to_run.append(start_web_server_task())
+        mode = sys.argv[1] if len(sys.argv) > 1 else "all"
+        
+        if mode in ["all", "discord"]:
+            tasks_to_run.append(asyncio.create_task(start_discord_bot_task()))
+        if mode in ["all", "web"]:
+            tasks_to_run.append(asyncio.create_task(start_web_server_task()))
+
+        # 只有在 discord bot 運行時才啟動更新檢查器
+        if mode in ["all", "discord"]:
+            update_checker_task = asyncio.create_task(start_github_update_checker_task())
+            tasks_to_run.append(update_checker_task)
+
+        print(f"\n啟動 AI戀人系統 (模式: {mode})...")
+        
+        # [v6.0 核心修正] 等待關閉事件
         if tasks_to_run:
-            await asyncio.gather(*tasks_to_run)
-        update_checker_task.cancel()
-        try:
-            await update_checker_task
-        except asyncio.CancelledError:
-            print("GitHub 自動更新檢查器已正常關閉。")
+            await shutdown_event.wait()
+            print("收到關閉信號，正在優雅地終止所有任務...")
+            # 取消所有正在運行的任務
+            for task in tasks_to_run:
+                task.cancel()
+            await asyncio.gather(*tasks_to_run, return_exceptions=True)
+
     except Exception as e:
         print(f"\n主程式運行時發生未處理的錯誤: {str(e)}")
         await asyncio.sleep(5)
+    finally:
+        print("主程式 main() 函式已結束。")
+
 
 if __name__ == "__main__":
     try:
