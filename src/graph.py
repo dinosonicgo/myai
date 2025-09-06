@@ -146,18 +146,49 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
     return {"rag_context": rag_context_str}
 
+# 函式：專用LORE查詢節點 (v2.0 - 場景記憶強化)
+# 更新紀錄:
+# v2.0 (2025-09-06): [災難性BUG修復] 根據「上下文遺忘」問題，徹底重構了此節點的查詢邏輯。舊版本只查詢當前輸入中提到的實體。新版本引入了“場景記憶”機制：它會額外查詢當前地點路徑下的所有 NPC，並將他們與當前輸入查詢到的實體合併。此修改確保了只要玩家不離開場景，上一輪互動過的 NPC 就會被“鎖定”在上下文中，從根本上解決了因使用者使用代詞而導致的劇情連續性失敗問題。
+# v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
-    """[3] 專用LORE查詢節點，從資料庫獲取原始LORE對象。"""
+    """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有原始LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     intent_type = state['intent_classification'].intent_type
-    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體...")
-    
+    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在查詢相關LORE實體 (場景記憶強化模式)...")
+
+    # [v2.0 核心修正] 確定查詢的目標地點路徑
+    gs = ai_core.profile.game_state
+    target_location_path: List[str]
+    if gs.viewing_mode == 'remote' and gs.remote_target_path:
+        target_location_path = gs.remote_target_path
+    else:
+        target_location_path = gs.location_path
+
+    # 步驟 1: 查詢當前輸入中明確提到的實體 (舊邏輯)
     is_remote = intent_type == 'nsfw_descriptive'
-    # 這是 ai_core.py 中為新節點準備的輔助函式
-    raw_lore_objects = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
-    return {"raw_lore_objects": raw_lore_objects}
+    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
+    
+    # 步驟 2: [v2.0 核心修正] 查詢當前地點路徑下的所有 NPC，建立場景記憶
+    lores_in_scene = await lore_book.get_lores_by_category_and_filter(
+        user_id,
+        'npc_profile',
+        lambda c: c.get('location_path') == target_location_path
+    )
+    logger.info(f"[{user_id}] (LORE Querier) 在地點 '{' > '.join(target_location_path)}' 中找到 {len(lores_in_scene)} 位常駐NPC。")
+
+    # 步驟 3: 合併並去重
+    final_lores_map = {lore.key: lore for lore in lores_from_input}
+    for lore in lores_in_scene:
+        if lore.key not in final_lores_map:
+            final_lores_map[lore.key] = lore
+            
+    final_lores_list = list(final_lores_map.values())
+    logger.info(f"[{user_id}] (LORE Querier) 合併去重後，共鎖定 {len(final_lores_list)} 條LORE作為本回合上下文。")
+    
+    return {"raw_lore_objects": final_lores_list}
+# 函式：專用LORE查詢節點 (v2.0 - 場景記憶強化)
 
 # 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
 # 更新紀錄:
@@ -346,16 +377,19 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v5.0 - 輸入淨化)
+# 函式：專用的LORE擴展執行節點 (v6.0 - 角色合併)
 # 更新紀錄:
-# v5.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決因將露骨的原始使用者輸入直接傳遞給選角鏈而導致的內容審查失敗問題。現在，此節點會先對輸入進行淨化，提取中性關鍵詞，然後再將這些安全的關鍵詞傳遞給 `scene_casting_chain`，從根本上規避了在 LORE 創建階段的內容審查。
+# v6.0 (2025-09-06): [災難性BUG修復] 根據「上下文遺忘」問題，修正了此節點的輸出邏輯。舊版本只返回新創建的角色。新版本會將新創建的角色與從上游 `raw_lore_objects` 傳入的、已存在於場景中的舊角色進行合併，然後將這個完整的角色列表作為 `planning_subjects` 返回。此修改確保了規劃器能接收到包含【所有】場景角色的完整素材。
+# v5.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，以解決內容審查失敗問題。
 # v4.0 (2025-09-18): [重大架構重構] 引入“數據綁定”策略。
-# v3.0 (2025-09-18): [災難性BUG修復] 徹底重構了此節點的地點上下文處理邏輯。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 專用的LORE擴展執行節點，執行選角，並將新角色綁定為規劃主體。"""
+    """[6A] 專用的LORE擴展執行節點，執行選角，並將【所有】場景角色（新舊合併）綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
+    # [v6.0 新增] 獲取已存在的角色
+    existing_lores = state.get('raw_lore_objects', [])
+    
     logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
     
     if not ai_core.profile:
@@ -373,7 +407,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         effective_location_path = gs.location_path
         logger.info(f"[{user_id}] (Graph|6A) LORE擴展使用本地視角，目標地點: {effective_location_path}")
 
-    # [v5.0 核心修正] "先淨化，後選角" 策略
     try:
         logger.info(f"[{user_id}] (LORE Expansion) 正在對輸入進行預處理以創建安全的選角上下文...")
         entity_chain = ai_core.get_entity_extraction_chain()
@@ -397,12 +430,14 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
             "game_context": game_context_for_casting, 
-            "recent_dialogue": sanitized_context_for_casting # 使用淨化後的上下文
+            "recent_dialogue": sanitized_context_for_casting
         },
         retry_strategy='euphemize'
     )
     
-    updates: Dict[str, Any] = {"planning_subjects": []} # 預設為空列表
+    # [v6.0 核心修正] 合併新舊角色
+    planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
+    
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
         created_names = await ai_core._add_cast_to_scene(cast_result)
         logger.info(f"[{user_id}] (Graph|6A) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
@@ -413,14 +448,14 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             newly_created_lores = results[0]
             
             if newly_created_lores:
-                planning_subjects = [lore.content for lore in newly_created_lores]
-                updates["planning_subjects"] = planning_subjects
-                logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位新角色成功綁定為本回合的規劃主體。")
+                # 將新角色的 content 添加到列表中
+                planning_subjects.extend([lore.content for lore in newly_created_lores])
     else:
-         logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色，規劃主體為空。")
+         logger.info(f"[{user_id}] (Graph|6A) 場景選角鏈未返回新角色。")
 
-    return updates
-# 函式：專用的LORE擴展執行節點 (v5.0 - 輸入淨化)
+    logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
+    return {"planning_subjects": planning_subjects}
+# 函式：專用的LORE擴展執行節點 (v6.0 - 角色合併)
 
 # --- 階段二：規劃 (Planning) ---
 
