@@ -605,11 +605,11 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
 
 
-# 函式：遠程 SFW 規劃節點 (v4.0 - 適配規劃主體)
+# 函式：遠程 SFW 規劃節點 (v5.0 - 狀態持久化與三級備援)
 # 更新紀錄:
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據，並將其格式化為 planning_subjects_json 傳遞給規劃鏈。
+# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯，引入“三級備援”機制：1. 優先使用當前回合的 scene_analysis 結果。2. 如果失敗，則回退到從持久化的 game_state 中讀取 remote_target_path。3. 如果都失敗，才返回錯誤。此修改旨在從根本上解決因 scene_analysis 節點暫時性失敗而導致整個遠程流程崩潰的問題。
+# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
 # v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
-# v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -620,21 +620,33 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
-    # [v4.0 核心修正] 確定規劃主體
+    # [v5.0 核心修正] 三級備援獲取目標路徑
+    scene_analysis = state.get('scene_analysis')
+    gs = ai_core.profile.game_state
+    target_location_path: Optional[List[str]] = None
+
+    # 1. 優先使用當前回合的分析結果
+    if scene_analysis and scene_analysis.target_location_path:
+        target_location_path = scene_analysis.target_location_path
+        logger.info(f"[{user_id}] (Graph|7D) 已從當前回合分析中獲取遠程目標: {target_location_path}")
+    # 2. 如果分析失敗，回退到持久化的 GameState
+    elif gs.viewing_mode == 'remote' and gs.remote_target_path:
+        target_location_path = gs.remote_target_path
+        logger.warning(f"[{user_id}] (Graph|7D) 當前回合分析未提供目標，已從持久化 GameState 中成功回退。目標: {target_location_path}")
+    # 3. 如果都失敗，則返回錯誤
+    else:
+        error_msg = "錯誤：未能從當前回合分析或持久化狀態中解析出遠程觀察的目標地點。"
+        logger.error(f"[{user_id}] (Graph|7D) {error_msg}")
+        return {"turn_plan": TurnPlan(thought=error_msg, character_actions=[])}
+
+    target_location_path_str = " > ".join(target_location_path)
+    
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
     planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
 
-    gs = ai_core.profile.game_state
-    scene_analysis = state.get('scene_analysis')
-    
-    if not scene_analysis or not scene_analysis.target_location_path:
-        logger.error(f"[{user_id}] (Graph|7D) 錯誤：進入 remote_sfw_planning_node 但未找到 target_location_path。")
-        return {"turn_plan": TurnPlan(thought="錯誤：未能解析出遠程觀察的目標地點。", character_actions=[])}
-    
-    target_location_path_str = " > ".join(scene_analysis.target_location_path)
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
@@ -661,7 +673,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json, # [v4.0 核心修正]
+            "planning_subjects_json": planning_subjects_json,
             "target_location_path_str": target_location_path_str,
             "user_input": user_input,
             "username": ai_core.profile.user_profile.name,
@@ -672,15 +684,15 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v4.0 - 適配規劃主體)
+# 函式：遠程 SFW 規劃節點 (v5.0 - 狀態持久化與三級備援)
 
 
 
-# 函式：遠程NSFW規劃節點 (v4.0 - 適配規劃主體)
+# 函式：遠程NSFW規劃節點 (v5.0 - 狀態持久化與三級備援)
 # 更新紀錄:
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據，並將其格式化為 planning_subjects_json 傳遞給規劃鏈。
+# v5.0 (2025-09-18): [災難性BUG修復] 與 SFW 版本同步，徹底重構了 target_location_path 的獲取邏輯，引入“三級備援”機制，確保在 scene_analysis 節點失敗時，流程依然可以從持久化狀態中獲取目標地點，保證遠程觀察的連續性。
+# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
 # v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
-# v2.0 (2025-09-16): [重大邏輯強化] 新增了對話歷史的提取與傳遞。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -691,21 +703,33 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
     
-    # [v4.0 核心修正] 確定規劃主體
+    # [v5.0 核心修正] 三級備援獲取目標路徑
+    scene_analysis = state.get('scene_analysis')
+    gs = ai_core.profile.game_state
+    target_location_path: Optional[List[str]] = None
+
+    # 1. 優先使用當前回合的分析結果
+    if scene_analysis and scene_analysis.target_location_path:
+        target_location_path = scene_analysis.target_location_path
+        logger.info(f"[{user_id}] (Graph|7C) 已從當前回合分析中獲取遠程目標: {target_location_path}")
+    # 2. 如果分析失敗，回退到持久化的 GameState
+    elif gs.viewing_mode == 'remote' and gs.remote_target_path:
+        target_location_path = gs.remote_target_path
+        logger.warning(f"[{user_id}] (Graph|7C) 當前回合分析未提供目標，已從持久化 GameState 中成功回退。目標: {target_location_path}")
+    # 3. 如果都失敗，則返回錯誤
+    else:
+        error_msg = "錯誤：未能從當前回合分析或持久化狀態中解析出遠程觀察的目標地點。"
+        logger.error(f"[{user_id}] (Graph|7C) {error_msg}")
+        return {"turn_plan": TurnPlan(thought=error_msg, character_actions=[])}
+
+    target_location_path_str = " > ".join(target_location_path)
+    
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
     planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
 
-    gs = ai_core.profile.game_state
-    scene_analysis = state.get('scene_analysis')
-
-    if not scene_analysis or not scene_analysis.target_location_path:
-        logger.error(f"[{user_id}] (Graph|7C) 錯誤：進入 remote_nsfw_planning_node 但未找到 target_location_path。")
-        return {"turn_plan": TurnPlan(thought="錯誤：未能解析出遠程觀察的目標地點。", character_actions=[])}
-
-    target_location_path_str = " > ".join(scene_analysis.target_location_path)
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
 
     full_context_dict = {
@@ -732,7 +756,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json, # [v4.0 核心修正]
+            "planning_subjects_json": planning_subjects_json,
             "target_location_path_str": target_location_path_str,
             "user_input": user_input,
             "username": ai_core.profile.user_profile.name,
@@ -743,8 +767,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v4.0 - 適配規劃主體)
-
+# 函式：遠程NSFW規劃節點 (v5.0 - 狀態持久化與三級備援)
 
 
 
