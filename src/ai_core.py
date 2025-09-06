@@ -2295,12 +2295,10 @@ class AILover:
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
 
-    # 函式：將世界聖經添加到向量儲存 (v2.0 - 批次處理與金鑰輪換)
+    # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
     # 更新紀錄:
-    # v2.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式以解決 API 速率超限問題。
-    #    1. [分批處理] 將待處理的文本塊分割成大小為 100 的小批次。
-    #    2. [金鑰輪換] 為每個批次都實現了完整的重試與金鑰輪換邏輯。如果一個批次因 ResourceExhausted 失敗，會自動切換到下一個 API 金鑰並重新初始化 self.embeddings 和 self.vector_store，然後重試。
-    #    3. [延遲機制] 在每批次處理成功後，強制加入 10 秒延遲以進一步緩解 API 壓力。
+    # v2.1 (2025-09-18): [災難性BUG修復] 徹底修正了異常捕獲邏輯。舊版本只能捕獲原始的 ResourceExhausted 異常，但 LangChain 會將其包裝在 GoogleGenerativeAIError 中拋出。新版本改為捕獲通用 Exception，並通過檢查錯誤訊息字符串中是否包含 "ResourceExhausted" 或 "429" 來判斷是否為速率限制錯誤，從而確保金鑰輪換機制能夠被正確觸發。
+    # v2.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式以解決 API 速率超限問題，引入分批處理與金鑰輪換。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         if not self.vector_store:
             raise ValueError("Vector store is not initialized.")
@@ -2320,8 +2318,8 @@ class AILover:
             if not docs:
                 return 0
 
-            # 步驟 3: [核心修正] 分批處理與金鑰輪換
-            batch_size = 100  # Google 官方建議的批次大小
+            # 步驟 3: 分批處理與金鑰輪換
+            batch_size = 100
             total_docs_processed = 0
             
             for i in range(0, len(docs), batch_size):
@@ -2340,40 +2338,45 @@ class AILover:
                         )
                         total_docs_processed += len(batch_docs)
                         logger.info(f"[{self.user_id}] 批次 {i//batch_size + 1} 成功處理。")
-                        break # 當前批次成功，跳出重試循環
+                        break
                     
-                    except ResourceExhausted as e:
-                        logger.warning(f"[{self.user_id}] (第 {attempt + 1}/{max_retries} 次嘗試) 批次處理遭遇速率限制: {e}。正在輪換 API 金鑰並重試...")
-                        
-                        # 手動輪換金鑰並重新初始化相關服務
-                        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-                        self.embeddings = GoogleGenerativeAIEmbeddings(
-                            model="models/embedding-001",
-                            google_api_key=self.api_keys[self.current_key_index]
-                        )
-                        # ChromaDB 需要用新的 embedding function 重新實例化才能生效
-                        self.vector_store = Chroma(
-                            persist_directory=self.vector_store_path,
-                            embedding_function=self.embeddings
-                        )
-                        
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(5) # 在重試前短暫等待
+                    # [v2.1 核心修正] 捕獲通用異常並檢查內容
+                    except Exception as e:
+                        error_str = str(e)
+                        is_rate_limit_error = "ResourceExhausted" in error_str or "429" in error_str
+
+                        if is_rate_limit_error:
+                            logger.warning(f"[{self.user_id}] (第 {attempt + 1}/{max_retries} 次嘗試) 批次處理遭遇速率限制。正在輪換 API 金鑰並重試...")
+                            
+                            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                            self.embeddings = GoogleGenerativeAIEmbeddings(
+                                model="models/embedding-001",
+                                google_api_key=self.api_keys[self.current_key_index]
+                            )
+                            self.vector_store = Chroma(
+                                persist_directory=self.vector_store_path,
+                                embedding_function=self.embeddings
+                            )
+                            
+                            if attempt < max_retries - 1:
+                                await asyncio.sleep(5)
+                            else:
+                                logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗，無法處理批次 {i//batch_size + 1}。")
+                                raise e
                         else:
-                            logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗，無法處理批次 {i//batch_size + 1}。")
-                            raise e # 達到最大重試次數，向上拋出異常
+                            # 如果不是速率限制錯誤，則直接向上拋出
+                            raise e
                 
-                # 每批次成功後，強制延遲
-                logger.info(f"[{self.user_id}] 批次處理成功，為避免速率超限，將等待 10 秒...")
-                await asyncio.sleep(10)
+                if i + batch_size < len(docs):
+                    logger.info(f"[{self.user_id}] 批次處理成功，為避免速率超限，將等待 10 秒...")
+                    await asyncio.sleep(10)
 
             return total_docs_processed
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-    # 函式：將世界聖經添加到向量儲存 (v2.0 - 批次處理與金鑰輪換)
-
+    # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
     # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
