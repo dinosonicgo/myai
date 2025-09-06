@@ -2834,11 +2834,11 @@ class AILover:
 
 
 
-    # 函式：將新角色加入場景 (v178.1 - 核心主角保護)
+    # 函式：將新角色加入場景 (v178.2 - 架構遷移)
     # 更新紀錄:
-    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制。在創建任何新 NPC 的 LORE 之前，此函式會強制檢查其名稱是否與使用者角色或 AI 戀人衝突。如果衝突，則該 NPC 將被跳過，從而杜絕核心主角被錯誤地創建為 NPC LORE 的嚴重問題。
+    # v178.2 (2025-09-06): [重大架構重構] 將此函式從 discord_bot.py 遷移至 ai_core.py。此修改遵循了“關注點分離”原則，將核心的 LORE 操作邏輯與 Discord 表現層完全解耦，理順了數據流並提高了程式碼的可維護性。
+    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制，防止創建與使用者或 AI 戀人同名的 NPC。
     # v178.0 (2025-08-31): [重大功能升級] 彻底重构了NPC创建逻辑，引入多層備援機制以解決命名衝突。
-    # v177.0 (2025-08-30): [功能增強] 此函式现在会返回一个包含所有新创建角色姓名的列表。
     async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[str]:
         """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并在遇到命名冲突时启动多层备援机制。"""
         if not self.profile:
@@ -2849,7 +2849,6 @@ class AILover:
             logger.info(f"[{self.user_id}] 場景選角鏈沒有創造新的角色。")
             return []
         
-        # [v178.1 核心修正] 獲取受保護的核心主角名稱
         user_name_lower = self.profile.user_profile.name.lower()
         ai_name_lower = self.profile.ai_profile.name.lower()
         protected_names = {user_name_lower, ai_name_lower}
@@ -2857,7 +2856,6 @@ class AILover:
         created_names = []
         for character in all_new_characters:
             try:
-                # [v178.1 核心修正] 在創建前進行保護性檢查
                 if character.name.lower() in protected_names:
                     logger.warning(f"[{self.user_id}] 【LORE 保護】：已攔截一個試圖創建與核心主角 '{character.name}' 同名的 NPC LORE。此創建請求已被跳過。")
                     continue
@@ -2867,7 +2865,6 @@ class AILover:
                 conflicted_names = []
 
                 for name_attempt in names_to_try:
-                    # [v178.1 核心修正] 再次檢查備用名是否衝突
                     if name_attempt.lower() in protected_names:
                         logger.warning(f"[{self.user_id}] 【LORE 保護】：NPC 的備用名 '{name_attempt}' 與核心主角衝突，已跳過此備用名。")
                         conflicted_names.append(name_attempt)
@@ -2895,7 +2892,7 @@ class AILover:
                     
                     new_name = await self.ainvoke_with_rotation(renaming_chain, {
                         "description": character.description,
-                        "conflicted_names": ", ".join(conflicted_names + list(protected_names)) # 將保護名單也加入衝突列表
+                        "conflicted_names": ", ".join(conflicted_names + list(protected_names))
                     })
                     
                     final_name_to_use = new_name.strip().replace('"', '').replace("'", "")
@@ -2917,7 +2914,7 @@ class AILover:
                 logger.error(f"[{self.user_id}] 在将新角色 '{character.name}' 添加到 LORE 时发生错误: {e}", exc_info=True)
         
         return created_names
-    # 函式：將新角色加入場景 (v178.1 - 核心主角保護)
+    # 函式：將新角色加入場景 (v178.2 - 架構遷移)
 
 
     
