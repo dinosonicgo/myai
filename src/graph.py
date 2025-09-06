@@ -183,11 +183,11 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v4.0 - 適配規劃主體)
+# 函式：統一NSFW規劃節點 (v5.0 - 數據流修正)
 # 更新紀錄:
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據，並將其格式化為 planning_subjects_json 傳遞給規劃鏈。
+# v5.0 (2025-09-06): [健壯性] 與遠程版本同步，修正了調用鏈時的參數傳遞，確保 `action_sexual_content_prompt` 被正確注入，保證了本地與遠程 NSFW 規劃行為的一致性。
+# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
 # v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
-# v2.0 (2025-09-17): [災難性BUG修復] 創建此統一節點以取代舊的思維鏈。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
@@ -198,7 +198,6 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
 
-    # [v4.0 核心修正] 確定規劃主體
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
@@ -229,11 +228,12 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
         ai_core.get_nsfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
+            # [v5.0 核心修正] 注入缺失的 action_sexual_content_prompt 變數
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json, # [v4.0 核心修正]
+            "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
             "username": ai_core.profile.user_profile.name,
         },
@@ -242,8 +242,7 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     if not plan:
         plan = TurnPlan(thought="安全備援：NSFW統一規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v4.0 - 適配規劃主體)
-
+# 函式：統一NSFW規劃節點 (v5.0 - 數據流修正)
 
 
 
@@ -725,11 +724,11 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
 
 
 
-# 函式：遠程NSFW規劃節點 (v5.0 - 狀態持久化與三級備援)
+# 函式：遠程NSFW規劃節點 (v6.0 - 數據流修正)
 # 更新紀錄:
-# v5.0 (2025-09-18): [災難性BUG修復] 與 SFW 版本同步，徹底重構了 target_location_path 的獲取邏輯，引入“三級備援”機制，確保在 scene_analysis 節點失敗時，流程依然可以從持久化狀態中獲取目標地點，保證遠程觀察的連續性。
+# v6.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，修正了調用鏈時的參數傳遞。現在此節點會從 ai_core 的模組化提示詞中獲取 action_sexual_content 的內容，並以 `action_sexual_content_prompt` 作為鍵，正確地將其注入到鏈中，從根本上解決了因缺少變數而導致的崩潰問題。
+# v5.0 (2025-09-18): [災難性BUG修復] 與 SFW 版本同步，徹底重構了 target_location_path 的獲取邏輯。
 # v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
-# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -740,20 +739,16 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
     
-    # [v5.0 核心修正] 三級備援獲取目標路徑
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
     target_location_path: Optional[List[str]] = None
 
-    # 1. 優先使用當前回合的分析結果
     if scene_analysis and scene_analysis.target_location_path:
         target_location_path = scene_analysis.target_location_path
         logger.info(f"[{user_id}] (Graph|7C) 已從當前回合分析中獲取遠程目標: {target_location_path}")
-    # 2. 如果分析失敗，回退到持久化的 GameState
     elif gs.viewing_mode == 'remote' and gs.remote_target_path:
         target_location_path = gs.remote_target_path
         logger.warning(f"[{user_id}] (Graph|7C) 當前回合分析未提供目標，已從持久化 GameState 中成功回退。目標: {target_location_path}")
-    # 3. 如果都失敗，則返回錯誤
     else:
         error_msg = "錯誤：未能從當前回合分析或持久化狀態中解析出遠程觀察的目標地點。"
         logger.error(f"[{user_id}] (Graph|7C) {error_msg}")
@@ -790,6 +785,8 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         ai_core.get_remote_nsfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction, 
+            # [v6.0 核心修正] 注入缺失的 action_sexual_content_prompt 變數
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
@@ -804,7 +801,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v5.0 - 狀態持久化與三級備援)
+# 函式：遠程NSFW規劃節點 (v6.0 - 數據流修正)
 
 
 
