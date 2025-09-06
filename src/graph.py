@@ -214,11 +214,11 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v5.0 - 數據流修正)
+# 函式：統一NSFW規劃節點 (v6.0 - 錯誤處理修正)
 # 更新紀錄:
-# v5.0 (2025-09-06): [健壯性] 與遠程版本同步，修正了調用鏈時的參數傳遞，確保 `action_sexual_content_prompt` 被正確注入，保證了本地與遠程 NSFW 規劃行為的一致性。
+# v6.0 (2025-09-06): [健壯性] 與遠程版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
+# v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞，確保 `action_sexual_content_prompt` 被正確注入。
 # v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
-# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
@@ -227,7 +227,7 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
 
     if not ai_core.profile:
-        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -259,7 +259,6 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
         ai_core.get_nsfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
-            # [v5.0 核心修正] 注入缺失的 action_sexual_content_prompt 變數
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
@@ -271,9 +270,10 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
         retry_strategy='force'
     )
     if not plan:
-        plan = TurnPlan(thought="安全備援：NSFW統一規劃鏈失敗。", character_actions=[])
+        # [v6.0 核心修正]
+        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v5.0 - 數據流修正)
+# 函式：統一NSFW規劃節點 (v6.0 - 錯誤處理修正)
 
 
 
@@ -571,11 +571,11 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：SFW規劃節點 (v24.0 - 適配規劃主體)
+# 函式：SFW規劃節點 (v25.0 - 錯誤處理修正)
 # 更新紀錄:
-# v24.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據，並將其格式化為 planning_subjects_json 傳遞給規劃鏈。
+# v25.0 (2025-09-06): [健壯性] 與遠程版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
+# v24.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
 # v23.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
-# v22.0 (2025-09-16): [重大邏輯強化] 調用 `_get_formatted_chat_history` 輔助函式來獲取最近的對話歷史。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -584,15 +584,13 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
 
     if not ai_core.profile:
-        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
 
-    # [v24.0 核心修正] 確定規劃主體
     planning_subjects_raw = state.get('planning_subjects')
-    if planning_subjects_raw is None: # 如果 planning_subjects 未被設置 (來自不擴展的分支)
+    if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
     planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
-
 
     gs = ai_core.profile.game_state
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
@@ -621,15 +619,16 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot, 
             "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json, # [v24.0 核心修正]
+            "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
         },
         retry_strategy='euphemize'
     )
     if not plan:
-        plan = TurnPlan(thought="安全備援：SFW規劃鏈失敗。", character_actions=[])
+        # [v25.0 核心修正]
+        plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v24.0 - 適配規劃主體)
+# 函式：SFW規劃節點 (v25.0 - 錯誤處理修正)
 
 
 
@@ -685,11 +684,11 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict[str,
     # 函式：NSFW 風格合規節點 (v2.0 - 注入對話歷史)
 
 
-# 函式：遠程 SFW 規劃節點 (v5.0 - 狀態持久化與三級備援)
+# 函式：遠程 SFW 規劃節點 (v6.0 - 錯誤處理修正)
 # 更新紀錄:
-# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯，引入“三級備援”機制：1. 優先使用當前回合的 scene_analysis 結果。2. 如果失敗，則回退到從持久化的 game_state 中讀取 remote_target_path。3. 如果都失敗，才返回錯誤。此修改旨在從根本上解決因 scene_analysis 節點暫時性失敗而導致整個遠程流程崩潰的問題。
+# v6.0 (2025-09-06): [健壯性] 與遠程 NSFW 版本同步，修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤，防止錯誤訊息被小說化。
+# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯。
 # v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
-# v3.0 (2025-09-18): [重大架構升級] 修改了此節點的輸入源，改為使用 `sanitized_user_input`。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -698,26 +697,22 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程SFW場景計劃...")
 
     if not ai_core.profile:
-        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
 
-    # [v5.0 核心修正] 三級備援獲取目標路徑
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
     target_location_path: Optional[List[str]] = None
 
-    # 1. 優先使用當前回合的分析結果
     if scene_analysis and scene_analysis.target_location_path:
         target_location_path = scene_analysis.target_location_path
         logger.info(f"[{user_id}] (Graph|7D) 已從當前回合分析中獲取遠程目標: {target_location_path}")
-    # 2. 如果分析失敗，回退到持久化的 GameState
     elif gs.viewing_mode == 'remote' and gs.remote_target_path:
         target_location_path = gs.remote_target_path
         logger.warning(f"[{user_id}] (Graph|7D) 當前回合分析未提供目標，已從持久化 GameState 中成功回退。目標: {target_location_path}")
-    # 3. 如果都失敗，則返回錯誤
     else:
         error_msg = "錯誤：未能從當前回合分析或持久化狀態中解析出遠程觀察的目標地點。"
         logger.error(f"[{user_id}] (Graph|7D) {error_msg}")
-        return {"turn_plan": TurnPlan(thought=error_msg, character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason=error_msg)}
 
     target_location_path_str = " > ".join(target_location_path)
     
@@ -762,17 +757,17 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         retry_strategy='euphemize'
     )
     if not plan:
-        plan = TurnPlan(thought="安全備援：遠程SFW規劃鏈失敗。", character_actions=[])
+        # [v6.0 核心修正]
+        plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v5.0 - 狀態持久化與三級備援)
+# 函式：遠程 SFW 規劃節點 (v6.0 - 錯誤處理修正)
 
 
-
-# 函式：遠程NSFW規劃節點 (v6.0 - 數據流修正)
+# 函式：遠程NSFW規劃節點 (v7.0 - 錯誤處理修正)
 # 更新紀錄:
-# v6.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，修正了調用鏈時的參數傳遞。現在此節點會從 ai_core 的模組化提示詞中獲取 action_sexual_content 的內容，並以 `action_sexual_content_prompt` 作為鍵，正確地將其注入到鏈中，從根本上解決了因缺少變數而導致的崩潰問題。
-# v5.0 (2025-09-18): [災難性BUG修復] 與 SFW 版本同步，徹底重構了 target_location_path 的獲取邏輯。
-# v4.0 (2025-09-18): [重大架構重構] 修改了數據源，現在從 state['planning_subjects'] 或 state['raw_lore_objects'] 獲取角色數據。
+# v7.0 (2025-09-06): [災難性BUG修復] 根據「AI輸出內部錯誤」的問題，徹底修改了此節點的備援邏輯。當規劃鏈失敗時，不再將錯誤訊息填入 `thought` 欄位，而是填入專用的 `execution_rejection_reason` 欄位。此修改旨在從根本上分離“劇情”與“系統錯誤”，防止下游的渲染節點將錯誤訊息錯誤地小說化。
+# v6.0 (2025-09-06): [災難性BUG修復] 修正了調用鏈時的參數傳遞。
+# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯。
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7C] NSFW描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -781,7 +776,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     logger.info(f"[{user_id}] (Graph|7C) Node: remote_nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程NSFW場景計劃...")
 
     if not ai_core.profile:
-        return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
     
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
@@ -796,7 +791,7 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     else:
         error_msg = "錯誤：未能從當前回合分析或持久化狀態中解析出遠程觀察的目標地點。"
         logger.error(f"[{user_id}] (Graph|7C) {error_msg}")
-        return {"turn_plan": TurnPlan(thought=error_msg, character_actions=[])}
+        return {"turn_plan": TurnPlan(execution_rejection_reason=error_msg)}
 
     target_location_path_str = " > ".join(target_location_path)
     
@@ -829,7 +824,6 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         ai_core.get_remote_nsfw_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction, 
-            # [v6.0 核心修正] 注入缺失的 action_sexual_content_prompt 變數
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
@@ -843,10 +837,10 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
         retry_strategy='force'
     )
     if not plan:
-        plan = TurnPlan(thought="安全備援：遠程NSFW規劃鏈失敗。", character_actions=[])
+        # [v7.0 核心修正]
+        plan = TurnPlan(execution_rejection_reason="安全備援：遠程NSFW規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：遠程NSFW規劃節點 (v6.0 - 數據流修正)
-
+# 函式：遠程NSFW規劃節點 (v7.0 - 錯誤處理修正)
 
 
 # --- 階段三：執行與渲染 (Execution & Rendering) ---
@@ -870,11 +864,11 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
-# 函式：統一的敘事渲染節點 (v23.0 - 數據流修正)
+# 函式：統一的敘事渲染節點 (v24.0 - 執行否決修正)
 # 更新紀錄:
-# v23.0 (2025-09-06): [災難性BUG修復] 根據 ValueError，修正了傳遞給渲染鏈的參數結構。現在它會將所有需要的變數（system_prompt, turn_plan 等）打包成一個單一的字典傳入，以匹配 `get_narrative_chain` v212.0 的新輸入結構，從根本上解決了因輸入類型錯誤導致的崩潰問題。
-# v22.0 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞，補上了缺失的 `system_prompt` 和 `response_style_prompt`。
-# v21.0 (2025-09-12): [架構重構] 強化此鏈，使其成為能夠處理所有類型 TurnPlan 的統一“小說家”節點。
+# v24.0 (2025-09-06): [災難性BUG修復] 根據「AI輸出內部錯誤」的問題，在此節點增加了“執行否決”檢查。在渲染前，它會檢查傳入的 `TurnPlan` 的 `execution_rejection_reason` 欄位。如果有值，則完全跳過渲染，直接將該欄位的錯誤訊息作為最終輸出。此修改從根本上解決了系統錯誤被當作劇情渲染的嚴重問題。
+# v23.0 (2025-09-06): [災難性BUG修復] 修正了傳遞給渲染鏈的參數結構。
+# v22.0 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
     user_id = state['user_id']
@@ -884,10 +878,12 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
 
     if not turn_plan:
         return {"llm_response": "（系統錯誤：未能生成有效的行動計劃。）"}
+        
+    # [v24.0 核心修正] 執行否決權檢查
     if turn_plan.execution_rejection_reason:
+        logger.warning(f"[{user_id}] (Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
         
-    # [v23.0 核心修正] 將所有參數打包成一個字典
     chain_input = {
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
@@ -896,13 +892,16 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
         
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_narrative_chain(),
-        chain_input, # 傳遞打包好的字典
+        chain_input,
         retry_strategy='force'
     )
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v23.0 - 數據流修正)
+# 函式：統一的敘事渲染節點 (v24.0 - 執行否決修正)
+
+
+
 
 # --- 階段四：收尾 (Finalization) ---
 
