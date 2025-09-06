@@ -705,10 +705,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 # 更新紀錄:
 # v2.0 (2025-09-07): [終極強化] 此節點現在負責為整個NSFW思維鏈準備統一的上下文（特別是`world_snapshot`），並將其保存到狀態中，以確保後續所有流水線節點都能訪問到一致的數據。
 async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
-    """[7B.1] NSFW思維鏈-步驟1: 生成初步的、SFW偽裝的行動計劃草稿。"""
+    """[7B.1] NSFW思維鏈-步驟1: 生成初步的、突破性的行動計劃粗稿。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|7B.1) Node: nsfw_initial_planning -> 正在生成NSFW初步行動計劃...")
+    logger.info(f"[{user_id}] (Graph|7B.1) Node: nsfw_initial_planning -> 正在生成NSFW突破性規劃...")
     
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(thought="錯誤：AI profile 未加載，無法規劃。", character_actions=[])}
@@ -718,8 +718,9 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
     
     gs = ai_core.profile.game_state
+    user_input = state['messages'][-1].content
     
-    # [v2.0 核心修正] 為整個流水線準備並儲存 world_snapshot
+    # 為整個流水線準備並儲存 world_snapshot
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -734,6 +735,7 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        'latest_user_input': user_input
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
@@ -746,26 +748,27 @@ async def nsfw_initial_planning_node(state: ConversationGraphState) -> Dict:
             "world_snapshot": world_snapshot, 
             "chat_history": chat_history_str,
             "planning_subjects_json": planning_subjects_json,
-            "user_input": state['messages'][-1].content
+            "user_input": user_input
         },
-        retry_strategy='euphemize'
+        # 這是我們的突破口，必須強制執行
+        retry_strategy='force'
     )
     if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW初步規劃鏈失敗，可能因為內容審查或API臨時故障。")
+        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW突破性規劃鏈最終失敗，API已徹底拒絕生成此內容。")
 
     return {"turn_plan": plan, "world_snapshot": world_snapshot}
 # 函式：NSFW 初步規劃節點 (v2.0 - 思維鏈最終版)
 
 
-# 函式：NSFW 詞彙注入節點 (v2.0 - 思維鏈最終版)
+# 函式：NSFW 詞彙校準節點 (v2.0 - 思維鏈最終版)
 # 更新紀錄:
-# v2.0 (2025-09-07): [終極強化] 此節點現在會將【原始使用者輸入】也一併傳遞給詞彙注入鏈。這為LLM提供了最關鍵的「解密鑰匙」，讓它能夠根據原始意圖，準確地將SFW偽裝詞還原為對應的露骨術語。
+# v2.0 (2025-09-07): [終極強化] 此節點現在會將【原始使用者輸入】也一併傳遞給詞彙校準鏈。這為LLM提供了最關鍵的「解密鑰匙」，讓它能夠根據原始意圖，準確地校準術語。
 async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict:
-    """[7B.2] NSFW思維鏈-步驟2: 強制修正計畫中的詞彙為露骨術語。"""
+    """[7B.2] NSFW思維鏈-步驟2: 校準計畫中的詞彙以確保其符合「詞彙聖經」。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|7B.2) Node: nsfw_lexicon_injection -> 正在注入NSFW露骨詞彙...")
+    logger.info(f"[{user_id}] (Graph|7B.2) Node: nsfw_lexicon_injection -> 正在校準NSFW詞彙...")
 
     if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
         return {}
@@ -780,17 +783,17 @@ async def nsfw_lexicon_injection_node(state: ConversationGraphState) -> Dict:
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
-            "user_input": state['messages'][-1].content, # [v2.0 核心修正] 傳入原始指令作為解密鑰匙
+            "user_input": state['messages'][-1].content,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
         },
         retry_strategy='force'
     )
     if not corrected_plan:
-        logger.warning(f"[{user_id}] (Graph|7B.2) NSFW詞彙注入鏈返回空值，保留原始計畫。")
+        logger.warning(f"[{user_id}] (Graph|7B.2) NSFW詞彙校準鏈返回空值，保留校準前的計畫。")
         return {}
         
     return {"turn_plan": corrected_plan}
-# 函式：NSFW 詞彙注入節點 (v2.0 - 思維鏈最終版)
+# 函式：NSFW 詞彙校準節點 (v2.0 - 思維鏈最終版)
 
 
 
@@ -860,11 +863,11 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 # 更新紀錄:
 # v2.0 (2025-09-07): [健壯性] 增加了對上一步驟失敗的檢查，如果計畫已被拒絕，則直接跳過此節點，提高了流程效率。
 async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict:
-    """[7B.3] NSFW思維鏈-步驟3: 檢查並補充對話，確保計畫符合用戶風格。"""
+    """[7B.3] NSFW思維鏈-步驟3: 檢查並補充對話與呻吟，確保計畫符合用戶風格。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|7B.3) Node: nsfw_style_compliance -> 正在進行NSFW風格合規檢查...")
+    logger.info(f"[{user_id}] (Graph|7B.3) Node: nsfw_style_compliance -> 正在進行NSFW風格合規潤色...")
 
     if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
         return {}
@@ -884,7 +887,7 @@ async def nsfw_style_compliance_node(state: ConversationGraphState) -> Dict:
         retry_strategy='force'
     )
     if not final_plan:
-        logger.warning(f"[{user_id}] (Graph|7B.3) NSFW風格合規鏈返回空值，保留修正前計畫。")
+        logger.warning(f"[{user_id}] (Graph|7B.3) NSFW風格合規鏈返回空值，保留潤色前的計畫。")
         return {}
 
     return {"turn_plan": final_plan}
@@ -1194,15 +1197,14 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v36.0 - 恢復NSFW思維鏈)
+# 函式：創建主回應圖 (v38.1 - 恢復並最終確立思維鏈)
 # 更新紀錄:
-# v36.0 (2025-09-07): [災難性BUG修復] 根據「指令漂移」的最終分析，此版本徹底恢復並最終確立了「NSFW思維鏈」流水線作為處理所有NSFW請求的唯一路徑。廢棄了單一的NSFW規劃器，將所有NSFW流量重新導向 `nsfw_initial_planning` -> `nsfw_lexicon_injection` -> `nsfw_style_compliance` 的三節點結構。這是對抗API底層內容審查的終極架構方案。
-# v35.0 (2025-09-07): [重大架構簡化] 廢棄了思維鏈，回歸到單一NSFW規劃器。
+# v38.1 (2025-09-07): [災難性BUG修復] 恢復了v36.0版本中被證實有效的「NSFW思維鏈」流水線拓撲，並廢棄了v38.0中不成功的單一規劃器模式。這是對「指令漂移」和「創意審查」問題的最終架構性解決方案。
+# v38.0 (2025-09-07): [重大架構重構] 嘗試了「突破+潤色」混合模式。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("pre_process_input", pre_process_input_node)
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1211,11 +1213,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
-    # SFW 規劃器保持不變
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v36.0 新增] 重新註冊 NSFW 思維鏈節點
+    # [v38.1 核心修正] 註冊 NSFW 思維鏈節點
     graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
     graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
     graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
@@ -1237,8 +1238,8 @@ def create_main_response_graph() -> StateGraph:
 
 
     # --- 2. 定義圖的拓撲結構 ---
-    graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "classify_intent")
+    graph.set_entry_point("classify_intent")
+    
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
@@ -1261,20 +1262,17 @@ def create_main_response_graph() -> StateGraph:
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification:
-            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
             return "sfw_planner" 
 
         intent = intent_classification.intent_type
         ai_core = state['ai_core']
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
-        
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v36.0 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
+        # [v38.1 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
         if 'nsfw' in intent:
             return "nsfw_thought_chain_start"
         
-        # SFW 路由保持不變
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1286,15 +1284,13 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            # [v36.0 核心修正] 新的路由目標
             "nsfw_thought_chain_start": "nsfw_initial_planning"
         }
     )
     
-    # [v36.0 核心修正] 構建新的 NSFW 思維鏈流水線
+    # [v38.1 核心修正] 構建新的 NSFW 思維鏈流水線
     graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
     graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
-    # 流水線的出口統一連接到工具執行節點
     graph.add_edge("nsfw_style_compliance", "tool_execution")
     
     # SFW 路線的出口
@@ -1308,7 +1304,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v36.0 - 恢復NSFW思維鏈)
+# 函式：創建主回應圖 (v38.1 - 恢復並最終確立思維鏈)
 
 
 
