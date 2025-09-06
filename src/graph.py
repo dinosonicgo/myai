@@ -513,18 +513,15 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
+# 函式：統一NSFW規劃節點 (v1.0 - 全新創建)
 # 更新紀錄:
-# v7.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
-# v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
-# v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞。
+# v1.0 (2025-09-07): [災難性BUG修復] 根據 NameError，恢復了在 v36.0 重構中被意外遺漏的核心節點。此節點是本地 NSFW 互動路徑的統一規劃器，負責調用基於“動作分解原則”的 nsfw_planning_chain，直接生成最終的、露骨的行動計劃。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
+    """[NEW] 本地 NSFW 互動路徑的統一規劃器，直接生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v7.0 核心修正] 移除對 sanitized_user_input 的引用
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
+    logger.info(f"[{user_id}] (Graph) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
@@ -533,7 +530,18 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+    
+    # 確保主角和 AI 也被加入到規劃主體中
+    user_char = ai_core.profile.user_profile.model_dump()
+    ai_char = ai_core.profile.ai_profile.model_dump()
+    
+    # 為了避免重複，使用名字作為鍵進行去重
+    subjects_map = {p['name']: p for p in planning_subjects_raw}
+    subjects_map[user_char['name']] = user_char
+    subjects_map[ai_char['name']] = ai_char
+    
+    final_planning_subjects = list(subjects_map.values())
+    planning_subjects_json = json.dumps(final_planning_subjects, ensure_ascii=False, indent=2)
 
     gs = ai_core.profile.game_state
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
@@ -572,7 +580,7 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：NSFW統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
+# 函式：統一NSFW規劃節點 (v1.0 - 全新創建)
 
 
 
