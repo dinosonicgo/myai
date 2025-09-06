@@ -233,45 +233,35 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：LORE擴展決策節點 (v2.0 - 飽和度分析)
+# 函式：LORE擴展決策節點 (v3.0 - 實體存在性優先)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯。現在，它會在調用決策鏈之前，先對當前場景的 LORE 數據（特別是在場 NPC 數量）進行量化分析，得到“飽和度”指標。然後將此飽和度信息作為強力約束注入到 Prompt 中，指示 LLM 只有在場景確實“空曠”時才進行擴展。此修改旨在從根本上解決 AI 在細節豐富的場景中無限創造新 LORE 的問題。
+# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。不再進行飽和度分析，而是生成一個簡潔的 LORE 摘要 (lore_summary)，並將其注入到新的決策鏈中，以實現“實體存在性優先”的決策邏輯。
+# v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的邏輯，引入飽和度分析。
 # v1.0 (2025-09-09): [架構重構] 創建此專用節點。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """[5] LORE擴展決策節點，引入飽和度分析以避免無限擴展。"""
+    """[5] LORE擴展決策節點，基於核心實體是否已存在於LORE中來做決定。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在結合LORE飽和度分析，判斷是否擴展...")
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於實體存在性，判斷是否擴展...")
     
-    # [v2.0 核心修正] LORE 飽和度分析
-    npc_count = 0
-    location_has_description = False
+    # [v3.0 核心修正] 生成 LORE 摘要以供決策鏈使用
+    lore_summary_list = []
     if isinstance(raw_lore_objects, list):
         for lore in raw_lore_objects:
-            if lore.category == 'npc_profile':
-                npc_count += 1
-            elif lore.category == 'location_info':
-                if lore.content and lore.content.get('description'):
-                    location_has_description = True
-
-    saturation_analysis = (
-        f"- **當前在場NPC數量**: {npc_count}\n"
-        f"- **當前地點是否有詳細描述**: {'是' if location_has_description else '否'}"
-    )
-    logger.info(f"[{user_id}] (Graph|5) LORE飽和度分析結果:\n{saturation_analysis}")
-
-    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
-    recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-6:]])
+            name = lore.content.get('name', lore.content.get('title', lore.key))
+            lore_summary_list.append(f"- [{lore.category}] {name}")
+    lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "（當前場景無任何已知 LORE）"
     
+    logger.info(f"[{user_id}] (Graph|5) 生成的LORE摘要:\n{lore_summary}")
+
     decision_chain = ai_core.get_expansion_decision_chain()
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
             "user_input": user_input, 
-            "recent_dialogue": recent_dialogue,
-            "saturation_analysis": saturation_analysis # 將飽和度分析注入 Prompt
+            "lore_summary": lore_summary # 將 LORE 摘要注入 Prompt
         },
         retry_strategy='euphemize'
     )
@@ -282,7 +272,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v2.0 - 飽和度分析)
+# 函式：LORE擴展決策節點 (v3.0 - 實體存在性優先)
 
 
 
