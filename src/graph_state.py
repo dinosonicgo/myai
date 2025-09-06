@@ -1,8 +1,8 @@
-# src/graph_state.py 的中文註釋(v5.0 - 適配精細化節點)
+# src/graph_state.py 的中文註釋(v6.0 - 新增淨化輸入)
 # 更新紀錄:
-# v5.0 (2025-09-10): [重大架構升級] 新增了 `raw_lore_objects` 欄位。此欄位是實現“LORE查詢”與“上下文組裝”節點分離的關鍵，它作為一個數據載體，負責在兩個新節點之間傳遞原始的、未經處理的 LORE 資料庫對象列表。
+# v6.0 (2025-09-18): [重大架構升級] 新增了 `sanitized_user_input` 欄位。此欄位將用於儲存經過“無害化”處理後的使用者指令，旨在將帶有攻擊性的原始輸入與核心規劃鏈隔離，從根本上解決因輸入觸發內容審查導致規劃失敗的問題。
+# v5.0 (2025-09-10): [重大架構升級] 新增了 `raw_lore_objects` 欄位。
 # v4.0 (2025-09-06): [重大架構升級] 新增了 `style_analysis` 欄位。
-# v3.0 (2025-09-06): [重大架構升級] 新增了 `intent_classification` 欄位。
 
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
@@ -37,6 +37,9 @@ class ConversationGraphState(TypedDict):
     structured_context: Dict[str, str]
     world_snapshot: str
     
+    # [v6.0 新增] 無害化處理後的使用者輸入
+    sanitized_user_input: Optional[str]
+
     # "規劃-渲染"模式的核心數據載體
     turn_plan: Optional["TurnPlan"]
     tool_results: str
@@ -46,16 +49,3 @@ class ConversationGraphState(TypedDict):
     final_output: str
     state_updates: Dict[str, Any]
 # 類別：對話圖狀態
-
-# 類別：設定圖狀態
-class SetupGraphState(TypedDict):
-    """
-    /start 創世流程的狀態容器。
-    負責在創世的各個步驟（處理聖經、補完角色、生成世界）之間傳遞數據。
-    """
-    user_id: str
-    ai_core: "AILover"
-    canon_text: Optional[str]
-    genesis_result: Optional["WorldGenesisResult"]
-    opening_scene: str
-# 類別：設定圖狀態
