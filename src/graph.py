@@ -207,9 +207,10 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[全新] 感知與視角設定中樞 (v1.0)
+# 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 # 更新紀錄:
-# v1.0 (2025-09-06): [重大架構重構] 根據「遠程視角管理徹底失敗」的分析，創建了這個全新的、統一的感知中樞節點。它取代了舊的、分裂的 `scene_and_action_analysis_node` 和 `update_viewing_mode_node`。此節點以意圖為驅動，原子性地完成“判斷視角 -> 推斷地點 -> 更新全局狀態”的完整流程，從根本上解決了因多節點數據不一致而導致的狀態污染和邏輯斷鏈問題。
+# v1.1 (2025-09-06): [災難性BUG修復] 根據 AttributeError，修正了節點內部對上游鏈返回的 Pydantic 模型物件的數據訪問方式。將錯誤的字典式訪問 `location_result.get("location_path")` 修改為正確的物件屬性訪問 `location_result.location_path`，從根本上解決了因此導致的崩潰問題。
+# v1.0 (2025-09-06): [重大架構重構] 創建了這個全新的、統一的感知中樞節點。
 async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     """一個統一的節點，負責分析場景、根據意圖設定視角、並持久化狀態。"""
     user_id = state['user_id']
@@ -227,8 +228,8 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     new_target_path = gs.remote_target_path
 
     if 'descriptive' in intent:
-        # 意圖是描述性的，強制進入/更新遠程模式
-        new_viewing_mode = 'remote'
+        # 意圖是描述性的，強制進入或保持遠程模式
+        logger.info(f"[{user_id}] (View Mode) 檢測到描述性意圖，準備進入/更新遠程視角。")
         
         scene_context_lores = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
         scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
@@ -243,9 +244,11 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
             }
         )
         
-        extracted_path = location_result.get("location_path") if location_result else None
+        # [v1.1 核心修正] 使用點號表示法訪問 Pydantic 物件屬性
+        extracted_path = location_result.location_path if location_result else None
         
         if extracted_path:
+            new_viewing_mode = 'remote'
             new_target_path = extracted_path
         else:
             logger.warning(f"[{user_id}] (Perception Hub) 描述性意圖未能推斷出有效地點，將回退到本地模式。")
@@ -275,7 +278,7 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     )
     
     return {"scene_analysis": scene_analysis}
-# 函式：[全新] 感知與視角設定中樞 (v1.0)
+# 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
 
 
