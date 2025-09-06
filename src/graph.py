@@ -27,11 +27,11 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 
-# 函式：場景與動作分析節點 (v4.0 - 業務邏輯強制校準)
+# 函式：場景與動作分析節點 (v5.0 - 兩階段驗證)
 # 更新紀錄:
-# v4.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 ValidationError，徹底重構了此節點的實現。不再盲目信任 LLM 的輸出，而是在節點內部增加了【程式碼層面的業務邏輯校準】。在接收到 LLM 的初步分析後，此節點會用確定性的 Python 程式碼強制檢查其邏輯一致性：如果 AI 判斷為 remote 但未提供有效路徑，則強制將其修正為 local。此修改將最終決策權從不確定的 LLM 轉移回可靠的程式碼，從根本上杜絕了因 AI 邏輯矛盾而導致的驗證崩潰。
-# v3.0 (2025-09-06): [災難性BUG修復] 重構了此節點的數據準備邏輯，注入了場景上下文。
-# v2.0 (2025-09-06): [災難性BUG修復] 引入了“先淨化，後分析”策略。
+# v5.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 ValidationError，最終確認並實施了“兩階段驗證”策略。此節點現在接收來自上游的、更寬鬆的 `RawSceneAnalysis` 模型，然後在其內部，用確定性的 Python 程式碼對這個原始數據進行嚴格的邏輯校準和修正，最後再手動創建一個【保證邏輯自洽】的 `SceneAnalysisResult` 物件並輸出。此修改從根本上解決了所有因 LLM 輸出與 Pydantic 驗證器衝突而導致的崩潰。
+# v4.0 (2025-09-06): [災難性BUG修復] 增加了【程式碼層面的業務邏輯校準】。
+# v3.0 (2025-09-06): [災難性BUG修復] 重構了此節點的數據準備邏輯。
 async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     """分析場景的視角，並在程式碼層面強制校準結果以確保邏輯一致性。"""
     user_id = state['user_id']
@@ -44,7 +44,6 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
 
     try:
-        logger.info(f"[{user_id}] (Scene Analysis) 正在對輸入進行預處理以創建安全查詢...")
         entity_chain = ai_core.get_entity_extraction_chain()
         entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
         sanitized_input_for_analysis = "觀察場景：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
@@ -57,7 +56,8 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
     current_location_path = ai_core.profile.game_state.location_path
     
     scene_analysis_chain = ai_core.get_scene_analysis_chain()
-    initial_analysis = await ai_core.ainvoke_with_rotation(
+    # [v5.0 核心修正] 接收寬鬆的 RawSceneAnalysis 模型
+    raw_analysis = await ai_core.ainvoke_with_rotation(
         scene_analysis_chain,
         {
             "user_input": sanitized_input_for_analysis, 
@@ -67,28 +67,37 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
 
-    if not initial_analysis:
+    if not raw_analysis:
         logger.warning(f"[{user_id}] (Graph) 場景分析鏈委婉化重試失敗，啟動安全備援。")
         final_analysis = SceneAnalysisResult(viewing_mode='local', reasoning='安全備援：場景分析鏈失敗。', action_summary=user_input)
     else:
-        # [v4.0 核心修正] 在程式碼層面強制執行業務邏輯
-        final_analysis = initial_analysis
-        logger.info(f"[{user_id}] (Analysis Corrector) 收到初步分析: mode={final_analysis.viewing_mode}, path={final_analysis.target_location_path}")
+        # [v5.0 核心修正] 在程式碼層面進行校準，然後創建最終的、嚴格的 SceneAnalysisResult
+        logger.info(f"[{user_id}] (Analysis Corrector) 收到初步分析: mode={raw_analysis.viewing_mode}, path={raw_analysis.target_location_path}")
 
-        if final_analysis.viewing_mode == 'remote':
+        # 複製數據以進行修正
+        final_viewing_mode = raw_analysis.viewing_mode
+        final_target_path = raw_analysis.target_location_path
+        final_reasoning = raw_analysis.reasoning
+
+        if final_viewing_mode == 'remote':
             # 規則：remote 模式必須有有效的 target_location_path
-            if not final_analysis.target_location_path:
+            if not final_target_path:
                 logger.warning(f"[{user_id}] (Analysis Corrector) 邏輯衝突：初步分析為 remote 但缺少路徑。強制修正為 local。")
-                final_analysis.viewing_mode = 'local'
-                final_analysis.reasoning += " [校準：因缺少目標路徑，已強制修正為local模式]"
-
-        # 規則：action_summary 必須有值
-        if not final_analysis.action_summary:
-            final_analysis.action_summary = user_input
+                final_viewing_mode = 'local'
+                final_reasoning += " [校準：因缺少目標路徑，已強制修正為local模式]"
+        
+        # 使用校準後的值創建最終的、保證合法的 SceneAnalysisResult 物件
+        final_analysis = SceneAnalysisResult(
+            viewing_mode=final_viewing_mode,
+            reasoning=final_reasoning,
+            target_location_path=final_target_path,
+            focus_entity=raw_analysis.focus_entity,
+            action_summary=raw_analysis.action_summary or user_input # 確保摘要不為空
+        )
         
     logger.info(f"[{user_id}] (Analysis Corrector) 已校準最終分析結果: mode={final_analysis.viewing_mode}, path={final_analysis.target_location_path}")
     return {"scene_analysis": final_analysis}
-# 函式：場景與動作分析節點 (v4.0 - 業務邏輯強制校準)
+# 函式：場景與動作分析節點 (v5.0 - 兩階段驗證)
 
 
 
