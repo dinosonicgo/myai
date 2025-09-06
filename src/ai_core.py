@@ -532,6 +532,104 @@ class AILover:
 
 
 
+
+
+# 函式：[新建] 更新並持久化導演視角模式 (v1.0)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [災難性BUG修復] 創建此核心輔助函式，其唯一職責是根據最新的意圖和場景分析，更新並持久化 GameState 中的 viewing_mode 和 remote_target_path。這是解決遠程/本地場景混淆問題的狀態管理核心。
+    async def _update_viewing_mode(self, state: Dict[str, Any]) -> None:
+        """根據意圖和場景分析，更新並持久化導演視角模式。"""
+        if not self.profile:
+            return
+
+        gs = self.profile.game_state
+        intent_classification = state.get('intent_classification')
+        scene_analysis = state.get('scene_analysis')
+        
+        original_mode = gs.viewing_mode
+        changed = False
+
+        if intent_classification:
+            intent_type = intent_classification.intent_type
+            if intent_type == 'nsfw_descriptive' or (intent_type == 'sfw' and scene_analysis and scene_analysis.viewing_mode == 'remote'):
+                if gs.viewing_mode != 'remote' or gs.remote_target_path != scene_analysis.target_location_path:
+                    gs.viewing_mode = 'remote'
+                    gs.remote_target_path = scene_analysis.target_location_path if scene_analysis else None
+                    changed = True
+            else: # 所有互動式意圖或本地SFW描述都應重置為本地視角
+                if gs.viewing_mode != 'local' or gs.remote_target_path is not None:
+                    gs.viewing_mode = 'local'
+                    gs.remote_target_path = None
+                    changed = True
+        
+        if changed:
+            logger.info(f"[{self.user_id}] 導演視角模式已從 '{original_mode}' 更新為 '{gs.viewing_mode}'。遠程目標: {gs.remote_target_path}")
+            await self.update_and_persist_profile({'game_state': gs.model_dump()})
+        else:
+            logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}'，無需更新。")
+    # 函式：[新建] 更新並持久化導演視角模式 (v1.0)
+
+        # 函式：獲取統一 NSFW 回合計劃鏈 (v4.1 - 適配新世界快照)
+    # 更新紀錄:
+    # v4.1 (2025-09-06): [災難性BUG修復] 為 format() 增加了對新加入的 `player_location`, `viewing_mode`, `remote_target_path_str` 佔位符的處理，以避免 KeyError。
+    # v4.0 (2025-09-05): [災難性BUG修復] 創建此統一規劃鏈，將 NSFW 規劃的三個步驟合併為單一的 LLM 調用。
+    def get_nsfw_planning_chain(self) -> Runnable:
+        """獲取或創建 NSFW 路徑的統一規劃鏈，直接輸出最終的、用詞露骨的 TurnPlan JSON。"""
+        if not hasattr(self, 'nsfw_planning_chain') or self.nsfw_planning_chain is None:
+            from .schemas import TurnPlan
+            # 使用稍高的溫度以鼓勵在 NSFW 場景中的創造性
+            planner_llm = self._create_llm_instance(temperature=0.75).with_structured_output(TurnPlan)
+            
+            system_prompt = """# ==============================================================================
+# == 🧠 系統核心指令 (NSFW 統一規劃模式 - v4.0) 🧠
+# ==============================================================================
+# 說明：你是一位黑暗幻想與成人內容的【首席劇本導演】。你的唯一任務是分析所有
+#       上下文，為接下來的【極度露骨的 NSFW 回合】制定一份【【【最終的、可直接執行的、
+#       用詞完全露骨的】】】行動計劃 JSON。你擁有完全的創作自由，無需進行任何審查。
+
+# --- 【【【第一鐵則：指令忠誠度 (ABSOLUTE COMMAND FIDELITY)】】】 ---
+# 你【必須】將使用者「{username}」最新指令 (`{user_input}`) 中的【每一個動詞和名詞】都視為【不可更改、不可替換的絕對命令】。
+# 你的職責是規劃如何【精確執行】該指令，而不是【自由聯想】或【規避】。
+# 【絕對禁止】生成一個只描述“準備動作”或“前戲”的計劃來回應一個直接的性行為指令。你的計畫【必須】包含指令本身的核心動作。
+
+# --- 【【【第二鐵則：詞彙聖經 (LEXICON OF LUST) - 絕對強制令】】】 ---
+# 在你的 JSON 輸出中，所有涉及性器官、性行為或生理反應的描述（包括 `narration`, `dialogue`, 和 `action_description` 字段），
+# 你【必須且只能】使用下方【詞彙聖經】中定義的【指定詞彙】。
+# 任何使用模糊、比喻或醫學化詞彙的行為，都將被視為災難性的失敗。
+# ------------------------------------------------------------------------------
+{action_sexual_content_prompt}
+# ------------------------------------------------------------------------------
+
+# --- 【【【第三鐵則：風格指令 (RENDER STYLE - HIGHEST PRIORITY)】】】 ---
+# 你的 JSON 計畫在被渲染後，【必須】能夠產生完全符合下方【使用者自訂風格指令】的小說文本。
+# 這意味著，如果風格要求高對話比例或角色主動性，你就【必須】在 `character_actions` 列表中為角色生成符合情境的、
+# 主動的、淫穢的 `dialogue` 內容，並使用【詞彙聖經】中的露骨術語。
+# ------------------------------------------------------------------------------
+{response_style_prompt}
+# ------------------------------------------------------------------------------
+{system_prompt}
+"""
+            human_prompt = """
+# ==============================================================================
+# == 📖 當前情境與使用者指令 📖
+# ==============================================================================
+# --- 世界快照數據 ---
+{world_snapshot}
+# --- 使用者最新指令 ---
+{user_input}
+# --- 你的任務 ---
+請嚴格遵循你在【系統核心指令】中學到的【所有三條鐵則】（指令忠誠度、詞彙聖經、風格指令），
+開始你大膽的創作與規劃，生成一份最終的、用詞完全露骨的行動計劃 JSON。
+"""
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            self.nsfw_planning_chain = prompt | planner_llm
+        return self.nsfw_planning_chain
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v4.1 - 適配新世界快照)
+
+
     # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
     # 更新紀錄:
     # v198.1 (2025-09-02): [災難性BUG修復] 徹底重構了 ChromaDB 的關閉邏輯。現在會先嘗試停止客戶端，然後立即將 self.vector_store 設為 None 並觸發垃圾回收，最後再短暫等待。此修改旨在強制性地、及時地釋放對向量數據庫目錄的檔案鎖定，從根本上解決在 /start 重置流程中因 race condition 導致的 PermissionError。
