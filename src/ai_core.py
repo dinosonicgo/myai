@@ -1435,36 +1435,37 @@ class AILover:
 
 
     
-    # 函式：獲取場景分析鏈 (v207.0 - 直接生成修正)
+    # 函式：獲取場景分析鏈 (v208.0 - 兩階段驗證)
     # 更新紀錄:
-    # v207.0 (2025-09-06): [災難性BUG修復] 根據 KeyError，徹底重構了此鏈的結構。廢除了導致驗證錯誤的、不必要的中間 Pydantic 模型（FocusEntityResult）和轉換層。新版本讓 LLM 直接生成最終的 SceneAnalysisResult 對象，並重寫了提示詞以匹配這一新的、更簡單、更健壯的輸出模式。提示詞保留了上下文回溯和地點提取的核心邏輯，同時明確了此節點的輸出僅為“初步建議”，真正的視角狀態由下游節點決定。
+    # v208.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 ValidationError，引入了“兩階段驗證”策略。此鏈不再嘗試直接生成帶有複雜驗證器的 `SceneAnalysisResult`，而是改為輸出一個全新的、無驗證邏輯的 `RawSceneAnalysis` 中間模型。這確保了無論 LLM 的輸出在邏輯上多麼矛盾，解析步驟本身都不會失敗。真正的邏輯校準和最終的 `SceneAnalysisResult` 的創建，被移交給了下游的 `scene_and_action_analysis_node` 中的 Python 程式碼。
+    # v207.0 (2025-09-06): [災難性BUG修復] 重構了此鏈的結構，讓 LLM 直接生成最終模型。
     # v206.0 (2025-09-06): [重大架構重構] 簡化了此鏈的職責。
-    # v205.0 (2025-09-06): [災難性BUG修復] 引入了“上下文回溯”機制。
     def get_scene_analysis_chain(self) -> Runnable:
         if not hasattr(self, 'scene_analysis_chain') or self.scene_analysis_chain is None:
-            # [v207.0 核心修正] 讓 LLM 直接輸出最終需要的模型
-            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneAnalysisResult)
+            # [v208.0 核心修正] 讓 LLM 輸出到一個沒有驗證器的、寬鬆的“原始數據”模型
+            from .schemas import RawSceneAnalysis
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(RawSceneAnalysis)
             
             analysis_prompt_template = """你是一位精密的場景與語義分析專家。你的唯一任務是分析所有上下文，為後續的流程生成一份【初步的場景分析報告JSON】。
 
-# === 【【【核心分析規則 v207.0】】】 ===
+# === 【【【核心分析規則 v208.0】】】 ===
 
 # 1.  **【視角初步判斷 (viewing_mode)】**:
-#     *   如果【使用者輸入】包含 "觀察", "看看", "描述" 等詞語，並且指向一個【地理位置】，則初步判斷為 `remote`。
+#     *   如果【使用者輸入】包含 "觀察", "看看", "描述" 等詞語，並且似乎指向一個【地理位置】，則初步判斷為 `remote`。
 #     *   在所有其他情況下（如直接對話、動作指令），初步判斷為 `local`。
 
 # 2.  **【地點路徑提取 (target_location_path)】**:
-#     *   **上下文回溯鐵則**: 如果【使用者輸入】中**只**提到了角色/實體名（例如 "觀察海妖吟"），而**沒有**明確的地理位置，你【必須】從下方提供的【場景上下文JSON】中，查找該角色的 `location_path`，並將其作為 `target_location_path` 返回。
-#     *   **地點提取鐵則**: `target_location_path` 欄位【只能】包含【地理學或建築學意義上的地點名稱】。絕對禁止將角色、物品或概念提取為地點。
-#     *   **本地則為空**: 如果視角被判斷為 `local`，此欄位應為 `null`。
+#     *   **上下文回溯**: 如果【使用者輸入】中**只**提到了角色名而**沒有**地理位置，你【應該】嘗試從【場景上下文JSON】中，查找該角色的 `location_path`。
+#     *   **地點提取鐵則**: `target_location_path` 欄位【只能】包含【地理學或建築學意義上的地點名稱】。
+#     *   **盡力而為**: 如果你判斷為 `remote` 但找不到任何地點，可以返回一個空列表 `[]`。後續的程式碼會處理這個邏輯。
 
 # 3.  **【核心實體提取 (focus_entity)】**:
-#     *   從【使用者輸入】中，找出他們想要【聚焦互動或觀察的核心實體】（例如 "魚販", "吟遊詩人"）。如果沒有特定目標，則為 `null`。
+#     *   從【使用者輸入】中，找出他們想要【聚焦互動或觀察的核心實體】。如果沒有特定目標，則為 `null`。
 
 # 4.  **【摘要生成 (action_summary)】**:
 #     *   始終使用【未經修改的原始使用者輸入】來填充此欄位。
 
-# ---
+---
 【當前玩家物理位置（備用參考）】: {current_location_path_str}
 ---
 【場景上下文JSON（用於回溯查詢角色位置）】:
@@ -1472,13 +1473,12 @@ class AILover:
 ---
 【使用者輸入（主要分析對象）】: {user_input}
 ---
-請嚴格遵循以上所有規則，開始你的分析並生成一份結構完整的 `SceneAnalysisResult` JSON 報告。"""
+請嚴格遵循以上所有規則，生成一份結構完整的 `RawSceneAnalysis` JSON 報告。"""
             
             analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
-            # [v207.0 核心修正] 移除多餘的轉換層
             self.scene_analysis_chain = analysis_prompt | analysis_llm
         return self.scene_analysis_chain
-    # 函式：獲取場景分析鏈 (v207.0 - 直接生成修正)
+    # 函式：獲取場景分析鏈 (v208.0 - 兩階段驗證)
 
 
     
