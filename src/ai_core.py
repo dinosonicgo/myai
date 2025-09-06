@@ -2299,11 +2299,11 @@ class AILover:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     
-   # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
+   # 函式：執行工具呼叫計畫 (v183.1 - 委婉化重試)
     # 更新紀錄:
-    # v183.0 (2025-09-03): [健壯性] 根據日誌分析，為徹底解決 Google API 免費套餐的 15 RPM 速率限制問題，將串行任務之間的延遲從 1.0 秒增加到 4.0 秒。此修改基於 `60秒 / 15次請求 = 4秒/次` 的計算，旨在從數學上確保背景任務的 API 請求頻率低於配額上限，從而最大限度地提高長時間運行的穩定性。
+    # v183.1 (2025-09-06): [災難性BUG修復] 增加了對工具執行失敗的委婉化重試備援機制。如果工具調用因內容審查（或其他可重試錯誤）而失敗，系統會嘗試將參數委婉化後重試一次。此修改旨在確保 LORE 更新等後台任務在處理 NSFW 相關描述時的健壯性。
+    # v183.0 (2025-09-03): [健壯性] 將串行任務之間的延遲增加到 4.0 秒。
     # v182.0 (2025-09-03): [災難性BUG修復] 增加了對 `location_path` 參數的防禦性注入。
-    # v181.0 (2025-09-02): [健壯性] 將實體解析邏輯從批次處理重構為串行處理。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -2352,7 +2352,6 @@ class AILover:
             available_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
             for call in purified_plan:
-                # [v183.0 核心修正] 增加延遲以符合 15 RPM 的限制
                 await asyncio.sleep(4.0) 
 
                 category = tool_name_to_category.get(call.tool_name)
@@ -2401,9 +2400,42 @@ class AILover:
                     logger.info(f"[{self.user_id}] {summary}")
                     summaries.append(summary)
                 except Exception as e:
-                    summary = f"任務失敗 for {call.tool_name}: {e}"
-                    logger.error(f"[{self.user_id}] {summary}", exc_info=True)
-                    summaries.append(summary)
+                    # [v183.1 核心修正] 啟動委婉化重試備援
+                    logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 首次執行失敗: {e}。啟動【委婉化重試】策略...")
+                    try:
+                        euphemization_chain = self.get_euphemization_chain()
+                        
+                        # 尋找最長的文本參數進行委婉化
+                        text_params = {k: v for k, v in call.parameters.items() if isinstance(v, str)}
+                        if not text_params: raise ValueError("參數中無可委婉化的文本。")
+                        
+                        key_to_euphemize = max(text_params, key=lambda k: len(text_params[k]))
+                        text_to_euphemize = text_params[key_to_euphemize]
+                        
+                        # 提取關鍵詞
+                        entity_extraction_chain = self.get_entity_extraction_chain()
+                        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
+                        keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
+
+                        # 生成安全的文本
+                        safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
+                        if not safe_text: raise ValueError("委婉化鏈未能生成安全文本。")
+
+                        retry_params = call.parameters.copy()
+                        retry_params[key_to_euphemize] = safe_text
+                        
+                        logger.info(f"[{self.user_id}] (重試) 已生成安全參數 '{key_to_euphemize}': '{safe_text}'。正在用其重試工具 '{call.tool_name}'...")
+                        
+                        validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+                        result = await tool_to_execute.ainvoke(validated_retry_args.model_dump())
+                        
+                        summary = f"任務成功 (委婉化重試): {result}"
+                        logger.info(f"[{self.user_id}] {summary}")
+                        summaries.append(summary)
+                    except Exception as retry_e:
+                        summary = f"任務失敗 (重試後): for {call.tool_name}: {retry_e}"
+                        logger.error(f"[{self.user_id}] {summary}", exc_info=True)
+                        summaries.append(summary)
 
             logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
             return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
@@ -2411,7 +2443,7 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v183.0 - 速率限制最終優化)
+    # 函式：執行工具呼叫計畫 (v183.1 - 委婉化重試)
 
     # 函式：執行已規劃的行動 (v1.2 - 強化上下文管理)
     # 更新紀錄:
