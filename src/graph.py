@@ -984,11 +984,11 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v30.0 - 終極路由修正)
+# 函式：創建主回應圖 (v31.0 - 廢除淨化層)
 # 更新紀錄:
-# v30.0 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。舊版本會錯誤地將 `nsfw_descriptive` 意圖在 `local` 視角下路由到 SFW 或本地 NSFW 管道。新版本採用“意圖優先”原則：只要意圖包含 'descriptive'，就必定進入遠程分支；只要意圖包含 'nsfw'，就必定進入 NSFW 分支。此修改從根本上解決了 NSFW 描述內容被錯誤鏈處理的問題。
+# v31.0 (2025-09-06): [災難性BUG修復] 根據「指令遵循失敗」和「上下文遺忘」的最終分析，確認 `sanitize_input` 淨化層弊大於利，是導致規劃器接收到被稀釋指令的根源。此版本從圖的拓撲結構中【徹底移除】了 `sanitize_input` 節點及其相關邊。系統將回歸更穩健的“端對端”強化策略，讓規劃器直接處理原始指令，並在必要時依靠重試機制突破審查，從根本上恢復劇情的連續性和指令的遵循性。
+# v30.0 (2025-09-06): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
 # v29.0 (2025-09-18): [災難性BUG修復] 徹底重構了 `route_to_planner` 路由器的核心邏輯。
-# v28.0 (2025-09-18): [重大架構重構] 修正了 LORE 擴展分支的數據流。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1001,7 +1001,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("scene_and_action_analysis", scene_and_action_analysis_node)
     graph.add_node("update_viewing_mode", update_viewing_mode_node)
-    graph.add_node("sanitize_input", sanitize_input_node)
+    # [v31.0 核心修正] 移除 sanitize_input 節點的註冊
+    # graph.add_node("sanitize_input", sanitize_input_node)
 
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
@@ -1044,12 +1045,11 @@ def create_main_response_graph() -> StateGraph:
             "continue_to_planner": "prepare_existing_subjects"
         }
     )
-    graph.add_edge("lore_expansion", "sanitize_input")
-    graph.add_edge("prepare_existing_subjects", "sanitize_input")
     
-    graph.add_edge("sanitize_input", "planner_junction")
+    # [v31.0 核心修正] 修改數據流，繞過 sanitize_input
+    graph.add_edge("lore_expansion", "planner_junction")
+    graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # [v30.0 核心修正] 重寫主規劃器路由，採用“意圖優先”原則
     def route_to_planner(state: ConversationGraphState) -> str:
         """根據意圖分類將流量路由到不同的規劃器，意圖優先於視角模式。"""
         user_id = state['user_id']
@@ -1057,7 +1057,6 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}'")
         
-        # 意圖優先的路由邏輯
         if intent == 'nsfw_descriptive':
             logger.info(f"[{user_id}] (Router) Intent is 'nsfw_descriptive' -> remote_nsfw_planner")
             return "remote_nsfw_planner"
@@ -1065,7 +1064,6 @@ def create_main_response_graph() -> StateGraph:
             logger.info(f"[{user_id}] (Router) Intent is 'nsfw_interactive' -> nsfw_planner")
             return "nsfw_planner"
         else: # sfw
-            # 對於 SFW，我們仍然可以參考視角模式
             ai_core = state['ai_core']
             viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
             if viewing_mode == 'remote':
@@ -1097,7 +1095,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v30.0 - 終極路由修正)
+# 函式：創建主回應圖 (v31.0 - 廢除淨化層)
 
 
 
