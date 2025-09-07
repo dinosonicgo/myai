@@ -358,9 +358,9 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
         "FUCK_TEMPLATE": {
             "thought": "使用者指令的核心動作是性交。已使用預設的性交模板，並裝配了場景中的角色。",
             "character_actions": [
-                {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的肉棒對準 {角色B} 的肉穴口。"},
-                {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的肉棒完全插入自己的體內。"},
-                {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的肉穴中用力抽插。"}
+                {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的肉棒對準 {角色B} 的肉穴口。", "template_id": "FUCK_TEMPLATE_STEP1"},
+                {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的肉棒完全插入自己的體內。", "template_id": "FUCK_TEMPLATE_STEP2"},
+                {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的肉穴中用力抽插。", "template_id": "FUCK_TEMPLATE_STEP3"}
             ]
         }
     }
@@ -378,19 +378,23 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     actor_a_name = None
     actor_b_name = None
     
-    # 尋找男性/男孩作為主動方
+    ai_core = state['ai_core']
+    user_name = ai_core.profile.user_profile.name
+    ai_name = ai_core.profile.ai_profile.name
+
+    # 規則：使用者永遠是主動方A
+    actor_a_name = user_name
+
+    # 尋找非使用者的另一方作為被動方B
     for subject in planning_subjects:
-        desc = subject.get('description', '').lower()
-        if 'boy' in desc or '男孩' in desc or 'male' in desc or subject.get('gender', '').lower() == '男':
-            actor_a_name = subject['name']
-            break
-    
-    # 尋找女性/母親作為被動方
-    for subject in planning_subjects:
-        desc = subject.get('description', '').lower()
-        if subject['name'] != actor_a_name and ('mother' in desc or '媽媽' in desc or 'female' in desc or subject.get('gender', '').lower() in ['女', '女性']):
+        if subject['name'] != actor_a_name:
+             # 簡單地選擇第一個非使用者角色
             actor_b_name = subject['name']
             break
+            
+    # 如果只有AI和玩家，則AI是被動方
+    if not actor_b_name and ai_name != user_name:
+        actor_b_name = ai_name
 
     if not (actor_a_name and actor_b_name):
         logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出動作的雙方。")
@@ -414,6 +418,70 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph|NSFW Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
         return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
 # 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
+
+
+
+
+
+
+# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+# 更新紀錄:
+# v1.0 (2025-09-22): [重大架構升級] 創建此節點作為「混合模式」的第二步。它負責調用新的 nsfw_refinement_chain，為上一步程式碼生成的粗糙計畫增加豐富的細節、對話和風格，將其轉化為最終的、高品質的劇本。
+async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[混合模式-步驟2] 調用 LLM 為已填充的 NSFW 計畫模板增加細節、對話和風格。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    turn_plan = state['turn_plan']
+    logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在潤色已裝配的NSFW計畫...")
+
+    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
+        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) 上游節點未提供有效計畫，跳過潤色。")
+        return {} # 如果上一步失敗或無計畫，直接跳過
+
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    
+    # 完整地構建 World Snapshot
+    gs = ai_core.profile.game_state
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': "(已棄用)",
+        'relevant_npc_context': "(已棄用)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+
+    refinement_chain = ai_core.get_nsfw_refinement_chain()
+    
+    final_plan = await ai_core.ainvoke_with_rotation(
+        refinement_chain,
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "turn_plan_json": turn_plan.model_dump_json(indent=2)
+        },
+        retry_strategy='force'
+    )
+    
+    if not final_plan:
+        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫潤色鏈返回空值，將保留潤色前的原始計畫。")
+        return {}
+
+    logger.info(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫已成功潤色。")
+    return {"turn_plan": final_plan}
+# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+
+
 
 
 # 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
@@ -1275,13 +1343,14 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
+# 函式：創建主回應圖 (v35.0 - 適配混合模式)
 # 更新紀錄:
-# v34.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決極端NSFW指令被模型自我審查的問題，徹底重構了圖的NSFW處理路徑。
-#    1. [替換] 廢棄了舊的、單一的 `nsfw_planning` 和 `remote_nsfw_planning` 節點。
-#    2. [新增] 引入了全新的三節點「NSFW思維鏈」流水線：`nsfw_initial_planning` -> `nsfw_lexicon_injection` -> `nsfw_style_compliance`。
-#    3. [重連] 修改了 `route_to_planner` 路由器，使其現在將所有NSFW流量（本地和遠程）都導向這個新的、更健壯的流水線的入口點。
+# v35.0 (2025-09-22): [重大架構重構] 為了從根本上解決內容審查問題，徹底重構了圖的 NSFW 處理路徑，引入「混合模式」。
+#    1. [替換] 廢棄了舊的、純 LLM 的三節點「NSFW思維鏈」流水線。
+#    2. [新增] 引入了全新的兩節點「混合模式」流水線：`nsfw_template_assembly_node` (純 Python) -> `nsfw_refinement_node` (LLM 潤色)。
+#    3. [重連] 修改了 `route_to_planner` 路由器，將所有 NSFW 流量導向這個新的、更健壯的混合模式入口點。
 #    此修改是解決頑固性內容審查問題的根本性架構升級。
+# v34.0 (2025-09-06): [災難性BUG修復] 引入了NSFW思維鏈。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1299,10 +1368,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v34.0 新增] 註冊新的 NSFW 思維鏈節點
-    graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
-    graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
-    graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
+    # [v35.0 新增] 註冊新的混合模式 NSFW 節點
+    graph.add_node("nsfw_template_assembly", nsfw_template_assembly_node)
+    graph.add_node("nsfw_refinement", nsfw_refinement_node)
 
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
@@ -1354,9 +1422,9 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v34.0 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
+        # [v35.0 核心修正] 將所有 NSFW 流量都導向新的混合模式入口
         if 'nsfw' in intent:
-            return "nsfw_thought_chain_start"
+            return "nsfw_hybrid_mode_start"
         
         # SFW 路由保持不變
         if viewing_mode == 'remote':
@@ -1370,16 +1438,15 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            # [v34.0 核心修正] 新的路由目標
-            "nsfw_thought_chain_start": "nsfw_initial_planning"
+            # [v35.0 核心修正] 新的 NSFW 路由目標
+            "nsfw_hybrid_mode_start": "nsfw_template_assembly"
         }
     )
     
-    # [v34.0 核心修正] 構建新的 NSFW 思維鏈流水線
-    graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
-    graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
+    # [v35.0 核心修正] 構建新的 NSFW 混合模式流水線
+    graph.add_edge("nsfw_template_assembly", "nsfw_refinement")
     # 流水線的出口統一連接到工具執行節點
-    graph.add_edge("nsfw_style_compliance", "tool_execution")
+    graph.add_edge("nsfw_refinement", "tool_execution")
     
     # SFW 路線的出口
     graph.add_edge("sfw_planning", "tool_execution")
@@ -1392,8 +1459,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
-
+# 函式：創建主回應圖 (v35.0 - 適配混合模式)
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
@@ -1482,3 +1548,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
