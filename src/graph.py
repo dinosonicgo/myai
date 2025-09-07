@@ -475,57 +475,55 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+# 函式：[新] NSFW 計畫潤色節點 (v2.0 - 大纲润色)
 # 更新紀錄:
-# v1.0 (2025-09-22): [重大架構升級] 創建此新節點作為“混合模式”的第二步。它接收上游突破性節點生成的“草稿”計畫，並調用專門的潤色鏈為其增加豐富的對話、呻吟和互動細節，以輸出最終的高品質行動計畫。
-async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[混合模式-步驟2] NSFW 計畫潤色節點，為草稿計畫增加對話、呻吟和細節。"""
+# v2.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，此节点不再处理 JSON。它接收上游传来的“剧本大纲”草稿，调用润色链将其丰富和细化，并用最终版的自然语言大纲覆盖状态中的 `narrative_outline`。
+# v1.0 (2025-09-22): [重大架構升級] 創建此新節點作為“混合模式”的第二步。
+async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[数据伪装-步骤2] 接收大纲草稿，并将其丰富为最终的、详细的故事大纲。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在潤色NSFW行動計劃...")
+    narrative_outline_draft = state['narrative_outline']
+    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...")
 
-    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
-        # 如果上一步失敗或計畫被拒絕，則直接跳過潤色
+    if not ai_core.profile or "安全備援" in narrative_outline_draft:
         return {} 
 
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-    world_snapshot = state.get('world_snapshot', '') # 從上一步獲取 world_snapshot
+    world_snapshot = state.get('world_snapshot', '') 
 
-    final_plan = await ai_core.ainvoke_with_rotation(
+    final_outline = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_refinement_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
-            "turn_plan_json": turn_plan.model_dump_json(indent=2)
+            "narrative_outline_draft": narrative_outline_draft
         },
-        retry_strategy='force'
+        retry_strategy='euphemize'
     )
-    if not final_plan:
-        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) NSFW潤色鏈返回空值，將使用未經潤色的原始草稿計畫。")
-        # 即使潤色失敗，我們也保留原始的草稿計畫，而不是返回空計畫
+    if not final_outline:
+        logger.warning(f"[{user_id}] (Graph|NSFW Outline Pt.2) NSFW大纲润色链返回空值，将使用未经润色的原始大纲。")
         return {}
 
-    return {"turn_plan": final_plan}
-# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+    return {"narrative_outline": final_outline}
 
 
-
-# 函式：NSFW 突破性規劃節點 (v8.0 - 混合模式)
+# 函式：NSFW 突破性規劃節點 (v9.0 - 大纲生成器)
 # 更新紀錄:
-# v8.0 (2025-09-22): [重大架構重構] 根據“混合模式”架構，此節點被重命名並明確其職責為“突破性規劃”。它現在調用專門的突破性規劃鏈，生成一個露骨的“草稿”計畫，並將其連同 world_snapshot 一同傳遞給下游的潤色節點。
-# v7.0 (2025-09-09): [重大架構重構] 回歸創意生成模式。
+# v9.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，此节点不再生成 TurnPlan JSON，而是调用大纲生成链，输出一个纯自然语言的“剧本大纲”草稿，并将其存入新的 `narrative_outline` 状态中。
+# v8.0 (2025-09-22): [重大架構重構] 重命名并明确其“突破性规划”職責。
 async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[混合模式-步驟1] NSFW 突破性規劃節點，生成初步的、包含核心動作的露骨計畫草稿。"""
+    """[数据伪装-步骤1] 生成初步的、自然语言的“剧本大纲”草稿。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Breakthrough) Node: nsfw_breakthrough -> 正在生成NSFW行動計劃草稿...")
+    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...")
 
+    # ... (准备 world_snapshot 和 planning_subjects_json 的逻辑保持不变)
     if not ai_core.profile:
-        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
+        return {"narrative_outline": "错误：AI profile 未加载，无法规划。"}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -553,7 +551,7 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    plan = await ai_core.ainvoke_with_rotation(
+    outline_draft = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_breakthrough_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
@@ -564,13 +562,12 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
         },
-        retry_strategy='force'
+        retry_strategy='euphemize' # 初步大纲生成，使用委婉化重试更安全
     )
-    if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW突破性規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
+    if not outline_draft:
+        outline_draft = "安全備援：NSFW大纲生成鏈最终失败。"
 
-    # 將 world_snapshot 保存到狀態中，供後續的潤色節點使用
-    return {"turn_plan": plan, "world_snapshot": world_snapshot}
+    return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
 # 函式：NSFW 突破性規劃節點 (v8.0 - 混合模式)
 
 
@@ -1113,41 +1110,36 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
 
 
 
-# 函式：統一的敘事渲染節點 (v29.0 - 授權對等)
+# 函式：统一的最终叙事渲染节点 (v30.0 - 数据伪装)
 # 更新紀錄:
-# v29.0 (2025-09-10): [災難性BUG修復] 根據“授權對等”原則，徹底重構了此節點的數據準備邏輯。現在，它會從 ai_core 中獲取 `action_sexual_content` 模組（露骨詞彙聖經），並將其與 `system_prompt` (核心協議) 和 `response_style_prompt` 一同傳遞給渲染鏈。此修改確保了渲染鏈與規劃鏈擁有完全相同的上下文和授權等級，從根本上解決了因授權不對等導致的渲染失敗問題。
-# v28.0 (2025-09-10): [災難性BUG修復] 恢復了向渲染鏈傳遞 `system_prompt` 的邏輯，以確保重試機制可以工作。
-async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
+# v30.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，此节点被重命名并彻底重构。它不再接收 TurnPlan JSON，而是接收自然语言的 `narrative_outline`，并调用全新的“文学巨匠”渲染链 (`get_final_novelist_chain`) 来生成最终的小说文本。
+# v29.0 (2025-09-10): [災難性BUG修復] 实现了“授权对等”原则。
+async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|9) Node: narrative_rendering -> 正在將行動計劃渲染為小說 (授權對等模式)...")
+    narrative_outline = state['narrative_outline']
+    logger.info(f"[{user_id}] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...")
 
-    if not turn_plan:
-        return {"llm_response": "（系統錯誤：未能生成有效的行動計劃。）"}
+    if not narrative_outline or "安全備援" in narrative_outline:
+        return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
         
-    if turn_plan.execution_rejection_reason:
-        logger.warning(f"[{user_id}] (Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
-        return {"llm_response": turn_plan.execution_rejection_reason}
-    
-    # [v29.0 核心修正] 準備一個包含所有必要授權的、完整的輸入字典
     chain_input = {
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
-        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載，渲染可能會失敗。"),
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
-        "turn_plan": turn_plan
+        "narrative_outline": narrative_outline
     }
         
     narrative_text = await ai_core.ainvoke_with_rotation(
-        ai_core.get_narrative_chain(),
+        ai_core.get_final_novelist_chain(),
         chain_input,
         retry_strategy='force'
     )
     if not narrative_text:
-        narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
+        narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v29.0 - 授權對等)
+# 函式：统一的最终叙事渲染节点 (v30.0 - 数据伪装)
 
 
 
@@ -1247,13 +1239,13 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v40.0 - 混合模式NSFW思維鏈)
+# 函式：創建主回應圖 (v41.0 - 数据伪装架构)
 # 更新紀錄:
-# v40.0 (2025-09-22): [重大架構重構] 徹底重構了 NSFW 處理流程，引入了“混合模式”思維鏈。
-#    1. [重命名] 將 `nsfw_planning_node` 重命名為 `nsfw_breakthrough_node`，明確其“突破性規劃”職責。
-#    2. [新增] 增加了全新的 `nsfw_refinement_node`，專門負責對草稿計畫進行品質潤色。
-#    3. [重連] 修改了圖拓撲，將 NSFW 流量依次通過突破節點和潤色節點，實現了職責分離。
-# v39.0 (2025-09-09): [重大架構重構] 廢除了模板系統，回歸單一的創意生成節點。
+# v41.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，彻底重构了图的 NSFW 处理流程。
+#    1. [重命名/替换] 移除了旧的 NSFW 节点，替换为 `nsfw_breakthrough_node` 和 `nsfw_refinement_node`，它们现在负责生成自然语言大纲。
+#    2. [新增] 增加了 `final_rendering_node`，专门调用新的“文学巨匠”渲染链来处理 NSFW 大纲。
+#    3. [分离] SFW 路径保持原有的“规划-渲染”流程不变，以确保其稳定性，其出口连接到旧的 `narrative_rendering_node`。
+# v40.0 (2025-09-22): [重大架構重構] 引入了“混合模式”思維鏈。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1267,19 +1259,25 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
+    # SFW 路径节点
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v40.0] 註冊混合模式的兩個 NSFW 節點
+    # [v41.0] NSFW 路径新节点 (大纲生成)
     graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
     graph.add_node("nsfw_refinement", nsfw_refinement_node)
 
     graph.add_node("tool_execution", tool_execution_node)
-    graph.add_node("narrative_rendering", narrative_rendering_node)
+    
+    # [v41.0] 渲染节点分离
+    graph.add_node("sfw_narrative_rendering", narrative_rendering_node) # 旧的渲染器给 SFW 用
+    graph.add_node("nsfw_final_rendering", final_rendering_node) # 新的渲染器给 NSFW 用
+
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
     graph.add_node("planner_junction", lambda state: {})
+    graph.add_node("rendering_junction", lambda state: {}) # 新增渲染汇合点
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
         lore_objects = state.get('raw_lore_objects', [])
@@ -1310,6 +1308,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
+        # ... (路由逻辑不变)
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification: return "sfw_planner" 
@@ -1330,26 +1329,28 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_planner": "nsfw_breakthrough" # <--- [v40.0 核心修正] NSFW 流量進入新的突破節點
+            "nsfw_planner": "nsfw_breakthrough" 
         }
     )
     
-    # [v40.0 核心修正] 構建新的 NSFW 思維鏈
-    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
-    graph.add_edge("nsfw_refinement", "tool_execution")
-
-    # SFW 規劃器的出口保持不變
+    # SFW 路径: 规划 -> 工具 -> 渲染
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
+    graph.add_edge("tool_execution", "sfw_narrative_rendering")
+    graph.add_edge("sfw_narrative_rendering", "rendering_junction")
+
+    # NSFW 路径: 大纲生成 -> 最终渲染 (绕过工具执行)
+    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
+    graph.add_edge("nsfw_refinement", "nsfw_final_rendering")
+    graph.add_edge("nsfw_final_rendering", "rendering_junction")
     
-    # 後續流程保持統一
-    graph.add_edge("tool_execution", "narrative_rendering")
-    graph.add_edge("narrative_rendering", "validate_and_rewrite")
+    # 统一的后续流程
+    graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v40.0 - 混合模式NSFW思維鏈)
+# 函式：創建主回應圖 (v41.0 - 数据伪装架构)
 
 
 
@@ -1442,6 +1443,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
