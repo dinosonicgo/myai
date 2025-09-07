@@ -242,6 +242,45 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
     return {"intent_classification": classification_result}
 # 函式：意圖分類節點 (v2.0 - 適配淨化層)
 
+
+
+
+# 函式：[新] 焦點鎖定節點 (v1.0 - 焦點鎖定專用)
+# 更新紀錄:
+# v1.0 (2025-09-22): [重大架構升級] 創建此節點，作為“焦點鎖定”機制的執行器。它調用 focus_locking_chain 來分析並篩選出場景中最核心的互動角色，然後用這個“淨化”後的角色列表覆蓋狀態，為下游所有規劃和渲染節點提供一個無歧義、高度聚焦的上下文。
+async def focus_locking_node(state: ConversationGraphState) -> Dict:
+    """在規劃前，分析並篩選出本回合的核心互動角色。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    planning_subjects = state.get('planning_subjects', [])
+
+    if not planning_subjects:
+        return {}
+
+    logger.info(f"[{user_id}] (Graph|Focus Lock) Node: focus_locking -> 正在為場景鎖定核心互動焦點...")
+    
+    focus_chain = ai_core.get_focus_locking_chain()
+    
+    result = await ai_core.ainvoke_with_rotation(
+        focus_chain,
+        {
+            "user_input": user_input,
+            "planning_subjects_json": json.dumps(planning_subjects, ensure_ascii=False, indent=2)
+        }
+    )
+
+    if result and result.relevant_characters:
+        logger.info(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定成功。思考: {result.thought}")
+        return {"planning_subjects": result.relevant_characters}
+    else:
+        logger.warning(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定鏈未能返回有效角色列表，將使用原始列表繼續。")
+        return {}
+# 函式：[新] 焦點鎖定節點 (v1.0 - 焦點鎖定專用)
+
+
+
+
 # 函式：記憶檢索節點 (v2.0 - 適配淨化層)
 # 更新紀錄:
 # v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 作為 RAG 檢索的查詢。這確保了檢索過程本身不會因觸發內容審查而失敗，提高了整個 RAG 鏈路的穩定性。
@@ -335,9 +374,10 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
-# 函式：NSFW 模板裝配節點 (v3.0 - 遠程視角感知)
+# 函式：NSFW 模板裝配節點 (v4.0 - 適配焦點鎖定)
 # 更新紀錄:
-# v3.0 (2025-09-22): [災難性BUG修復] 徹底重寫了角色識別邏輯，使其能夠感知 viewing_mode。在 remote 模式下，它會嚴格從 planning_subjects 中選擇第三方 NPC 進行裝配，而不是錯誤地將使用者拉入場景。增加了對角色不足的健壯性處理。
+# v4.0 (2025-09-22): [架構升級] 升級了角色選擇邏輯，使其能夠利用上游“焦點鎖定”節點的成果。在選擇受害者（角色B）時，會優先尋找被標記為 "is_focus_target": true 的角色，確保模板裝配的核心目標與 AI 的高層意圖分析完全一致。
+# v3.0 (2025-09-22): [災難性BUG修復] 徹底重寫了角色識別邏輯，使其能夠感知 viewing_mode。
 # v2.0 (2025-09-07): [終極架構重構] 此節點被徹底重寫，成為一個純Python的「確定性計畫生成器」。
 def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     """[NSFW Template-Step1] 純Python節點，負責選擇、填充並裝配一個預定義的NSFW動作模板。"""
@@ -349,7 +389,6 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫 (模式: {viewing_mode})...")
 
-    # 預定義的模板庫
     templates = {
         "GANG_RAPE_TEMPLATE": {
             "thought": "使用者指令的核心動作是輪姦。已使用預設的輪姦模板，並裝配了場景中的角色。",
@@ -370,26 +409,26 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
         logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 未能為輸入匹配到任何NSFW模板。")
         return {"turn_plan": TurnPlan(thought="未能匹配到動作模板，將嘗試根據上下文進行潤色。")}
 
-    # [v3.0 核心修正] 角色識別邏輯
     actors_a = []
     actor_b_name = None
 
     if viewing_mode == 'remote':
-        # 遠程模式：從場景NPC中選擇
         male_npcs = [s['name'] for s in planning_subjects if s.get('gender', '').lower() == '男']
-        female_npcs = [s['name'] for s in planning_subjects if s.get('gender', '').lower() == '女']
+        female_npcs = [s for s in planning_subjects if s.get('gender', '').lower() == '女']
         
         if not female_npcs:
             return {"turn_plan": TurnPlan(execution_rejection_reason="場景中缺少女性角色，無法執行此動作。")}
         if len(male_npcs) < 2:
             return {"turn_plan": TurnPlan(execution_rejection_reason=f"場景中男性角色不足（需要至少2名，實際只有{len(male_npcs)}名），無法執行輪姦動作。")}
 
-        actor_b_name = female_npcs[0]
-        actors_a = male_npcs[:2] # 模板暫時只支持2個攻擊者
+        # [v4.0 核心修正] 優先選擇被標記為焦點的目標
+        focused_target = next((npc['name'] for npc in female_npcs if npc.get("is_focus_target")), None)
+        actor_b_name = focused_target or female_npcs[0]['name']
+        
+        actors_a = male_npcs[:2]
 
-    else: # local 模式
+    else: 
         user_name = ai_core.profile.user_profile.name
-        # 本地模式下，暫不支持此類複雜模板，返回錯誤
         return {"turn_plan": TurnPlan(execution_rejection_reason="此動作模板只能在遠程觀察模式下使用。")}
 
     if not (actors_a and actor_b_name and len(actors_a) >= 2):
@@ -398,11 +437,8 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
 
     logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actors_a}, 角色B: {actor_b_name}")
 
-    # 機械裝配
     template = templates[selected_template_key]
     template_str = json.dumps(template)
-    
-    # 執行替換
     filled_str = template_str.replace("{角色A1}", actors_a[0]).replace("{角色A2}", actors_a[1]).replace("{角色B}", actor_b_name)
     
     try:
@@ -413,7 +449,7 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|NSFW Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
         return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
-# 函式：NSFW 模板裝配節點 (v3.0 - 遠程視角感知)
+# 函式：NSFW 模板裝配節點 (v4.0 - 適配焦點鎖定)
 
 
 
@@ -1371,13 +1407,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v35.0 - 適配混合模式)
+# 函式：創建主回應圖 (v36.0 - 注入焦點鎖定節點)
 # 更新紀錄:
-# v35.0 (2025-09-22): [重大架構重構] 為了從根本上解決內容審查問題，徹底重構了圖的 NSFW 處理路徑，引入「混合模式」。
-#    1. [替換] 廢棄了舊的、純 LLM 的三節點「NSFW思維鏈」流水線。
-#    2. [新增] 引入了全新的兩節點「混合模式」流水線：`nsfw_template_assembly_node` (純 Python) -> `nsfw_refinement_node` (LLM 潤色)。
-#    3. [重連] 修改了 `route_to_planner` 路由器，將所有 NSFW 流量導向這個新的、更健壯的混合模式入口點。
-#    此修改是解決頑固性內容審查問題的根本性架構升級。
+# v36.0 (2025-09-22): [重大架構升級] 為了從根本上解決因場景角色過多導致的目標混淆問題，在規劃器（planner）之前注入了一個全新的【焦點鎖定節點 (focus_locking_node)】。此節點負責在規劃前，對 planning_subjects 列表進行一次智能篩選和標記，確保所有下游規劃器都能接收到一個高度聚焦、無歧義的核心角色上下文。
+# v35.0 (2025-09-22): [重大架構重構] 引入了「混合模式」NSFW 處理路徑。
 # v34.0 (2025-09-06): [災難性BUG修復] 引入了NSFW思維鏈。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
@@ -1392,11 +1425,11 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
-    # SFW 規劃器保持不變
+    # [v36.0 新增] 註冊新的焦點鎖定節點
+    graph.add_node("focus_locking", focus_locking_node)
+    
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    
-    # [v35.0 新增] 註冊新的混合模式 NSFW 節點
     graph.add_node("nsfw_template_assembly", nsfw_template_assembly_node)
     graph.add_node("nsfw_refinement", nsfw_refinement_node)
 
@@ -1437,6 +1470,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
+    # [v36.0 核心修正] 在規劃前插入焦點鎖定節點
+    graph.add_edge("planner_junction", "focus_locking")
+
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
@@ -1450,44 +1486,38 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v35.0 核心修正] 將所有 NSFW 流量都導向新的混合模式入口
         if 'nsfw' in intent:
             return "nsfw_hybrid_mode_start"
         
-        # SFW 路由保持不變
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
             return "sfw_planner"
 
+    # [v36.0 核心修正] 路由從新的焦點鎖定節點出發
     graph.add_conditional_edges(
-        "planner_junction",
+        "focus_locking",
         route_to_planner,
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            # [v35.0 核心修正] 新的 NSFW 路由目標
             "nsfw_hybrid_mode_start": "nsfw_template_assembly"
         }
     )
     
-    # [v35.0 核心修正] 構建新的 NSFW 混合模式流水線
     graph.add_edge("nsfw_template_assembly", "nsfw_refinement")
-    # 流水線的出口統一連接到工具執行節點
     graph.add_edge("nsfw_refinement", "tool_execution")
     
-    # SFW 路線的出口
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
-    # 後續流程保持統一
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v35.0 - 適配混合模式)
+# 函式：創建主回應圖 (v36.0 - 注入焦點鎖定節點)
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
@@ -1576,6 +1606,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
