@@ -444,7 +444,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_sfw_planning_chain(),
         {
-            "system_prompt": ai_core.profile.one_instruction, 
+            "one_instruction": ai_core.profile.one_instruction, 
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
@@ -876,4 +876,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
