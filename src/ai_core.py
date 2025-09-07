@@ -2471,6 +2471,11 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
 
+
+
+
+    
+
     # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
     # 更新紀錄:
     # v2.1 (2025-09-18): [災難性BUG修復] 徹底修正了異常捕獲邏輯。舊版本只能捕獲原始的 ResourceExhausted 異常，但 LangChain 會將其包裝在 GoogleGenerativeAIError 中拋出。新版本改為捕獲通用 Exception，並通過檢查錯誤訊息字符串中是否包含 "ResourceExhausted" 或 "429" 來判斷是否為速率限制錯誤，從而確保金鑰輪換機制能夠被正確觸發。
@@ -2530,8 +2535,6 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
                                 google_api_key=self.api_keys[self.current_key_index]
                             )
                             # Re-initialize Chroma with the new embedding function
-                            # This part is tricky as Chroma's client might hold on to the old one.
-                            # A robust way is to re-create the Chroma object.
                             self.vector_store._embedding_function = self.embeddings
                             
                             if attempt < max_retries - 1:
@@ -2555,9 +2558,8 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
     # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
 
 
-
     
-    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
     # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
     #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
@@ -2643,7 +2645,6 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
-
 
     
     
@@ -3412,6 +3413,7 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
