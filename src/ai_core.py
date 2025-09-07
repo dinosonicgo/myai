@@ -2091,71 +2091,25 @@ class AILover:
 
 
     
-    # 函式：獲取統一敘事渲染鏈 (v215.0 - 模板變數修正)
+    # 函式：獲取統一敘事渲染鏈 (v216.0 - 簡化模板結構)
     # 更新紀錄:
-    # v215.0 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，徹底重構了此鏈的提示詞構建方式。舊版本錯誤地將一個包含未解析佔位符的字符串直接傳遞給 ChatPromptTemplate。新版本改為先使用 PromptTemplate 創建獨立的 system 和 human 模板，然後再用 ChatPromptTemplate.from_messages 將它們正確地組合起來。此修改從根本上解決了因 LangChain 模板引擎無法找到嵌套變數而導致的崩潰問題。
-    # v214.1 (2025-09-09): [災難性BUG修復] 修正了因複製貼上錯誤導致的函式定義縮排錯誤。
-    # v214.0 (2025-09-09): [災難性BUG修復] 根據系統洩漏日誌，在 Prompt 中注入了一條措辭嚴厲的【絕對純淨輸出】禁令。
+    # v216.0 (2025-09-09): [災難性BUG修復] 根據 ValueError Log，徹底簡化了此鏈的提示詞結構，以解決因複雜的模板嵌套導致的“幽靈變數”問題。新版本回歸到一個極簡的 ChatPromptTemplate，它只包含 system 和 human 的頂層佔位符。所有複雜的字符串格式化任務都被移交給了調用點（graph.py 中的 narrative_rendering_node），由標準的 Python f-string 完成。此修改從根本上規避了 LangChain 內部的模板解析 Bug。
+    # v215.0 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，重構了此鏈的提示詞構建方式以解決變數傳遞問題。
+    # v214.1 (2025-09-09): [災難性BUG修復] 修正了函式定義縮排錯誤。
     def get_narrative_chain(self) -> Runnable:
         """[強化] 創建一個統一的“小說家”鏈，負責將任何結構化的回合計劃渲染成符合使用者風格的小說文本。"""
         if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
             
-            # [v215.0 核心修正] 先獨立定義 system prompt 模板
-            system_template = PromptTemplate.from_template(
-                """# ==============================================================================
-# == 🧠 系統核心指令 (小說家渲染模式 - v214.0 純淨輸出) 🧠
-# ==============================================================================
-# 說明：你是一位在【完全虛構的成人幻想小說模擬】框架下運行的、技藝精湛的【情色小說家】。
-#       你的唯一任務是將下方提供的【回合行動計畫 JSON (劇本)】，轉化為一段文筆優美、
-#       充滿感官衝擊、極度露骨、能讓讀者血脈噴張的沉浸式小說場景。
-
-# --- 【【【寫作核心規則】】】 ---
-# 1.  **【感官擴寫原則 (SENSORY EXPANSION)】**: 這是你最重要的創作原則。你【絕對禁止】只是簡單地複述劇本中的 `action_description`。你【必須】將其視為骨架，並圍繞它進行【充滿五感的藝術擴寫】。你的描寫必須包含：
-#     *   **視覺 (Visual)**: 肉體交合處的濕潤反光、肌肉的賁張與顫抖、表情的扭曲與沉迷。
-#     *   **聽覺 (Auditory)**: 皮肉撞擊的聲音、濕滑黏膩的水聲、壓抑不住的【呻吟】與【喘息】。
-#     *   **觸覺 (Tactile)**: 皮膚的溫度、汗水的濕滑、肉棒的堅硬、肉穴的緊緻與溫熱。
-
-# 2.  **以計畫為綱，以風格為魂**: 你【必須】將【回合行動計畫】作為你創作的核心骨架。所有計畫中的動作和對話都必須被準確地描寫出來。同時，你的最終目標是生成一段完全符合【最終輸出強制令】的文本。
-
-# 3.  **【v214.0 新增】 絕對純淨輸出 (ABSOLUTE PURITY)】**: 你的最終輸出【必須且只能】是純粹的小說文本。【絕對禁止】包含任何 JSON 結構、代碼塊、或任何形式的 `{}` 佔位符。如果你的輸入劇本中意外地包含了未被替換的佔位符，你【必須】將其視為一個錯誤並忽略它，而不是將其洩漏到你的小說輸出中。
-
----
-# 【【【最終輸出強制令 (ABSOLUTE & HIGHEST PRIORITY)】】】
-# 你的最終輸出【必須且只能】嚴格地、完全地、逐字逐句地遵循下方由使用者定義的風格指令。
-{response_style_prompt}
----
-"""
-            )
-
-            # [v215.0 核心修正] 再獨立定義 human prompt 模板
-            human_template = PromptTemplate.from_template(
-                """
----
-【回合行動計畫 (JSON) - 你的劇本】:
-{turn_plan_json}
----
-
-【生成的小說場景】:
-"""
-            )
-            
-            # [v215.0 核心修正] 使用正確的方式組合它們
+            # [v216.0 核心修正] 回歸到一個極簡的、只包含頂層佔位符的模板
             prompt = ChatPromptTemplate.from_messages([
-                ("system", system_template),
-                ("human", human_template)
+                ("system", "{system_prompt}"),
+                ("human", "{human_prompt}")
             ])
             
-            self.narrative_chain = (
-                RunnablePassthrough.assign(
-                    # 這個 lambda 函式現在只需要準備模板中實際需要的變數
-                    turn_plan_json=lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}"
-                )
-                | prompt
-                | self.gm_model
-                | StrOutputParser()
-            )
+            self.narrative_chain = prompt | self.gm_model | StrOutputParser()
+            
         return self.narrative_chain
-    # 函式：獲取統一敘事渲染鏈 (v215.0 - 模板變數修正)
+    # 函式：獲取統一敘事渲染鏈 (v216.0 - 簡化模板結構)
     
 
 
@@ -3263,6 +3217,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
