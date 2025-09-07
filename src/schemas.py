@@ -293,6 +293,16 @@ class BatchResolutionResult(BaseModel):
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
+
+
+
+class SceneCastingRequirements(BaseModel):
+    """用於結構化地表示一個場景對演員的具體需求。"""
+    thought: str = Field(description="分析使用者指令後的簡短思考過程。")
+    required_male_characters: int = Field(default=0, description="場景明確需要的男性角色數量。")
+    required_female_characters: int = Field(default=0, description="場景明確需要的女性角色數量。")
+    scene_summary: str = Field(description="對場景核心動作的簡潔摘要，將用於指導角色創建。")
+
 class SingleResolutionResult(BaseModel):
     """單個實體名稱的解析結果。"""
     original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
@@ -390,5 +400,6 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
