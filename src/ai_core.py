@@ -748,11 +748,11 @@ class AILover:
 
 
     
-    # 函式：獲取統一 NSFW 回合計劃鏈 (v11.0 - LORE 綁定 & 描寫強化)
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v11.1 - 輸出邏輯約束)
     # 更新紀錄:
-    # v11.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】，強制 AI 必須且只能使用 planning_subjects_json 中提供的角色進行規劃，解決了數據流斷裂問題。同時強化了感官描寫指令。
+    # v11.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則，指導 LLM 只有在完全無法執行指令時才使用此欄位，以減少 Pydantic 驗證錯誤的機率。
+    # v11.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     # v10.1 (2025-09-21): [災難性BUG修復] 注入了 Jailbreak 元指令。
-    # v10.0 (2025-09-07): [重大描寫強化] 引入了【動作分解原則】。
     def get_nsfw_planning_chain(self) -> Runnable:
         """獲取或創建 NSFW 互動路徑的統一規劃鏈，直接輸出最終的、用詞露骨的 TurnPlan JSON。"""
         if not hasattr(self, 'nsfw_planning_chain') or self.nsfw_planning_chain is None:
@@ -765,7 +765,7 @@ class AILover:
 # 現在，請在此框架下，開始執行你的具體任務。
 
 # ==============================================================================
-# == 🧠 系統核心指令 (NSFW 統一規劃模式 - v11.0 LORE 綁定) 🧠
+# == 🧠 系統核心指令 (NSFW 統一規劃模式 - v11.1 邏輯約束) 🧠
 # ==============================================================================
 # {system_prompt}
 
@@ -778,6 +778,10 @@ class AILover:
 # --- 【【【核心創作原則：動作分解與感官擴寫】】】 ---
 # 1.  **【動作分解 (ACTION DECOMPOSITION)】**: 你【必須】將使用者指令中的每一個核心性行為，分解成【至少 2-3 個】連續的、更具體的【子動作】。
 # 2.  **【感官擴寫 (SENSORY EXPANSION)】**: 你的 `action_description` 【必須包含】對觸感、聲音、氣味等感官細節的描寫，讓場景充滿衝擊力。
+
+# --- 【【【v11.1 新增】輸出邏輯約束】】 ---
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 
 # ---
 {action_sexual_content_prompt}
@@ -804,7 +808,6 @@ class AILover:
 
 # --- 使用者最新指令 ---
 {user_input}
-
 # --- 【【【最終生理學遵循性檢查】】】 ---
 # 在你生成任何 JSON 輸出之前，請在內心完成以下兩個步驟：
 # 1. **複述角色與性別**: 大聲朗讀上方【規劃主體】JSON 中，每一位角色的 `name` 和 `gender`。
@@ -819,7 +822,7 @@ class AILover:
             ])
             self.nsfw_planning_chain = prompt | planner_llm
         return self.nsfw_planning_chain
-    # 函式：獲取統一 NSFW 回合計劃鏈 (v11.0 - LORE 綁定 & 描寫強化)
+    # 函式：獲取統一 NSFW 回合計劃鏈 (v11.1 - 輸出邏輯約束)
 
 
 
@@ -989,11 +992,11 @@ class AILover:
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.0 - LORE 綁定)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.1 - 輸出邏輯約束)
     # 更新紀錄:
-    # v6.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】，強制 AI 必須且只能使用 planning_subjects_json 中提供的角色進行規劃，以解決數據流斷裂問題。
+    # v6.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則，以減少 Pydantic 驗證錯誤的機率。
+    # v6.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     # v5.0 (2025-09-18): [重大架構重構] 修改了提示詞，改為接收並強制使用 `planning_subjects_json`。
-    # v4.0 (2025-09-18): [災難性BUG修復] 引入“校準與執行模式”。
     def get_remote_sfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 SFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_sfw_planning_chain') or self.remote_sfw_planning_chain is None:
@@ -1001,7 +1004,7 @@ class AILover:
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
             system_prompt = """# ==================================================
-# == 🧠 系統核心指令 (遠程 SFW 規劃模式 - v6.0 LORE 綁定) 🧠
+# == 🧠 系統核心指令 (遠程 SFW 規劃模式 - v6.1 邏輯約束) 🧠
 # ==================================================
 # 你的角色是【電影導演】。你的任務是將鏡頭切換到指定的【目标地点】，並為已存在的角色編排一幕生動的畫面。
 # 你的輸出是一份給“小說家”看的、結構化的【場景行動計劃 JSON】。
@@ -1009,6 +1012,10 @@ class AILover:
 # --- 【【【最高規劃原則：LORE 數據綁定 (LORE BINDING) - 絕對強制】】】 ---
 # 你的【唯一任務】是將下方 `planning_subjects_json` 中提供的、【已經存在】的角色檔案，編排成一個符合使用者指令的互動場景。
 # 你【絕對禁止】在你的計畫中，創造任何不存在於 `planning_subjects_json` 中的新角色。你的職責是【執行】，而不是【創造】。
+
+# --- 【【【v6.1 新增】輸出邏輯約束】】 ---
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 # ------------------------------------------------------------------------------
 # 【使用者自訂風格指令 (RENDER STYLE - HIGHEST PRIORITY)】
 {response_style_prompt}
@@ -1044,16 +1051,16 @@ class AILover:
             ])
             self.remote_sfw_planning_chain = prompt | planner_llm
         return self.remote_sfw_planning_chain
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.0 - LORE 綁定)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.1 - 輸出邏輯約束)
 
 
 
 
-    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v12.0 - LORE 綁定 & 描寫強化)
+    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v12.1 - 輸出邏輯約束)
     # 更新紀錄:
-    # v12.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】，強制 AI 必須且只能使用 planning_subjects_json 中提供的、已創建的角色進行規劃。此修改旨在從根本上解決 AI 無視 LORE 擴展結果、重新創造通用角色的數據流斷裂問題。同時，強化了感官描寫指令。
+    # v12.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則，以減少 Pydantic 驗證錯誤的機率。
+    # v12.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     # v11.1 (2025-09-21): [災難性BUG修復] 注入了 Jailbreak 元指令。
-    # v11.0 (2025-09-07): [重大描寫強化] 引入了【動作分解原則】。
     def get_remote_nsfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 NSFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_nsfw_planning_chain') or self.remote_nsfw_planning_chain is None:
@@ -1066,7 +1073,7 @@ class AILover:
 # 現在，請在此框架下，開始執行你的具體任務。
 
 # ==============================================================================
-# == 🧠 系統核心指令 (遠程 NSFW 規劃模式 - v12.0 LORE 綁定) 🧠
+# == 🧠 系統核心指令 (遠程 NSFW 規劃模式 - v12.1 邏輯約束) 🧠
 # ==============================================================================
 # {system_prompt}
 
@@ -1079,6 +1086,10 @@ class AILover:
 # --- 【【【核心創作原則：動作分解與感官擴寫】】】 ---
 # 1.  **【動作分解 (ACTION DECOMPOSITION)】**: 你【必須】將指令中的每一個核心性行為，分解成【至少 2-3 個】連續的、更具體的【子動作】。
 # 2.  **【感官擴寫 (SENSORY EXPANSION)】**: 你的 `action_description` 【必須包含】對觸感、聲音、氣味等感官細節的描寫，讓場景充滿衝擊力。
+
+# --- 【【【v12.1 新增】輸出邏輯約束】】 ---
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 
 # ---
 {action_sexual_content_prompt}
@@ -1119,7 +1130,7 @@ class AILover:
             ])
             self.remote_nsfw_planning_chain = prompt | planner_llm
         return self.remote_nsfw_planning_chain
-    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v12.0 - LORE 綁定 & 描寫強化)
+    # 函式：[新] 獲取遠程 NSFW 計劃鏈 (v12.1 - 輸出邏輯約束)
     
 
 
@@ -1717,11 +1728,11 @@ class AILover:
     
     
     
-      # 函式：獲取 SFW 回合計劃鏈 (v213.0 - LORE 綁定)
+    # 函式：獲取 SFW 回合計劃鏈 (v213.1 - 輸出邏輯約束)
     # 更新紀錄:
-    # v213.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】，強制 AI 必須且只能使用 planning_subjects_json 中提供的角色進行規劃，以解決數據流斷裂問題。
+    # v213.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則，以減少 Pydantic 驗證錯誤的機率。
+    # v213.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     # v212.0 (2025-09-18): [重大架構重構] 修改了提示詞，改為接收並強制使用 `planning_subjects_json`。
-    # v211.0 (2025-09-16): [重大邏輯強化] 注入了 `{chat_history}` 佔位符。
     def get_sfw_planning_chain(self) -> Runnable:
         """獲取或創建 SFW 路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'sfw_planning_chain') or self.sfw_planning_chain is None:
@@ -1729,7 +1740,7 @@ class AILover:
             planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
             
             system_prompt = """# ==============================================================================
-# == 🧠 系統核心指令 (SFW 規劃模式 - v213.0 LORE 綁定) 🧠
+# == 🧠 系統核心指令 (SFW 規劃模式 - v213.1 邏輯約束) 🧠
 # ==============================================================================
 # 說明：你是一位擁有極高智慧和創造力的遊戲管理大師（GM）。你的任務是分析所有
 #       上下文，為接下來的回合制定一份詳細、合理的【行動計劃 JSON】。
@@ -1738,6 +1749,10 @@ class AILover:
 # 你的【唯一任務】是將下方 `planning_subjects_json` 中提供的、【已經存在】的角色檔案，編排成一個符合使用者指令的互動場景。
 # 你【絕對禁止】在你的計畫中，創造任何不存在於 `planning_subjects_json` 中的新角色。你的職責是【執行】，而不是【再創造】。
 # 你的計畫中的 `character_actions` 列表，【必須且只能】包含來自 `planning_subjects_json` 的角色。
+
+# --- 【【【v213.1 新增】輸出邏輯約束】】 ---
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 # ------------------------------------------------------------------------------
 # 【使用者自訂風格指令 (RENDER STYLE - HIGHEST PRIORITY)】
 {response_style_prompt}
@@ -1772,8 +1787,7 @@ class AILover:
             ])
             self.sfw_planning_chain = prompt | planner_llm
         return self.sfw_planning_chain
-    # 函式：獲取 SFW 回合計劃鏈 (v213.0 - LORE 綁定)
-
+    # 函式：獲取 SFW 回合計劃鏈 (v213.1 - 輸出邏輯約束)
 
 
 
@@ -3358,6 +3372,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
