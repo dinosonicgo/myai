@@ -332,6 +332,43 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|6A.2) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
 
+
+
+# 函式：[新] 淨化節點 (v1.0 - 總編輯)
+# 更新紀錄:
+# v1.0 (2025-09-22): [重大品質提升] 創建此新節點，作為創意生成後的“總編輯”環節。它調用專門的淨化鏈，對初步渲染的文本進行強制性的詞彙和格式修正，以確保最終輸出嚴格符合規範。
+async def purification_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[新增] 對渲染後的文本進行最終的、強制性的詞彙與格式淨化。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    raw_llm_response = state['llm_response']
+    logger.info(f"[{user_id}] (Graph|Purification) Node: purification -> 正在對文本進行總編輯級的校對...")
+
+    if not raw_llm_response or not raw_llm_response.strip() or "安全備援" in raw_llm_response:
+        return {"llm_response": raw_llm_response}
+
+    purification_chain = ai_core.get_purification_chain()
+    
+    purified_text = await ai_core.ainvoke_with_rotation(
+        purification_chain,
+        {
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "raw_text": raw_llm_response
+        },
+        retry_strategy='force' # 淨化是機械性任務，必須強制完成
+    )
+    
+    if not purified_text:
+        logger.warning(f"[{user_id}] (Graph|Purification) 淨化鏈返回空值，將使用未經淨化的原始文本。")
+        return {"llm_response": raw_llm_response}
+
+    return {"llm_response": purified_text}
+# 函式：[新] 淨化節點 (v1.0 - 總編輯)
+
+
+
+
+
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -615,30 +652,38 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
+# 函式：統一的輸出驗證與淨化節點 (v1.1 - 指令洩漏清理)
+# 更新紀錄:
+# v1.1 (2025-09-22): [災難性BUG修復] 增加了程式碼層面的清理邏輯。此節點現在會使用正则表达式，在進行Pydantic驗證前，強行刪除所有可能從提示詞中洩漏的、帶有【】或---的系統級標題，從而根除“系統指令洩漏”問題。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
+    ai_core = state['ai_core']
     initial_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
+    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 輸出進行最終清理與驗證...")
     
     if not initial_response or not initial_response.strip():
         logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
     
-    clean_response = initial_response
-    clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
+    # [v1.1 核心修正] 使用正則表達式進行程式碼層面的強制清理
+    # 規則1: 刪除所有由三個或更多等號/減號/星號組成的分隔線
+    clean_response = re.sub(r'^[=\-*]{3,}\s*$', '', initial_response, flags=re.MULTILINE)
+    # 規則2: 刪除所有被【】包裹的標題行
+    clean_response = re.sub(r'^【.*?】\s*$', '', clean_response, flags=re.MULTILINE)
+    # 規則3: 刪除舊的、非標準的標籤
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
-    if '旁白:' in clean_response or '對話:' in clean_response:
-        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動備援清理。")
-        clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
-        clean_response = clean_response.replace('旁白：', '').replace('對話：', '')
     
     final_response = clean_response.strip()
     if not final_response:
-        logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
+        logger.warning(f"[{user_id}] LLM 原始輸出在指令洩漏清理後為空。原始輸出為: '{initial_response[:200]}...'")
         return {"final_output": "（...）"}
         
+    # 後續的“扮演用戶”驗證邏輯可以繼續在此處執行（如果需要）
+    # ...
+
     return {"final_output": final_response}
+# 函式：統一的輸出驗證與淨化節點 (v1.1 - 指令洩漏清理)
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
@@ -704,10 +749,18 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
+# 函式：創建主回應圖 (v42.0 - 淨化流水線)
+# 更新紀錄:
+# v42.0 (2025-09-22): [重大品質提升] 彻底重构了图的末端流程，引入了统一的“净化流水线”。
+#    1. [新增] 增加了全新的 `purification_node`，作为所有创意生成后的“总编辑”环节。
+#    2. [重连] 将所有渲染节点（SFW和NSFW）的出口统一指向 `purification_node`。
+#    3. [串联] 将 `purification_node` 连接到 `validate_and_rewrite_node`，形成“创意->校对->清理”的健壮流程。
+# v41.0 (2025-09-22): [重大架構重構] 引入了“数据伪装”架构，分离了SFW和NSFW的渲染器。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
     graph = StateGraph(ConversationGraphState)
     
+    # --- 1. 註冊所有節點 ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
@@ -722,10 +775,15 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("nsfw_final_rendering", final_rendering_node)
+    
+    # [v42.0 新增] 註冊淨化節點
+    graph.add_node("purification", purification_node)
+    
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
+    
     graph.add_node("planner_junction", lambda state: {})
-    graph.add_node("rendering_junction", lambda state: {})
+    # [v42.0 移除] rendering_junction 不再需要，由 purification 節點作為新的匯合點
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
         lore_objects = state.get('raw_lore_objects', [])
@@ -735,6 +793,7 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
+    # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
@@ -778,18 +837,26 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
+    # SFW 路径
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
-    graph.add_edge("sfw_narrative_rendering", "rendering_junction")
+    
+    # NSFW 路径
     graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
     graph.add_edge("nsfw_refinement", "nsfw_final_rendering")
-    graph.add_edge("nsfw_final_rendering", "rendering_junction")
-    graph.add_edge("rendering_junction", "validate_and_rewrite")
+    
+    # [v42.0 核心修正] 所有渲染器的出口都指向新的淨化節點
+    graph.add_edge("sfw_narrative_rendering", "purification")
+    graph.add_edge("nsfw_final_rendering", "purification")
+    
+    # [v42.0 核心修正] 統一的後續流程從淨化節點開始
+    graph.add_edge("purification", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
+# 函式：創建主回應圖 (v42.0 - 淨化流水線)
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
@@ -871,3 +938,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
