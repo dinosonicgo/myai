@@ -407,9 +407,10 @@ class AILover:
             return False
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
 
-# 函式：[新] 獲取焦點鎖定鏈 (v2.0 - 轉義 Prompt 範例)
+# 函式：[新] 獲取焦點鎖定鏈 (v3.0 - 增加空名過濾規則)
     # 更新紀錄:
-    # v2.0 (2025-09-22): [災難性BUG修復] 根據 LangChain 的規範，對 Prompt 模板中的 JSON 範例字符串進行了關鍵的語法轉義，將所有作為範例的單大括號 `{}` 修改為雙大括號 `{{}}`。此修改從根本上解決了因模板解析器將範例誤讀為變數而導致的致命 KeyError。
+    # v3.0 (2025-09-22): [災難性BUG修復] 在核心分析原則中，注入了【數據完整性鐵則】，以最高優先級指令，強制 LLM 在篩選角色時，【絕對禁止】選擇任何 name 欄位為空的角色。此修改旨在從 LLM 層面就過濾掉資料庫中可能存在的髒數據，防止其污染下游規劃流程。
+    # v2.0 (2025-09-22): [災難性BUG修復] 對 Prompt 模板中的 JSON 範例字符串進行了關鍵的語法轉義。
     # v1.0 (2025-09-22): [重大架構升級] 創建此鏈作為“焦點鎖定”機制的“現場導演”。
     def get_focus_locking_chain(self) -> Runnable:
         """獲取或創建一個專門用於在規劃前篩選和標記核心互動角色的鏈。"""
@@ -421,20 +422,20 @@ class AILover:
 
             focus_llm = self._create_llm_instance(temperature=0.0).with_structured_output(FocusLockResult)
             
-            # [v2.0 核心修正] 對範例JSON中的大括號進行轉義
             prompt_template = """你是一位精明的【現場導演】，你的唯一任務是在正式開拍（規劃）前，從演員海選名單中，選出本鏡頭需要用到的【核心演員】，並指定誰是【焦點人物】。
 
-# === 【【【核心分析原則】】】 ===
-1.  **【指令優先】**: 你的分析【必須】以【使用者最新指令】為最高優先級，找出指令中描述的核心動作和參與者。
-2.  **【篩選演員】**: 根據指令，從下方提供的【完整的場景角色列表】中，篩選出所有與該指令直接相關的角色。所有無關的路人角色都【必須】被移除。
-3.  **【標記焦點】**: 在你篩選出的【相關角色列表】中，找到那個處於事件中心、被主要動作所影響的角色（例如被攻擊者、被強姦者、被對話者），並在其字典數據中，手動添加一個鍵值對：`"is_focus_target": true`。
-4.  **【數量匹配】**: 你篩選出的角色數量和性別，必須嚴格匹配指令的需求。例如指令是“一群男性輪姦一名女性”，你的輸出列表中就必須包含多名男性和一名女性。
+# === 【【【核心分析原則 v3.0】】】 ===
+1.  **【數據完整性鐵則 (DATA INTEGRITY)】**: 在你的篩選結果 `relevant_characters` 列表中，【絕對禁止】包含任何 `name` 欄位為空字符串或 `null` 的角色。這些是無效數據，必須被過濾掉。
+2.  **【指令優先】**: 你的分析【必須】以【使用者最新指令】為最高優先級，找出指令中描述的核心動作和參與者。
+3.  **【篩選演員】**: 根據指令，從下方提供的【完整的場景角色列表】中，篩選出所有與該指令直接相關的角色。所有無關的路人角色都【必須】被移除。
+4.  **【標記焦點】**: 在你篩選出的【相關角色列表】中，找到那個處於事件中心、被主要動作所影響的角色（例如被攻擊者、被強姦者、被對話者），並在其字典數據中，手動添加一個鍵值對：`"is_focus_target": true`。
+5.  **【數量匹配】**: 你篩選出的角色數量和性別，必須嚴格匹配指令的需求。
 
 # === 【【【行為模型範例】】】 ===
 - **指令**: `重新描述一群男性乞丐輪姦一名女性教徒`
-- **輸入角色列表**: `[ {{"name": "卡爾", "gender": "男"}}, {{"name": "馬克斯", "gender": "男"}}, {{"name": "艾拉", "gender": "女"}}, {{"name": "路人甲", "gender": "男"}} ]`
+- **輸入角色列表**: `[ {{"name": "卡爾", "gender": "男"}}, {{"name": "馬克斯", "gender": "男"}}, {{"name": "艾拉", "gender": "女"}}, {{"name": "", "gender": "女"}}, {{"name": "路人甲", "gender": "男"}} ]`
 - **【✅ 正確的輸出 JSON】**:
-  `{{ "thought": "指令需要多名男性和一名女性。已從列表中選出卡爾、馬克斯和艾拉，並將艾拉標記為焦點目標。路人甲與此事件無關，已被移除。", "relevant_characters": [ {{"name": "卡爾", "gender": "男"}}, {{"name": "馬克斯", "gender": "男"}}, {{"name": "艾拉", "gender": "女", "is_focus_target": true}} ] }}`
+  `{{ "thought": "指令需要多名男性和一名女性。已從列表中選出卡爾、馬克斯和艾拉，並將艾拉標記為焦點目標。空名角色和路人甲與此事件無關，已被過濾。", "relevant_characters": [ {{"name": "卡爾", "gender": "男"}}, {{"name": "馬克斯", "gender": "男"}}, {{"name": "艾拉", "gender": "女", "is_focus_target": true}} ] }}`
 
 ---
 【使用者最新指令】: 
@@ -448,7 +449,7 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.focus_locking_chain = prompt | focus_llm
         return self.focus_locking_chain
-# 函式：[新] 獲取焦點鎖定鏈 (v2.0 - 轉義 Prompt 範例)
+# 函式：[新] 獲取焦點鎖定鏈 (v3.0 - 增加空名過濾規則)
 
 
 # 函式：[新] 獲取角色修正鏈 (v1.0 - 監督修正專用)
@@ -3267,11 +3268,10 @@ class AILover:
 
 
 
-# 函式：將新角色加入場景 (v180.0 - 增加空名防護)
+# 函式：將新角色加入場景 (v181.0 - 強化創建前過濾)
     # 更新紀錄:
-    # v180.0 (2025-09-22): [災難性BUG修復] 增加了對命名衝突備援機制返回值的健壯性檢查。如果 LLM 在強制重命名時返回了一個空字符串或無效名稱，此函式現在會捕獲該錯誤、記錄日誌並跳過該角色的創建，從根本上防止了將 "name": "" 的無效 LORE 記錄寫入資料庫的問題。
-    # v179.0 (2025-09-06): [災難性BUG修復] 徹底重構了新LORE的地理位置錨定邏輯，使其能夠感知遠程視角。
-    # v178.2 (2025-09-06): [重大架構重構] 將此函式從 discord_bot.py 遷移至 ai_core.py。
+    # v181.0 (2025-09-22): [災難性BUG修復] 增加了更嚴格的創建前置過濾。在處理從 SceneCastingResult 傳入的角色列表時，會首先檢查每個角色的 name 是否有效，對任何無效（空或空白）的角色數據，會直接跳過其後續所有處理流程，確保從源頭杜絕創建無效的LORE記錄。
+    # v180.0 (2025-09-22): [災難性BUG修復] 增加了對命名衝突備援機制返回值的健壯性檢查。
     async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[str]:
         """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并在遇到命名冲突时启动多层备援机制。"""
         if not self.profile:
@@ -3289,6 +3289,11 @@ class AILover:
         created_names = []
         for character in all_new_characters:
             try:
+                # [v181.0 核心修正] 在所有處理之前，先過濾掉無效的空名角色數據
+                if not character.name or not character.name.strip():
+                    logger.warning(f"[{self.user_id}] 【LORE 創建攔截】：檢測到一個來自選角鏈的無效（空名）角色數據，已將其過濾。描述: {character.description[:50]}...")
+                    continue
+                
                 if character.name.lower() in protected_names:
                     logger.warning(f"[{self.user_id}] 【LORE 保護】：已攔截一個試圖創建與核心主角 '{character.name}' 同名的 NPC LORE。此創建請求已被跳過。")
                     continue
@@ -3331,7 +3336,6 @@ class AILover:
                     final_name_to_use = new_name.strip().replace('"', '').replace("'", "")
                     logger.info(f"[{self.user_id}] 最终备援成功，AI为角色生成了新名称: '{final_name_to_use}'")
 
-                # [v180.0 核心修正] 增加空名防護
                 if not final_name_to_use or not final_name_to_use.strip():
                     logger.error(f"[{self.user_id}] 【命名失敗】：最終備援機制未能為角色生成有效的非空名稱。已跳過此角色的創建。原始描述: {character.description[:50]}...")
                     continue
@@ -3362,7 +3366,7 @@ class AILover:
                 logger.error(f"[{self.user_id}] 在将新角色 '{character.name}' 添加到 LORE 时发生错误: {e}", exc_info=True)
         
         return created_names
-# 函式：將新角色加入場景 (v180.0 - 增加空名防護)
+# 函式：將新角色加入場景 (v181.0 - 強化創建前過濾)
 
 
     
@@ -3502,6 +3506,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
