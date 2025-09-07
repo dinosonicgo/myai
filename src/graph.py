@@ -424,19 +424,26 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+# 函式：[新] NSFW 計畫潤色節點 (v2.0 - 增加防禦性檢查)
 # 更新紀錄:
-# v1.0 (2025-09-22): [重大架構升級] 創建此節點作為「混合模式」的第二步。它負責調用新的 nsfw_refinement_chain，為上一步程式碼生成的粗糙計畫增加豐富的細節、對話和風格，將其轉化為最終的、高品質的劇本。
+# v2.0 (2025-09-22): [健壯性] 新增了防禦性檢查。在調用 LLM 之前，會先驗證上游傳來的 turn_plan 是否有效。如果計畫為空或包含拒絕執行的理由，則直接跳過潤色，以節省資源並避免不必要的 API 調用。
+# v1.0 (2025-09-22): [重大架構升級] 創建此節點作為「混合模式」的第二步。
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[混合模式-步驟2] 調用 LLM 為已填充的 NSFW 計畫模板增加細節、對話和風格。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
+    
+    # [v2.0 新增] 防禦性檢查
+    if not turn_plan or turn_plan.execution_rejection_reason:
+        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) 上游節點未提供有效計畫，或計畫已被拒絕，跳過潤色。")
+        return {}
+
     logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在潤色已裝配的NSFW計畫...")
 
-    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
-        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) 上游節點未提供有效計畫，跳過潤色。")
-        return {} # 如果上一步失敗或無計畫，直接跳過
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|NSFW Refinement) AI Profile 未加載，無法潤色。")
+        return {} # 如果 Profile 未加載，也無法繼續
 
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
     
@@ -461,11 +468,10 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
 
     refinement_chain = ai_core.get_nsfw_refinement_chain()
     
+    # [v2.0 修正] 現在只需要傳遞動態參數
     final_plan = await ai_core.ainvoke_with_rotation(
         refinement_chain,
         {
-            "system_prompt": ai_core.profile.one_instruction,
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
             "turn_plan_json": turn_plan.model_dump_json(indent=2)
@@ -479,7 +485,7 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
 
     logger.info(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫已成功潤色。")
     return {"turn_plan": final_plan}
-# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+# 函式：[新] NSFW 計畫潤色節點 (v2.0 - 增加防禦性檢查)
 
 
 
@@ -1548,4 +1554,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
