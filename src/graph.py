@@ -1082,12 +1082,15 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
 
 # --- 階段四：收尾 (Finalization) ---
 
-# 函式：統一的輸出驗證與淨化節點 (v2.0 - 代碼替換)
+# graph.py
+
+# 函式：統一的輸出淨化與解碼節點 (v3.0 - 強化解碼職責)
 # 更新紀錄:
-# v2.0 (2025-09-08): [災難性BUG修復] 根據“代碼化委婉”策略，此節點現在被賦予了最終的“解碼”職責。它會在所有清理工序完成後，執行一個確定性的字符串替換，將文本中所有安全的代碼（如 `[MALE_GENITALIA]`）還原為最終的、使用者期望的露骨詞彙（如「肉棒」）。這是確保100%露骨內容輸出的最後、也是最關鍵的一環。
+# v3.0 (2025-09-24): [架構統一] 此節點的職責被重新定義為統一架構的最後一環：「最終解碼器」。它不再需要執行複雜的違規驗證，其核心任務是在執行完所有指令洩漏清理後，通過確定性的 Python 程式碼，將文本中所有安全的代碼（如 `[MALE_GENITALIA]`）還原為最終的、使用者期望的露骨詞彙。
+# v2.0 (2025-09-08): [災難性BUG修復] 根據“代碼化委婉”策略，此節點現在被賦予了最終的“解碼”職責。
 # v1.0 (2025-09-09): [架構重構] 創建此節點。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
-    """[10] 統一的輸出驗證與淨化節點，並執行最終的代碼還原。"""
+    """[10] 統一的輸出淨化與解碼節點，並執行最終的代碼還原。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     initial_response = state['llm_response']
@@ -1111,23 +1114,53 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
         return {"final_output": "（...）"}
 
-    # 步驟 2: [v2.0 核心修正] 執行代碼還原
+    # 步驟 2: [v3.0 核心] 執行確定性的代碼還原 (解碼)
     final_response = clean_response
-    replacement_map = {
-        "[MALE_GENITALIA]": "肉棒",
-        "[FEMALE_GENITALIA]": "肉穴",
-        "[MALE_FLUID]": "精液",
-        "[FEMALE_FLUID]": "淫水",
-        "[CLITORIS]": "陰蒂",
-        "[ANUS]": "後庭"
-    }
+    # 從 action_sexual_content 模組化 prompt 中獲取替換規則
+    # 這樣可以確保解碼規則與 LLM 的編碼規則完全同步
+    replacement_map = {}
+    try:
+        sexual_content_prompt = ai_core.modular_prompts.get("action_sexual_content", "")
+        # 正則表達式匹配 `*   其...【必須且只能】被稱為：「...」。` 這種模式
+        matches = re.findall(r'其\s*(.*?)\s*【必須且只能】被稱為：「(.*?)」。', sexual_content_prompt)
+        
+        # 建立一個從中文描述到露骨詞彙的映射
+        term_map = {desc: term for desc, term in matches}
+
+        # 根據映射建立代碼 -> 露骨詞彙的最終替換表
+        # 這裡的代碼需要與 prompt 中的代碼完全一致
+        replacement_map = {
+            "[MALE_GENITALIA]": term_map.get("性器官", "肉棒"),
+            "[FEMALE_GENITALIA]": term_map.get("性器官", "肉穴"),
+            "[MALE_FLUID]": term_map.get("精液", "精液"),
+            "[FEMALE_FLUID]": term_map.get("產生的愛液", "淫水"),
+            "[CLITORIS]": term_map.get("陰蒂", "陰蒂"),
+            "[ANUS]": "後庭" # 肛門/後庭通常沒有在 prompt 中直接定義，手動添加
+        }
+        
+    except Exception as e:
+        logger.error(f"[{user_id}] (Decoder) 從 prompt 解析替換規則時失敗: {e}。將使用硬編碼的備援規則。")
+        # 如果解析失敗，使用硬編碼的備援
+        replacement_map = {
+            "[MALE_GENITALIA]": "肉棒",
+            "[FEMALE_GENITALIA]": "肉穴",
+            "[MALE_FLUID]": "精液",
+            "[FEMALE_FLUID]": "淫水",
+            "[CLITORIS]": "陰蒂",
+            "[ANUS]": "後庭"
+        }
+
     for code, word in replacement_map.items():
         final_response = final_response.replace(code, word)
     
     logger.info(f"[{user_id}] (Decoder) 已成功將輸出中的NSFW代碼還原為露骨詞彙。")
         
     return {"final_output": final_response}
-# 函式：統一的輸出驗證與淨化節點 (v2.0 - 代碼替換)
+# 函式：統一的輸出淨化與解碼節點 (v3.0 - 強化解碼職責)
+
+
+
+
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點。"""
