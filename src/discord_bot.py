@@ -572,6 +572,8 @@ class ConfirmEditView(discord.ui.View):
         self.stop()
 # 類別：確認編輯視圖
 
+# src/discord_bot.py
+
 # 類別：角色編輯彈出視窗
 class ProfileEditModal(discord.ui.Modal):
     edit_instruction = discord.ui.TextInput(
@@ -590,68 +592,54 @@ class ProfileEditModal(discord.ui.Modal):
         self.display_name = display_name
         self.original_description = original_description
 
-    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
+    # 函式：處理彈出視窗提交 (v44.0 - 編輯流程重構)
     # 更新紀錄:
-    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯，使其能夠正確地調用全新的 ContinueToCanonSetupView 視圖，並顯示更新後的使用者引導說明。
-    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現，使其與 v198.0 後的自包含鏈架構完全一致。
+    # v44.0 (2025-09-25): [災難性BUG修復] 徹底重寫了此函式的邏輯，以修復因複製貼上錯誤導致的嚴重崩潰問題。新的工作流程是：接收使用者指令 -> 調用AI重寫 -> 顯示預覽與確認按鈕。
+    # v43.0 (2025-09-06): [重大架構重構] 更新了 AI 角色設定完成後的邏輯。
+    # v41.0 (2025-09-02): [重大架構重構] 徹底重構了此函式的實現。
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
 
-        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
-        if not ai_instance or not ai_instance.profile:
-            await interaction.followup.send("錯誤：AI 核心或設定檔案未初始化。", ephemeral=True)
-            return
-            
-        profile_attr = f"{self.profile_type}_profile"
-        
         try:
-            updated_profile = getattr(ai_instance.profile, profile_attr)
+            ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+            if not ai_instance:
+                await interaction.followup.send("錯誤：無法初始化 AI 核心。", ephemeral=True)
+                return
 
-            updated_profile.name = self.name.value
-            updated_profile.gender = self.gender.value
-            updated_profile.description = self.description.value
-            updated_profile.appearance = self.appearance.value
+            rewriting_chain = ai_instance.get_profile_rewriting_chain()
             
-            success = await ai_instance.update_and_persist_profile({
-                profile_attr: updated_profile.model_dump()
+            new_description = await ai_instance.ainvoke_with_rotation(rewriting_chain, {
+                "original_description": self.original_description,
+                "edit_instruction": self.edit_instruction.value
             })
 
-            if not success:
-                raise Exception("AI 核心更新 profile 失敗。")
+            if not new_description:
+                await interaction.followup.send("錯誤：AI 未能根據您的指令生成新的描述，可能是內容審查或暫時的網路問題。", ephemeral=True)
+                return
 
-            if not self.is_setup_flow:
-                await interaction.followup.send(f"✅ **{updated_profile.name}** 的角色設定已成功更新！", ephemeral=True)
-            elif self.profile_type == 'user': 
-                view = ContinueToAiSetupView(cog=self.cog, user_id=user_id)
-                await interaction.followup.send("✅ 您的角色已設定！\n請點擊下方按鈕，為您的 AI 戀人進行設定。", view=view, ephemeral=True)
-            elif self.profile_type == 'ai':
-                # [v43.0 核心修正] 使用新的設定嚮導視圖
-                view = ContinueToCanonSetupView(cog=self.cog, user_id=user_id)
-                
-                # [v43.0 核心修正] 更新引導文字
-                setup_guide_message = (
-                    "✅ AI 戀人基礎設定完成！\n\n"
-                    "**下一步是可選的，但強烈推薦：**\n"
-                    "您可以上傳一份包含您自訂世界觀、角色背景或故事劇情的「世界聖經」，AI 將在創世時完全基於您的設定來生成一切！\n\n"
-                    "**您有兩種方式提供世界聖經：**\n"
-                    "1️⃣ **貼上文本 (推薦手機用戶)**: 輸入指令 ` /set_canon_text `\n"
-                    "2️⃣ **上傳檔案 (推薦桌面用戶)**: 輸入指令 ` /set_canon_file `\n\n"
-                    "--- \n"
-                    "完成（或跳過）此步驟後，請點擊下方的 **「✅ 完成設定並開始冒險」** 按鈕。"
-                )
+            embed = Embed(title=f"✍️ 角色檔案更新預覽：{self.display_name}", color=discord.Color.orange())
+            
+            original_desc_preview = (self.original_description[:450] + '...') if len(self.original_description) > 450 else self.original_description
+            new_desc_preview = (new_description[:450] + '...') if len(new_description) > 450 else new_description
 
-                await interaction.followup.send(
-                    content=setup_guide_message,
-                    view=view,
-                    ephemeral=True
-                )
+            embed.add_field(name="📜 修改前", value=f"```{original_desc_preview}```", inline=False)
+            embed.add_field(name="✨ 修改後", value=f"```{new_desc_preview}```", inline=False)
+            embed.set_footer(text="請確認修改後的內容，然後點擊下方按鈕儲存。")
+            
+            view = ConfirmEditView(
+                cog=self.cog,
+                target_type=self.target_type,
+                target_key=self.target_key,
+                new_description=new_description
+            )
+            
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
-            logger.error(f"[{user_id}] 處理角色設定時出錯: {e}", exc_info=True)
-            await interaction.followup.send("錯誤：在處理您的設定時遇到問題，請稍後再試。", ephemeral=True)
-            return
-    # 函式：處理彈出視窗提交 (v43.0 - 適配新的設定流程)
+            logger.error(f"[{user_id}] 在編輯角色 '{self.display_name}' 時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"生成角色預覽時發生嚴重錯誤: {e}", ephemeral=True)
+    # 函式：處理彈出視窗提交 (v44.0 - 編輯流程重構)
 # 類別：角色編輯彈出視窗
 
 # 函式：創建角色檔案 Embed
@@ -1642,3 +1630,4 @@ class AILoverBot(commands.Bot):
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
+
