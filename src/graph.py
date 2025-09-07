@@ -301,24 +301,24 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：記憶檢索節點 (v4.0 - 適配淨化輸入)
+# 函式：記憶檢索節點 (v5.0 - 返璞歸真)
 # 更新紀錄:
-# v4.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用 RAG 檢索，以避免因原始查詢過於露骨而導致檢索鏈中的 LLM 調用（如總結器）失敗。
-# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
+# v5.0 (2025-09-28): [架構重構] 根據“誘餌與酬載”策略的實施，此節點的職責回歸到最簡單的模式：直接使用原始使用者輸入調用 RAG 流程。所有繞過審查的複雜邏輯都已下沉到 `ai_core` 的輔助函式和鏈的定義中。
+# v4.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用 RAG 檢索。
+# v3.0 (2025-09-07): [災難性BUG修復] 移除了對 `sanitized_user_input` 的依賴。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """[2] 專用記憶檢索節點，執行RAG操作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v4.0 核心修正] 使用淨化後的輸入進行 RAG 檢索
-    sanitized_input = state['sanitized_user_input']
+    # [v5.0 核心修正] 回歸到直接使用原始輸入
+    user_input = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於【淨化後】的查詢 '{sanitized_input[:30]}...' 檢索相關長期記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input[:30]}...' 檢索相關長期記憶...")
     
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_input)
+    rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
     return {"rag_context": rag_context_str}
-# 函式：記憶檢索節點 (v4.0 - 適配淨化輸入)
+# 函式：記憶檢索節點 (v5.0 - 返璞歸真)
 
 
 
@@ -476,17 +476,17 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
 # 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 
 
-# 函式：專用LORE查詢節點 (v5.0 - 適配淨化輸入)
+# 函式：專用LORE查詢節點 (v6.0 - 返璞歸真)
 # 更新紀錄:
-# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來提取需要查詢的實體，確保 LORE 查詢的觸發階段不會被內容審查阻斷。
-# v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了LORE的檢索邏輯，以解決因檢索到其他地點的同名NPC而導致的上下文污染問題。
-# v3.0 (2025-09-06): [災難性BUG修復] 增加了“主角光環”過濾機制。
+# v6.0 (2025-09-28): [架構重構] 根據“誘餌與酬載”策略的實施，此節點回歸到直接使用原始使用者輸入來提取實體。
+# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來提取需要查詢的實體。
+# v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了LORE的檢索邏輯。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
     """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v5.0 核心修正] 使用淨化後的輸入進行實體提取
-    sanitized_input = state['sanitized_user_input']
+    # [v6.0 核心修正] 回歸到直接使用原始輸入
+    user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在執行【上下文優先】的LORE查詢...")
 
     if not ai_core.profile:
@@ -511,9 +511,8 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (LORE Querier) 在有效場景中找到 {len(lores_in_scene)} 位常駐NPC。")
 
     is_remote = gs.viewing_mode == 'remote'
-    # [v5.0 核心修正] 傳入淨化輸入
-    lores_from_input = await ai_core._query_lore_from_entities(sanitized_input, is_remote_scene=is_remote)
-    logger.info(f"[{user_id}] (LORE Querier) 從【淨化後】的使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
+    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
+    logger.info(f"[{user_id}] (LORE Querier) 從使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
 
     final_lores_map = {lore.key: lore for lore in lores_in_scene}
     for lore in lores_from_input:
@@ -536,8 +535,7 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
     
     return {"raw_lore_objects": filtered_lores_list}
-# 函式：專用LORE查詢節點 (v5.0 - 適配淨化輸入)
-
+# 函式：專用LORE查詢節點 (v6.0 - 返璞歸真)
 
 
 # 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
@@ -661,9 +659,9 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 # 函式：獲取格式化的聊天歷史 (v2.0 - 健壯性修正)
 
     
-# 函式：LORE擴展決策節點 (v6.0 - 誘餌與酬載)
+# 函式：LORE擴展決策節點 (v6.0 - 返璞歸真)
 # 更新紀錄:
-# v6.0 (2025-09-28): [架構重構] 此節點現在遵循“誘餌與酬載”策略，將原始使用者輸入作為 `user_payload` 傳遞，以確保決策鏈的穩定運行。
+# v6.0 (2025-09-28): [架構重構] 根據“誘餌與酬載”策略的實施，此節點回歸到直接使用原始使用者輸入進行決策。
 # v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來判斷場景是否需要引入新角色。
 # v4.1 (2025-09-06): [災難性BUG修復] 動態注入範例字符串。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
@@ -689,7 +687,6 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 """
 
     decision_chain = ai_core.get_expansion_decision_chain()
-    # [v6.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
@@ -706,7 +703,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v6.0 - 誘餌與酬載)
+# 函式：LORE擴展決策節點 (v6.0 - 返璞歸真)
 
 
 
@@ -750,9 +747,9 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v10.0 - 誘餌與酬載)
+# 函式：專用的LORE擴展執行節點 (v10.0 - 返璞歸真)
 # 更新紀錄:
-# v10.0 (2025-09-28): [架構重構] 此節點現在遵循“誘餌與酬載”策略，將原始使用者輸入作為 `dialogue_payload` 傳遞，以確保選角鏈的穩定運行。
+# v10.0 (2025-09-28): [架構重構] 根據“誘餌與酬載”策略的實施，此節點回歸到直接使用原始使用者輸入進行選角。
 # v9.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用場景選角鏈。
 # v8.0 (2025-09-06): [重大架構升級] 賦予此節點【持久化場景錨點】的職責。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
@@ -779,7 +776,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
 
-    # [v10.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
     cast_result = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_casting_chain(),
         {
@@ -821,7 +817,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v10.0 - 誘餌與酬載)
+# 函式：專用的LORE擴展執行節點 (v10.0 - 返璞歸真)
 
 
 
