@@ -317,7 +317,7 @@ class AILover:
 
 
     
-   # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
     # 更新紀錄:
     # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名，完成了延遲加載重構。
     async def initialize(self) -> bool:
@@ -2450,7 +2450,7 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
         return self.entity_extraction_chain
     # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：配置前置資源 (v203.1 - 延遲加載重構)
+   # 函式：配置前置資源 (v203.1 - 延遲加載重構)
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
@@ -2529,10 +2529,10 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
                                 model="models/embedding-001",
                                 google_api_key=self.api_keys[self.current_key_index]
                             )
-                            self.vector_store = Chroma(
-                                persist_directory=self.vector_store_path,
-                                embedding_function=self.embeddings
-                            )
+                            # Re-initialize Chroma with the new embedding function
+                            # This part is tricky as Chroma's client might hold on to the old one.
+                            # A robust way is to re-create the Chroma object.
+                            self.vector_store._embedding_function = self.embeddings
                             
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(5)
@@ -2553,6 +2553,10 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
     # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
+
+
+
+    
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
     # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
@@ -2639,6 +2643,9 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+
+
+    
     
    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
@@ -3405,5 +3412,6 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
