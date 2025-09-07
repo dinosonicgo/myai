@@ -101,49 +101,7 @@ async def scene_and_action_analysis_node(state: ConversationGraphState) -> Dict:
 # 函式：場景與動作分析節點 (v5.0 - 兩階段驗證)
 
 
-# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
-# 更新紀錄:
-# v1.0 (2025-09-06): [重大架構升級] 創建此全新的「前置淨化層」節點，作為圖的新入口。它負責調用實體提取鏈和委婉化鏈，將原始的、可能觸發審查的露骨使用者輸入，轉化為一個保留核心意圖但用詞中性的安全版本。此節點是從根本上解決因輸入「投毒」導致早期分析節點（如意圖分類）被 API 攔截的關鍵性修正。
-async def pre_process_input_node(state: ConversationGraphState) -> Dict:
-    """[0] 圖的新入口點。將原始使用者輸入轉化為一個對分析節點安全的、中性的指令。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|0) Node: pre_process_input -> 正在對原始輸入進行淨化...")
 
-    try:
-        # 使用一個不易被審查的鏈（實體提取）來獲取核心名詞
-        entity_extraction_chain = ai_core.get_entity_extraction_chain()
-        entity_result = await ai_core.ainvoke_with_rotation(
-            entity_extraction_chain,
-            {"text_input": user_input},
-            retry_strategy='euphemize' # 使用委婉化重試確保它能成功
-        )
-        
-        if not (entity_result and entity_result.names):
-            logger.warning(f"[{user_id}] (Sanitizer) 未能從輸入中提取實體，將使用原始輸入作為淨化版本，這可能存在風險。")
-            return {"sanitized_user_input": user_input}
-            
-        # 使用另一個安全的鏈，從核心名詞重構出一個中性的句子
-        euphemization_chain = ai_core.get_euphemization_chain()
-        sanitized_input = await ai_core.ainvoke_with_rotation(
-            euphemization_chain,
-            {"keywords": entity_result.names},
-            retry_strategy='none' # 如果重構失敗，則無法挽救
-        )
-        
-        if not sanitized_input:
-            logger.error(f"[{user_id}] (Sanitizer) 委婉化重構鏈失敗！將回退到使用原始輸入，這極可能導致後續分析失敗！")
-            sanitized_input = user_input
-        
-        logger.info(f"[{user_id}] (Sanitizer) 輸入淨化成功: '{user_input[:50]}...' -> '{sanitized_input[:50]}...'")
-        return {"sanitized_user_input": sanitized_input}
-
-    except Exception as e:
-        logger.error(f"[{user_id}] (Sanitizer) 在預處理節點發生未知嚴重錯誤: {e}", exc_info=True)
-        # 發生任何未知錯誤時，都返回原始輸入以確保流程繼續，即使後續可能失敗
-        return {"sanitized_user_input": user_input}
-# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
 
 
 # 函式：視角模式路由器
@@ -248,24 +206,25 @@ async def character_quantification_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：意圖分類節點 (v2.0 - 適配淨化層)
+# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 進行意圖分類。這確保了此分析節點不會因直接接觸原始的露骨輸入而被內容審查攔截，是解決路由失敗問題的關鍵修正。
+# v3.0 (2025-09-08): [災難性BUG修復] 廢除了「前置淨化層」策略，此節點現在回歸到直接處理未經修改的原始使用者輸入。這是為了解決因淨化導致意圖信號丟失、引發路由錯誤的根本性問題。
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源，使其優先使用 `sanitized_user_input`。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
     """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v2.0 核心修正] 優先使用淨化後的輸入，如果不存在則備援至原始輸入
-    user_input_for_classification = state.get('sanitized_user_input', state['messages'][-1].content)
+    # [v3.0 核心修正] 統一使用原始使用者輸入
+    user_input_for_classification = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對 '{user_input_for_classification[:30]}...' 進行意圖分類...")
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對原始輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
     
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
         {"user_input": user_input_for_classification},
-        retry_strategy='none' # 分類鏈不應重試，失敗則啟用備援
+        retry_strategy='euphemize' # 分類鏈現在更強大，可以用委婉化重試
     )
     
     if not classification_result:
@@ -273,25 +232,28 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v2.0 - 適配淨化層)
+# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
 
-# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
+
+
+
+# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
 # 更新紀錄:
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 作為 RAG 檢索的查詢。這確保了檢索過程本身不會因觸發內容審查而失敗，提高了整個 RAG 鏈路的穩定性。
+# v3.0 (2025-09-08): [災難性BUG修復] 廢除了「前置淨化層」策略，此節點現在回歸到直接處理未經修改的原始使用者輸入。
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源，使其優先使用 `sanitized_user_input`。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """[2] 專用記憶檢索節點，執行RAG操作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v2.0 核心修正] 優先使用淨化後的輸入進行檢索
-    user_input_for_retrieval = state.get('sanitized_user_input', state['messages'][-1].content)
+    # [v3.0 核心修正] 統一使用原始使用者輸入
+    user_input_for_retrieval = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於安全查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
     
-    # ai_core.py 中的輔助函式會處理總結邏輯
     rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input_for_retrieval)
     return {"rag_context": rag_context_str}
-# 函式：記憶檢索節點 (v2.0 - 適配淨化層)
+# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
 
 
 
@@ -678,44 +640,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：無害化輸入節點 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-18): [重大架構升級] 創建此專用節點，作為所有規劃器前的“淨化層”。它調用委婉化鏈，將可能觸發內容審查的原始使用者輸入，轉化為一個保留核心意圖但用詞中性的安全指令，旨在從根本上解決因輸入“投毒”導致整個規劃鏈被 API 攔截的問題。
-async def sanitize_input_node(state: ConversationGraphState) -> Dict:
-    """將原始使用者輸入轉化為一個對規劃器安全的、中性的指令。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    intent_type = state['intent_classification'].intent_type
-    
-    # 只有 NSFW 相關的意圖需要淨化
-    if 'nsfw' not in intent_type:
-        logger.info(f"[{user_id}] (Graph) Node: sanitize_input -> 意圖為 SFW，跳過淨化。")
-        return {"sanitized_user_input": user_input}
 
-    logger.info(f"[{user_id}] (Graph) Node: sanitize_input -> 正在對 NSFW 指令進行無害化處理...")
-    
-    entity_extraction_chain = ai_core.get_entity_extraction_chain()
-    entity_result = await ai_core.ainvoke_with_rotation(entity_extraction_chain, {"text_input": user_input})
-    
-    if not (entity_result and entity_result.names):
-        logger.warning(f"[{user_id}] (Sanitizer) 未能從輸入中提取實體，將使用原始輸入作為安全備援。")
-        return {"sanitized_user_input": user_input}
-        
-    euphemization_chain = ai_core.get_euphemization_chain()
-    sanitized_input = await ai_core.ainvoke_with_rotation(
-        euphemization_chain,
-        {"keywords": entity_result.names},
-        retry_strategy='none' # 委婉化本身失敗則無法挽救
-    )
-    
-    if not sanitized_input:
-        logger.error(f"[{user_id}] (Sanitizer) 委婉化重構鏈失敗，將使用原始輸入，這極可能導致後續規劃失敗！")
-        sanitized_input = user_input
-    
-    logger.info(f"[{user_id}] (Sanitizer) 指令淨化成功: '{user_input}' -> '{sanitized_input}'")
-    return {"sanitized_user_input": sanitized_input}
-# 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
 # 函式：專用的LORE擴展執行節點 (v9.0 - 適配量化流程)
@@ -1288,19 +1213,19 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v35.0 - 引入角色量化節點)
+# 函式：創建主回應圖 (v36.0 - 廢除淨化層)
 # 更新紀錄:
-# v35.0 (2025-09-08): [重大架構重構] 為了從根本上解決 AI 無法正確處理“一群”等模糊群體數量的問題，對圖的拓撲進行了關鍵修改：
-#    1. [新增] 引入了一個全新的 `character_quantification` 節點，專門負責將模糊的群體描述轉化為具體的角色列表。
-#    2. [重連] 修改了 `route_expansion_decision` 路由，當需要擴展時，不再直接指向 `lore_expansion`，而是先指向新的 `character_quantification` 節點。
-#    3. [重連] `character_quantification` 節點的輸出現在連接到 `lore_expansion` 節點，為其提供確定性的、量化後的輸入。
-#    此修改採用了“分而治之”的策略，極大地提高了 LORE 擴展流程的可靠性。
+# v36.0 (2025-09-08): [災難性BUG修復] 徹底廢除了「前置淨化層」架構。
+#    1. [移除] 移除了圖中的 `pre_process_input` 節點。
+#    2. [重連] 將 `classify_intent` 設置為新的圖入口點。
+#    此修改旨在從根本上解決因淨化導致意圖信號丟失、引發路由錯誤的致命問題。
+# v35.0 (2025-09-08): [重大架構重構] 引入了 `character_quantification` 節點，採用“分而治之”策略解決群體角色創建問題。
 # v34.0 (2025-09-06): [災難性BUG修復] 徹底重構了圖的NSFW處理路徑，引入了三節點「NSFW思維鏈」流水線。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("pre_process_input", pre_process_input_node)
+    # [v36.0 移除] 不再註冊 pre_process_input
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1308,15 +1233,12 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     
-    # [v35.0 新增] 註冊新的量化節點
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
-    # SFW 規劃器保持不變
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # NSFW 思維鏈節點
     graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
     graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
     graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
@@ -1338,32 +1260,29 @@ def create_main_response_graph() -> StateGraph:
 
 
     # --- 2. 定義圖的拓撲結構 ---
-    graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "classify_intent")
+    # [v36.0 核心修正] 將 classify_intent 設置為新的入口點
+    graph.set_entry_point("classify_intent")
+    
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # [v35.0 核心修正] 重新定義擴展路徑
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
         { 
-            # 如果需要擴展，先去量化
             "expand_lore": "character_quantification", 
             "continue_to_planner": "prepare_existing_subjects"
         }
     )
-    # 量化完成後，再去執行擴展
     graph.add_edge("character_quantification", "lore_expansion")
     
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
-        # ... (此路由函式內部邏輯不變) ...
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification:
@@ -1394,24 +1313,20 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # NSFW 思維鏈流水線
     graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
     graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
     graph.add_edge("nsfw_style_compliance", "tool_execution")
     
-    # SFW 路線的出口
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
-    # 後續流程保持統一
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v35.0 - 引入角色量化節點)
-
+# 函式：創建主回應圖 (v36.0 - 廢除淨化層)
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
@@ -1500,4 +1415,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
