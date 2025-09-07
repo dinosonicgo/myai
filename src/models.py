@@ -1,9 +1,8 @@
-# models.py 的中文註釋(v17.0 - 新增導演視角)
+# models.py 的中文註釋(v17.1 - 持久化意圖)
 # 更新紀錄:
-# v17.0 (2025-09-06): [災難性BUG修復] 在 GameState 模型中增加了 viewing_mode 和 remote_target_path 兩個關鍵欄位。這創建了一個持久化的“導演視角”狀態機，旨在從根本上解決 AI 在生成遠程場景後，下一輪互動錯誤地將使用者角色重新拉回場景的“上下文洩漏”問題。
-# v16.0 (2025-08-12): [重大架構重構] 移除了所有基礎 LORE 模型 (CharacterProfile, LocationInfo 等) 的本地定義，改為從新的 `schemas.py` 檔案中導入。
-# v15.0 (2025-08-12): [架構重構] 移除了本地的 CharacterAction 和 TurnPlan 模型定義。
-
+# v17.1 (2025-09-22): [災難性BUG修復] 在 GameState 模型中增加了 `last_intent_type` 欄位。此修改旨在將上一輪對話的核心意圖（SFW/NSFW/描述性）持久化到資料庫，從根本上解決“继续”等延续性指令因缺乏上下文而被错误分类的问题。
+# v17.0 (2025-09-06): [災難性BUG修復] 在 GameState 模型中增加了 viewing_mode 和 remote_target_path 兩個關鍵欄位。
+# v16.0 (2025-08-12): [重大架構重構] 移除了所有基礎 LORE 模型 (CharacterProfile, LocationInfo 等) 的本地定義。
 import json
 import re
 from typing import Optional, Dict, List, Any, Literal
@@ -21,9 +20,10 @@ class GameState(BaseModel):
     money: int = 100
     location_path: List[str] = Field(default_factory=lambda: ["時空奇點"], description="表示使用者角色【當前的真實物理位置】的層級路徑。")
     inventory: List[str] = Field(default_factory=list, description="團隊共用的儲存空間，存放【未被穿戴】的物品。")
-    # [v17.0 新增] 導演視角狀態機
     viewing_mode: Literal['local', 'remote'] = Field(default='local', description="當前玩家的視角模式。'local'表示正在與身邊環境互動，'remote'表示正在觀察遠程地點。")
     remote_target_path: Optional[List[str]] = Field(default=None, description="如果 viewing_mode 為 'remote'，這裡儲存遠程觀察的目標路徑。")
+    # [v17.1 新增] 持久化意圖狀態
+    last_intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(default='sfw', description="上一輪對話的最終意圖分類，用於處理'继续'等延续性指令。")
     
     @field_validator('inventory', 'location_path', 'remote_target_path', mode='before')
     @classmethod
