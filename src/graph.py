@@ -245,11 +245,12 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 焦點鎖定節點 (v1.0 - 焦點鎖定專用)
+# 函式：[新] 焦點鎖定節點 (v2.0 - 增加程序化二次過濾)
 # 更新紀錄:
-# v1.0 (2025-09-22): [重大架構升級] 創建此節點，作為“焦點鎖定”機制的執行器。它調用 focus_locking_chain 來分析並篩選出場景中最核心的互動角色，然後用這個“淨化”後的角色列表覆蓋狀態，為下游所有規劃和渲染節點提供一個無歧義、高度聚焦的上下文。
+# v2.0 (2025-09-22): [災難性BUG修復] 新增了程序化的【二次過濾】邏輯，作為雙重保險。在接收到 LLM 的篩選結果後，此節點會用 Python 程式碼再次遍歷角色列表，手動移除任何 name 欄位為空或無效的角色。這確保了即使 LLM 的過濾指令失敗，輸出的 planning_subjects 列表也絕對是乾淨的，從而根除了下游因髒數據導致的崩潰。
+# v1.0 (2025-09-22): [重大架構升級] 創建此節點，作為“焦點鎖定”機制的執行器。
 async def focus_locking_node(state: ConversationGraphState) -> Dict:
-    """在規劃前，分析並篩選出本回合的核心互動角色。"""
+    """在規劃前，分析並篩選出本回合的核心互動角色，並進行數據清洗。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -272,11 +273,23 @@ async def focus_locking_node(state: ConversationGraphState) -> Dict:
 
     if result and result.relevant_characters:
         logger.info(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定成功。思考: {result.thought}")
-        return {"planning_subjects": result.relevant_characters}
+        
+        # [v2.0 核心修正] 程序化二次過濾，作為雙重保險
+        initial_count = len(result.relevant_characters)
+        cleaned_characters = [
+            char for char in result.relevant_characters 
+            if isinstance(char, dict) and char.get("name") and str(char.get("name")).strip()
+        ]
+        final_count = len(cleaned_characters)
+
+        if initial_count != final_count:
+            logger.warning(f"[{user_id}] (Graph|Focus Lock) 二次過濾機制檢測並移除了 {initial_count - final_count} 個無效（空名）角色。")
+
+        return {"planning_subjects": cleaned_characters}
     else:
         logger.warning(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定鏈未能返回有效角色列表，將使用原始列表繼續。")
         return {}
-# 函式：[新] 焦點鎖定節點 (v1.0 - 焦點鎖定專用)
+# 函式：[新] 焦點鎖定節點 (v2.0 - 增加程序化二次過濾)
 
 
 
@@ -1529,6 +1542,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
