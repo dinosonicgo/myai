@@ -1,6 +1,6 @@
 # launcher.py 的中文註釋(v3.2 - 完整性修復)
 # 更新紀錄:
-# v3.2 (2025-09-07): [功能擴展] 在主循環中增加了旗標檔案的創建邏輯。當偵測到主程式正常退出時，會創建 .update_successful_flag 檔案，以便新啟動的機器人進程可以識別出這是一次更新後的重啟，並向管理員發送對應的通知。
+# v3.2 (2025-09-04): [灾难性BUG修复] 提供了完整的文件内容，确保顶层的 `import time` 语句被正确包含，解决了因 NameError 导致的启动器立即退出的问题。
 # v3.1 (2025-09-04): [灾难性BUG修复] 在文件顶部增加了 `import time`，以解决因调用 `time.sleep()` 而导致的 `NameError: name 'time' is not defined` 致命错误。
 # v3.0 (2025-09-03): [重大架構重構] 引入了守護進程循環。
 
@@ -48,7 +48,7 @@ def _run_command(command, working_dir=None):
         sys.exit(1)
 # 函式：執行命令
 
-# 函式：主啟動邏輯 (v3.2 - 增加重啟旗標)
+# 函式：主啟動邏輯 (v3.1 - 修复依赖)
 def main():
     """主啟動函式。"""
     current_dir = Path(__file__).resolve().parent
@@ -91,14 +91,6 @@ def main():
 
             if return_code == 0:
                 print("\n[啟動器] 偵測到主程式正常退出 (返回碼 0)，將在 5 秒後自動重啟以應用更新...")
-                # [v3.2 核心修正] 創建旗標檔案，通知下一個進程這是一次更新重啟
-                try:
-                    flag_path = current_dir / ".update_successful_flag"
-                    flag_path.touch(exist_ok=True)
-                    print(f"[啟動器] 已創建重啟旗標檔案於: {flag_path}")
-                except Exception as e:
-                    print(f"[啟動器] 🔥 錯誤: 創建重啟旗標檔案失敗: {e}")
-
                 time.sleep(5)
             else:
                 print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
@@ -118,7 +110,7 @@ def main():
         print("\n----------------------------------------------------")
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
-# 函式：主啟動邏輯 (v3.2 - 增加重啟旗標)
+# 函式：主啟動邏輯 (v3.1 - 修复依赖)
 
 if __name__ == "__main__":
     main()

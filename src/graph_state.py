@@ -1,3 +1,9 @@
+# src/graph_state.py 的中文註釋(v8.0 - 新增淨化輸入)
+# 更新紀錄:
+# v8.0 (2025-09-06): [重大架構升級] 新增了 `sanitized_user_input` 欄位。此欄位將用於儲存經過「前置淨化層」處理後的、對分析節點安全的指令版本，是解決內容審查導致路由失敗的關鍵一步。
+# v7.1 (2025-09-18): [災難性BUG修復] 再次恢復了被先前版本錯誤省略的 SetupGraphState 類別的完整程式碼，以解決 ImportError。
+# v7.0 (2025-09-18): [重大架構升級] 新增了 `planning_subjects` 欄位。
+
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
 
@@ -5,11 +11,7 @@ from .schemas import (UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult
                       TurnPlan, ExpansionDecision, IntentClassificationResult, StyleAnalysisResult)
 from .ai_core import AILover
 
-# 類別：對話圖狀態 (v9.0 - 新增指令模組狀態)
-# 更新紀錄:
-# v9.0 (2025-09-29): [重大架構升級] 新增了 `active_action_module_content` 欄位。此欄位用於在圖的早期階段確定並加載當前回合所需的戰術指令模組（如性愛協議），並將其內容在整個圖的狀態中傳遞，從根本上解決了後期節點（如渲染和解碼）無法訪問這些關鍵指令的問題。
-# v8.0 (2025-09-06): [重大架構升級] 新增了 `sanitized_user_input` 欄位。
-# v7.1 (2025-09-18): [災難性BUG修復] 恢復了 SetupGraphState。
+# 類別：對話圖狀態
 class ConversationGraphState(TypedDict):
     """
     主對話流程的狀態容器。
@@ -22,8 +24,8 @@ class ConversationGraphState(TypedDict):
     # --- 核心對話數據 ---
     messages: List[BaseMessage]
     
-    # [v9.0 新增] 當前回合激活的戰術指令模組的完整內容
-    active_action_module_content: Optional[str]
+    # [v8.0 新增] 經過淨化的、用於分析節點的安全版本使用者輸入
+    sanitized_user_input: Optional[str]
     
     # --- 精細化節點的數據載體 ---
     raw_lore_objects: List[Any]

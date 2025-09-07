@@ -1589,20 +1589,13 @@ class BotCog(commands.Cog):
                 await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 # 類別：機器人核心功能集 (Cog)
 
-# 類別：AI 戀人機器人主體 (v1.2 - 增加啟動通知)
+# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
 # 更新紀錄:
-# v1.2 (2025-09-07): [功能擴展] 徹底重構了 on_ready 事件，實現了向管理員發送啟動/重啟通知的完整邏輯。
-#    1. [新增] __init__ 中增加了 self.is_first_ready 旗標，防止因斷線重連導致的重複通知。
-#    2. [新增] on_ready 中增加了對 .update_successful_flag 旗標檔案的檢查。
-#    3. [新增] 根據旗標檔案是否存在，向管理員發送「更新成功並重啟」或「系統首次啟動」的差異化通知。
-#    4. [新增] 發送通知後會立即刪除旗標檔案，確保邏輯的正確性。
-# v1.1 (2025-09-06): [重大架構重構] 修改了 `__init__` 方法，使其能夠接收並存儲一個 `asyncio.Event` 作為關閉信號。
+# v1.1 (2025-09-06): [重大架構重構] 修改了 `__init__` 方法，使其能夠接收並存儲一個 `asyncio.Event` 作為關閉信號。這使得機器人內部（如 Cog）可以訪問並觸發這個事件，從而實現與主事件循環的解耦和優雅的關閉流程。
 class AILoverBot(commands.Bot):
     def __init__(self, shutdown_event: asyncio.Event):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
         self.shutdown_event = shutdown_event
-        # [v1.2 新增] 內部旗標，確保通知只在每個進程生命週期中發送一次
-        self.is_first_ready = True
     
     async def setup_hook(self):
         await self.add_cog(BotCog(self))
@@ -1611,56 +1604,4 @@ class AILoverBot(commands.Bot):
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-
-        # [v1.2 核心修正] 執行一次性的啟動/重啟通知邏輯
-        if not self.is_first_ready:
-            return
-        self.is_first_ready = False
-
-        if not settings.ADMIN_USER_ID:
-            logger.warning("未在 .env 中設定 ADMIN_USER_ID，無法發送啟動通知。")
-            return
-
-        try:
-            admin_user = await self.fetch_user(int(settings.ADMIN_USER_ID))
-            if not admin_user:
-                logger.error(f"找不到 ADMIN_USER_ID 為 {settings.ADMIN_USER_ID} 的使用者。")
-                return
-
-            flag_file_path = PROJ_DIR / ".update_successful_flag"
-            
-            try:
-                if flag_file_path.is_file():
-                    # 情況1: 更新後重啟
-                    embed = discord.Embed(
-                        title="✅ 系統更新並重啟成功",
-                        description=f"**{self.user.name}** 已成功從 GitHub 同步最新程式碼並完成重啟。",
-                        color=discord.Color.green()
-                    )
-                    embed.set_footer(text="所有服務均已恢復正常。")
-                    await admin_user.send(embed=embed)
-                    logger.info("已向管理員發送【更新成功】通知。")
-                else:
-                    # 情況2: 正常首次啟動
-                    embed = discord.Embed(
-                        title="🚀 系統已成功啟動",
-                        description=f"**{self.user.name}** 已成功連線至 Discord 並準備好接收指令。",
-                        color=discord.Color.blue()
-                    )
-                    embed.set_footer(text="所有服務均已上線。")
-                    await admin_user.send(embed=embed)
-                    logger.info("已向管理員發送【首次啟動】通知。")
-            finally:
-                # 無論如何，都要嘗試刪除旗標檔案，確保下次啟動是乾淨的
-                if flag_file_path.is_file():
-                    try:
-                        os.remove(flag_file_path)
-                        logger.info(f"已成功刪除重啟旗標檔案: {flag_file_path}")
-                    except OSError as e:
-                        logger.error(f"刪除重啟旗標檔案失敗: {e}")
-
-        except discord.errors.Forbidden:
-            logger.warning(f"無法向管理員 {settings.ADMIN_USER_ID} 發送私訊。可能需要成為好友或開啟私訊權限。")
-        except Exception as e:
-            logger.error(f"在 on_ready 發送通知時發生未預期錯誤: {e}", exc_info=True)
-# 類別：AI 戀人機器人主體 (v1.2 - 增加啟動通知)
+# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
