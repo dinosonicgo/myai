@@ -215,7 +215,11 @@ class CharacterAction(BaseModel):
             raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
 
-# 類別：回合計劃 (v14.0 - 自我修復)
+# 類別：回合計劃 (v15.0 - 自我修復驗證器)
+# 更新紀錄:
+# v15.0 (2025-09-22): [災難性BUG修復] 徹底重構了 `check_plan_logic` 驗證器，使其具備“自我修復”能力。當檢測到 LLM 同時輸出常規計畫和拒絕理由時，驗證器會優先保留計畫內容並自動清空拒絕理由，而不是拋出錯誤。此修改從根本上解決了因 LLM 輸出邏輯矛盾導致的 ValidationError 崩潰問題。
+# v14.0 (2025-09-08): [功能擴展] ItemInfo 新增了 `visual_description` 欄位。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了「自我修復」的 `repair_missing_character_names` 驗證器。
 class TurnPlan(BaseModel):
     """一回合行動的完整結構化計畫。"""
     thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
@@ -227,7 +231,6 @@ class TurnPlan(BaseModel):
     @model_validator(mode='before')
     @classmethod
     def repair_missing_character_names(cls, data: Any) -> Any:
-        # ... (此驗證器邏輯不變) ...
         if isinstance(data, dict) and 'character_actions' in data and isinstance(data['character_actions'], list):
             last_valid_name = None
             for action in data['character_actions']:
@@ -240,31 +243,24 @@ class TurnPlan(BaseModel):
 
     @model_validator(mode='after')
     def check_plan_logic(self) -> 'TurnPlan':
-        # ... (此驗證器邏輯不變) ...
-        has_thought_or_actions = bool(self.thought) or bool(self.character_actions)
+        """[v15.0 自我修復模式] 驗證並修復計畫的邏輯一致性。"""
+        has_actions = bool(self.character_actions)
         has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
 
+        # [v15.0 核心修正] 如果兩者同時存在，優先保留 actions 並清空 rejection
+        if has_actions and has_rejection:
+            # 使用 object.__setattr__ 來繞過 Pydantic 的保護，直接修改欄位值
+            object.__setattr__(self, 'execution_rejection_reason', None)
+            # 重新檢查 has_rejection 狀態
+            has_rejection = False
+            
+        # 在修復後，再進行最終的邏輯檢查
+        has_thought_or_actions = bool(self.thought) or has_actions
         if not has_thought_or_actions and not has_rejection:
             raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
-        
-        if has_thought_or_actions and has_rejection:
-            raise ValueError("計畫不能同時包含常規計畫內容(thought/actions)和拒絕執行的理由(execution_rejection_reason)。")
             
         return self
-
-    @model_validator(mode='after')
-    def check_plan_logic(self) -> 'TurnPlan':
-        """驗證計畫的邏輯一致性。"""
-        has_thought_or_actions = bool(self.thought) or bool(self.character_actions)
-        has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
-
-        if not has_thought_or_actions and not has_rejection:
-            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
-        
-        if has_thought_or_actions and has_rejection:
-            raise ValueError("計畫不能同時包含常規計畫內容(thought/actions)和拒絕執行的理由(execution_rejection_reason)。")
-            
-        return self
+# 類別：回合計劃 (v15.0 - 自我修復驗證器)
 
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
@@ -407,6 +403,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
