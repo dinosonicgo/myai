@@ -798,16 +798,15 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：SFW規劃節點 (v26.0 - KeyError 修正)
+# 函式：SFW規劃節點 (v27.0 - 參數補全)
 # 更新紀錄:
+# v27.0 (2025-09-26): [災難性BUG修復] 根據 KeyError Log，修正了此節點的數據準備邏輯。在構建傳遞給規劃鏈的 `chain_input` 字典時，補全了其 Prompt Template 所必需的、但先前被遺漏的 `action_sexual_content_prompt` 參數。此修改從根本上解決了因缺少變數而導致的 LangChain 模板渲染失敗問題。
 # v26.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
 # v25.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
-# v24.0 (2025-09-18): [重大架構重構] 修改了數據源。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v26.0 核心修正] 移除對 sanitized_user_input 的引用
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
 
@@ -818,7 +817,17 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if planning_subjects_raw is None:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+    
+    # 確保主角和 AI 也被加入到規劃主體中
+    user_char = ai_core.profile.user_profile.model_dump()
+    ai_char = ai_core.profile.ai_profile.model_dump()
+    
+    subjects_map = {p['name']: p for p in planning_subjects_raw}
+    subjects_map[user_char['name']] = user_char
+    subjects_map[ai_char['name']] = ai_char
+    
+    final_planning_subjects = list(subjects_map.values())
+    planning_subjects_json = json.dumps(final_planning_subjects, ensure_ascii=False, indent=2)
 
     gs = ai_core.profile.game_state
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
@@ -840,22 +849,26 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
+    # [v27.0 核心修正] 補全缺失的 action_sexual_content_prompt 參數
+    chain_input = {
+        "system_prompt": ai_core.profile.one_instruction, 
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+        "world_snapshot": world_snapshot, 
+        "chat_history": chat_history_str,
+        "planning_subjects_json": planning_subjects_json,
+        "user_input": user_input,
+    }
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_sfw_planning_chain(), 
-        {
-            "system_prompt": ai_core.profile.one_instruction, 
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot, 
-            "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json,
-            "user_input": user_input,
-        },
+        chain_input,
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v26.0 - KeyError 修正)
+# 函式：SFW規劃節點 (v27.0 - 參數補全)
 
 
 
@@ -863,17 +876,15 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
 
 
 
-
-# 函式：遠程 SFW 規劃節點 (v7.0 - KeyError 修正)
+# 函式：遠程 SFW 規劃節點 (v8.0 - 參數補全)
 # 更新紀錄:
+# v8.0 (2025-09-26): [災難性BUG修復] 與本地 SFW 規劃節點同步，補全了在調用鏈時缺失的 `action_sexual_content_prompt` 參數，解決了因此導致的 KeyError 崩潰。
 # v7.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
 # v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
-# v5.0 (2025-09-18): [災難性BUG修復] 徹底重構了 target_location_path 的獲取邏輯。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v7.0 核心修正] 移除對 sanitized_user_input 的引用
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|7D) Node: remote_sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成遠程SFW場景計劃...")
 
@@ -922,25 +933,29 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
+    # [v8.0 核心修正] 補全缺失的 action_sexual_content_prompt 參數
+    chain_input = {
+        "system_prompt": ai_core.profile.one_instruction, 
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+        "world_snapshot": world_snapshot,
+        "chat_history": chat_history_str,
+        "planning_subjects_json": planning_subjects_json,
+        "target_location_path_str": target_location_path_str,
+        "user_input": user_input,
+        "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name
+    }
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_sfw_planning_chain(),
-        {
-            "system_prompt": ai_core.profile.one_instruction, 
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot,
-            "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json,
-            "target_location_path_str": target_location_path_str,
-            "user_input": user_input,
-            "username": ai_core.profile.user_profile.name,
-            "ai_name": ai_core.profile.ai_profile.name
-        },
+        chain_input,
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：遠程 SFW 規劃節點 (v7.0 - KeyError 修正)
+# 函式：遠程 SFW 規劃節點 (v8.0 - 參數補全)
 
 
 # 函式：遠程NSFW規劃節點 (v8.0 - KeyError 修正)
