@@ -773,24 +773,39 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v10.0 - 實現“比對-補充”邏輯)
+# 函式：專用的LORE擴展執行節點 (v11.0 - 直連資料庫)
 # 更新紀錄:
-# v10.0 (2025-09-22): [重大架構重構] 徹底重寫了此節點的邏輯，以實現智能的“比對-補充”LORE擴展。它現在接收上游傳來的“選角需求單”，將其與場景中現有的NPC進行比對，精確計算出缺失的角色數量和性別，然後只調用修正鏈來創建不足的部分。這使得LORE擴展變得幂等且高效，從根本上解決了角色重複創建或缺失的問題。
-# v9.0 (2025-09-22): [災難性BUG修復] 引入了“監督-驗證-修正”循環。
+# v11.0 (2025-09-22): [災難性BUG修復] 徹底重構了此節點的數據源邏輯。不再依賴上游節點傳遞的、可能不完整的 planning_subjects 列表，而是在節點內部根據當前有效場景路徑，【直接重新查詢資料庫】，以獲取當前場景所有NPC的、最權威的完整列表。此修改從根本上解決了因數據源不一致導致的“比對-補充”邏輯決策錯誤的問題。
+# v10.0 (2025-09-22): [重大架構重構] 實現了智能的“比對-補充”LORE擴展邏輯。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 根據“選角需求單”智能地比對、補充或直接使用現有NPC。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     requirements = state.get('scene_casting_requirements')
     
-    # 由於 focus_locking 節點的存在，planning_subjects 裡是已經過篩選的相關角色
-    existing_characters = state.get('planning_subjects', []) 
-    
     logger.info(f"[{user_id}] (Graph|LORE Expansion) Node: lore_expansion -> 正在執行【比對-補充】式LORE擴展...")
 
     if not ai_core.profile or not requirements:
         logger.error(f"[{user_id}] (Graph|LORE Expansion) ai_core.profile 或選角需求單未加載，跳過擴展。")
-        return {"planning_subjects": existing_characters}
+        return {"planning_subjects": state.get('planning_subjects', [])}
+
+    # [v11.0 核心修正] 直連資料庫獲取權威的角色列表
+    gs = ai_core.profile.game_state
+    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+    
+    try:
+        from . import lore_book
+        existing_lores = await lore_book.get_lores_by_category_and_filter(
+            user_id,
+            'npc_profile',
+            lambda c: c.get('location_path') == effective_location_path
+        )
+        existing_characters = [lore.content for lore in existing_lores]
+        logger.info(f"[{user_id}] (LORE Expansion) 已從資料庫為場景 '{' > '.join(effective_location_path)}' 加載了 {len(existing_characters)} 位現有角色。")
+    except Exception as e:
+        logger.error(f"[{user_id}] (LORE Expansion) 從資料庫查詢現有角色時出錯: {e}", exc_info=True)
+        existing_characters = []
+
 
     # 步驟 1: 盤點現有演員
     current_males = sum(1 for char in existing_characters if char.get('gender', '').lower() == '男')
@@ -809,8 +824,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         correction_instruction = f"劇情基於 '{requirements.scene_summary}'。請補充創建【{missing_males}名男性】和【{missing_females}名女性】角色以補完場景。"
         
         correction_chain = ai_core.get_character_correction_chain()
-        gs = ai_core.profile.game_state
-        effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
 
         correction_result = await ai_core.ainvoke_with_rotation(
             correction_chain,
@@ -823,14 +836,18 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             }
         )
         if correction_result:
-            newly_created_characters.extend(correction_result.newly_created_npcs)
-            newly_created_characters.extend(correction_result.supporting_cast)
-            logger.info(f"[{user_id}] (LORE Expansion) 修正鏈成功，已補充創建了 {len(newly_created_characters)} 位新角色。")
+            newly_created_from_correction = correction_result.newly_created_npcs + correction_result.supporting_cast
+            logger.info(f"[{user_id}] (LORE Expansion) 修正鏈成功，已生成 {len(newly_created_from_correction)} 位新角色。")
             
             # 持久化新創建的角色
-            if newly_created_characters:
-                cast_result_wrapper = SceneCastingResult(newly_created_npcs=newly_created_characters)
-                await ai_core._add_cast_to_scene(cast_result_wrapper)
+            if newly_created_from_correction:
+                cast_result_wrapper = SceneCastingResult(newly_created_npcs=newly_created_from_correction)
+                created_names = await ai_core._add_cast_to_scene(cast_result_wrapper)
+                # 為了獲取完整的 profile，我們需要再次從資料庫讀取剛剛創建的角色
+                if created_names:
+                    newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)
+                    newly_created_characters = [lore.content for lore in newly_created_lores]
+
     else:
         logger.info(f"[{user_id}] (LORE Expansion) 現有角色已滿足場景需求，無需擴展。")
 
@@ -838,8 +855,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     final_planning_subjects = existing_characters + newly_created_characters
     logger.info(f"[{user_id}] (LORE Expansion) 已將 {len(final_planning_subjects)} 位角色 (現有+補充) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": final_planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v10.0 - 實現“比對-補充”邏輯)
-
+# 函式：專用的LORE擴展執行節點 (v11.0 - 直連資料庫)
 
 
 
@@ -1525,6 +1541,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
