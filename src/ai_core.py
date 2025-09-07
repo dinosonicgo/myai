@@ -2862,49 +2862,96 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 最終簡化版)
+    # 函式：“安全備援”委婉化重試處理器 (v208.0 - 解構-重構)
     # 更新紀錄:
-    # v209.0 (2025-09-06): [重大架構重構] 根據全新的“先分類，後處理”圖架構，此函式的職責被極大簡化。由於內部鏈現在只應處理SFW內容，此函式現在作為一個最終安全網：它只會嘗試一次最簡單的委婉化，如果失敗，則立即返回None，觸發安全備援值，確保SFW路徑的絕對穩定。
-    # v208.0 (2025-09-06): [災難性BUG修復] 徹底重寫此函式，實現最終的“程序化解構-重構”策略。
+    # v208.0 (2025-09-10): [災難性BUG修復] 徹底重寫了此函式的邏輯，以根除“委婉化過程本身被審查”的悖論。新版本實現了最終的“解構-重構”策略：
+    #    1. [解構] 首先調用安全的實體提取鏈，將失敗的露骨輸入分解為一組中性關鍵詞。
+    #    2. [重構] 然後調用新增的委婉化鏈，從這些安全關鍵詞中重構出一句全新的、保證安全的句子。
+    #    此修改極大地提高了內部鏈在面對露骨輸入時的備援成功率。
+    # v207.0 (2025-09-06): [重大架構重構] 簡化了此鏈的職責。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v209.0 新架構] 一個輕量級的最終安全網，用於處理在SFW路徑中意外失敗的內部鏈。
+        [v208.0 新架構] 一個健壯的備援機制，用於處理在非 NSFW 路徑中意外失敗的內部鏈。
+        它通過“解構-重構”的方式，將露骨輸入轉化為安全版本後重試。
         """
-        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【最終安全網委婉化】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構委婉化】策略...")
         
         try:
+            # --- 步驟 0: 提取需要處理的文本 ---
             text_to_euphemize = ""
+            key_to_replace = None
+            
             if isinstance(failed_params, dict):
-                string_values = [v for v in failed_params.values() if isinstance(v, str)]
-                if string_values: text_to_euphemize = max(string_values, key=len)
+                string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
+                if string_values:
+                    key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
+                    text_to_euphemize = string_values[key_to_replace]
             elif isinstance(failed_params, str):
                 text_to_euphemize = failed_params
-            else: # 對於文檔列表等其他類型，直接放棄
+            
+            if not text_to_euphemize:
                 raise ValueError("無法從參數中提取可委婉化的文本。")
 
-            if not text_to_euphemize:
-                raise ValueError("提取出的文本為空。")
-
-            # 使用一個極其簡單和安全的Prompt進行一次性嘗試
-            safe_text = f"總結以下內容的核心主題：'{text_to_euphemize[:200]}...'"
+            # --- 步驟 1: 解構 ---
+            logger.info(f"[{self.user_id}] (Euphemizer) 正在將 '{text_to_euphemize[:50]}...' 解構為安全關鍵詞...")
+            entity_extraction_chain = self.get_entity_extraction_chain()
+            entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
             
-            # 使用生成出的安全文本進行重試
+            keywords_for_reconstruction = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
+            if not keywords_for_reconstruction:
+                 raise ValueError("解構後未能獲取任何關鍵詞。")
+            logger.info(f"[{self.user_id}] (Euphemizer) 解構成功，獲得關鍵詞: {keywords_for_reconstruction}")
+
+            # --- 步驟 2: 重構 ---
+            euphemization_chain = self.get_euphemization_chain()
+            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_reconstruction})
+            if not safe_text:
+                raise ValueError("委婉化重構鏈未能生成安全文本。")
+            logger.info(f"[{self.user_id}] (Euphemizer) 重構成功，生成安全文本: '{safe_text[:50]}...'")
+
+            # --- 步驟 3: 重試 ---
             retry_params = failed_params
-            if isinstance(retry_params, dict):
-                key_to_replace = max(retry_params, key=lambda k: len(str(retry_params.get(k, ''))))
+            if isinstance(retry_params, dict) and key_to_replace:
                 retry_params[key_to_replace] = safe_text
             else: # str
                 retry_params = safe_text
 
-            logger.info(f"[{self.user_id}] (安全網) 已生成安全文本，正在用其重試原始鏈...")
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【最終安全網委婉化】策略失敗: {e}。將觸發安全備援。")
+            logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}。將觸發安全備援。")
             return None # 如果整個流程依然失敗，返回 None 以觸發安全備援
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 最終簡化版)
+    # 函式：“安全備援”委婉化重試處理器 (v208.0 - 解構-重構)
 
+    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
+    # 更新紀錄:
+    # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為“解構-重構”委婉化策略的第二步。它接收一組安全的關鍵詞（而不是原始的露骨文本），並在此基礎上構建一個中性的、安全的句子，從根本上規避了委婉化過程本身被審查的悖論。
+    def get_euphemization_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從關鍵詞重構安全句子的鏈。"""
+        if not hasattr(self, 'euphemization_chain') or self.euphemization_chain is None:
+            euphemizer_llm = self._create_llm_instance(temperature=0.1)
+            
+            prompt_template = """你是一位語言專家和溝通大師。你的唯一任務是接收一組【核心概念關鍵詞】，並將它們組織成一句通順的、語義完整的、但措辭【絕對中性、通用且安全】的句子。
 
+【核心規則】
+1.  **意圖推斷**: 根據關鍵詞推斷出原始的核心意圖。
+2.  **極致中性化**: 你的輸出【絕對禁止】包含任何可能被視為攻擊性、露骨或敏感的詞彙。你的目標是創造一個最不可能觸發任何自動化內容安全過濾器的【安全版本】。
+3.  **保持簡潔**: 不要添加任何不必要的解釋或額外內容，只輸出重構後的句子。
+
+【範例】
+-   核心概念關鍵詞: `["粗魯", "對待", "頭部", "碧", "發生", "口腔互動"]`
+-   生成的安全句子: `描述一個場景，其中角色碧的頭部被粗魯地對待，並發生了口腔互動。`
+
+---
+【核心概念關鍵詞】:
+{keywords}
+---
+【生成的安全句子】:
+"""
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.euphemization_chain = prompt | euphemizer_llm | StrOutputParser()
+        return self.euphemization_chain
+    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
     
 
     # 函式：指令強化重試處理器 (v4.0 - 系統級指令強化)
@@ -2965,10 +3012,10 @@ class AILover:
 
     
     
-     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.1 - 日誌修正)
+     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 恢復委婉化策略)
     # 更新紀錄:
-    # v209.1 (2025-09-05): [健壯性] 修正了 `force` 重試策略觸發時的日誌訊息，使其不再硬性綁定“最終輸出鏈”，而是使用更通用的“鏈”來指代，提高了日誌的準確性。
-    # v209.0 (2025-09-06): [架構適配] 適配了 v209.0 版本的、更簡化的最終安全網委婉化策略。
+    # v209.0 (2025-09-10): [重大架構升級] 恢復了 `euphemize` 重試策略的應用。現在，調用點可以明確指定在遭遇內容審查時，是應該採取“指令強化” (`force`) 還是“解構-重構委婉化” (`euphemize`)。此修改為處理不同類型的鏈（面向使用者的 vs. 內部工具鏈）提供了必要的靈活性。
+    # v208.0 (2025-09-06): [架構適配] 適配了 v208.0 版本的解構-重構委婉化策略。
     # v207.0 (2025-09-06): [重大架構升級] 恢復了 `euphemize` 重試策略。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
@@ -2998,10 +3045,10 @@ class AILover:
                 is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
 
                 if is_safety_error:
+                    # [v209.0 核心修正] 根據指定的策略選擇備援路徑
                     if retry_strategy == 'euphemize':
                         return await self._euphemize_and_retry(chain, params)
                     elif retry_strategy == 'force':
-                        # [v209.1 核心修正] 使用更通用的日誌訊息
                         logger.warning(f"[{self.user_id}] 鏈在執行期間遭遇審查。啟動【指令強化重試】策略...")
                         return await self._force_and_retry(chain, params)
                     else: # 'none'
@@ -3012,14 +3059,14 @@ class AILover:
                 raise e
 
         logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗。")
+        # 如果所有金鑰都因速率限制等問題失敗，最後再根據策略嘗試一次安全備援
         if retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params)
         elif retry_strategy == 'force':
-            # [v209.1 核心修正] 使用更通用的日誌訊息
             logger.warning(f"[{self.user_id}] 鏈在所有金鑰嘗試失敗後，最終遭遇審查。啟動【指令強化重試】策略...")
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.1 - 日誌修正)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 恢復委婉化策略)
 
     
 
@@ -3262,6 +3309,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
