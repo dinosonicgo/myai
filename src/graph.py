@@ -612,6 +612,55 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
 # 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 
 
+
+
+
+
+# 函式：[全新] 確定性視角模式節點 (v1.1 - 異步修正)
+# 更新紀錄:
+# v1.1 (2025-09-29): [災難性BUG修復] 根據 RuntimeError，將此節點從同步函式 (`def`) 修改為異步函式 (`async def`)。此修改確保了 LangGraph 會在主事件循環中正確地 `await` 此節點，從而解決了因在子線程中找不到事件循環而導致的崩潰問題。
+# v1.0 (2025-09-29): [重大架構重構] 創建此全新的、完全基於 Python 關鍵詞檢查的節點。
+async def determine_viewing_mode_node(state: ConversationGraphState) -> Dict:
+    """[1] 圖的新入口點。通過確定性的關鍵詞檢查，決定視角模式並更新遊戲狀態。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|1) Node: determine_viewing_mode -> 正在確定性地分析視角...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|1) ai_core.profile 未加載，無法確定視角。")
+        return {}
+
+    gs = ai_core.profile.game_state
+    
+    descriptive_keywords = ["描述", "描寫", "看看", "觀察"]
+    is_descriptive = any(user_input.strip().startswith(keyword) for keyword in descriptive_keywords)
+
+    needs_update = False
+    if is_descriptive:
+        if gs.viewing_mode != 'remote':
+            gs.viewing_mode = 'remote'
+            needs_update = True
+            logger.info(f"[{user_id}] (Graph|1) 檢測到描述性指令，視角模式設定為: remote")
+    else:
+        if gs.viewing_mode != 'local':
+            gs.viewing_mode = 'local'
+            gs.remote_target_path = None
+            needs_update = True
+            logger.info(f"[{user_id}] (Graph|1) 未檢測到描述性指令，視角模式設定為: local")
+
+    # 只有在狀態實際發生變化時才進行數據庫寫入
+    if needs_update:
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+
+    return {}
+# 函式：[全新] 確定性視角模式節點 (v1.1 - 異步修正)
+
+
+
+
+
+
 # 函式：專用LORE查詢節點 (v6.0 - 返璞歸真)
 # 更新紀錄:
 # v6.0 (2025-09-28): [架構重構] 根據“誘餌與酬載”策略的實施，此節點回歸到直接使用原始使用者輸入來提取實體。
