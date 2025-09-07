@@ -245,9 +245,10 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 焦點鎖定節點 (v2.0 - 增加程序化二次過濾)
+# 函式：[新] 焦點鎖定節點 (v3.0 - 上下文預淨化)
 # 更新紀錄:
-# v2.0 (2025-09-22): [災難性BUG修復] 新增了程序化的【二次過濾】邏輯，作為雙重保險。在接收到 LLM 的篩選結果後，此節點會用 Python 程式碼再次遍歷角色列表，手動移除任何 name 欄位為空或無效的角色。這確保了即使 LLM 的過濾指令失敗，輸出的 planning_subjects 列表也絕對是乾淨的，從而根除了下游因髒數據導致的崩潰。
+# v3.0 (2025-09-22): [災難性BUG修復] 引入了【上下文預淨化】機制。在調用LLM前，此節點會創建一個只包含角色名稱、性別和簡短描述的“安全簡報”，將這個淨化後的版本傳遞給LLM進行分析。這從根本上解決了因 planning_subjects 完整檔案中包含露骨詞彙而導致焦點鎖定鏈被內容審查攔截的致命問題。
+# v2.0 (2025-09-22): [災難性BUG修復] 新增了程序化的二次過濾邏輯，作為雙重保險。
 # v1.0 (2025-09-22): [重大架構升級] 創建此節點，作為“焦點鎖定”機制的執行器。
 async def focus_locking_node(state: ConversationGraphState) -> Dict:
     """在規劃前，分析並篩選出本回合的核心互動角色，並進行數據清洗。"""
@@ -261,23 +262,56 @@ async def focus_locking_node(state: ConversationGraphState) -> Dict:
 
     logger.info(f"[{user_id}] (Graph|Focus Lock) Node: focus_locking -> 正在為場景鎖定核心互動焦點...")
     
-    focus_chain = ai_core.get_focus_locking_chain()
-    
-    result = await ai_core.ainvoke_with_rotation(
-        focus_chain,
-        {
-            "user_input": user_input,
-            "planning_subjects_json": json.dumps(planning_subjects, ensure_ascii=False, indent=2)
-        }
-    )
+    # [v3.0 核心修正] 上下文預淨化
+    try:
+        sanitized_subjects_for_llm = [
+            {
+                "name": subject.get("name"),
+                "gender": subject.get("gender"),
+                "description": (subject.get("description") or "")[:30] + "..." 
+            }
+            for subject in planning_subjects
+            if subject.get("name") # 再次過濾確保有名字
+        ]
+        if not sanitized_subjects_for_llm:
+            logger.warning(f"[{user_id}] (Graph|Focus Lock) 預淨化後，沒有可供分析的角色。")
+            return {"planning_subjects": []}
+
+        focus_chain = ai_core.get_focus_locking_chain()
+        
+        result = await ai_core.ainvoke_with_rotation(
+            focus_chain,
+            {
+                "user_input": user_input,
+                "planning_subjects_json": json.dumps(sanitized_subjects_for_llm, ensure_ascii=False, indent=2)
+            }
+        )
+    except Exception as e:
+        logger.error(f"[{user_id}] (Graph|Focus Lock) 在執行焦點鎖定鏈時發生意外錯誤: {e}", exc_info=True)
+        result = None
+
 
     if result and result.relevant_characters:
         logger.info(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定成功。思考: {result.thought}")
         
-        # [v2.0 核心修正] 程序化二次過濾，作為雙重保險
-        initial_count = len(result.relevant_characters)
+        # [v3.0 核心修正] 結果重新映射
+        # 從LLM返回的簡化列表中提取出核心角色的名字
+        relevant_names = {char.get("name") for char in result.relevant_characters if char.get("name")}
+        focused_target_name = next((char.get("name") for char in result.relevant_characters if char.get("is_focus_target")), None)
+
+        # 從原始的、包含完整數據的 planning_subjects 列表中，重新匹配出完整的角色檔案
+        final_relevant_characters = []
+        for original_subject in planning_subjects:
+            if original_subject.get("name") in relevant_names:
+                # 如果這個角色是焦點目標，則將標記添加到完整的檔案中
+                if original_subject.get("name") == focused_target_name:
+                    original_subject["is_focus_target"] = True
+                final_relevant_characters.append(original_subject)
+        
+        # 程序化二次過濾，作為雙重保險
+        initial_count = len(final_relevant_characters)
         cleaned_characters = [
-            char for char in result.relevant_characters 
+            char for char in final_relevant_characters 
             if isinstance(char, dict) and char.get("name") and str(char.get("name")).strip()
         ]
         final_count = len(cleaned_characters)
@@ -287,9 +321,9 @@ async def focus_locking_node(state: ConversationGraphState) -> Dict:
 
         return {"planning_subjects": cleaned_characters}
     else:
-        logger.warning(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定鏈未能返回有效角色列表，將使用原始列表繼續。")
-        return {}
-# 函式：[新] 焦點鎖定節點 (v2.0 - 增加程序化二次過濾)
+        logger.warning(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定鏈未能返回有效角色列表，將使用原始的、未經篩選的列表繼續。")
+        return {"planning_subjects": planning_subjects}
+# 函式：[新] 焦點鎖定節點 (v3.0 - 上下文預淨化)
 
 
 
@@ -1542,6 +1576,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
