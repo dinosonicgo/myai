@@ -333,6 +333,72 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     return {"planning_subjects": planning_subjects}
 
 
+
+# 函式：[新] NSFW 直通生成節點 (v1.0 - NSFW 測試方案)
+# 更新紀錄:
+# v1.0 (2025-09-22): [重大架構測試] 創建此全新的“直通车”节点。它负责收集所有上下文，并调用唯一的、终极的 get_direct_nsfw_chain，一步到位直接生成最终的小说文本，旨在测试最简化流程的稳定性和内容质量。
+async def direct_nsfw_node(state: ConversationGraphState) -> Dict[str, str]:
+    """// NSFW 測試方案 v19.0 // 一步到位直接生成最终的 NSFW 小说文本。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_node -> 正在執行NSFW直通生成...")
+
+    if not ai_core.profile:
+        return {"llm_response": "错误：AI profile 未加载，无法生成场景。"}
+
+    planning_subjects_raw = state.get('planning_subjects')
+    if planning_subjects_raw is None:
+        lore_objects = state.get('raw_lore_objects', [])
+        planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+
+    gs = ai_core.profile.game_state
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': "(已弃用，请参考 planning_subjects_json)",
+        'relevant_npc_context': "(已弃用，请参考 planning_subjects_json)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+    
+    final_text = await ai_core.ainvoke_with_rotation(
+        ai_core.get_direct_nsfw_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
+            "user_input": user_input,
+        },
+        retry_strategy='force'
+    )
+
+    if not final_text:
+        final_text = "（安全備援：NSFW 直通生成鏈最终失败，可能因为内容审查或API临时故障。）"
+
+    return {"llm_response": final_text}
+# 函式：[新] NSFW 直通生成節點 (v1.0 - NSFW 測試方案)
+
+
+
+
+
+
+
 # 函式：NSFW 意圖偽裝節點 (v2.0 - 關鍵詞注入)
 # 更新紀錄:
 # v2.0 (2025-09-22): [重大架構重構] 彻底重写了此节点的逻辑，以实现“意图伪装”。它不再调用转码链，而是调用新的关键词提取链，然后将提取出的关键词在代码层面注入一个固定的、中性的指令模板中。此举旨在以更可靠、更机械化的方式破坏审查模型赖以识别的语法模式，同时确保核心意图不丢失。
@@ -774,11 +840,14 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
-# 函式：創建主回應圖 (v45.0 - 意圖偽裝架構)
+# 函式：創建主回應圖 (v47.0 - NSFW 直通車測試)
 # 更新紀錄:
-# v45.0 (2025-09-22): [架構簡化] 根據“意圖偽裝”策略的引入，暫時移除了後置的 `purification_node`。新的策略旨在讓前端的偽裝足以保證全程的穩定性，移除後置處理可以簡化調試流程並降低複雜度。所有渲染器現在直接連接到 `validate_and_rewrite` 節點。
-# v44.0 (2025-09-22): [重大架構重構] 引入了“导演-演员”模型，简化了 NSFW 拓扑。
-# v43.0 (2025-09-22): [重大架構重構] 引入了“意图转码”架构。
+# v47.0 (2025-09-22): [重大架構測試] 激活了“NSFW 直通车”测试方案。
+#    1. [新增] 注册了全新的 `direct_nsfw_node`。
+#    2. [重定向] 修改了主路由器，将所有 NSFW 流量直接路由到 `direct_nsfw_node`。
+#    3. [短路] 将 `direct_nsfw_node` 的出口直接连接到最终的清理节点，创建了一条最短、最直接的生成路径。
+#    4. [保留] 所有旧的 NSFW 节点（如转码、大纲生成）依然保留在图中，以便随时可以切换回旧方案。
+# v46.0 (2025-09-22): [架構修正] 恢复了 `purification_node` 以解决最终的指令泄漏和格式问题。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
     graph = StateGraph(ConversationGraphState)
@@ -794,15 +863,17 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
+    # 保留旧的 NSFW 节点，以备回滚
     graph.add_node("transcode_intent", transcode_intent_node)
     graph.add_node("nsfw_final_outline", nsfw_final_outline_node)
-    
-    graph.add_node("tool_execution", tool_execution_node)
-    graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("nsfw_final_rendering", final_rendering_node)
     
-    # [v45.0] purification_node 已被移除
-    
+    # [v47.0 新增] 註冊新的 NSFW 直通車節點
+    graph.add_node("direct_nsfw_node", direct_nsfw_node)
+
+    graph.add_node("tool_execution", tool_execution_node)
+    graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
+    graph.add_node("purification", purification_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
@@ -844,7 +915,8 @@ def create_main_response_graph() -> StateGraph:
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         if 'nsfw' in intent:
-            return "nsfw_planner"
+            # [v47.0 核心修正] 激活 NSFW 直通車測試方案
+            return "direct_nsfw_test"
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -856,7 +928,7 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_planner": "transcode_intent"
+            "direct_nsfw_test": "direct_nsfw_node" # NSFW 流量进入测试节点
         }
     )
     
@@ -864,21 +936,18 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
-    
-    # NSFW 路径
-    graph.add_edge("transcode_intent", "nsfw_final_outline")
-    graph.add_edge("nsfw_final_outline", "nsfw_final_rendering")
-    
-    # [v45.0 核心修正] 所有渲染器的出口都直接指向 validate_and_rewrite
-    graph.add_edge("sfw_narrative_rendering", "validate_and_rewrite")
-    graph.add_edge("nsfw_final_rendering", "validate_and_rewrite")
+    graph.add_edge("sfw_narrative_rendering", "purification")
+
+    # [v47.0 核心修正] NSFW 直通車路径 (直接跳到净化)
+    graph.add_edge("direct_nsfw_node", "purification")
     
     # 统一的後續流程
+    graph.add_edge("purification", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v45.0 - 意圖偽裝架構)
+# 函式：創建主回應圖 (v47.0 - NSFW 直通車測試)
 
 
 
@@ -964,6 +1033,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
