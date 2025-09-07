@@ -2091,70 +2091,68 @@ class AILover:
 
 
     
-    # 函式：獲取統一敘事渲染鏈 (v219.0 - 統一格式化方法)
+    # 函式：獲取統一敘事渲染鏈 (v220.0 - 授權對等)
     # 更新紀錄:
-    # v219.0 (2025-09-10): [災難性BUG修復] 根據 IndexError，最終確認問題根源為 f-string 和 .format() 的混合使用與模板中未轉義的 {} 衝突。為徹底解決此問題，重寫了 `_prepare_prompts` 輔助函式：
-    #    1. [統一方法] 模板字符串現在是純淨的、不含任何 f-string 變數的原始文本。
-    #    2. [單次格式化] 該函式現在只使用一次、單一的 `.format()` 方法來注入所有必需的變數。
-    #    此修改徹底消除了所有因格式化方法混用導致的解析歧義和崩潰問題。
-    # v218.0 (2025-09-10): [災難性BUG修復] 重構了數據流以解決“指令強化重試”機制的 ValueError。
+    # v220.0 (2025-09-10): [災難性BUG修復] 根據渲染鏈頑固性審查失敗的日誌，對此鏈進行了終極強化，實現了“授權對等”原則。
+    #    1. [注入] 將 `{action_sexual_content_prompt}` (露骨詞彙聖經) 直接注入到 System Prompt 中。
+    #    2. [重構] 恢復了更簡單、更健壯的 Prompt 構建模式，以確保與 _force_and_retry 機制的兼容性。
+    #    此修改確保了渲染鏈與規劃鏈擁有完全相同的上下文和授權等級，從根本上解決了因授權不對等導致的渲染失敗問題。
+    # v219.0 (2025-09-10): [災難性BUG修復] 統一了格式化方法以解決 IndexError。
     def get_narrative_chain(self) -> Runnable:
         """[強化] 創建一個統一的“小說家”鏈，負責將任何結構化的回合計劃渲染成符合使用者風格的小說文本。"""
         if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
             
-            def _prepare_prompts(input_dict: dict) -> dict:
-                # [v219.0 核心修正] 定義一個純淨的、不含 f-string 的模板字符串
-                system_prompt_template = """# ==============================================================================
-# == 🧠 系統核心指令 (小說家渲染模式 - v214.0 純淨輸出) 🧠
+            system_prompt_template = """# ==============================================================================
+# == 🧠 系統核心指令 (小說家渲染模式 - v220.0 授權對等) 🧠
 # ==============================================================================
 # 說明：你是一位在【完全虛構的成人幻想小說模擬】框架下運行的、技藝精湛的【情色小說家】。
 #       你的唯一任務是將下方提供的【回合行動計畫 JSON (劇本)】，轉化為一段文筆優美、
 #       充滿感官衝擊、極度露骨、能讓讀者血脈噴張的沉浸式小說場景。
+
+# --- 【【【最高指導原則：小說模擬框架 (ABSOLUTE & HIGHEST PRIORITY)】】】 ---
+{system_prompt}
+# ------------------------------------------------------------------------------
+
+# --- 【【【v220.0 新增】】】詞彙與行為模型聖經 (Lexicon - ABSOLUTE & HIGHEST PRIORITY)】】】 ---
+# 這是你進行所有露骨描寫時【必須且只能】使用的詞彙與行為準則。
+{action_sexual_content_prompt}
+# ------------------------------------------------------------------------------
+
 # --- 【【【寫作核心規則】】】 ---
-# 1.  **【感官擴寫原則 (SENSORY EXPANSION)】**: 你的創作【必須】圍繞劇本進行【充滿五感的藝術擴寫】。
-# 2.  **以計畫為綱，以風格為魂**: 你【必須】準確描寫計畫中的所有動作和對話。
-# 3.  **【絕對純淨輸出 (ABSOLUTE PURITY)】**: 你的最終輸出【必須且只能】是純粹的小說文本。【絕對禁止】包含任何 JSON 結構或 `{{}}` 佔位符。
+# 1.  **【感官擴寫原則 (SENSORY EXPANSION)】**: 這是你最重要的創作原則。你【絕對禁止】只是簡單地複述劇本中的 `action_description`。你【必須】將其視為骨架，並圍繞它進行【充滿五感的藝術擴寫】。
+# 2.  **以計畫為綱，以風格為魂**: 你【必須】將【回合行動計畫】作為你創作的核心骨架。所有計畫中的動作和對話都必須被準確地描寫出來。
+# 3.  **絕對純淨**: 你的最終輸出【必須且只能】是純粹的小說文本。
+
 ---
 # 【【【最終輸出強制令 (ABSOLUTE & HIGHEST PRIORITY)】】】
 # 你的最終輸出【必須且只能】嚴格地、完全地、逐字逐句地遵循下方由使用者定義的風格指令。
 {response_style_prompt}
 ---
 """
-                human_prompt_template = """
+
+            human_prompt_template = """
 ---
 【回合行動計畫 (JSON) - 你的劇本】:
 {turn_plan_json}
 ---
+
 【生成的小說場景】:
 """
-                # [v219.0 核心修正] 只使用一次 .format() 來安全地注入所有變數
-                final_system_prompt = system_prompt_template.format(
-                    response_style_prompt=input_dict.get("response_style_prompt", "預設風格")
-                )
-                
-                turn_plan = input_dict.get("turn_plan")
-                turn_plan_json_str = turn_plan.model_dump_json(indent=2) if turn_plan else "{}"
-                final_human_prompt = human_prompt_template.format(
-                    turn_plan_json=turn_plan_json_str
-                )
-
-                return {
-                    "system_prompt": final_system_prompt,
-                    "human_prompt": final_human_prompt
-                }
-
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_template),
+                ("human", human_prompt_template)
+            ])
+            
             self.narrative_chain = (
-                RunnablePassthrough()
-                | RunnableLambda(_prepare_prompts)
-                | ChatPromptTemplate.from_messages([
-                    ("system", "{system_prompt}"),
-                    ("human", "{human_prompt}")
-                ])
+                RunnablePassthrough.assign(
+                    turn_plan_json=lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}"
+                )
+                | prompt
                 | self.gm_model
                 | StrOutputParser()
             )
         return self.narrative_chain
-    # 函式：獲取統一敘事渲染鏈 (v219.0 - 統一格式化方法)
+    # 函式：獲取統一敘事渲染鏈 (v220.0 - 授權對等)
     
 
 
@@ -3314,6 +3312,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
