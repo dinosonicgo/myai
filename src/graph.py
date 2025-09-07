@@ -472,17 +472,57 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v7.0 - 回歸創意生成)
+
+
+
+# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
 # 更新紀錄:
-# v7.0 (2025-09-09): [重大架構重構] 根據使用者指令，徹底廢除了模板系統。此節點現在回歸到一個更直接的路徑，其唯一職責是調用最強大的、完全依賴 LLM 創意生成的 `get_nsfw_planning_chain`，以追求最高程度的劇情多樣性。
-# v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
-# v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞。
-async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[創意生成模式] 統一的 NSFW 路徑規劃器，完全依賴 LLM 的即時創意生成最終的、露骨的行動計劃。"""
+# v1.0 (2025-09-22): [重大架構升級] 創建此新節點作為“混合模式”的第二步。它接收上游突破性節點生成的“草稿”計畫，並調用專門的潤色鏈為其增加豐富的對話、呻吟和互動細節，以輸出最終的高品質行動計畫。
+async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[混合模式-步驟2] NSFW 計畫潤色節點，為草稿計畫增加對話、呻吟和細節。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    turn_plan = state['turn_plan']
+    logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在潤色NSFW行動計劃...")
+
+    if not ai_core.profile or not turn_plan or turn_plan.execution_rejection_reason:
+        # 如果上一步失敗或計畫被拒絕，則直接跳過潤色
+        return {} 
+
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    world_snapshot = state.get('world_snapshot', '') # 從上一步獲取 world_snapshot
+
+    final_plan = await ai_core.ainvoke_with_rotation(
+        ai_core.get_nsfw_refinement_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "turn_plan_json": turn_plan.model_dump_json(indent=2)
+        },
+        retry_strategy='force'
+    )
+    if not final_plan:
+        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) NSFW潤色鏈返回空值，將使用未經潤色的原始草稿計畫。")
+        # 即使潤色失敗，我們也保留原始的草稿計畫，而不是返回空計畫
+        return {}
+
+    return {"turn_plan": final_plan}
+# 函式：[新] NSFW 計畫潤色節點 (v1.0 - 混合模式)
+
+
+
+# 函式：NSFW 突破性規劃節點 (v8.0 - 混合模式)
+# 更新紀錄:
+# v8.0 (2025-09-22): [重大架構重構] 根據“混合模式”架構，此節點被重命名並明確其職責為“突破性規劃”。它現在調用專門的突破性規劃鏈，生成一個露骨的“草稿”計畫，並將其連同 world_snapshot 一同傳遞給下游的潤色節點。
+# v7.0 (2025-09-09): [重大架構重構] 回歸創意生成模式。
+async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
+    """[混合模式-步驟1] NSFW 突破性規劃節點，生成初步的、包含核心動作的露骨計畫草稿。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Creative) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 自由生成NSFW行動計劃...")
+    logger.info(f"[{user_id}] (Graph|NSFW Breakthrough) Node: nsfw_breakthrough -> 正在生成NSFW行動計劃草稿...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
@@ -514,7 +554,7 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
     plan = await ai_core.ainvoke_with_rotation(
-        ai_core.get_nsfw_planning_chain(),
+        ai_core.get_nsfw_breakthrough_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
@@ -527,9 +567,11 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
         retry_strategy='force'
     )
     if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
-    return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v7.0 - 回歸創意生成)
+        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW突破性規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
+
+    # 將 world_snapshot 保存到狀態中，供後續的潤色節點使用
+    return {"turn_plan": plan, "world_snapshot": world_snapshot}
+# 函式：NSFW 突破性規劃節點 (v8.0 - 混合模式)
 
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
@@ -1205,13 +1247,13 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v39.0 - 廢除模板，回歸創意生成)
+# 函式：創建主回應圖 (v40.0 - 混合模式NSFW思維鏈)
 # 更新紀錄:
-# v39.0 (2025-09-09): [重大架構重構] 根據使用者指令，徹底廢除了“混合模式”和所有模板相關的節點。
-#    1. [移除] 移除了 `unified_nsfw_planning_node`。
-#    2. [恢復] 恢復了單一的、強大的 `nsfw_planning_node` 作為處理所有 NSFW 流量的唯一節點。
-#    3. [重連] 修改了 `route_to_planner` 路由器，將所有 NSFW 流量導向這個單一的創意生成節點。
-#    此修改旨在完全依賴 LLM 的即時創造力，以追求最高程度的劇情多樣性。
+# v40.0 (2025-09-22): [重大架構重構] 徹底重構了 NSFW 處理流程，引入了“混合模式”思維鏈。
+#    1. [重命名] 將 `nsfw_planning_node` 重命名為 `nsfw_breakthrough_node`，明確其“突破性規劃”職責。
+#    2. [新增] 增加了全新的 `nsfw_refinement_node`，專門負責對草稿計畫進行品質潤色。
+#    3. [重連] 修改了圖拓撲，將 NSFW 流量依次通過突破節點和潤色節點，實現了職責分離。
+# v39.0 (2025-09-09): [重大架構重構] 廢除了模板系統，回歸單一的創意生成節點。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1228,8 +1270,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v39.0] 註冊單一的 NSFW 規劃節點
-    graph.add_node("nsfw_planning", nsfw_planning_node)
+    # [v40.0] 註冊混合模式的兩個 NSFW 節點
+    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
+    graph.add_node("nsfw_refinement", nsfw_refinement_node)
 
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
@@ -1275,7 +1318,7 @@ def create_main_response_graph() -> StateGraph:
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         if 'nsfw' in intent:
-            return "nsfw_planner" # <--- [v39.0 核心修正] 新的路由目標
+            return "nsfw_planner"
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1287,12 +1330,15 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_planner": "nsfw_planning" # <--- [v39.0 核心修正] 新的路由目標
+            "nsfw_planner": "nsfw_breakthrough" # <--- [v40.0 核心修正] NSFW 流量進入新的突破節點
         }
     )
     
-    # [v39.0 核心修正] 所有規劃器的出口統一連接到工具執行
-    graph.add_edge("nsfw_planning", "tool_execution")
+    # [v40.0 核心修正] 構建新的 NSFW 思維鏈
+    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
+    graph.add_edge("nsfw_refinement", "tool_execution")
+
+    # SFW 規劃器的出口保持不變
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
@@ -1303,7 +1349,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v39.0 - 廢除模板，回歸創意生成)
+# 函式：創建主回應圖 (v40.0 - 混合模式NSFW思維鏈)
 
 
 
@@ -1396,6 +1442,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
