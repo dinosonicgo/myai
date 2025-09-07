@@ -470,9 +470,10 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
-# 函式：統一的敘事渲染節點 (v2.0 - 參數名修正)
+# 函式：統一的敘事渲染節點 (v3.0 - 變數名統一)
 # 更新紀錄:
-# v2.0 (2025-09-29): [災難性BUG修復] 根據 KeyError Log，修正了傳遞給渲染鏈的參數名稱，將錯誤的 `one_instruction` 鍵重命名為 `system_prompt`，以與 `get_narrative_chain` 的提示詞模板中的變數名完全匹配，解決了渲染失敗的問題。
+# v3.0 (2025-09-29): [災難性BUG修復] 根據 KeyError Log，修正了傳遞給渲染鏈的參數名稱，將不一致的 `system_prompt` 鍵統一為 `one_instruction`，以與所有其他節點和鏈的定義保持完全一致。
+# v2.0 (2025-09-29): [災難性BUG修復] 修正了參數名稱以解決 KeyError。
 # v1.0 (2025-09-29): [架構重構] 創建此節點作為統一的渲染器。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
@@ -487,9 +488,9 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
         
     action_prompt = state.get('active_action_module_content') or "（本回合無特定戰術指令）"
     
-    # [v2.0 核心修正] 將鍵名從 `one_instruction` 修改回 `system_prompt`
+    # [v3.0 核心修正] 將鍵名從 `system_prompt` 統一為 `one_instruction`
     chain_input = {
-        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
+        "one_instruction": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
         "action_sexual_content_prompt": action_prompt,
         "turn_plan": turn_plan
@@ -503,7 +504,10 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if not narrative_text:
         narrative_text = "（AI 在將最終計劃轉化為故事時遭遇了無法恢復的內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v2.0 - 參數名修正)
+# 函式：統一的敘事渲染節點 (v3.0 - 變數名統一)
+
+
+
 
 # 函式：統一的輸出淨化與解碼節點 (v5.0 - 動態解碼)
 # 更新紀錄:
