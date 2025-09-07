@@ -1947,20 +1947,20 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
+    # 函式：[新] 檢索並總結記憶 (v4.0 - Cohere 失敗優雅降級)
     # 更新紀錄:
-    # v3.0 (2025-09-06): [健壯性] 根據 Cohere API 返回 502 錯誤的日誌，為 RAG 檢索步驟增加了更強的 try...except 異常捕獲機制。現在，如果像 Reranker 這樣的外部服務暫時失敗，節點將不再使整個圖崩潰，而是會記錄警告並優雅地返回一個中性消息，確保主流程的連續性。
-    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯，以解決內容審查掛起問題。
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式。
+    # v4.0 (2025-09-22): [災難性BUG修復] 徹底重構了 RAG 流程，增加了對 Cohere Reranker API 速率超限的優雅降級機制。當檢測到 Cohere API 失敗時，系統會自動跳過 Reranker，並直接使用基礎檢索器的結果，從而確保 RAG 流程的健壯性和上下文的穩定供應。
+    # v3.0 (2025-09-06): [健壯性] 增加了更強的 try...except 異常捕獲機制。
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯。
     async def retrieve_and_summarize_memories(self, user_input: str) -> str:
-        """[新] 執行RAG檢索並將結果總結為摘要。這是專門為新的 retrieve_memories_node 設計的。"""
+        """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
         retrieved_docs = []
         try:
-            # 步驟 1: 提取中性關鍵詞以創建安全查詢
+            # --- 步驟 1: 生成安全查詢 (保持不變) ---
             logger.info(f"[{self.user_id}] (RAG) 正在對使用者輸入進行預處理以創建安全查詢...")
             entity_extraction_chain = self.get_entity_extraction_chain()
             entity_result = await self.ainvoke_with_rotation(
@@ -1969,20 +1969,37 @@ class AILover:
                 retry_strategy='euphemize'
             )
             
-            if entity_result and entity_result.names:
-                sanitized_query = " ".join(entity_result.names)
-                logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
-            else:
-                sanitized_query = user_input
-                logger.warning(f"[{self.user_id}] (RAG) 未能從輸入中提取實體，將使用原始輸入作為查詢，這可能存在風險。")
+            sanitized_query = " ".join(entity_result.names) if entity_result and entity_result.names else user_input
+            logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
 
-            # 步驟 2: 使用淨化後的查詢進行檢索
-            retrieved_docs = await self.ainvoke_with_rotation(
-                self.retriever, 
-                sanitized_query,
-                retry_strategy='euphemize'
-            )
-        # [v3.0 核心修正] 捕獲所有可能的異常，包括外部 API 錯誤
+            # --- 步驟 2: [v4.0 核心修正] 帶有優雅降級的檢索 ---
+            try:
+                # 首次嘗試：使用帶有 Reranker 的完整檢索器
+                logger.info(f"[{self.user_id}] (RAG) 正在使用完整的「檢索+重排」流程...")
+                retrieved_docs = await self.ainvoke_with_rotation(
+                    self.retriever, 
+                    sanitized_query,
+                    retry_strategy='euphemize'
+                )
+            except RuntimeError as e:
+                # 如果捕獲到我們自定義的 Cohere 速率限制異常
+                if "COHERE_RATE_LIMIT_EXCEEDED" in str(e):
+                    logger.warning(f"[{self.user_id}] (RAG) Cohere Reranker 速率超限，啟動【優雅降級】策略...")
+                    if hasattr(self.retriever, 'base_retriever'):
+                        # 退回到基礎檢索器 (EnsembleRetriever) 再次嘗試
+                        logger.info(f"[{self.user_id}] (RAG) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
+                        retrieved_docs = await self.ainvoke_with_rotation(
+                            self.retriever.base_retriever,
+                            sanitized_query,
+                            retry_strategy='euphemize'
+                        )
+                        logger.info(f"[{self.user_id}] (RAG) 基礎檢索器重試成功。")
+                    else:
+                        logger.error(f"[{self.user_id}] (RAG) 優雅降級失敗：找不到 base_retriever。")
+                        raise e # 如果找不到基礎檢索器，則重新拋出原始異常
+                else:
+                    raise e # 如果是其他 RuntimeError，也重新拋出
+
         except Exception as e:
             logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
             return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
@@ -1994,7 +2011,7 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # 步驟 3: 總結檢索到的文檔
+        # --- 步驟 3: 總結檢索到的文檔 (保持不變) ---
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             retrieved_docs, 
@@ -2007,7 +2024,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v3.0 - API 容錯強化)
+    # 函式：[新] 檢索並總結記憶 (v4.0 - Cohere 失敗優雅降級)
 
 
 
@@ -3037,11 +3054,11 @@ class AILover:
 
     
     
-     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 恢復委婉化策略)
+     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 第三方API錯誤識別)
     # 更新紀錄:
-    # v209.0 (2025-09-10): [重大架構升級] 恢復了 `euphemize` 重試策略的應用。現在，調用點可以明確指定在遭遇內容審查時，是應該採取“指令強化” (`force`) 還是“解構-重構委婉化” (`euphemize`)。此修改為處理不同類型的鏈（面向使用者的 vs. 內部工具鏈）提供了必要的靈活性。
+    # v210.0 (2025-09-22): [災難性BUG修復] 徹底重構了異常捕獲邏輯，增加了對第三方庫（特別是 Cohere）速率限制錯誤 (429 Too Many Requests) 的精確識別。現在，當檢測到此類錯誤時，會重新拋出一個帶有特殊標記的異常，以便上游函式可以捕獲並執行優雅降級。
+    # v209.0 (2025-09-10): [重大架構升級] 恢復了 `euphemize` 重試策略的應用。
     # v208.0 (2025-09-06): [架構適配] 適配了 v208.0 版本的解構-重構委婉化策略。
-    # v207.0 (2025-09-06): [重大架構升級] 恢復了 `euphemize` 重試策略。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
             raise ValueError("No API keys available.")
@@ -3061,16 +3078,23 @@ class AILover:
 
             except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded) as e:
                 delay = base_delay * (attempt + 1)
-                logger.warning(f"[{self.user_id}] API 遭遇資源或伺服器錯誤: {type(e).__name__}. 將在 {delay:.1f} 秒後使用下一個金鑰重試...")
+                logger.warning(f"[{self.user_id}] Google API 遭遇資源或伺服器錯誤: {type(e).__name__}. 將在 {delay:.1f} 秒後使用下一個金鑰重試...")
                 await asyncio.sleep(delay)
                 self._initialize_models()
 
             except Exception as e:
                 error_str = str(e).lower()
                 is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
+                
+                # [v210.0 核心修正] 增加對 Cohere 速率限制錯誤的精確識別
+                is_cohere_rate_limit = "429" in error_str and "cohere" in error_str
+
+                if is_cohere_rate_limit:
+                    logger.error(f"[{self.user_id}] 檢測到 Cohere Reranker API 速率超限。將向上拋出異常以觸發優雅降級。")
+                    # 重新拋出一個帶有明確標記的異常，方便上層捕獲
+                    raise RuntimeError("COHERE_RATE_LIMIT_EXCEEDED") from e
 
                 if is_safety_error:
-                    # [v209.0 核心修正] 根據指定的策略選擇備援路徑
                     if retry_strategy == 'euphemize':
                         return await self._euphemize_and_retry(chain, params)
                     elif retry_strategy == 'force':
@@ -3080,10 +3104,10 @@ class AILover:
                         logger.warning(f"[{self.user_id}] 鏈遭遇內容審查，且重試策略為 'none'。返回 None。")
                         return None
                 
-                logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知但非安全相關的錯誤: {e}", exc_info=True)
                 raise e
 
-        logger.error(f"[{self.user_id}] 所有 API 金鑰均嘗試失敗。")
+        logger.error(f"[{self.user_id}] 所有 Google API 金鑰均嘗試失敗。")
         # 如果所有金鑰都因速率限制等問題失敗，最後再根據策略嘗試一次安全備援
         if retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params)
@@ -3091,7 +3115,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] 鏈在所有金鑰嘗試失敗後，最終遭遇審查。啟動【指令強化重試】策略...")
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v209.0 - 恢復委婉化策略)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 第三方API錯誤識別)
 
     
 
@@ -3334,6 +3358,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
