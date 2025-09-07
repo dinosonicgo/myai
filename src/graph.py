@@ -521,11 +521,11 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+# 函式：LORE擴展決策節點 (v4.2 - 輸入瘦身)
 # 更新紀錄:
-# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。這徹底解決了 LangChain 解析器錯誤解析靜態模板中範例的問題。
-# v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的數據傳遞邏輯，改為注入完整的角色 JSON。
-# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。
+# v4.2 (2025-09-22): [災難性BUG修復 & 效能優化] 增加了輸入數據“瘦身”處理。現在，傳遞給決策鏈的 JSON 只包含對決策最關鍵的核心欄位（name, gender, description），而不是完整的角色檔案。此修改旨在解決因輸入 Token 過多導致的 API 處理緩慢、超時甚至備援機制卡死的問題。
+# v4.1 (2025-09-06): [災難性BUG修復] 增加了動態範例注入，以解決 LangChain 解析器錯誤。
+# v4.0 (2025-09-06): [災難性BUG修復] 重構了數據傳遞邏輯，改為注入完整的角色 JSON。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
     user_id = state['user_id']
@@ -534,12 +534,21 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
-    lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
-    lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
-    
-    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
+    # [v4.2 核心修正] 對輸入數據進行“瘦身”處理
+    lightweight_lore_for_decision = []
+    for lore in raw_lore_objects:
+        if lore.category == 'npc_profile':
+            content = lore.content
+            lightweight_lore_for_decision.append({
+                "name": content.get("name"),
+                "gender": content.get("gender"),
+                "description": content.get("description")
+            })
 
-    # [v4.1 核心修正] 將範例從模板中分離出來，作為一個安全的變數傳入
+    lore_json_str = json.dumps(lightweight_lore_for_decision, ensure_ascii=False, indent=2)
+    
+    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的【輕量化】現有角色JSON:\n{lore_json_str}")
+
     examples_str = """
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
@@ -557,7 +566,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
         {
             "user_input": user_input, 
             "existing_characters_json": lore_json_str,
-            "examples": examples_str # 動態注入範例
+            "examples": examples_str
         },
         retry_strategy='euphemize'
     )
@@ -568,7 +577,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+# 函式：LORE擴展決策節點 (v4.2 - 輸入瘦身)
 
 
 
@@ -1344,6 +1353,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
