@@ -209,7 +209,11 @@ class CharacterAction(BaseModel):
             raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
 
-# 類別：回合計劃 (v14.0 - 自我修復)
+# 類別：回合計劃 (v14.0 - 驗證邏輯強化)
+# 更新紀錄:
+# v14.0 (2025-09-07): [災難性BUG修復] 擴展了 TurnPlan 的驗證邏輯，將 `narration` 欄位也視為有效的計畫內容。此修改旨在防止因 LLM 在描述性場景中只生成旁白而導致的驗證失敗，從而增強圖的健壯性。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。
+# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
 class TurnPlan(BaseModel):
     """一回合行動的完整結構化計畫。"""
     thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
@@ -238,16 +242,22 @@ class TurnPlan(BaseModel):
     @model_validator(mode='after')
     def check_plan_logic(self) -> 'TurnPlan':
         """驗證計畫的邏輯一致性。"""
-        has_thought_or_actions = bool(self.thought) or bool(self.character_actions)
+        # [v14.0 核心修正] 將 narration 也納入有效性檢查
+        has_content = (
+            bool(self.thought and self.thought.strip()) or 
+            bool(self.character_actions) or 
+            bool(self.narration and self.narration.strip())
+        )
         has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
 
-        if not has_thought_or_actions and not has_rejection:
-            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
+        if not has_content and not has_rejection:
+            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions'、'narration' 或 'execution_rejection_reason' 中的一項。")
         
-        if has_thought_or_actions and has_rejection:
-            raise ValueError("計畫不能同時包含常規計畫內容(thought/actions)和拒絕執行的理由(execution_rejection_reason)。")
+        if has_content and has_rejection:
+            raise ValueError("計畫不能同時包含常規計畫內容(thought/actions/narration)和拒絕執行的理由(execution_rejection_reason)。")
             
         return self
+# 類別：回合計劃 (v14.0 - 驗證邏輯強化)
 
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
@@ -387,3 +397,4 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
