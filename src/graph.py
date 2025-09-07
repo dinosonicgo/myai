@@ -27,6 +27,52 @@ from .tool_context import tool_context
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
 
 
+
+# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
+# 更新紀錄:
+# v1.0 (2025-09-27): [重大架構升級] 創建此全新的「前置淨化層」節點，作為圖的新入口。它的唯一職責是接收原始的、可能觸發審查的露骨使用者輸入，並立即生成一個保留核心意圖但用詞中性的安全版本 (`sanitized_user_input`)。此節點是從根本上解決因輸入“投毒”導致早期分析節點被 API 攔截的關鍵性修正。
+async def pre_process_input_node(state: ConversationGraphState) -> Dict:
+    """[0] 圖的新入口點。將原始使用者輸入轉化為一個對分析節點安全的、中性的指令。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|0) Node: pre_process_input -> 正在對原始輸入進行淨化...")
+
+    try:
+        # 使用一個不易被審查的鏈（實體提取）來獲取核心名詞
+        entity_extraction_chain = ai_core.get_entity_extraction_chain()
+        entity_result = await ai_core.ainvoke_with_rotation(
+            entity_extraction_chain,
+            {"text_input": user_input},
+            retry_strategy='euphemize' # 使用委婉化重試確保它能成功
+        )
+        
+        if not (entity_result and entity_result.names):
+            logger.warning(f"[{user_id}] (Sanitizer) 未能從輸入中提取實體，將使用原始輸入作為淨化版本，這可能存在風險。")
+            return {"sanitized_user_input": user_input}
+            
+        # 使用另一個安全的鏈，從核心名詞重構出一個中性的句子
+        euphemization_chain = ai_core.get_euphemization_chain()
+        sanitized_input = await ai_core.ainvoke_with_rotation(
+            euphemization_chain,
+            {"keywords": entity_result.names},
+            retry_strategy='none' # 如果重構失敗，則無法挽救
+        )
+        
+        if not sanitized_input or not sanitized_input.strip():
+            logger.error(f"[{user_id}] (Sanitizer) 委婉化重構鏈失敗！將回退到使用原始輸入，這極可能導致後續分析失敗！")
+            sanitized_input = user_input
+        
+        logger.info(f"[{user_id}] (Sanitizer) 輸入淨化成功: '{user_input[:50]}...' -> '{sanitized_input[:50]}...'")
+        return {"sanitized_user_input": sanitized_input}
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Sanitizer) 在預處理節點發生未知嚴重錯誤: {e}", exc_info=True)
+        # 發生任何未知錯誤時，都返回原始輸入以確保流程繼續，即使後續可能失敗
+        return {"sanitized_user_input": user_input}
+# 函式：[全新] 輸入預處理節點 (v1.0 - 前置淨化層)
+
+
 # 函式：場景與動作分析節點 (v5.0 - 兩階段驗證)
 # 更新紀錄:
 # v5.0 (2025-09-06): [災難性BUG修復] 根據反覆出現的 ValidationError，最終確認並實施了“兩階段驗證”策略。此節點現在接收來自上游的、更寬鬆的 `RawSceneAnalysis` 模型，然後在其內部，用確定性的 Python 程式碼對這個原始數據進行嚴格的邏輯校準和修正，最後再手動創建一個【保證邏輯自洽】的 `SceneAnalysisResult` 物件並輸出。此修改從根本上解決了所有因 LLM 輸出與 Pydantic 驗證器衝突而導致的崩潰。
@@ -215,63 +261,61 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
-# 函式：意圖分類節點 (v4.0 - 注入上下文)
+# 函式：意圖分類節點 (v5.0 - 適配淨化輸入)
 # 更新紀錄:
+# v5.0 (2025-09-27): [架構重構] 此節點現在從 `pre_process_input_node` 接收並使用安全的 `sanitized_user_input` 進行意圖分類，以避免因原始輸入過於露骨而被內容審查攔截。原始的 `user_input` 則被保留，用於後續的創意生成。
 # v4.0 (2025-09-26): [災難性BUG修復] 為了讓分類器能夠正確處理“繼續”等上下文相關指令，此節點現在負責從 ai_core 中提取最近的對話歷史，並將其作為額外的上下文注入到意圖分類鏈中。
 # v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類，並注入上下文歷史。"""
+    """[1] 圖的入口點，唯一職責是對【淨化後】的輸入進行意圖分類，並注入上下文歷史。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    user_input_for_classification = state['messages'][-1].content
+    # [v5.0 核心修正] 使用淨化後的輸入進行分析
+    sanitized_input = state['sanitized_user_input']
     
-    # [v4.0 核心修正] 提取並格式化最近的對話歷史
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id, num_messages=4) # 獲取最近4條消息作為上下文
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id, num_messages=4)
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在結合歷史記錄對輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在結合歷史記錄對【淨化後】的輸入 '{sanitized_input[:30]}...' 進行意圖分類...")
     logger.debug(f"[{user_id}] (Graph|1) 注入的對話歷史:\n---\n{chat_history_str}\n---")
     
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
         {
-            "user_input": user_input_for_classification,
+            "user_input": sanitized_input, # 使用淨化輸入
             "chat_history": chat_history_str
         },
-        retry_strategy='euphemize' # 分類鏈本身可以使用較溫和的重試
+        retry_strategy='euphemize'
     )
     
     if not classification_result:
         logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 nsfw_interactive。")
-        # 備援時，傾向於最可能觸發審查的類型，以確保能進入強大的NSFW規劃鏈
         classification_result = IntentClassificationResult(intent_type='nsfw_interactive', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v4.0 - 注入上下文)
+# 函式：意圖分類節點 (v5.0 - 適配淨化輸入)
 
 
 
-
-# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
+# 函式：記憶檢索節點 (v4.0 - 適配淨化輸入)
 # 更新紀錄:
-# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。此節點現在直接使用原始使用者輸入調用 `retrieve_and_summarize_memories`，後者已被修改為不再進行內部淨化。
+# v4.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用 RAG 檢索，以避免因原始查詢過於露骨而導致檢索鏈中的 LLM 調用（如總結器）失敗。
+# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。
 # v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """[2] 專用記憶檢索節點，執行RAG操作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v3.0 核心修正] 始終使用最原始的使用者輸入
-    user_input_for_retrieval = state['messages'][-1].content
+    # [v4.0 核心修正] 使用淨化後的輸入進行 RAG 檢索
+    sanitized_input = state['sanitized_user_input']
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於【淨化後】的查詢 '{sanitized_input[:30]}...' 檢索相關長期記憶...")
     
-    # ai_core.py 中的輔助函式已被修改為不再進行內部淨化
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input_for_retrieval)
+    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_input)
     return {"rag_context": rag_context_str}
-# 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
+# 函式：記憶檢索節點 (v4.0 - 適配淨化輸入)
 
 
 
@@ -429,19 +473,17 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
 # 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 
 
-# 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
+# 函式：專用LORE查詢節點 (v5.0 - 適配淨化輸入)
 # 更新紀錄:
-# v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了LORE的檢索邏輯，以解決因檢索到其他地點的同名NPC而導致的上下文污染問題。新版本實現了「上下文優先」原則：
-#    1. [確定有效場景] 首先明確當前的工作場景（本地或遠程）。
-#    2. [場景內優先] 優先獲取所有物理上存在於該場景的NPC。
-#    3. [召喚式補充] 然後再檢索使用者明確提及的、可能不在場的角色。
-#    4. [智能合併] 最後將兩者智能合併，確保了傳遞給規劃器的上下文是以當前場景為絕對核心的，從根本上杜絕了地點錯亂的問題。
+# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來提取需要查詢的實體，確保 LORE 查詢的觸發階段不會被內容審查阻斷。
+# v4.0 (2025-09-06): [災難性BUG修復] 徹底重寫了LORE的檢索邏輯，以解決因檢索到其他地點的同名NPC而導致的上下文污染問題。
 # v3.0 (2025-09-06): [災難性BUG修復] 增加了“主角光環”過濾機制。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
     """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    # [v5.0 核心修正] 使用淨化後的輸入進行實體提取
+    sanitized_input = state['sanitized_user_input']
     logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在執行【上下文優先】的LORE查詢...")
 
     if not ai_core.profile:
@@ -450,7 +492,6 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
 
     gs = ai_core.profile.game_state
     
-    # --- [v4.0 核心修正] 步驟 1: 確定有效場景 ---
     effective_location_path: List[str]
     if gs.viewing_mode == 'remote' and gs.remote_target_path:
         effective_location_path = gs.remote_target_path
@@ -459,7 +500,6 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (LORE Querier) 已鎖定有效場景: {' > '.join(effective_location_path)}")
 
-    # --- [v4.0 核心修正] 步驟 2: 場景內實體優先 ---
     lores_in_scene = await lore_book.get_lores_by_category_and_filter(
         user_id,
         'npc_profile',
@@ -467,21 +507,16 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     )
     logger.info(f"[{user_id}] (LORE Querier) 在有效場景中找到 {len(lores_in_scene)} 位常駐NPC。")
 
-    # --- [v4.0 核心修正] 步驟 3: 召喚式實體補充 ---
     is_remote = gs.viewing_mode == 'remote'
-    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
-    logger.info(f"[{user_id}] (LORE Querier) 從使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
+    # [v5.0 核心修正] 傳入淨化輸入
+    lores_from_input = await ai_core._query_lore_from_entities(sanitized_input, is_remote_scene=is_remote)
+    logger.info(f"[{user_id}] (LORE Querier) 從【淨化後】的使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
 
-    # --- [v4.0 核心修正] 步驟 4: 智能合併與去重 ---
-    # 使用字典以 lore.key 作為鍵，可以高效地合併和去重
-    # 將場景內的NPC首先放入，確保它們的優先級
     final_lores_map = {lore.key: lore for lore in lores_in_scene}
-    # 然後補充使用者明確提到的、但可能不在場景內的NPC
     for lore in lores_from_input:
         if lore.key not in final_lores_map:
             final_lores_map[lore.key] = lore
             
-    # "主角光環" 過濾 (保留此重要邏輯)
     protected_names = {
         ai_core.profile.user_profile.name.lower(),
         ai_core.profile.ai_profile.name.lower()
@@ -498,7 +533,7 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
     
     return {"raw_lore_objects": filtered_lores_list}
-# 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
+# 函式：專用LORE查詢節點 (v5.0 - 適配淨化輸入)
 
 
 
@@ -615,25 +650,25 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+# 函式：LORE擴展決策節點 (v5.0 - 適配淨化輸入)
 # 更新紀錄:
-# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。這徹底解決了 LangChain 解析器錯誤解析靜態模板中範例的問題。
+# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來判斷場景是否需要引入新角色，確保決策過程的穩定性。
+# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。
 # v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的數據傳遞邏輯，改為注入完整的角色 JSON。
-# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    # [v5.0 核心修正] 使用淨化後的輸入進行決策
+    sanitized_input = state['sanitized_user_input']
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於【淨化後】的語意匹配，判斷是否擴展...")
     
     lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
     lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
     
     logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
 
-    # [v4.1 核心修正] 將範例從模板中分離出來，作為一個安全的變數傳入
     examples_str = """
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
@@ -649,9 +684,9 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
-            "user_input": user_input, 
+            "user_input": sanitized_input, # 使用淨化輸入
             "existing_characters_json": lore_json_str,
-            "examples": examples_str # 動態注入範例
+            "examples": examples_str
         },
         retry_strategy='euphemize'
     )
@@ -662,7 +697,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+# 函式：LORE擴展決策節點 (v5.0 - 適配淨化輸入)
 
 
 
@@ -706,25 +741,25 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 適配淨化輸入)
 # 更新紀錄:
-# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。在調用選角鏈後，此節點會檢查結果中是否包含一個推斷出的 `implied_location`。如果有，它會立即將該地點存入LORE，並【強制更新GameState】，將系統的視角模式切換到 remote 並設置好遠程目標路徑。此修改從根本上解決了因首次描述時地點信息缺失而導致的後續流程崩潰問題。
+# v9.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用場景選角鏈，確保 LORE 創建的觸發階段不會被內容審查阻斷。
+# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。
 # v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
-# v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    # [v9.0 核心修正] 使用淨化後的輸入進行選角
+    sanitized_input = state['sanitized_user_input']
     existing_lores = state.get('raw_lore_objects', [])
     
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
+    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在基於【淨化後】的輸入執行場景選角與LORE擴展...")
     
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
-    # 地點判斷邏輯保持不變，為選角鏈提供一個基礎參考點
     scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
     effective_location_path: List[str]
@@ -733,15 +768,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         effective_location_path = scene_analysis.target_location_path
     else:
         effective_location_path = gs.location_path
-
-    # ... (輸入淨化邏輯保持不變) ...
-    try:
-        entity_chain = ai_core.get_entity_extraction_chain()
-        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
-        sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
-    except Exception as e:
-        logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
-        sanitized_context_for_casting = user_input
         
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
 
@@ -751,16 +777,13 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
             "game_context": game_context_for_casting, 
-            "recent_dialogue": sanitized_context_for_casting
+            "recent_dialogue": sanitized_input # 使用淨化輸入
         },
         retry_strategy='euphemize'
     )
     
-    # [v8.0 核心修正] 持久化場景錨點
     if cast_result and cast_result.implied_location:
         location_info = cast_result.implied_location
-        # 假設 location_info.name 是單一字符串，需要構建路徑
-        # 一個簡單的策略是將它附加到玩家當前的頂層區域
         base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
         new_location_path = base_path + [location_info.name]
         lore_key = " > ".join(new_location_path)
@@ -768,7 +791,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
         logger.info(f"[{user_id}] (Scene Anchor) 已成功為場景錨定並創建新地點LORE: '{lore_key}'")
         
-        # 強制更新 GameState
         gs.viewing_mode = 'remote'
         gs.remote_target_path = new_location_path
         await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
@@ -790,7 +812,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 適配淨化輸入)
 
 
 
@@ -1260,18 +1282,18 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v37.0 - 廢除淨化層)
+# 函式：創建主回應圖 (v38.0 - 引入淨化層)
 # 更新紀錄:
+# v38.0 (2025-09-27): [重大架構重構] 為了從根本上解決分析鏈被內容審查攔截的問題，對圖的拓撲進行了重構。
+#    1. [新增] 引入了全新的 `pre_process_input_node` 作為圖的【新入口點】。
+#    2. [重連] 將所有分析型節點（classify_intent, retrieve_memories 等）的數據源重定向到淨化節點的輸出 (`sanitized_user_input`)。
+#    3. [保留] 創意型節點（所有 planning 節點）的數據源【仍然是】原始的、未經修改的使用者輸入，以確保創意的完整性。
 # v37.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，對圖的拓撲進行了決定性的簡化。
-#    1. [移除] 徹底廢棄並移除了 `pre_process_input` 節點（又名淨化層）。
-#    2. [重設入口] 將圖的入口點（Entry Point）直接設置回 `classify_intent` 節點。
-#    此修改確保了最原始、最充滿力量的使用者指令能夠未經修改地直接驅動整個圖的流程，將所有突破審查的壓力集中在配置了 `force` 重試策略的核心規劃與渲染鏈上，是解決因前期委婉化失敗導致鏈式崩潰的根本性修正。
-# v36.0 (2025-09-07): [終極架構重構] 部署了“動作分解原則”架構。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    # [v37.0 移除] 不再註冊 pre_process_input 節點
+    graph.add_node("pre_process_input", pre_process_input_node) # 新增
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1298,8 +1320,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
     # --- 2. 定義圖的拓撲結構 ---
-    # [v37.0 核心修正] 將入口點直接設置為 classify_intent
-    graph.set_entry_point("classify_intent")
+    # [v38.0 核心修正] 將入口點設置為 pre_process_input
+    graph.set_entry_point("pre_process_input")
+    graph.add_edge("pre_process_input", "classify_intent") # 淨化後的輸入流向分類器
+    
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
@@ -1364,7 +1388,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v37.0 - 廢除淨化層)
+# 函式：創建主回應圖 (v38.0 - 引入淨化層)
+
+
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
