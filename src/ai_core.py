@@ -2860,16 +2860,14 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 通用類型處理)
+    # 函式：“安全備援”委婉化重試處理器 (v210.0 - 參數名修正)
     # 更新紀錄:
+    # v210.0 (2025-09-28): [災難性BUG修復] 根據 KeyError Log，修正了在呼叫實體提取鏈時傳遞的參數名稱，將錯誤的 `text_input` 鍵修改為與“誘餌與酬載”提示詞模板匹配的 `text_payload`。
     # v209.0 (2025-09-07): [災難性BUG修復] 為了從根本上解決因處理複雜數據類型（如 List[Document]）而導致的 ValueError，徹底重寫了此函式的實現，使其成為一個真正通用的、絕不失敗的重試處理器。
-    #    1. [類型分派] 新增了對 `dict`, `str`, `List[Document]` 和其他 `list` 類型的分支處理邏輯。
-    #    2. [智能提取] 能夠根據不同的數據類型，智能地提取出最適合進行委婉化的核心文本內容。
-    #    3. [終極備援] 引入了 `repr()` 作為處理任何未知數據類型的最終備援，確保此函式本身永遠不會再因無法處理輸入而崩潰。
     # v208.0 (2025-09-07): [重大架構升級] 部署了“程序化解構-重構”策略。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v209.0 新架構] 一個通用的、能夠處理多種數據類型的重試處理器，
+        [v210.0 新架構] 一個通用的、能夠處理多種數據類型的重試處理器，
         執行“程序化解構-重構”策略以繞過內容審查。
         """
         logger.warning(f"[{self.user_id}] 內部鏈遭遇審查。啟動【通用解構-重構委婉化】終極策略...")
@@ -2879,12 +2877,15 @@ class AILover:
             text_to_deconstruct = ""
             reconstruct_func = None
 
-            # 類型 1: 處理字典
             if isinstance(failed_params, dict):
                 string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
                 if not string_values: raise ValueError("參數字典中無可供解構的文本。")
                 
-                key_to_replace = 'user_input' if 'user_input' in string_values else max(string_values, key=lambda k: len(string_values[k]))
+                # 優先尋找 'user_payload' 或 'text_payload'
+                key_to_replace = next((k for k in ['user_payload', 'text_payload', 'dialogue_payload', 'user_input'] if k in string_values), None)
+                if not key_to_replace:
+                    key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
+
                 text_to_deconstruct = string_values[key_to_replace]
                 
                 def reconstruct(safe_text: str):
@@ -2893,24 +2894,18 @@ class AILover:
                     return retry_params
                 reconstruct_func = reconstruct
 
-            # 類型 2: 處理字符串
             elif isinstance(failed_params, str):
                 text_to_deconstruct = failed_params
                 reconstruct_func = lambda safe_text: safe_text
 
-            # 類型 3: 處理文檔列表 (RAG鏈的常見輸入)
             elif isinstance(failed_params, list) and all(isinstance(item, Document) for item in failed_params):
                 text_to_deconstruct = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
-                # 重構時，我們無法恢復原始文檔結構，因此返回一個包含安全文本的單一文檔
                 reconstruct_func = lambda safe_text: [Document(page_content=safe_text)]
 
-            # 類型 4: 處理其他列表 (例如，規劃主體列表)
             elif isinstance(failed_params, list):
                 text_to_deconstruct = json.dumps(failed_params, ensure_ascii=False)
-                # 嘗試將其作為JSON字符串重構
                 reconstruct_func = lambda safe_text: safe_text
             
-            # 類型 5 (終極備援): 處理任何其他未知類型
             else:
                 text_to_deconstruct = repr(failed_params)
                 reconstruct_func = lambda safe_text: safe_text
@@ -2922,7 +2917,8 @@ class AILover:
 
             # 步驟 2: 【程序化解構】 - 提取核心名詞
             entity_extraction_chain = self.get_entity_extraction_chain()
-            entity_result = await entity_extraction_chain.ainvoke({"text_input": text_to_deconstruct})
+            # [v210.0 核心修正] 使用正確的參數名 `text_payload`
+            entity_result = await entity_extraction_chain.ainvoke({"text_payload": text_to_deconstruct})
             
             if not (entity_result and entity_result.names):
                 raise ValueError("解構失敗，未能從文本中提取任何核心實體。")
@@ -2947,8 +2943,8 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 【通用解構-重構委婉化】終極策略失敗: {e}。將觸發最終安全備援。", exc_info=True)
-            return None # 如果整個流程依然失敗，返回 None 以觸發安全備援
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 通用類型處理)
+            return None
+    # 函式：“安全備援”委婉化重試處理器 (v210.0 - 參數名修正)
 
     
 
