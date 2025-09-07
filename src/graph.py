@@ -1407,37 +1407,33 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v36.0 - 注入焦點鎖定節點)
+# 函式：創建主回應圖 (v37.0 - 移除重複分類節點)
 # 更新紀錄:
-# v36.0 (2025-09-22): [重大架構升級] 為了從根本上解決因場景角色過多導致的目標混淆問題，在規劃器（planner）之前注入了一個全新的【焦點鎖定節點 (focus_locking_node)】。此節點負責在規劃前，對 planning_subjects 列表進行一次智能篩選和標記，確保所有下游規劃器都能接收到一個高度聚焦、無歧義的核心角色上下文。
+# v37.0 (2025-09-22): [災難性BUG修復] 為了實現“權威意圖判斷”架構，徹底移除了圖內部重複的 `classify_intent` 節點及其相關邊。圖的流程現在被簡化，完全依賴由上游 on_message 注入的、唯一且正確的意圖分類結果，從根本上解決了因淨化輸入導致的二次分類錯誤和路由失敗問題。
+# v36.0 (2025-09-22): [重大架構升級] 注入了【焦點鎖定節點 (focus_locking_node)】。
 # v35.0 (2025-09-22): [重大架構重構] 引入了「混合模式」NSFW 處理路徑。
-# v34.0 (2025-09-06): [災難性BUG修復] 引入了NSFW思維鏈。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
     graph.add_node("pre_process_input", pre_process_input_node)
-    graph.add_node("classify_intent", classify_intent_node)
+    # [v37.0 移除] 不再需要圖內部分類
+    # graph.add_node("classify_intent", classify_intent_node) 
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-
-    # [v36.0 新增] 註冊新的焦點鎖定節點
     graph.add_node("focus_locking", focus_locking_node)
-    
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     graph.add_node("nsfw_template_assembly", nsfw_template_assembly_node)
     graph.add_node("nsfw_refinement", nsfw_refinement_node)
-
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    
     graph.add_node("planner_junction", lambda state: {})
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
@@ -1451,8 +1447,8 @@ def create_main_response_graph() -> StateGraph:
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "classify_intent")
-    graph.add_edge("classify_intent", "retrieve_memories")
+    # [v37.0 核心修正] 簡化流程
+    graph.add_edge("pre_process_input", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
@@ -1470,14 +1466,14 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # [v36.0 核心修正] 在規劃前插入焦點鎖定節點
     graph.add_edge("planner_junction", "focus_locking")
 
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
+        # [v37.0 核心修正] 直接從 state 讀取權威的意圖判斷
         intent_classification = state.get('intent_classification')
         if not intent_classification:
-            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
+            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果未被注入，無法路由。")
             return "sfw_planner" 
 
         intent = intent_classification.intent_type
@@ -1494,7 +1490,6 @@ def create_main_response_graph() -> StateGraph:
         else:
             return "sfw_planner"
 
-    # [v36.0 核心修正] 路由從新的焦點鎖定節點出發
     graph.add_conditional_edges(
         "focus_locking",
         route_to_planner,
@@ -1517,7 +1512,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v36.0 - 注入焦點鎖定節點)
+# 函式：創建主回應圖 (v37.0 - 移除重複分類節點)
+
+
+
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
 
@@ -1606,6 +1604,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
