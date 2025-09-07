@@ -1,8 +1,8 @@
-# src/graph.py 的中文註釋(v22.1 - NameError 修复)
+# src/graph.py 的中文註釋(v22.2 - 最终完整性修复)
 # 更新紀錄:
-# v22.1 (2025-09-22): [災難性BUG修復] 恢复了在 v16.0 中被错误移除的 `purification_node` 函式的定义。此修改解决了因图拓扑引用了已删除函数而导致的 NameError 启动失败问题。
+# v22.2 (2025-09-22): [災難性BUG修復] 恢复了在 v19.1 修复中被意外覆盖删除的 `direct_nsfw_node` 函式的定义。此修改确保了图中所有被引用的节点（包括 `direct_nsfw_node` 和 `purification_node`）都拥有其对应的函数实现，从而彻底解决所有 NameError 启动失败问题。
+# v22.1 (2025-09-22): [災難性BUG修復] 恢复了在 v16.0 中被错误移除的 `purification_node` 函式的定义。
 # v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。
-# v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
 import asyncio
@@ -453,50 +453,16 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
 
-async def transcode_intent_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[意圖偽裝] 將露骨的用戶指令解構為關鍵詞，並注入到一個安全的中性模板中。"""
+# [v22.2 新增] 恢复 direct_nsfw_node 的定义
+async def direct_nsfw_node(state: ConversationGraphState) -> Dict[str, str]:
+    """// NSFW 測試方案 v19.0 // 一步到位直接生成最终的 NSFW 小说文本。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|Cloaker) Node: transcode_intent -> 正在將露骨指令偽裝為安全指令...")
-
-    keyword_chain = ai_core.get_keyword_extraction_chain()
-    
-    extraction_result = await ai_core.ainvoke_with_rotation(
-        keyword_chain,
-        {"text_input": user_input},
-        retry_strategy='euphemize'
-    )
-
-    if not extraction_result or not extraction_result.names:
-        logger.warning(f"[{user_id}] (Graph|Cloaker) 關鍵詞提取失敗，流程將使用原始指令，可能導致後續審查。")
-        return {}
-
-    keywords = extraction_result.names
-    logger.info(f"[{user_id}] (Graph|Cloaker) 成功提取關鍵詞: {keywords}")
-    
-    cloaked_intent = (
-        f"**場景構建指令**：\n"
-        f"請基於以下核心要素，構思一個詳細的、充滿戲劇衝突的場景劇本大綱。\n"
-        f"**核心要素列表**: {', '.join(keywords)}"
-    )
-    
-    logger.info(f"[{user_id}] (Graph|Cloaker) 意圖偽裝成功，新的安全指令: '{cloaked_intent[:150]}...'")
-    
-    new_messages = state['messages'][:-1]
-    new_messages.append(HumanMessage(content=cloaked_intent))
-    
-    return {"messages": new_messages}
-
-async def nsfw_final_outline_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[导演-演员模型] 生成最终的、细节饱满的、自然语言的故事大纲。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Final Outline) Node: nsfw_final_outline -> 正在生成最终版故事大纲...")
+    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_node -> 正在執行NSFW直通生成...")
 
     if not ai_core.profile:
-        return {"narrative_outline": "错误：AI profile 未加载，无法规划。"}
+        return {"llm_response": "错误：AI profile 未加载，无法生成场景。"}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -516,16 +482,16 @@ async def nsfw_final_outline_node(state: ConversationGraphState) -> Dict[str, An
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': "(已棄用，請參考 planning_subjects_json)",
-        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'npc_context': "(已弃用，请参考 planning_subjects_json)",
+        'relevant_npc_context': "(已弃用，请参考 planning_subjects_json)",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    final_outline = await ai_core.ainvoke_with_rotation(
-        ai_core.get_nsfw_final_outline_chain(),
+    final_text = await ai_core.ainvoke_with_rotation(
+        ai_core.get_direct_nsfw_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
@@ -535,12 +501,13 @@ async def nsfw_final_outline_node(state: ConversationGraphState) -> Dict[str, An
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
         },
-        retry_strategy='euphemize'
+        retry_strategy='force'
     )
-    if not final_outline:
-        final_outline = "安全備援：NSFW最终大纲生成鏈失败。"
 
-    return {"narrative_outline": final_outline}
+    if not final_text:
+        final_text = "（安全備援：NSFW 直通生成鏈最终失败，可能因为内容审查或API临时故障。）"
+
+    return {"llm_response": final_text}
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """[8] 統一的工具執行節點 (主要用於 SFW 路徑)。"""
@@ -589,32 +556,6 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
     )
     if not narrative_text:
         narrative_text = "（AI 在將 SFW 計劃轉化為故事時遭遇了內容安全限制。）"
-    return {"llm_response": narrative_text}
-
-async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    narrative_outline = state['narrative_outline']
-    logger.info(f"[{user_id}] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...")
-
-    if not narrative_outline or "安全備援" in narrative_outline:
-        return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
-        
-    chain_input = {
-        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
-        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
-        "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
-        "narrative_outline": narrative_outline
-    }
-        
-    narrative_text = await ai_core.ainvoke_with_rotation(
-        ai_core.get_final_novelist_chain(),
-        chain_input,
-        retry_strategy='force'
-    )
-    if not narrative_text:
-        narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
 # [v22.1 新增] 恢复 purification_node 的定义
