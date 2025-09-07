@@ -1033,11 +1033,11 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
 
 
 
-# 函式：統一的敘事渲染節點 (v27.0 - 數據準備專職化)
+# 函式：統一的敘事渲染節點 (v28.0 - 恢復System Prompt傳遞)
 # 更新紀錄:
-# v27.0 (2025-09-09): [災難性BUG修復] 根據 ai_core v217.0 的重構，此節點的職責被最終簡化為：只準備鏈所需要的原始數據（response_style_prompt 和 turn_plan），而不接觸任何模板字符串。所有複雜的格式化邏輯都被安全地封裝在 get_narrative_chain 內部，從而徹底解決了所有因格式化引發的 IndexError 和 ValueError。
+# v28.0 (2025-09-10): [災難性BUG修復] 根據 ai_core v218.0 的重構，恢復了向渲染鏈傳遞包含 `system_prompt` 鍵的標準化輸入字典。雖然鏈的內部會重新格式化它，但保持這個統一的輸入結構對於確保“指令強化重試”機制 (`_force_and_retry`) 在鏈失敗時能夠找到並修改 `system_prompt` 至關重要。此修改從根本上解決了因輸入結構不一致導致重試機制崩潰的 ValueError。
+# v27.0 (2025-09-09): [災難性BUG修復] 將節點職責簡化為只準備數據，以解決 IndexError。
 # v26.0 (2025-09-09): [災難性BUG修復] 此節點承擔了構建完整 system prompt 的職責以解決 ValueError。
-# v25.0 (2025-09-09): [災難性BUG修復] 簡化了數據流以解決 KeyError。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
     user_id = state['user_id']
@@ -1052,10 +1052,12 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
         logger.warning(f"[{user_id}] (Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
     
-    # [v27.0 核心修正] 只準備鏈需要的原始數據，將格式化完全交給鏈自己處理
+    # [v28.0 核心修正] 準備一個包含 system_prompt 的標準化字典，以確保重試機制可以工作
+    # 即使鏈的內部會重新處理它，但保持這個結構至關重要
     chain_input = {
+        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
-        "turn_plan_json": turn_plan.model_dump_json(indent=2)
+        "turn_plan": turn_plan
     }
         
     narrative_text = await ai_core.ainvoke_with_rotation(
@@ -1066,7 +1068,7 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v27.0 - 數據準備專職化)
+# 函式：統一的敘事渲染節點 (v28.0 - 恢復System Prompt傳遞)
 
 
 
@@ -1343,6 +1345,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
