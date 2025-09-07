@@ -135,20 +135,26 @@ class LocationInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
+# 類別：物品資訊 (v14.0 - 新增外觀描述)
+# 更新紀錄:
+# v14.0 (2025-09-08): [功能擴展] 根據使用者對 LORE 細節的要求，新增了 `visual_description` 欄位，用於儲存對物品外觀的詳細文字描寫。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。
+# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
 class ItemInfo(BaseModel):
     name: str = Field(description="道具的標準化、唯一的官方名稱。")
     aliases: List[str] = Field(default_factory=list, description="此物品的其他已知稱呼或別名。")
-    description: str = Field(default="", description="對該道具的詳細描述。")
+    description: str = Field(default="", description="對該道具的詳細描述，包括其歷史、材質、背景故事等。")
     item_type: str = Field(default="未知", description="道具的類型，例如 '消耗品', '武器', '關鍵物品', '盔甲', '服裝'。")
     effect: str = Field(default="無", description="道具的使用效果描述。")
     rarity: str = Field(default="普通", description="道具的稀有度，例如 '普通', '稀有', '史詩', '傳說'。")
-    visual_description: Optional[str] = Field(default="", description="對道具外觀的詳細描寫。")
+    visual_description: Optional[str] = Field(default="", description="對道具外觀的詳細、生動的描寫。")
     origin: Optional[str] = Field(default="", description="關於該道具來源或製造者的簡短傳說。")
 
     @field_validator('aliases', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
+# 類別：物品資訊 (v14.0 - 新增外觀描述)
 
 class CreatureInfo(BaseModel):
     name: str = Field(description="生物/魔物的標準化、唯一的官方種類名稱（例如 '水晶雞'）。")
@@ -387,3 +393,4 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
