@@ -978,18 +978,18 @@ class AILover:
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.1 - 輸出邏輯約束)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)
     # 更新紀錄:
-    # v6.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則，以減少 Pydantic 驗證錯誤的機率。
+    # v7.0 (2025-09-25): [災難性BUG修復] 徹底重構了提示詞的構建邏輯。不再接受一個待格式化的 `system_prompt`，而是在函式內部直接將 `one_instruction` 和 `response_style_prompt` 安全地格式化進主模板中，從根本上解決了因 LangChain 變數注入混亂導致的 `KeyError`。
+    # v6.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則。
     # v6.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
-    # v5.0 (2025-09-18): [重大架構重構] 修改了提示詞，改為接收並強制使用 `planning_subjects_json`。
     def get_remote_sfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 SFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_sfw_planning_chain') or self.remote_sfw_planning_chain is None:
             from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
-            system_prompt = """# ==================================================
+            system_prompt_template = """# ==================================================
 # == 🧠 系統核心指令 (遠程 SFW 規劃模式 - v6.1 邏輯約束) 🧠
 # ==================================================
 # 你的角色是【電影導演】。你的任務是將鏡頭切換到指定的【目标地点】，並為已存在的角色編排一幕生動的畫面。
@@ -1006,9 +1006,9 @@ class AILover:
 # 【使用者自訂風格指令 (RENDER STYLE - HIGHEST PRIORITY)】
 {response_style_prompt}
 # ------------------------------------------------------------------------------
-{system_prompt}
+{one_instruction}
 """
-            human_prompt = """# ==================================================
+            human_prompt_template = """# ==================================================
 # == 🎬 導演指令卡 (遠程 SFW 場景) 🎬
 # ==================================================
 # --- 世界快照數據 (背景參考) ---
@@ -1032,12 +1032,69 @@ class AILover:
 請嚴格遵循【最高規劃原則】，只使用上方【規劃主體】中提供的角色，為他們編排一場符合使用者指令的互動，並生成詳細的 TurnPlan JSON。
 """
             prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", human_prompt)
+                ("system", system_prompt_template),
+                ("human", human_prompt_template)
             ])
             self.remote_sfw_planning_chain = prompt | planner_llm
         return self.remote_sfw_planning_chain
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v6.1 - 輸出邏輯約束)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)```
+
+---
+
+### **`sfw_planning_node` 函式**
+
+```python
+async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
+
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
+
+    planning_subjects_raw = state.get('planning_subjects')
+    if planning_subjects_raw is None:
+        lore_objects = state.get('raw_lore_objects', [])
+        planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+
+    gs = ai_core.profile.game_state
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+    
+    plan = await ai_core.ainvoke_with_rotation(
+        ai_core.get_sfw_planning_chain(), 
+        {
+            "one_instruction": ai_core.profile.one_instruction, 
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot, 
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
+            "user_input": user_input,
+        },
+        retry_strategy='euphemize'
+    )
+    if not plan:
+        plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
+    return {"turn_plan": plan}
 
 
 
@@ -3370,6 +3427,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
