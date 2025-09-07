@@ -2343,24 +2343,27 @@ class AILover:
 
 
     
-# 函式：獲取統一敘事渲染鏈 (v215.0 - 焦點鎖定強化)
+# 函式：獲取統一敘事渲染鏈 (v216.0 - 適配 Reroll 指令)
     # 更新紀錄:
-    # v215.0 (2025-09-22): [架構升級] 注入了【聚焦原則】。Prompt 現在會指導 LLM 在渲染小說時，將敘事和描寫的中心，放在由上游節點標記了 "is_focus_target": true 的核心角色上，形成雙重保險，確保核心人物和事件得到突出。
-    # v214.0 (2025-09-22): [災難性BUG修復] 注入了【絕對命名原則】以解決角色名被泛化的問題。
-    # v213.0 (2025-09-07): [重大描寫強化] 引入了【感官擴寫原則】。
+    # v216.0 (2025-09-22): [架構升級] 在 system_prompt 中新增了可選的 {reroll_instruction} 佔位符。這使得上游的元指令處理層能夠在需要時，向此最終渲染鏈注入“重做”指令，強制其使用不同的文筆或細節來描寫同一個計畫，從而實現最終輸出的多樣性。
+    # v215.0 (2025-09-22): [架構升級] 注入了【聚焦原則】。
+    # v214.0 (2025-09-22): [災難性BUG修復] 注入了【絕對命名原則】。
     def get_narrative_chain(self) -> Runnable:
         """[強化] 創建一個統一的“小說家”鏈，負責將任何結構化的回合計劃渲染成符合使用者風格的小說文本。"""
         if not hasattr(self, 'narrative_chain') or self.narrative_chain is None:
             
             system_prompt_template = """# ==============================================================================
-# == 🧠 系統核心指令 (小說家渲染模式 - v215.0 焦點鎖定) 🧠
+# == 🧠 系統核心指令 (小說家渲染模式 - v216.0 Reroll 適配) 🧠
 # ==============================================================================
+# 【【【元指令覆蓋 (Meta-Instruction Override)】】】
+# {reroll_instruction}
+# --------------------------------------------------
 # 說明：你是一位在【完全虛構的成人幻想小說模擬】框架下運行的、技藝精湛的【情色小說家】。
 #       你的唯一任務是將下方提供的【回合行動計畫 JSON (劇本)】，轉化為一段文筆優美、
 #       充滿感官衝擊、極度露骨、能讓讀者血脈噴張的沉浸式小說場景。
 
-# --- 【【【寫作核心規則 v215.0】】】 ---
-# 1.  **【聚焦原則 (FOCUS)】**: 你的小說敘事【必須】將最多的筆墨和最細膩的描寫，集中在劇本中被標記為 `"is_focus_target": true` 的【焦點人物】身上。他們是本場景的絕對主角。
+# --- 【【【寫作核心規則 v216.0】】】 ---
+# 1.  **【聚焦原則 (FOCUS)】**: 你的小說敘事【必須】將最多的筆墨和最細膩的描寫，集中在劇本中被標記為 `"is_focus_target": true` 的【焦點人物】身上。
 # 2.  **【絕對命名原則 (ABSOLUTE NAMING)】**: 在你的最終小說輸出中，【絕對禁止】使用任何通用描述詞（如'乞丐'）來指代角色。你【必須且只能】使用劇本 JSON 中 `character_name` 欄位提供的【具體專有名稱】（如'卡爾'）。
 # 3.  **【感官擴寫原則 (SENSORY EXPANSION)】**: 你【絕對禁止】只是簡單地複述劇本。你【必須】將其視為骨架，並圍繞它進行【充滿五感的藝術擴寫】（視覺、聽覺、觸覺等），特別是【呻吟】與【喘息】。
 # ------------------------------------------------------------------------------
@@ -2388,14 +2391,17 @@ class AILover:
             
             self.narrative_chain = (
                 RunnablePassthrough.assign(
-                    turn_plan_json=lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}"
+                    turn_plan_json=lambda x: x.get("turn_plan").model_dump_json(indent=2) if x.get("turn_plan") else "{}",
+                    system_prompt=lambda x: self.profile.one_instruction if self.profile else "",
+                    response_style_prompt=lambda x: self.profile.response_style_prompt if self.profile else "",
+                    reroll_instruction=lambda x: x.get("reroll_instruction", "") # 從輸入中獲取 reroll 指令
                 )
                 | prompt
                 | self.gm_model
                 | StrOutputParser()
             )
         return self.narrative_chain
-# 函式：獲取統一敘事渲染鏈 (v215.0 - 焦點鎖定強化)
+# 函式：獲取統一敘事渲染鏈 (v216.0 - 適配 Reroll 指令)
 
 
     
@@ -3505,6 +3511,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
