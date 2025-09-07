@@ -220,13 +220,16 @@ class AILover:
 
 
 
-    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI核心 (v203.2 - 延遲加載补全)
+    # 更新紀錄:
+    # v203.2 (2025-09-22): [災難性BUG修復] 补全了在 v19.2 修复中被遗漏的 `purification_chain` 属性声明。此修改遵循了“延遲加載”的完整模式，解决了因 `__init__` 中缺少属性声明而导致的 AttributeError。
+    # v203.1 (2025-09-05): [延遲加載重構] 所有链都初始化为 None，将在 get 方法中被延遲加載。
+    # v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
         self.gm_model: Optional[Runnable] = None
         
-        # [v203.1] 所有链都初始化为 None，将在 get 方法中被延遲加載
         self.personal_memory_chain: Optional[Runnable] = None
         self.scene_expansion_chain: Optional[Runnable] = None
         self.scene_casting_chain: Optional[Runnable] = None
@@ -251,6 +254,9 @@ class AILover:
         self.profile_parser_chain: Optional[Runnable] = None
         self.profile_rewriting_chain: Optional[Runnable] = None
 
+        # [v203.2 核心修正] 补上 purification_chain 的声明
+        self.purification_chain: Optional[Runnable] = None
+
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
@@ -272,7 +278,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI核心 (v203.2 - 延遲加載补全)
     
 
 
@@ -3482,6 +3488,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
