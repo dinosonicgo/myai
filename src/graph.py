@@ -636,6 +636,10 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
 
 
 
+# 函式：獲取格式化的聊天歷史 (v2.0 - 健壯性修正)
+# 更新紀錄:
+# v2.0 (2025-09-28): [健壯性] 在獲取 AI 名字時，增加了對 `ai_core.profile` 是否存在的檢查，並提供了一個 “AI” 作為備援名稱，以防止在罕見的初始化失敗場景下發生 AttributeError。
+# v1.0 (2025-09-26): [全新創建] 創建此輔助函式，用於從 AI 核心實例中提取並格式化最近的對話歷史，供圖中的各個節點注入到提示詞中。
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
@@ -646,49 +650,50 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
     recent_messages = chat_history_manager.messages[-num_messages:]
     
     formatted_history = []
+    # [v2.0 核心修正] 增加對 profile 的檢查，使函式更健壯
+    ai_name = ai_core.profile.ai_profile.name if ai_core.profile and ai_core.profile.ai_profile and ai_core.profile.ai_profile.name else "AI"
+    
     for msg in recent_messages:
-        role = "使用者" if isinstance(msg, HumanMessage) else ai_core.profile.ai_profile.name if ai_core.profile else "AI"
+        role = "使用者" if isinstance(msg, HumanMessage) else ai_name
         formatted_history.append(f"{role}: {msg.content}")
         
     return "\n".join(formatted_history)
-
+# 函式：獲取格式化的聊天歷史 (v2.0 - 健壯性修正)
 
     
-# 函式：LORE擴展決策節點 (v5.0 - 適配淨化輸入)
+# 函式：LORE擴展決策節點 (v6.0 - 誘餌與酬載)
 # 更新紀錄:
-# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來判斷場景是否需要引入新角色，確保決策過程的穩定性。
-# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。
-# v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的數據傳遞邏輯，改為注入完整的角色 JSON。
+# v6.0 (2025-09-28): [架構重構] 此節點現在遵循“誘餌與酬載”策略，將原始使用者輸入作為 `user_payload` 傳遞，以確保決策鏈的穩定運行。
+# v5.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來判斷場景是否需要引入新角色。
+# v4.1 (2025-09-06): [災難性BUG修復] 動態注入範例字符串。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v5.0 核心修正] 使用淨化後的輸入進行決策
-    sanitized_input = state['sanitized_user_input']
+    user_input = state['messages'][-1].content
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於【淨化後】的語意匹配，判斷是否擴展...")
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
     lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
     lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
     
-    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
-
     examples_str = """
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
-    - 使用者輸入: `繼續描述那個賣魚的女人`
-    - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
+    - 劇本酬載: `繼續描述那個賣魚的女人`
+    - **你的決策**: `should_expand: false`
 - **情境 2**:
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
-    - 使用者輸入: `這時一個衛兵走了過來`
-    - **你的決策**: `should_expand: true` (理由應類似於: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
+    - 劇本酬載: `這時一個衛兵走了過來`
+    - **你的決策**: `should_expand: true`
 """
 
     decision_chain = ai_core.get_expansion_decision_chain()
+    # [v6.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
-            "user_input": sanitized_input, # 使用淨化輸入
+            "user_payload": user_input,
             "existing_characters_json": lore_json_str,
             "examples": examples_str
         },
@@ -701,7 +706,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v5.0 - 適配淨化輸入)
+# 函式：LORE擴展決策節點 (v6.0 - 誘餌與酬載)
 
 
 
@@ -745,20 +750,19 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v9.0 - 適配淨化輸入)
+# 函式：專用的LORE擴展執行節點 (v10.0 - 誘餌與酬載)
 # 更新紀錄:
-# v9.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用場景選角鏈，確保 LORE 創建的觸發階段不會被內容審查阻斷。
-# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。
-# v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
+# v10.0 (2025-09-28): [架構重構] 此節點現在遵循“誘餌與酬載”策略，將原始使用者輸入作為 `dialogue_payload` 傳遞，以確保選角鏈的穩定運行。
+# v9.0 (2025-09-27): [架構重構] 此節點現在使用 `sanitized_user_input` 來調用場景選角鏈。
+# v8.0 (2025-09-06): [重大架構升級] 賦予此節點【持久化場景錨點】的職責。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v9.0 核心修正] 使用淨化後的輸入進行選角
-    sanitized_input = state['sanitized_user_input']
+    user_input = state['messages'][-1].content
     existing_lores = state.get('raw_lore_objects', [])
     
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在基於【淨化後】的輸入執行場景選角與LORE擴展...")
+    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
     
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
@@ -775,13 +779,14 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
 
+    # [v10.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
     cast_result = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_casting_chain(),
         {
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
             "game_context": game_context_for_casting, 
-            "recent_dialogue": sanitized_input # 使用淨化輸入
+            "dialogue_payload": user_input
         },
         retry_strategy='euphemize'
     )
@@ -816,7 +821,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v9.0 - 適配淨化輸入)
+# 函式：專用的LORE擴展執行節點 (v10.0 - 誘餌與酬載)
 
 
 
@@ -1283,18 +1288,15 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v38.0 - 引入淨化層)
+# 函式：創建主回應圖 (v39.0 - 廢除淨化層)
 # 更新紀錄:
-# v38.0 (2025-09-27): [重大架構重構] 為了從根本上解決分析鏈被內容審查攔截的問題，對圖的拓撲進行了重構。
-#    1. [新增] 引入了全新的 `pre_process_input_node` 作為圖的【新入口點】。
-#    2. [重連] 將所有分析型節點（classify_intent, retrieve_memories 等）的數據源重定向到淨化節點的輸出 (`sanitized_user_input`)。
-#    3. [保留] 創意型節點（所有 planning 節點）的數據源【仍然是】原始的、未經修改的使用者輸入，以確保創意的完整性。
-# v37.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，對圖的拓撲進行了決定性的簡化。
+# v39.0 (2025-09-28): [重大架構重構] 根據“誘餌與酬載”策略的成功實施，此版本【徹底廢除】了已被證明無效的 `pre_process_input` 淨化層節點。圖的入口點被重新設置回 `classify_intent`，整個圖的拓撲結構得到簡化和加固。
+# v38.0 (2025-09-27): [重大架構重構] 引入了全新的 `pre_process_input_node` 作為圖的【新入口點】。
+# v37.0 (2025-09-07): [災難性BUG修復] 廢棄並移除了 `pre_process_input` 節點。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("pre_process_input", pre_process_input_node) # 新增
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
@@ -1321,9 +1323,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
     # --- 2. 定義圖的拓撲結構 ---
-    # [v38.0 核心修正] 將入口點設置為 pre_process_input
-    graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "classify_intent") # 淨化後的輸入流向分類器
+    # [v39.0 核心修正] 將入口點直接設置回 classify_intent，廢除淨化層
+    graph.set_entry_point("classify_intent")
     
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
@@ -1389,8 +1390,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v38.0 - 引入淨化層)
-
+# 函式：創建主回應圖 (v39.0 - 廢除淨化層)
 
 
 
