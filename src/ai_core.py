@@ -2479,49 +2479,40 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
+# 函式：獲取場景選角分析鏈 (v1.0 - 需求驅動)
     # 更新紀錄:
-    # v4.2 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，確認 LangChain 的提示詞解析器會錯誤地解析模板中的 JSON 範例語法。為從根本上解決此問題，已將所有具體的“關鍵對比範例”從此靜態模板中移除，並替換為一個無害的 `{examples}` 佔位符。實際的範例內容將由調用點（graph.py）動態注入。
-    # v4.1 (2025-09-06): [災難性BUG修復] 徹底重寫了提示詞中的所有範例，移除了所有大括號 {} 佔位符。
-    # v4.0 (2025-09-06): [災難性BUG修復] 將此鏈升級為“選角導演模式”。
-    def get_expansion_decision_chain(self) -> Runnable:
-        if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
-            from .schemas import ExpansionDecision
-            decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
+    # v1.0 (2025-09-22): [重大架構重構] 將 get_expansion_decision_chain 徹底重構並重命名。此鏈不再返回簡單的 True/False，而是扮演“劇本分析師”的角色，分析使用者指令並輸出一個結構化的“選角需求單”（SceneCastingRequirements），明確指出場景需要幾名男性、幾名女性以及劇情摘要，為下游的智能LORE擴展提供了精確的指導。
+    def get_scene_casting_analysis_chain(self) -> Runnable:
+        """獲取或創建一個分析場景並生成結構化“選角需求單”的鏈。"""
+        if not hasattr(self, 'scene_casting_analysis_chain') or self.scene_casting_analysis_chain is None:
+            from .schemas import SceneCastingRequirements
+            analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(SceneCastingRequirements)
             
-            prompt_template = """你是一位精明的【選角導演 (Casting Director)】。你的唯一任務是分析【劇本（使用者輸入）】，並對比你手中已有的【演員名單（現有角色JSON）】，來決定是否需要為這個場景【僱用新演員（擴展LORE）】。
+            prompt_template = """你是一位精明的【劇本分析師 (Script Analyst)】。你的唯一任務是分析【使用者最新指令】，並輸出一份結構化的【選角需求單】，明確指出這個場景需要什麼樣的演員陣容。
 
-# === 【【【最高指導原則：語意匹配優先 (Semantic-Matching First)】】】 ===
-這是你決策的【唯一且絕對的標準】。你的任務是判斷**角色職責**是否匹配，而不是進行簡單的字串比較。
+# === 【【【核心分析原則】】】 ===
+1.  **【計數與分類】**: 你必須精確地計數【使用者最新指令】中明確或暗示的所有角色，並將他們按性別分類。
+    *   "一群男性乞丐" 應被計為至少 2-3 名男性。
+    *   "一名女性教徒" 應被計為 1 名女性。
+    *   如果指令中沒有提到任何角色，則數量為 0。
+2.  **【生成場景摘要】**: 你需要將使用者的指令，提煉成一句對【場景核心動作】的簡潔摘要。這個摘要將交給下游的“選角導演”去創造具體的角色。
+3.  **【忽略已有角色】**: 在此階段，你【不需要】關心場景中已經有哪些角色。你的任務是【只根據使用者指令】來定義一個理想的、完整的演員需求。
 
-1.  **分析劇本需求**: 首先，從【使用者最新輸入】中理解場景需要什麼樣的**角色或職責**（例如：“一個賣魚的女人”、“幾個狂熱的信徒”）。
-2.  **審視演員名單**: 然後，你【必須】仔細閱讀下方提供的【現有角色JSON】，查看名單上是否有任何演員的**檔案（特別是`name`和`description`）**符合劇本所要求的**職責**。
+# === 【【【行為模型範例】】】 ===
+- **使用者輸入**: `重新描述一群男性神教徒乞丐輪姦一名女性性神教徒`
+- **【✅ 正確的輸出 JSON】**:
+  `{{ "thought": "指令需要多名男性和一名女性。男性數量定為3以體現'一群'的概念。", "required_male_characters": 3, "required_female_characters": 1, "scene_summary": "一群男性神教徒乞丐正在輪姦一名女性性神教徒。" }}`
 
-# === 決策規則 (絕對強制) ===
-
-## A. 【必須不擴展 (should_expand = false)】的情況：
-   - **當已有合適的演員時**。如果【現有角色JSON】中，已經有角色的檔案表明他們可以扮演【使用者輸入】中要求的角色，你【必須】選擇他們，並決定【不擴展】。你的職責是優先利用現有資源。
-   - **理由必須這樣寫**: 你的理由應當清晰地指出哪個現有角色符合哪個被要求的職責。
-
-## B. 【必須擴展 (should_expand = true)】的情況：
-   - **當缺乏合適的演員時**。如果【使用者輸入】明確要求一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責，這意味著演員陣容存在空白，需要你來【僱用新人】。
-   - **理由必須這樣寫**: 你的理由應當清晰地指出場景中缺失了哪種角色職責。
-
-# === 關鍵對比範例 ===
-{examples}
 ---
-【使用者最新輸入 (劇本)】: 
+【使用者最新指令】: 
 {user_input}
 ---
-【現有角色JSON (演員名單)】:
-{existing_characters_json}
----
-請嚴格遵循以上所有規則，做出你作為選角導演的專業判斷。"""
+請開始你的分析，並嚴格按照 `SceneCastingRequirements` 的格式返回【選角需求單】。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.expansion_decision_chain = prompt | decision_llm
-        return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
+            self.scene_casting_analysis_chain = prompt | analysis_llm
+        return self.scene_casting_analysis_chain
+# 函式：獲取場景選角分析鏈 (v1.0 - 需求驅動)
 
 
 
@@ -3511,6 +3502,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
