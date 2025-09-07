@@ -206,19 +206,17 @@ async def character_quantification_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：意圖分類節點 (v3.1 - 狀態繼承)
+# 函式：意圖分類節點 (v4.0 - 持久化狀態繼承)
 # 更新紀錄:
-# v3.1 (2025-09-22): [災難性BUG修復] 徹底重構了此節點的邏輯，引入了“狀態繼承”機制。現在，當節點識別到“继续”等延续性指令時，它将不再对该指令本身进行分类，而是直接继承并复用上一轮对话的意圖分类结果。此修改从根本上解决了延续性指令被错误路由到SFW路径的问题。
+# v4.0 (2025-09-22): [災難性BUG修復] 徹底重構了狀態繼承的邏輯。當節點識別到“继续”等延续性指令時，它不再從記憶體中的上一轮状态继承，而是直接從 ai_core.profile.game_state 中讀取已持久化的 `last_intent_type`。此修改確保了意圖繼承的絕對可靠性。
+# v3.1 (2025-09-22): [災難性BUG修復] 引入了“狀態繼承”機制。
 # v3.0 (2025-09-08): [災難性BUG修復] 废除了“前置净化层”策略。
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承状态。"""
+    """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承持久化的状态。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
-    # --- [v3.1 核心逻辑] ---
-    # 步驟 1: 進行初步的輸入類型分析
     logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...")
     input_analysis_chain = ai_core.get_input_analysis_chain()
     input_analysis_result = await ai_core.ainvoke_with_rotation(
@@ -227,21 +225,26 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
     
-    # 步驟 2: 检查是否为延续性指令
+    # 步驟 1: 检查是否为延续性指令
     if input_analysis_result and input_analysis_result.input_type == 'continuation':
-        # 如果是延续性指令，尝试继承上一轮的意图
-        last_intent = state.get('intent_classification')
-        if last_intent:
-            logger.info(f"[{user_id}] (Graph|1) 檢測到延续性指令，已繼承上一轮的意图: '{last_intent.intent_type}'")
-            # 直接复用上一轮的意图，并更新分析结果以供下游使用
+        # [v4.0 核心修正] 从持久化的 GameState 中读取上一轮的意图
+        if ai_core.profile and ai_core.profile.game_state.last_intent_type:
+            last_intent_type = ai_core.profile.game_state.last_intent_type
+            logger.info(f"[{user_id}] (Graph|1) 檢測到延续性指令，已從【持久化 GameState】繼承意图: '{last_intent_type}'")
+            
+            # 根據繼承的意圖類型，構建一個新的 IntentClassificationResult 物件
+            inherited_intent = IntentClassificationResult(
+                intent_type=last_intent_type,
+                reasoning=f"從持久化狀態繼承了上一輪的 '{last_intent_type}' 意圖。"
+            )
             return {
-                "intent_classification": last_intent,
+                "intent_classification": inherited_intent,
                 "input_analysis": input_analysis_result
             }
         else:
-            logger.warning(f"[{user_id}] (Graph|1) 檢測到延续性指令，但沒有上一轮的意图可供继承，将按常规流程处理。")
+            logger.warning(f"[{user_id}] (Graph|1) 檢測到延续性指令，但 GameState 中沒有意图可供继承，将按常规流程处理。")
 
-    # 步驟 3: 如果不是延续性指令或无法继承，则执行常规的意图分类
+    # 步驟 2: 如果不是延续性指令，则执行常规的意图分类
     logger.info(f"[{user_id}] (Graph|1) 正在对具体指令 '{user_input[:30]}...' 進行意圖分類...")
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
@@ -258,7 +261,7 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         "intent_classification": classification_result,
         "input_analysis": input_analysis_result
     }
-# 函式：意圖分類節點 (v3.1 - 狀態繼承)
+# 函式：意圖分類節點 (v4.0 - 持久化狀態繼承)
 
 
 
@@ -1135,14 +1138,27 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         
     return {"final_output": final_response}
 
+# 函式：統一的狀態持久化節點 (v1.1 - 意圖持久化)
+# 更新紀錄:
+# v1.1 (2025-09-22): [災難性BUG修復] 新增了核心邏輯，在回合結束時，將本回合的意圖分类结果 (intent_classification.intent_type) 寫入 GameState 的 `last_intent_type` 欄位並存入資料庫。此修改完成了意圖持久化狀態機的閉環，確保下一輪的延续性指令可以正確繼承狀態。
 async def persist_state_node(state: ConversationGraphState) -> Dict:
-    """[11] 統一的狀態持久化節點。"""
+    """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     clean_response = state['final_output']
+    intent_classification = state.get('intent_classification')
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
     
+    # [v1.1 核心修正] 將當前意圖寫入 GameState 以供下一輪繼承
+    if ai_core.profile and intent_classification:
+        current_intent_type = intent_classification.intent_type
+        if ai_core.profile.game_state.last_intent_type != current_intent_type:
+            logger.info(f"[{user_id}] (Persist) 正在將當前意圖 '{current_intent_type}' 持久化到 GameState...")
+            ai_core.profile.game_state.last_intent_type = current_intent_type
+            # 使用 update_and_persist_profile 來確保事務的完整性
+            await ai_core.update_and_persist_profile({'game_state': ai_core.profile.game_state.model_dump()})
+
     if clean_response and clean_response != "（...）":
         chat_history_manager = ai_core.session_histories.get(user_id)
         if chat_history_manager:
@@ -1167,6 +1183,7 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         await asyncio.gather(*tasks, return_exceptions=True)
         
     return {}
+# 函式：統一的狀態持久化節點 (v1.1 - 意圖持久化)
 
 # --- 主對話圖的路由 v21.1 ---
 
@@ -1379,6 +1396,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
