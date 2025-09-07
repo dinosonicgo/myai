@@ -723,27 +723,30 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
 # 函式：專用LORE查詢節點 (v6.0 - 返璞歸真)
 
 
-# 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
+# 函式：專用上下文組裝節點 (v2.0 - 數據源修正)
 # 更新紀錄:
-# v1.1 (2025-09-06): [災難性BUG修復] 修改此節點的返回值，使其除了生成格式化的 `structured_context` 外，還將未經修改的 `raw_lore_objects` 直接透傳下去。這是實現“LORE事實鎖定”機制的關鍵一步，確保後續的規劃節點能夠訪問到完整的、未經摘要的原始 LORE 數據。
+# v2.0 (2025-09-29): [災難性BUG修復] 根據 KeyError Log，徹底移除了此節點對已被廢除的 `intent_classification` 狀態的依賴。現在，它直接從 `ai_core.profile.game_state.viewing_mode` 這個唯一、可靠的真實數據源來判斷當前是否為遠程場景，從而解決了因數據流斷裂導致的崩潰。
+# v1.1 (2025-09-06): [災難性BUG修復] 修改此節點的返回值，使其除了生成格式化的 `structured_context` 外，還將未經修改的 `raw_lore_objects` 直接透傳下去。
 # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將上下文格式化邏輯分離。
 async def assemble_context_node(state: ConversationGraphState) -> Dict:
     """[4] 專用上下文組裝節點，將原始LORE格式化為LLM可讀的字符串，並透傳原始LORE對象。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     raw_lore = state['raw_lore_objects']
-    intent_type = state['intent_classification'].intent_type
-    logger.info(f"[{user_id}] (Graph|4) Node: assemble_context -> 正在組裝最終上下文簡報並透傳原始LORE...")
     
-    is_remote = intent_type == 'nsfw_descriptive'
+    # [v2.0 核心修正] 直接從 game_state 獲取視角模式
+    viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
+    is_remote = viewing_mode == 'remote'
+    
+    logger.info(f"[{user_id}] (Graph|4) Node: assemble_context -> 正在基於視角 '{viewing_mode}' 組裝最終上下文簡報...")
+    
     structured_context = ai_core._assemble_context_from_lore(raw_lore, is_remote_scene=is_remote)
     
-    # [v1.1 核心修正] 將原始 LORE 對象也加入返回字典中，以便後續節點使用
     return {
         "structured_context": structured_context,
         "raw_lore_objects": raw_lore 
     }
-# 函式：專用上下文組裝節點 (v1.1 - 傳遞原始LORE)
+# 函式：專用上下文組裝節點 (v2.0 - 數據源修正)
 
 
 
