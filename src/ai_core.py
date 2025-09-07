@@ -250,22 +250,6 @@ class AILover:
         self.profile_completion_chain: Optional[Runnable] = None
         self.profile_parser_chain: Optional[Runnable] = None
         self.profile_rewriting_chain: Optional[Runnable] = None
-        # [v2.0 修正] 新增缺少的鏈屬性
-        self.nsfw_planning_chain: Optional[Runnable] = None
-        self.nsfw_template_filling_chain: Optional[Runnable] = None
-        self.location_extraction_chain: Optional[Runnable] = None
-        self.contextual_location_chain: Optional[Runnable] = None
-        self.nsfw_refinement_chain: Optional[Runnable] = None
-        self.remote_sfw_planning_chain: Optional[Runnable] = None
-        self.remote_nsfw_planning_chain: Optional[Runnable] = None
-        self.sfw_planning_chain: Optional[Runnable] = None
-        self.nsfw_initial_planning_chain: Optional[Runnable] = None
-        self.nsfw_lexicon_injection_chain: Optional[Runnable] = None
-        self.nsfw_style_compliance_chain: Optional[Runnable] = None
-        self.remote_planning_chain: Optional[Runnable] = None
-        self.intent_classification_chain: Optional[Runnable] = None
-        self.euphemization_chain: Optional[Runnable] = None
-
 
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
@@ -358,9 +342,6 @@ class AILover:
             return False
         return True
     # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
-
-
-    
 
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
     # 說明：接收更新字典，驗證並更新記憶體中的設定檔，然後將其持久化到資料庫。
@@ -1774,17 +1755,16 @@ class AILover:
     # 函式：獲取 SFW 回合計劃鏈 (v212.0 - 適配規劃主體)
 
 
-# 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.0 - 描述性指令強化)
-# 更新紀錄:
-# v2.0 (2025-09-07): [災難性BUG修復] 徹底重構了提示詞，增加了針對「描述性指令」的處理指南。此修改旨在解決當 LLM 處理遠程描述請求時，因未能將場景描述放入 `thought` 或 `narration` 欄位而生成空計畫、導致 Pydantic 驗證失敗的嚴重問題。
-# v1.0 (2025-09-06): [重大架構升級] 創建此鏈作為全新「NSFW思維鏈」流水線的第一步。
-def get_nsfw_initial_planning_chain(self) -> Runnable:
-    """[思維鏈-步驟1] 獲取 NSFW 互動路徑的初步規劃鏈，只輸出包含核心動作的 TurnPlan "草稿"。"""
-    if not hasattr(self, 'nsfw_initial_planning_chain') or self.nsfw_initial_planning_chain is None:
-        from .schemas import TurnPlan
-        planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
-        
-        system_prompt = """# ==================================================
+    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v1.0 - 思維鏈)
+    # 更新紀錄:
+    # v1.0 (2025-09-06): [重大架構升級] 創建此鏈作為全新「NSFW思維鏈」流水線的第一步。其唯一職責是生成一個結構正確、符合指令意圖，但【用詞絕對中性、安全】的行動計畫草稿。此設計旨在確保計畫的「骨架」能夠在不觸發內容審查的情況下被成功構建，為後續的詞彙注入和風格潤色奠定基礎。
+    def get_nsfw_initial_planning_chain(self) -> Runnable:
+        """[思維鏈-步驟1] 獲取 NSFW 互動路徑的初步規劃鏈，只輸出包含核心動作的 TurnPlan "草稿"。"""
+        if not hasattr(self, 'nsfw_initial_planning_chain') or self.nsfw_initial_planning_chain is None:
+            from .schemas import TurnPlan
+            planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
+            
+            system_prompt = """# ==================================================
 # == 🧠 系統核心指令 (NSFW 初步規劃模式) 🧠
 # ==================================================
 # 你的角色是【NSFW場景執行導演】。你的唯一任務是為【露骨互動回合】制定一份【可直接執行的行動計劃JSON草稿】。
@@ -1794,7 +1774,7 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
 ---
 {system_prompt}
 """
-        human_prompt = """# ==================================================
+            human_prompt = """# ==================================================
 # == 📖 當前情境與使用者指令 📖
 # ==================================================
 # --- 世界快照數據 ---
@@ -1812,16 +1792,15 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
 # --- 【你的任務】 ---
 # 1.  **精確執行**: 根據【指令忠誠度鐵則】，並【緊密銜接最近的對話歷史】，生成一個直接執行使用者指令的 `TurnPlan` JSON。
 # 2.  **用詞安全**: 在你的 `action_description` 和 `dialogue` 中，【絕對禁止】使用任何露骨的性詞彙。請使用「進行親密互動」、「身體接觸」等中性詞語來代替。
-# 3.  **【【【關鍵指令：處理描述性請求】】】**: 如果使用者的指令是**描述性**的（例如，'描述一個場景'），並且沒有直接的角色行動，你【必須】將場景的初步、安全的描述草稿放入 `thought` 或 `narration` 欄位中。這將確保計畫不是空的。
-# 4.  **範例**: 如果指令是“男孩幹著媽媽”，你的 `action_description` 應該是關於角色“男孩與母親正在進行極度親密的身體互動”的描述，而不是直接寫出露骨行為。
+# 3.  **範例**: 如果指令是“男孩幹著媽媽”，你的 `action_description` 應該是關於角色“男孩與母親正在進行極度親密的身體互動”的描述，而不是直接寫出露骨行為。
 """
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
-            ("human", human_prompt)
-        ])
-        self.nsfw_initial_planning_chain = prompt | planner_llm
-    return self.nsfw_initial_planning_chain
-# 函式：[新] 獲取 NSFW 初步計劃鏈 (v2.0 - 描述性指令強化)
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            self.nsfw_initial_planning_chain = prompt | planner_llm
+        return self.nsfw_initial_planning_chain
+    # 函式：[新] 獲取 NSFW 初步計劃鏈 (v1.0 - 思維鏈)
 
 
 
@@ -2450,7 +2429,7 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
         return self.entity_extraction_chain
     # 函式：獲取實體提取鏈 (v203.1 - 延遲加載重構)
 
-   # 函式：配置前置資源 (v203.1 - 延遲加載重構)
+    # 函式：配置前置資源 (v203.1 - 延遲加載重構)
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
@@ -2470,11 +2449,6 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
         
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
-
-
-
-
-    
 
     # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
     # 更新紀錄:
@@ -2534,8 +2508,10 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
                                 model="models/embedding-001",
                                 google_api_key=self.api_keys[self.current_key_index]
                             )
-                            # Re-initialize Chroma with the new embedding function
-                            self.vector_store._embedding_function = self.embeddings
+                            self.vector_store = Chroma(
+                                persist_directory=self.vector_store_path,
+                                embedding_function=self.embeddings
+                            )
                             
                             if attempt < max_retries - 1:
                                 await asyncio.sleep(5)
@@ -2556,10 +2532,7 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
     # 函式：將世界聖經添加到向量儲存 (v2.1 - 異常捕獲修正)
-
-
-    
-     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     # 更新紀錄:
     # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
     #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
@@ -2645,8 +2618,6 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
-
-    
     
    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
@@ -3413,7 +3384,3 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
-
-
-
-
