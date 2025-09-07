@@ -103,38 +103,49 @@ async def add_or_update_location_info(lore_key: str, standardized_name: str, ori
 
 # --- 物品相關工具 ---
 
-# 類別：新增或更新物品資訊參數
+# 類別：新增或更新物品資訊參數 (v2.0 - 強化外觀描述)
+# 更新紀錄:
+# v2.0 (2025-09-08): [功能擴展] 根據 schemas.py 的更新，新增了 `visual_description` 參數，並強化了其描述，強制要求 AI 提供詳細的外觀資訊。
+# v1.2 (2025-09-02): [健壯性] 將 `add_or_update_npc_profile` 重命名為 `create_new_npc_profile`。
+# v1.1 (2025-09-02): [重大架構重構] 移除了本地的上下文管理，改為從中央 `tool_context` 導入共享實例。
 class AddOrUpdateItemInfoArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化物品名稱。")
     original_name: str = Field(description="LLM 在計畫中生成的原始物品名稱。")
-    description: str = Field(description="對物品的詳細描述，包括其外觀、材質、歷史等。")
+    description: str = Field(description="對物品的詳細描述，包括其材質、歷史等。")
     effect: Optional[str] = Field(default=None, description="物品的效果，例如：'恢復少量生命值'。")
+    visual_description: Optional[str] = Field(default=None, description="對物品外觀的詳細、生動的描寫。")
 
-# 工具：新增或更新物品資訊
+# 工具：新增或更新物品資訊 (v2.0 - 適配新參數)
 @tool(args_schema=AddOrUpdateItemInfoArgs)
-async def add_or_update_item_info(lore_key: str, standardized_name: str, original_name: str, description: str, effect: Optional[str] = None) -> str:
+async def add_or_update_item_info(lore_key: str, standardized_name: str, original_name: str, description: str, effect: Optional[str] = None, visual_description: Optional[str] = None) -> str:
     """用於創建一個新的物品條目，或用全新的描述覆蓋一個已有的物品條目。"""
     user_id = tool_context.get_user_id()
     item_data = {
         "name": standardized_name,
         "description": description,
         "effect": effect,
+        "visual_description": visual_description,
         "aliases": [original_name] if original_name.lower() != standardized_name.lower() else []
     }
     await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
     return f"已成功為新物品 '{standardized_name}' 記錄了詳細資訊。"
+# 工具：新增或更新物品資訊 (v2.0 - 適配新參數)
 
 # --- 生物相關工具 ---
 
-# 類別：定義生物類型參數
+# 類別：定義生物類型參數 (v2.0 - 強化外觀描述)
+# 更新紀錄:
+# v2.0 (2025-09-08): [功能擴展] 強化了 `description` 參數的描述，強制要求 AI 在描述生物時必須包含詳細的外觀資訊。
+# v1.2 (2025-09-02): [健壯性] 將 `add_or_update_npc_profile` 重命名為 `create_new_npc_profile`。
+# v1.1 (2025-09-02): [重大架構重構] 移除了本地的上下文管理，改為從中央 `tool_context` 導入共享實例。
 class DefineCreatureTypeArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化生物名稱。")
     original_name: str = Field(description="LLM 在計畫中生成的原始生物名稱。")
-    description: str = Field(description="對該生物/物種的詳細描述，包括其習性、外貌、能力、棲息地等。")
+    description: str = Field(description="對該生物/物種的詳細描述，【必須包含】其詳細的外貌、習性、能力、棲息地等資訊。")
 
-# 工具：定義生物類型
+# 工具：定義生物類型 (v2.0 - 無功能變更)
 @tool(args_schema=DefineCreatureTypeArgs)
 async def define_creature_type(lore_key: str, standardized_name: str, original_name: str, description: str) -> str:
     """用於在世界百科全書中創建一個全新的生物/物種詞條。"""
@@ -146,6 +157,7 @@ async def define_creature_type(lore_key: str, standardized_name: str, original_n
     }
     await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
     return f"已成功為新物種 '{standardized_name}' 創建了百科詞條。"
+# 工具：定義生物類型 (v2.0 - 無功能變更)
 
 # --- 任務與世界傳說相關工具 ---
 
@@ -218,3 +230,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
     ]
 # 函式：獲取所有 LORE 工具 (v1.2 - 更新列表)
+
