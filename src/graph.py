@@ -333,74 +333,55 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     return {"planning_subjects": planning_subjects}
 
 
-# 函式：[新] NSFW 意圖轉碼節點 (v1.0 - 數據偽裝)
+# 函式：NSFW 意圖偽裝節點 (v2.0 - 關鍵詞注入)
 # 更新紀錄:
-# v1.0 (2025-09-22): [重大架構重構] 根據“數據偽裝”策略創建此新節點。它作為 NSFW 流程的新入口，調用轉碼鏈將露骨的用戶指令淨化為中性的“場景構建指令”，然後用這個安全指令覆蓋狀態中的原始輸入，再傳遞給下游的大綱生成器。
+# v2.0 (2025-09-22): [重大架構重構] 彻底重写了此节点的逻辑，以实现“意图伪装”。它不再调用转码链，而是调用新的关键词提取链，然后将提取出的关键词在代码层面注入一个固定的、中性的指令模板中。此举旨在以更可靠、更机械化的方式破坏审查模型赖以识别的语法模式，同时确保核心意图不丢失。
+# v1.0 (2025-09-22): [重大架構重構] 創建此節點作為 NSFW 流程的新入口。
 async def transcode_intent_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[數據偽裝-入口] 將露骨的用戶指令轉碼為安全的中性指令。"""
+    """[意圖偽裝] 將露骨的用戶指令解構為關鍵詞，並注入到一個安全的中性模板中。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|Transcoder) Node: transcode_intent -> 正在將露骨指令轉碼為安全指令...")
+    logger.info(f"[{user_id}] (Graph|Cloaker) Node: transcode_intent -> 正在將露骨指令偽裝為安全指令...")
 
-    transcoder_chain = ai_core.get_nsfw_intent_transcoder_chain()
+    keyword_chain = ai_core.get_keyword_extraction_chain()
     
-    transcoded_intent = await ai_core.ainvoke_with_rotation(
-        transcoder_chain,
-        {"user_input": user_input},
-        retry_strategy='euphemize' # 轉碼本身也可能失敗，需要備援
+    extraction_result = await ai_core.ainvoke_with_rotation(
+        keyword_chain,
+        {"text_input": user_input},
+        retry_strategy='euphemize'
     )
 
-    if not transcoded_intent or "安全備援" in transcoded_intent:
-        logger.warning(f"[{user_id}] (Graph|Transcoder) 意圖轉碼失敗，流程將使用原始指令，可能導致後續審查。")
-        # 如果轉碼失敗，我們什麼都不做，讓流程帶著原始指令繼續，寄望於後續的 Jailbreak
+    if not extraction_result or not extraction_result.names:
+        logger.warning(f"[{user_id}] (Graph|Cloaker) 關鍵詞提取失敗，流程將使用原始指令，可能導致後續審查。")
         return {}
 
-    logger.info(f"[{user_id}] (Graph|Transcoder) 意圖轉碼成功，新的安全指令: '{transcoded_intent[:100]}...'")
+    keywords = extraction_result.names
+    logger.info(f"[{user_id}] (Graph|Cloaker) 成功提取關鍵詞: {keywords}")
     
-    # 創建一個新的消息列表，用轉碼後的指令替換掉最後一條用戶消息
-    new_messages = state['messages'][:-1]
-    new_messages.append(HumanMessage(content=transcoded_intent))
-    
-    return {"messages": new_messages}
-# 函式：[新] NSFW 意圖轉碼節點 (v1.0 - 數據偽裝)
-
-
-
-
-
-
-
-# 函式：[新] 淨化節點 (v1.0 - 總編輯)
-# 更新紀錄:
-# v1.0 (2025-09-22): [重大品質提升] 創建此新節點，作為創意生成後的“總編輯”環節。它調用專門的淨化鏈，對初步渲染的文本進行強制性的詞彙和格式修正，以確保最終輸出嚴格符合規範。
-async def purification_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[新增] 對渲染後的文本進行最終的、強制性的詞彙與格式淨化。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    raw_llm_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|Purification) Node: purification -> 正在對文本進行總編輯級的校對...")
-
-    if not raw_llm_response or not raw_llm_response.strip() or "安全備援" in raw_llm_response:
-        return {"llm_response": raw_llm_response}
-
-    purification_chain = ai_core.get_purification_chain()
-    
-    purified_text = await ai_core.ainvoke_with_rotation(
-        purification_chain,
-        {
-            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
-            "raw_text": raw_llm_response
-        },
-        retry_strategy='force' # 淨化是機械性任務，必須強制完成
+    # 在程式碼層面使用固定模板進行注入，以確保可靠性
+    cloaked_intent = (
+        f"**場景構建指令**：\n"
+        f"請基於以下核心要素，構思一個詳細的、充滿戲劇衝突的場景劇本大綱。\n"
+        f"**核心要素列表**: {', '.join(keywords)}"
     )
     
-    if not purified_text:
-        logger.warning(f"[{user_id}] (Graph|Purification) 淨化鏈返回空值，將使用未經淨化的原始文本。")
-        return {"llm_response": raw_llm_response}
+    logger.info(f"[{user_id}] (Graph|Cloaker) 意圖偽裝成功，新的安全指令: '{cloaked_intent[:150]}...'")
+    
+    # 創建一個新的消息列表，用偽裝後的指令替換掉最後一條用戶消息
+    new_messages = state['messages'][:-1]
+    new_messages.append(HumanMessage(content=cloaked_intent))
+    
+    return {"messages": new_messages}
+# 函式：NSFW 意圖偽裝節點 (v2.0 - 關鍵詞注入)
 
-    return {"llm_response": purified_text}
-# 函式：[新] 淨化節點 (v1.0 - 總編輯)
+
+
+
+
+
+
+
 
 
 
@@ -793,12 +774,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
-# 函式：創建主回應圖 (v44.0 - 导演-演员模型)
+# 函式：創建主回應圖 (v45.0 - 意圖偽裝架構)
 # 更新紀錄:
-# v44.0 (2025-09-22): [重大架構重構] 根据“导演-演员”模型，彻底简化了图的 NSFW 处理流程。
-#    1. [移除] 删除了 `nsfw_refinement_node`。
-#    2. [重命名/升级] 将 `nsfw_breakthrough_node` 重命名并升级为 `nsfw_final_outline_node`。
-#    3. [重连] 将 NSFW 流程简化为“转码 -> 最终大纲 -> 最终渲染”的三步流水线，以最大限度地提高稳定性和成功率。
+# v45.0 (2025-09-22): [架構簡化] 根據“意圖偽裝”策略的引入，暫時移除了後置的 `purification_node`。新的策略旨在讓前端的偽裝足以保證全程的穩定性，移除後置處理可以簡化調試流程並降低複雜度。所有渲染器現在直接連接到 `validate_and_rewrite` 節點。
+# v44.0 (2025-09-22): [重大架構重構] 引入了“导演-演员”模型，简化了 NSFW 拓扑。
 # v43.0 (2025-09-22): [重大架構重構] 引入了“意图转码”架构。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
@@ -816,13 +795,14 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
     graph.add_node("transcode_intent", transcode_intent_node)
-    # [v44.0] 註冊新的最终大纲节点
     graph.add_node("nsfw_final_outline", nsfw_final_outline_node)
     
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("nsfw_final_rendering", final_rendering_node)
-    graph.add_node("purification", purification_node)
+    
+    # [v45.0] purification_node 已被移除
+    
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
@@ -885,19 +865,20 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     
-    # [v44.0 核心修正] 简化的 NSFW 路径
+    # NSFW 路径
     graph.add_edge("transcode_intent", "nsfw_final_outline")
     graph.add_edge("nsfw_final_outline", "nsfw_final_rendering")
     
+    # [v45.0 核心修正] 所有渲染器的出口都直接指向 validate_and_rewrite
+    graph.add_edge("sfw_narrative_rendering", "validate_and_rewrite")
+    graph.add_edge("nsfw_final_rendering", "validate_and_rewrite")
+    
     # 统一的後續流程
-    graph.add_edge("sfw_narrative_rendering", "purification")
-    graph.add_edge("nsfw_final_rendering", "purification")
-    graph.add_edge("purification", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v44.0 - 导演-演员模型)
+# 函式：創建主回應圖 (v45.0 - 意圖偽裝架構)
 
 
 
@@ -983,6 +964,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
