@@ -1,8 +1,8 @@
-# src/graph.py 的中文註釋(v22.2 - 最终完整性修复)
+# src/graph.py 的中文註釋(v22.0 - 渲染器分离修复)
 # 更新紀錄:
-# v22.2 (2025-09-22): [災難性BUG修復] 恢复了在 v19.1 修复中被意外覆盖删除的 `direct_nsfw_node` 函式的定义。此修改确保了图中所有被引用的节点（包括 `direct_nsfw_node` 和 `purification_node`）都拥有其对应的函数实现，从而彻底解决所有 NameError 启动失败问题。
-# v22.1 (2025-09-22): [災難性BUG修復] 恢复了在 v16.0 中被错误移除的 `purification_node` 函式的定义。
-# v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。
+# v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。恢复并重命名了专用于 SFW 路径的 `sfw_narrative_rendering_node`，并确保 `create_main_response_graph` 正确注册了两个独立的渲染器（`sfw_narrative_rendering_node` 和 `final_rendering_node`），从而修复了图的拓扑结构。
+# v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
+# v21.0 (2025-09-09): [重大架構重構] 对图的拓扑结构进行了精细化重构。
 import sys
 print(f"[DEBUG] graph.py loaded from: {__file__}", file=sys.stderr)
 import asyncio
@@ -453,16 +453,15 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
 
-# [v22.2 新增] 恢复 direct_nsfw_node 的定义
-async def direct_nsfw_node(state: ConversationGraphState) -> Dict[str, str]:
-    """// NSFW 測試方案 v19.0 // 一步到位直接生成最终的 NSFW 小说文本。"""
+async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
+    """[数据伪装-步骤1] 生成初步的、自然语言的“剧本大纲”草稿。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_node -> 正在執行NSFW直通生成...")
+    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...")
 
     if not ai_core.profile:
-        return {"llm_response": "错误：AI profile 未加载，无法生成场景。"}
+        return {"narrative_outline": "错误：AI profile 未加载，无法规划。"}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -482,16 +481,16 @@ async def direct_nsfw_node(state: ConversationGraphState) -> Dict[str, str]:
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': "(已弃用，请参考 planning_subjects_json)",
-        'relevant_npc_context': "(已弃用，请参考 planning_subjects_json)",
+        'npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    final_text = await ai_core.ainvoke_with_rotation(
-        ai_core.get_direct_nsfw_chain(),
+    outline_draft = await ai_core.ainvoke_with_rotation(
+        ai_core.get_nsfw_breakthrough_planning_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
@@ -501,19 +500,48 @@ async def direct_nsfw_node(state: ConversationGraphState) -> Dict[str, str]:
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
         },
-        retry_strategy='force'
+        retry_strategy='euphemize'
     )
+    if not outline_draft:
+        outline_draft = "安全備援：NSFW大纲生成鏈最终失败。"
 
-    if not final_text:
-        final_text = "（安全備援：NSFW 直通生成鏈最终失败，可能因为内容审查或API临时故障。）"
+    return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
 
-    return {"llm_response": final_text}
+async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[数据伪装-步骤2] 接收大纲草稿，并将其丰富为最终的、详细的故事大纲。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    narrative_outline_draft = state['narrative_outline']
+    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...")
+
+    if not ai_core.profile or "安全備援" in narrative_outline_draft:
+        return {} 
+
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    world_snapshot = state.get('world_snapshot', '') 
+
+    final_outline = await ai_core.ainvoke_with_rotation(
+        ai_core.get_nsfw_refinement_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "narrative_outline_draft": narrative_outline_draft
+        },
+        retry_strategy='euphemize'
+    )
+    if not final_outline:
+        logger.warning(f"[{user_id}] (Graph|NSFW Outline Pt.2) NSFW大纲润色链返回空值，将使用未经润色的原始大纲。")
+        return {}
+
+    return {"narrative_outline": final_outline}
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """[8] 統一的工具執行節點 (主要用於 SFW 路徑)。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    plan = state.get('turn_plan')
+    plan = state.get('turn_plan') # turn_plan 只在 SFW 路径中存在
     logger.info(f"[{user_id}] (Graph|8) Node: tool_execution -> 正在執行行動計劃中的工具...")
     
     if not plan or not plan.character_actions:
@@ -528,6 +556,7 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
+# [v22.0 新增] 恢复并重命名的 SFW 专用渲染节点
 async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[SFW Path] 将 SFW 的 TurnPlan 渲染成小说文本。"""
     user_id = state['user_id']
@@ -542,6 +571,8 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
         logger.warning(f"[{user_id}] (SFW Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
     
+    # 注意：这里我们调用的是旧的、通用的 get_narrative_chain，因为它能处理 TurnPlan
+    # 在未来的版本中，可以为 SFW 创建一个专门的、更简单的渲染链
     chain_input = {
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "action_sexual_content_prompt": "（SFW 模式下不適用）",
@@ -550,113 +581,64 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
     }
         
     narrative_text = await ai_core.ainvoke_with_rotation(
-        ai_core.get_narrative_chain(),
+        ai_core.get_narrative_chain(), # 使用旧的渲染器
         chain_input,
-        retry_strategy='euphemize'
+        retry_strategy='euphemize' # SFW 路径使用委婉化重试
     )
     if not narrative_text:
         narrative_text = "（AI 在將 SFW 計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
 
-# [v22.1 新增] 恢复 purification_node 的定义
-async def purification_node(state: ConversationGraphState) -> Dict[str, str]:
-    """對渲染後的文本進行最終的、強制性的詞彙與格式淨化。"""
+async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    raw_llm_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|Purification) Node: purification -> 正在對文本進行總編輯級的校對...")
+    narrative_outline = state['narrative_outline']
+    logger.info(f"[{user_id}] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...")
 
-    if not raw_llm_response or not raw_llm_response.strip() or "安全備援" in raw_llm_response:
-        return {"llm_response": raw_llm_response}
-
-    purification_chain = ai_core.get_purification_chain()
-    
-    purified_text = await ai_core.ainvoke_with_rotation(
-        purification_chain,
-        {
-            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
-            "raw_text": raw_llm_response
-        },
+    if not narrative_outline or "安全備援" in narrative_outline:
+        return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
+        
+    chain_input = {
+        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
+        "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
+        "narrative_outline": narrative_outline
+    }
+        
+    narrative_text = await ai_core.ainvoke_with_rotation(
+        ai_core.get_final_novelist_chain(),
+        chain_input,
         retry_strategy='force'
     )
-    
-    if not purified_text:
-        logger.warning(f"[{user_id}] (Graph|Purification) 淨化鏈返回空值，將使用未經淨化的原始文本。")
-        return {"llm_response": raw_llm_response}
-
-    return {"llm_response": purified_text}
+    if not narrative_text:
+        narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
+    return {"llm_response": narrative_text}
 
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
     initial_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 輸出進行最終清理與驗證...")
+    logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
     
     if not initial_response or not initial_response.strip():
         logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
     
-    clean_response = re.sub(r'^[=\-*]{3,}\s*$', '', initial_response, flags=re.MULTILINE)
-    clean_response = re.sub(r'^【.*?】\s*$', '', clean_response, flags=re.MULTILINE)
+    clean_response = initial_response
+    clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
+    if '旁白:' in clean_response or '對話:' in clean_response:
+        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動備援清理。")
+        clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
+        clean_response = clean_response.replace('旁白：', '').replace('對話：', '')
     
     final_response = clean_response.strip()
     if not final_response:
-        logger.warning(f"[{user_id}] LLM 原始輸出在指令洩漏清理後為空。原始輸出為: '{initial_response[:200]}...'")
+        logger.warning(f"[{user_id}] LLM 原始輸出在淨化後為空。原始輸出為: '{initial_response[:200]}...'")
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
-
-
-
-    # 函式：[新] 獲取詞彙與格式淨化鏈 (v1.0 - 總編輯)
-    # 更新紀錄:
-    # v1.0 (2025-09-22): [重大品質提升] 創建此全新的“總編輯”鏈。其唯一職責是在創意生成之後，對文本進行一次機械式的、強制性的修正，確保所有露骨詞彙和對話格式都嚴格符合 action_sexual_content.txt 的最終規範，旨在解決“文學巨匠”為追求藝術性而忽略規則的問題。
-    def get_purification_chain(self) -> Runnable:
-        """獲取或創建一個專門用於強制修正文本中露骨詞彙和對話格式的鏈。"""
-        if not hasattr(self, 'purification_chain') or self.purification_chain is None:
-            purifier_llm = self._create_llm_instance(temperature=0.0)
-            
-            system_prompt = """# ==================================================
-# == 🧠 系統核心指令 (總編輯模式 - v1.0) 🧠
-# ==================================================
-# 你是一位嚴謹的、一絲不苟的【總編輯】。你的唯一任務是接收一段【小說文本草稿】，並根據下方的【絕對規則】，對其進行機械式的、無條件的修正。
-
-# --- 【【【絕對規則 (無創意的強制執行)】】】 ---
-
-# 1.  **【露骨詞彙強制替換】**:
-#     - 你【必須】通讀全文，查找所有不符合下方【露骨詞彙聖經】的性器官或生理現象描述。
-#     - 找到後，你【必須】將其【無條件地替換】為聖經中指定的正確詞彙。
-#     - **你的任務是替換，不是創作或改寫句子。**
-
-# 2.  **【對話格式強制修正】**:
-#     - 你【必須】查找文本中所有角色說的、被錯誤地用 `「」` 或 `""` 包裹的直接對話。
-#     - 找到後，你【必須】將其引號【無條件地替換】為正確的 `『』`。
-
-# 3.  **【禁止創意】**:
-#     - 你【絕對禁止】對文本進行任何與上述兩條規則無關的修改、擴寫、縮寫或風格調整。
-#     - 你的職責是校對和修正，不是再創作。
-
-# --- 【【【露骨詞彙聖經 (你的唯一詞彙標準)】】】 ---
-{action_sexual_content_prompt}
-# ---
-"""
-            human_prompt = """
-# ==================================================
-# == 📖 待校對的小說文本草稿 📖
-# ==================================================
-{raw_text}
-# --- 你的任務 ---
-請嚴格遵循你在系統指令中學到的所有【絕對規則】，只對上方的草稿進行詞彙和格式的強制修正，然後輸出最終的、純淨的定稿文本。
-"""
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", human_prompt)
-            ])
-            self.purification_chain = prompt | purifier_llm | StrOutputParser()
-        return self.purification_chain
-    # 函式：[新] 獲取詞彙與格式淨化鏈 (v1.0 - 總編輯)
-
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
@@ -735,13 +717,15 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("direct_nsfw_node", direct_nsfw_node)
+    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
+    graph.add_node("nsfw_refinement", nsfw_refinement_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
-    graph.add_node("purification", purification_node)
+    graph.add_node("nsfw_final_rendering", final_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     graph.add_node("planner_junction", lambda state: {})
+    graph.add_node("rendering_junction", lambda state: {})
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
         lore_objects = state.get('raw_lore_objects', [])
@@ -778,7 +762,7 @@ def create_main_response_graph() -> StateGraph:
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         if 'nsfw' in intent:
-            return "direct_nsfw_test"
+            return "nsfw_planner"
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -790,16 +774,18 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "direct_nsfw_test": "direct_nsfw_node"
+            "nsfw_planner": "nsfw_breakthrough" 
         }
     )
     
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
-    graph.add_edge("sfw_narrative_rendering", "purification")
-    graph.add_edge("direct_nsfw_node", "purification")
-    graph.add_edge("purification", "validate_and_rewrite")
+    graph.add_edge("sfw_narrative_rendering", "rendering_junction")
+    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
+    graph.add_edge("nsfw_refinement", "nsfw_final_rendering")
+    graph.add_edge("nsfw_final_rendering", "rendering_junction")
+    graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
@@ -885,4 +871,3 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
-
