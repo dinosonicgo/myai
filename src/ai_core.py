@@ -16,7 +16,7 @@
 # v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了系統性重構。
 
 # ==============================================================================
-# == 🤖 AI Lover 核心對話處理流程架構 v22.1 (NSFW思維鏈最終版) 🤖
+# == 🤖 AI Lover 核心對話處理流程架構 v23.0 (導演方法論最終版) 🤖
 # ==============================================================================
 # == 警告：這是指導未來程式碼修正的【最終正確架構藍圖】，而非對當前
 # ==       程式碼的描述。所有對 src/graph.py 的修改都必須以此藍圖為唯一標準。
@@ -24,11 +24,11 @@
 #
 # ===【【【全局最高行為原則 (Universal Core Principles)】】】===
 #
-#   1. 【📜 LORE / 既成事實一致性原則】: AI 的所有行動和描述【必須】與已知的 LORE 完全一致。
-#   2. 【🎭 角色扮演真實性原則】: 所有角色的行為、對話和決策都【必須】嚴格基於其角色設定。
-#   3. 【🧠 上下文與記憶連貫性原則】: AI 的回應【必須】緊密銜接上一輪的對話、歷史和場景上下文。
-#   4. 【🎨 風格指令強制性原則】: 最終的行動計劃和渲染文本【必須】嚴格符合 `response_style_prompt` 的指導。
-#   5. 【🖋️ LORE 具體化擴展原則】: 所有新生成的 LORE 實體【必須】被賦予具體的專有名稱。
+#   1. 【🎭 角色真實性原則】: 所有角色的行為、對話和決策都【必須】嚴格基於其角色設定，杜絕無腦服從。
+#   2. 【📜 LORE / 既成事實一致性原則】: AI 的所有行動和描述【必須】與已知的 LORE 和上一輪的場景完全一致。
+#   3. 【🚀 劇情推進原則 (禁止重複)】: AI 的每一次回應【必須】引入全新的劇情發展，嚴禁重複歷史內容。
+#   4. 【🎨 風格指令強制性原則】: 最終的渲染文本【必須】嚴格符合 `response_style_prompt` 的指導。
+#   5. 【🖋️ LORE 具體化擴展原則】: 所有新生成的 LORE 實體【必須】被賦予符合世界觀的具體專有名稱。
 #
 # ===【【【全局錯誤處理原則 (Universal Error Handling Principles)】】】===
 #
@@ -45,87 +45,87 @@
 #     |
 #     V
 # 1. [節點] classify_intent_node (統一感知)
-#    |  - 功能: 【守門人】。將輸入分類為 SFW, NSFW-互動, NSFW-描述。
+#    |  - 功能: 【守門人】。分析輸入類型，當指令為“继续”等延续性词语时，【必须】从持久化 GameState 中【继承】上一轮的意图 (SFW/NSFW)，否则对新指令进行分类。
 #    |
 #     V
 # 2. [節點] retrieve_memories_node (統一感知)
-#    |  - 功能: 【記憶官】。執行 RAG，檢索長期記憶。
+#    |  - 功能: 【記憶官】。執行 RAG，檢索長期記憶。具備對 Cohere API 失敗的【優雅降級】能力。
 #    |
 #     V
 # 3. [節點] query_lore_node (統一感知)
-#    |  - 功能: 【檔案員】。從資料庫查詢原始 LORE。
+#    |  - 功能: 【檔案員】。從資料庫查詢與當前場景相關的 LORE，遵循【上下文優先】原則。
 #    |
 #     V
-# 4. [節點] assemble_context_node (統一感知)
-#    |  - 功能: 【情報官】。將所有資訊組裝成上下文。
+# 4. [節點] perceive_and_set_view_node (統一感知)
+#    |  - 功能: 【情報官】。基於意圖更新並持久化【導演視角】(local/remote)，並組裝所有資訊成上下文。
 #    |
 #     V
-# 5. [節點] expansion_decision_node (本地LORE決策)
-#    |  - 功能: 判斷【本地場景】是否需要擴展 LORE。
+# 5. [節點] expansion_decision_node (LORE決策)
+#    |  - 功能: 【選角導演】。基於【輕量化】的角色核心資訊，判斷當前場景是否需要擴展 LORE。
 #    |
 #     V
 # 6. [路由器] route_expansion_decision
 #    |
-#    +---- [IF: 擴展] ----> 6A. [節點] lore_expansion_node --> 7. [節點] after_perception_junction
-#    |
-#    +---- [IF: 不擴展] -------------------------------------> 7. [節點] after_perception_junction
-#
-# 7. [節點] after_perception_junction (感知流程匯合點)
-#    |
-#    V
-# 8. [路由器] route_after_perception (主路由：互動 vs. 描述)
-#    |
-#    +---- [IF: 描述性意圖] ----> 9A. [節點] scene_and_action_analysis_node
-#    |          |                   - 功能: 【勘探員】。解析遠程目標地點。
+#    +---- [IF: 擴展] ----> 6A. [節點] character_quantification_node
+#    |          |            - 功能: 【統計員】。將“一群”等模糊描述轉化為具體數量。
 #    |          |
 #    |          V
-#    |      9B. [路由器] route_descriptive_planner
+#    |      6B. [節點] lore_expansion_node
+#    |          |            - 功能: 【LORE 工匠】。調用【世界觀驅動命名】的選角鏈，創建有名有姓的新角色並存入資料庫。
 #    |          |
-#    |          +---- [IF: SFW 描述] ----> 9B.1 [節點] remote_sfw_planning_node --> 11. [節點] tool_execution_node
-#    |          |                              - 功能: 【SFW遠景導演】。生成遠程SFW場景的【行動計劃JSON】。
-#    |          |                              - **重試策略**: 【🛡️ 委婉化】
-#    |          |
-#    |          +---- [IF: NSFW 描述] ---> 9B.2 [節點] remote_nsfw_planning_node --> 11. [節點] tool_execution_node
-#    |                                         - 功能: 【NSFW遠景導演】。生成遠程NSFW場景的【行動計劃JSON】。
-#    |                                         - **重試策略**: 【🚀 激進重試】
+#    |          +-----------> 7. [匯合點] planner_junction
 #    |
-#    +---- [IF: 互動性意圖] ----> 10A. [路由器] route_interactive_planner
+#    +---- [IF: 不擴展] ---> 6C. [節點] prepare_existing_subjects_node
+#               |             - 功能: 【場務】。將現有的 LORE 角色打包，準備送入規劃器。
 #               |
-#               +---- [IF: SFW 互動] ----> 10A.1 [節點] sfw_planning_node --> 11. [節點] tool_execution_node
-#               |          |                   - 功能: 【SFW導演】。生成SFW互動的【行動計劃JSON】。
-#               |          |                   - **重試策略**: 【🛡️ 委婉化】
-#               |          |
-#               |          +---- [IF: NSFW 互動] ---> 10B.1 [節點] nsfw_initial_planning_node (NSFW思維鏈 Pt.1)
-#               |                     |                 - 功能: 【NSFW劇本初稿】。生成核心動作的【草稿計劃JSON】。
-#               |                     |                 - **重試策略**: 【🚀 激進重試】
-#               |                     |
-#               |                     V
-#               |                 10B.2 [節點] nsfw_lexicon_injection_node (NSFW思維鏈 Pt.2)
-#               |                     |                 - 功能: 【詞彙修正專家】。將草稿計劃中的詞彙強制替換為露骨術語。
-#               |                     |                 - **重試策略**: 【🚀 激進重試】
-#               |                     |
-#               |                     V
-#               |                 10B.3 [節點] nsfw_style_compliance_node (NSFW思維鏈 Pt.3)
-#               |                                     - 功能: 【風格對話專家】。為計劃補充符合風格的主動/淫穢對話。
-#               |                                     - **重試策略**: 【🚀 激進重試】
-#               |
-#               +----------------------------------------> 11. [節點] tool_execution_node
+#               +------------> 7. [匯合點] planner_junction
 #
-# 11. [節點] tool_execution_node (所有路徑的共同匯合點)
-#     |  - 功能: 【執行者】。執行所有計劃中定義的工具調用。
+# 7. [匯合點] planner_junction (規劃流程分發點)
+#    |
+#    V
+# 8. [路由器] route_to_planner (主路由：SFW vs. NSFW)
+#    |
+#    +---- [IF: SFW 意圖] ----> 8A. [路由器] route_viewing_mode
+#    |          |
+#    |          +---- [IF: local 視角] ----> 8A.1 [節點] sfw_planning_node --> 9. [匯合點] tool_execution_junction
+#    |          |                               - 功能: 【SFW導演】。生成SFW互動的【行動計劃JSON】。
+#    |          |                               - **LORE綁定**: 【是】
+#    |          |
+#    |          +---- [IF: remote 視角] ---> 8A.2 [節點] remote_sfw_planning_node --> 9. [匯合點] tool_execution_junction
+#    |                                           - 功能: 【SFW遠景導演】。生成遠程SFW場景的【行動計劃JSON】。
+#    |                                           - **LORE綁定**: 【是】
+#    |
+#    +---- [IF: NSFW 意圖] ---> 8B. [混合模式 NSFW 思維鏈]
+#               |
+#               +------------> 8B.1 [節點] nsfw_breakthrough_node (NSFW思維鏈 Pt.1)
+#               |                     |      - 功能: 【NSFW情節架構師】。基於角色獨特動機，構思具有【開端-發展-高潮】結構的【草稿計畫JSON】。
+#               |                     |      - **LORE綁定**: 【是】; **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     V
+#               |                 8B.2 [節點] nsfw_refinement_node (NSFW思維鏈 Pt.2)
+#               |                     |      - 功能: 【NSFW角色表演教練】。為草稿計畫注入符合角色靈魂的、充滿【表演細節(Show, Don't Tell)】的對話和反應，輸出【最終計畫JSON】。
+#               |                     |      - **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     +------> 9. [匯合點] tool_execution_junction
+#
+# 9. [匯合點] tool_execution_junction (工具執行前匯合點)
 #     |
 #     V
-# 12. [節點] narrative_rendering_node (所有路徑的共同匯合點)
-#     |  - 功能: 【小說家】。將【最終的行動計劃JSON】渲染成統一風格的小說文本。
+# 10. [節點] tool_execution_node (所有路徑的共同匯合點)
+#     |  - 功能: 【執行者】。執行所有【最終計畫JSON】中定義的工具調用。
+#     |
+#     V
+# 11. [節點] narrative_rendering_node (所有路徑的共同匯合點)
+#     |  - 功能: 【史詩小說家】。基於【電影式敘事原則】，將【最終計畫JSON】中所有元素（場景、表演、對話）**編織**成統一的、流動的、非線性的電影感小說文本。
 #     |  - **重試策略**: 【🚀 激進重試】
 #     |
 #     V
-# 13. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
+# 12. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
 #     |  - 功能: 【淨化器】。移除指令洩漏，處理“扮演用戶”的違規。
 #     |
 #     V
-# 14. [節點] persist_state_node (所有路徑的共同匯合點)
-#     |  - 功能: 【記錄員】。將結果存入長期和短期記憶。
+# 13. [節點] persist_state_node (所有路徑的共同匯合點)
+#     |  - 功能: 【記錄員】。將結果存入長期和短期記憶，並將本回合的【意圖分類】持久化到 GameState 以供下一輪繼承。
 #     |
 #     V
 # 【END】
@@ -3396,6 +3396,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
