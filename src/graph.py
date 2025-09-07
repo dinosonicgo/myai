@@ -242,85 +242,6 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
     return {"intent_classification": classification_result}
 # 函式：意圖分類節點 (v2.0 - 適配淨化層)
 
-
-
-
-# 函式：[新] 焦點鎖定節點 (v4.0 - 終極上下文淨化)
-# 更新紀錄:
-# v4.0 (2025-09-22): [災難性BUG修復] 實現了【終極淨化】策略。在調用LLM前，此節點現在只會提取角色的 name 和 gender 字段來創建“安全簡報”，完全移除了 description 等所有可能包含露骨詞彙的危險字段。此修改以犧牲少量上下文為代價，換取了分析鏈絕對的穩定性，從根本上解決了因上下文污染導致的內容審查問題。
-# v3.0 (2025-09-22): [災難性BUG修復] 引入了【上下文預淨化】機制。
-# v2.0 (2025-09-22): [災難性BUG修復] 新增了程序化的【二次過濾】邏輯。
-async def focus_locking_node(state: ConversationGraphState) -> Dict:
-    """在規劃前，分析並篩選出本回合的核心互動角色，並進行數據清洗。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    planning_subjects = state.get('planning_subjects', [])
-
-    if not planning_subjects:
-        return {}
-
-    logger.info(f"[{user_id}] (Graph|Focus Lock) Node: focus_locking -> 正在為場景鎖定核心互動焦點...")
-    
-    # [v4.0 核心修正] 終極上下文淨化
-    try:
-        sanitized_subjects_for_llm = [
-            {
-                "name": subject.get("name"),
-                "gender": subject.get("gender"),
-            }
-            for subject in planning_subjects
-            if subject.get("name") and subject.get("gender")
-        ]
-        if not sanitized_subjects_for_llm:
-            logger.warning(f"[{user_id}] (Graph|Focus Lock) 預淨化後，沒有可供分析的角色。")
-            return {"planning_subjects": []}
-
-        focus_chain = ai_core.get_focus_locking_chain()
-        
-        result = await ai_core.ainvoke_with_rotation(
-            focus_chain,
-            {
-                "user_input": user_input,
-                "planning_subjects_json": json.dumps(sanitized_subjects_for_llm, ensure_ascii=False, indent=2)
-            }
-        )
-    except Exception as e:
-        logger.error(f"[{user_id}] (Graph|Focus Lock) 在執行焦點鎖定鏈時發生意外錯誤: {e}", exc_info=True)
-        result = None
-
-    if result and result.relevant_characters:
-        logger.info(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定成功。思考: {result.thought}")
-        
-        relevant_names = {char.get("name") for char in result.relevant_characters if char.get("name")}
-        focused_target_name = next((char.get("name") for char in result.relevant_characters if char.get("is_focus_target")), None)
-
-        final_relevant_characters = []
-        for original_subject in planning_subjects:
-            if original_subject.get("name") in relevant_names:
-                if original_subject.get("name") == focused_target_name:
-                    original_subject["is_focus_target"] = True
-                final_relevant_characters.append(original_subject)
-        
-        initial_count = len(final_relevant_characters)
-        cleaned_characters = [
-            char for char in final_relevant_characters 
-            if isinstance(char, dict) and char.get("name") and str(char.get("name")).strip()
-        ]
-        final_count = len(cleaned_characters)
-
-        if initial_count != final_count:
-            logger.warning(f"[{user_id}] (Graph|Focus Lock) 二次過濾機制檢測並移除了 {initial_count - final_count} 個無效（空名）角色。")
-
-        return {"planning_subjects": cleaned_characters}
-    else:
-        logger.warning(f"[{user_id}] (Graph|Focus Lock) 焦點鎖定鏈未能返回有效角色列表，將使用原始的、未經篩選的列表繼續。")
-        return {"planning_subjects": planning_subjects}
-# 函式：[新] 焦點鎖定節點 (v4.0 - 終極上下文淨化)
-
-
-
-
 # 函式：記憶檢索節點 (v2.0 - 適配淨化層)
 # 更新紀錄:
 # v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。它現在優先使用由 `pre_process_input_node` 生成的 `sanitized_user_input` 作為 RAG 檢索的查詢。這確保了檢索過程本身不會因觸發內容審查而失敗，提高了整個 RAG 鏈路的穩定性。
@@ -414,95 +335,75 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
-# 函式：NSFW 模板裝配節點 (v5.0 - 增加智能備援)
+# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 # 更新紀錄:
-# v5.0 (2025-09-22): [重大健壯性升級] 增加了【智能備援】角色選擇邏輯。如果上游的焦點鎖定節點因故失敗，導致沒有角色被標記為焦點，此節點不再是隨機選擇，而是會根據使用者指令的關鍵詞（如“輪姦”），智能地從列表中選擇描述最匹配的角色作為目標，極大提高了系統的容錯能力。
-# v4.0 (2025-09-22): [架構升級] 升級了角色選擇邏輯，使其能夠利用上游“焦點鎖定”節點的成果。
+# v2.0 (2025-09-07): [終極架構重構] 此節點被徹底重寫，成為一個純Python的「確定性計畫生成器」。它不再呼叫LLM，而是通過內部邏輯完成三項任務：
+#    1. 根據關鍵詞選擇硬編碼的JSON模板。
+#    2. 分析場景角色列表，識別出行動的參與者。
+#    3. 使用字串替換，將角色名字機械地裝配到模板中。
+#    此修改將最容易被審查的創意規劃步驟完全移出LLM，是解決頑固性內容審查的最終手段。
 def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     """[NSFW Template-Step1] 純Python節點，負責選擇、填充並裝配一個預定義的NSFW動作模板。"""
     user_id = state['user_id']
-    ai_core = state['ai_core']
     user_input = state['messages'][-1].content.lower()
     planning_subjects = state.get('planning_subjects', [])
-    viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
-    
-    logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫 (模式: {viewing_mode})...")
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫...")
 
+    if not planning_subjects or len(planning_subjects) < 2:
+        logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 場景中角色不足（需要至少2名），無法裝配模板。")
+        return {"turn_plan": TurnPlan(thought="場景角色不足，無法執行模板化動作。")}
+
+    # 預定義的模板庫
     templates = {
-        "GANG_RAPE_TEMPLATE": {
-            "thought": "使用者指令的核心動作是輪姦。已使用預設的輪姦模板，並裝配了場景中的角色。",
+        "FUCK_TEMPLATE": {
+            "thought": "使用者指令的核心動作是性交。已使用預設的性交模板，並裝配了場景中的角色。",
             "character_actions": [
-                {"character_name": "{角色A1}", "reasoning": "響應指令，與同伴一起制服目標。", "action_description": "{角色A1} 和 {角色A2} 一左一右地抓住 {角色B} 的手臂，將她按倒在地。", "template_id": "GANG_RAPE_STEP1"},
-                {"character_name": "{角色B}", "reasoning": "描述受害者的初步反應。", "action_description": "{角色B} 驚恐地尖叫掙扎，但無濟於事。", "template_id": "GANG_RAPE_STEP2"},
-                {"character_name": "{角色A1}", "reasoning": "開始核心的性侵動作。", "action_description": "{角色A1} 撕開 {角色B} 的衣服，掏出自己的肉棒，對準她濕潤的肉穴口。", "template_id": "GANG_RAPE_STEP3"},
-                {"character_name": "{角色A2}", "reasoning": "配合主要行動者。", "action_description": "{角色A2} 則抓住 {角色B} 的雙腿，將其用力分開，方便 {角色A1} 的插入。", "template_id": "GANG_RAPE_STEP4"}
+                {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的肉棒對準 {角色B} 的肉穴口。"},
+                {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的肉棒完全插入自己的體內。"},
+                {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的肉穴中用力抽插。"}
             ]
         }
     }
 
     selected_template_key = None
-    if "輪姦" in user_input or ("一群" in user_input and ("幹" in user_input or "操" in user_input)):
-        selected_template_key = "GANG_RAPE_TEMPLATE"
+    if "幹" in user_input or "操" in user_input or "性交" in user_input:
+        selected_template_key = "FUCK_TEMPLATE"
     
     if not selected_template_key:
         logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 未能為輸入匹配到任何NSFW模板。")
         return {"turn_plan": TurnPlan(thought="未能匹配到動作模板，將嘗試根據上下文進行潤色。")}
 
-    actors_a = []
+    # 角色識別邏輯 (簡易版)
+    # 假設：指令中提到的第一個角色類型是主動方，第二個是被動方
+    actor_a_name = None
     actor_b_name = None
+    
+    # 尋找男性/男孩作為主動方
+    for subject in planning_subjects:
+        desc = subject.get('description', '').lower()
+        if 'boy' in desc or '男孩' in desc or 'male' in desc or subject.get('gender', '').lower() == '男':
+            actor_a_name = subject['name']
+            break
+    
+    # 尋找女性/母親作為被動方
+    for subject in planning_subjects:
+        desc = subject.get('description', '').lower()
+        if subject['name'] != actor_a_name and ('mother' in desc or '媽媽' in desc or 'female' in desc or subject.get('gender', '').lower() in ['女', '女性']):
+            actor_b_name = subject['name']
+            break
 
-    if viewing_mode == 'remote':
-        male_npcs = [s['name'] for s in planning_subjects if s.get('gender', '').lower() == '男']
-        female_npcs = [s for s in planning_subjects if s.get('gender', '').lower() == '女']
-        
-        if not female_npcs:
-            return {"turn_plan": TurnPlan(execution_rejection_reason="場景中缺少女性角色，無法執行此動作。")}
-        if len(male_npcs) < 2:
-            return {"turn_plan": TurnPlan(execution_rejection_reason=f"場景中男性角色不足（需要至少2名，實際只有{len(male_npcs)}名），無法執行輪姦動作。")}
-
-        # [v5.0 核心修正] 優先使用焦點標記，並增加智能備援
-        focused_target = next((npc for npc in female_npcs if npc.get("is_focus_target")), None)
-        if focused_target:
-            actor_b_name = focused_target['name']
-            logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已成功鎖定焦點目標: {actor_b_name}")
-        else:
-            logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 未找到焦點標記，啟動智能備援選擇邏輯...")
-            # 智能備援：選擇描述最匹配的
-            best_match_npc = None
-            highest_score = -1
-            keywords = ["輪姦", "被幹", "高潮"]
-            for npc in female_npcs:
-                score = 0
-                context_str = f"{npc.get('description', '')} {npc.get('current_action', '')}"
-                for kw in keywords:
-                    if kw in context_str:
-                        score += 1
-                if score > highest_score:
-                    highest_score = score
-                    best_match_npc = npc
-            
-            if best_match_npc:
-                actor_b_name = best_match_npc['name']
-                logger.info(f"[{user_id}] (Graph|NSFW Assembly) 智能備援成功，選擇了描述最匹配的目標: {actor_b_name}")
-            else:
-                # 最終備援：選擇第一個
-                actor_b_name = female_npcs[0]['name']
-                logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 智能備援未找到匹配項，回退到選擇第一個女性角色: {actor_b_name}")
-
-        actors_a = male_npcs[:2]
-
-    else: 
-        return {"turn_plan": TurnPlan(execution_rejection_reason="此動作模板只能在遠程觀察模式下使用。")}
-
-    if not (actors_a and actor_b_name and len(actors_a) >= 2):
-        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出足夠的、符合性別要求的動作參與者。")
+    if not (actor_a_name and actor_b_name):
+        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出動作的雙方。")
         return {"turn_plan": TurnPlan(execution_rejection_reason="系統錯誤：無法在當前場景中識別出可以執行此動作的角色。")}
 
-    logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actors_a}, 角色B: {actor_b_name}")
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actor_a_name}, 角色B: {actor_b_name}")
 
+    # 機械裝配
     template = templates[selected_template_key]
     template_str = json.dumps(template)
-    filled_str = template_str.replace("{角色A1}", actors_a[0]).replace("{角色A2}", actors_a[1]).replace("{角色B}", actor_b_name)
+    
+    # 執行替換
+    filled_str = template_str.replace("{角色A}", actor_a_name).replace("{角色B}", actor_b_name)
     
     try:
         filled_plan_dict = json.loads(filled_str)
@@ -512,81 +413,7 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|NSFW Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
         return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
-# 函式：NSFW 模板裝配節點 (v5.0 - 增加智能備援)
-
-
-
-
-
-
-# 函式：[新] NSFW 計畫潤色節點 (v3.0 - 參數注入修正)
-# 更新紀錄:
-# v3.0 (2025-09-22): [災難性BUG修復] 為解決 KeyError，徹底重構了參數傳遞方式。不再依賴不穩定的 .assign()，改為在節點內部手動構建一個包含所有 Prompt 所需變數（包括 system_prompt 和 response_style_prompt）的完整字典，然後再傳遞給 ainvoke_with_rotation，從而根除了變數缺失的錯誤。
-# v2.0 (2025-09-22): [健壯性] 新增了防禦性檢查。
-# v1.0 (2025-09-22): [重大架構升級] 創建此節點作為「混合模式」的第二步。
-async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[混合模式-步驟2] 調用 LLM 為已填充的 NSFW 計畫模板增加細節、對話和風格。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    turn_plan = state['turn_plan']
-    
-    # 防禦性檢查
-    if not turn_plan or turn_plan.execution_rejection_reason:
-        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) 上游節點未提供有效計畫，或計畫已被拒絕，跳過潤色。")
-        return {}
-
-    logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在潤色已裝配的NSFW計畫...")
-
-    if not ai_core.profile:
-        logger.error(f"[{user_id}] (Graph|NSFW Refinement) AI Profile 未加載，無法潤色。")
-        return {} 
-
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-    
-    gs = ai_core.profile.game_state
-    full_context_dict = {
-        'username': ai_core.profile.user_profile.name,
-        'ai_name': ai_core.profile.ai_profile.name,
-        'world_settings': ai_core.profile.world_settings or "未設定",
-        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': state.get('rag_context', ''),
-        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
-        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
-        'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': "(已棄用)",
-        'relevant_npc_context': "(已棄用)",
-        'player_location': " > ".join(gs.location_path),
-        'viewing_mode': gs.viewing_mode,
-        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-    }
-    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-
-    refinement_chain = ai_core.get_nsfw_refinement_chain()
-    
-    # [v3.0 核心修正] 手動構建完整的參數字典
-    params_for_refinement = {
-        "system_prompt": ai_core.profile.one_instruction,
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-        "world_snapshot": world_snapshot,
-        "chat_history": chat_history_str,
-        "turn_plan_json": turn_plan.model_dump_json(indent=2)
-    }
-
-    final_plan = await ai_core.ainvoke_with_rotation(
-        refinement_chain,
-        params_for_refinement,
-        retry_strategy='force'
-    )
-    
-    if not final_plan:
-        logger.warning(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫潤色鏈返回空值，將保留潤色前的原始計畫。")
-        return {}
-
-    logger.info(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫已成功潤色。")
-    return {"turn_plan": final_plan}
-# 函式：[新] NSFW 計畫潤色節點 (v3.0 - 參數注入修正)
-
-
+# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
 
 
 # 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
@@ -767,32 +594,54 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：場景選角分析節點 (v1.0 - 需求驅動)
+# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
 # 更新紀錄:
-# v1.0 (2025-09-22): [重大架構重構] 將 expansion_decision_node 重構並重命名。此節點不再返回簡單的 True/False，而是調用新的 scene_casting_analysis_chain，生成一份結構化的“選角需求單”（SceneCastingRequirements），並將其寫入狀態，為下游的智能LORE擴展節點提供精確指導。
-async def scene_casting_analysis_node(state: ConversationGraphState) -> Dict:
-    """分析場景，生成一份結構化的“選角需求單”。"""
+# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。這徹底解決了 LangChain 解析器錯誤解析靜態模板中範例的問題。
+# v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的數據傳遞邏輯，改為注入完整的角色 JSON。
+# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。
+async def expansion_decision_node(state: ConversationGraphState) -> Dict:
+    """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
+    raw_lore_objects = state.get('raw_lore_objects', [])
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
-    logger.info(f"[{user_id}] (Graph|Casting Analysis) Node: scene_casting_analysis -> 正在分析場景以生成選角需求單...")
+    lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
+    lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
     
-    analysis_chain = ai_core.get_scene_casting_analysis_chain()
-    requirements = await ai_core.ainvoke_with_rotation(
-        analysis_chain, 
-        { "user_input": user_input }
+    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
+
+    # [v4.1 核心修正] 將範例從模板中分離出來，作為一個安全的變數傳入
+    examples_str = """
+- **情境 1**: 
+    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
+    - 使用者輸入: `繼續描述那個賣魚的女人`
+    - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
+- **情境 2**:
+    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
+    - 使用者輸入: `這時一個衛兵走了過來`
+    - **你的決策**: `should_expand: true` (理由應類似於: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
+"""
+
+    decision_chain = ai_core.get_expansion_decision_chain()
+    decision = await ai_core.ainvoke_with_rotation(
+        decision_chain, 
+        {
+            "user_input": user_input, 
+            "existing_characters_json": lore_json_str,
+            "examples": examples_str # 動態注入範例
+        },
+        retry_strategy='euphemize'
     )
 
-    if not requirements:
-        logger.warning(f"[{user_id}] (Graph|Casting Analysis) 選角需求分析鏈失敗，將使用空需求單繼續。")
-        from .schemas import SceneCastingRequirements
-        requirements = SceneCastingRequirements(thought="安全備援：分析鏈失敗。", scene_summary=user_input)
+    if not decision:
+        logger.warning(f"[{user_id}] (Graph|5) LORE擴展決策鏈失敗，安全備援為不擴展。")
+        decision = ExpansionDecision(should_expand=False, reasoning="安全備援：決策鏈失敗。")
     
-    logger.info(f"[{user_id}] (Graph|Casting Analysis) 選角需求單生成完畢: 需要男性 {requirements.required_male_characters}, 女性 {requirements.required_female_characters}。")
-    # 將需求單寫入一個新狀態欄位
-    return {"scene_casting_requirements": requirements}
-# 函式：場景選角分析節點 (v1.0 - 需求驅動)
+    logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
+    return {"expansion_decision": decision}
+# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
 
 
 
@@ -836,86 +685,92 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v12.0 - 權威數據源)
+# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
 # 更新紀錄:
-# v12.0 (2025-09-22): [災難性BUG修復] 最終簡化了節點的職責，使其成為 planning_subjects 數據流的【權威起點】。此節點不再從 state 中讀取任何上游傳來的角色列表，而是獨立地、直接地從資料庫查詢場景角色作為決策基礎，從而徹底杜絕了數據流被上游節點污染的可能性。
-# v11.0 (2025-09-22): [災難性BUG修復] 修改節點數據源為直連資料庫。
-# v10.0 (2025-09-22): [重大架構重構] 實現了智能的“比對-補充”LORE擴展邏輯。
+# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。在調用選角鏈後，此節點會檢查結果中是否包含一個推斷出的 `implied_location`。如果有，它會立即將該地點存入LORE，並【強制更新GameState】，將系統的視角模式切換到 remote 並設置好遠程目標路徑。此修改從根本上解決了因首次描述時地點信息缺失而導致的後續流程崩潰問題。
+# v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
+# v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 作為 planning_subjects 的權威起點，根據“選角需求單”智能地比對、補充或直接使用現有NPC。"""
+    """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    requirements = state.get('scene_casting_requirements')
+    user_input = state['messages'][-1].content
+    existing_lores = state.get('raw_lore_objects', [])
     
-    logger.info(f"[{user_id}] (Graph|LORE Expansion) Node: lore_expansion -> 正在執行【比對-補充】式LORE擴展...")
+    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
+    
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
+        return {}
 
-    if not ai_core.profile or not requirements:
-        logger.error(f"[{user_id}] (Graph|LORE Expansion) ai_core.profile 或選角需求單未加載，無法繼續。")
-        return {"planning_subjects": []}
-
-    # [v12.0 核心修正] 始終直連資料庫獲取權威的角色列表，不再信任上游 state
+    # 地點判斷邏輯保持不變，為選角鏈提供一個基礎參考點
+    scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
-    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-    
-    try:
-        from . import lore_book
-        existing_lores = await lore_book.get_lores_by_category_and_filter(
-            user_id,
-            'npc_profile',
-            lambda c: c.get('location_path') == effective_location_path
-        )
-        existing_characters = [lore.content for lore in existing_lores]
-        logger.info(f"[{user_id}] (LORE Expansion) 已從資料庫為場景 '{' > '.join(effective_location_path)}' 加載了 {len(existing_characters)} 位現有角色。")
-    except Exception as e:
-        logger.error(f"[{user_id}] (LORE Expansion) 從資料庫查詢現有角色時出錯: {e}", exc_info=True)
-        existing_characters = []
+    effective_location_path: List[str]
 
-    # 步驟 1: 盤點現有演員
-    current_males = sum(1 for char in existing_characters if char.get('gender', '').lower() == '男')
-    current_females = sum(1 for char in existing_characters if char.get('gender', '').lower() == '女')
-
-    # 步驟 2: 計算差額
-    missing_males = max(0, requirements.required_male_characters - current_males)
-    missing_females = max(0, requirements.required_female_characters - current_females)
-
-    newly_created_characters_content = []
-
-    # 步驟 3: 按需創建
-    if missing_males > 0 or missing_females > 0:
-        logger.info(f"[{user_id}] (LORE Expansion) 角色不足。需求(男:{requirements.required_male_characters}, 女:{requirements.required_female_characters}), 現有(男:{current_males}, 女:{current_females})。需要補充 (男:{missing_males}, 女:{missing_females}).")
-        
-        correction_instruction = f"劇情基於 '{requirements.scene_summary}'。請補充創建【{missing_males}名男性】和【{missing_females}名女性】角色以補完場景。"
-        
-        correction_chain = ai_core.get_character_correction_chain()
-
-        correction_result = await ai_core.ainvoke_with_rotation(
-            correction_chain,
-            {
-                "world_settings": ai_core.profile.world_settings or "",
-                "current_location_path": effective_location_path,
-                "user_input": state['messages'][-1].content,
-                "existing_characters_json": json.dumps(existing_characters, ensure_ascii=False, indent=2),
-                "correction_instruction": correction_instruction
-            }
-        )
-        if correction_result:
-            newly_created_from_correction = correction_result.newly_created_npcs + correction_result.supporting_cast
-            logger.info(f"[{user_id}] (LORE Expansion) 修正鏈成功，已生成 {len(newly_created_from_correction)} 位新角色。")
-            
-            if newly_created_from_correction:
-                cast_result_wrapper = SceneCastingResult(newly_created_npcs=newly_created_from_correction)
-                created_names = await ai_core._add_cast_to_scene(cast_result_wrapper)
-                if created_names:
-                    newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)
-                    newly_created_characters_content = [lore.content for lore in newly_created_lores]
+    if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
+        effective_location_path = scene_analysis.target_location_path
     else:
-        logger.info(f"[{user_id}] (LORE Expansion) 現有角色已滿足場景需求，無需擴展。")
+        effective_location_path = gs.location_path
 
-    # 步驟 4: 合併與輸出
-    final_planning_subjects = existing_characters + newly_created_characters_content
-    logger.info(f"[{user_id}] (LORE Expansion) 已將 {len(final_planning_subjects)} 位角色 (現有+補充) 成功綁定為本回合的規劃主體。")
-    return {"planning_subjects": final_planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v12.0 - 權威數據源)
+    # ... (輸入淨化邏輯保持不變) ...
+    try:
+        entity_chain = ai_core.get_entity_extraction_chain()
+        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
+        sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
+    except Exception as e:
+        logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
+        sanitized_context_for_casting = user_input
+        
+    game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
+
+    cast_result = await ai_core.ainvoke_with_rotation(
+        ai_core.get_scene_casting_chain(),
+        {
+            "world_settings": ai_core.profile.world_settings or "", 
+            "current_location_path": effective_location_path,
+            "game_context": game_context_for_casting, 
+            "recent_dialogue": sanitized_context_for_casting
+        },
+        retry_strategy='euphemize'
+    )
+    
+    # [v8.0 核心修正] 持久化場景錨點
+    if cast_result and cast_result.implied_location:
+        location_info = cast_result.implied_location
+        # 假設 location_info.name 是單一字符串，需要構建路徑
+        # 一個簡單的策略是將它附加到玩家當前的頂層區域
+        base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
+        new_location_path = base_path + [location_info.name]
+        lore_key = " > ".join(new_location_path)
+        
+        await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
+        logger.info(f"[{user_id}] (Scene Anchor) 已成功為場景錨定並創建新地點LORE: '{lore_key}'")
+        
+        # 強制更新 GameState
+        gs.viewing_mode = 'remote'
+        gs.remote_target_path = new_location_path
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+        logger.info(f"[{user_id}] (Scene Anchor) GameState 已強制更新為遠程視角，目標: {new_location_path}")
+
+    planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
+    
+    if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
+        created_names = await ai_core._add_cast_to_scene(cast_result)
+        logger.info(f"[{user_id}] (Graph|6A) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
+        
+        if created_names:
+            lore_query_tasks = [lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)]
+            results = await asyncio.gather(*lore_query_tasks)
+            newly_created_lores = results[0]
+            
+            if newly_created_lores:
+                planning_subjects.extend([lore.content for lore in newly_created_lores])
+    
+    logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
+    return {"planning_subjects": planning_subjects}
+# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+
 
 
 
@@ -1420,49 +1275,77 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v39.0 - 廢棄污染節點)
+# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
 # 更新紀錄:
-# v39.0 (2025-09-22): [災難性BUG修復] 徹底移除了在流程早期對 planning_subjects 進行不完整賦值的 prepare_initial_subjects 節點。此修改確保了 lore_expansion 節點是 planning_subjects 數據流的唯一權威起點，從根本上解決了因早期數據污染導致的下游邏輯錯誤。
-# v38.0 (2025-09-22): [重大架構重構] 實現了智能LORE擴展的線性流程。
+# v34.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決極端NSFW指令被模型自我審查的問題，徹底重構了圖的NSFW處理路徑。
+#    1. [替換] 廢棄了舊的、單一的 `nsfw_planning` 和 `remote_nsfw_planning` 節點。
+#    2. [新增] 引入了全新的三節點「NSFW思維鏈」流水線：`nsfw_initial_planning` -> `nsfw_lexicon_injection` -> `nsfw_style_compliance`。
+#    3. [重連] 修改了 `route_to_planner` 路由器，使其現在將所有NSFW流量（本地和遠程）都導向這個新的、更健壯的流水線的入口點。
+#    此修改是解決頑固性內容審查問題的根本性架構升級。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
     graph.add_node("pre_process_input", pre_process_input_node)
+    graph.add_node("classify_intent", classify_intent_node)
+    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
-    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("assemble_context", assemble_context_node)
-    graph.add_node("scene_casting_analysis", scene_casting_analysis_node)
+    graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    graph.add_node("focus_locking", focus_locking_node)
+
+    # SFW 規劃器保持不變
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("nsfw_template_assembly", nsfw_template_assembly_node)
-    graph.add_node("nsfw_refinement", nsfw_refinement_node)
+    
+    # [v34.0 新增] 註冊新的 NSFW 思維鏈節點
+    graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
+    graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
+    graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
+
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
+    graph.add_node("planner_junction", lambda state: {})
+    
+    def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
+        lore_objects = state.get('raw_lore_objects', [])
+        planning_subjects = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+        logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已將 {len(planning_subjects)} 個現有NPC打包為規劃主體。")
+        return {"planning_subjects": planning_subjects}
+        
+    graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
+
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("pre_process_input")
-    graph.add_edge("pre_process_input", "retrieve_memories")
+    graph.add_edge("pre_process_input", "classify_intent")
+    graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    
-    # [v39.0 核心修正] 移除 prepare_initial_subjects 節點，理順數據流
     graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
-    graph.add_edge("assemble_context", "scene_casting_analysis")
-    graph.add_edge("scene_casting_analysis", "lore_expansion")
-    graph.add_edge("lore_expansion", "focus_locking")
+    graph.add_edge("assemble_context", "expansion_decision")
+    
+    graph.add_conditional_edges(
+        "expansion_decision",
+        route_expansion_decision,
+        { 
+            "expand_lore": "lore_expansion", 
+            "continue_to_planner": "prepare_existing_subjects"
+        }
+    )
+    
+    graph.add_edge("lore_expansion", "planner_junction")
+    graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification:
-            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果未被注入，無法路由。")
+            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
             return "sfw_planner" 
 
         intent = intent_classification.intent_type
@@ -1471,38 +1354,45 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
+        # [v34.0 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
         if 'nsfw' in intent:
-            return "nsfw_hybrid_mode_start"
+            return "nsfw_thought_chain_start"
         
+        # SFW 路由保持不變
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
             return "sfw_planner"
 
     graph.add_conditional_edges(
-        "focus_locking",
+        "planner_junction",
         route_to_planner,
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_hybrid_mode_start": "nsfw_template_assembly"
+            # [v34.0 核心修正] 新的路由目標
+            "nsfw_thought_chain_start": "nsfw_initial_planning"
         }
     )
     
-    graph.add_edge("nsfw_template_assembly", "nsfw_refinement")
-    graph.add_edge("nsfw_refinement", "tool_execution")
+    # [v34.0 核心修正] 構建新的 NSFW 思維鏈流水線
+    graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
+    graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
+    # 流水線的出口統一連接到工具執行節點
+    graph.add_edge("nsfw_style_compliance", "tool_execution")
     
+    # SFW 路線的出口
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
+    # 後續流程保持統一
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v39.0 - 廢棄污染節點)
-
+# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
@@ -1592,15 +1482,3 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
-
-
-
-
-
-
-
-
-
-
-
-

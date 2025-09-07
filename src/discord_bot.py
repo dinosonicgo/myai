@@ -886,25 +886,25 @@ class BotCog(commands.Cog):
         else:
             logger.error(f"【健康檢查 & Keep-Alive】背景任務因未處理的錯誤而意外終止！")
 
-# 函式：處理訊息 (v43.0 - 實現意圖注入)
-    # 更新紀錄:
-    # v43.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式以實現“意圖注入”架構。現在，在 on_message 層面進行的初始意圖分類結果，會被直接寫入傳遞給 LangGraph 的 initial_state['intent_classification'] 中。這確保了圖（Graph）從一開始就接收到一個基於原始輸入的、唯一且權威的意圖判斷，從根本上解決了因圖內部二次分類導致的路由錯誤問題。
-    # v43.0 (2025-09-22): [重大架構升級] 引入了【元指令處理層】。
-    # v42.0 (2025-09-04): [災難性BUG修復] 徹底重構了 on_message 事件。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+        # 步骤 1: 基础过滤
         if message.author.bot:
             return
 
+        # [v42.0 新增] 增加初始日志记录，确认事件被接收
         logger.info(f"[{message.author.id}] 接收到來自 '{message.author.name}' 在頻道 '{message.channel}' 中的消息: '{message.content[:30]}...'")
 
+        # 步骤 2: 判断响应条件（私聊 或 在服务器频道被提及）
         is_dm = isinstance(message.channel, discord.DMChannel)
         is_mentioned = self.bot.user in message.mentions
 
         if not is_dm and not is_mentioned:
+            # 如果不是私聊，也没被提及，则忽略
             logger.info(f"[{message.author.id}] 消息被忽略：非私聊且未被提及。")
             return
         
+        # 步骤 3: 忽略斜杠指令
         ctx = await self.bot.get_context(message)
         if ctx.valid:
             logger.info(f"[{message.author.id}] 消息被忽略：被识别为有效指令。")
@@ -912,64 +912,37 @@ class BotCog(commands.Cog):
         
         user_id = str(message.author.id)
         
+        # 步骤 4: 准备并清理输入文本
         user_input = message.content
         if is_mentioned:
+            # 如果是在服务器被提及，移除提及部分，只保留真实输入
             user_input = user_input.replace(f'<@{self.bot.user.id}>', '').strip()
             if not user_input:
+                logger.info(f"[{user_id}] 消息被忽略：提及后内容为空。")
                 await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？（请在 @我 之后输入具体内容）")
                 return
 
+        # --- 后续逻辑与之前相同 ---
         ai_instance = await self.get_or_create_ai_instance(user_id)
         if not ai_instance:
             await message.channel.send("歡迎！您的設定似乎不完整，請使用 `/start` 指令來開始或重置您的 AI 戀人。")
             return
 
-        logger.info(f"[{user_id}] 响应条件满足，啟動【元指令處理層】...")
+        logger.info(f"[{user_id}] 响应条件满足，启动 LangGraph 對話流程...")
         async with message.channel.typing():
             try:
                 if user_id not in ai_instance.session_histories:
                     ai_instance.session_histories[user_id] = ChatMessageHistory()
                 
                 chat_history_manager = ai_instance.session_histories[user_id]
-                
-                # --- [v43.0 核心] 元指令處理層 ---
-                reroll_instruction = ""
-                final_user_input = user_input
-
-                intent_chain = ai_instance.get_intent_classification_chain()
-                intent_result = await ai_instance.ainvoke_with_rotation(intent_chain, {"user_input": user_input})
-                
-                intent = intent_result.intent_type if intent_result else 'sfw'
-                logger.info(f"[{user_id}] 元指令意圖分析結果: {intent}")
-
-                if intent == 'reroll':
-                    if len(chat_history_manager.messages) >= 2:
-                        chat_history_manager.messages.pop()
-                        chat_history_manager.messages.pop()
-                        logger.info(f"[{user_id}] Reroll 指令觸發：已從短期記憶中移除上一輪對話。")
-                    
-                    reroll_instruction = "【最高優先級指令】使用者對上一個版本不滿意，請生成一個與之前版本在情節、細節或風格上有顯著不同的、全新的版本。"
-                    if len(ai_instance.session_histories[user_id].messages) > 0:
-                       final_user_input = ai_instance.session_histories[user_id].messages[-1].content
-                    else:
-                       final_user_input = "請開始一個新的場景"
-
-                elif intent == 'continuation':
-                    final_user_input = "（系統指令：請直接生成上一幕的後續劇情）"
-                    logger.info(f"[{user_id}] Continuation 指令觸發：已將輸入轉化為內部後續指令。")
-
-                # --- 狀態準備與圖執行 ---
                 current_messages = chat_history_manager.messages.copy()
-                current_messages.append(HumanMessage(content=final_user_input))
+                # 使用清理后的 user_input
+                current_messages.append(HumanMessage(content=user_input))
 
                 initial_state = ConversationGraphState(
                     user_id=user_id,
                     ai_core=ai_instance,
                     messages=current_messages,
-                    reroll_instruction=reroll_instruction, 
-                    # [v43.0 核心] 將權威的意圖判斷結果直接注入狀態
-                    intent_classification=intent_result,
-                    sanitized_user_input=None, # 讓圖的內部節點填充
                     input_analysis=None,
                     expansion_decision=None,
                     scene_analysis=None,
@@ -983,7 +956,6 @@ class BotCog(commands.Cog):
                     state_updates={}
                 )
 
-                logger.info(f"[{user_id}] 元指令處理完畢，正在使用最終輸入 '{final_user_input[:30]}...' 調用主圖...")
                 final_state = await self.main_response_graph.ainvoke(initial_state)
                 
                 response = final_state.get('final_output')
@@ -997,8 +969,7 @@ class BotCog(commands.Cog):
                         "（抱歉，我好像突然斷線了，腦袋一片空白... 這可能是因為您的指令觸發了內容安全限制，或者是一個暫時的網絡問題。\n\n"
                         "**您可以嘗試：**\n"
                         "1.  **換一種說法**：嘗試用更委婉或不同的詞語來表達您的意思。\n"
-                        "2.  **稍後再試**：如果認為是網絡問題，請稍等片刻再發送一次相同的指令。\n"
-                        "3.  **輸入「重新」**：如果您對我剛剛的回應不滿意，可以試試看。）"
+                        "2.  **稍後再試**：如果認為是網絡問題，請稍等片刻再發送一次相同的指令。）"
                     )
                     await message.channel.send(fallback_message)
 
@@ -1012,7 +983,7 @@ class BotCog(commands.Cog):
                     user_feedback += f"\n**提示**: 這通常意味著系統在處理一個數據模板時，找不到名為 `{error_details}` 的欄位。這可能是一個暫時的數據不一致問題，請嘗試重新發送或稍作修改。"
 
                 await message.channel.send(user_feedback)
-# 函式：處理訊息 (v43.0 - 實現意圖注入)
+    # 函式：處理訊息 (v42.0 - 响应逻辑与日志增强)
 
     # finalize_setup (v42.2 - 延遲加載重構)
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
@@ -1671,5 +1642,3 @@ class AILoverBot(commands.Bot):
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
-
-

@@ -1,8 +1,8 @@
-# src/schemas.py 的中文註釋(v14.0 - 新增選角需求模型)
+# src/schemas.py 的中文註釋(v13.0 - TurnPlan 自我修復)
 # 更新紀錄:
-# v14.0 (2025-09-22): [重大架構升級] 正式新增了 SceneCastingRequirements 模型。這個模型將作為“劇本分析師”的輸出，結構化地定義了一個場景對演員的具體需求（如男性/女性數量），為下游實現智能的“比對-補充”式LORE擴展提供了關鍵的數據基礎。
-# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。此驗證器會自動檢測並修復 LLM 在生成 character_actions 列表時常見的「省略連續角色名稱」的錯誤。它會將缺失的 character_name 用前一個動作的角色名稱來填補，從根本上解決了因 Pydantic ValidationError 導致整個圖崩潰的問題，極大增強了系統的健壯性。
 # v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
+# v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。
 
 import json
 import re
@@ -38,7 +38,7 @@ def _validate_string_to_dict(value: Any) -> Any:
 
 # 函式：基础 LORE 數據模型 - CharacterProfile (v2.0 - 靈活性增強)
 # 更新紀錄:
-# v2.0 (2025-09-05): [災難性BUG修復] 根據 Pydantic ValidationError Log，將 `appearance_details` 的類型從 `Dict[str, str]` 修改為 `Dict[str, Any]`。
+# v2.0 (2025-09-05): [災難性BUG修復] 根據 Pydantic ValidationError Log，將 `appearance_details` 的類型從 `Dict[str, str]` 修改為 `Dict[str, Any]`。此修改使模型能夠接受 AI 在“補完檔案”時生成的、值為列表或其他非字串類型的數據（例如 `{"特徵": ["蛇鱗", "尖牙"]}`），從根本上解決了因資料模型過於嚴格而導致的啟動崩潰問題。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -175,14 +175,6 @@ class WorldLore(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
-# [v14.0 新增]
-class SceneCastingRequirements(BaseModel):
-    """用於結構化地表示一個場景對演員的具體需求。"""
-    thought: str = Field(description="分析使用者指令後的簡短思考過程。")
-    required_male_characters: int = Field(default=0, description="場景明確需要的男性角色數量。")
-    required_female_characters: int = Field(default=0, description="場景明確需要的女性角色數量。")
-    scene_summary: str = Field(description="對場景核心動作的簡潔摘要，將用於指導角色創建。")
-
 # --- AI 思考/行動相關模型 ---
 class ActionIntent(BaseModel):
     action_type: Literal['physical', 'verbal', 'magical', 'observation', 'other'] = Field(description="將使用者指令分類為：'physical'(物理動作), 'verbal'(對話), 'magical'(魔法), 'observation'(觀察), 或 'other'(其他)。")
@@ -239,6 +231,7 @@ class TurnPlan(BaseModel):
                     if 'character_name' in action and action['character_name']:
                         last_valid_name = action['character_name']
                     elif 'character_name' not in action and last_valid_name:
+                        # 這是錯誤發生的點，進行修復
                         action['character_name'] = last_valid_name
         return data
 
@@ -328,6 +321,7 @@ class SceneCastingResult(BaseModel):
         description="一個為核心角色創造的、用於互動的臨時配角列表（例如顧客、同伴等）。",
         default_factory=list
     )
+    # [v15.0 核心修正] 增加場景錨點欄位
     implied_location: Optional[LocationInfo] = Field(
         default=None,
         description="如果能從上下文中推斷出一個合理的、符合世界觀的場景地點，則在此處提供該地點的詳細信息。"
@@ -347,6 +341,10 @@ class SceneAnalysisResult(BaseModel):
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
 
+
+
+
+# [v14.0 新增] 用於安全接收 LLM 原始場景分析結果的寬鬆模型
 class RawSceneAnalysis(BaseModel):
     """一個沒有複雜內部驗證的 Pydantic 模型，專門用於安全地接收來自 LLM 的、可能存在邏輯矛盾的初步場景分析結果。"""
     viewing_mode: Literal['local', 'remote'] = Field(description="對視角的初步判斷。")
@@ -354,6 +352,8 @@ class RawSceneAnalysis(BaseModel):
     target_location_path: Optional[List[str]] = Field(default=None, description="初步提取的地點路徑。")
     focus_entity: Optional[str] = Field(default=None, description="初步提取的核心實體。")
     action_summary: str = Field(description="對使用者意圖的摘要。")
+
+
 
 class ValidationResult(BaseModel):
     is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
@@ -366,21 +366,24 @@ class ExpansionDecision(BaseModel):
     should_expand: bool = Field(description="如果当前对话轮次适合进行世界构建和LORE扩展，则为 true；如果对话是简单的、重复的或与已知实体的互动，则为 false。")
     reasoning: str = Field(description="做出此决定的简短理由。")
 
+# [v12.0 新增] 用于智能路由的模型
 class IntentClassificationResult(BaseModel):
     """用於結構化地表示對使用者輸入意圖的語意分類結果。"""
-    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive', 'reroll', 'continuation'] = Field(description="""對使用者意圖的最終分類：
+    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="""對使用者意圖的最終分類：
 - 'sfw': 安全的、適合所有觀眾的內容。
 - 'nsfw_interactive': 包含露骨或敏感內容的、使用者與 AI/NPC 的直接互動請求。
-- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。
-- 'reroll': 使用者對上一輪的結果不滿意，要求生成一個全新的、不同的版本。
-- 'continuation': 使用者要求直接接續上一輪的劇情，生成後續發展。""")
+- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。""")
     reasoning: str = Field(description="做出此分類的簡短理由。")
 
+
+
+# [v13.0 新增] 用於將風格指令結構化的模型
 class StyleAnalysisResult(BaseModel):
     """用於結構化地表示對使用者自訂風格的分析結果，以便為規劃器提供具體指令。"""
     dialogue_requirement: str = Field(description="根據風格指令，對本回合對話的具體要求。例如：'AI角色必須說話' 或 '無需對話'。")
     narration_level: str = Field(description="對旁白詳細程度的要求。例如：'低', '中等', '高'。")
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
+
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
