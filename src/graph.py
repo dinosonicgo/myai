@@ -206,33 +206,59 @@ async def character_quantification_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
+# 函式：意圖分類節點 (v3.1 - 狀態繼承)
 # 更新紀錄:
-# v3.0 (2025-09-08): [災難性BUG修復] 廢除了「前置淨化層」策略，此節點現在回歸到直接處理未經修改的原始使用者輸入。這是為了解決因淨化導致意圖信號丟失、引發路由錯誤的根本性問題。
-# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源，使其優先使用 `sanitized_user_input`。
+# v3.1 (2025-09-22): [災難性BUG修復] 徹底重構了此節點的邏輯，引入了“狀態繼承”機制。現在，當節點識別到“继续”等延续性指令時，它将不再对该指令本身进行分类，而是直接继承并复用上一轮对话的意圖分类结果。此修改从根本上解决了延续性指令被错误路由到SFW路径的问题。
+# v3.0 (2025-09-08): [災難性BUG修復] 废除了“前置净化层”策略。
+# v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
+    """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承状态。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
     
-    # [v3.0 核心修正] 統一使用原始使用者輸入
-    user_input_for_classification = state['messages'][-1].content
+    # --- [v3.1 核心逻辑] ---
+    # 步驟 1: 進行初步的輸入類型分析
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...")
+    input_analysis_chain = ai_core.get_input_analysis_chain()
+    input_analysis_result = await ai_core.ainvoke_with_rotation(
+        input_analysis_chain,
+        {"user_input": user_input},
+        retry_strategy='euphemize'
+    )
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對原始輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
-    
+    # 步驟 2: 检查是否为延续性指令
+    if input_analysis_result and input_analysis_result.input_type == 'continuation':
+        # 如果是延续性指令，尝试继承上一轮的意图
+        last_intent = state.get('intent_classification')
+        if last_intent:
+            logger.info(f"[{user_id}] (Graph|1) 檢測到延续性指令，已繼承上一轮的意图: '{last_intent.intent_type}'")
+            # 直接复用上一轮的意图，并更新分析结果以供下游使用
+            return {
+                "intent_classification": last_intent,
+                "input_analysis": input_analysis_result
+            }
+        else:
+            logger.warning(f"[{user_id}] (Graph|1) 檢測到延续性指令，但沒有上一轮的意图可供继承，将按常规流程处理。")
+
+    # 步驟 3: 如果不是延续性指令或无法继承，则执行常规的意图分类
+    logger.info(f"[{user_id}] (Graph|1) 正在对具体指令 '{user_input[:30]}...' 進行意圖分類...")
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
-        {"user_input": user_input_for_classification},
-        retry_strategy='euphemize' # 分類鏈現在更強大，可以用委婉化重試
+        {"user_input": user_input},
+        retry_strategy='euphemize'
     )
     
     if not classification_result:
         logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 SFW。")
         classification_result = IntentClassificationResult(intent_type='sfw', reasoning="安全備援：分類鏈失敗。")
         
-    return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
+    return {
+        "intent_classification": classification_result,
+        "input_analysis": input_analysis_result
+    }
+# 函式：意圖分類節點 (v3.1 - 狀態繼承)
 
 
 
@@ -1353,6 +1379,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
