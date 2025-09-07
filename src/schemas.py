@@ -387,3 +387,4 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
