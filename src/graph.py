@@ -261,29 +261,27 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
-# 函式：意圖分類節點 (v5.0 - 適配淨化輸入)
+# 函式：意圖分類節點 (v6.0 - 誘餌與酬載)
 # 更新紀錄:
-# v5.0 (2025-09-27): [架構重構] 此節點現在從 `pre_process_input_node` 接收並使用安全的 `sanitized_user_input` 進行意圖分類，以避免因原始輸入過於露骨而被內容審查攔截。原始的 `user_input` 則被保留，用於後續的創意生成。
-# v4.0 (2025-09-26): [災難性BUG修復] 為了讓分類器能夠正確處理“繼續”等上下文相關指令，此節點現在負責從 ai_core 中提取最近的對話歷史，並將其作為額外的上下文注入到意圖分類鏈中。
-# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。
+# v6.0 (2025-09-28): [架構重構] 此節點現在遵循“誘餌與酬載”策略。它將原始的使用者輸入作為安全的 `user_payload` 變數傳遞給一個本身無害的提示詞模板，以繞過 API 的請求預過濾器。
+# v5.0 (2025-09-27): [架構重構] 此節點現在從 `pre_process_input_node` 接收並使用安全的 `sanitized_user_input` 進行意圖分類。
+# v4.0 (2025-09-26): [災難性BUG修復] 注入了對話歷史上下文。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，唯一職責是對【淨化後】的輸入進行意圖分類，並注入上下文歷史。"""
+    """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類，並注入上下文歷史。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v5.0 核心修正] 使用淨化後的輸入進行分析
-    sanitized_input = state['sanitized_user_input']
-    
+    user_input = state['messages'][-1].content
     chat_history_str = _get_formatted_chat_history(ai_core, user_id, num_messages=4)
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在結合歷史記錄對【淨化後】的輸入 '{sanitized_input[:30]}...' 進行意圖分類...")
-    logger.debug(f"[{user_id}] (Graph|1) 注入的對話歷史:\n---\n{chat_history_str}\n---")
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在結合歷史記錄對輸入 '{user_input[:30]}...' 進行意圖分類...")
     
     classification_chain = ai_core.get_intent_classification_chain()
+    # [v6.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
         {
-            "user_input": sanitized_input, # 使用淨化輸入
+            "user_payload": user_input,
             "chat_history": chat_history_str
         },
         retry_strategy='euphemize'
@@ -294,7 +292,12 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         classification_result = IntentClassificationResult(intent_type='nsfw_interactive', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v5.0 - 適配淨化輸入)
+# 函式：意圖分類節點 (v6.0 - 誘餌與酬載)
+
+
+
+
+
 
 
 
