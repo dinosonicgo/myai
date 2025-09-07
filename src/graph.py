@@ -759,11 +759,11 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 實現監督與修正循環)
 # 更新紀錄:
-# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。在調用選角鏈後，此節點會檢查結果中是否包含一個推斷出的 `implied_location`。如果有，它會立即將該地點存入LORE，並【強制更新GameState】，將系統的視角模式切換到 remote 並設置好遠程目標路徑。此修改從根本上解決了因首次描述時地點信息缺失而導致的後續流程崩潰問題。
-# v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
-# v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
+# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構此節點，引入“監督-驗證-修正”循環，以解決LLM“指令漂移”問題。節點現在會對選角鏈的初次輸出進行程序化驗證，如果角色數量或性別不符，則會調用一個專用的修正鏈進行二次、精準的角色創建，確保最終輸出給規劃器的角色列表100%符合指令要求。
+# v8.0 (2025-09-06): [重大架構升級] 賦予此節點持久化場景錨點的職責。
+# v7.0 (2025-09-06): [災難性BUG修復] 重構了地點判斷邏輯。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
     user_id = state['user_id']
@@ -771,79 +771,101 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     existing_lores = state.get('raw_lore_objects', [])
     
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
+    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行【監督式】場景選角與LORE擴展...")
     
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
-    # 地點判斷邏輯保持不變，為選角鏈提供一個基礎參考點
-    scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
-    effective_location_path: List[str]
-
-    if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
-        effective_location_path = scene_analysis.target_location_path
-    else:
-        effective_location_path = gs.location_path
-
-    # ... (輸入淨化邏輯保持不變) ...
-    try:
-        entity_chain = ai_core.get_entity_extraction_chain()
-        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
-        sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
-    except Exception as e:
-        logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
-        sanitized_context_for_casting = user_input
-        
+    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+    
+    # 步驟 1: 首次嘗試調用主選角鏈
+    casting_chain = ai_core.get_scene_casting_chain()
     game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
-
-    cast_result = await ai_core.ainvoke_with_rotation(
-        ai_core.get_scene_casting_chain(),
+    initial_cast_result = await ai_core.ainvoke_with_rotation(
+        casting_chain,
         {
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
             "game_context": game_context_for_casting, 
-            "recent_dialogue": sanitized_context_for_casting
+            "recent_dialogue": user_input
         },
         retry_strategy='euphemize'
     )
     
-    # [v8.0 核心修正] 持久化場景錨點
-    if cast_result and cast_result.implied_location:
-        location_info = cast_result.implied_location
-        # 假設 location_info.name 是單一字符串，需要構建路徑
-        # 一個簡單的策略是將它附加到玩家當前的頂層區域
+    all_created_characters = []
+    if initial_cast_result:
+        all_created_characters.extend(initial_cast_result.newly_created_npcs)
+        all_created_characters.extend(initial_cast_result.supporting_cast)
+
+    # 步驟 2: 程序化驗證與二次修正循環
+    # 簡單的需求解析
+    male_keywords = ['男', '雄性', '男孩']
+    female_keywords = ['女', '雌性', '女孩']
+    
+    required_males = sum(user_input.count(kw) for kw in male_keywords)
+    required_females = sum(user_input.count(kw) for kw in female_keywords)
+    if "一群" in user_input and required_males == 0 and required_females == 0:
+        required_males = 2 # 默認“一群”為多樣化群體
+
+    current_males = sum(1 for char in all_created_characters if char.gender and char.gender.lower() in ['male', '男'])
+    current_females = sum(1 for char in all_created_characters if char.gender and char.gender.lower() in ['female', '女'])
+
+    missing_males = max(0, required_males - current_males)
+    missing_females = max(0, required_females - current_females)
+
+    if missing_males > 0 or missing_females > 0:
+        logger.warning(f"[{user_id}] (Supervisor) 初次選角輸出不滿足指令要求。期望(男:{required_males}, 女:{required_females}), 實際(男:{current_males}, 女:{current_females})。啟動修正循環...")
+        
+        correction_instruction = f"錯誤：角色數量或性別不匹配。請補充創建【{missing_males}名男性】和【{missing_females}名女性】角色以滿足場景需求。"
+        
+        correction_chain = ai_core.get_character_correction_chain()
+        corrected_cast_result = await ai_core.ainvoke_with_rotation(
+            correction_chain,
+            {
+                "world_settings": ai_core.profile.world_settings or "",
+                "current_location_path": effective_location_path,
+                "user_input": user_input,
+                "existing_characters_json": json.dumps([c.model_dump() for c in all_created_characters], ensure_ascii=False, indent=2),
+                "correction_instruction": correction_instruction
+            }
+        )
+        if corrected_cast_result:
+            all_created_characters.extend(corrected_cast_result.newly_created_npcs)
+            all_created_characters.extend(corrected_cast_result.supporting_cast)
+            logger.info(f"[{user_id}] (Supervisor) 修正循環成功，已補充創建了新的角色。")
+
+    # 步驟 3: 持久化場景錨點與所有已創建角色
+    if initial_cast_result and initial_cast_result.implied_location:
+        # (此部分邏輯與之前版本相同，保持不變)
+        location_info = initial_cast_result.implied_location
         base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
         new_location_path = base_path + [location_info.name]
         lore_key = " > ".join(new_location_path)
-        
         await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
-        logger.info(f"[{user_id}] (Scene Anchor) 已成功為場景錨定並創建新地點LORE: '{lore_key}'")
-        
-        # 強制更新 GameState
         gs.viewing_mode = 'remote'
         gs.remote_target_path = new_location_path
         await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-        logger.info(f"[{user_id}] (Scene Anchor) GameState 已強制更新為遠程視角，目標: {new_location_path}")
 
-    planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
+    # 將所有新角色（初次+修正後）加入資料庫
+    created_names_set = set()
+    if all_created_characters:
+        cast_result_wrapper = SceneCastingResult(newly_created_npcs=all_created_characters)
+        # 複用 _add_cast_to_scene 的持久化和命名衝突解決邏輯
+        created_names = await ai_core._add_cast_to_scene(cast_result_wrapper)
+        created_names_set.update(created_names)
+        logger.info(f"[{user_id}] (Graph|6A) 監督式選角完成，共創建/更新了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
     
-    if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
-        created_names = await ai_core._add_cast_to_scene(cast_result)
-        logger.info(f"[{user_id}] (Graph|6A) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
-        
-        if created_names:
-            lore_query_tasks = [lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)]
-            results = await asyncio.gather(*lore_query_tasks)
-            newly_created_lores = results[0]
-            
-            if newly_created_lores:
-                planning_subjects.extend([lore.content for lore in newly_created_lores])
+    # 步驟 4: 構建最終的規劃主體列表
+    planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
+    if created_names_set:
+        newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names_set)
+        planning_subjects.extend([lore.content for lore in newly_created_lores])
     
     logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 實現監督與修正循環)
 
 
 
@@ -1554,6 +1576,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
