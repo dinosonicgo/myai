@@ -1463,9 +1463,10 @@ class BotCog(commands.Cog):
         asyncio.create_task(self._perform_update_and_restart(interaction))
     # 函式：管理員強制更新 (v40.2 - 背景任務重構)
 
-# 函式：執行更新與重啟的背景任務 (v1.1 - 優雅關閉)
+# 函式：執行更新與重啟的背景任務 (v1.2 - 新增更新通知)
     # 更新紀錄:
-    # v1.1 (2025-09-06): [災難性BUG修復] 移除了 `sys.exit(0)` 調用，改為設置一個從 main.py 傳入的全局 `shutdown_event`。此修改遵循了異步程式設計的最佳實踐，將關閉信號傳遞給主事件循環進行統一的、優雅的關閉，從而徹底解決了 `Task exception was never retrieved` 的警告。
+    # v1.2 (2025-09-21): [功能擴展] 新增了在更新成功、觸發重啟前，向 ADMIN_USER_ID 發送私訊通知的邏輯。
+    # v1.1 (2025-09-06): [災難性BUG修復] 移除了 `sys.exit(0)` 調用，改為設置一個從 main.py 傳入的全局 `shutdown_event`。
     # v1.0 (2025-09-05): [全新創建] 創建此輔助函式，用於在背景中安全地執行耗時的 git 操作和程式重啟。
     async def _perform_update_and_restart(self, interaction: discord.Interaction):
         """
@@ -1498,6 +1499,22 @@ class BotCog(commands.Cog):
                     await interaction.followup.send(success_message, ephemeral=True)
                 except discord.errors.NotFound:
                     logger.warning("背景任務：嘗試發送重啟訊息時互動已失效，但不影響重啟流程。")
+
+                # [v1.2 新增] 向管理員發送更新成功通知
+                if settings.ADMIN_USER_ID:
+                    try:
+                        admin_id = int(settings.ADMIN_USER_ID)
+                        admin_user = self.bot.get_user(admin_id) or await self.bot.fetch_user(admin_id)
+                        if admin_user:
+                            await admin_user.send("✅ **系統更新成功！**\n程式碼已同步至最新版本，機器人即將由守護進程自動重啟。")
+                            logger.info(f"已成功發送更新成功通知給管理員 (ID: {admin_id})。")
+                    except (ValueError, discord.errors.NotFound):
+                        logger.error(f"無法找到設定的管理員 ID ({settings.ADMIN_USER_ID}) 或該 ID 無效，無法發送更新成功通知。")
+                    except discord.errors.Forbidden:
+                        logger.error(f"無法發送私訊給管理員 (ID: {settings.ADMIN_USER_ID})。請確認機器人與該用戶之間沒有被封鎖，且用戶允許接收來自伺服器成員的私訊。")
+                    except Exception as e:
+                        logger.error(f"發送更新成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
+
 
                 await asyncio.sleep(3)
                 
@@ -1532,7 +1549,7 @@ class BotCog(commands.Cog):
                 await interaction.followup.send(f"🔥 **發生未預期錯誤！**\n執行更新時遇到問題: {e}", ephemeral=True)
             except discord.errors.NotFound:
                 pass
-    # 函式：執行更新與重啟的背景任務 (v1.1 - 優雅關閉)
+# 函式：執行更新與重啟的背景任務 (v1.2 - 新增更新通知)
 
     @app_commands.command(name="admin_check_status", description="[管理員] 查詢指定使用者的當前狀態")
     @app_commands.check(is_admin)
@@ -1589,13 +1606,15 @@ class BotCog(commands.Cog):
                 await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 # 類別：機器人核心功能集 (Cog)
 
-# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
+# 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
 # 更新紀錄:
-# v1.1 (2025-09-06): [重大架構重構] 修改了 `__init__` 方法，使其能夠接收並存儲一個 `asyncio.Event` 作為關閉信號。這使得機器人內部（如 Cog）可以訪問並觸發這個事件，從而實現與主事件循環的解耦和優雅的關閉流程。
+# v1.2 (2025-09-21): [功能擴展] 新增了在 on_ready 事件觸發時，向 ADMIN_USER_ID 發送私訊通知的邏輯，以確認啟動成功。
+# v1.1 (2025-09-06): [重大架構重構] 修改了 `__init__` 方法，使其能夠接收並存儲一個 `asyncio.Event` 作為關閉信號。
 class AILoverBot(commands.Bot):
     def __init__(self, shutdown_event: asyncio.Event):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
         self.shutdown_event = shutdown_event
+        self.is_ready_once = False # 新增一個旗標，確保 on_ready 的通知只發送一次
     
     async def setup_hook(self):
         await self.add_cog(BotCog(self))
@@ -1604,4 +1623,22 @@ class AILoverBot(commands.Bot):
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
-# 類別：AI 戀人機器人主體 (v1.1 - 適配優雅關閉)
+        
+        # [v1.2 新增] 啟動成功後向管理員發送通知
+        # 使用 is_ready_once 旗標確保即使發生重連，此通知也只在首次啟動成功時發送一次
+        if not self.is_ready_once:
+            self.is_ready_once = True
+            if settings.ADMIN_USER_ID:
+                try:
+                    admin_id = int(settings.ADMIN_USER_ID)
+                    admin_user = self.get_user(admin_id) or await self.fetch_user(admin_id)
+                    if admin_user:
+                        await admin_user.send(f"✅ **系統啟動成功！**\n機器人 **{self.user.name}** 已成功上線並準備就緒。")
+                        logger.info(f"已成功發送啟動成功通知給管理員 (ID: {admin_id})。")
+                except (ValueError, discord.errors.NotFound):
+                    logger.error(f"無法找到設定的管理員 ID ({settings.ADMIN_USER_ID}) 或該 ID 無效，無法發送啟動成功通知。")
+                except discord.errors.Forbidden:
+                    logger.error(f"無法發送私訊給管理員 (ID: {settings.ADMIN_USER_ID})。請確認機器人與該用戶之間沒有被封鎖，且用戶允許接收來自伺服器成員的私訊。")
+                except Exception as e:
+                    logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
+# 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
