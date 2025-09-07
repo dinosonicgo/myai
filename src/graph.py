@@ -1033,17 +1033,16 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
 
 
 
-# 函式：統一的敘事渲染節點 (v28.0 - 恢復System Prompt傳遞)
+# 函式：統一的敘事渲染節點 (v29.0 - 授權對等)
 # 更新紀錄:
-# v28.0 (2025-09-10): [災難性BUG修復] 根據 ai_core v218.0 的重構，恢復了向渲染鏈傳遞包含 `system_prompt` 鍵的標準化輸入字典。雖然鏈的內部會重新格式化它，但保持這個統一的輸入結構對於確保“指令強化重試”機制 (`_force_and_retry`) 在鏈失敗時能夠找到並修改 `system_prompt` 至關重要。此修改從根本上解決了因輸入結構不一致導致重試機制崩潰的 ValueError。
-# v27.0 (2025-09-09): [災難性BUG修復] 將節點職責簡化為只準備數據，以解決 IndexError。
-# v26.0 (2025-09-09): [災難性BUG修復] 此節點承擔了構建完整 system prompt 的職責以解決 ValueError。
+# v29.0 (2025-09-10): [災難性BUG修復] 根據“授權對等”原則，徹底重構了此節點的數據準備邏輯。現在，它會從 ai_core 中獲取 `action_sexual_content` 模組（露骨詞彙聖經），並將其與 `system_prompt` (核心協議) 和 `response_style_prompt` 一同傳遞給渲染鏈。此修改確保了渲染鏈與規劃鏈擁有完全相同的上下文和授權等級，從根本上解決了因授權不對等導致的渲染失敗問題。
+# v28.0 (2025-09-10): [災難性BUG修復] 恢復了向渲染鏈傳遞 `system_prompt` 的邏輯，以確保重試機制可以工作。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
-    logger.info(f"[{user_id}] (Graph|9) Node: narrative_rendering -> 正在將行動計劃渲染為小說...")
+    logger.info(f"[{user_id}] (Graph|9) Node: narrative_rendering -> 正在將行動計劃渲染為小說 (授權對等模式)...")
 
     if not turn_plan:
         return {"llm_response": "（系統錯誤：未能生成有效的行動計劃。）"}
@@ -1052,10 +1051,10 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
         logger.warning(f"[{user_id}] (Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
     
-    # [v28.0 核心修正] 準備一個包含 system_prompt 的標準化字典，以確保重試機制可以工作
-    # 即使鏈的內部會重新處理它，但保持這個結構至關重要
+    # [v29.0 核心修正] 準備一個包含所有必要授權的、完整的輸入字典
     chain_input = {
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載，渲染可能會失敗。"),
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
         "turn_plan": turn_plan
     }
@@ -1068,7 +1067,7 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v28.0 - 恢復System Prompt傳遞)
+# 函式：統一的敘事渲染節點 (v29.0 - 授權對等)
 
 
 
@@ -1345,6 +1344,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
