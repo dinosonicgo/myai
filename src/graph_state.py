@@ -1,8 +1,8 @@
-# src/graph_state.py 的中文註釋(v10.0 - 廢除淨化輸入)
+# src/graph_state.py 的中文註釋(v11.0 - 数据伪装)
 # 更新紀錄:
-# v10.0 (2025-09-08): [重大架構重構] 根據圖拓撲的更新，徹底移除了已廢棄的 `sanitized_user_input` 欄位。此修改使狀態定義與實際的數據流完全保持一致，提高了代碼的清晰度和健壯性。
+# v11.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，移除了 `turn_plan` 字段，并新增了 `narrative_outline: str` 字段。这个新字段将用于在规划节点和最终渲染节点之间传递自然语言的、相对安全的“剧本大纲”，以取代之前容易被审查的 TurnPlan JSON 对象。
+# v10.0 (2025-09-08): [重大架構重構] 移除了已废弃的 `sanitized_user_input` 欄位。
 # v9.0 (2025-09-08): [災難性BUG修復] 新增了 `quantified_character_list` 欄位。
-# v8.0 (2025-09-06): [重大架構升級] 新增了 `sanitized_user_input` 欄位。
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
 
@@ -40,11 +40,11 @@ class ConversationGraphState(TypedDict):
     structured_context: Dict[str, str]
     world_snapshot: str
     
-    # "規劃-渲染"模式的核心數據載體
-    turn_plan: Optional["TurnPlan"]
+    # [v11.0 新增] "数据伪装"模式的核心数据载体
+    narrative_outline: str
     tool_results: str
 
-    # 最終輸出與狀態變更
+    # 最终输出与状态变更
     llm_response: str
     final_output: str
     state_updates: Dict[str, Any]
