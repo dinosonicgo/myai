@@ -222,14 +222,12 @@ class TurnPlan(BaseModel):
     narration: Optional[str] = Field(default="", description="一個綜合性的旁白，用於描述使用者行動的直接後果，以及場景中任何與角色行動無關的環境變化。")
     character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有 AI 和 NPC 角色自主行動計畫的列表。")
     execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合 lógica而無法執行時，此欄位包含以角色口吻給出的解釋。")
+    template_id: Optional[str] = Field(default=None, description="[系統專用] 用於標識此計畫是否來源於某個預設模板。")
 
-    # [v13.0 核心修正] 新增自我修復驗證器
     @model_validator(mode='before')
     @classmethod
     def repair_missing_character_names(cls, data: Any) -> Any:
-        """
-        在正式驗證前，嘗試修復 LLM 常見的錯誤：在連續動作中省略 character_name。
-        """
+        # ... (此驗證器邏輯不變) ...
         if isinstance(data, dict) and 'character_actions' in data and isinstance(data['character_actions'], list):
             last_valid_name = None
             for action in data['character_actions']:
@@ -237,9 +235,22 @@ class TurnPlan(BaseModel):
                     if 'character_name' in action and action['character_name']:
                         last_valid_name = action['character_name']
                     elif 'character_name' not in action and last_valid_name:
-                        # 這是錯誤發生的點，進行修復
                         action['character_name'] = last_valid_name
         return data
+
+    @model_validator(mode='after')
+    def check_plan_logic(self) -> 'TurnPlan':
+        # ... (此驗證器邏輯不變) ...
+        has_thought_or_actions = bool(self.thought) or bool(self.character_actions)
+        has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
+
+        if not has_thought_or_actions and not has_rejection:
+            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
+        
+        if has_thought_or_actions and has_rejection:
+            raise ValueError("計畫不能同時包含常規計畫內容(thought/actions)和拒絕執行的理由(execution_rejection_reason)。")
+            
+        return self
 
     @model_validator(mode='after')
     def check_plan_logic(self) -> 'TurnPlan':
@@ -396,5 +407,6 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
