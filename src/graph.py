@@ -1025,11 +1025,19 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
-# 函式：統一的敘事渲染節點 (v24.0 - 執行否決修正)
+
+
+
+
+
+
+
+
+# 函式：統一的敘事渲染節點 (v25.0 - 簡化數據流)
 # 更新紀錄:
-# v24.0 (2025-09-06): [災難性BUG修復] 根據「AI輸出內部錯誤」的問題，在此節點增加了“執行否決”檢查。在渲染前，它會檢查傳入的 `TurnPlan` 的 `execution_rejection_reason` 欄位。如果有值，則完全跳過渲染，直接將該欄位的錯誤訊息作為最終輸出。此修改從根本上解決了系統錯誤被當作劇情渲染的嚴重問題。
+# v25.0 (2025-09-09): [災難性BUG修復] 根據 ai_core v215.0 的重構，簡化了傳遞給渲染鏈的輸入字典。由於 `system_prompt` 現在已正確地成為模板的一部分，不再需要在此節點中單獨傳遞它，從而使數據流更加清晰並與鏈的期望輸入完全匹配。
+# v24.0 (2025-09-06): [災難性BUG修復] 在此節點增加了“執行否決”檢查，以防止系統錯誤被渲染為劇情。
 # v23.0 (2025-09-06): [災難性BUG修復] 修正了傳遞給渲染鏈的參數結構。
-# v22.0 (2025-09-05): [災難性BUG修復] 修正了調用鏈時的參數傳遞。
 async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[9] 統一的敘事渲染節點，將行動計劃轉化為小說文本。"""
     user_id = state['user_id']
@@ -1040,13 +1048,12 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if not turn_plan:
         return {"llm_response": "（系統錯誤：未能生成有效的行動計劃。）"}
         
-    # [v24.0 核心修正] 執行否決權檢查
     if turn_plan.execution_rejection_reason:
         logger.warning(f"[{user_id}] (Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
-        
+    
+    # [v25.0 核心修正] 簡化輸入字典，只傳遞模板實際需要的變數
     chain_input = {
-        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
         "turn_plan": turn_plan
     }
@@ -1059,7 +1066,7 @@ async def narrative_rendering_node(state: ConversationGraphState) -> Dict[str, s
     if not narrative_text:
         narrative_text = "（AI 在將計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：統一的敘事渲染節點 (v24.0 - 執行否決修正)
+# 函式：統一的敘事渲染節點 (v25.0 - 簡化數據流)
 
 
 
@@ -1336,6 +1343,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
