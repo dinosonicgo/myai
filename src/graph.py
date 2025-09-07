@@ -21,7 +21,8 @@ from .graph_state import ConversationGraphState, SetupGraphState
 from . import lore_book, tools
 from .schemas import (CharacterProfile, TurnPlan, ExpansionDecision, 
                       UserInputAnalysis, SceneAnalysisResult, SceneCastingResult, 
-                      WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult)
+                      WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult,
+                      CharacterQuantificationResult) # <--- [新增] 導入新模型
 from .tool_context import tool_context
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 v21.1 ---
@@ -213,6 +214,38 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 
     return {}
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
+
+
+
+
+# 函式：[新] 角色量化節點 (v1.0 - 分而治之)
+# 更新紀錄:
+# v1.0 (2025-09-08): [重大架構升級] 創建此新節點，作為 LORE 擴展流程的第一步。其唯一職責是調用專門的量化鏈，將使用者輸入中的模糊群體描述（如“一群人”）轉化為一個具體的、量化的角色描述列表，為後續的選角節點提供確定性的輸入。
+async def character_quantification_node(state: ConversationGraphState) -> Dict:
+    """[6A.1] 將模糊的群體描述轉化為具體的角色列表。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|6A.1) Node: character_quantification -> 正在量化輸入中的角色...")
+
+    quantification_chain = ai_core.get_character_quantification_chain()
+    quantification_result = await ai_core.ainvoke_with_rotation(
+        quantification_chain,
+        {"user_input": user_input},
+        retry_strategy='euphemize'
+    )
+
+    if not quantification_result or not quantification_result.character_descriptions:
+        logger.warning(f"[{user_id}] (Graph|6A.1) 角色量化鏈失敗或返回空列表，LORE擴展將被跳過。")
+        return {"quantified_character_list": []}
+    
+    logger.info(f"[{user_id}] (Graph|6A.1) 角色量化成功，識別出 {len(quantification_result.character_descriptions)} 個待創建角色。")
+    return {"quantified_character_list": quantification_result.character_descriptions}
+# 函式：[新] 角色量化節點 (v1.0 - 分而治之)
+
+
+
+
 
 
 # 函式：意圖分類節點 (v2.0 - 適配淨化層)
@@ -685,61 +718,45 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 適配量化流程)
 # 更新紀錄:
-# v8.0 (2025-09-06): [重大架構升級] 根據「遠景地點丟失」的根本原因，賦予此節點一項新的關鍵職責：【持久化場景錨點】。在調用選角鏈後，此節點會檢查結果中是否包含一個推斷出的 `implied_location`。如果有，它會立即將該地點存入LORE，並【強制更新GameState】，將系統的視角模式切換到 remote 並設置好遠程目標路徑。此修改從根本上解決了因首次描述時地點信息缺失而導致的後續流程崩潰問題。
+# v9.0 (2025-09-08): [重大架構重構] 此節點的邏輯被徹底改造。它不再接收原始使用者輸入，而是接收由上游 `character_quantification_node` 傳來的、已量化的 `quantified_character_list`。其職責被簡化為將這個具體列表傳遞給新的、職責單一的選角鏈。
+# v8.0 (2025-09-06): [重大架構升級] 賦予此節點持久化場景錨點的職責。
 # v7.0 (2025-09-06): [災難性BUG修復] 重構了此節點的地點判斷邏輯。
-# v6.0 (2025-09-06): [災難性BUG修復] 修正了此節點的輸出邏輯，合併新舊角色。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
+    """[6A.2] 專用的LORE擴展執行節點，為量化後的角色列表創建檔案。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
     existing_lores = state.get('raw_lore_objects', [])
+    quantified_character_list = state.get('quantified_character_list', [])
     
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行場景選角與LORE擴展...")
+    logger.info(f"[{user_id}] (Graph|6A.2) Node: lore_expansion -> 正在為 {len(quantified_character_list)} 個量化角色執行選角...")
     
+    if not quantified_character_list:
+        logger.info(f"[{user_id}] (Graph|6A.2) 量化角色列表為空，跳過LORE擴展。")
+        # 即使不擴展，也要準備現有角色作為規劃主體
+        planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
+        return {"planning_subjects": planning_subjects}
+
     if not ai_core.profile:
-        logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
+        logger.error(f"[{user_id}] (Graph|6A.2) ai_core.profile 未加載，跳過 LORE 擴展。")
         return {}
 
-    # 地點判斷邏輯保持不變，為選角鏈提供一個基礎參考點
-    scene_analysis = state.get('scene_analysis')
     gs = ai_core.profile.game_state
-    effective_location_path: List[str]
-
-    if gs.viewing_mode == 'remote' and scene_analysis and scene_analysis.target_location_path:
-        effective_location_path = scene_analysis.target_location_path
-    else:
-        effective_location_path = gs.location_path
-
-    # ... (輸入淨化邏輯保持不變) ...
-    try:
-        entity_chain = ai_core.get_entity_extraction_chain()
-        entity_result = await ai_core.ainvoke_with_rotation(entity_chain, {"text_input": user_input})
-        sanitized_context_for_casting = "為場景選角：" + " ".join(entity_result.names) if entity_result and entity_result.names else user_input
-    except Exception as e:
-        logger.error(f"[{user_id}] (LORE Expansion) 預處理失敗: {e}", exc_info=True)
-        sanitized_context_for_casting = user_input
-        
-    game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
+    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
 
     cast_result = await ai_core.ainvoke_with_rotation(
         ai_core.get_scene_casting_chain(),
         {
             "world_settings": ai_core.profile.world_settings or "", 
             "current_location_path": effective_location_path,
-            "game_context": game_context_for_casting, 
-            "recent_dialogue": sanitized_context_for_casting
+            "character_descriptions_list": quantified_character_list
         },
         retry_strategy='euphemize'
     )
     
-    # [v8.0 核心修正] 持久化場景錨點
     if cast_result and cast_result.implied_location:
         location_info = cast_result.implied_location
-        # 假設 location_info.name 是單一字符串，需要構建路徑
-        # 一個簡單的策略是將它附加到玩家當前的頂層區域
         base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
         new_location_path = base_path + [location_info.name]
         lore_key = " > ".join(new_location_path)
@@ -747,7 +764,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
         logger.info(f"[{user_id}] (Scene Anchor) 已成功為場景錨定並創建新地點LORE: '{lore_key}'")
         
-        # 強制更新 GameState
         gs.viewing_mode = 'remote'
         gs.remote_target_path = new_location_path
         await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
@@ -757,19 +773,16 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     
     if cast_result and (cast_result.newly_created_npcs or cast_result.supporting_cast):
         created_names = await ai_core._add_cast_to_scene(cast_result)
-        logger.info(f"[{user_id}] (Graph|6A) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
+        logger.info(f"[{user_id}] (Graph|6A.2) 選角完成，創建了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
         
         if created_names:
-            lore_query_tasks = [lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)]
-            results = await asyncio.gather(*lore_query_tasks)
-            newly_created_lores = results[0]
-            
+            newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)
             if newly_created_lores:
                 planning_subjects.extend([lore.content for lore in newly_created_lores])
     
-    logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
+    logger.info(f"[{user_id}] (Graph|6A.2) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v8.0 - 錨點持久化)
+# 函式：專用的LORE擴展執行節點 (v9.0 - 適配量化流程)
 
 
 
@@ -1275,13 +1288,14 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
+# 函式：創建主回應圖 (v35.0 - 引入角色量化節點)
 # 更新紀錄:
-# v34.0 (2025-09-06): [災難性BUG修復] 為了從根本上解決極端NSFW指令被模型自我審查的問題，徹底重構了圖的NSFW處理路徑。
-#    1. [替換] 廢棄了舊的、單一的 `nsfw_planning` 和 `remote_nsfw_planning` 節點。
-#    2. [新增] 引入了全新的三節點「NSFW思維鏈」流水線：`nsfw_initial_planning` -> `nsfw_lexicon_injection` -> `nsfw_style_compliance`。
-#    3. [重連] 修改了 `route_to_planner` 路由器，使其現在將所有NSFW流量（本地和遠程）都導向這個新的、更健壯的流水線的入口點。
-#    此修改是解決頑固性內容審查問題的根本性架構升級。
+# v35.0 (2025-09-08): [重大架構重構] 為了從根本上解決 AI 無法正確處理“一群”等模糊群體數量的問題，對圖的拓撲進行了關鍵修改：
+#    1. [新增] 引入了一個全新的 `character_quantification` 節點，專門負責將模糊的群體描述轉化為具體的角色列表。
+#    2. [重連] 修改了 `route_expansion_decision` 路由，當需要擴展時，不再直接指向 `lore_expansion`，而是先指向新的 `character_quantification` 節點。
+#    3. [重連] `character_quantification` 節點的輸出現在連接到 `lore_expansion` 節點，為其提供確定性的、量化後的輸入。
+#    此修改採用了“分而治之”的策略，極大地提高了 LORE 擴展流程的可靠性。
+# v34.0 (2025-09-06): [災難性BUG修復] 徹底重構了圖的NSFW處理路徑，引入了三節點「NSFW思維鏈」流水線。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1293,13 +1307,16 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
+    
+    # [v35.0 新增] 註冊新的量化節點
+    graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
 
     # SFW 規劃器保持不變
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v34.0 新增] 註冊新的 NSFW 思維鏈節點
+    # NSFW 思維鏈節點
     graph.add_node("nsfw_initial_planning", nsfw_initial_planning_node)
     graph.add_node("nsfw_lexicon_injection", nsfw_lexicon_injection_node)
     graph.add_node("nsfw_style_compliance", nsfw_style_compliance_node)
@@ -1329,19 +1346,24 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("perceive_and_set_view", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
+    # [v35.0 核心修正] 重新定義擴展路徑
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
         { 
-            "expand_lore": "lore_expansion", 
+            # 如果需要擴展，先去量化
+            "expand_lore": "character_quantification", 
             "continue_to_planner": "prepare_existing_subjects"
         }
     )
+    # 量化完成後，再去執行擴展
+    graph.add_edge("character_quantification", "lore_expansion")
     
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
+        # ... (此路由函式內部邏輯不變) ...
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification:
@@ -1354,11 +1376,9 @@ def create_main_response_graph() -> StateGraph:
         
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v34.0 核心修正] 將所有 NSFW 流量都導向新的思維鏈入口
         if 'nsfw' in intent:
             return "nsfw_thought_chain_start"
         
-        # SFW 路由保持不變
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1370,15 +1390,13 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            # [v34.0 核心修正] 新的路由目標
             "nsfw_thought_chain_start": "nsfw_initial_planning"
         }
     )
     
-    # [v34.0 核心修正] 構建新的 NSFW 思維鏈流水線
+    # NSFW 思維鏈流水線
     graph.add_edge("nsfw_initial_planning", "nsfw_lexicon_injection")
     graph.add_edge("nsfw_lexicon_injection", "nsfw_style_compliance")
-    # 流水線的出口統一連接到工具執行節點
     graph.add_edge("nsfw_style_compliance", "tool_execution")
     
     # SFW 路線的出口
@@ -1392,7 +1410,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v34.0 - 引入NSFW思維鏈)
+# 函式：創建主回應圖 (v35.0 - 引入角色量化節點)
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
@@ -1482,3 +1500,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
