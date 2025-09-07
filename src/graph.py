@@ -335,97 +335,7 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一 NSFW 規劃節點 (v1.0 - 混合模式)
-# 更新紀錄:
-# v1.0 (2025-09-09): [重大架構重構] 創建此統一節點以實現全新的“混合模式”。它首先嘗試從本地模板庫匹配關鍵詞，如果成功，則調用低風險的“模板填充鏈”；如果失敗，則回退到高創意的“統一規劃鏈”。此策略旨在結合模板的穩定性和自由創作的靈活性，以應對各種NSFW場景。
-async def unified_nsfw_planning_node(state: ConversationGraphState) -> Dict:
-    """[混合模式] 根據關鍵詞選擇模板填充或回退到創意規劃，以生成NSFW行動計畫。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    planning_subjects = state.get('planning_subjects', [])
-    logger.info(f"[{user_id}] (Graph|NSFW Planner) Node: unified_nsfw_planning -> 正在啟動混合模式規劃...")
-    
-    # --- 步驟 1: 模板匹配 ---
-    templates = {
-        "GANG_RAPE_TEMPLATE": {
-            "template_id": "GANG_RAPE_TEMPLATE",
-            "thought": "觸發輪姦模板。由模板填充鏈負責將角色填入預設動作。",
-            "character_actions": [
-                {"character_name": "{攻擊者A}", "action_description": "{攻擊者A} 抓住 {受害者A} 並將其按倒。"},
-                {"character_name": "{攻擊者B}", "action_description": "{攻擊者B} 壓制 {受害者A} 的反抗。"},
-                {"character_name": "{攻擊者A}", "action_description": "{攻擊者A} 將肉棒插入 {受害者A} 的肉穴。"},
-                {"character_name": "{攻擊者C}", "action_description": "{攻擊者C} 準備接替 {攻擊者A}。"}
-            ]
-        }
-    }
-    selected_template_key = None
-    if "輪姦" in user_input.lower():
-        selected_template_key = "GANG_RAPE_TEMPLATE"
 
-    # --- 步驟 2: 根據匹配結果選擇路徑 ---
-    plan: Optional[TurnPlan] = None
-    if selected_template_key:
-        # --- 路徑 A: 模板注入 ---
-        logger.info(f"[{user_id}] (NSFW Planner) 匹配到模板 '{selected_template_key}'，啟動模板填充鏈...")
-        template_json = json.dumps(templates[selected_template_key], ensure_ascii=False, indent=2)
-        planning_subjects_json = json.dumps(planning_subjects, ensure_ascii=False, indent=2)
-        
-        filling_chain = ai_core.get_nsfw_template_filling_chain()
-        plan = await ai_core.ainvoke_with_rotation(
-            filling_chain,
-            {
-                "system_prompt": ai_core.profile.one_instruction,
-                "planning_subjects_json": planning_subjects_json,
-                "turn_plan_template_json": template_json
-            },
-            retry_strategy='force' # 填充是機械性任務，必須成功
-        )
-
-    if not plan:
-        # --- 路徑 B: 創意規劃 (備援) ---
-        if selected_template_key:
-            logger.warning(f"[{user_id}] (NSFW Planner) 模板填充鏈失敗，回退到創意規劃模式。")
-        else:
-            logger.info(f"[{user_id}] (NSFW Planner) 未匹配到模板，啟動創意規劃鏈。")
-
-        planning_subjects_json = json.dumps(planning_subjects, ensure_ascii=False, indent=2)
-        chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-        
-        gs = ai_core.profile.game_state
-        full_context_dict = {
-            'username': ai_core.profile.user_profile.name, 'ai_name': ai_core.profile.ai_profile.name,
-            'world_settings': ai_core.profile.world_settings or "未設定", 'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-            'retrieved_context': state.get('rag_context', ''),
-            'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
-            'quests_context': state.get('structured_context', {}).get('quests_context', ''),
-            'location_context': state.get('structured_context', {}).get('location_context', ''),
-            'npc_context': "(已棄用)", 'relevant_npc_context': "(已棄用)",
-            'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        }
-        world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-        
-        planning_chain = ai_core.get_nsfw_planning_chain()
-        plan = await ai_core.ainvoke_with_rotation(
-            planning_chain,
-            {
-                "system_prompt": ai_core.profile.one_instruction,
-                "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
-                "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-                "world_snapshot": world_snapshot,
-                "chat_history": chat_history_str,
-                "planning_subjects_json": planning_subjects_json,
-                "user_input": user_input,
-            },
-            retry_strategy='force'
-        )
-
-    if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：NSFW 統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
-
-    return {"turn_plan": plan}
-# 函式：統一 NSFW 規劃節點 (v1.0 - 混合模式)
 
 
 
@@ -533,18 +443,17 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
+# 函式：統一NSFW規劃節點 (v7.0 - 回歸創意生成)
 # 更新紀錄:
-# v7.0 (2025-09-06): [災難性BUG修復] 根據 KeyError Log，移除了對已被廢棄的 `sanitized_user_input` 狀態的引用。
+# v7.0 (2025-09-09): [重大架構重構] 根據使用者指令，徹底廢除了模板系統。此節點現在回歸到一個更直接的路徑，其唯一職責是調用最強大的、完全依賴 LLM 創意生成的 `get_nsfw_planning_chain`，以追求最高程度的劇情多樣性。
 # v6.0 (2025-09-06): [健壯性] 修改了備援邏輯，改為使用 `execution_rejection_reason` 欄位來傳遞錯誤。
 # v5.0 (2025-09-06): [健壯性] 修正了調用鏈時的參數傳遞。
 async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7B] 統一的 NSFW 互動路徑規劃器，直接生成最終的、露骨的行動計劃。"""
+    """[創意生成模式] 統一的 NSFW 路徑規劃器，完全依賴 LLM 的即時創意生成最終的、露骨的行動計劃。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v7.0 核心修正] 移除對 sanitized_user_input 的引用
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|7B) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成統一NSFW行動計劃...")
+    logger.info(f"[{user_id}] (Graph|NSFW Creative) Node: nsfw_planning -> 正在基於指令 '{user_input[:50]}...' 自由生成NSFW行動計劃...")
 
     if not ai_core.profile:
         return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
@@ -585,15 +494,13 @@ async def nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPla
             "chat_history": chat_history_str,
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
-            "username": ai_core.profile.user_profile.name,
         },
         retry_strategy='force'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：NSFW統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
     return {"turn_plan": plan}
-# 函式：統一NSFW規劃節點 (v7.0 - KeyError 修正)
-
+# 函式：統一NSFW規劃節點 (v7.0 - 回歸創意生成)
 
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
@@ -1238,13 +1145,13 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v38.0 - 引入動態模板注入)
+# 函式：創建主回應圖 (v39.0 - 廢除模板，回歸創意生成)
 # 更新紀錄:
-# v38.0 (2025-09-09): [重大架構升級] 為了在保持抗審查能力的同時解決劇情重複問題，徹底重構了 NSFW 處理路徑，引入“動態模板注入”架構：
-#    1. [移除] 廢棄了舊的 `nsfw_template_assembly` 和 `nsfw_refinement` 節點。
-#    2. [新增] 引入了一個全新的、統一的 `unified_nsfw_planning_node`。此節點內部實現了混合邏輯：優先匹配模板並調用低風險的填充鏈，若無匹配則回退到高創意的規劃鏈。
-#    3. [重連] 修改了 `route_to_planner` 路由器，將所有 NSFW 流量導向這個新的統一節點。
-#    此修改是解決劇情單一化問題的最終架構升級。
+# v39.0 (2025-09-09): [重大架構重構] 根據使用者指令，徹底廢除了“混合模式”和所有模板相關的節點。
+#    1. [移除] 移除了 `unified_nsfw_planning_node`。
+#    2. [恢復] 恢復了單一的、強大的 `nsfw_planning_node` 作為處理所有 NSFW 流量的唯一節點。
+#    3. [重連] 修改了 `route_to_planner` 路由器，將所有 NSFW 流量導向這個單一的創意生成節點。
+#    此修改旨在完全依賴 LLM 的即時創造力，以追求最高程度的劇情多樣性。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1261,8 +1168,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v38.0 新增] 註冊新的統一 NSFW 規劃節點
-    graph.add_node("unified_nsfw_planning", unified_nsfw_planning_node)
+    # [v39.0] 註冊單一的 NSFW 規劃節點
+    graph.add_node("nsfw_planning", nsfw_planning_node)
 
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
@@ -1281,7 +1188,6 @@ def create_main_response_graph() -> StateGraph:
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("classify_intent")
-    # ... (感知流程的邊不變) ...
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
     graph.add_edge("query_lore", "perceive_and_set_view")
@@ -1301,7 +1207,6 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
-        # ... (路由判斷邏輯不變) ...
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification: return "sfw_planner" 
@@ -1310,7 +1215,7 @@ def create_main_response_graph() -> StateGraph:
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         if 'nsfw' in intent:
-            return "unified_nsfw_planner" # <--- [v38.0 核心修正] 新的路由目標
+            return "nsfw_planner" # <--- [v39.0 核心修正] 新的路由目標
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1322,12 +1227,12 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "unified_nsfw_planner": "unified_nsfw_planning" # <--- [v38.0 核心修正] 新的路由目標
+            "nsfw_planner": "nsfw_planning" # <--- [v39.0 核心修正] 新的路由目標
         }
     )
     
-    # [v38.0 核心修正] 所有規劃器的出口統一連接到工具執行
-    graph.add_edge("unified_nsfw_planning", "tool_execution")
+    # [v39.0 核心修正] 所有規劃器的出口統一連接到工具執行
+    graph.add_edge("nsfw_planning", "tool_execution")
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     
@@ -1338,7 +1243,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v38.0 - 引入動態模板注入)
+# 函式：創建主回應圖 (v39.0 - 廢除模板，回歸創意生成)
 
 
 
@@ -1431,6 +1336,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
