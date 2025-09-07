@@ -335,79 +335,75 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
-# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
+# 函式：NSFW 模板裝配節點 (v3.0 - 遠程視角感知)
 # 更新紀錄:
-# v2.0 (2025-09-07): [終極架構重構] 此節點被徹底重寫，成為一個純Python的「確定性計畫生成器」。它不再呼叫LLM，而是通過內部邏輯完成三項任務：
-#    1. 根據關鍵詞選擇硬編碼的JSON模板。
-#    2. 分析場景角色列表，識別出行動的參與者。
-#    3. 使用字串替換，將角色名字機械地裝配到模板中。
-#    此修改將最容易被審查的創意規劃步驟完全移出LLM，是解決頑固性內容審查的最終手段。
+# v3.0 (2025-09-22): [災難性BUG修復] 徹底重寫了角色識別邏輯，使其能夠感知 viewing_mode。在 remote 模式下，它會嚴格從 planning_subjects 中選擇第三方 NPC 進行裝配，而不是錯誤地將使用者拉入場景。增加了對角色不足的健壯性處理。
+# v2.0 (2025-09-07): [終極架構重構] 此節點被徹底重寫，成為一個純Python的「確定性計畫生成器」。
 def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     """[NSFW Template-Step1] 純Python節點，負責選擇、填充並裝配一個預定義的NSFW動作模板。"""
     user_id = state['user_id']
+    ai_core = state['ai_core']
     user_input = state['messages'][-1].content.lower()
     planning_subjects = state.get('planning_subjects', [])
-    logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫...")
-
-    if not planning_subjects or len(planning_subjects) < 2:
-        logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 場景中角色不足（需要至少2名），無法裝配模板。")
-        return {"turn_plan": TurnPlan(thought="場景角色不足，無法執行模板化動作。")}
+    viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
+    
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫 (模式: {viewing_mode})...")
 
     # 預定義的模板庫
     templates = {
-        "FUCK_TEMPLATE": {
-            "thought": "使用者指令的核心動作是性交。已使用預設的性交模板，並裝配了場景中的角色。",
+        "GANG_RAPE_TEMPLATE": {
+            "thought": "使用者指令的核心動作是輪姦。已使用預設的輪姦模板，並裝配了場景中的角色。",
             "character_actions": [
-                {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的肉棒對準 {角色B} 的肉穴口。", "template_id": "FUCK_TEMPLATE_STEP1"},
-                {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的肉棒完全插入自己的體內。", "template_id": "FUCK_TEMPLATE_STEP2"},
-                {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的肉穴中用力抽插。", "template_id": "FUCK_TEMPLATE_STEP3"}
+                {"character_name": "{角色A1}", "reasoning": "響應指令，與同伴一起制服目標。", "action_description": "{角色A1} 和 {角色A2} 一左一右地抓住 {角色B} 的手臂，將她按倒在地。", "template_id": "GANG_RAPE_STEP1"},
+                {"character_name": "{角色B}", "reasoning": "描述受害者的初步反應。", "action_description": "{角色B} 驚恐地尖叫掙扎，但無濟於事。", "template_id": "GANG_RAPE_STEP2"},
+                {"character_name": "{角色A1}", "reasoning": "開始核心的性侵動作。", "action_description": "{角色A1} 撕開 {角色B} 的衣服，掏出自己的肉棒，對準她濕潤的肉穴口。", "template_id": "GANG_RAPE_STEP3"},
+                {"character_name": "{角色A2}", "reasoning": "配合主要行動者。", "action_description": "{角色A2} 則抓住 {角色B} 的雙腿，將其用力分開，方便 {角色A1} 的插入。", "template_id": "GANG_RAPE_STEP4"}
             ]
         }
     }
 
     selected_template_key = None
-    if "幹" in user_input or "操" in user_input or "性交" in user_input:
-        selected_template_key = "FUCK_TEMPLATE"
+    if "輪姦" in user_input or ("一群" in user_input and ("幹" in user_input or "操" in user_input)):
+        selected_template_key = "GANG_RAPE_TEMPLATE"
     
     if not selected_template_key:
         logger.warning(f"[{user_id}] (Graph|NSFW Assembly) 未能為輸入匹配到任何NSFW模板。")
         return {"turn_plan": TurnPlan(thought="未能匹配到動作模板，將嘗試根據上下文進行潤色。")}
 
-    # 角色識別邏輯 (簡易版)
-    # 假設：指令中提到的第一個角色類型是主動方，第二個是被動方
-    actor_a_name = None
+    # [v3.0 核心修正] 角色識別邏輯
+    actors_a = []
     actor_b_name = None
-    
-    ai_core = state['ai_core']
-    user_name = ai_core.profile.user_profile.name
-    ai_name = ai_core.profile.ai_profile.name
 
-    # 規則：使用者永遠是主動方A
-    actor_a_name = user_name
+    if viewing_mode == 'remote':
+        # 遠程模式：從場景NPC中選擇
+        male_npcs = [s['name'] for s in planning_subjects if s.get('gender', '').lower() == '男']
+        female_npcs = [s['name'] for s in planning_subjects if s.get('gender', '').lower() == '女']
+        
+        if not female_npcs:
+            return {"turn_plan": TurnPlan(execution_rejection_reason="場景中缺少女性角色，無法執行此動作。")}
+        if len(male_npcs) < 2:
+            return {"turn_plan": TurnPlan(execution_rejection_reason=f"場景中男性角色不足（需要至少2名，實際只有{len(male_npcs)}名），無法執行輪姦動作。")}
 
-    # 尋找非使用者的另一方作為被動方B
-    for subject in planning_subjects:
-        if subject['name'] != actor_a_name:
-             # 簡單地選擇第一個非使用者角色
-            actor_b_name = subject['name']
-            break
-            
-    # 如果只有AI和玩家，則AI是被動方
-    if not actor_b_name and ai_name != user_name:
-        actor_b_name = ai_name
+        actor_b_name = female_npcs[0]
+        actors_a = male_npcs[:2] # 模板暫時只支持2個攻擊者
 
-    if not (actor_a_name and actor_b_name):
-        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出動作的雙方。")
+    else: # local 模式
+        user_name = ai_core.profile.user_profile.name
+        # 本地模式下，暫不支持此類複雜模板，返回錯誤
+        return {"turn_plan": TurnPlan(execution_rejection_reason="此動作模板只能在遠程觀察模式下使用。")}
+
+    if not (actors_a and actor_b_name and len(actors_a) >= 2):
+        logger.error(f"[{user_id}] (Graph|NSFW Assembly) 無法從場景中明確識別出足夠的、符合性別要求的動作參與者。")
         return {"turn_plan": TurnPlan(execution_rejection_reason="系統錯誤：無法在當前場景中識別出可以執行此動作的角色。")}
 
-    logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actor_a_name}, 角色B: {actor_b_name}")
+    logger.info(f"[{user_id}] (Graph|NSFW Assembly) 已選擇模板: {selected_template_key}。角色A: {actors_a}, 角色B: {actor_b_name}")
 
     # 機械裝配
     template = templates[selected_template_key]
     template_str = json.dumps(template)
     
     # 執行替換
-    filled_str = template_str.replace("{角色A}", actor_a_name).replace("{角色B}", actor_b_name)
+    filled_str = template_str.replace("{角色A1}", actors_a[0]).replace("{角色A2}", actors_a[1]).replace("{角色B}", actor_b_name)
     
     try:
         filled_plan_dict = json.loads(filled_str)
@@ -417,16 +413,17 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|NSFW Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
         return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
-# 函式：NSFW 模板裝配節點 (v2.0 - 確定性規劃)
+# 函式：NSFW 模板裝配節點 (v3.0 - 遠程視角感知)
 
 
 
 
 
 
-# 函式：[新] NSFW 計畫潤色節點 (v2.0 - 增加防禦性檢查)
+# 函式：[新] NSFW 計畫潤色節點 (v3.0 - 參數注入修正)
 # 更新紀錄:
-# v2.0 (2025-09-22): [健壯性] 新增了防禦性檢查。在調用 LLM 之前，會先驗證上游傳來的 turn_plan 是否有效。如果計畫為空或包含拒絕執行的理由，則直接跳過潤色，以節省資源並避免不必要的 API 調用。
+# v3.0 (2025-09-22): [災難性BUG修復] 為解決 KeyError，徹底重構了參數傳遞方式。不再依賴不穩定的 .assign()，改為在節點內部手動構建一個包含所有 Prompt 所需變數（包括 system_prompt 和 response_style_prompt）的完整字典，然後再傳遞給 ainvoke_with_rotation，從而根除了變數缺失的錯誤。
+# v2.0 (2025-09-22): [健壯性] 新增了防禦性檢查。
 # v1.0 (2025-09-22): [重大架構升級] 創建此節點作為「混合模式」的第二步。
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[混合模式-步驟2] 調用 LLM 為已填充的 NSFW 計畫模板增加細節、對話和風格。"""
@@ -434,7 +431,7 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
     ai_core = state['ai_core']
     turn_plan = state['turn_plan']
     
-    # [v2.0 新增] 防禦性檢查
+    # 防禦性檢查
     if not turn_plan or turn_plan.execution_rejection_reason:
         logger.warning(f"[{user_id}] (Graph|NSFW Refinement) 上游節點未提供有效計畫，或計畫已被拒絕，跳過潤色。")
         return {}
@@ -443,11 +440,10 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|NSFW Refinement) AI Profile 未加載，無法潤色。")
-        return {} # 如果 Profile 未加載，也無法繼續
+        return {} 
 
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
     
-    # 完整地構建 World Snapshot
     gs = ai_core.profile.game_state
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -468,14 +464,18 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
 
     refinement_chain = ai_core.get_nsfw_refinement_chain()
     
-    # [v2.0 修正] 現在只需要傳遞動態參數
+    # [v3.0 核心修正] 手動構建完整的參數字典
+    params_for_refinement = {
+        "system_prompt": ai_core.profile.one_instruction,
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+        "world_snapshot": world_snapshot,
+        "chat_history": chat_history_str,
+        "turn_plan_json": turn_plan.model_dump_json(indent=2)
+    }
+
     final_plan = await ai_core.ainvoke_with_rotation(
         refinement_chain,
-        {
-            "world_snapshot": world_snapshot,
-            "chat_history": chat_history_str,
-            "turn_plan_json": turn_plan.model_dump_json(indent=2)
-        },
+        params_for_refinement,
         retry_strategy='force'
     )
     
@@ -485,7 +485,7 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnP
 
     logger.info(f"[{user_id}] (Graph|NSFW Refinement) NSFW計畫已成功潤色。")
     return {"turn_plan": final_plan}
-# 函式：[新] NSFW 計畫潤色節點 (v2.0 - 增加防禦性檢查)
+# 函式：[新] NSFW 計畫潤色節點 (v3.0 - 參數注入修正)
 
 
 
@@ -1554,5 +1554,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
