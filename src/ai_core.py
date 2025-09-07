@@ -408,6 +408,53 @@ class AILover:
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
 
 
+
+
+# 函式：[新] 獲取角色修正鏈 (v1.0 - 監督修正專用)
+    # 更新紀錄:
+    # v1.0 (2025-09-22): [重大架構升級] 創建此全新的、輕量級的鏈，作為“監督式角色創建”流程的核心組件。其唯一職責是在接收到明確的修正指令（如“男性角色不足”）後，精準地、補充性地創建缺失的角色，以修復主選角鏈的輸出錯誤。
+    def get_character_correction_chain(self) -> Runnable:
+        """獲取或創建一個專門用於在監督下修正性地創建角色的鏈。"""
+        if not hasattr(self, 'character_correction_chain') or self.character_correction_chain is None:
+            from .schemas import SceneCastingResult
+            # 使用一個更有創造力的模型來進行角色創建
+            correction_llm = self._create_llm_instance(temperature=0.75).with_structured_output(SceneCastingResult)
+            
+            prompt_template = """你是一位專注的【角色檔案補完專家】。你的上級（一段Python程式碼）發現之前的AI創造的角色在數量或性別上不滿足劇本要求。你的唯一任務是根據【明確的修正指令】，精準地創造出【缺失的】角色檔案來補完場景。
+
+# === 【【【最高指導原則：絕對的指令忠誠度】】】 ===
+# 1.  **【只做要求的】**: 你的任務是【補完】，不是【再創造】。你【必須且只能】創造【修正指令】中明確要求的、特定數量和性別的角色。
+# 2.  **【參考但不重複】**: 你需要參考【原始使用者輸入】和【已創建角色列表】來理解上下文，但你【絕對禁止】再次創建已有的角色。
+# 3.  **【命名強制令】**: 嚴格遵守為新角色發明【具體專有名稱】和【姓名性別匹配】的原則。
+
+---
+【核心世界觀】: {world_settings}
+---
+【當前地點路徑 (LORE創建地點)】: {current_location_path}
+---
+【原始使用者輸入 (用於理解場景)】: 
+{user_input}
+---
+【已創建的角色列表 (用於避免重複)】:
+{existing_characters_json}
+---
+【【【明確的修正指令 (你的唯一任務)】】】:
+{correction_instruction}
+---
+請嚴格遵循【修正指令】，只創建缺失的角色，並以 `SceneCastingResult` 的 JSON 格式返回。你只需要填充 `newly_created_npcs` 列表即可。"""
+            
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.character_correction_chain = prompt | correction_llm
+        return self.character_correction_chain
+# 函式：[新] 獲取角色修正鏈 (v1.0 - 監督修正專用)
+
+
+
+
+
+
+
+    
     # 函式：獲取意圖分類鏈 (v207.0 - 分类逻辑强化)
     # 更新紀錄:
     # v207.0 (2025-09-12): [災難性BUG修復] 徹底重寫了此鏈的提示詞，增加了關於“指令主體”和“動詞-賓語”分析的核心規則，並提供了大量高質量的對比範例。此修改旨在從根本上解決分类器将“远程描述”指令错误判断为“本地互动”的致命问题。
@@ -3430,5 +3477,6 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
