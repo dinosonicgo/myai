@@ -348,7 +348,10 @@ class SceneAnalysisResult(BaseModel):
         return self
 
 
-
+# [v15.0 新增] 用於角色量化步驟的模型
+class CharacterQuantificationResult(BaseModel):
+    """用於結構化地表示從使用者輸入中量化出的角色描述列表。"""
+    character_descriptions: List[str] = Field(description="一個包含所有需要被創建的角色的具體描述的列表。例如：['男性獸人戰士', '男性獸人戰士', '女性精靈法師']。")
 
 # [v14.0 新增] 用於安全接收 LLM 原始場景分析結果的寬鬆模型
 class RawSceneAnalysis(BaseModel):
@@ -393,4 +396,5 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
