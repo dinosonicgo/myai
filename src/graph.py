@@ -215,34 +215,44 @@ async def update_viewing_mode_node(state: ConversationGraphState) -> None:
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
 
 
-# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
+# 函式：意圖分類節點 (v4.0 - 注入上下文)
 # 更新紀錄:
-# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。此節點現在回歸到最原始、最直接的模式：直接使用未經修改的 `state['messages'][-1].content` 進行意圖分類，將所有突破審查的壓力交給 `ainvoke_with_rotation` 和其後續的重試策略。
+# v4.0 (2025-09-26): [災難性BUG修復] 為了讓分類器能夠正確處理“繼續”等上下文相關指令，此節點現在負責從 ai_core 中提取最近的對話歷史，並將其作為額外的上下文注入到意圖分類鏈中。
+# v3.0 (2025-09-07): [災難性BUG修復] 根據“返璞歸真”原則，徹底移除了對 `sanitized_user_input` 的依賴。
 # v2.0 (2025-09-06): [災難性BUG修復] 修改了此節點的數據源以適配淨化層。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類。"""
+    """[1] 圖的入口點，唯一職責是對原始輸入進行意圖分類，並注入上下文歷史。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    # [v3.0 核心修正] 始終使用最原始的使用者輸入
     user_input_for_classification = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在對原始輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
+    # [v4.0 核心修正] 提取並格式化最近的對話歷史
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id, num_messages=4) # 獲取最近4條消息作為上下文
+    
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在結合歷史記錄對輸入 '{user_input_for_classification[:30]}...' 進行意圖分類...")
+    logger.debug(f"[{user_id}] (Graph|1) 注入的對話歷史:\n---\n{chat_history_str}\n---")
     
     classification_chain = ai_core.get_intent_classification_chain()
     classification_result = await ai_core.ainvoke_with_rotation(
         classification_chain,
-        {"user_input": user_input_for_classification},
+        {
+            "user_input": user_input_for_classification,
+            "chat_history": chat_history_str
+        },
         retry_strategy='euphemize' # 分類鏈本身可以使用較溫和的重試
     )
     
     if not classification_result:
-        logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 nsfw_descriptive。")
+        logger.warning(f"[{user_id}] (Graph|1) 意圖分類鏈失敗，啟動安全備援，預設為 nsfw_interactive。")
         # 備援時，傾向於最可能觸發審查的類型，以確保能進入強大的NSFW規劃鏈
-        classification_result = IntentClassificationResult(intent_type='nsfw_descriptive', reasoning="安全備援：分類鏈失敗。")
+        classification_result = IntentClassificationResult(intent_type='nsfw_interactive', reasoning="安全備援：分類鏈失敗。")
         
     return {"intent_classification": classification_result}
-# 函式：意圖分類節點 (v3.0 - 廢除淨化層)
+# 函式：意圖分類節點 (v4.0 - 注入上下文)
+
+
+
 
 # 函式：記憶檢索節點 (v3.0 - 廢除淨化層)
 # 更新紀錄:
