@@ -250,6 +250,22 @@ class AILover:
         self.profile_completion_chain: Optional[Runnable] = None
         self.profile_parser_chain: Optional[Runnable] = None
         self.profile_rewriting_chain: Optional[Runnable] = None
+        # [v2.0 修正] 新增缺少的鏈屬性
+        self.nsfw_planning_chain: Optional[Runnable] = None
+        self.nsfw_template_filling_chain: Optional[Runnable] = None
+        self.location_extraction_chain: Optional[Runnable] = None
+        self.contextual_location_chain: Optional[Runnable] = None
+        self.nsfw_refinement_chain: Optional[Runnable] = None
+        self.remote_sfw_planning_chain: Optional[Runnable] = None
+        self.remote_nsfw_planning_chain: Optional[Runnable] = None
+        self.sfw_planning_chain: Optional[Runnable] = None
+        self.nsfw_initial_planning_chain: Optional[Runnable] = None
+        self.nsfw_lexicon_injection_chain: Optional[Runnable] = None
+        self.nsfw_style_compliance_chain: Optional[Runnable] = None
+        self.remote_planning_chain: Optional[Runnable] = None
+        self.intent_classification_chain: Optional[Runnable] = None
+        self.euphemization_chain: Optional[Runnable] = None
+
 
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
@@ -301,7 +317,7 @@ class AILover:
 
 
     
-    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+   # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
     # 更新紀錄:
     # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名，完成了延遲加載重構。
     async def initialize(self) -> bool:
@@ -342,6 +358,9 @@ class AILover:
             return False
         return True
     # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+
+
+    
 
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
     # 說明：接收更新字典，驗證並更新記憶體中的設定檔，然後將其持久化到資料庫。
@@ -3386,4 +3405,5 @@ def get_nsfw_initial_planning_chain(self) -> Runnable:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
