@@ -1561,7 +1561,10 @@ class AILover:
 
     
 
-    # 函式：獲取使用者意圖分析鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取使用者意圖分析鏈 (v203.2 - 強化延续识别)
+    # 更新紀錄:
+    # v203.2 (2025-09-22): [健壯性] 强化了提示词中对 `continuation` 类型的定义和范例，增加了更多常见的延续性词汇（如“然後呢”），以确保能更精确地识别出需要继承上一轮状态的指令。
+    # v203.1 (2025-09-05): [延遲加載重構] 迁移到 get 方法中。
     def get_input_analysis_chain(self) -> Runnable:
         if not hasattr(self, 'input_analysis_chain') or self.input_analysis_chain is None:
             analysis_llm = self._create_llm_instance(temperature=0.0).with_structured_output(UserInputAnalysis)
@@ -1569,16 +1572,17 @@ class AILover:
             analysis_prompt_template = """你是一個專業的遊戲管理員(GM)意圖分析引擎。你的唯一任務是分析使用者的單句輸入，並嚴格按照指示將其分類和轉化。
 
 【分類定義】
-1.  `continuation`: 當輸入是明確要求接續上一個場景的詞語時。
-    *   **範例**: "继续", "然後呢？", "接下来发生了什么", "go on"
+1.  `continuation`: 當輸入是明確要求接續上一個場景的、非常簡短的詞語時。
+    *   **核心規則**: 這類輸入通常沒有新的實質性內容。
+    *   **範例**: "继续", "繼續", "繼續...", "然後呢？", "接下来发生了什么", "go on", "..."
 
 2.  `dialogue_or_command`: 當輸入是使用者直接對 AI 角色說的話，或是明確的遊戲指令時。
     *   **對話範例**: "妳今天過得好嗎？", "『我愛妳。』", "妳叫什麼名字？"
-    *   **指令範例**: "去市場", "裝備長劍", "調查桌子"
+    *   **指令範例**: "去市場", "裝備長劍", "調查桌子", "攻擊惡龍"
 
 3.  `narration`: 當輸入是使用者在【描述一個場景】、他【自己的動作】，或是【要求你(GM)來描述一個場景】時。
     *   **使用者主動描述範例**: "*我走進了酒館*", "陽光灑進來。"
-    *   **要求GM描述範例**: "描述一下房間的樣子", "周圍有什麼？"
+    *   **要求GM描述範例**: "描述一下房間的樣子", "周圍有什麼？", "重新描述性神城的市場..."
 
 【輸出指令】
 1.  **`input_type`**: 根據上述定義，精確判斷使用者的輸入屬於 `continuation`, `dialogue_or_command`, 還是 `narration`。
@@ -1597,7 +1601,7 @@ class AILover:
             analysis_prompt = ChatPromptTemplate.from_template(analysis_prompt_template)
             self.input_analysis_chain = analysis_prompt | analysis_llm
         return self.input_analysis_chain
-    # 函式：獲取使用者意圖分析鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取使用者意圖分析鏈 (v203.2 - 強化延续识别)
 
 
 
@@ -3376,6 +3380,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
