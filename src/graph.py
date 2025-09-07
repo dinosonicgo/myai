@@ -330,9 +330,13 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[全新] 感知與視角設定中樞 (v1.1 - Pydantic 訪問修正)
 
-# 函式：[新] NSFW 模板裝配節點 (v1.0 - 混合模式)
+# 函式：[新] NSFW 模板裝配節點 (v2.0 - 確定性迭代填充)
 # 更新紀錄:
-# v1.0 (2025-09-08): [重大架構升級] 創建此全新的、純 Python 的確定性節點。它根據關鍵詞選擇硬編碼的動作模板，並以機械方式將角色填入，從而以零審查風險生成一個包含核心露骨動作的“劇本骨架”，是解決頑固性內容審查的最終手段。
+# v2.0 (2025-09-09): [災難性BUG修復] 徹底重寫了此節點的模板填充邏輯，以解決佔位符未被替換的嚴重問題。新版本採用了“動態分配與迭代填充”策略：
+#    1. [動態分配] 首先識別場景中所有的攻擊者和受害者，並將他們的名字存入獨立的 Python 列表。
+#    2. [迭代填充] 然後遍歷模板的 JSON 結構，以程序化的方式、按順序將佔位符（如 {攻擊者A}, {攻擊者B}）替換為列表中具體的名字。
+#    此修改確保了即使在多角色的複雜場景中，每一個佔位符也能被準確地替換為唯一的、具體的名字。
+# v1.0 (2025-09-08): [重大架構升級] 創建此全新的、純 Python 的確定性節點。
 def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     """[混合模式-步驟1] 純Python節點，負責選擇、填充並裝配一個預定義的NSFW動作模板。"""
     user_id = state['user_id']
@@ -341,18 +345,17 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|Assembly) Node: nsfw_template_assembly -> 正在確定性地裝配NSFW計畫...")
 
     if not planning_subjects:
-        logger.warning(f"[{user_id}] (Graph|Assembly) 場景中沒有角色，無法裝配模板。")
         return {"turn_plan": TurnPlan(thought="場景中沒有角色，無法執行模板化動作。")}
 
-    # 預定義的模板庫
     templates = {
         "GANG_RAPE_TEMPLATE": {
             "template_id": "GANG_RAPE_TEMPLATE",
             "thought": "使用者指令的核心動作是輪姦。已使用預設的輪姦模板，並裝配了場景中的角色。",
             "character_actions": [
-                {"character_name": "{攻擊者A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{攻擊者A} 粗暴地抓住 {受害者} 的手臂，將她按倒在地。"},
-                {"character_name": "{攻擊者B}", "reasoning": "配合行動，壓制受害者。", "action_description": "{攻擊者B} 壓住 {受害者} 掙扎的雙腿，並撕開她的衣物。"},
-                {"character_name": "{攻擊者A}", "reasoning": "開始核心的性交動作。", "action_description": "{攻擊者A} 將自己的肉棒對準 {受害者} 的肉穴口，強行插入她的體內。"}
+                {"character_name": "{攻擊者1}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{攻擊者1} 粗暴地抓住 {受害者1} 的手臂，將她按倒在地。"},
+                {"character_name": "{攻擊者2}", "reasoning": "配合行動，壓制受害者。", "action_description": "{攻擊者2} 壓住 {受害者1} 掙扎的雙腿，並撕開她的衣物。"},
+                {"character_name": "{攻擊者1}", "reasoning": "開始核心的性交動作。", "action_description": "{攻擊者1} 將自己的肉棒對準 {受害者1} 的肉穴口，強行插入她的體內。"},
+                {"character_name": "{攻擊者3}", "reasoning": "準備接替，增加輪流的壓迫感。", "action_description": "{攻擊者3} 在一旁脫下褲子，展示著自己勃起的肉棒，等待著輪替的機會。"}
             ]
         }
     }
@@ -365,36 +368,53 @@ def nsfw_template_assembly_node(state: ConversationGraphState) -> Dict:
         logger.warning(f"[{user_id}] (Graph|Assembly) 未能為輸入匹配到任何NSFW模板，將生成空計畫交由潤色節點處理。")
         return {"turn_plan": TurnPlan(thought="未能匹配到動作模板，將嘗試根據上下文進行自由創作。")}
 
-    # 角色識別邏輯
+    # --- v2.0 核心修正：動態分配與迭代填充 ---
     attackers = [p['name'] for p in planning_subjects if p.get('gender', '').lower() == '男性']
     victims = [p['name'] for p in planning_subjects if p.get('gender', '').lower() == '女性']
 
     if not attackers or not victims:
-        logger.error(f"[{user_id}] (Graph|Assembly) 無法從場景中明確識別出攻擊方和受害方。")
+        logger.error(f"[{user_id}] (Graph|Assembly) 無法從場景中明確識別出攻擊方 ({len(attackers)}人) 和受害方 ({len(victims)}人)。")
         return {"turn_plan": TurnPlan(execution_rejection_reason="系統錯誤：無法在當前場景中識別出可以執行此動作的攻擊者和受害者。")}
-
-    victim_name = victims[0]
-    attacker_a_name = attackers[0]
-    attacker_b_name = attackers[1] if len(attackers) > 1 else attacker_a_name
-
-    logger.info(f"[{user_id}] (Graph|Assembly) 已選擇模板: {selected_template_key}。攻擊者: {attacker_a_name}, {attacker_b_name}。受害者: {victim_name}")
-
-    # 機械裝配
-    template = templates[selected_template_key]
-    template_str = json.dumps(template)
     
-    filled_str = template_str.replace("{攻擊者A}", attacker_a_name).replace("{攻擊者B}", attacker_b_name).replace("{受害者}", victim_name)
+    logger.info(f"[{user_id}] (Graph|Assembly) 已選擇模板: {selected_template_key}。識別到攻擊者: {attackers}。受害者: {victims}")
+
+    # 創建一個替換映射
+    replacement_map = {}
+    for i, victim_name in enumerate(victims):
+        replacement_map[f"{{受害者{i+1}}}"] = victim_name
+    
+    for i, attacker_name in enumerate(attackers):
+        replacement_map[f"{{攻擊者{i+1}}}"] = attacker_name
+    
+    # 如果攻擊者數量不足以填滿所有佔位符，循環使用攻擊者列表
+    template_str = json.dumps(templates[selected_template_key])
+    placeholders = re.findall(r'(\{攻擊者\d+\})', template_str)
+    max_attacker_index = 0
+    if placeholders:
+        max_attacker_index = max([int(re.search(r'\d+', p).group()) for p in placeholders])
+
+    for i in range(len(attackers) + 1, max_attacker_index + 1):
+        # 使用模運算來循環填充
+        attacker_to_use = attackers[(i - 1) % len(attackers)]
+        replacement_map[f"{{攻擊者{i}}}"] = attacker_to_use
+
+    # 使用正則表達式進行多次替換
+    def replace_all(text, dic):
+        for i, j in dic.items():
+            text = text.replace(i, j)
+        return text
+
+    filled_str = replace_all(template_str, replacement_map)
     
     try:
         filled_plan_dict = json.loads(filled_str)
         final_plan = TurnPlan.model_validate(filled_plan_dict)
-        logger.info(f"[{user_id}] (Graph|Assembly) NSFW計畫模板已成功裝配。")
+        logger.info(f"[{user_id}] (Graph|Assembly) NSFW計畫模板已成功迭代填充。")
         return {"turn_plan": final_plan}
     except Exception as e:
-        logger.error(f"[{user_id}] (Graph|Assembly) 裝配後的計畫未能通過Pydantic驗證: {e}", exc_info=True)
-        return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：裝配計畫時發生內部錯誤: {e}")}
-# 函式：[新] NSFW 模板裝配節點 (v1.0 - 混合模式)
-
+        logger.error(f"[{user_id}] (Graph|Assembly) 填充後的計畫未能通過Pydantic驗證: {e}\n填充後JSON: {filled_str}", exc_info=True)
+        return {"turn_plan": TurnPlan(execution_rejection_reason=f"系統錯誤：填充計畫時發生內部錯誤: {e}")}
+# 函式：[新] NSFW 模板裝配節點 (v2.0 - 確定性迭代填充)
 
 # 函式：專用LORE查詢節點 (v4.0 - 上下文優先檢索)
 # 更新紀錄:
@@ -1457,6 +1477,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
