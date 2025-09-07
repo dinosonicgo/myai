@@ -367,12 +367,15 @@ class ExpansionDecision(BaseModel):
     reasoning: str = Field(description="做出此决定的简短理由。")
 
 # [v12.0 新增] 用于智能路由的模型
+# [v12.0 新增] 用于智能路由的模型
 class IntentClassificationResult(BaseModel):
     """用於結構化地表示對使用者輸入意圖的語意分類結果。"""
-    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="""對使用者意圖的最終分類：
+    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive', 'reroll', 'continuation'] = Field(description="""對使用者意圖的最終分類：
 - 'sfw': 安全的、適合所有觀眾的內容。
 - 'nsfw_interactive': 包含露骨或敏感內容的、使用者與 AI/NPC 的直接互動請求。
-- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。""")
+- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。
+- 'reroll': 使用者對上一輪的結果不滿意，要求生成一個全新的、不同的版本。
+- 'continuation': 使用者要求直接接續上一輪的劇情，生成後續發展。""")
     reasoning: str = Field(description="做出此分類的簡短理由。")
 
 
@@ -387,4 +390,5 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
