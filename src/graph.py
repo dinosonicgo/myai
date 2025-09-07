@@ -773,12 +773,13 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v11.0 - 直連資料庫)
+# 函式：專用的LORE擴展執行節點 (v12.0 - 權威數據源)
 # 更新紀錄:
-# v11.0 (2025-09-22): [災難性BUG修復] 徹底重構了此節點的數據源邏輯。不再依賴上游節點傳遞的、可能不完整的 planning_subjects 列表，而是在節點內部根據當前有效場景路徑，【直接重新查詢資料庫】，以獲取當前場景所有NPC的、最權威的完整列表。此修改從根本上解決了因數據源不一致導致的“比對-補充”邏輯決策錯誤的問題。
+# v12.0 (2025-09-22): [災難性BUG修復] 最終簡化了節點的職責，使其成為 planning_subjects 數據流的【權威起點】。此節點不再從 state 中讀取任何上游傳來的角色列表，而是獨立地、直接地從資料庫查詢場景角色作為決策基礎，從而徹底杜絕了數據流被上游節點污染的可能性。
+# v11.0 (2025-09-22): [災難性BUG修復] 修改節點數據源為直連資料庫。
 # v10.0 (2025-09-22): [重大架構重構] 實現了智能的“比對-補充”LORE擴展邏輯。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 根據“選角需求單”智能地比對、補充或直接使用現有NPC。"""
+    """[6A] 作為 planning_subjects 的權威起點，根據“選角需求單”智能地比對、補充或直接使用現有NPC。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     requirements = state.get('scene_casting_requirements')
@@ -786,10 +787,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|LORE Expansion) Node: lore_expansion -> 正在執行【比對-補充】式LORE擴展...")
 
     if not ai_core.profile or not requirements:
-        logger.error(f"[{user_id}] (Graph|LORE Expansion) ai_core.profile 或選角需求單未加載，跳過擴展。")
-        return {"planning_subjects": state.get('planning_subjects', [])}
+        logger.error(f"[{user_id}] (Graph|LORE Expansion) ai_core.profile 或選角需求單未加載，無法繼續。")
+        return {"planning_subjects": []}
 
-    # [v11.0 核心修正] 直連資料庫獲取權威的角色列表
+    # [v12.0 核心修正] 始終直連資料庫獲取權威的角色列表，不再信任上游 state
     gs = ai_core.profile.game_state
     effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
     
@@ -806,7 +807,6 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (LORE Expansion) 從資料庫查詢現有角色時出錯: {e}", exc_info=True)
         existing_characters = []
 
-
     # 步驟 1: 盤點現有演員
     current_males = sum(1 for char in existing_characters if char.get('gender', '').lower() == '男')
     current_females = sum(1 for char in existing_characters if char.get('gender', '').lower() == '女')
@@ -815,7 +815,7 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     missing_males = max(0, requirements.required_male_characters - current_males)
     missing_females = max(0, requirements.required_female_characters - current_females)
 
-    newly_created_characters = []
+    newly_created_characters_content = []
 
     # 步驟 3: 按需創建
     if missing_males > 0 or missing_females > 0:
@@ -839,23 +839,20 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
             newly_created_from_correction = correction_result.newly_created_npcs + correction_result.supporting_cast
             logger.info(f"[{user_id}] (LORE Expansion) 修正鏈成功，已生成 {len(newly_created_from_correction)} 位新角色。")
             
-            # 持久化新創建的角色
             if newly_created_from_correction:
                 cast_result_wrapper = SceneCastingResult(newly_created_npcs=newly_created_from_correction)
                 created_names = await ai_core._add_cast_to_scene(cast_result_wrapper)
-                # 為了獲取完整的 profile，我們需要再次從資料庫讀取剛剛創建的角色
                 if created_names:
                     newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names)
-                    newly_created_characters = [lore.content for lore in newly_created_lores]
-
+                    newly_created_characters_content = [lore.content for lore in newly_created_lores]
     else:
         logger.info(f"[{user_id}] (LORE Expansion) 現有角色已滿足場景需求，無需擴展。")
 
     # 步驟 4: 合併與輸出
-    final_planning_subjects = existing_characters + newly_created_characters
+    final_planning_subjects = existing_characters + newly_created_characters_content
     logger.info(f"[{user_id}] (LORE Expansion) 已將 {len(final_planning_subjects)} 位角色 (現有+補充) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": final_planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v11.0 - 直連資料庫)
+# 函式：專用的LORE擴展執行節點 (v12.0 - 權威數據源)
 
 
 
@@ -1360,10 +1357,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v38.0 - 實現智能LORE擴展流程)
+# 函式：創建主回應圖 (v39.0 - 廢棄污染節點)
 # 更新紀錄:
-# v38.0 (2025-09-22): [重大架構重構] 為了實現更智能的LORE管理，徹底重構了擴展部分的圖拓撲。移除了舊的 expansion_decision 條件分支，替換為一個全新的線性流程：`... -> scene_casting_analysis -> lore_expansion -> ...`。這使得圖能夠先分析場景需求，然後再根據需求進行精準的“比對-補充”式LORE擴展，從根本上解決了角色管理的邏輯問題。
-# v37.0 (2025-09-22): [災難性BUG修復] 移除了圖內部重複的 `classify_intent` 節點。
+# v39.0 (2025-09-22): [災難性BUG修復] 徹底移除了在流程早期對 planning_subjects 進行不完整賦值的 prepare_initial_subjects 節點。此修改確保了 lore_expansion 節點是 planning_subjects 數據流的唯一權威起點，從根本上解決了因早期數據污染導致的下游邏輯錯誤。
+# v38.0 (2025-09-22): [重大架構重構] 實現了智能LORE擴展的線性流程。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
@@ -1373,11 +1370,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("assemble_context", assemble_context_node)
-    
-    # [v38.0 核心修正] 註冊新的分析和擴展節點
     graph.add_node("scene_casting_analysis", scene_casting_analysis_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-
     graph.add_node("focus_locking", focus_locking_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
@@ -1393,15 +1387,10 @@ def create_main_response_graph() -> StateGraph:
     graph.set_entry_point("pre_process_input")
     graph.add_edge("pre_process_input", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    # 將 LORE 查詢結果打包成 planning_subjects 供後續節點使用
-    graph.add_node("prepare_initial_subjects", 
-                   lambda state: {"planning_subjects": [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']})
-    graph.add_edge("query_lore", "prepare_initial_subjects")
-    graph.add_edge("prepare_initial_subjects", "perceive_and_set_view")
-
+    
+    # [v39.0 核心修正] 移除 prepare_initial_subjects 節點，理順數據流
+    graph.add_edge("query_lore", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "assemble_context")
-
-    # [v38.0 核心修正] 實現線性的智能擴展流程
     graph.add_edge("assemble_context", "scene_casting_analysis")
     graph.add_edge("scene_casting_analysis", "lore_expansion")
     graph.add_edge("lore_expansion", "focus_locking")
@@ -1449,8 +1438,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v38.0 - 實現智能LORE擴展流程)
-
+# 函式：創建主回應圖 (v39.0 - 廢棄污染節點)
 
 
 
@@ -1541,6 +1529,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
