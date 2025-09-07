@@ -704,54 +704,32 @@ def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: in
 
 
     
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+# 函式：場景選角分析節點 (v1.0 - 需求驅動)
 # 更新紀錄:
-# v4.1 (2025-09-06): [災難性BUG修復] 根據 KeyError，此節點現在負責以程序化的方式，將一個安全的、不含語法歧義的範例字符串，動態注入到決策鏈的 `{examples}` 佔位符中。這徹底解決了 LangChain 解析器錯誤解析靜態模板中範例的問題。
-# v4.0 (2025-09-06): [災難性BUG修復] 徹底重構了此節點的數據傳遞邏輯，改為注入完整的角色 JSON。
-# v3.0 (2025-09-18): [災難性BUG修復] 根據 ai_core v3.0 的重構，修改了此節點的邏輯。
-async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
+# v1.0 (2025-09-22): [重大架構重構] 將 expansion_decision_node 重構並重命名。此節點不再返回簡單的 True/False，而是調用新的 scene_casting_analysis_chain，生成一份結構化的“選角需求單”（SceneCastingRequirements），並將其寫入狀態，為下游的智能LORE擴展節點提供精確指導。
+async def scene_casting_analysis_node(state: ConversationGraphState) -> Dict:
+    """分析場景，生成一份結構化的“選角需求單”。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
-    lore_for_decision_making = [lore.content for lore in raw_lore_objects if lore.category == 'npc_profile']
-    lore_json_str = json.dumps(lore_for_decision_making, ensure_ascii=False, indent=2)
+    logger.info(f"[{user_id}] (Graph|Casting Analysis) Node: scene_casting_analysis -> 正在分析場景以生成選角需求單...")
     
-    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的現有角色JSON:\n{lore_json_str}")
-
-    # [v4.1 核心修正] 將範例從模板中分離出來，作為一個安全的變數傳入
-    examples_str = """
-- **情境 1**: 
-    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
-    - 使用者輸入: `繼續描述那個賣魚的女人`
-    - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
-- **情境 2**:
-    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
-    - 使用者輸入: `這時一個衛兵走了過來`
-    - **你的決策**: `should_expand: true` (理由應類似於: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
-"""
-
-    decision_chain = ai_core.get_expansion_decision_chain()
-    decision = await ai_core.ainvoke_with_rotation(
-        decision_chain, 
-        {
-            "user_input": user_input, 
-            "existing_characters_json": lore_json_str,
-            "examples": examples_str # 動態注入範例
-        },
-        retry_strategy='euphemize'
+    analysis_chain = ai_core.get_scene_casting_analysis_chain()
+    requirements = await ai_core.ainvoke_with_rotation(
+        analysis_chain, 
+        { "user_input": user_input }
     )
 
-    if not decision:
-        logger.warning(f"[{user_id}] (Graph|5) LORE擴展決策鏈失敗，安全備援為不擴展。")
-        decision = ExpansionDecision(should_expand=False, reasoning="安全備援：決策鏈失敗。")
+    if not requirements:
+        logger.warning(f"[{user_id}] (Graph|Casting Analysis) 選角需求分析鏈失敗，將使用空需求單繼續。")
+        from .schemas import SceneCastingRequirements
+        requirements = SceneCastingRequirements(thought="安全備援：分析鏈失敗。", scene_summary=user_input)
     
-    logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
-    return {"expansion_decision": decision}
-# 函式：LORE擴展決策節點 (v4.1 - 範例注入)
+    logger.info(f"[{user_id}] (Graph|Casting Analysis) 選角需求單生成完畢: 需要男性 {requirements.required_male_characters}, 女性 {requirements.required_female_characters}。")
+    # 將需求單寫入一個新狀態欄位
+    return {"scene_casting_requirements": requirements}
+# 函式：場景選角分析節點 (v1.0 - 需求驅動)
 
 
 
@@ -795,113 +773,72 @@ async def sanitize_input_node(state: ConversationGraphState) -> Dict:
 # 函式：無害化輸入節點 (v1.0 - 全新創建)
 
 
-# 函式：專用的LORE擴展執行節點 (v9.0 - 實現監督與修正循環)
+# 函式：專用的LORE擴展執行節點 (v10.0 - 實現“比對-補充”邏輯)
 # 更新紀錄:
-# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構此節點，引入“監督-驗證-修正”循環，以解決LLM“指令漂移”問題。節點現在會對選角鏈的初次輸出進行程序化驗證，如果角色數量或性別不符，則會調用一個專用的修正鏈進行二次、精準的角色創建，確保最終輸出給規劃器的角色列表100%符合指令要求。
-# v8.0 (2025-09-06): [重大架構升級] 賦予此節點持久化場景錨點的職責。
-# v7.0 (2025-09-06): [災難性BUG修復] 重構了地點判斷邏輯。
+# v10.0 (2025-09-22): [重大架構重構] 徹底重寫了此節點的邏輯，以實現智能的“比對-補充”LORE擴展。它現在接收上游傳來的“選角需求單”，將其與場景中現有的NPC進行比對，精確計算出缺失的角色數量和性別，然後只調用修正鏈來創建不足的部分。這使得LORE擴展變得幂等且高效，從根本上解決了角色重複創建或缺失的問題。
+# v9.0 (2025-09-22): [災難性BUG修復] 引入了“監督-驗證-修正”循環。
 async def lore_expansion_node(state: ConversationGraphState) -> Dict:
-    """[6A] 專用的LORE擴展執行節點，執行選角，錨定場景，並將所有角色綁定為規劃主體。"""
+    """[6A] 根據“選角需求單”智能地比對、補充或直接使用現有NPC。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    existing_lores = state.get('raw_lore_objects', [])
+    requirements = state.get('scene_casting_requirements')
     
-    logger.info(f"[{user_id}] (Graph|6A) Node: lore_expansion -> 正在執行【監督式】場景選角與LORE擴展...")
+    # 由於 focus_locking 節點的存在，planning_subjects 裡是已經過篩選的相關角色
+    existing_characters = state.get('planning_subjects', []) 
     
-    if not ai_core.profile:
-        logger.error(f"[{user_id}] (Graph|6A) ai_core.profile 未加載，跳過 LORE 擴展。")
-        return {}
+    logger.info(f"[{user_id}] (Graph|LORE Expansion) Node: lore_expansion -> 正在執行【比對-補充】式LORE擴展...")
 
-    gs = ai_core.profile.game_state
-    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-    
-    # 步驟 1: 首次嘗試調用主選角鏈
-    casting_chain = ai_core.get_scene_casting_chain()
-    game_context_for_casting = json.dumps(state.get('structured_context', {}), ensure_ascii=False, indent=2)
-    initial_cast_result = await ai_core.ainvoke_with_rotation(
-        casting_chain,
-        {
-            "world_settings": ai_core.profile.world_settings or "", 
-            "current_location_path": effective_location_path,
-            "game_context": game_context_for_casting, 
-            "recent_dialogue": user_input
-        },
-        retry_strategy='euphemize'
-    )
-    
-    all_created_characters = []
-    if initial_cast_result:
-        all_created_characters.extend(initial_cast_result.newly_created_npcs)
-        all_created_characters.extend(initial_cast_result.supporting_cast)
+    if not ai_core.profile or not requirements:
+        logger.error(f"[{user_id}] (Graph|LORE Expansion) ai_core.profile 或選角需求單未加載，跳過擴展。")
+        return {"planning_subjects": existing_characters}
 
-    # 步驟 2: 程序化驗證與二次修正循環
-    # 簡單的需求解析
-    male_keywords = ['男', '雄性', '男孩']
-    female_keywords = ['女', '雌性', '女孩']
-    
-    required_males = sum(user_input.count(kw) for kw in male_keywords)
-    required_females = sum(user_input.count(kw) for kw in female_keywords)
-    if "一群" in user_input and required_males == 0 and required_females == 0:
-        required_males = 2 # 默認“一群”為多樣化群體
+    # 步驟 1: 盤點現有演員
+    current_males = sum(1 for char in existing_characters if char.get('gender', '').lower() == '男')
+    current_females = sum(1 for char in existing_characters if char.get('gender', '').lower() == '女')
 
-    current_males = sum(1 for char in all_created_characters if char.gender and char.gender.lower() in ['male', '男'])
-    current_females = sum(1 for char in all_created_characters if char.gender and char.gender.lower() in ['female', '女'])
+    # 步驟 2: 計算差額
+    missing_males = max(0, requirements.required_male_characters - current_males)
+    missing_females = max(0, requirements.required_female_characters - current_females)
 
-    missing_males = max(0, required_males - current_males)
-    missing_females = max(0, required_females - current_females)
+    newly_created_characters = []
 
+    # 步驟 3: 按需創建
     if missing_males > 0 or missing_females > 0:
-        logger.warning(f"[{user_id}] (Supervisor) 初次選角輸出不滿足指令要求。期望(男:{required_males}, 女:{required_females}), 實際(男:{current_males}, 女:{current_females})。啟動修正循環...")
+        logger.info(f"[{user_id}] (LORE Expansion) 角色不足。需求(男:{requirements.required_male_characters}, 女:{requirements.required_female_characters}), 現有(男:{current_males}, 女:{current_females})。需要補充 (男:{missing_males}, 女:{missing_females}).")
         
-        correction_instruction = f"錯誤：角色數量或性別不匹配。請補充創建【{missing_males}名男性】和【{missing_females}名女性】角色以滿足場景需求。"
+        correction_instruction = f"劇情基於 '{requirements.scene_summary}'。請補充創建【{missing_males}名男性】和【{missing_females}名女性】角色以補完場景。"
         
         correction_chain = ai_core.get_character_correction_chain()
-        corrected_cast_result = await ai_core.ainvoke_with_rotation(
+        gs = ai_core.profile.game_state
+        effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+
+        correction_result = await ai_core.ainvoke_with_rotation(
             correction_chain,
             {
                 "world_settings": ai_core.profile.world_settings or "",
                 "current_location_path": effective_location_path,
-                "user_input": user_input,
-                "existing_characters_json": json.dumps([c.model_dump() for c in all_created_characters], ensure_ascii=False, indent=2),
+                "user_input": state['messages'][-1].content,
+                "existing_characters_json": json.dumps(existing_characters, ensure_ascii=False, indent=2),
                 "correction_instruction": correction_instruction
             }
         )
-        if corrected_cast_result:
-            all_created_characters.extend(corrected_cast_result.newly_created_npcs)
-            all_created_characters.extend(corrected_cast_result.supporting_cast)
-            logger.info(f"[{user_id}] (Supervisor) 修正循環成功，已補充創建了新的角色。")
+        if correction_result:
+            newly_created_characters.extend(correction_result.newly_created_npcs)
+            newly_created_characters.extend(correction_result.supporting_cast)
+            logger.info(f"[{user_id}] (LORE Expansion) 修正鏈成功，已補充創建了 {len(newly_created_characters)} 位新角色。")
+            
+            # 持久化新創建的角色
+            if newly_created_characters:
+                cast_result_wrapper = SceneCastingResult(newly_created_npcs=newly_created_characters)
+                await ai_core._add_cast_to_scene(cast_result_wrapper)
+    else:
+        logger.info(f"[{user_id}] (LORE Expansion) 現有角色已滿足場景需求，無需擴展。")
 
-    # 步驟 3: 持久化場景錨點與所有已創建角色
-    if initial_cast_result and initial_cast_result.implied_location:
-        # (此部分邏輯與之前版本相同，保持不變)
-        location_info = initial_cast_result.implied_location
-        base_path = [gs.location_path[0]] if gs.location_path else ["未知區域"]
-        new_location_path = base_path + [location_info.name]
-        lore_key = " > ".join(new_location_path)
-        await lore_book.add_or_update_lore(user_id, 'location_info', lore_key, location_info.model_dump())
-        gs.viewing_mode = 'remote'
-        gs.remote_target_path = new_location_path
-        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-
-    # 將所有新角色（初次+修正後）加入資料庫
-    created_names_set = set()
-    if all_created_characters:
-        cast_result_wrapper = SceneCastingResult(newly_created_npcs=all_created_characters)
-        # 複用 _add_cast_to_scene 的持久化和命名衝突解決邏輯
-        created_names = await ai_core._add_cast_to_scene(cast_result_wrapper)
-        created_names_set.update(created_names)
-        logger.info(f"[{user_id}] (Graph|6A) 監督式選角完成，共創建/更新了 {len(created_names)} 位新角色: {', '.join(created_names)}.")
-    
-    # 步驟 4: 構建最終的規劃主體列表
-    planning_subjects = [lore.content for lore in existing_lores if lore.category == 'npc_profile']
-    if created_names_set:
-        newly_created_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile', lambda c: c.get('name') in created_names_set)
-        planning_subjects.extend([lore.content for lore in newly_created_lores])
-    
-    logger.info(f"[{user_id}] (Graph|6A) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
-    return {"planning_subjects": planning_subjects}
-# 函式：專用的LORE擴展執行節點 (v9.0 - 實現監督與修正循環)
+    # 步驟 4: 合併與輸出
+    final_planning_subjects = existing_characters + newly_created_characters
+    logger.info(f"[{user_id}] (LORE Expansion) 已將 {len(final_planning_subjects)} 位角色 (現有+補充) 成功綁定為本回合的規劃主體。")
+    return {"planning_subjects": final_planning_subjects}
+# 函式：專用的LORE擴展執行節點 (v10.0 - 實現“比對-補充”邏輯)
 
 
 
@@ -1407,24 +1344,24 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v37.0 - 移除重複分類節點)
+# 函式：創建主回應圖 (v38.0 - 實現智能LORE擴展流程)
 # 更新紀錄:
-# v37.0 (2025-09-22): [災難性BUG修復] 為了實現“權威意圖判斷”架構，徹底移除了圖內部重複的 `classify_intent` 節點及其相關邊。圖的流程現在被簡化，完全依賴由上游 on_message 注入的、唯一且正確的意圖分類結果，從根本上解決了因淨化輸入導致的二次分類錯誤和路由失敗問題。
-# v36.0 (2025-09-22): [重大架構升級] 注入了【焦點鎖定節點 (focus_locking_node)】。
-# v35.0 (2025-09-22): [重大架構重構] 引入了「混合模式」NSFW 處理路徑。
+# v38.0 (2025-09-22): [重大架構重構] 為了實現更智能的LORE管理，徹底重構了擴展部分的圖拓撲。移除了舊的 expansion_decision 條件分支，替換為一個全新的線性流程：`... -> scene_casting_analysis -> lore_expansion -> ...`。這使得圖能夠先分析場景需求，然後再根據需求進行精準的“比對-補充”式LORE擴展，從根本上解決了角色管理的邏輯問題。
+# v37.0 (2025-09-22): [災難性BUG修復] 移除了圖內部重複的 `classify_intent` 節點。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
     graph.add_node("pre_process_input", pre_process_input_node)
-    # [v37.0 移除] 不再需要圖內部分類
-    # graph.add_node("classify_intent", classify_intent_node) 
-    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
+    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("assemble_context", assemble_context_node)
-    graph.add_node("expansion_decision", expansion_decision_node)
+    
+    # [v38.0 核心修正] 註冊新的分析和擴展節點
+    graph.add_node("scene_casting_analysis", scene_casting_analysis_node)
     graph.add_node("lore_expansion", lore_expansion_node)
+
     graph.add_node("focus_locking", focus_locking_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
@@ -1434,43 +1371,27 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    graph.add_node("planner_junction", lambda state: {})
     
-    def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
-        lore_objects = state.get('raw_lore_objects', [])
-        planning_subjects = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-        logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已將 {len(planning_subjects)} 個現有NPC打包為規劃主體。")
-        return {"planning_subjects": planning_subjects}
-        
-    graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
-
 
     # --- 2. 定義圖的拓撲結構 ---
     graph.set_entry_point("pre_process_input")
-    # [v37.0 核心修正] 簡化流程
     graph.add_edge("pre_process_input", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    graph.add_edge("query_lore", "perceive_and_set_view")
-    graph.add_edge("perceive_and_set_view", "assemble_context")
-    graph.add_edge("assemble_context", "expansion_decision")
-    
-    graph.add_conditional_edges(
-        "expansion_decision",
-        route_expansion_decision,
-        { 
-            "expand_lore": "lore_expansion", 
-            "continue_to_planner": "prepare_existing_subjects"
-        }
-    )
-    
-    graph.add_edge("lore_expansion", "planner_junction")
-    graph.add_edge("prepare_existing_subjects", "planner_junction")
+    # 將 LORE 查詢結果打包成 planning_subjects 供後續節點使用
+    graph.add_node("prepare_initial_subjects", 
+                   lambda state: {"planning_subjects": [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']})
+    graph.add_edge("query_lore", "prepare_initial_subjects")
+    graph.add_edge("prepare_initial_subjects", "perceive_and_set_view")
 
-    graph.add_edge("planner_junction", "focus_locking")
+    graph.add_edge("perceive_and_set_view", "assemble_context")
+
+    # [v38.0 核心修正] 實現線性的智能擴展流程
+    graph.add_edge("assemble_context", "scene_casting_analysis")
+    graph.add_edge("scene_casting_analysis", "lore_expansion")
+    graph.add_edge("lore_expansion", "focus_locking")
 
     def route_to_planner(state: ConversationGraphState) -> str:
         user_id = state['user_id']
-        # [v37.0 核心修正] 直接從 state 讀取權威的意圖判斷
         intent_classification = state.get('intent_classification')
         if not intent_classification:
             logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果未被注入，無法路由。")
@@ -1512,7 +1433,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v37.0 - 移除重複分類節點)
+# 函式：創建主回應圖 (v38.0 - 實現智能LORE擴展流程)
 
 
 
@@ -1604,6 +1525,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
