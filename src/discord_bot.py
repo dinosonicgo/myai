@@ -886,11 +886,11 @@ class BotCog(commands.Cog):
         else:
             logger.error(f"【健康檢查 & Keep-Alive】背景任務因未處理的錯誤而意外終止！")
 
-# 函式：處理訊息 (v43.0 - 引入元指令處理層)
+# 函式：處理訊息 (v43.0 - 實現意圖注入)
     # 更新紀錄:
-    # v43.0 (2025-09-22): [重大架構升級] 引入了【元指令處理層】。此函式不再是簡單地將使用者輸入傳遞給圖，而是實現了一個兩階段處理流程。它會先獨立調用意圖分類鏈，以識別 'reroll' 或 'continuation' 等元指令。然後，它會根據識別結果，在調用主圖之前，動態地修改聊天歷史和傳遞給圖的初始狀態，從而實現了對“重做”和“繼續”的智能處理。
-    # v42.0 (2025-09-04): [災難性BUG修復] 徹底重構了 on_message 事件，解決了機器人只在私聊中響應的問題。
-    # v41.0 (2025-09-04): [健壯性] 強化了 ConversationGraphState 的初始化和 on_message 中的錯誤處理。
+    # v43.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式以實現“意圖注入”架構。現在，在 on_message 層面進行的初始意圖分類結果，會被直接寫入傳遞給 LangGraph 的 initial_state['intent_classification'] 中。這確保了圖（Graph）從一開始就接收到一個基於原始輸入的、唯一且權威的意圖判斷，從根本上解決了因圖內部二次分類導致的路由錯誤問題。
+    # v43.0 (2025-09-22): [重大架構升級] 引入了【元指令處理層】。
+    # v42.0 (2025-09-04): [災難性BUG修復] 徹底重構了 on_message 事件。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
@@ -936,7 +936,6 @@ class BotCog(commands.Cog):
                 reroll_instruction = ""
                 final_user_input = user_input
 
-                # 輕量級地調用意圖分類鏈以識別元指令
                 intent_chain = ai_instance.get_intent_classification_chain()
                 intent_result = await ai_instance.ainvoke_with_rotation(intent_chain, {"user_input": user_input})
                 
@@ -944,22 +943,18 @@ class BotCog(commands.Cog):
                 logger.info(f"[{user_id}] 元指令意圖分析結果: {intent}")
 
                 if intent == 'reroll':
-                    # 如果是重做，移除歷史記錄中的最後一輪對話（使用者指令 + AI回應）
                     if len(chat_history_manager.messages) >= 2:
                         chat_history_manager.messages.pop()
                         chat_history_manager.messages.pop()
                         logger.info(f"[{user_id}] Reroll 指令觸發：已從短期記憶中移除上一輪對話。")
                     
-                    # 注入重做指令
                     reroll_instruction = "【最高優先級指令】使用者對上一個版本不滿意，請生成一個與之前版本在情節、細節或風格上有顯著不同的、全新的版本。"
-                    # 使用原始指令來重新生成
                     if len(ai_instance.session_histories[user_id].messages) > 0:
                        final_user_input = ai_instance.session_histories[user_id].messages[-1].content
-                    else: # 如果歷史為空，則無法重做，當作普通指令
+                    else:
                        final_user_input = "請開始一個新的場景"
 
                 elif intent == 'continuation':
-                    # 如果是繼續，將模糊指令轉化為明確的內部指令
                     final_user_input = "（系統指令：請直接生成上一幕的後續劇情）"
                     logger.info(f"[{user_id}] Continuation 指令觸發：已將輸入轉化為內部後續指令。")
 
@@ -971,8 +966,10 @@ class BotCog(commands.Cog):
                     user_id=user_id,
                     ai_core=ai_instance,
                     messages=current_messages,
-                    # [v43.0 核心] 注入 reroll 指令
                     reroll_instruction=reroll_instruction, 
+                    # [v43.0 核心] 將權威的意圖判斷結果直接注入狀態
+                    intent_classification=intent_result,
+                    sanitized_user_input=None, # 讓圖的內部節點填充
                     input_analysis=None,
                     expansion_decision=None,
                     scene_analysis=None,
@@ -1015,7 +1012,7 @@ class BotCog(commands.Cog):
                     user_feedback += f"\n**提示**: 這通常意味著系統在處理一個數據模板時，找不到名為 `{error_details}` 的欄位。這可能是一個暫時的數據不一致問題，請嘗試重新發送或稍作修改。"
 
                 await message.channel.send(user_feedback)
-# 函式：處理訊息 (v43.0 - 引入元指令處理層)
+# 函式：處理訊息 (v43.0 - 實現意圖注入)
 
     # finalize_setup (v42.2 - 延遲加載重構)
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
@@ -1674,4 +1671,5 @@ class AILoverBot(commands.Bot):
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
+
 
