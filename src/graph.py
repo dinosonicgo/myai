@@ -527,12 +527,17 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
 
-async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[数据伪装-步骤1] 生成初步的、自然语言的“剧本大纲”草稿。"""
+# 函式：NSFW 最終大綱節點 (v10.0 - 导演一步到位)
+# 更新紀錄:
+# v10.0 (2025-09-22): [重大架構重構] 根据“导演-演员”模型，此节点被重命名并升级。它现在负责调用新的“最终大纲导演”链，一步到位地生成高质量的、可直接交付给最终渲染器的故事大纲。
+# v9.0 (2025-09-22): [重大架構重構] 重构为输出自然语言“剧本大纲”草稿的节点。
+async def nsfw_final_outline_node(state: ConversationGraphState) -> Dict[str, Any]:
+    """[导演-演员模型] 生成最终的、细节饱满的、自然语言的故事大纲。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
+    # 注意：这里的 user_input 已经是被 transcode_intent_node 净化过的安全指令
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...")
+    logger.info(f"[{user_id}] (Graph|NSFW Final Outline) Node: nsfw_final_outline -> 正在生成最终版故事大纲...")
 
     if not ai_core.profile:
         return {"narrative_outline": "错误：AI profile 未加载，无法规划。"}
@@ -563,8 +568,8 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    outline_draft = await ai_core.ainvoke_with_rotation(
-        ai_core.get_nsfw_breakthrough_planning_chain(),
+    final_outline = await ai_core.ainvoke_with_rotation(
+        ai_core.get_nsfw_final_outline_chain(),
         {
             "system_prompt": ai_core.profile.one_instruction,
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
@@ -576,10 +581,12 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
         },
         retry_strategy='euphemize'
     )
-    if not outline_draft:
-        outline_draft = "安全備援：NSFW大纲生成鏈最终失败。"
+    if not final_outline:
+        final_outline = "安全備援：NSFW最终大纲生成鏈失败。"
 
-    return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
+    # 注意：这里不再需要传递 world_snapshot，因为创作流程已简化
+    return {"narrative_outline": final_outline}
+# 函式：NSFW 最終大綱節點 (v10.0 - 导演一步到位)
 
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
     """[数据伪装-步骤2] 接收大纲草稿，并将其丰富为最终的、详细的故事大纲。"""
@@ -786,12 +793,13 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
-# 函式：創建主回應圖 (v43.0 - 意圖轉碼架構)
+# 函式：創建主回應圖 (v44.0 - 导演-演员模型)
 # 更新紀錄:
-# v43.0 (2025-09-22): [重大架構重構] 根據“數據偽裝”策略，重構了圖的 NSFW 處理流程。
-#    1. [新增] 增加了全新的 `transcode_intent_node`，作為 NSFW 流程的新入口。
-#    2. [重連] 修改了主路由器，將 NSFW 流量首先導入 `transcode_intent_node` 進行指令淨化，然後再將淨化後的結果傳遞給大綱生成器 `nsfw_breakthrough`。
-# v42.0 (2025-09-22): [重大品質提升] 引入了統一的“淨化流水線”。
+# v44.0 (2025-09-22): [重大架構重構] 根据“导演-演员”模型，彻底简化了图的 NSFW 处理流程。
+#    1. [移除] 删除了 `nsfw_refinement_node`。
+#    2. [重命名/升级] 将 `nsfw_breakthrough_node` 重命名并升级为 `nsfw_final_outline_node`。
+#    3. [重连] 将 NSFW 流程简化为“转码 -> 最终大纲 -> 最终渲染”的三步流水线，以最大限度地提高稳定性和成功率。
+# v43.0 (2025-09-22): [重大架構重構] 引入了“意图转码”架构。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
     graph = StateGraph(ConversationGraphState)
@@ -807,11 +815,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     
-    # [v43.0 新增] 註冊意圖轉碼節點
     graph.add_node("transcode_intent", transcode_intent_node)
+    # [v44.0] 註冊新的最终大纲节点
+    graph.add_node("nsfw_final_outline", nsfw_final_outline_node)
     
-    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
-    graph.add_node("nsfw_refinement", nsfw_refinement_node)
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("nsfw_final_rendering", final_rendering_node)
@@ -869,7 +876,7 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_planner": "transcode_intent" # <--- [v43.0 核心修正] NSFW 流量先進入轉碼節點
+            "nsfw_planner": "transcode_intent"
         }
     )
     
@@ -878,10 +885,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     
-    # [v43.0 核心修正] NSFW 路径: 轉碼 -> 大纲生成 -> 最终渲染
-    graph.add_edge("transcode_intent", "nsfw_breakthrough")
-    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
-    graph.add_edge("nsfw_refinement", "nsfw_final_rendering")
+    # [v44.0 核心修正] 简化的 NSFW 路径
+    graph.add_edge("transcode_intent", "nsfw_final_outline")
+    graph.add_edge("nsfw_final_outline", "nsfw_final_rendering")
     
     # 统一的後續流程
     graph.add_edge("sfw_narrative_rendering", "purification")
@@ -891,7 +897,11 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v43.0 - 意圖轉碼架構)
+# 函式：創建主回應圖 (v44.0 - 导演-演员模型)
+
+
+
+
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
@@ -973,5 +983,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
