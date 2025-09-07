@@ -1039,62 +1039,8 @@ class AILover:
         return self.remote_sfw_planning_chain
     # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)```
 
----
 
-### **`sfw_planning_node` 函式**
 
-```python
-async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|7A) Node: sfw_planning -> 正在基於指令 '{user_input[:50]}...' 生成SFW行動計劃...")
-
-    if not ai_core.profile:
-        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
-
-    planning_subjects_raw = state.get('planning_subjects')
-    if planning_subjects_raw is None:
-        lore_objects = state.get('raw_lore_objects', [])
-        planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
-
-    gs = ai_core.profile.game_state
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-
-    full_context_dict = {
-        'username': ai_core.profile.user_profile.name,
-        'ai_name': ai_core.profile.ai_profile.name,
-        'world_settings': ai_core.profile.world_settings or "未設定",
-        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': state.get('rag_context', ''),
-        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
-        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
-        'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': "(已棄用，請參考 planning_subjects_json)",
-        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
-        'player_location': " > ".join(gs.location_path),
-        'viewing_mode': gs.viewing_mode,
-        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-    }
-    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-    
-    plan = await ai_core.ainvoke_with_rotation(
-        ai_core.get_sfw_planning_chain(), 
-        {
-            "one_instruction": ai_core.profile.one_instruction, 
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot, 
-            "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json,
-            "user_input": user_input,
-        },
-        retry_strategy='euphemize'
-    )
-    if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
-    return {"turn_plan": plan}
 
 
 
@@ -3427,6 +3373,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
