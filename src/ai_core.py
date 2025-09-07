@@ -1987,9 +1987,10 @@ class AILover:
 
     
 
-        # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
+    # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 誘餌與酬載)
     # 更新紀錄:
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
+    # v2.0 (2025-09-28): [架構重構] 此函式現在調用已升級為“誘餌與酬載”模式的實體提取鏈，確保實體提取步驟不會因輸入污染而被攔截。
+    # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯分離。
     async def _query_lore_from_entities(self, user_input: str, is_remote_scene: bool = False) -> List[Lore]:
         """[新] 提取實體並查詢其原始LORE對象。這是專門為新的 query_lore_node 設計的。"""
         if not self.profile: return []
@@ -2002,7 +2003,8 @@ class AILover:
             text_for_extraction = f"{user_input}\n{recent_dialogue}"
 
         entity_extraction_chain = self.get_entity_extraction_chain()
-        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_for_extraction})
+        # [v2.0 核心修正] 使用“誘餌與酬載”模式傳遞參數
+        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_payload": text_for_extraction})
         extracted_names = set(entity_result.names if entity_result else [])
         
         location_path = self.profile.game_state.location_path
