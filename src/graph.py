@@ -206,6 +206,142 @@ def route_viewing_mode(state: ConversationGraphState) -> Literal["remote_scene",
         return "local_scene"
 # 函式：視角模式路由器
 
+
+
+# 函式：[全新] 確定性視角模式節點 (v1.0 - 無LLM)
+# 更新紀錄:
+# v1.0 (2025-09-29): [重大架構重構] 創建此全新的、完全基於 Python 關鍵詞檢查的節點，以取代不穩定的、基於 LLM 的意圖分類和視角分析。此節點不進行任何 API 呼叫，因此能 100% 免疫內容審查，從根本上保證了圖路由階段的絕對穩定性。
+def determine_viewing_mode_node(state: ConversationGraphState) -> Dict:
+    """[1] 圖的新入口點。通過確定性的關鍵詞檢查，決定視角模式並更新遊戲狀態。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|1) Node: determine_viewing_mode -> 正在確定性地分析視角...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|1) ai_core.profile 未加載，無法確定視角。")
+        return {}
+
+    gs = ai_core.profile.game_state
+    
+    # 使用簡單、可靠的關鍵詞匹配來判斷是否為遠程描述
+    descriptive_keywords = ["描述", "描寫", "看看", "觀察"]
+    is_descriptive = any(user_input.strip().startswith(keyword) for keyword in descriptive_keywords)
+
+    if is_descriptive:
+        gs.viewing_mode = 'remote'
+        # 注意：我們不再嘗試用 LLM 提取 remote_target_path，這個任務交給後續的 LORE 擴展節點
+        logger.info(f"[{user_id}] (Graph|1) 檢測到描述性指令，視角模式設定為: remote")
+    else:
+        gs.viewing_mode = 'local'
+        gs.remote_target_path = None # 本地互動時清除遠程目標
+        logger.info(f"[{user_id}] (Graph|1) 未檢測到描述性指令，視角模式設定為: local")
+
+    # 立即持久化狀態
+    # asyncio.create_task(ai_core.update_and_persist_profile({'game_state': gs.model_dump()}))
+    # 為了確保狀態在下一個節點可用，我們在此處使用 await
+    asyncio.run_coroutine_threadsafe(
+        ai_core.update_and_persist_profile({'game_state': gs.model_dump()}),
+        asyncio.get_running_loop()
+    )
+
+
+    return {}
+# 函式：[全新] 確定性視角模式節點 (v1.0 - 無LLM)
+
+
+# 函式：統一規劃節點 (v1.0 - 單一硬化管線)
+# 更新紀錄:
+# v1.0 (2025-09-29): [重大架構重構] 創建此單一的、統一的規劃節點，以取代舊有的四個獨立規劃器。此節點【永遠】使用最強大的 NSFW 規劃鏈，並根據 `viewing_mode` 動態地在提示詞中調整上下文（例如，為遠程場景移除玩家和 AI），從而以一個統一的、硬化的流程處理所有類型的使用者輸入。
+async def unified_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[7] 單一硬化管線的核心規劃器，處理所有場景。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|7) Node: unified_planning -> 正在啟動統一規劃器...")
+
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
+
+    gs = ai_core.profile.game_state
+    viewing_mode = gs.viewing_mode
+    
+    # 步驟 1: 準備規劃主體
+    planning_subjects_raw = state.get('planning_subjects', [])
+    subjects_map = {p['name']: p for p in planning_subjects_raw}
+    
+    # [v1.0 核心邏輯] 只有在本地模式下，才將玩家和 AI 加入規劃
+    if viewing_mode == 'local':
+        user_char = ai_core.profile.user_profile.model_dump()
+        ai_char = ai_core.profile.ai_profile.model_dump()
+        subjects_map[user_char['name']] = user_char
+        subjects_map[ai_char['name']] = ai_char
+        logger.info(f"[{user_id}] (Planner) 本地模式：已將使用者和 AI 加入規劃主體。")
+
+    final_planning_subjects = list(subjects_map.values())
+    planning_subjects_json = json.dumps(final_planning_subjects, ensure_ascii=False, indent=2)
+
+    # 步驟 2: 準備上下文快照
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    
+    remote_target_path_str = " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定"
+    
+    # [v1.0 核心邏輯] 動態構建上下文
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', '(遠程模式無此資訊)'),
+        'quests_context': state.get('structured_context', {}).get('quests_context', '(遠程模式無此資訊)'),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': viewing_mode,
+        'remote_target_path_str': remote_target_path_str,
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+
+    # 步驟 3: 選擇規劃鏈並準備參數 (永遠使用最強的 NSFW 鏈)
+    # [v1.0 核心邏輯] 根據視角模式選擇鏈，但它們都使用相同的超強提示詞
+    if viewing_mode == 'remote':
+        planner_chain = ai_core.get_remote_nsfw_planning_chain()
+        chain_input = {
+            "one_instruction": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
+            "target_location_path_str": remote_target_path_str,
+            "user_input": user_input,
+        }
+    else: # local
+        planner_chain = ai_core.get_nsfw_planning_chain()
+        chain_input = {
+            "one_instruction": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
+            "user_input": user_input,
+        }
+
+    # 步驟 4: 執行規劃
+    plan = await ai_core.ainvoke_with_rotation(
+        planner_chain,
+        chain_input,
+        retry_strategy='force' # 永遠使用最強的重試策略
+    )
+    if not plan:
+        plan = TurnPlan(execution_rejection_reason="安全備援：統一規劃鏈最終失敗，可能因為內容審查或API臨時故障。")
+    return {"turn_plan": plan}
+# 函式：統一規劃節點 (v1.0 - 單一硬化管線)
+
+
 # --- 階段一：感知 (Perception) ---
 
 # 函式：[重構] 導演視角狀態管理節點 (v2.0 - 意圖驅動)
@@ -1284,31 +1420,29 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v39.0 - 廢除淨化層)
+# 函式：創建主回應圖 (v40.0 - 單一硬化管線)
 # 更新紀錄:
-# v39.0 (2025-09-28): [重大架構重構] 根據“誘餌與酬載”策略的成功實施，此版本【徹底廢除】了已被證明無效的 `pre_process_input` 淨化層節點。圖的入口點被重新設置回 `classify_intent`，整個圖的拓撲結構得到簡化和加固。
-# v38.0 (2025-09-27): [重大架構重構] 引入了全新的 `pre_process_input_node` 作為圖的【新入口點】。
-# v37.0 (2025-09-07): [災難性BUG修復] 廢棄並移除了 `pre_process_input` 節點。
+# v40.0 (2025-09-29): [重大架構重構] 根據“單一硬化管線”策略，對圖的拓撲進行了決定性的簡化。
+#    1. [廢除] 徹底廢除了不穩定且多餘的 `classify_intent` 和 `perceive_and_set_view` LLM 節點。
+#    2. [新增] 引入了全新的、100% 確定性的 `determine_viewing_mode_node` 作為圖的新入口點。
+#    3. [合併] 將所有四個規劃節點合併為一個單一的、最強大的 `unified_planning_node`。
+#    4. [簡化] 移除了所有複雜的條件路由，使圖的流程變為一個更加健壯的線性管線。
+# v39.0 (2025-09-28): [重大架構重構] 廢除了 `pre_process_input` 淨化層節點。
 def create_main_response_graph() -> StateGraph:
     graph = StateGraph(ConversationGraphState)
     
     # --- 1. 註冊所有節點 ---
-    graph.add_node("classify_intent", classify_intent_node)
-    graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
+    graph.add_node("determine_viewing_mode", determine_viewing_mode_node) # 新的、確定性的入口點
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
     graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    graph.add_node("sfw_planning", sfw_planning_node)
-    graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("nsfw_planning", nsfw_planning_node)
-    graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
+    graph.add_node("unified_planning", unified_planning_node) # 新的、統一的規劃器
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("narrative_rendering", narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
-    graph.add_node("planner_junction", lambda state: {})
     
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
         lore_objects = state.get('raw_lore_objects', [])
@@ -1319,13 +1453,11 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
     # --- 2. 定義圖的拓撲結構 ---
-    # [v39.0 核心修正] 將入口點直接設置回 classify_intent，廢除淨化層
-    graph.set_entry_point("classify_intent")
+    graph.set_entry_point("determine_viewing_mode")
     
-    graph.add_edge("classify_intent", "retrieve_memories")
+    graph.add_edge("determine_viewing_mode", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
-    graph.add_edge("query_lore", "perceive_and_set_view")
-    graph.add_edge("perceive_and_set_view", "assemble_context")
+    graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
@@ -1337,57 +1469,19 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    graph.add_edge("lore_expansion", "planner_junction")
-    graph.add_edge("prepare_existing_subjects", "planner_junction")
-
-    def route_to_planner(state: ConversationGraphState) -> str:
-        user_id = state['user_id']
-        intent_classification = state.get('intent_classification')
-        if not intent_classification:
-            logger.error(f"[{user_id}] (Router) 致命錯誤：意圖分類結果不存在，無法路由。")
-            return "sfw_planning" 
-
-        intent = intent_classification.intent_type
-        ai_core = state['ai_core']
-        viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
-        
-        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
-        
-        if 'nsfw' in intent:
-            if viewing_mode == 'remote':
-                return "remote_nsfw_planning"
-            else:
-                return "nsfw_planning"
-        else:
-            if viewing_mode == 'remote':
-                return "remote_sfw_planning"
-            else:
-                return "sfw_planning"
-
-    graph.add_conditional_edges(
-        "planner_junction",
-        route_to_planner,
-        { 
-            "sfw_planning": "sfw_planning", 
-            "remote_sfw_planning": "remote_sfw_planning",
-            "nsfw_planning": "nsfw_planning",
-            "remote_nsfw_planning": "remote_nsfw_planning"
-        }
-    )
+    # 簡化路由：無論是否擴展，最終都匯合到統一規劃器
+    graph.add_edge("lore_expansion", "unified_planning")
+    graph.add_edge("prepare_existing_subjects", "unified_planning")
     
-    graph.add_edge("sfw_planning", "tool_execution")
-    graph.add_edge("remote_sfw_planning", "tool_execution")
-    graph.add_edge("nsfw_planning", "tool_execution")
-    graph.add_edge("remote_nsfw_planning", "tool_execution")
-    
+    # 線性管線的後續步驟
+    graph.add_edge("unified_planning", "tool_execution")
     graph.add_edge("tool_execution", "narrative_rendering")
     graph.add_edge("narrative_rendering", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v39.0 - 廢除淨化層)
-
+# 函式：創建主回應圖 (v40.0 - 單一硬化管線)
 
 
 # --- 設定圖 (Setup Graph) 的節點與建構器 (完整版) ---
