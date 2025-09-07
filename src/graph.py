@@ -269,11 +269,81 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     return {"planning_subjects": planning_subjects}
 # 函式：專用的LORE擴展執行節點 (v10.0 - 返璞歸真)
 
-# 函式：統一規劃節點 (v2.0 - 動態指令注入)
+
+
+
+# 函式：NSFW 計畫潤色節點 (v1.0 - 備援創意生成)
 # 更新紀錄:
-# v2.0 (2025-09-29): [架構重構] 此節點的指令源被修改。它不再直接從 `ai_core` 讀取固定的 `action_sexual_content_prompt`，而是從圖狀態 `state['active_action_module_content']` 中動態讀取當前回合被激活的戰術指令。
+# v1.0 (2025-09-29): [重大架構升級] 創建此全新的潤色節點。它接收一個由確定性節點生成的、缺乏創意的模板計畫，然後呼叫專門的潤色鏈，為其增加豐富的對話、呻吟和細節，從而在保證穩定性的前提下為劇情重新注入創意。
+async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[NSFW Path] 接收模板計畫並呼叫 LLM 進行創意潤色。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    template_plan = state['turn_plan'] # 從上一步獲取模板計畫
+    
+    logger.info(f"[{user_id}] (Graph|NSFW Refinement) Node: nsfw_refinement -> 正在對模板計畫進行創意潤色...")
+
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法潤色。")}
+    
+    if not template_plan or template_plan.execution_rejection_reason:
+        logger.warning(f"[{user_id}] (Refiner) 傳入的模板計畫為空或包含拒絕理由，跳過潤色。")
+        return {"turn_plan": template_plan}
+
+    gs = ai_core.profile.game_state
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': "(已棄用)",
+        'relevant_npc_context': "(已棄用)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+
+    refinement_chain = ai_core.get_nsfw_refinement_chain()
+    
+    action_prompt = state.get('active_action_module_content') or "（本回合無特定戰術指令）"
+
+    refined_plan = await ai_core.ainvoke_with_rotation(
+        refinement_chain,
+        {
+            "one_instruction": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": action_prompt,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "turn_plan_json": template_plan.model_dump_json(indent=2)
+        },
+        retry_strategy='force'
+    )
+    
+    if not refined_plan:
+        logger.warning(f"[{user_id}] (Refiner) 計畫潤色鏈失敗，將回退到使用原始的、未經潤色的模板計畫。")
+        return {"turn_plan": template_plan}
+        
+    return {"turn_plan": refined_plan}
+# 函式：NSFW 計畫潤色節點 (v1.0 - 備援創意生成)
+
+
+
+
+# 函式：統一規劃節點 (v3.0 - 混合創意模式)
+# 更新紀錄:
+# v3.0 (2025-09-29): [重大架構重構] 此節點的邏輯被徹底重寫，以支持“備援創意生成”管線。
+#    - 對於 SFW 或遠程場景，它會直接調用 LLM 進行【完全創意規劃】。
+#    - 對於【本地 NSFW】場景，它會【確定性地】生成一個無創意的【模板計畫骨架】，並為其行動添加 `template_id`，以便下游路由到新的潤色節點。
+# v2.0 (2025-09-29): [架構重構] 節點的指令源被修改為動態讀取。
 async def unified_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
-    """[7] 單一硬化管線的核心規劃器，處理所有場景。"""
+    """[7] 單一硬化管線的核心規劃器，採用混合創意模式處理所有場景。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -284,17 +354,63 @@ async def unified_planning_node(state: ConversationGraphState) -> Dict[str, Turn
 
     gs = ai_core.profile.game_state
     viewing_mode = gs.viewing_mode
+    action_prompt = state.get('active_action_module_content')
+
+    # [v3.0 核心邏輯] 判斷是否進入確定性模板路徑
+    # 條件：本地模式 且 已加載性愛模組
+    if viewing_mode == 'local' and action_prompt:
+        logger.info(f"[{user_id}] (Planner)檢測到本地NSFW指令，進入【確定性模板骨架】生成模式。")
+        
+        planning_subjects_raw = state.get('planning_subjects', [])
+        subjects_map = {p['name']: p for p in planning_subjects_raw}
+        user_char = ai_core.profile.user_profile.model_dump()
+        ai_char = ai_core.profile.ai_profile.model_dump()
+        subjects_map[user_char['name']] = user_char
+        subjects_map[ai_char['name']] = ai_char
+        planning_subjects = list(subjects_map.values())
+
+        # --- 確定性模板生成邏輯 ---
+        templates = {
+            "FUCK_TEMPLATE": {
+                "thought": "本地NSFW指令觸發了確定性模板生成。這是一個基礎的性交動作骨架，將交由下游潤色。",
+                "character_actions": [
+                    {"character_name": "{角色A}", "reasoning": "響應指令，開始執行核心性愛動作。", "action_description": "{角色A} 將自己的[MALE_GENITALIA]對準 {角色B} 的[FEMALE_GENITALIA]口。", "template_id": "FUCK_TEMPLATE_STEP1"},
+                    {"character_name": "{角色B}", "reasoning": "配合對方的動作，引導插入。", "action_description": "{角色B} 挺起腰肢，引導著 {角色A} 的[MALE_GENITALIA]完全插入自己的體內。", "template_id": "FUCK_TEMPLATE_STEP2"},
+                    {"character_name": "{角色A}", "reasoning": "開始核心的性交動作。", "action_description": "{角色A} 開始在 {角色B} 溫暖濕滑的[FEMALE_GENITALIA]中用力抽插。", "template_id": "FUCK_TEMPLATE_STEP3"}
+                ]
+            }
+        }
+        selected_template_key = None
+        if any(kw in user_input for kw in ["幹", "操", "性交", "插入"]):
+            selected_template_key = "FUCK_TEMPLATE"
+        
+        if not selected_template_key:
+            return {"turn_plan": TurnPlan(thought="本地NSFW指令未能匹配到任何確定性模板，將直接交由潤色節點進行純創意生成。")}
+
+        # 簡易的角色分配邏輯
+        actor_a = ai_core.profile.user_profile.name
+        actor_b = ai_core.profile.ai_profile.name
+        
+        template_str = json.dumps(templates[selected_template_key])
+        filled_str = template_str.replace("{角色A}", actor_a).replace("{角色B}", actor_b)
+        
+        try:
+            plan = TurnPlan.model_validate(json.loads(filled_str))
+            logger.info(f"[{user_id}] (Planner)已成功生成並填充確定性模板: {selected_template_key}")
+            return {"turn_plan": plan}
+        except Exception as e:
+            return {"turn_plan": TurnPlan(execution_rejection_reason=f"模板填充失敗: {e}")}
+
+    # --- 如果不是本地NSFW，則進入標準的創意規劃流程 ---
+    logger.info(f"[{user_id}] (Planner)檢測到 SFW 或遠程場景，進入【完全創意規劃】模式。")
     
     planning_subjects_raw = state.get('planning_subjects', [])
     subjects_map = {p['name']: p for p in planning_subjects_raw}
-    
     if viewing_mode == 'local':
         user_char = ai_core.profile.user_profile.model_dump()
         ai_char = ai_core.profile.ai_profile.model_dump()
         subjects_map[user_char['name']] = user_char
         subjects_map[ai_char['name']] = ai_char
-        logger.info(f"[{user_id}] (Planner) 本地模式：已將使用者和 AI 加入規劃主體。")
-
     final_planning_subjects = list(subjects_map.values())
     planning_subjects_json = json.dumps(final_planning_subjects, ensure_ascii=False, indent=2)
 
@@ -316,13 +432,11 @@ async def unified_planning_node(state: ConversationGraphState) -> Dict[str, Turn
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    action_prompt = state.get('active_action_module_content') or "（本回合無特定戰術指令）"
-
     planner_chain = ai_core.get_remote_nsfw_planning_chain() if viewing_mode == 'remote' else ai_core.get_nsfw_planning_chain()
     
     chain_input = {
         "one_instruction": ai_core.profile.one_instruction,
-        "action_sexual_content_prompt": action_prompt,
+        "action_sexual_content_prompt": action_prompt or "（本回合無特定戰術指令）",
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
         "chat_history": chat_history_str,
@@ -336,7 +450,7 @@ async def unified_planning_node(state: ConversationGraphState) -> Dict[str, Turn
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：統一規劃鏈最終失敗。")
     return {"turn_plan": plan}
-# 函式：統一規劃節點 (v2.0 - 動態指令注入)
+# 函式：統一規劃節點 (v3.0 - 混合創意模式)
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """[8] 統一的工具執行節點。"""
