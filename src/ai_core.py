@@ -3083,14 +3083,13 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
+    # 函式：“安全備援”委婉化重試處理器 (v208.2 - 類型處理強化)
     # 更新紀錄:
-    # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。如果待處理的文本超過2000字符，將直接跳過耗時的 LLM 解構步驟並觸發安全備援。此修改旨在從根本上解決備援機制自身因處理超長文本而卡死的效能問題。
-    # v208.0 (2025-09-10): [災難性BUG修復] 徹底重寫了此函式的邏輯，實現了“解構-重構”策略。
-    # v207.0 (2025-09-06): [重大架構重構] 簡化了此鏈的職責。
+    # v208.2 (2025-09-08): [災難性BUG修復] 根據日誌分析，增加了對 `List[Document]` 輸入類型的專門處理邏輯。舊版本在處理來自 RAG 總結鏈的失敗時，因無法解析文檔列表而崩潰。新版本現在能夠正確地從文檔列表中提取文本、進行委婉化、然後將結果重新打包成文檔以供重試，從根本上解決了 RAG 流程中的備援鏈路中斷問題。
+    # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v208.1 新架構] 一個健壯的備援機制，用於處理在非 NSFW 路徑中意外失敗的內部鏈。
+        [v208.2 新架構] 一個健壯的備援機制，用於處理在非 NSFW 路徑中意外失敗的內部鏈。
         它通過“解構-重構”的方式，將露骨輸入轉化為安全版本後重試。
         """
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構委婉化】策略...")
@@ -3099,8 +3098,14 @@ class AILover:
             # --- 步驟 0: 提取需要處理的文本 ---
             text_to_euphemize = ""
             key_to_replace = None
-            
-            if isinstance(failed_params, dict):
+            is_document_list = False
+
+            # [v208.2 核心修正] 新增對 List[Document] 的處理
+            if isinstance(failed_params, list) and all(isinstance(p, Document) for p in failed_params):
+                is_document_list = True
+                text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
+                logger.info(f"[{self.user_id}] (Euphemizer) 已成功從 List[Document] 中提取文本進行處理。")
+            elif isinstance(failed_params, dict):
                 string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
                 if string_values:
                     key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
@@ -3111,11 +3116,10 @@ class AILover:
             if not text_to_euphemize:
                 raise ValueError("無法從參數中提取可委婉化的文本。")
 
-            # [v208.1 核心修正] 增加長度保護，防止處理超長文本導致卡死
             MAX_EUPHEMIZE_LENGTH = 2000
             if len(text_to_euphemize) > MAX_EUPHEMIZE_LENGTH:
                 logger.error(f"[{self.user_id}] (Euphemizer) 待處理文本長度 ({len(text_to_euphemize)}) 超過 {MAX_EUPHEMIZE_LENGTH} 字符上限，為避免效能問題已跳過委婉化重試。")
-                return None # 直接觸發安全備援
+                return None
 
             # --- 步驟 1: 解構 ---
             logger.info(f"[{self.user_id}] (Euphemizer) 正在將 '{text_to_euphemize[:50]}...' 解構為安全關鍵詞...")
@@ -3136,7 +3140,10 @@ class AILover:
 
             # --- 步驟 3: 重試 ---
             retry_params = failed_params
-            if isinstance(retry_params, dict) and key_to_replace:
+            # [v208.2 核心修正] 根據原始參數類型重組重試參數
+            if is_document_list:
+                retry_params = [Document(page_content=safe_text)]
+            elif isinstance(retry_params, dict) and key_to_replace:
                 retry_params[key_to_replace] = safe_text
             else: # str
                 retry_params = safe_text
@@ -3146,7 +3153,10 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}。將觸發安全備援。")
             return None
-    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
+    # 函式：“安全備援”委婉化重試處理器 (v208.2 - 類型處理強化)
+
+
+    
 
     # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
     # 更新紀錄:
@@ -3538,6 +3548,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
