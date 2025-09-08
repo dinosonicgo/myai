@@ -471,13 +471,13 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     return {"turn_plan": plan}
 
 
-# 函式：獲取摘要後的對話歷史 (v27.0 - NameError 修正)
+# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
 # 更新紀錄:
-# v27.0 (2025-09-08): [災難性BUG修復] 根據 NameError Traceback，為此函式所在的 `graph.py` 檔案補充了缺失的 `ChatPromptTemplate` 和 `StrOutputParser` 導入語句。此函式本身邏輯正確，但因其依賴未被導入而導致了整個圖的崩潰。
-# v26.0 (2025-09-22): [災難性BUG修復] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
+# v28.0 (2025-09-08): [災難性BUG修復] 徹底重構了此函式的終極備援邏輯。舊版本在所有摘要嘗試失敗後，會不安全地返回原始的、未經處理的對話歷史，這是導致 AI“偷懶”並重複歷史文本的根本原因。新版本在所有嘗試失敗後，將返回一個安全的中性提示字符串，從而切斷了將重複或露骨內容污染到下游鏈的數據源。
+# v27.0 (2025-09-08): [災難性BUG修復] 補充了缺失的導入語句。
 async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
     """
-    [v26.0 修正] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
+    [v28.0 修正] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
     """
     if not ai_core.profile: return "（沒有最近的對話歷史）"
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
@@ -511,13 +511,10 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
     try:
         # --- 步驟 1: 樂觀嘗試 ---
-        # 直接嘗試摘要原始的、可能露骨的歷史文本。
         logger.info(f"[{user_id}] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...")
         summary = await summarizer_chain.ainvoke({"dialogue_history": raw_history_text})
 
-        # 檢查是否因為審查而返回空值
         if not summary or not summary.strip():
-            # 拋出一個自定義的異常，以觸發下方的備援機制
             raise Exception("SafetyError: Direct summarization returned empty content.")
             
         logger.info(f"[{user_id}] (History Summarizer) 直接摘要成功。")
@@ -525,12 +522,9 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
     except Exception as e:
         error_str = str(e).lower()
-        # --- 步驟 2: NSFW 安全備援機制 ---
-        # 只有當錯誤明確是因內容審查引起時，才啟動這個耗時但強大的備援
         if "safety" in error_str or "blocked" in error_str:
             logger.warning(f"[{user_id}] (History Summarizer) 直接摘要失敗，觸發【文學評論家】NSFW安全備援...")
             try:
-                # 步驟 2a: 使用「文學評論家」鏈將露骨歷史「清洗」成安全的文學概述
                 literary_chain = ai_core.get_literary_euphemization_chain()
                 safe_literary_overview = await literary_chain.ainvoke({"dialogue_history": raw_history_text})
                 
@@ -539,7 +533,6 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
                 logger.info(f"[{user_id}] (History Summarizer) 文學式委婉化成功，正在基於安全的概述重新生成摘要...")
                 
-                # 步驟 2b: 將這個【安全的概述】再次交給原始的摘要器，生成最終的「前情提要」
                 final_summary = await summarizer_chain.ainvoke({"dialogue_history": safe_literary_overview})
 
                 if not final_summary or not final_summary.strip():
@@ -549,15 +542,13 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
                 return f"【前情提要】:\n{final_summary}"
 
             except Exception as fallback_e:
-                # --- 步驟 3: 終極備援 ---
-                # 如果連「文學評論家」備援都失敗了，則退回到最安全、最簡單的模式
-                logger.error(f"[{user_id}] (History Summarizer) 【文學評論家】備援機制最終失敗: {fallback_e}。啟動終極備援。", exc_info=True)
-                return _get_formatted_chat_history(ai_core, user_id, num_messages=2)
+                # [v28.0 核心修正] 終極備援不再返回原始歷史
+                logger.error(f"[{user_id}] (History Summarizer) 【文學評論家】備援機制最終失敗: {fallback_e}。啟動終極備援。", exc_info=False) # 減少日誌噪音
+                return "（歷史對話摘要因內容審查而生成失敗，部分上下文可能缺失。）"
         else:
-            # 如果是其他類型的錯誤（如網絡問題），則直接觸發終極備援
             logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生非安全相關的未知錯誤: {e}。啟動終極備援。", exc_info=True)
-            return _get_formatted_chat_history(ai_core, user_id, num_messages=2)
-# 函式：獲取摘要後的對話歷史 (v27.0 - NameError 修正)
+            return "（歷史對話摘要因技術錯誤而生成失敗，部分上下文可能缺失。）"
+# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
 
 
 
@@ -1183,6 +1174,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
