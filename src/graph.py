@@ -471,6 +471,28 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     return {"turn_plan": plan}
 
 
+# 函式：獲取原始對話歷史 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-08): [重大架構升級] 創建此全新的輔助函式，專門用於在處理“继续”等延续性指令時，為生成節點提供未經摘要的、最原始、最完整的最近對話歷史。這能確保 AI 在續寫時擁有最精確的上下文，避免因摘要造成的信息損失而導致劇情偏離。
+def _get_raw_chat_history(ai_core: AILover, user_id: str, num_messages: int = 4) -> str:
+    """一個專門的輔助函式，用於為“继续”等延续性指令提供未經摘要的原始對話歷史。"""
+    if not ai_core.profile: return "（沒有最近的對話歷史）"
+    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    if not chat_history_manager.messages:
+        return "（沒有最近的對話歷史）"
+    
+    # 獲取最近的幾條消息（使用者 + AI 為一組）
+    recent_messages = chat_history_manager.messages[-num_messages:]
+    
+    formatted_history = []
+    for msg in recent_messages:
+        role = "使用者" if isinstance(msg, HumanMessage) else "AI"
+        formatted_history.append(f"{role}: {msg.content}")
+        
+    return "\n".join(formatted_history)
+# 函式：獲取原始對話歷史 (v1.0 - 全新創建)
+
+
 # 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
 # 更新紀錄:
 # v28.0 (2025-09-08): [災難性BUG修復] 徹底重構了此函式的終極備援邏輯。舊版本在所有摘要嘗試失敗後，會不安全地返回原始的、未經處理的對話歷史，這是導致 AI“偷懶”並重複歷史文本的根本原因。新版本在所有嘗試失敗後，將返回一個安全的中性提示字符串，從而切斷了將重複或露骨內容污染到下游鏈的數據源。
@@ -876,17 +898,17 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成节 点
+# 函式：直接 NSFW 生成節點 (v32.0 - 續寫邏輯強化)
+# 更新紀錄:
+# v32.0 (2025-09-08): [災難性BUG修復] 為此節點增加了針對“延续性指令”的專門處理邏輯。當檢測到輸入為“继续”時，它會：1. 使用一個特製的、明確要求“續寫”的指令替換掉無意義的“继续”文本。2. 調用新的 `_get_raw_chat_history` 輔助函式，為 AI 提供未經摘要的、最完整的原始對話歷史。此修改旨在從根本上解決 AI 在續寫時偏離主題或創造無關新劇情的嚴重問題。
+# v31.0 (2025-09-12): [災難性BUG修復] [NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [v31.0 修正] [NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。
-    內建全新的“场景自检”和“强制LORE扩展”机制。在生成前，它会检查场景中是否存在具名的NPC。
-    如果不存在，它将绕过上游错误的决策，强制执行一次LORE扩展流程，以确保最终的生成请求总是有具体的角色可供驱使，
-    从而极大提高突破审查的成功率。
+    [v32.0 修正] [NSFW Path] 執行單次指令轟炸，並內建對“续写”指令的專門處理邏輯。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    input_analysis = state['input_analysis']
     logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在執行【指令轟炸】...")
 
     if not ai_core.profile:
@@ -897,16 +919,13 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     if not latest_characters:
         logger.warning(f"[{user_id}] (NSFW Node) 检测到“无米之炊”场景（无具名NPC），正在启动【强制LORE扩展】备援机制...")
         
-        # 步骤 1: 量化
         quant_state = await character_quantification_node(state)
         quantified_list = quant_state.get('quantified_character_list', [])
         
         if not quantified_list:
             logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：量化步骤未能识别出任何可创建的角色。")
         else:
-            # 步骤 2: 扩展
             logger.info(f"[{user_id}] (NSFW Node) 强制扩展：已量化出 {len(quantified_list)} 个角色，正在执行扩展...")
-            # 创建一个临时的、只包含量化结果的 state 字典来调用扩展节 点
             temp_state_for_expansion = state.copy()
             temp_state_for_expansion['quantified_character_list'] = quantified_list
             
@@ -919,9 +938,21 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
                 logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：扩展步骤未能返回任何角色。")
 
     gs = ai_core.profile.game_state
-    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
     
-    # --- 后续流程与之前版本相同，但现在有了可靠的角色数据 ---
+    # [v32.0 核心修正] 根據是否為延续性指令，選擇不同的上下文和指令
+    user_input_for_chain: str
+    chat_history_for_chain: str
+
+    if input_analysis and input_analysis.input_type == 'continuation':
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文進行續寫...")
+        user_input_for_chain = "使用者要求無縫地、不間斷地接續上一幕的情節，將故事向前推進。"
+        # 為續寫提供未經摘要的、最原始的上下文
+        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=4)
+    else:
+        user_input_for_chain = state['messages'][-1].content
+        # 對於新指令，使用經過安全摘要的歷史
+        chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
+    
     dossiers = []
     for char_data in latest_characters:
         name = char_data.get('name', '未知名稱')
@@ -957,8 +988,8 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
-        "chat_history": chat_history_str,
-        "user_input": user_input,
+        "chat_history": chat_history_for_chain,
+        "user_input": user_input_for_chain,
     }
 
     narrative_text = await ai_core.ainvoke_with_rotation(
@@ -971,7 +1002,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成节 点
+# 函式：直接 NSFW 生成節點 (v32.0 - 續寫邏輯強化)
 
 
 
@@ -982,21 +1013,22 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：创建主回应图
+# 函式：創建主回應圖 (v31.0 - 延续性指令快速通道)
+# 更新紀錄:
+# v31.0 (2025-09-08): [重大架構重構] 徹底重構了圖的拓撲結構，為“延续性指令”（如“继续”）開闢了一條專用的【快速通道】。在初步意圖分類後，新增了一個路由器，如果檢測到是延续性指令，流程將完全繞過所有耗時且不必要的LORE擴展決策與角色量化節點，直接進入規劃器。此修改從根本上解決了“继续”指令會錯誤觸發LORE擴展並導致劇情偏離的問題。
+# v30.0 (2025-09-12): [災難性BUG修復] 創建主回應圖。
 def create_main_response_graph() -> StateGraph:
     """
-    [v30.0 修正] 创建主回应图。
-    再次重构了图的拓扑结构，将感知、查询和组装拆分为三个独立的、按正确顺序连接的节 点，
-    彻底解决了因数据依赖和执行时序错乱导致的 KeyError。
+    [v31.0 修正] 創建主回應圖，內建對“延续性指令”的快速通道。
     """
     graph = StateGraph(ConversationGraphState)
     
-    # --- 节 点注册 ---
+    # --- 節點註冊 (保持不變) ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
     graph.add_node("query_lore", query_lore_node)
-    graph.add_node("assemble_context", assemble_context_node) # 新增节 点
+    graph.add_node("assemble_context", assemble_context_node)
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
@@ -1018,18 +1050,33 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- 图的边缘连接 (核心修正) ---
+    # --- [v31.0 核心修正] 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
-    graph.add_edge("classify_intent", "retrieve_memories")
     
-    # [v30.0 核心修正] 建立全新的、逻辑正确的拓扑结构
-    # 1. 先感知 (perceive) 和设定视角 (set_view)，确定场景。
+    # 新增的路由器，用於分流
+    def route_to_expansion_or_planner(state: ConversationGraphState) -> Literal["continue_to_expansion_check", "bypass_to_planner"]:
+        """根據輸入是否為延续性指令，決定是否需要經過LORE擴展檢查。"""
+        if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
+            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】，繞過LORE擴展。")
+            return "bypass_to_planner"
+        else:
+            logger.info(f"[{state['user_id']}] (Router) 檢測到新指令，正在進入標準LORE擴展檢查流程。")
+            return "continue_to_expansion_check"
+
+    # 1. 意圖分類後，立即進行路由決策
+    graph.add_conditional_edges(
+        "classify_intent",
+        route_to_expansion_or_planner,
+        {
+            "continue_to_expansion_check": "retrieve_memories",
+            "bypass_to_planner": "prepare_existing_subjects" # 快速通道
+        }
+    )
+
+    # 2. 標準流程（非延续性指令）
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
-    # 2. 然后带着确定的视角去查询 (query) LORE。
     graph.add_edge("perceive_and_set_view", "query_lore")
-    # 3. 在拿到 LORE 数据后，专门进行组装 (assemble) 上下文。
     graph.add_edge("query_lore", "assemble_context")
-    # 4. 最后，带着完整的上下文进行扩展决策。
     graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
@@ -1042,9 +1089,13 @@ def create_main_response_graph() -> StateGraph:
     )
     graph.add_edge("character_quantification", "lore_expansion")
     graph.add_edge("lore_expansion", "planner_junction")
+    
+    # 3. 快速通道與標準流程的匯合點
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
+    # 4. 規劃器路由 (保持不變)
     def route_to_planner(state: ConversationGraphState) -> str:
+        # ... (此函式內容保持不變)
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification: return "sfw_planner" 
@@ -1070,22 +1121,20 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # SFW 路径
+    # 5. 後續流程 (保持不變)
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     
-    # NSFW 新路径
     graph.add_edge("direct_nsfw_generation", "rendering_junction")
 
-    # 汇合点及最终流程
     graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：创建主回应图
+# 函式：創建主回應圖 (v31.0 - 延续性指令快速通道)
 
         
 
@@ -1174,6 +1223,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
