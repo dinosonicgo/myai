@@ -1013,13 +1013,13 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v31.0 - 延续性指令快速通道)
+# 函式：創建主回應圖 (v32.0 - 快速通道修正)
 # 更新紀錄:
-# v31.0 (2025-09-08): [重大架構重構] 徹底重構了圖的拓撲結構，為“延续性指令”（如“继续”）開闢了一條專用的【快速通道】。在初步意圖分類後，新增了一個路由器，如果檢測到是延续性指令，流程將完全繞過所有耗時且不必要的LORE擴展決策與角色量化節點，直接進入規劃器。此修改從根本上解決了“继续”指令會錯誤觸發LORE擴展並導致劇情偏離的問題。
-# v30.0 (2025-09-12): [災難性BUG修復] 創建主回應圖。
+# v32.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了“延续性指令”的快速通道邏輯。舊版本會錯誤地繞過 LORE 查詢節點，導致續寫時無法加載上一輪創建的角色，從而引發“無米之炊”的連鎖錯誤。新版本修正了路由目標，確保快速通道在繞過 LORE 擴展的同時，【必須經過 LORE 查詢】，從而保證了劇情續寫的連續性和角色持久化。
+# v31.0 (2025-09-08): [重大架構重構] 為“延续性指令”開闢了專用的快速通道。
 def create_main_response_graph() -> StateGraph:
     """
-    [v31.0 修正] 創建主回應圖，內建對“延续性指令”的快速通道。
+    [v32.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
     """
     graph = StateGraph(ConversationGraphState)
     
@@ -1050,35 +1050,36 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- [v31.0 核心修正] 圖的邊緣連接 ---
+    # --- [v32.0 核心修正] 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    # 新增的路由器，用於分流
-    def route_to_expansion_or_planner(state: ConversationGraphState) -> Literal["continue_to_expansion_check", "bypass_to_planner"]:
-        """根據輸入是否為延续性指令，決定是否需要經過LORE擴展檢查。"""
+    # 路由器：用於區分新指令和延续性指令
+    def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
         if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
-            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】，繞過LORE擴展。")
-            return "bypass_to_planner"
+            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】。")
+            return "continuation_flow"
         else:
-            logger.info(f"[{state['user_id']}] (Router) 檢測到新指令，正在進入標準LORE擴展檢查流程。")
-            return "continue_to_expansion_check"
+            return "standard_flow"
 
-    # 1. 意圖分類後，立即進行路由決策
+    # 1. 意圖分類後，立即進行路由
     graph.add_conditional_edges(
         "classify_intent",
-        route_to_expansion_or_planner,
+        route_after_intent_classification,
         {
-            "continue_to_expansion_check": "retrieve_memories",
-            "bypass_to_planner": "prepare_existing_subjects" # 快速通道
+            "standard_flow": "retrieve_memories",
+            "continuation_flow": "query_lore"  # [v32.0 核心修正] 快速通道直接跳到LORE查詢
         }
     )
 
-    # 2. 標準流程（非延续性指令）
+    # 2. 標準流程（新指令）
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "query_lore")
+    
+    # 3. 匯合點：無論是標準流程還是快速通道，都會到達 query_lore
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
+    # 4. LORE擴展決策
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -1089,11 +1090,9 @@ def create_main_response_graph() -> StateGraph:
     )
     graph.add_edge("character_quantification", "lore_expansion")
     graph.add_edge("lore_expansion", "planner_junction")
-    
-    # 3. 快速通道與標準流程的匯合點
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # 4. 規劃器路由 (保持不變)
+    # 5. 規劃器路由及後續流程 (保持不變)
     def route_to_planner(state: ConversationGraphState) -> str:
         # ... (此函式內容保持不變)
         user_id = state['user_id']
@@ -1121,7 +1120,6 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # 5. 後續流程 (保持不變)
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
@@ -1134,7 +1132,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v31.0 - 延续性指令快速通道)
+# 函式：創建主回應圖 (v32.0 - 快速通道修正)
 
         
 
@@ -1223,6 +1221,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
