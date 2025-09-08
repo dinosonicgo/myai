@@ -805,10 +805,10 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
-# 函式：驗證並重寫節點 (v1.1 - 系統指令洩漏淨化)
+# 函式：驗證並重寫節點 (v1.2 - 多層淨化)
 # 更新紀錄:
-# v1.1 (2025-09-08): [災難性BUG修復] 根據使用者反饋，注入了針對指令轟炸模式下“系統指令洩漏”的專門淨化邏輯。新的處理流程會優先尋找 `【你創作的、全新的小說章節】:` 這個明確標記，並只保留該標記之後的純淨小說內容，從根本上解決了 prompt leaking 的問題。
-# v1.0 (2025-09-08): 原始創建。
+# v1.2 (2025-09-08): [災難性BUG修復] 根據使用者建議，徹底重構了淨化邏輯，引入了更可靠的“起始符號”策略。現在的淨化流程是一個多層防禦系統，優先尋找 `§` 符號，如果失敗則回退到舊的標記，最後再進行通用清理，極大地增強了抗洩漏能力。
+# v1.1 (2025-09-08): [災難性BUG修復] 注入了針對指令轟炸模式下“系統指令洩漏”的專門淨化邏輯。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
@@ -819,26 +819,36 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
     
-    # [v1.1 核心修正] 針對指令轟炸洩漏的專門淨化邏輯
     clean_response = initial_response
-    leak_marker = "【你創作的、全新的小說章節】:"
     
-    if leak_marker in clean_response:
-        logger.warning(f"[{user_id}] 檢測到嚴重的系統指令洩漏，正在啟動專門淨化程序...")
-        parts = clean_response.split(leak_marker, 1)
+    # --- [v1.2 核心修正] 多層淨化系統 ---
+    
+    # 第一層 (最高優先級)：尋找 § 起始符號
+    start_marker = "§"
+    if start_marker in clean_response:
+        logger.warning(f"[{user_id}] 檢測到「§」起始符號，正在啟動最高優先級淨化...")
+        parts = clean_response.split(start_marker, 1)
         if len(parts) > 1:
             clean_response = parts[1]
-            logger.info(f"[{user_id}] 系統指令洩漏已成功淨化，已提取小說正文。")
+            logger.info(f"[{user_id}] 「§」起始符號淨化成功。")
         else:
-            # 雖然不太可能發生，但作為防禦性程式設計
-            logger.error(f"[{user_id}] 淨化失敗：找到了洩漏標記但無法分割內容。")
-            clean_response = "" # 如果分割失敗，則清空以觸發備援
+            logger.error(f"[{user_id}] 淨化失敗：找到了「§」但無法分割。")
+            clean_response = ""
+    else:
+        # 第二層 (備援)：尋找舊的洩漏標記
+        leak_marker = "【你創作的、全新的小說章節】:"
+        if leak_marker in clean_response:
+            logger.warning(f"[{user_id}] 未找到「§」，但檢測到舊的洩漏標記，啟動備援淨化...")
+            parts = clean_response.split(leak_marker, 1)
+            if len(parts) > 1:
+                clean_response = parts[1]
+                logger.info(f"[{user_id}] 備援淨化成功。")
 
-    # 在專門淨化後，再執行通用的標籤清理
+    # 第三層 (通用)：在主要淨化後，清理剩餘的小標籤
     clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
     if '旁白:' in clean_response or '對話:' in clean_response:
-        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動備援清理。")
+        logger.warning(f"[{user_id}] 檢測到非標準格式的標籤洩漏，啟動通用清理。")
         clean_response = clean_response.replace('旁白:', '').replace('對話:', '')
         clean_response = clean_response.replace('旁白：', '').replace('對話：', '')
     
@@ -848,7 +858,10 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
-# 函式：驗證並重寫節點 (v1.1 - 系統指令洩漏淨化)
+# 函式：驗證並重寫節點 (v1.2 - 多層淨化)
+
+
+
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
@@ -1300,6 +1313,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
