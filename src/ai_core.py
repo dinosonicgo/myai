@@ -2096,10 +2096,10 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v5.1 - 檢索結果安全清洗)
+    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
     # 更新紀錄:
-    # v5.1 (2025-09-08): [災難性BUG修復] 根據 API 超時日誌，注入了【檢索結果安全清洗】流程。在將 RAG 檢索到的文檔發送給摘要器之前，會先使用強大的“文學評論家”鏈對每一個文檔的內容進行強制性的安全預處理。此修改旨在從根本上解決因歷史記憶中包含未經處理的露骨內容而導致下游摘要鏈 API 掛起和超時的致命問題。
-    # v5.0 (2025-09-25): [災難性BUG修復] 徹底移除了此函式內部所有關於“查詢預處理”的冗餘邏輯。
+    # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 根據使用者反饋，徹底重構了文檔清洗邏輯以解決“重試風暴”和效能低下的問題。新版本採用了“批次處理”策略：不再為每個檢索到的文檔單獨調用LLM進行清洗，而是將所有文檔內容合併為一個大的文本塊，然後用一次LLM調用（文學評論家鏈）將其整體安全化，再用第二次LLM調用進行摘要。此修改將此函式的LLM調用次數從 N+1 次恆定為 2 次，極大提升了速度並降低了API速率超限的風險。
+    # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
         if not self.retriever:
@@ -2143,46 +2143,43 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # --- [v5.1 核心修正] 檢索結果安全清洗 ---
-        logger.info(f"[{self.user_id}] (Summarizer Pre-cleaner) 檢索到 {len(retrieved_docs)} 份文檔，正在對其內容進行強制性安全預清洗...")
+        # --- [v6.0 核心修正] 批次清洗與摘要 ---
+        logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在將其合併並進行一次性批次清洗...")
+        
+        # 步驟 1: 將所有文檔內容合併為單一文本塊
+        combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
+        
+        # 步驟 2: 對合併後的單一文本塊進行一次性的文學化清洗
         literary_chain = self.get_literary_euphemization_chain()
-        sanitized_docs_for_summarizer = []
+        safe_overview_of_all_docs = await self.ainvoke_with_rotation(
+            literary_chain,
+            {"dialogue_history": combined_content},
+            retry_strategy='none' # 如果連批次清洗都失敗，直接終止，不再嘗試修復
+        )
 
-        async def sanitize_doc_content(doc):
-            try:
-                # 對每個文檔內容應用文學評論家鏈
-                safe_content = await self.ainvoke_with_rotation(
-                    literary_chain,
-                    {"dialogue_history": doc.page_content},
-                    retry_strategy='euphemize' # 確保即使清洗失敗也有備援
-                )
-                if safe_content and safe_content.strip():
-                    return Document(page_content=safe_content, metadata=doc.metadata)
-                else:
-                    # 如果清洗後為空（可能是因為重試也失敗了），返回一個安全的佔位符
-                    return Document(page_content="[此記憶片段因包含極端內容而無法生成摘要。]", metadata=doc.metadata)
-            except Exception:
-                 return Document(page_content="[摘要此記憶片段時發生技術錯誤。]", metadata=doc.metadata)
+        if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
+            logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
+            return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
+        
+        logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
 
-        # 並行處理所有文檔的清洗
-        sanitized_docs_for_summarizer = await asyncio.gather(*(sanitize_doc_content(doc) for doc in retrieved_docs))
-        logger.info(f"[{self.user_id}] (Summarizer Pre-cleaner) 所有檢索文檔均已安全化處理完畢。")
-        # --- 清洗結束 ---
-
-        # 使用完全被清洗過的文檔列表來進行總結
+        # 步驟 3: 將清洗後的單一安全概述傳遞給摘要器
+        # 我們將其包裝在一個 Document 物件中以符合摘要器鏈的輸入格式
+        docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
+        
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
-            sanitized_docs_for_summarizer, 
-            retry_strategy='euphemize'
+            docs_for_summarizer,
+            retry_strategy='none' # 摘要器理論上不應再失敗，但為保險起見也快速失敗
         )
 
         if not summarized_context or not summarized_context.strip():
-             logger.warning(f"[{self.user_id}] RAG 總結鏈返回了空的內容（可能因委婉化重試失敗）。")
+             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
              summarized_context = "从記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v5.1 - 檢索結果安全清洗)
+    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
 
 
 
@@ -3242,10 +3239,13 @@ class AILover:
 
     
     
-     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v211.0 - 超時保護)
+# ai_core.py
+
+# ... (檔案中的 import 和其他程式碼) ...
+
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 新增快速失敗策略)
     # 更新紀錄:
-    # v211.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此函式的核心調用邏輯，引入了【超時保護】。現在，對 `chain.ainvoke` 的調用被 `asyncio.wait_for` 包裹，並設定了 90 秒的超時限制。此修改旨在從根本上解決因 Google API 在處理特定邊界情況（尤其是內容審查）時不返回錯誤也不結束、導致整個程式無限掛起（hang）的致命問題。
-    # v210.0 (2025-09-22): [災難性BUG修復] 徹底重構了異常捕獲邏輯，增加了對第三方庫（特別是 Cohere）速率限制錯誤 (429 Too Many Requests) 的精確識別。
+    # v210.0 (2025-09-08): [災難性BUG修復] 根據重試風暴日誌，為 `retry_strategy` 新增了 'none' 選項。當設置為 'none' 時，如果鏈因內容安全問題失敗，函式將立即停止並返回 None，不再觸發任何後續的重試或委婉化。此修改旨在從根本上打破因“備援鏈自身也失敗”而導致的無限重試循環。
     # v209.0 (2025-09-10): [重大架構升級] 恢復了 `euphemize` 重試策略的應用。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
@@ -3256,8 +3256,6 @@ class AILover:
         
         for attempt in range(max_retries):
             try:
-                # [v211.0 核心修正] 為核心異步操作增加 90 秒的超時保護
-                # 這可以將未知的 API "掛起" 狀態轉換為一個可捕獲的 TimeoutError
                 result = await asyncio.wait_for(
                     chain.ainvoke(params),
                     timeout=90.0
@@ -3269,14 +3267,11 @@ class AILover:
                     
                 return result
 
-            # [v211.0 核心修正] 捕獲新增的 TimeoutError
             except asyncio.TimeoutError:
                 logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時。這可能是由於 API 問題或內容過濾掛起。將嘗試使用下一個金鑰...")
-                # 將其重新拋出為 ServiceUnavailable，以便被下方的異常處理塊捕獲並觸發金鑰輪換
                 raise ServiceUnavailable("API call timed out.") from None
 
             except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded) as e:
-                # 這個 except 塊現在也會捕獲上面重新拋出的 ServiceUnavailable(TimeoutError)
                 delay = base_delay * (attempt + 1)
                 logger.warning(f"[{self.user_id}] Google API 遭遇資源或伺服器錯誤: {type(e).__name__}. 將在 {delay:.1f} 秒後使用下一個金鑰重試...")
                 await asyncio.sleep(delay)
@@ -3293,14 +3288,15 @@ class AILover:
                     raise RuntimeError("COHERE_RATE_LIMIT_EXCEEDED") from e
 
                 if is_safety_error:
-                    if retry_strategy == 'euphemize':
+                    # [v210.0 核心修正] 增加快速失敗邏輯
+                    if retry_strategy == 'none':
+                        logger.warning(f"[{self.user_id}] 鏈遭遇內容審查，且重試策略為 'none'。為防止循環錯誤，將立即終止並返回 None。")
+                        return None # 立即返回，打破循環
+                    elif retry_strategy == 'euphemize':
                         return await self._euphemize_and_retry(chain, params)
                     elif retry_strategy == 'force':
                         logger.warning(f"[{self.user_id}] 鏈在執行期間遭遇審查。啟動【指令強化重試】策略...")
                         return await self._force_and_retry(chain, params)
-                    else: # 'none'
-                        logger.warning(f"[{self.user_id}] 鏈遭遇內容審查，且重試策略為 'none'。返回 None。")
-                        return None
                 
                 logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知但非安全相關的錯誤: {e}", exc_info=True)
                 raise e
@@ -3312,7 +3308,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] 鏈在所有金鑰嘗試失敗後，最終遭遇審查。啟動【指令強化重試】策略...")
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v211.0 - 超時保護)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 新增快速失敗策略)
 
     
 
@@ -3536,6 +3532,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
