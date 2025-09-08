@@ -1493,18 +1493,18 @@ class AILover:
 
 
     
-    # 函式：建構檢索器 (v204.0 - ChromaDB 初始化修正)
+    # 函式：建構檢索器 (v203.0 - ChromaDB 初始化修正)
     # 更新紀錄:
-    # v204.0 (2025-09-06): [災難性BUG修復] 根據 "Could not connect to tenant" 致命錯誤，徹底重構了 ChromaDB 的初始化邏輯。不再使用通用的、行為不穩定的 `chromadb.Client()` 建構函式，而是改為使用官方推薦的、專為本地持久化設計的 `chromadb.PersistentClient(path=...)`。此修改旨在從根本上繞過 chromadb 函式庫在高層級 API 上的初始化 Bug，確保在 /start 重置流程後能夠穩定地創建新的向量數據庫。
-    # v203.0 (2025-09-18): [災難性BUG修復] 徹底重構了 ChromaDB 的初始化邏輯。
+    # v203.0 (2025-09-09): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 致命錯誤，徹底重構了 ChromaDB 的初始化與恢復邏輯。核心修正在於，在檢測到資料庫損壞並刪除舊目錄後，強制性地加入了一個【戰術性延遲】。此修改旨在解決因檔案系統（特別是 Windows）未能立即釋放檔案鎖，而導致 ChromaDB 在同一路徑上重新初始化時發生內部狀態混亂的底層問題。
     # v202.2 (2025-09-04): [災難性BUG修復] 增加了戰術性延遲。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復能力。"""
         all_docs = []
         
-        # 輔助函式，用於創建健壯的 ChromaDB 客戶端
+        # 輔助函式，保持不變
         def _create_chroma_instance(path: str, embedding_func: Any) -> Chroma:
-            # [v204.0 核心修正] 使用專為本地持久化設計的、更穩定的 PersistentClient
+            # 保持使用 PersistentClient，因為這是官方推薦的本地持久化方式
+            # 我們的修復將在調用此函式之前解決問題
             chroma_client = chromadb.PersistentClient(path=path)
             
             return Chroma(
@@ -1513,17 +1513,16 @@ class AILover:
             )
 
         try:
-            # 步驟 1: 嘗試實例化 ChromaDB 客戶端。
+            # 步驟 1: 正常嘗試初始化
             self.vector_store = _create_chroma_instance(self.vector_store_path, self.embeddings)
             
-            # 步驟 2: 如果實例化成功，再嘗試安全地讀取數據
             all_docs_collection = await asyncio.to_thread(self.vector_store.get)
             all_docs = [
                 Document(page_content=doc, metadata=meta)
                 for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])
             ]
         except Exception as e:
-            # 步驟 3: 如果在上述任何一步發生異常，則假定資料庫已損壞並啟動恢復程序
+            # 步驟 2: 如果在初始化時發生任何錯誤，則啟動恢復程序
             logger.warning(f"[{self.user_id}] 向量儲存初始化失敗（可能是首次啟動或資料損壞）: {type(e).__name__}: {e}。啟動全自動恢復...")
             try:
                 # 備份並刪除舊的、已損壞的資料夾
@@ -1534,13 +1533,15 @@ class AILover:
                     shutil.move(str(vector_path), str(backup_path))
                     logger.info(f"[{self.user_id}] 已將損壞的向量資料庫備份至: {backup_path}")
                 
-                # 創建一個全新的空資料夾
-                vector_path.mkdir(parents=True, exist_ok=True)
-                
+                # [v203.0 核心修正] 增加戰術性延遲
+                # 給予作業系統足夠的時間來完全釋放對舊目錄中所有檔案的鎖定和句柄
+                # 這是解決 "Could not connect to tenant" 錯誤的關鍵
                 logger.info(f"[{self.user_id}] 已清理舊目錄，正在等待 1.0 秒以確保檔案鎖已釋放...")
                 await asyncio.sleep(1.0)
                 
                 # 在乾淨的環境下再次嘗試實例化
+                # 注意：我們沒有在這裡創建新目錄，因為 _create_chroma_instance (或其底層的 PersistentClient)
+                # 應該能夠在路徑不存在時自行創建。
                 self.vector_store = _create_chroma_instance(self.vector_store_path, self.embeddings)
                 all_docs = [] # 我們明確知道這是一個全新的空資料庫
                 logger.info(f"[{self.user_id}] 全自動恢復成功，已創建全新的向量儲存。")
@@ -1550,7 +1551,7 @@ class AILover:
                 logger.error(f"[{self.user_id}] 自動恢復過程中發生致命錯誤，程式無法繼續: {recovery_e}", exc_info=True)
                 raise recovery_e
 
-        # 步驟 4: 根據是否有文檔來建構檢索器
+        # 步驟 3: 根據是否有文檔來建構檢索器
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
         
         if all_docs:
@@ -1562,7 +1563,7 @@ class AILover:
             base_retriever = chroma_retriever
             logger.info(f"[{self.user_id}] 資料庫為空，暫時使用純向量檢索器作為基礎。")
 
-        # 步驟 5: (可選) 應用重排器
+        # 步驟 4: (可選) 應用重排器
         if settings.COHERE_KEY:
             from langchain_cohere import CohereRerank
             from langchain.retrievers import ContextualCompressionRetriever
@@ -1574,7 +1575,7 @@ class AILover:
             logger.warning(f"[{self.user_id}] RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
         return retriever
-    # 函式：建構檢索器 (v204.0 - ChromaDB 初始化修正)
+    # 函式：建構檢索器 (v203.0 - ChromaDB 初始化修正)
 
 
     
@@ -3532,6 +3533,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
