@@ -811,8 +811,12 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
+# 函式：驗證與重寫節點 (v2.0 - 指令洩漏修正)
+# 更新紀錄:
+# v2.0 (2025-09-08): [災難性BUG修復] 根據使用者反饋，對此節點的淨化邏輯進行了決定性強化。新增了一個更高優先級的清理步驟，專門用於檢測並移除因 AI“指令漂移”而洩漏到最終輸出中的 Prompt 指令文本。它會使用“【你創作的、全新的小說章節】:”作為關鍵分隔符，精準地切除所有不應出現的系統指令，從根本上解決了指令洩漏問題。
+# v1.0 (2025-09-12): 原始創建
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
-    """[10] 統一的輸出驗證與淨化節點。"""
+    """[v2.0] 統一的輸出驗證與淨化節點，內建強大的指令洩漏清理功能。"""
     user_id = state['user_id']
     initial_response = state['llm_response']
     logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
@@ -822,6 +826,19 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
     
     clean_response = initial_response
+
+    # [v2.0 核心修正] 步驟一：處理最常見的、最嚴重的指令洩漏
+    # 這個分隔符來自 get_direct_nsfw_chain 的 human_prompt_template
+    delimiter = "【你創作的、全新的小說章節】:"
+    if delimiter in clean_response:
+        # 使用 split(delimiter, 1) 只進行一次切割，效率更高
+        parts = clean_response.split(delimiter, 1)
+        if len(parts) > 1:
+            # 取分隔符之後的所有內容
+            clean_response = parts[1]
+            logger.info(f"[{user_id}] (Cleaner) 檢測到並移除了核心Prompt指令洩漏。")
+
+    # 步驟二：處理其他類型的、較輕微的格式污染
     clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
     if '旁白:' in clean_response or '對話:' in clean_response:
@@ -835,6 +852,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
+# 函式：驗證與重寫節點 (v2.0 - 指令洩漏修正)
 
 # 函式：持久化狀態節點 (v2.0 - 持久化意圖)
 # 更新紀錄:
@@ -1273,6 +1291,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
