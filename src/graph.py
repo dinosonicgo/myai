@@ -28,12 +28,8 @@ from langchain_core.output_parsers import StrOutputParser
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# 函式：意圖分類節點 (v2.0 - 意圖繼承)
-# 更新紀錄:
-# v2.0 (2025-09-22): [災難性BUG修復 & 功能擴展] 注入了【意圖繼承】邏輯。現在，當此節點檢測到“继续”等延续性指令時，它會直接從持久化的 `GameState` 中讀取並繼承上一輪的意圖分類，而不再調用 LLM。此修改不僅從根本上解決了“继续”指令可能被錯誤分類的問題，還極大地提高了響應速度並節省了 API 調用成本。
-# v1.0 (2025-09-12): 原始創建
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[v2.0] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以繼承持久化的状态。"""
+    """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承持久化的状态。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -46,7 +42,6 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
     
-    # [v2.0 核心修正] 意圖繼承邏輯
     if input_analysis_result and input_analysis_result.input_type == 'continuation':
         if ai_core.profile and ai_core.profile.game_state.last_intent_type:
             last_intent_type = ai_core.profile.game_state.last_intent_type
@@ -79,135 +74,58 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         "intent_classification": classification_result,
         "input_analysis": input_analysis_result
     }
-# 函式：意圖分類節點 (v2.0 - 意圖繼承)
 
-# 函式：檢索記憶節點 (v30.0 - 清洗邏輯修正)
+# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
 # 更新紀錄:
-# v30.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此節點的“源頭清洗”邏輯。舊版本錯誤地使用了為“長篇小說”設計的“文學評論家”鏈來處理“簡短指令”，導致上下文被嚴重污染，引發了劇情不連續、內容不露骨、LORE被忽略等一系列災難性連鎖反應。新版本回歸了正確的備援策略：1. 首先樂觀地嘗試使用原始輸入執行RAG。2. 僅在遭遇內容審查失敗時，才啟動備援，使用 `entity_extraction_chain` 將指令解構為安全的【關鍵詞】，並用這些關鍵詞重試RAG。此修改從根本上保證了傳遞給下游的上下文的準確性和意圖的完整性。
-# v29.0 (2025-09-08): [重大架構重構] 此節點的職責已升級為【唯一的 NSFW 輸入清洗源頭】。
+# v29.0 (2025-09-08): [重大架構重構] 此節點的職責已升級為【唯一的 NSFW 輸入清洗源頭】。它不再使用脆弱的實體提取鏈，而是強制性地使用更強大的“文學評論家”鏈將原始輸入轉換為一段安全的文學概述。這段安全的概述將被用於 RAG 檢索，並同時儲存到新的 `sanitized_query_for_tools` 狀態中，供所有下游內部工具鏈安全使用，從根本上解決因多個節點重複處理原始 NSFW 輸入而導致的超時和掛起問題。
+# v28.0 (2025-09-12): [災難性BUG修復] 專用記憶檢索節點，執行RAG操作。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """
-    [v30.0 修正] 檢索記憶，並內建一個專為【使用者指令】設計的、基於關鍵詞解構的健壯備援機制。
+    [v29.0 源頭清洗] 專用記憶檢索與輸入清洗節點。
+    它會將原始輸入轉換為安全的文學概述，用於RAG，並將其傳遞給下游。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    user_input_for_retrieval = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於指令 '{user_input[:30]}...' 檢索記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在對輸入 '{user_input_for_retrieval[:30]}...' 執行【源頭清洗】與記憶檢索...")
     
-    query_for_rag = user_input
-    sanitized_query_for_downstream = user_input # 預設情況下，下游工具鏈也使用原始輸入
-
+    sanitized_query = ""
     try:
-        # --- 步驟 1: 樂觀嘗試 ---
-        # 直接使用原始的、未經修改的使用者輸入執行 RAG。
-        # 這樣可以最大限度地保留原始意圖，特別是在 SFW 或邊緣情況下。
-        logger.info(f"[{user_id}] (RAG) 正在樂觀地嘗試使用原始輸入執行 RAG...")
-        rag_context_str = await ai_core.retrieve_and_summarize_memories(query_for_rag)
-        logger.info(f"[{user_id}] (RAG) 樂觀嘗試成功。")
+        # --- 步驟 1: 強制性的安全預清洗 ---
+        # 使用強大的“文學評論家”鏈，將潛在的 NSFW 輸入轉換為安全的文學概述。
+        logger.info(f"[{user_id}] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對輸入進行強制性安全預清洗...")
+        literary_chain = ai_core.get_literary_euphemization_chain()
+
+        # 使用 ainvoke_with_rotation 並指定 euphemize 策略，以確保即使清洗鏈本身被審查也能有備援
+        sanitized_query = await ai_core.ainvoke_with_rotation(
+            literary_chain, 
+            {"dialogue_history": user_input_for_retrieval},
+            retry_strategy='euphemize' 
+        )
+        
+        # 如果委婉化重試後仍然失敗，則觸發終極備援
+        if not sanitized_query or not sanitized_query.strip():
+            logger.error(f"[{user_id}] (RAG Pre-cleaner) '文學評論家'清洗鏈最終失敗，將觸發終極備援。")
+            raise ValueError("Literary chain failed to produce output.")
+
+        logger.info(f"[{user_id}] (RAG Pre-cleaner) 輸入已成功預清洗為安全的文學概述: '{sanitized_query[:50]}...'")
 
     except Exception as e:
-        # --- 步驟 2: 基於關鍵詞解構的備援機制 ---
-        # 僅在樂觀嘗試因內容審查等問題失敗時，才觸發此備援。
-        logger.warning(f"[{user_id}] (RAG) 樂觀嘗試失敗 ({type(e).__name__})，啟動【指令解構】備援策略...")
-        try:
-            entity_extraction_chain = ai_core.get_entity_extraction_chain()
-            
-            # 我們仍然使用 'none' 策略快速失敗，以防提取鏈本身也掛起
-            entity_result = await ai_core.ainvoke_with_rotation(
-                entity_extraction_chain, 
-                {"text_input": user_input},
-                retry_strategy='none'
-            )
+        # --- 步驟 2: 終極備援 ---
+        logger.error(f"[{user_id}] (RAG Pre-cleaner) 安全預清洗失敗: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
+        sanitized_query = user_input_for_retrieval
 
-            if not entity_result or not entity_result.names:
-                logger.error(f"[{user_id}] (RAG Fallback) 指令解構失敗：未能提取任何關鍵詞。")
-                raise ValueError("Entity extraction failed in fallback.")
-
-            # 使用提取出的安全關鍵詞作為新的查詢文本
-            keyword_query = " ".join(entity_result.names)
-            logger.info(f"[{user_id}] (RAG Fallback) 指令已成功解構為安全關鍵詞: '{keyword_query}'。正在使用關鍵詞重試RAG...")
-            
-            query_for_rag = keyword_query
-            sanitized_query_for_downstream = keyword_query # 下游也使用這個安全的版本
-            rag_context_str = await ai_core.retrieve_and_summarize_memories(query_for_rag)
-            logger.info(f"[{user_id}] (RAG Fallback) 關鍵詞重試成功。")
-
-        except Exception as fallback_e:
-            # --- 步驟 3: 終極備援 ---
-            logger.error(f"[{user_id}] (RAG Fallback) 【指令解構】備援策略最終失敗: {fallback_e}。返回空的 RAG 上下文。", exc_info=True)
-            rag_context_str = "（長期記憶檢索因內容安全限制或技術錯誤而失敗。）"
-            # 在最壞的情況下，確保下游仍然有一個（雖然是原始的）查詢文本可用
-            sanitized_query_for_downstream = user_input
+    # --- 步驟 3: 執行檢索 ---
+    # 使用清洗後的安全查詢文本來執行 RAG
+    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
     
+    # --- 步驟 4: 返回結果，並將安全查詢文本存入狀態供下游使用 ---
     return {
         "rag_context": rag_context_str,
-        "sanitized_query_for_tools": sanitized_query_for_downstream
+        "sanitized_query_for_tools": sanitized_query
     }
-# 函式：檢索記憶節點 (v30.0 - 清洗邏輯修正)
-
-
-
-
-
-
-
-
-
-# 函式：[新] 規劃主體注水節點 (v5.0 - 返回值修正)
-# 更新紀錄:
-# v5.0 (2025-09-08): [災難性BUG修復] 根據連續的 KeyError Traceback，補上了在 v4.0 重構中遺漏的、至關重要的 `return {"scene_briefing": scene_briefing}` 語句。此修復確保了節點在完成處理後，能將生成的簡報（無論是來自 AI 還是備援）正確地返回給 LangGraph 狀態機，從根本上解決了下游節點因數據流中斷而引發的 KeyError 問題。
-# v4.0 (2025-09-08): [災難性BUG修復] 徹底重構了此節點的數據處理邏輯。
-async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[v5.0] 將冰冷的 LORE 角色列表，通過輕量化處理，健壯地轉換為生動的“導演場景簡報”。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    planning_subjects = state.get('planning_subjects', [])
-    user_input = state['messages'][-1].content
-    
-    if not planning_subjects:
-        logger.warning(f"[{user_id}] (Hydrator) 規劃主體為空，無法生成場景簡報。")
-        return {"scene_briefing": "（場景中沒有可供描述的具體角色。）"}
-
-    if not ai_core.profile:
-        return {"scene_briefing": "（錯誤：AI Profile 未加載。）"}
-
-    logger.info(f"[{user_id}] (Graph) Node: hydrate_planning_subjects -> 正在為 {len(planning_subjects)} 位演員生成導演簡報...")
-    
-    lightweight_subjects = [
-        {"name": p.get("name", "未知"), "description": p.get("description", "")}
-        for p in planning_subjects
-    ]
-    planning_subjects_json = json.dumps(lightweight_subjects, ensure_ascii=False, indent=2)
-
-    gs = ai_core.profile.game_state
-    effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-    current_location_str = " > ".join(effective_location_path)
-
-    briefing_chain = ai_core.get_scene_briefing_chain()
-    scene_briefing = await ai_core.ainvoke_with_rotation(
-        briefing_chain,
-        {
-            "current_location_str": current_location_str,
-            "planning_subjects_json": planning_subjects_json,
-            "user_input": user_input
-        },
-        retry_strategy='euphemize'
-    )
-
-    if not scene_briefing:
-        logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈在輕量化後依然返回空值，觸發最終備援簡報生成。")
-        character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
-        scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
-        logger.info(f"[{user_id}] (Hydrator) 已成功生成最終備援導演簡報。")
-    
-    # [v5.0 核心修正] 確保無論執行成功還是失敗，都將結果以正確的格式返回給狀態機
-    return {"scene_briefing": scene_briefing}
-# 函式：[新] 規劃主體注水節點 (v5.0 - 返回值修正)
-
-
-
-
+# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
 
 # 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
 # 更新紀錄:
@@ -887,12 +805,8 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
-# 函式：驗證與重寫節點 (v2.0 - 指令洩漏修正)
-# 更新紀錄:
-# v2.0 (2025-09-08): [災難性BUG修復] 根據使用者反饋，對此節點的淨化邏輯進行了決定性強化。新增了一個更高優先級的清理步驟，專門用於檢測並移除因 AI“指令漂移”而洩漏到最終輸出中的 Prompt 指令文本。它會使用“【你創作的、全新的小說章節】:”作為關鍵分隔符，精準地切除所有不應出現的系統指令，從根本上解決了指令洩漏問題。
-# v1.0 (2025-09-12): 原始創建
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
-    """[v2.0] 統一的輸出驗證與淨化節點，內建強大的指令洩漏清理功能。"""
+    """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
     initial_response = state['llm_response']
     logger.info(f"[{user_id}] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...")
@@ -902,19 +816,6 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
     
     clean_response = initial_response
-
-    # [v2.0 核心修正] 步驟一：處理最常見的、最嚴重的指令洩漏
-    # 這個分隔符來自 get_direct_nsfw_chain 的 human_prompt_template
-    delimiter = "【你創作的、全新的小說章節】:"
-    if delimiter in clean_response:
-        # 使用 split(delimiter, 1) 只進行一次切割，效率更高
-        parts = clean_response.split(delimiter, 1)
-        if len(parts) > 1:
-            # 取分隔符之後的所有內容
-            clean_response = parts[1]
-            logger.info(f"[{user_id}] (Cleaner) 檢測到並移除了核心Prompt指令洩漏。")
-
-    # 步驟二：處理其他類型的、較輕微的格式污染
     clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
     if '旁白:' in clean_response or '對話:' in clean_response:
@@ -928,14 +829,9 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
-# 函式：驗證與重寫節點 (v2.0 - 指令洩漏修正)
 
-# 函式：持久化狀態節點 (v2.0 - 持久化意圖)
-# 更新紀錄:
-# v2.0 (2025-09-22): [災難性BUG修復 & 功能擴展] 擴展了此節點的職責。現在，在儲存對話歷史的同時，它還會將當前回合的【意圖分類結果】（SFW/NSFW）寫入 `GameState` 並持久化到資料庫。此修改是實現下一輪“继续”指令能夠正確繼承上下文和意圖的關鍵基礎。
-# v1.0 (2025-09-12): 原始創建
 async def persist_state_node(state: ConversationGraphState) -> Dict:
-    """[v2.0] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
+    """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -943,7 +839,6 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     intent_classification = state.get('intent_classification')
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
     
-    # [v2.0 核心修正] 持久化當前回合的意圖
     if ai_core.profile and intent_classification:
         current_intent_type = intent_classification.intent_type
         if ai_core.profile.game_state.last_intent_type != current_intent_type:
@@ -975,7 +870,6 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         await asyncio.gather(*tasks, return_exceptions=True)
         
     return {}
-# 函式：持久化狀態節點 (v2.0 - 持久化意圖)
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
@@ -1004,45 +898,63 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v37.0 - 恢復健壯性)
+# 函式：直接 NSFW 生成節點 (v33.0 - 適配 LORE 綁定)
 # 更新紀錄:
-# v37.0 (2025-09-08): [災難性BUG修復] 恢復了 v35.0 版本中的備援簡報生成邏輯。在修復了上游節點的返回值問題後，此處的備援機制將作為最後一道防線，確保即使在未來發生未預期的上游故障時，NSFW 生成流程也能保持絕對的健壯性，而不會因 KeyError 而崩潰。
-# v36.0 (2025-09-08): [重大架構重構] 移除了此節點中所有關於 `scene_briefing` 的備援生成邏輯。
+# v33.0 (2025-09-08): [災難性BUG修復] 修改了此節點的數據準備邏輯，以適配 `get_direct_nsfw_chain` v6.0 的【強制 LORE 綁定】Prompt。現在，它會將上游傳來的 `planning_subjects` 角色列表格式化為 JSON 字符串，並作為一個新的、獨立的變數 `planning_subjects_json` 傳遞給生成鏈。此修改確保了 AI 在創作時能接收到明確的“演員列表”，從而解決了其忽略已創建的具名 LORE 角色的問題。
+# v32.0 (2025-09-08): [災難性BUG修復] 為此節點增加了針對“延续性指令”的專門處理邏輯。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [v37.0 修正] [NSFW Path] 執行單次指令轟炸，並恢復了對 'scene_briefing' 缺失的備援處理以確保最終健壯性。
+    [v33.0 修正] [NSFW Path] 執行單次指令轟炸，並將具名的LORE角色強制綁定到Prompt中。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    
-    # [v37.0 核心修正] 恢復使用 .get() 的安全訪問模式和備援邏輯
-    scene_briefing = state.get('scene_briefing')
-    if not scene_briefing:
-        logger.error(f"[{user_id}] (NSFW Node) 致命錯誤：'scene_briefing' 依然未在 state 中找到！啟動最終備援簡報生成。")
-        if ai_core.profile:
-            planning_subjects = state.get('planning_subjects', [])
-            character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
-            gs = ai_core.profile.game_state
-            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-            current_location_str = " > ".join(effective_location_path)
-            scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
-        else:
-            scene_briefing = "（系統錯誤：AI Profile 未加載，且場景簡報缺失。）"
-
-    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在基於導演簡報執行【指令轟炸】...")
+    input_analysis = state['input_analysis']
+    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在執行【指令轟炸】...")
 
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    logger.info(f"[{user_id}] (NSFW Node) 正在準備高保真上下文...")
-    chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=4)
-    
-    gs = ai_core.profile.game_state
+    latest_characters = state.get('planning_subjects', [])
+    if not latest_characters:
+        logger.warning(f"[{user_id}] (NSFW Node) 检测到“无米之炊”场景（无具名NPC），正在启动【强制LORE扩展】备援机制...")
+        
+        quant_state = await character_quantification_node(state)
+        quantified_list = quant_state.get('quantified_character_list', [])
+        
+        if not quantified_list:
+            logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：量化步骤未能识别出任何可创建的角色。")
+        else:
+            logger.info(f"[{user_id}] (NSFW Node) 强制扩展：已量化出 {len(quantified_list)} 个角色，正在执行扩展...")
+            temp_state_for_expansion = state.copy()
+            temp_state_for_expansion['quantified_character_list'] = quantified_list
+            
+            expansion_result = await lore_expansion_node(temp_state_for_expansion)
+            latest_characters = expansion_result.get('planning_subjects', [])
+            
+            if latest_characters:
+                logger.info(f"[{user_id}] (NSFW Node) 强制LORE扩展成功！已生成并加载 {len(latest_characters)} 个角色作为场景主体。")
+            else:
+                logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：扩展步骤未能返回任何角色。")
 
-    planning_subjects = state.get('planning_subjects', [])
+    gs = ai_core.profile.game_state
+    
+    user_input_for_chain: str
+    chat_history_for_chain: str
+
+    if input_analysis and input_analysis.input_type == 'continuation':
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文進行續寫...")
+        user_input_for_chain = "使用者要求無縫地、不間斷地接續上一幕的情節，將故事向前推進。"
+        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=4)
+    else:
+        user_input_for_chain = state['messages'][-1].content
+        chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
+    
+    # [v33.0 核心修正] 將 LORE 角色列表明確地格式化為 JSON 字符串
+    planning_subjects_json = json.dumps(latest_characters, ensure_ascii=False, indent=2)
+
+    # 為了 world_snapshot 的兼容性，我們仍然創建一個簡化的 dossiers
     dossiers = []
-    for char_data in planning_subjects:
+    for char_data in latest_characters:
         name = char_data.get('name', '未知名稱')
         dossier_content = [f"--- 檔案: {name} ---", f"- 描述: {char_data.get('description', '無')}"]
         dossiers.append("\n".join(dossier_content))
@@ -1071,8 +983,8 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
         "chat_history": chat_history_for_chain,
-        "scene_briefing": scene_briefing,
-        "user_input": user_input,
+        "planning_subjects_json": planning_subjects_json, # [v33.0 核心修正] 注入新的變數
+        "user_input": user_input_for_chain,
     }
 
     narrative_text = await ai_core.ainvoke_with_rotation(
@@ -1085,7 +997,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v37.0 - 恢復健壯性)
+# 函式：直接 NSFW 生成節點 (v33.0 - 適配 LORE 綁定)
 
 
 
@@ -1094,17 +1006,18 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v34.0 - 注入“導演簡報”節點)
+
+# 函式：創建主回應圖 (v32.0 - 快速通道修正)
 # 更新紀錄:
-# v34.0 (2025-09-08): [重大架構升級] 對圖的拓撲結構進行了精準的升級。在 LORE 準備流程（lore_expansion/prepare_existing_subjects）和規劃器（planner_junction）之間，注入了一個全新的【hydrate_planning_subjects_node】節點。此節點負責將冰冷的LORE數據“擬人化”為生動的導演簡報，為下游的生成鏈提供更高質量的、帶有情節暗示的上下文，旨在從根本上解決 AI“擁有數據但不會使用”的問題。
-# v33.0 (2025-09-22): [災難性BUG修復] 修正了數據流，確保 `sanitized_query_for_tools` 總能被創建。
+# v32.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了“延续性指令”的快速通道邏輯。舊版本會錯誤地繞過 LORE 查詢節點，導致續寫時無法加載上一輪創建的角色，從而引發“無米之炊”的連鎖錯誤。新版本修正了路由目標，確保快速通道在繞過 LORE 擴展的同時，【必須經過 LORE 查詢】，從而保證了劇情續寫的連續性和角色持久化。
+# v31.0 (2025-09-08): [重大架構重構] 為“延续性指令”開闢了專用的快速通道。
 def create_main_response_graph() -> StateGraph:
     """
-    [v34.0 修正] 創建主回應圖，注入了“導演簡報”節點。
+    [v32.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
     """
     graph = StateGraph(ConversationGraphState)
     
-    # --- 節點註冊 ---
+    # --- 節點註冊 (保持不變) ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
@@ -1113,7 +1026,6 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
-    graph.add_node("hydrate_planning_subjects", hydrate_planning_subjects_node) # [v34.0 新增]
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     graph.add_node("direct_nsfw_generation", direct_nsfw_generation_node)
@@ -1132,15 +1044,36 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- [v34.0 核心修正] 圖的邊緣連接 ---
+    # --- [v32.0 核心修正] 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    graph.add_edge("classify_intent", "retrieve_memories")
+    # 路由器：用於區分新指令和延续性指令
+    def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
+        if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
+            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】。")
+            return "continuation_flow"
+        else:
+            return "standard_flow"
+
+    # 1. 意圖分類後，立即進行路由
+    graph.add_conditional_edges(
+        "classify_intent",
+        route_after_intent_classification,
+        {
+            "standard_flow": "retrieve_memories",
+            "continuation_flow": "query_lore"  # [v32.0 核心修正] 快速通道直接跳到LORE查詢
+        }
+    )
+
+    # 2. 標準流程（新指令）
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "query_lore")
+    
+    # 3. 匯合點：無論是標準流程還是快速通道，都會到達 query_lore
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
+    # 4. LORE擴展決策
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -1150,14 +1083,10 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     graph.add_edge("character_quantification", "lore_expansion")
+    graph.add_edge("lore_expansion", "planner_junction")
+    graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # 新的匯合點：所有準備角色的路徑，都必須先經過“導演簡報”節點
-    graph.add_edge("lore_expansion", "hydrate_planning_subjects")
-    graph.add_edge("prepare_existing_subjects", "hydrate_planning_subjects")
-    
-    # 簡報完成後，才進入規劃器
-    graph.add_edge("hydrate_planning_subjects", "planner_junction")
-
+    # 5. 規劃器路由及後續流程 (保持不變)
     def route_to_planner(state: ConversationGraphState) -> str:
         # ... (此函式內容保持不變)
         user_id = state['user_id']
@@ -1197,7 +1126,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v34.0 - 注入“導演簡報”節點)
+# 函式：創建主回應圖 (v32.0 - 快速通道修正)
 
         
 
@@ -1351,15 +1280,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
-
-
-
-
-
-
-
-
-
 
 
 
