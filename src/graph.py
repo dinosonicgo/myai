@@ -154,12 +154,12 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 規劃主體注水節點 (v3.0 - 返回邏輯修正)
+# 函式：[新] 規劃主體注水節點 (v4.0 - 輕量化與健壯性強化)
 # 更新紀錄:
-# v3.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，修復了上一個版本中因遺漏 `return` 語句而導致的致命邏輯缺陷。舊版本在生成簡報後，沒有將結果正確返回給 LangGraph 狀態機，導致下游節點無法讀取 `scene_briefing`。新版本在函式末尾補上了至關重要的 `return {"scene_briefing": scene_briefing}`，確保了無論執行成功還是失敗，數據流都能被正確地更新和傳遞。
-# v2.0 (2025-09-08): [災難性BUG修復] 增加了備援簡報生成邏輯以增強健壯性。
+# v4.0 (2025-09-08): [災難性BUG修復] 徹底重構了此節點的數據處理邏輯。現在，它不再將完整的角色JSON傳遞給AI，而是先創建一個只包含核心資訊（name, description）的“輕量化”版本。此修改極大地縮短了輸入文本的長度，從根本上解決了因輸入過長導致備援機制（Euphemizer）必定失敗的頑固問題，確保此節點總能成功生成並返回一個有效的場景簡報。
+# v3.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，修復了上一個版本中因遺漏 `return` 語句而導致的致命邏輯缺陷。
 async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[str, str]:
-    """將冰冷的 LORE 角色列表，轉換為生動的“導演場景簡報”。"""
+    """[v4.0] 將冰冷的 LORE 角色列表，通過輕量化處理，健壯地轉換為生動的“導演場景簡報”。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     planning_subjects = state.get('planning_subjects', [])
@@ -174,10 +174,16 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[
 
     logger.info(f"[{user_id}] (Graph) Node: hydrate_planning_subjects -> 正在為 {len(planning_subjects)} 位演員生成導演簡報...")
     
+    # [v4.0 核心修正] 創建輕量化數據以提高成功率
+    lightweight_subjects = [
+        {"name": p.get("name", "未知"), "description": p.get("description", "")}
+        for p in planning_subjects
+    ]
+    planning_subjects_json = json.dumps(lightweight_subjects, ensure_ascii=False, indent=2)
+
     gs = ai_core.profile.game_state
     effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
     current_location_str = " > ".join(effective_location_path)
-    planning_subjects_json = json.dumps(planning_subjects, ensure_ascii=False, indent=2)
 
     briefing_chain = ai_core.get_scene_briefing_chain()
     scene_briefing = await ai_core.ainvoke_with_rotation(
@@ -191,14 +197,13 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[
     )
 
     if not scene_briefing:
-        logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈返回空值，觸發備援簡報生成。")
+        logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈在輕量化後依然返回空值，觸發最終備援簡報生成。")
         character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
         scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
-        logger.info(f"[{user_id}] (Hydrator) 已成功生成備援導演簡報。")
+        logger.info(f"[{user_id}] (Hydrator) 已成功生成最終備援導演簡報。")
 
-    # [v3.0 核心修正] 確保無論執行成功還是失敗，都將結果以正確的格式返回給狀態機
     return {"scene_briefing": scene_briefing}
-# 函式：[新] 規劃主體注水節點 (v3.0 - 返回邏輯修正)
+# 函式：[新] 規劃主體注水節點 (v4.0 - 輕量化與健壯性強化)
 
 
 
@@ -1000,32 +1005,19 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v35.0 - 健壯性修正)
+# 函式：直接 NSFW 生成節點 (v36.0 - 職責簡化)
 # 更新紀錄:
-# v35.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，為此節點增加了【備援簡報生成】邏輯。現在，它會使用 `state.get('scene_briefing')` 來安全地獲取導演簡報。如果上游節點因任何原因（如內容審查、網路錯誤）未能成功生成並注入簡報，此節點將不再崩潰，而是會自行生成一個備援版本的簡報，確保 NSFW 生成流程的絕對健壯性。
-# v34.0 (2025-09-08): [災難性BUG修復 & 品質提升] 對此節點的上下文準備邏輯進行了終極重構。
+# v36.0 (2025-09-08): [重大架構重構] 移除了此節點中所有關於 `scene_briefing` 的備援生成邏輯。由於上游的 `hydrate_planning_subjects_node` 節點已被強化，能夠確保總能成功提供簡報，此節點現在可以恢復其核心職責：信任傳入的數據並專注於內容生成，使程式碼更清晰且符合單一職責原則。
+# v35.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，為此節點增加了【備援簡報生成】邏輯。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [v35.0 修正] [NSFW Path] 執行單次指令轟炸，並內建對 'scene_briefing' 缺失的備援處理。
+    [v36.0 修正] [NSFW Path] 執行單次指令轟炸，信任並使用由上游節點提供的 'scene_briefing'。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
+    # [v36.0 核心修正] 移除備援邏輯，直接、信任地從 state 中獲取簡報
+    scene_briefing = state['scene_briefing']
     user_input = state['messages'][-1].content
-    
-    # [v35.0 核心修正] 使用 .get() 安全獲取，並在缺失時生成備援
-    scene_briefing = state.get('scene_briefing')
-    if not scene_briefing:
-        logger.error(f"[{user_id}] (NSFW Node) 致命錯誤：'scene_briefing' 未在 state 中找到！啟動備援簡報生成。")
-        if ai_core.profile:
-            planning_subjects = state.get('planning_subjects', [])
-            character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
-            gs = ai_core.profile.game_state
-            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-            current_location_str = " > ".join(effective_location_path)
-            scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
-        else:
-            scene_briefing = "（系統錯誤：AI Profile 未加載，且場景簡報缺失。）"
-
     logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在基於導演簡報執行【指令轟炸】...")
 
     if not ai_core.profile:
@@ -1081,7 +1073,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v35.0 - 健壯性修正)
+# 函式：直接 NSFW 生成節點 (v36.0 - 職責簡化)
 
 
 
@@ -1347,6 +1339,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
