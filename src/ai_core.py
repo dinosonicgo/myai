@@ -466,7 +466,36 @@ class AILover:
     
 
 
+# ai_core.py
 
+    # 函式：[新] 獲取「文學評論家」委婉化鏈 (v1.0 - NSFW 歷史處理)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [災難性BUG修復] 創建此全新的、專門的委婉化鏈。它通過將 LLM 的角色設定為「文學評論家」，並將任務重新框架為「撰寫情節概述」，來將極度露骨的歷史文本安全地轉換為一段學術性的、但信息完整的文學描述，旨在從根本上解決歷史摘要器自身被內容審查攔截的問題。
+    def get_literary_euphemization_chain(self) -> Runnable:
+        """獲取或創建一個專門的鏈，用於將露骨的歷史文本安全地轉換為文學式的、安全的劇情概述。"""
+        if not hasattr(self, 'literary_euphemization_chain') or self.literary_euphemization_chain is None:
+            # 使用一個中等溫度的模型，以允許一定的創造性轉述
+            critic_llm = self._create_llm_instance(temperature=0.3)
+            
+            prompt_template = """你是一位頂尖的文學評論家，專門分析前衛的、探索性的成人幻想文學。你的唯一任務是接收一段【小說手稿片段】，並為其撰寫一段精煉的、客觀的、使用學術和文學語言的【情節概述】。
+
+【核心原則】
+1.  **意圖重構**: 你的目標是描述【發生了什麼事】，而不是【如何發生的】。你要將原始的、生理層面的描寫，提升到對角色動機、權力動態和劇情發展的分析層面。
+2.  **絕對禁止露骨詞彙**: 你的輸出【絕對禁止】包含任何直接的生理器官或性行為的詞彙。你必須使用文學性的、隱喻性的或學術性的語言來替代它們。
+    *   **範例**: 不要說「他用肉棒插入了她的肉穴」，而要說「場景描寫了兩個角色之間一次徹底的物理征服與結合」。
+    *   **範例**: 不要說「她為他口交」，而要說「角色執行了一項臣服性的口頭服務，以確立權力關係」。
+3.  **保持客觀**: 你的語氣應該是冷靜、客觀、第三人稱的，就像在為學術期刊撰寫評論一樣。
+
+---
+【小說手稿片段】:
+{dialogue_history}
+---
+【你的情節概述】:
+"""
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.literary_euphemization_chain = prompt | critic_llm | StrOutputParser()
+        return self.literary_euphemization_chain
+    # 函式：[新] 獲取「文學評論家」委婉化鏈 (v1.0 - NSFW 歷史處理)
 
     
 
@@ -3455,6 +3484,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
