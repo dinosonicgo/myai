@@ -75,62 +75,69 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         "input_analysis": input_analysis_result
     }
 
+# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
+# 更新紀錄:
+# v29.0 (2025-09-08): [重大架構重構] 此節點的職責已升級為【唯一的 NSFW 輸入清洗源頭】。它不再使用脆弱的實體提取鏈，而是強制性地使用更強大的“文學評論家”鏈將原始輸入轉換為一段安全的文學概述。這段安全的概述將被用於 RAG 檢索，並同時儲存到新的 `sanitized_query_for_tools` 狀態中，供所有下游內部工具鏈安全使用，從根本上解決因多個節點重複處理原始 NSFW 輸入而導致的超時和掛起問題。
+# v28.0 (2025-09-12): [災難性BUG修復] 專用記憶檢索節點，執行RAG操作。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """
-    [v28.0 修正] 專用記憶檢索節點，執行RAG操作。
-    通過在RAG預處理鏈的調用中強制指定 `retry_strategy='none'`，並依賴節點內部的 try...except 備援，
-    從根本上解決了因通用委婉化策略導致的無限重試循環。
+    [v29.0 源頭清洗] 專用記憶檢索與輸入清洗節點。
+    它會將原始輸入轉換為安全的文學概述，用於RAG，並將其傳遞給下游。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input_for_retrieval = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在對輸入 '{user_input_for_retrieval[:30]}...' 執行【源頭清洗】與記憶檢索...")
     
     sanitized_query = ""
     try:
-        # --- 步驟 1: 樂觀嘗試 ---
-        # 嘗試使用實體提取鏈來創建一個安全的、只包含關鍵詞的查詢。
-        logger.info(f"[{user_id}] (RAG) 正在嘗試使用實體提取鏈進行查詢預處理...")
-        entity_extraction_chain = ai_core.get_entity_extraction_chain()
-        
-        # [v28.0 核心修正] 
-        # 在這個特定的調用中，我們強制禁用通用的委婉化重試策略。
-        # 因為我們知道這個鏈很容易因露骨內容而失敗，我們不希望它觸發可能導致循環的通用備援。
-        # 相反，我們希望它在失敗時立即將控制權交還給下方的 except 區塊，由我們自己來處理這個特定的失敗場景。
-        entity_result = await ai_core.ainvoke_with_rotation(
-            entity_extraction_chain, 
-            {"text_input": user_input_for_retrieval},
-            retry_strategy='none' 
+        # --- 步驟 1: 強制性的安全預清洗 ---
+        # 使用強大的“文學評論家”鏈，將潛在的 NSFW 輸入轉換為安全的文學概述。
+        logger.info(f"[{user_id}] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對輸入進行強制性安全預清洗...")
+        literary_chain = ai_core.get_literary_euphemization_chain()
+
+        # 使用 ainvoke_with_rotation 並指定 euphemize 策略，以確保即使清洗鏈本身被審查也能有備援
+        sanitized_query = await ai_core.ainvoke_with_rotation(
+            literary_chain, 
+            {"dialogue_history": user_input_for_retrieval},
+            retry_strategy='euphemize' 
         )
         
-        # 如果 ainvoke_with_rotation 因為 safety error 且 retry_strategy='none' 而返回 None
-        if not entity_result or not entity_result.names:
-            logger.warning(f"[{user_id}] (RAG) 實體提取鏈返回空結果（可能因內容審查），將觸發備援。")
-            raise ValueError("Entity extraction returned None or no entities.")
+        # 如果委婉化重試後仍然失敗，則觸發終極備援
+        if not sanitized_query or not sanitized_query.strip():
+            logger.error(f"[{user_id}] (RAG Pre-cleaner) '文學評論家'清洗鏈最終失敗，將觸發終極備援。")
+            raise ValueError("Literary chain failed to produce output.")
 
-        sanitized_query = " ".join(entity_result.names)
-        logger.info(f"[{user_id}] (RAG) 預處理成功，已生成安全查詢: '{sanitized_query}'")
+        logger.info(f"[{user_id}] (RAG Pre-cleaner) 輸入已成功預清洗為安全的文學概述: '{sanitized_query[:50]}...'")
 
     except Exception as e:
         # --- 步驟 2: 終極備援 ---
-        # 當且僅當上面的實體提取（不帶重試）失敗時，這個區塊會被觸發。
-        logger.error(f"[{user_id}] (RAG) 查詢預處理失敗: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
-        # 直接使用未經修改的原始輸入。這是安全的，因為檢索器是本地操作。
+        logger.error(f"[{user_id}] (RAG Pre-cleaner) 安全預清洗失敗: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
         sanitized_query = user_input_for_retrieval
 
     # --- 步驟 3: 執行檢索 ---
-    # 無論使用安全查詢還是原始查詢，最終都在這裡執行本地檢索。
+    # 使用清洗後的安全查詢文本來執行 RAG
     rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
     
-    return {"rag_context": rag_context_str}
+    # --- 步驟 4: 返回結果，並將安全查詢文本存入狀態供下游使用 ---
+    return {
+        "rag_context": rag_context_str,
+        "sanitized_query_for_tools": sanitized_query
+    }
+# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
 
+# 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
+# 更新紀錄:
+# v29.0 (2025-09-08): [重大架構重構] 此節點的邏輯被極大簡化。它不再直接處理原始的、有風險的 `user_input`，而是直接從 `ConversationGraphState` 中讀取由上游 `retrieve_memories_node` 生成的、絕對安全的 `sanitized_query_for_tools` 來提取實體。此修改使其完全免疫於因輸入內容審查而導致的掛起或錯誤。
+# v28.0 (2025-09-12): [災難性BUG修復] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。
 async def query_lore_node(state: ConversationGraphState) -> Dict:
-    """[3] 專用LORE查詢節點，從資料庫獲取與當前輸入和【整個場景】相關的所有【非主角】LORE對象。"""
+    """[v29.0 適配安全查詢] 專用LORE查詢節點，使用預清洗過的查詢文本來提取實體。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在執行【上下文優先】的LORE查詢...")
+    # [v29.0 核心修正] 使用上游節點生成的安全查詢文本
+    safe_query_text = state['sanitized_query_for_tools']
+    logger.info(f"[{user_id}] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '{safe_query_text[:30]}...' 執行LORE查詢...")
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (LORE Querier) ai_core.profile 未加載，無法查詢LORE。")
@@ -153,9 +160,10 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     )
     logger.info(f"[{user_id}] (LORE Querier) 在有效場景中找到 {len(lores_in_scene)} 位常駐NPC。")
 
+    # [v29.0 核心修正] 使用安全查詢文本進行實體提取
     is_remote = gs.viewing_mode == 'remote'
-    lores_from_input = await ai_core._query_lore_from_entities(user_input, is_remote_scene=is_remote)
-    logger.info(f"[{user_id}] (LORE Querier) 從使用者輸入中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
+    lores_from_input = await ai_core._query_lore_from_entities(safe_query_text, is_remote_scene=is_remote)
+    logger.info(f"[{user_id}] (LORE Querier) 從安全查詢文本中提取並查詢到 {len(lores_from_input)} 條相關LORE。")
 
     final_lores_map = {lore.key: lore for lore in lores_in_scene}
     for lore in lores_from_input:
@@ -178,6 +186,7 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 {len(filtered_lores_list)} 條LORE作為本回合上下文。")
     
     return {"raw_lore_objects": filtered_lores_list}
+# 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
 
 # 函式：感知并设定视角
 async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
@@ -269,36 +278,23 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
     return {"structured_context": structured_context}
 # 函式：组装上下文
 
-# 函式：LORE扩展决策
+# 函式：LORE擴展決策 (v32.0 - 健壯性與安全查詢適配)
+# 更新紀錄:
+# v32.0 (2025-09-08): [重大架構重構 & 健壯性] 此節點不再處理原始 user_input，而是改為使用上游傳入的、絕對安全的 `sanitized_query_for_tools`。同時，徹底移除了內部脆弱的“預清洗”備援邏輯，改為依賴上游的源頭清洗，從根本上解決了因嵌套備援失敗而導致的 `ValueError`。
+# v31.0 (2025-09-12): [災難性BUG修復] LORE擴展決策節點。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
-    [v31.0 修正] LORE扩展决策节 点。
-    彻底重构了其安全机制。不再使用脆弱的关键词判断，而是强制性地、无条件地对其接收的所有 user_input
-    进行“文学评论家”式的安全预清洗，旨在从根本上杜绝此节 点自身因输入内容而遭遇审查的风险。
+    [v32.0 修正] LORE擴展決策節點，使用預清洗過的查詢文本進行決策。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    # [v32.0 核心修正] 直接使用上游傳入的安全查詢文本，不再處理原始輸入
+    safe_query_text = state['sanitized_query_for_tools']
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
-    
-    # [v31.0 核心修正] 强制性的、无条件的输入预清洗步骤
-    sanitized_input_for_decision = user_input
-    try:
-        logger.info(f"[{user_id}] (Expansion Decision) 正在对输入执行强制性安全预清洗...")
-        literary_chain = ai_core.get_literary_euphemization_chain()
-        # 直接调用 ainvoke，不使用 ainvoke_with_rotation 以避免复杂的备援嵌套
-        sanitized_input_for_decision = await literary_chain.ainvoke({"dialogue_history": user_input})
-        
-        if not sanitized_input_for_decision or not sanitized_input_for_decision.strip():
-            logger.error(f"[{user_id}] (Expansion Decision) 预清洗步骤未能生成安全文本，将回退至使用原始输入。")
-            sanitized_input_for_decision = user_input
-        else:
-            logger.info(f"[{user_id}] (Expansion Decision) 输入已成功预清洗为: '{sanitized_input_for_decision[:100]}...'")
-    except Exception as e:
-        logger.error(f"[{user_id}] (Expansion Decision) 在预清洗输入时发生错误: {e}，将回退至使用原始输入。")
-        sanitized_input_for_decision = user_input
+    logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '{safe_query_text[:30]}...' 判斷是否擴展...")
 
+    # [v32.0 核心修正] 移除所有內部的預清洗邏輯，因為輸入已經是安全的
+    
     lightweight_lore_for_decision = []
     for lore in raw_lore_objects:
         if lore.category == 'npc_profile':
@@ -323,10 +319,11 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 """
 
     decision_chain = ai_core.get_expansion_decision_chain()
+    # [v32.0 核心修正] 將 user_input 替換為 safe_query_text
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
-            "user_input": sanitized_input_for_decision, # 使用清洗後的輸入
+            "user_input": safe_query_text,
             "existing_characters_json": lore_json_str,
             "examples": examples_str
         },
@@ -339,7 +336,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE扩展决策
+# 函式：LORE擴展決策 (v32.0 - 健壯性與安全查詢適配)
 
 async def character_quantification_node(state: ConversationGraphState) -> Dict:
     """[6A.1] 將模糊的群體描述轉化為具體的角色列表。"""
@@ -1186,6 +1183,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
