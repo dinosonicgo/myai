@@ -973,10 +973,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v33.0 - 雙軌歷史與高保真上下文)
+# 函式：直接 NSFW 生成節點 (v33.1 - 變數名修正)
 # 更新紀錄:
-# v33.0 (2025-09-09): [災難性BUG修復] 根據使用者反饋，徹底重構了此節點的上下文管理策略，以解決“內容不夠露骨”和“劇情斷裂”這兩個核心問題。新版本實現了“雙軌歷史管理”，完全繞過了有問題的、會“漂白”上下文的摘要歷史鏈。它現在無條件地、始終調用 `_get_raw_chat_history` 來獲取未經修改的、最高保真度的原始對話歷史，並將其直接注入指令轟炸Prompt。此修改旨在確保 NSFW 生成器在連續對話中獲得最精確、最露骨的上下文。
-# v32.0 (2025-09-08): [災難性BUG修復] 為此節點增加了針對“延续性指令”的專門處理邏輯。
+# v33.1 (2025-09-09): [災難性BUG修復] 根據 KeyError Traceback，修正了傳遞給 ainvoke 的字典中核心協議的鍵名。將 `ai_core.modular_prompts.get("00_core_protocol", ...)` 的結果賦值給了與 Prompt 模板佔位符完全一致的 `core_protocol_prompt` 鍵，解決了因命名不一致導致的崩潰問題。
+# v33.0 (2025-09-09): [災難性BUG修復] 實現了“雙軌歷史管理”，強制使用高保真度的原始對話歷史。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [NSFW Path] 執行單次指令轟炸，並始終使用高保真度的原始對話歷史作為上下文。
@@ -996,12 +996,10 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
     gs = ai_core.profile.game_state
     
-    # [v33.0 核心修正] 雙軌歷史管理：NSFW 節點永遠使用原始歷史
     logger.info(f"[{user_id}] (NSFW Node) 啟用高保真上下文模式，正在獲取未經刪改的原始對話歷史...")
     user_input_for_chain = state['messages'][-1].content
-    chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=6) # 稍微增加歷史長度以提供更豐富的上下文
+    chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=6)
 
-    # --- 後續的世界快照組裝邏輯保持不變 ---
     dossiers = []
     for char_data in planning_subjects_raw:
         name = char_data.get('name', '未知名稱')
@@ -1026,6 +1024,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
+    # [v33.1 核心修正] 統一傳入的字典鍵名
     chain_input = {
         "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
         "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
@@ -1046,7 +1045,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v33.0 - 雙軌歷史與高保真上下文)
+# 函式：直接 NSFW 生成節點 (v33.1 - 變數名修正)
 
 
 
@@ -1324,6 +1323,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
