@@ -3190,11 +3190,11 @@ class AILover:
 
     
     
-     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 第三方API錯誤識別)
+     # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v211.0 - 超時保護)
     # 更新紀錄:
-    # v210.0 (2025-09-22): [災難性BUG修復] 徹底重構了異常捕獲邏輯，增加了對第三方庫（特別是 Cohere）速率限制錯誤 (429 Too Many Requests) 的精確識別。現在，當檢測到此類錯誤時，會重新拋出一個帶有特殊標記的異常，以便上游函式可以捕獲並執行優雅降級。
+    # v211.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此函式的核心調用邏輯，引入了【超時保護】。現在，對 `chain.ainvoke` 的調用被 `asyncio.wait_for` 包裹，並設定了 90 秒的超時限制。此修改旨在從根本上解決因 Google API 在處理特定邊界情況（尤其是內容審查）時不返回錯誤也不結束、導致整個程式無限掛起（hang）的致命問題。
+    # v210.0 (2025-09-22): [災難性BUG修復] 徹底重構了異常捕獲邏輯，增加了對第三方庫（特別是 Cohere）速率限制錯誤 (429 Too Many Requests) 的精確識別。
     # v209.0 (2025-09-10): [重大架構升級] 恢復了 `euphemize` 重試策略的應用。
-    # v208.0 (2025-09-06): [架構適配] 適配了 v208.0 版本的解構-重構委婉化策略。
     async def ainvoke_with_rotation(self, chain: Runnable, params: Any, retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize') -> Any:
         if not self.api_keys:
             raise ValueError("No API keys available.")
@@ -3204,7 +3204,12 @@ class AILover:
         
         for attempt in range(max_retries):
             try:
-                result = await chain.ainvoke(params)
+                # [v211.0 核心修正] 為核心異步操作增加 90 秒的超時保護
+                # 這可以將未知的 API "掛起" 狀態轉換為一個可捕獲的 TimeoutError
+                result = await asyncio.wait_for(
+                    chain.ainvoke(params),
+                    timeout=90.0
+                )
                 
                 is_empty_or_invalid = not result or (hasattr(result, 'content') and not getattr(result, 'content', True))
                 if is_empty_or_invalid:
@@ -3212,7 +3217,14 @@ class AILover:
                     
                 return result
 
+            # [v211.0 核心修正] 捕獲新增的 TimeoutError
+            except asyncio.TimeoutError:
+                logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時。這可能是由於 API 問題或內容過濾掛起。將嘗試使用下一個金鑰...")
+                # 將其重新拋出為 ServiceUnavailable，以便被下方的異常處理塊捕獲並觸發金鑰輪換
+                raise ServiceUnavailable("API call timed out.") from None
+
             except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded) as e:
+                # 這個 except 塊現在也會捕獲上面重新拋出的 ServiceUnavailable(TimeoutError)
                 delay = base_delay * (attempt + 1)
                 logger.warning(f"[{self.user_id}] Google API 遭遇資源或伺服器錯誤: {type(e).__name__}. 將在 {delay:.1f} 秒後使用下一個金鑰重試...")
                 await asyncio.sleep(delay)
@@ -3222,12 +3234,10 @@ class AILover:
                 error_str = str(e).lower()
                 is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
                 
-                # [v210.0 核心修正] 增加對 Cohere 速率限制錯誤的精確識別
                 is_cohere_rate_limit = "429" in error_str and "cohere" in error_str
 
                 if is_cohere_rate_limit:
                     logger.error(f"[{self.user_id}] 檢測到 Cohere Reranker API 速率超限。將向上拋出異常以觸發優雅降級。")
-                    # 重新拋出一個帶有明確標記的異常，方便上層捕獲
                     raise RuntimeError("COHERE_RATE_LIMIT_EXCEEDED") from e
 
                 if is_safety_error:
@@ -3244,14 +3254,13 @@ class AILover:
                 raise e
 
         logger.error(f"[{self.user_id}] 所有 Google API 金鑰均嘗試失敗。")
-        # 如果所有金鑰都因速率限制等問題失敗，最後再根據策略嘗試一次安全備援
         if retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params)
         elif retry_strategy == 'force':
             logger.warning(f"[{self.user_id}] 鏈在所有金鑰嘗試失敗後，最終遭遇審查。啟動【指令強化重試】策略...")
             return await self._force_and_retry(chain, params)
         return None
-    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v210.0 - 第三方API錯誤識別)
+    # 函式：帶金鑰輪換與委婉化重試的非同步呼叫 (v211.0 - 超時保護)
 
     
 
@@ -3475,6 +3484,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
