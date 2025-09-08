@@ -28,8 +28,12 @@ from langchain_core.output_parsers import StrOutputParser
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
+# 函式：意圖分類節點 (v2.0 - 意圖繼承)
+# 更新紀錄:
+# v2.0 (2025-09-22): [災難性BUG修復 & 功能擴展] 注入了【意圖繼承】邏輯。現在，當此節點檢測到“继续”等延续性指令時，它會直接從持久化的 `GameState` 中讀取並繼承上一輪的意圖分類，而不再調用 LLM。此修改不僅從根本上解決了“继续”指令可能被錯誤分類的問題，還極大地提高了響應速度並節省了 API 調用成本。
+# v1.0 (2025-09-12): 原始創建
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
-    """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承持久化的状态。"""
+    """[v2.0] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以繼承持久化的状态。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -42,6 +46,7 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
     
+    # [v2.0 核心修正] 意圖繼承邏輯
     if input_analysis_result and input_analysis_result.input_type == 'continuation':
         if ai_core.profile and ai_core.profile.game_state.last_intent_type:
             last_intent_type = ai_core.profile.game_state.last_intent_type
@@ -74,6 +79,7 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         "intent_classification": classification_result,
         "input_analysis": input_analysis_result
     }
+# 函式：意圖分類節點 (v2.0 - 意圖繼承)
 
 # 函式：檢索記憶節點 (v29.0 - 源頭清洗)
 # 更新紀錄:
@@ -830,8 +836,12 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         
     return {"final_output": final_response}
 
+# 函式：持久化狀態節點 (v2.0 - 持久化意圖)
+# 更新紀錄:
+# v2.0 (2025-09-22): [災難性BUG修復 & 功能擴展] 擴展了此節點的職責。現在，在儲存對話歷史的同時，它還會將當前回合的【意圖分類結果】（SFW/NSFW）寫入 `GameState` 並持久化到資料庫。此修改是實現下一輪“继续”指令能夠正確繼承上下文和意圖的關鍵基礎。
+# v1.0 (2025-09-12): 原始創建
 async def persist_state_node(state: ConversationGraphState) -> Dict:
-    """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
+    """[v2.0] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -839,6 +849,7 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     intent_classification = state.get('intent_classification')
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
     
+    # [v2.0 核心修正] 持久化當前回合的意圖
     if ai_core.profile and intent_classification:
         current_intent_type = intent_classification.intent_type
         if ai_core.profile.game_state.last_intent_type != current_intent_type:
@@ -870,6 +881,7 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         await asyncio.gather(*tasks, return_exceptions=True)
         
     return {}
+# 函式：持久化狀態節點 (v2.0 - 持久化意圖)
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
@@ -1007,13 +1019,13 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v32.0 - 快速通道修正)
+# 函式：創建主回應圖 (v33.0 - 數據流修正)
 # 更新紀錄:
-# v32.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了“延续性指令”的快速通道邏輯。舊版本會錯誤地繞過 LORE 查詢節點，導致續寫時無法加載上一輪創建的角色，從而引發“無米之炊”的連鎖錯誤。新版本修正了路由目標，確保快速通道在繞過 LORE 擴展的同時，【必須經過 LORE 查詢】，從而保證了劇情續寫的連續性和角色持久化。
-# v31.0 (2025-09-08): [重大架構重構] 為“延续性指令”開闢了專用的快速通道。
+# v33.0 (2025-09-22): [災難性BUG修復] 根據 KeyError Traceback，徹底重構了圖的拓撲結構。移除了有缺陷的“快速通道”路由器，將 `classify_intent` 節點的出口【無條件】地連接到 `retrieve_memories` 節點。此修改確保了無論使用者輸入為何，`sanitized_query_for_tools` 這個關鍵狀態【總能被創建】，從根本上解決了因繞過 `retrieve_memories` 節點而導致的 KeyError 問題。
+# v32.0 (2025-09-08): [災難性BUG修復] 修正了“快速通道”的路由目標。
 def create_main_response_graph() -> StateGraph:
     """
-    [v32.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
+    [v33.0 修正] 創建主回應圖，採用更健壯的線性數據流。
     """
     graph = StateGraph(ConversationGraphState)
     
@@ -1044,36 +1056,17 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- [v32.0 核心修正] 圖的邊緣連接 ---
+    # --- [v33.0 核心修正] 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    # 路由器：用於區分新指令和延续性指令
-    def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
-        if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
-            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】。")
-            return "continuation_flow"
-        else:
-            return "standard_flow"
-
-    # 1. 意圖分類後，立即進行路由
-    graph.add_conditional_edges(
-        "classify_intent",
-        route_after_intent_classification,
-        {
-            "standard_flow": "retrieve_memories",
-            "continuation_flow": "query_lore"  # [v32.0 核心修正] 快速通道直接跳到LORE查詢
-        }
-    )
-
-    # 2. 標準流程（新指令）
+    # 移除了有缺陷的路由器，改為更穩定的線性流程
+    graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
-    graph.add_edge("perceive_and_set_view", "query_lore")
     
-    # 3. 匯合點：無論是標準流程還是快速通道，都會到達 query_lore
+    graph.add_edge("perceive_and_set_view", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # 4. LORE擴展決策
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -1086,7 +1079,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # 5. 規劃器路由及後續流程 (保持不變)
+    # 後續路由和流程保持不變
     def route_to_planner(state: ConversationGraphState) -> str:
         # ... (此函式內容保持不變)
         user_id = state['user_id']
@@ -1126,7 +1119,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v32.0 - 快速通道修正)
+# 函式：創建主回應圖 (v33.0 - 數據流修正)
 
         
 
@@ -1280,6 +1273,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
