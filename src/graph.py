@@ -805,6 +805,10 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 
+# 函式：驗證並重寫節點 (v1.1 - 系統指令洩漏淨化)
+# 更新紀錄:
+# v1.1 (2025-09-08): [災難性BUG修復] 根據使用者反饋，注入了針對指令轟炸模式下“系統指令洩漏”的專門淨化邏輯。新的處理流程會優先尋找 `【你創作的、全新的小說章節】:` 這個明確標記，並只保留該標記之後的純淨小說內容，從根本上解決了 prompt leaking 的問題。
+# v1.0 (2025-09-08): 原始創建。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
     user_id = state['user_id']
@@ -815,7 +819,22 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] 核心鏈在淨化前返回了空的或無效的回應。")
         return {"final_output": "（...）"}
     
+    # [v1.1 核心修正] 針對指令轟炸洩漏的專門淨化邏輯
     clean_response = initial_response
+    leak_marker = "【你創作的、全新的小說章節】:"
+    
+    if leak_marker in clean_response:
+        logger.warning(f"[{user_id}] 檢測到嚴重的系統指令洩漏，正在啟動專門淨化程序...")
+        parts = clean_response.split(leak_marker, 1)
+        if len(parts) > 1:
+            clean_response = parts[1]
+            logger.info(f"[{user_id}] 系統指令洩漏已成功淨化，已提取小說正文。")
+        else:
+            # 雖然不太可能發生，但作為防禦性程式設計
+            logger.error(f"[{user_id}] 淨化失敗：找到了洩漏標記但無法分割內容。")
+            clean_response = "" # 如果分割失敗，則清空以觸發備援
+
+    # 在專門淨化後，再執行通用的標籤清理
     clean_response = re.sub(r'（(思考|行動|自我觀察)\s*[:：\s\S]*?）', '', clean_response)
     clean_response = re.sub(r'^\s*(旁白|對話)\s*[:：]\s*', '', clean_response, flags=re.MULTILINE)
     if '旁白:' in clean_response or '對話:' in clean_response:
@@ -829,6 +848,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
+# 函式：驗證並重寫節點 (v1.1 - 系統指令洩漏淨化)
 
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
@@ -1280,6 +1300,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
