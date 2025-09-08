@@ -1154,14 +1154,16 @@ class AILover:
 
 
 
-    # 函式：[新] 獲取場景簡報鏈 (v1.0 - 數據擬人化)
+    # 函式：[新] 獲取場景簡報鏈 (v2.0 - Prompt 轉義修正)
     # 更新紀錄:
-    # v1.0 (2025-09-08): [重大架構升級] 創建此全新的【數據擬人化】鏈。它的唯一職責是接收一份冰冷的、結構化的 LORE 角色數據列表（JSON），並將其轉換為一段生動的、人類可讀的、帶有場景描述和角色關係暗示的“導演簡報”。此鏈是解決 AI“擁有數據但不會使用”問題的關鍵，它將數據轉化為了 AI 更容易理解和使用的“劇本開頭”。
+    # v2.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，徹底修正了此鏈 Prompt 模板中的語法錯誤。舊版本在範例中使用了未經轉義的單大括號 `{}` 來書寫 JSON，導致 LangChain 的解析器將其誤認為是需要填充的輸入變數，從而引發致命的 KeyError。新版本遵循 LangChain 規範，將所有作為範例的 `{}` 都用雙大括號 `{{}}` 進行了正確的轉義。
+    # v1.0 (2025-09-08): [重大架構升級] 創建此全新的【數據擬人化】鏈。
     def get_scene_briefing_chain(self) -> Runnable:
         """獲取或創建一個專門用於將 LORE 角色列表“擬人化”為生動場景簡報的鏈。"""
         if not hasattr(self, 'scene_briefing_chain') or self.scene_briefing_chain is None:
             briefing_llm = self._create_llm_instance(temperature=0.5)
             
+            # [v2.0 核心修正] 將所有作為範例的 JSON 大括號 {} 轉義為 {{}}
             prompt_template = """你是一位經驗豐富的電影副導演。你的唯一任務是接收一份關於當前場景的【演員數據表】，並為總導演撰寫一段簡潔、生動、包含核心情節暗示的【場景簡報 (Scene Briefing)】。
 
 # === 【【【核心規則】】】 ===
@@ -1176,7 +1178,7 @@ class AILover:
 #
 #   - **輸入數據**:
 #     - 當前地點: `性神城 > 瀆神者市集`
-#     - 演員數據表 (JSON): `[{"name": "艾莉亞", "description": "一位美麗的性神教徒魚販..."}, {"name": "卡爾", "description": "一個粗魯的碼頭工人..."}, {"name": "雷納德", "description": "一個陰鬱的衛兵..."}]`
+#     - 演員數據表 (JSON): `[{{"name": "艾莉亞", "description": "一位美麗的性神教徒魚販..."}}, {{"name": "卡爾", "description": "一個粗魯的碼頭工人..."}}, {{"name": "雷納德", "description": "一個陰鬱的衛兵..."}}]`
 #     - 使用者指令: `描述艾莉亞被男人們輪姦`
 #
 #   - **【✅ 唯一正確的輸出】**:
@@ -1197,7 +1199,7 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.scene_briefing_chain = prompt | briefing_llm | StrOutputParser()
         return self.scene_briefing_chain
-    # 函式：[新] 獲取場景簡報鏈 (v1.0 - 數據擬人化)
+    # 函式：[新] 獲取場景簡報鏈 (v2.0 - Prompt 轉義修正)
 
 
 
@@ -3536,6 +3538,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
