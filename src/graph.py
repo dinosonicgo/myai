@@ -713,9 +713,12 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：[新] 直接 NSFW 生成節點 (v1.0 - 指令轟炸模式)
+# graph.py
+
+# 函式：[新] 直接 NSFW 生成節點 (v2.0 - LORE 數據流修復)
 # 更新紀錄:
-# v1.0 (2025-09-25): [重大架構重構] 創建此節點以實現全新的「單次指令轟炸」NSFW流程。它負責收集所有必要的上下文和指令，並調用 get_direct_nsfw_chain 來直接生成最終的小說文本。
+# v2.0 (2025-09-25): [災難性BUG修復] 徹底重構了此節點的數據來源。它現在會直接從 state['planning_subjects'] 中獲取本回合最新的、包含新創建角色的完整列表，而不是依賴於陳舊的 structured_context。此修改從根本上解決了新創建的NPC無法在當前回合NSFW場景中出現的嚴重數據流問題。
+# v1.0 (2025-09-25): [重大架構重構] 創建此節點以實現全新的「單次指令轟炸」NSFW流程。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """[NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。"""
     user_id = state['user_id']
@@ -726,10 +729,34 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    # 準備與 SFW 規劃節點完全相同的世界快照，以確保上下文一致性
     gs = ai_core.profile.game_state
     chat_history_str = _get_formatted_chat_history(ai_core, user_id)
     
+    # [v2.0 核心修正] 從 state['planning_subjects'] 獲取最新角色列表，而不是依賴舊的 structured_context
+    # planning_subjects 包含了本回合所有可用的角色，無論是舊的還是剛剛新創建的
+    latest_characters = state.get('planning_subjects', [])
+    if not latest_characters:
+        # 作為備援，如果 planning_subjects 為空，則嘗試從原始 LORE 物件中提取
+        lore_objects = state.get('raw_lore_objects', [])
+        latest_characters = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+        logger.warning(f"[{user_id}] (NSFW Node) 未在 state 中找到 'planning_subjects'，已回退至使用 'raw_lore_objects'。")
+
+    # [v2.0 核心修正] 基於最新的角色列表，動態生成 npc_context 字符串
+    dossiers = []
+    for char_data in latest_characters:
+        name = char_data.get('name', '未知名稱')
+        dossier_content = [f"--- 檔案: {name} (npc_profile) ---"]
+        if 'description' in char_data: dossier_content.append(f"- 描述: {char_data['description']}")
+        dossiers.append("\n".join(dossier_content))
+    
+    # 總是包含核心主角
+    dossiers.insert(0, f"--- 檔案: {ai_core.profile.ai_profile.name} (AI 角色) ---\n- 描述: {ai_core.profile.ai_profile.description}")
+    dossiers.insert(0, f"--- 檔案: {ai_core.profile.user_profile.name} (使用者角色) ---\n- 描述: {ai_core.profile.user_profile.description}")
+        
+    realtime_npc_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
+    logger.info(f"[{user_id}] (NSFW Node) 已為世界快照生成了包含 {len(latest_characters)} 個NPC的即時上下文。")
+
+    # [v2.0 核心修正] 使用這個全新的、即時的 npc_context 來構建世界快照
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -739,8 +766,8 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
-        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+        'npc_context': realtime_npc_context, # 使用即時生成的上下文
+        'relevant_npc_context': "(已整合至上方檔案)",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
@@ -757,18 +784,18 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "user_input": user_input,
     }
 
-    # 調用新的直接生成鏈
+    # 調用直接生成鏈
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_direct_nsfw_chain(),
         chain_input,
-        retry_strategy='force'  # 這是最終輸出，使用最強的重試策略
+        retry_strategy='force'
     )
 
     if not narrative_text:
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：[新] 直接 NSFW 生成節點 (v1.0 - 指令轟炸模式)
+# 函式：[新] 直接 NSFW 生成節點 (v2.0 - LORE 數據流修復)
 
 
 
@@ -969,6 +996,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
