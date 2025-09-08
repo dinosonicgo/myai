@@ -1556,16 +1556,17 @@ class AILover:
     
     
 
-    # 函式：[新] 獲取角色量化鏈 (v2.0 - 互動感知升級)
+     # 函式：[新] 獲取角色量化鏈 (v3.0 - Prompt 轉義修正)
     # 更新紀錄:
-    # v2.0 (2025-09-08): [災難性BUG修復 & 品質提升] 根據使用者反饋，對此鏈進行了根本性的職能升級。注入了全新的【互動感知鐵則】，要求 AI 不再僅僅作為一個“計數器”，而是必須像一個“副導演”一樣分析場景的互動性。如果一個動作需要多個參與者而使用者只提及了一部分，AI 現在【必須】智能地推斷並為被省略的參與者也創建描述條目。此修改旨在從根本上解決因只創建部分登場角色而導致的LORE不完整和劇情邏輯混亂（例如出現匿名的“男客人”）的嚴重問題。
-    # v1.0 (2025-09-08): [重大架構升級] 創建此全新的、職責單一的鏈。
+    # v3.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，徹底修正了此鏈 Prompt 模板中的語法錯誤。舊版本在範例中使用了未經轉義的單大括號 `{}` 來書寫 JSON，導致 LangChain 的解析器將其誤認為是需要填充的輸入變數，從而引發致命的 KeyError。新版本遵循 LangChain 規範，將所有作為範例的 `{}` 都用雙大括號 `{{}}` 進行了正確的轉義。
+    # v2.0 (2025-09-08): [災難性BUG修復 & 品質提升] 注入了全新的【互動感知鐵則】，升級了此鏈的職能。
     def get_character_quantification_chain(self) -> Runnable:
         """獲取或創建一個專門用於將群體描述轉化為具體數量列表的鏈。"""
         if not hasattr(self, 'character_quantification_chain') or self.character_quantification_chain is None:
             from .schemas import CharacterQuantificationResult
             quantifier_llm = self._create_llm_instance(temperature=0.2).with_structured_output(CharacterQuantificationResult)
             
+            # [v3.0 核心修正] 將所有作為範例的 JSON 大括號 {} 轉義為 {{}}
             prompt_template = """你是一位精明且富有洞察力的【副導演】。你的唯一任務是閱讀【劇本片段（使用者輸入）】，精確識別出這個場景需要的所有演員，並將他們轉換為一個【具體的描述性字串列表】。
 
 # === 【【【核心規則 v2.0】】】 ===
@@ -1585,18 +1586,18 @@ class AILover:
 #
 #   --- 範例 1：互動感知 ---
 #   - **使用者輸入**: "性神教徒的女魚販，正在為客人提供特殊的口頭服務。"
-#   - **【❌ 舊的錯誤輸出】**: `{"character_descriptions": ["性神教徒的女魚販"]}` (失敗原因：完全忽略了互動的另一方“客人”)
-#   - **【✅ 唯一正確的輸出】**: `{"character_descriptions": ["性神教徒的女魚販", "接受口頭服務的客人"]}`
+#   - **【❌ 舊的錯誤輸出】**: `{{"character_descriptions": ["性神教徒的女魚販"]}}` (失敗原因：完全忽略了互動的另一方“客人”)
+#   - **【✅ 唯一正確的輸出】**: `{{"character_descriptions": ["性神教徒的女魚販", "接受口頭服務的客人"]}}`
 #
 #   --- 範例 2：群體量化 + 互動感知 ---
 #   - **使用者輸入**: "描述街道上，一群男性神教徒乞丐正在圍攻一名女性性神教徒。"
 #   - **【✅ 唯一正確的輸出 (假設隨機數為4)】**:
-#     `{"character_descriptions": ["男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐", "女性性神教徒"]}`
+#     `{{"character_descriptions": ["男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐", "女性性神教徒"]}}`
 #
 #   --- 範例 3：明確數量 ---
 #   - **使用者輸入**: "兩個獸人戰士正在追趕一個地精商人。"
 #   - **【✅ 唯一正確的輸出】**:
-#     `{"character_descriptions": ["獸人戰士", "獸人戰士", "地精商人"]}`
+#     `{{"character_descriptions": ["獸人戰士", "獸人戰士", "地精商人"]}}`
 
 ---
 【使用者輸入】:
@@ -1607,8 +1608,7 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.character_quantification_chain = prompt | quantifier_llm
         return self.character_quantification_chain
-    # 函式：[新] 獲取角色量化鏈 (v2.0 - 互動感知升級)
-
+    # 函式：[新] 獲取角色量化鏈 (v3.0 - Prompt 轉義修正)
 
 
 
@@ -3485,6 +3485,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
