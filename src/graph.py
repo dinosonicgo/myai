@@ -973,17 +973,17 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v36.0 - 續寫邏輯強化)
+# 函式：直接 NSFW 生成節點 (v37.0 - 雙軌歷史管理修復)
 # 更新紀錄:
-# v36.0 (2025-09-09): [重大品質提升] 為了解決“繼續”指令生成內容較簡短的問題，對其處理邏輯進行了強化。1) 將傳遞給 LLM 的引導句修改得更具煽動性和指導性（“深入細節”、“推進”、“加劇”）。 2) 將獲取的原始對話歷史長度從 6 條增加到 8 條。此修改旨在為 AI 的續寫提供更豐富的上下文和更強的創作動力。
-# v35.1 (2025-09-09): [災難性BUG修復] 恢復了被錯誤刪除的 `action_sexual_content_prompt` 參數。
+# v37.0 (2025-09-09): [災難性BUG修復] 根據 LOG 中 AI 返回歷史文本的根本原因，徹底修復了上一版引入的邏輯錯誤。此版本恢復了“雙軌歷史管理”的正確實現：1) 對於【延續性指令】(如“繼續”)，使用 `_get_raw_chat_history` 獲取高保真原文以確保劇情無縫銜接。 2) 對於【新指令】，則改回使用 `_get_summarized_chat_history` 獲取經過摘要和清洗的前情提要。此修改旨在防止 AI 在處理新指令時，因看到過於相似的原始歷史而觸發“禁止重複”原則，從而導致其放棄生成新內容並錯誤地返回舊文本。
+# v36.0 (2025-09-09): [重大品質提升] 強化了對“繼續”指令的續寫邏輯。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [NSFW Path] 執行單次指令轟炸，並始終使用高保真度的原始對話歷史作為上下文。
+    [NSFW Path] 執行單次指令轟炸，並採用雙軌歷史管理策略以確保內容的創新性與連續性。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    input_analysis = state.get('input_analysis') # 使用 .get() 更安全
+    input_analysis = state.get('input_analysis')
     logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在執行【指令轟炸】...")
 
     if not ai_core.profile:
@@ -1000,14 +1000,17 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     user_input_for_chain: str
     chat_history_for_chain: str
 
-    # [v36.0 核心修正] 強化續寫邏輯
+    # [v37.0 核心修正] 恢復雙軌歷史管理
     if input_analysis and input_analysis.input_type == 'continuation':
+        # --- 延續性指令：使用高保真原始歷史 ---
         logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文和強化引導句...")
         user_input_for_chain = "使用者要求你深入細節、毫不保留地接續上一幕的情節，推進角色的互動，並加劇場景的感官刺激。"
         chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=8)
     else:
+        # --- 新指令：使用摘要歷史以鼓勵創新 ---
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到新指令，正在準備摘要歷史以鼓勵創新...")
         user_input_for_chain = state['messages'][-1].content
-        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=8)
+        chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
     
     dossiers = []
     for char_data in planning_subjects_raw:
@@ -1053,8 +1056,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v36.0 - 續寫邏輯強化)
-
+# 函式：直接 NSFW 生成節點 (v37.0 - 雙軌歷史管理修復)
 
 
 
@@ -1331,6 +1333,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
