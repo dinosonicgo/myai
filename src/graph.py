@@ -75,8 +75,9 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
 
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """
-    [v27.0 修正] 專用記憶檢索節點，執行RAG操作。
-    內建一個特殊的、針對性的備援機制，以從根本上解決因RAG預處理鏈自身被審查而導致的無限重試循環。
+    [v28.0 修正] 專用記憶檢索節點，執行RAG操作。
+    通過在RAG預處理鏈的調用中強制指定 `retry_strategy='none'`，並依賴節點內部的 try...except 備援，
+    從根本上解決了因通用委婉化策略導致的無限重試循環。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -90,27 +91,29 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
         # 嘗試使用實體提取鏈來創建一個安全的、只包含關鍵詞的查詢。
         logger.info(f"[{user_id}] (RAG) 正在嘗試使用實體提取鏈進行查詢預處理...")
         entity_extraction_chain = ai_core.get_entity_extraction_chain()
-        # 這裡我們直接調用 ainvoke，讓 ainvoke_with_rotation 的邏輯在外部處理
+        
+        # [v28.0 核心修正] 
+        # 在這個特定的調用中，我們強制禁用通用的委婉化重試策略。
+        # 因為我們知道這個鏈很容易因露骨內容而失敗，我們不希望它觸發可能導致循環的通用備援。
+        # 相反，我們希望它在失敗時立即將控制權交還給下方的 except 區塊，由我們自己來處理這個特定的失敗場景。
         entity_result = await ai_core.ainvoke_with_rotation(
             entity_extraction_chain, 
             {"text_input": user_input_for_retrieval},
-            # 注意：這裡我們仍然使用 euphemize，但下面的邏輯會處理它的失敗
-            retry_strategy='euphemize' 
+            retry_strategy='none' 
         )
         
-        # 如果委婉化重試最終失敗，ainvoke_with_rotation 會返回 None
+        # 如果 ainvoke_with_rotation 因為 safety error 且 retry_strategy='none' 而返回 None
         if not entity_result or not entity_result.names:
-            logger.warning(f"[{user_id}] (RAG) 實體提取鏈（包括委婉化重試）最終失敗或未返回任何實體。")
-            # 拋出異常以觸發下方的終極備援
-            raise ValueError("Entity extraction failed to produce a valid query.")
+            logger.warning(f"[{user_id}] (RAG) 實體提取鏈返回空結果（可能因內容審查），將觸發備援。")
+            raise ValueError("Entity extraction returned None or no entities.")
 
         sanitized_query = " ".join(entity_result.names)
         logger.info(f"[{user_id}] (RAG) 預處理成功，已生成安全查詢: '{sanitized_query}'")
 
     except Exception as e:
         # --- 步驟 2: 終極備援 ---
-        # 如果上述任何步驟（包括委婉化重試）失敗，則啟動這個最簡單、最不可能失敗的備援。
-        logger.error(f"[{user_id}] (RAG) 查詢預處理遭遇無法恢復的錯誤: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
+        # 當且僅當上面的實體提取（不帶重試）失敗時，這個區塊會被觸發。
+        logger.error(f"[{user_id}] (RAG) 查詢預處理失敗: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
         # 直接使用未經修改的原始輸入。這是安全的，因為檢索器是本地操作。
         sanitized_query = user_input_for_retrieval
 
@@ -1115,6 +1118,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
