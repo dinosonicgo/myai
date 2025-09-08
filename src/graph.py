@@ -23,6 +23,8 @@ from .schemas import (CharacterProfile, TurnPlan, ExpansionDecision,
                       WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult,
                       CharacterQuantificationResult)
 from .tool_context import tool_context
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
@@ -472,8 +474,10 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     return {"turn_plan": plan}
 
 
-# graph.py
-
+# 函式：獲取摘要後的對話歷史 (v27.0 - NameError 修正)
+# 更新紀錄:
+# v27.0 (2025-09-08): [災難性BUG修復] 根據 NameError Traceback，為此函式所在的 `graph.py` 檔案補充了缺失的 `ChatPromptTemplate` 和 `StrOutputParser` 導入語句。此函式本身邏輯正確，但因其依賴未被導入而導致了整個圖的崩潰。
+# v26.0 (2025-09-22): [災難性BUG修復] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
 async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
     """
     [v26.0 修正] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
@@ -556,6 +560,7 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
             # 如果是其他類型的錯誤（如網絡問題），則直接觸發終極備援
             logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生非安全相關的未知錯誤: {e}。啟動終極備援。", exc_info=True)
             return _get_formatted_chat_history(ai_core, user_id, num_messages=2)
+# 函式：獲取摘要後的對話歷史 (v27.0 - NameError 修正)
 
 
 
@@ -1181,6 +1186,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
