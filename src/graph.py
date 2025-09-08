@@ -1000,30 +1000,42 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v34.0 - 上下文高保真 & 適配導演簡報)
+# 函式：直接 NSFW 生成節點 (v35.0 - 健壯性修正)
 # 更新紀錄:
-# v34.0 (2025-09-08): [災難性BUG修復 & 品質提升] 對此節點的上下文準備邏輯進行了終極重構。1. 【上下文高保真】：無論指令是否為“继续”，此節點現在【始終】調用 `_get_raw_chat_history` 來獲取未經摘要的、最原始的對話歷史，確保 AI 總能精確銜接上一輪的語氣和情節。2. 【適配導演簡報】：修改了傳遞給生成鏈的變數，將冰冷的 `planning_subjects_json` 替換為由新增的 `hydrate_planning_subjects_node` 節點生成的、生動的 `scene_briefing`，為 AI 提供“劇本開頭”而不是“演員名單”。
-# v33.0 (2025-09-08): [災難性BUG修復] 適配了【強制 LORE 綁定】Prompt。
+# v35.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，為此節點增加了【備援簡報生成】邏輯。現在，它會使用 `state.get('scene_briefing')` 來安全地獲取導演簡報。如果上游節點因任何原因（如內容審查、網路錯誤）未能成功生成並注入簡報，此節點將不再崩潰，而是會自行生成一個備援版本的簡報，確保 NSFW 生成流程的絕對健壯性。
+# v34.0 (2025-09-08): [災難性BUG修復 & 品質提升] 對此節點的上下文準備邏輯進行了終極重構。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
-    [v34.0 修正] [NSFW Path] 執行單次指令轟炸，使用“導演簡報”和“高保真”歷史記錄。
+    [v35.0 修正] [NSFW Path] 執行單次指令轟炸，並內建對 'scene_briefing' 缺失的備援處理。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    scene_briefing = state['scene_briefing'] # [v34.0 新增] 使用導演簡報
     user_input = state['messages'][-1].content
+    
+    # [v35.0 核心修正] 使用 .get() 安全獲取，並在缺失時生成備援
+    scene_briefing = state.get('scene_briefing')
+    if not scene_briefing:
+        logger.error(f"[{user_id}] (NSFW Node) 致命錯誤：'scene_briefing' 未在 state 中找到！啟動備援簡報生成。")
+        if ai_core.profile:
+            planning_subjects = state.get('planning_subjects', [])
+            character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
+            gs = ai_core.profile.game_state
+            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+            current_location_str = " > ".join(effective_location_path)
+            scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
+        else:
+            scene_briefing = "（系統錯誤：AI Profile 未加載，且場景簡報缺失。）"
+
     logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在基於導演簡報執行【指令轟炸】...")
 
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    # [v34.0 核心修正] 無論如何，都使用高保真的原始對話歷史
     logger.info(f"[{user_id}] (NSFW Node) 正在準備高保真上下文...")
     chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=4)
     
     gs = ai_core.profile.game_state
 
-    # 為了 world_snapshot 的兼容性，我們仍然需要一個簡化的 npc_context
     planning_subjects = state.get('planning_subjects', [])
     dossiers = []
     for char_data in planning_subjects:
@@ -1055,7 +1067,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
         "chat_history": chat_history_for_chain,
-        "scene_briefing": scene_briefing, # [v34.0 核心修正] 注入導演簡報
+        "scene_briefing": scene_briefing,
         "user_input": user_input,
     }
 
@@ -1069,8 +1081,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v34.0 - 上下文高保真 & 適配導演簡報)
-
+# 函式：直接 NSFW 生成節點 (v35.0 - 健壯性修正)
 
 
 
@@ -1336,6 +1347,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
