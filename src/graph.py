@@ -241,13 +241,35 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis, "structured_context": ai_core._assemble_context_from_lore(state['raw_lore_objects'], is_remote_scene=(gs.viewing_mode == 'remote'))}
 
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
-    """[5] LORE擴展決策節點，基於場景中是否已有合適角色來做決定。"""
+    """
+    [v29.0 修正] LORE擴展決策節點。
+    內建一個全新的「輸入預清洗」機制。在調用決策鏈之前，會先使用「文學評論家」鏈將潛在的露骨輸入安全地委婉化，
+    旨在從根本上解決決策鏈自身因輸入內容而遭遇審查的問題。
+    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
+    # [v29.0 核心修正] 輸入預清洗步驟
+    sanitized_input_for_decision = user_input
+    try:
+        # 使用一個簡單的檢查來判斷是否需要執行耗時的委婉化
+        if ai_core._is_descriptive_and_explicit(user_input):
+            logger.warning(f"[{user_id}] (Expansion Decision) 檢測到潛在的露骨描述輸入，啟動預清洗...")
+            literary_chain = ai_core.get_literary_euphemization_chain()
+            # 這裡不使用 ainvoke_with_rotation，因為我們不希望它再次觸發複雜的備援
+            sanitized_input_for_decision = await literary_chain.ainvoke({"dialogue_history": user_input})
+            if not sanitized_input_for_decision:
+                logger.error(f"[{user_id}] (Expansion Decision) 預清洗步驟未能生成安全文本，將回退至使用原始輸入。")
+                sanitized_input_for_decision = user_input
+            else:
+                logger.info(f"[{user_id}] (Expansion Decision) 輸入已成功預清洗。")
+    except Exception as e:
+        logger.error(f"[{user_id}] (Expansion Decision) 在預清洗輸入時發生錯誤: {e}，將回退至使用原始輸入。")
+        sanitized_input_for_decision = user_input
+
     lightweight_lore_for_decision = []
     for lore in raw_lore_objects:
         if lore.category == 'npc_profile':
@@ -260,8 +282,6 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
 
     lore_json_str = json.dumps(lightweight_lore_for_decision, ensure_ascii=False, indent=2)
     
-    logger.info(f"[{user_id}] (Graph|5) 注入決策鏈的【輕量化】現有角色JSON:\n{lore_json_str}")
-
     examples_str = """
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
@@ -277,7 +297,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
-            "user_input": user_input, 
+            "user_input": sanitized_input_for_decision, # 使用清洗後的輸入
             "existing_characters_json": lore_json_str,
             "examples": examples_str
         },
@@ -1118,6 +1138,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
