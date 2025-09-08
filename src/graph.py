@@ -146,10 +146,19 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：檢索記憶節點 (v30.0 - 清洗邏輯修正)
 
-# 函式：[新] 規劃主體注水節點 (v1.0 - 數據擬人化)
+
+
+
+
+
+
+
+
+# 函式：[新] 規劃主體注水節點 (v2.0 - 健壯性修正)
 # 更新紀錄:
-# v1.0 (2025-09-08): [重大架構升級] 創建此全新的【數據擬人化】節點。它的唯一職責是在規劃開始前，調用新增的 `get_scene_briefing_chain`，將上游傳來的、冰冷的 LORE 角色列表（planning_subjects）“注水”成一段生動的、人類可讀的“導演簡報”（scene_briefing）。此節點是解決 AI“擁有數據但不會使用”問題的關鍵，它將數據轉化為了 AI 更容易理解和使用的“劇本開頭”。
-async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict:
+# v2.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，徹底重構了此節點的失敗處理和返回邏輯。舊版本在 AI 調用失敗時，會返回一個不包含 `scene_briefing` 鍵的空字典，導致下游節點崩潰。新版本確保了此節點在【所有可能的執行路徑】中，【都必須】返回一個包含 `scene_briefing` 鍵的字典。在 AI 調用失敗時，它會自動生成一段包含所有角色名稱的【備援簡報】，從而保證了圖形數據流的完整性和健壯性。
+# v1.0 (2025-09-08): [重大架構升級] 創建此全新的【數據擬人化】節點。
+async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[str, str]:
     """將冰冷的 LORE 角色列表，轉換為生動的“導演場景簡報”。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -158,9 +167,11 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict:
     
     if not planning_subjects:
         logger.warning(f"[{user_id}] (Hydrator) 規劃主體為空，無法生成場景簡報。")
+        # [v2.0 核心修正] 即使失敗，也要返回帶有正確鍵的字典
         return {"scene_briefing": "（場景中沒有可供描述的具體角色。）"}
 
     if not ai_core.profile:
+        # [v2.0 核心修正] 即使失敗，也要返回帶有正確鍵的字典
         return {"scene_briefing": "（錯誤：AI Profile 未加載。）"}
 
     logger.info(f"[{user_id}] (Graph) Node: hydrate_planning_subjects -> 正在為 {len(planning_subjects)} 位演員生成導演簡報...")
@@ -181,13 +192,20 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict:
         retry_strategy='euphemize'
     )
 
+    # [v2.0 核心修正] 處理 AI 調用失敗（返回None）的情況
     if not scene_briefing:
-        logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈返回空值，觸發備援。")
-        scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{', '.join([p.get('name', '未知') for p in planning_subjects])}。"
+        logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈返回空值，觸發備援簡報生成。")
+        # 生成一段包含所有關鍵信息的備援簡報
+        character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
+        scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
+        logger.info(f"[{user_id}] (Hydrator) 已成功生成備援導演簡報。")
 
-    logger.info(f"[{user_id}] (Hydrator) 導演簡報生成成功。")
     return {"scene_briefing": scene_briefing}
-# 函式：[新] 規劃主體注水節點 (v1.0 - 數據擬人化)
+# 函式：[新] 規劃主體注水節點 (v2.0 - 健壯性修正)
+
+
+
+
 
 
 # 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
@@ -1321,6 +1339,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
