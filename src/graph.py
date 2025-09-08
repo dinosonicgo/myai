@@ -695,7 +695,7 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
     planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
 
     gs = ai_core.profile.game_state
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
 
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
@@ -742,7 +742,7 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
     if not ai_core.profile or "安全備援" in narrative_outline_draft:
         return {} 
 
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    chat_history_str = _get_raw_chat_history(ai_core, user_id)
     world_snapshot = state.get('world_snapshot', '') 
 
     final_outline = await ai_core.ainvoke_with_rotation(
@@ -1065,16 +1065,17 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v33.0 - 快速通道拓撲修正)
+# 函式：創建主回應圖 (v22.0 - 引入 NSFW 思維鏈)
 # 更新紀錄:
-# v33.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError Log，再次重構了“快速通道”的拓撲結構。舊版本會錯誤地跳過 `perceive_and_set_view_node`，導致下游節點因缺少 `scene_analysis` 狀態而崩潰。新版本將此關鍵節點重新加入快速通道中，確保了所有必要的狀態數據都能在進入 LORE 查詢之前被正確生成。
-# v32.0 (2025-09-08): [災難性BUG修復] 修正了“延续性指令”的快速通道邏輯。
+# v22.0 (2025-09-09): [重大架構重構] 根據“數據偽裝下的思維鏈”策略，徹底重構了 NSFW 處理路徑。舊的單一 `direct_nsfw_generation_node` 被一個包含三個新節點（`nsfw_breakthrough_node`, `nsfw_refinement_node`, `final_rendering_node`）的、邏輯更清晰的子鏈所取代。此修改旨在通過將“規劃”和“渲染”分離，從根本上解決 LORE 應用、劇情連續性和複雜指令遵循的三大核心問題。
+# v33.0 (2025-09-09): [災難性BUG修復] 修正了快速通道的拓撲結構。
 def create_main_response_graph() -> StateGraph:
     """
-    [v33.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
+    [v22.0 修正] 創建主回應圖，內建全新的 NSFW 思維鏈。
     """
     graph = StateGraph(ConversationGraphState)
     
+    # --- 節點註冊 ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
@@ -1085,7 +1086,11 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("direct_nsfw_generation", direct_nsfw_generation_node)
+    # [v22.0 新增] 註冊新的 NSFW 思維鏈節點
+    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
+    graph.add_node("nsfw_refinement", nsfw_refinement_node)
+    graph.add_node("final_rendering", final_rendering_node)
+    
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
@@ -1101,6 +1106,7 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
+    # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
     def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
@@ -1110,32 +1116,21 @@ def create_main_response_graph() -> StateGraph:
         else:
             return "standard_flow"
 
-    # [v33.0 核心修正] 調整圖的拓撲結構
     graph.add_conditional_edges(
         "classify_intent",
         route_after_intent_classification,
-        {
-            "standard_flow": "retrieve_memories",
-            "continuation_flow": "perceive_and_set_view"  # 快速通道現在跳到感知節點
-        }
+        { "standard_flow": "retrieve_memories", "continuation_flow": "perceive_and_set_view" }
     )
 
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
-    
-    # 無論是標準流程還是快速通道，都會經過感知節點，然後再到 LORE 查詢
     graph.add_edge("perceive_and_set_view", "query_lore")
-    
-    # 後續流程保持不變
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
-        { 
-            "expand_lore": "character_quantification", 
-            "continue_to_planner": "prepare_existing_subjects"
-        }
+        { "expand_lore": "character_quantification", "continue_to_planner": "prepare_existing_subjects" }
     )
     graph.add_edge("character_quantification", "lore_expansion")
     graph.add_edge("lore_expansion", "planner_junction")
@@ -1151,7 +1146,7 @@ def create_main_response_graph() -> StateGraph:
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
         if 'nsfw' in intent:
-            return "direct_nsfw_planner"
+            return "nsfw_chain_of_thought" # [v22.0 修正] 路由到新的 NSFW 思維鏈
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -1163,23 +1158,28 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "direct_nsfw_planner": "direct_nsfw_generation" 
+            "nsfw_chain_of_thought": "nsfw_breakthrough" # [v22.0 修正] 路由到新鏈的第一步
         }
     )
     
+    # SFW 路徑
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     
-    graph.add_edge("direct_nsfw_generation", "rendering_junction")
+    # [v22.0 新增] NSFW 思維鏈路徑
+    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
+    graph.add_edge("nsfw_refinement", "final_rendering")
+    graph.add_edge("final_rendering", "rendering_junction")
 
+    # 統一的後處理路徑
     graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v33.0 - 快速通道拓撲修正)
+# 函式：創建主回應圖 (v22.0 - 引入 NSFW 思維鏈)
 
         
 
@@ -1333,6 +1333,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
