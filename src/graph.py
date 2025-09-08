@@ -1149,30 +1149,95 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
         await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
     return {}
 
+# 函式：補完角色檔案節點 (v2.0 - 數據安全預處理)
+# 更新紀錄:
+# v2.0 (2025-09-08): [災難性BUG修復] 根據 /start 流程中的 API 超時錯誤，徹底重構了此節點的執行邏輯。舊版本會直接將可能包含敏感詞的原始角色檔案發送給補完鏈，導致 API 內容審查系統掛起。新版本注入了【數據安全預處理】流程：在調用 AI 前，先創建一個檔案的“安全副本”，並使用“文學評論家”鏈將其中風險最高的 description 和 appearance 欄位清洗成安全的文學概述，然後再將這個安全副本發送給 AI 進行補完，最後將補完的結果安全地合併回原始檔案。此修改從根本上解決了創世流程中的 API 掛起問題。
+# v1.0 (2025-09-12): 原始創建
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...")
-    completion_chain = ai_core.get_profile_completion_chain()
+    
     if not ai_core.profile:
         logger.error(f"[{user_id}] 在 complete_profiles_node 中 ai_core.profile 為空，無法繼續。")
         return {}
-    
-    completed_user_profile_task = ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.user_profile.model_dump_json()}, retry_strategy='euphemize')
-    completed_ai_profile_task = ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": ai_core.profile.ai_profile.model_dump_json()}, retry_strategy='euphemize')
-    
-    completed_user_profile, completed_ai_profile = await asyncio.gather(completed_user_profile_task, completed_ai_profile_task)
 
-    update_payload = {}
-    if completed_user_profile:
-        update_payload['user_profile'] = completed_user_profile.model_dump()
-    if completed_ai_profile:
-        update_payload['ai_profile'] = completed_ai_profile.model_dump()
-        
-    if update_payload:
-        await ai_core.update_and_persist_profile(update_payload)
+    completion_chain = ai_core.get_profile_completion_chain()
+    literary_chain = ai_core.get_literary_euphemization_chain()
+
+    async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
+        """一個輔助函式，執行“清洗 -> 補完 -> 合併”的安全流程。"""
+        try:
+            # 步驟 1: 創建一個用於補完的安全副本
+            safe_profile_data = original_profile.model_dump()
+            
+            # 步驟 2: 清洗風險最高的欄位
+            description_to_clean = safe_profile_data.get('description', '')
+            appearance_to_clean = safe_profile_data.get('appearance', '')
+
+            tasks_to_clean = {}
+            if description_to_clean.strip():
+                tasks_to_clean['description'] = literary_chain.ainvoke({"dialogue_history": description_to_clean})
+            if appearance_to_clean.strip():
+                tasks_to_clean['appearance'] = literary_chain.ainvoke({"dialogue_history": appearance_to_clean})
+
+            if tasks_to_clean:
+                cleaned_results = await asyncio.gather(*tasks_to_clean.values(), return_exceptions=True)
+                results_dict = dict(zip(tasks_to_clean.keys(), cleaned_results))
+                
+                if 'description' in results_dict and isinstance(results_dict['description'], str):
+                    safe_profile_data['description'] = results_dict['description']
+                if 'appearance' in results_dict and isinstance(results_dict['appearance'], str):
+                    safe_profile_data['appearance'] = results_dict['appearance']
+
+            # 步驟 3: 使用安全副本調用補完鏈
+            logger.info(f"[{user_id}] 正在為角色 '{original_profile.name}' 執行安全的檔案補完...")
+            completed_safe_profile = await ai_core.ainvoke_with_rotation(
+                completion_chain, 
+                {"profile_json": json.dumps(safe_profile_data, ensure_ascii=False)}, 
+                retry_strategy='euphemize'
+            )
+
+            if not completed_safe_profile:
+                logger.warning(f"[{user_id}] 角色 '{original_profile.name}' 的補完鏈返回空結果，將跳過補完。")
+                return original_profile
+
+            # 步驟 4: 安全地將補完的結果合併回原始檔案
+            # 我們只合併那些在原始檔案中為空或為預設值的欄位
+            original_data = original_profile.model_dump()
+            completed_data = completed_safe_profile.model_dump()
+            
+            for key, value in completed_data.items():
+                is_empty_or_default = not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]
+                if is_empty_or_default and value:
+                    original_data[key] = value
+            
+            # 確保核心描述不被覆蓋
+            original_data['description'] = original_profile.description
+            original_data['appearance'] = original_profile.appearance
+            original_data['name'] = original_profile.name
+
+            return CharacterProfile.model_validate(original_data)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 在為角色 '{original_profile.name}' 進行安全補完時發生錯誤: {e}，將返回原始檔案。", exc_info=True)
+            return original_profile
+
+    # 並行處理使用者和AI的檔案
+    completed_user_profile_task = _safe_complete_profile(ai_core.profile.user_profile)
+    completed_ai_profile_task = _safe_complete_profile(ai_core.profile.ai_profile)
+    
+    final_user_profile, final_ai_profile = await asyncio.gather(completed_user_profile_task, completed_ai_profile_task)
+
+    # 更新並持久化
+    update_payload = {
+        'user_profile': final_user_profile.model_dump(),
+        'ai_profile': final_ai_profile.model_dump()
+    }
+    await ai_core.update_and_persist_profile(update_payload)
         
     return {}
+# 函式：補完角色檔案節點 (v2.0 - 數據安全預處理)
 
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
@@ -1221,6 +1286,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
