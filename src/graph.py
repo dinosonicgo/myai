@@ -973,16 +973,17 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v35.1 - 參數恢復)
+# 函式：直接 NSFW 生成節點 (v36.0 - 續寫邏輯強化)
 # 更新紀錄:
-# v35.1 (2025-09-09): [災難性BUG修復] 根據 KeyError Traceback，恢復了在构造 `chain_input` 時被錯誤刪除的 `action_sexual_content_prompt` 參數。此修正確保了傳遞給 Prompt 模板的變數集是完整的，從根本上解決了因此導致的崩潰問題。
-# v35.0 (2025-09-09): [災難性BUG修復] 為了適配 ai_core 中統一協議的重構，移除了對 action_sexual_content_prompt 的注入。
+# v36.0 (2025-09-09): [重大品質提升] 為了解決“繼續”指令生成內容較簡短的問題，對其處理邏輯進行了強化。1) 將傳遞給 LLM 的引導句修改得更具煽動性和指導性（“深入細節”、“推進”、“加劇”）。 2) 將獲取的原始對話歷史長度從 6 條增加到 8 條。此修改旨在為 AI 的續寫提供更豐富的上下文和更強的創作動力。
+# v35.1 (2025-09-09): [災難性BUG修復] 恢復了被錯誤刪除的 `action_sexual_content_prompt` 參數。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [NSFW Path] 執行單次指令轟炸，並始終使用高保真度的原始對話歷史作為上下文。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
+    input_analysis = state.get('input_analysis') # 使用 .get() 更安全
     logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在執行【指令轟炸】...")
 
     if not ai_core.profile:
@@ -996,10 +997,18 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
     gs = ai_core.profile.game_state
     
-    logger.info(f"[{user_id}] (NSFW Node) 啟用高保真上下文模式，正在獲取未經刪改的原始對話歷史...")
-    user_input_for_chain = state['messages'][-1].content
-    chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=6)
+    user_input_for_chain: str
+    chat_history_for_chain: str
 
+    # [v36.0 核心修正] 強化續寫邏輯
+    if input_analysis and input_analysis.input_type == 'continuation':
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文和強化引導句...")
+        user_input_for_chain = "使用者要求你深入細節、毫不保留地接續上一幕的情節，推進角色的互動，並加劇場景的感官刺激。"
+        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=8)
+    else:
+        user_input_for_chain = state['messages'][-1].content
+        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=8)
+    
     dossiers = []
     for char_data in planning_subjects_raw:
         name = char_data.get('name', '未知名稱')
@@ -1024,7 +1033,6 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    # [v35.1 核心修正] 恢復被錯誤刪除的 action_sexual_content_prompt 參數
     chain_input = {
         "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
         "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
@@ -1045,7 +1053,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v35.1 - 參數恢復)
+# 函式：直接 NSFW 生成節點 (v36.0 - 續寫邏輯強化)
 
 
 
@@ -1323,6 +1331,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
