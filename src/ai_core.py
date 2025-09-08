@@ -215,9 +215,9 @@ class ValidationResult(BaseModel):
 # 類別：AI核心類
 # 說明：管理單一使用者的所有 AI 相關邏輯，包括模型、記憶、鏈和互動。
 class AILover:
-    MODEL_NAME = "models/gemini-2.5-flash-lite"
+    MODEL_NAME = "models/gemini-2.5-flash"
 
-
+#"models/gemini-2.5-flash-lite"
 
 
     # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
@@ -3536,6 +3536,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
