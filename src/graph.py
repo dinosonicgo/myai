@@ -28,6 +28,10 @@ from langchain_core.output_parsers import StrOutputParser
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
+# 函式：分類意圖節點 (v2.0 - 延續性指令安全查詢生成)
+# 更新紀錄:
+# v2.0 (2025-09-08): [災難性BUG修復] 徹底重構了此節點對延續性指令的處理邏輯。現在，當檢測到 "繼續" 時，它不僅會繼承上一輪的意圖，還會主動使用【上一輪 AI 的回覆】作為輸入，調用“文學評論家”鏈來預先生成一個安全的 `sanitized_query_for_tools`。此修改從根本上解決了因快速通道繞過 `retrieve_memories_node` 而導致的 KeyError。
+# v1.0 (2025-09-08): 原始創建。
 async def classify_intent_node(state: ConversationGraphState) -> Dict:
     """[1] 圖的入口點，對輸入进行意图分类，并能处理延续性指令以继承持久化的状态。"""
     user_id = state['user_id']
@@ -51,9 +55,30 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
                 intent_type=last_intent_type,
                 reasoning=f"從持久化狀態繼承了上一輪的 '{last_intent_type}' 意圖。"
             )
+
+            # [v2.0 核心修正] 預生成 sanitized_query_for_tools 以修復 KeyError
+            sanitized_query_for_continuation = "接續上一幕的情節。" # 預設安全查詢
+            chat_history = ai_core.session_histories.get(user_id)
+            if chat_history and chat_history.messages:
+                last_ai_message = next((m.content for m in reversed(chat_history.messages) if m.type == 'ai'), None)
+                if last_ai_message:
+                    try:
+                        logger.info(f"[{user_id}] (Graph|1) 正在基於上一輪 AI 回覆為延續性指令生成安全查詢...")
+                        literary_chain = ai_core.get_literary_euphemization_chain()
+                        safe_overview = await ai_core.ainvoke_with_rotation(
+                            literary_chain,
+                            {"dialogue_history": last_ai_message},
+                            retry_strategy='euphemize'
+                        )
+                        if safe_overview:
+                            sanitized_query_for_continuation = safe_overview
+                    except Exception as e:
+                         logger.warning(f"[{user_id}] (Graph|1) 為延續性指令生成安全查詢時失敗: {e}，將使用預設值。")
+
             return {
                 "intent_classification": inherited_intent,
-                "input_analysis": input_analysis_result
+                "input_analysis": input_analysis_result,
+                "sanitized_query_for_tools": sanitized_query_for_continuation
             }
         else:
             logger.warning(f"[{user_id}] (Graph|1) 檢測到延续性指令，但 GameState 中沒有意图可供继承，将按常规流程处理。")
@@ -74,6 +99,7 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
         "intent_classification": classification_result,
         "input_analysis": input_analysis_result
     }
+# 函式：分類意圖節點 (v2.0 - 延續性指令安全查詢生成)
 
 # 函式：檢索記憶節點 (v29.0 - 源頭清洗)
 # 更新紀錄:
@@ -863,6 +889,10 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
 
 
 
+# 函式：持久化狀態節點 (v12.0 - 意圖持久化)
+# 更新紀錄:
+# v12.0 (2025-09-08): [災難性BUG修復] 新增了核心邏輯，在儲存對話歷史後，會將當前回合的最終意圖分類（SFW/NSFW）寫入 GameState 並持久化到資料庫。此修改是為了讓 `classify_intent_node` 能夠在下一輪的延续性指令（如“继续”）中，準確地繼承上一輪的上下文狀態。
+# v11.0 (2025-09-08): 原始創建。
 async def persist_state_node(state: ConversationGraphState) -> Dict:
     """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
     user_id = state['user_id']
@@ -872,8 +902,10 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     intent_classification = state.get('intent_classification')
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
     
+    # [v12.0 核心修正] 持久化當前回合的意圖
     if ai_core.profile and intent_classification:
         current_intent_type = intent_classification.intent_type
+        # 只有在意圖發生變化時才寫入資料庫，以減少不必要的 I/O
         if ai_core.profile.game_state.last_intent_type != current_intent_type:
             logger.info(f"[{user_id}] (Persist) 正在將當前意圖 '{current_intent_type}' 持久化到 GameState...")
             ai_core.profile.game_state.last_intent_type = current_intent_type
@@ -903,6 +935,7 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         await asyncio.gather(*tasks, return_exceptions=True)
         
     return {}
+# 函式：持久化狀態節點 (v12.0 - 意圖持久化)
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
@@ -931,14 +964,12 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v33.0 - 適配 LORE 綁定)
+# 函式：直接 NSFW 生成節點 (v32.0 - 延續性指令高保真續寫)
 # 更新紀錄:
-# v33.0 (2025-09-08): [災難性BUG修復] 修改了此節點的數據準備邏輯，以適配 `get_direct_nsfw_chain` v6.0 的【強制 LORE 綁定】Prompt。現在，它會將上游傳來的 `planning_subjects` 角色列表格式化為 JSON 字符串，並作為一個新的、獨立的變數 `planning_subjects_json` 傳遞給生成鏈。此修改確保了 AI 在創作時能接收到明確的“演員列表”，從而解決了其忽略已創建的具名 LORE 角色的問題。
-# v32.0 (2025-09-08): [災難性BUG修復] 為此節點增加了針對“延续性指令”的專門處理邏輯。
+# v32.0 (2025-09-08): [災難性BUG修復] 為此節點增加了針對“延续性指令”的專門處理邏輯。當檢測到此類指令時，它將不再使用可能被審查或信息失真的“摘要歷史”，而是改為調用新的 `_get_raw_chat_history` 輔助函式，將未經修改的、最高保真度的原始對話歷史注入 Prompt。此修改旨在從根本上解決 AI 在續寫 NSFW 場景時因上下文不準確而導致的劇情偏離問題。
+# v31.0 (2025-09-08): 原始創建。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
-    """
-    [v33.0 修正] [NSFW Path] 執行單次指令轟炸，並將具名的LORE角色強制綁定到Prompt中。
-    """
+    """[NSFW Path] 執行單次指令轟炸，並內建對延續性指令的高保真處理。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     input_analysis = state['input_analysis']
@@ -947,52 +978,37 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    latest_characters = state.get('planning_subjects', [])
-    if not latest_characters:
-        logger.warning(f"[{user_id}] (NSFW Node) 检测到“无米之炊”场景（无具名NPC），正在启动【强制LORE扩展】备援机制...")
-        
-        quant_state = await character_quantification_node(state)
-        quantified_list = quant_state.get('quantified_character_list', [])
-        
-        if not quantified_list:
-            logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：量化步骤未能识别出任何可创建的角色。")
-        else:
-            logger.info(f"[{user_id}] (NSFW Node) 强制扩展：已量化出 {len(quantified_list)} 个角色，正在执行扩展...")
-            temp_state_for_expansion = state.copy()
-            temp_state_for_expansion['quantified_character_list'] = quantified_list
-            
-            expansion_result = await lore_expansion_node(temp_state_for_expansion)
-            latest_characters = expansion_result.get('planning_subjects', [])
-            
-            if latest_characters:
-                logger.info(f"[{user_id}] (NSFW Node) 强制LORE扩展成功！已生成并加载 {len(latest_characters)} 个角色作为场景主体。")
-            else:
-                logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：扩展步骤未能返回任何角色。")
+    planning_subjects_raw = state.get('planning_subjects')
+    if planning_subjects_raw is None:
+        lore_objects = state.get('raw_lore_objects', [])
+        planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
 
     gs = ai_core.profile.game_state
     
+    # [v32.0 核心修正] 根據指令類型選擇不同的上下文策略
     user_input_for_chain: str
     chat_history_for_chain: str
 
     if input_analysis and input_analysis.input_type == 'continuation':
         logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文進行續寫...")
+        # 為 LLM 提供一個中性的、引導性的任務指令
         user_input_for_chain = "使用者要求無縫地、不間斷地接續上一幕的情節，將故事向前推進。"
+        # 使用新的輔助函式獲取未經摘要的、最高保真度的原始歷史
         chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=4)
     else:
+        # 對於新指令，繼續使用標準的摘要歷史
         user_input_for_chain = state['messages'][-1].content
         chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
     
-    # [v33.0 核心修正] 將 LORE 角色列表明確地格式化為 JSON 字符串
-    planning_subjects_json = json.dumps(latest_characters, ensure_ascii=False, indent=2)
-
-    # 為了 world_snapshot 的兼容性，我們仍然創建一個簡化的 dossiers
+    # --- 後續的世界快照組裝邏輯保持不變 ---
     dossiers = []
-    for char_data in latest_characters:
+    for char_data in planning_subjects_raw:
         name = char_data.get('name', '未知名稱')
         dossier_content = [f"--- 檔案: {name} ---", f"- 描述: {char_data.get('description', '無')}"]
         dossiers.append("\n".join(dossier_content))
     realtime_npc_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
-
+    
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -1016,7 +1032,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
         "chat_history": chat_history_for_chain,
-        "planning_subjects_json": planning_subjects_json, # [v33.0 核心修正] 注入新的變數
+        "planning_subjects_json": planning_subjects_json,
         "user_input": user_input_for_chain,
     }
 
@@ -1030,7 +1046,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v33.0 - 適配 LORE 綁定)
+# 函式：直接 NSFW 生成節點 (v32.0 - 延續性指令高保真續寫)
 
 
 
@@ -1313,6 +1329,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
