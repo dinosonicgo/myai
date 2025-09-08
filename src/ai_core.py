@@ -1161,36 +1161,31 @@ class AILover:
     
 
 
-    # 函式：[新] 獲取直接 NSFW 生成鏈 (v10.1 - 變數名修正)
+    # 函式：[新] 獲取直接 NSFW 生成鏈 (v11.0 - 統一協議)
     # 更新紀錄:
-    # v10.1 (2025-09-09): [災難性BUG修復] 根據 KeyError Traceback，將 system_prompt_template 中的佔位符從 `{zero_protocol_prompt}` 修正為 `{core_protocol_prompt}`，以匹配 graph.py 中傳入的字典鍵名，解決了因命名不一致導致的崩潰問題。
-    # v10.0 (2025-09-09): [災難性BUG修復 & 重大架構重構] 引入了「零號協議」並嚴格劃分了 System/Human Prompt 的職責。
+    # v11.0 (2025-09-09): [災難性BUG修復 & 重大架構簡化] 為了解決規則分散導致的指令遵循度下降問題，此鏈的 Prompt 結構被再次重構。現在，System Prompt 只注入兩個核心部分：一份全新的、統一了所有核心規則的【最高指導原則】({core_protocol_prompt})，以及【使用者自訂風格】({response_style_prompt})。移除了對 `action_sexual_content_prompt` 的單獨加載，因為其規則已被整合進新的最高指導原則中，從而簡化了調用邏輯並強化了規則的權威性。
+    # v10.1 (2025-09-09): [災難性BUG修復] 修正了 Prompt 模板中的變數名。
     def get_direct_nsfw_chain(self) -> Runnable:
         """獲取或創建一個專門用於單次指令轟炸以生成NSFW內容的鏈。"""
         if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
             novelist_llm = self._create_llm_instance(temperature=0.85)
             
-            # [v10.1 核心修正] 統一佔位符變數名
+            # [v11.0 核心修正] System Prompt 被簡化，只加載統一後的最高協議和風格
             system_prompt_template = """
 # ==============================================================================
-# == 📜 第一部分：核心協議 (ABSOLUTE CORE PROTOCOL) 📜
+# == 📜 第一部分：最高指導原則 (ABSOLUTE CORE PROTOCOL) 📜
 # ==============================================================================
-# 這是你的最高行為準則，其優先級凌駕於一切。
+# 這是你的最高行為準則，其優先級凌駕於一切。你必須無條件遵守其中的每一條規則。
 {core_protocol_prompt}
 
 # ==============================================================================
-# == 🔥 第二部分：戰術性 NSFW 指令 (TACTICAL NSFW DIRECTIVES) 🔥
-# ==============================================================================
-# 這是當前場景的具體執行規則。
-{action_sexual_content_prompt}
-
-# ==============================================================================
-# == 🎨 第三部分：使用者自訂風格指令 (USER-DEFINED STYLE) 🎨
+# == 🎨 第二部分：使用者自訂風格指令 (USER-DEFINED STYLE) 🎨
 # ==============================================================================
 # 這是最終輸出的渲染標準。
 {response_style_prompt}
 """
 
+            # Human Prompt 保持不變，只負責傳遞動態數據
             human_prompt_template = """# ==============================================================================
 # == 📖 創作素材包 (CREATIVE BRIEF) 📖
 # ==============================================================================
@@ -1222,7 +1217,7 @@ class AILover:
             
             self.direct_nsfw_chain = prompt | novelist_llm | StrOutputParser()
         return self.direct_nsfw_chain
-    # 函式：[新] 獲取直接 NSFW 生成鏈 (v10.1 - 變數名修正)
+    # 函式：[新] 獲取直接 NSFW 生成鏈 (v11.0 - 統一協議)
 
 
 
@@ -3518,6 +3513,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
