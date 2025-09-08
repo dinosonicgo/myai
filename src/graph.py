@@ -177,25 +177,30 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     
     return {"raw_lore_objects": filtered_lores_list}
 
+# 函式：感知并设定视角
 async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
-    """一個統一的節點，負責分析場景、根據意圖設定視角、並持久化狀態。"""
+    """
+    [v30.0 修正] 一个统一的节 点，负责分析场景、根据意图设定视角、并持久化状态。
+    其职责已被精简，不再负责组装上下文，只专注于视角的分析与更新。
+    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     intent = state['intent_classification'].intent_type
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph) Node: perceive_and_set_view -> 正在基於意圖 '{intent}' 統一處理感知與視角...")
+    logger.info(f"[{user_id}] (Graph) Node: perceive_and_set_view -> 正在基於意圖 '{intent}' 统一处理感知与视角...")
 
     if not ai_core.profile:
-        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='錯誤：AI profile 未加載。', action_summary=user_input)}
+        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：AI profile 未加载。', action_summary=user_input)}
 
     gs = ai_core.profile.game_state
     new_viewing_mode = gs.viewing_mode
     new_target_path = gs.remote_target_path
 
     if 'descriptive' in intent:
-        logger.info(f"[{user_id}] (View Mode) 檢測到描述性意圖，準備進入/更新遠程視角。")
+        logger.info(f"[{user_id}] (View Mode) 检测到描述性意图，准备进入/更新远程视角。")
         
-        scene_context_lores = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
+        # 为了进行地点推断，我们需要一个临时的、轻量级的上下文
+        scene_context_lores = [lore.content for lore in state.get('raw_lore_objects_for_view_decision', []) if lore.category == 'npc_profile']
         scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
         
         location_chain = ai_core.get_contextual_location_chain()
@@ -203,7 +208,7 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
             location_chain, 
             {
                 "user_input": user_input,
-                "world_settings": ai_core.profile.world_settings or "未設定",
+                "world_settings": ai_core.profile.world_settings or "未设定",
                 "scene_context_json": scene_context_json_str
             }
         )
@@ -214,7 +219,7 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
             new_viewing_mode = 'remote'
             new_target_path = extracted_path
         else:
-            logger.warning(f"[{user_id}] (Perception Hub) 描述性意圖未能推斷出有效地點，將回退到本地模式。")
+            logger.warning(f"[{user_id}] (Perception Hub) 描述性意图未能推断出有效地点，将回退到本地模式。")
             new_viewing_mode = 'local'
             new_target_path = None
             
@@ -228,17 +233,39 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
         await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
         logger.info(f"[{user_id}] (Perception Hub) GameState 已更新: mode={gs.viewing_mode}, path={gs.remote_target_path}")
     else:
-        logger.info(f"[{user_id}] (Perception Hub) GameState 無需更新。")
+        logger.info(f"[{user_id}] (Perception Hub) GameState 无需更新。")
 
     scene_analysis = SceneAnalysisResult(
         viewing_mode=gs.viewing_mode,
-        reasoning=f"基於意圖 '{intent}' 的統一感知結果。",
+        reasoning=f"基於意圖 '{intent}' 的统一感知结果。",
         target_location_path=gs.remote_target_path,
         focus_entity=None,
         action_summary=user_input
     )
     
-    return {"scene_analysis": scene_analysis, "structured_context": ai_core._assemble_context_from_lore(state['raw_lore_objects'], is_remote_scene=(gs.viewing_mode == 'remote'))}
+    # [v30.0 核心修正] 不再返回 structured_context，因为 LORE 数据尚未完全查询
+    return {"scene_analysis": scene_analysis}
+# 函式：感知并设定视角
+
+
+
+# 函式：组装上下文
+async def assemble_context_node(state: ConversationGraphState) -> Dict:
+    """
+    [v30.0 新增] 一个全新的、职责单一的节 点。
+    它的唯一任务是在 LORE 查询完成后，将所有 LORE 数据和游戏状态组装成最终的 structured_context。
+    """
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    raw_lore_objects = state.get('raw_lore_objects', [])
+    is_remote_scene = state.get('scene_analysis', {}).viewing_mode == 'remote'
+    
+    logger.info(f"[{user_id}] (Graph) Node: assemble_context -> 正在将 {len(raw_lore_objects)} 条 LORE 记录组装为最终上下文...")
+    
+    structured_context = ai_core._assemble_context_from_lore(raw_lore_objects, is_remote_scene=is_remote_scene)
+    
+    return {"structured_context": structured_context}
+# 函式：组装上下文
 
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
@@ -949,20 +976,21 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v24.0 - 拓撲結構修正)
-# 更新紀錄:
-# v24.0 (2025-09-25): [災難性BUG修復] 根據 LOG 分析，徹底重構了圖的拓撲結構。將 perceive_and_set_view 節點的執行順序提前到 query_lore 之前。此修改確保了 LORE 查詢總能基於當前回合最新確定的場景視角（特別是遠程視角）來進行，從根本上解決了因時序錯亂導致的數據流中斷和程式靜默失敗的問題。
-# v23.0 (2025-09-25): [重大架構重構] 徹底重構了圖的NSFW分支，實現了「單次指令轟炸」流程。
-# v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。
+# 函式：创建主回应图
 def create_main_response_graph() -> StateGraph:
-    """創建主回應圖"""
+    """
+    [v30.0 修正] 创建主回应图。
+    再次重构了图的拓扑结构，将感知、查询和组装拆分为三个独立的、按正确顺序连接的节 点，
+    彻底解决了因数据依赖和执行时序错乱导致的 KeyError。
+    """
     graph = StateGraph(ConversationGraphState)
     
-    # --- 節點註冊 (無變更) ---
+    # --- 节 点注册 ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
-    graph.add_node("query_lore", query_lore_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
+    graph.add_node("query_lore", query_lore_node)
+    graph.add_node("assemble_context", assemble_context_node) # 新增节 点
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
@@ -979,22 +1007,24 @@ def create_main_response_graph() -> StateGraph:
     def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
         lore_objects = state.get('raw_lore_objects', [])
         planning_subjects = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-        logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已將 {len(planning_subjects)} 個現有NPC打包為規劃主體。")
+        logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已将 {len(planning_subjects)} 个现有NPC打包为规划主体。")
         return {"planning_subjects": planning_subjects}
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- 圖的邊緣連接 (核心修正) ---
+    # --- 图的边缘连接 (核心修正) ---
     graph.set_entry_point("classify_intent")
     graph.add_edge("classify_intent", "retrieve_memories")
     
-    # [v24.0 核心修正] 調整節點順序
-    # 1. 先感知 (perceive) 和設定視角 (set_view)，確定我們要去哪裡。
+    # [v30.0 核心修正] 建立全新的、逻辑正确的拓扑结构
+    # 1. 先感知 (perceive) 和设定视角 (set_view)，确定场景。
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
-    # 2. 然後帶著這個確定的視角去查詢 (query) LORE。
+    # 2. 然后带着确定的视角去查询 (query) LORE。
     graph.add_edge("perceive_and_set_view", "query_lore")
-    # 3. 最後根據查詢到的 LORE 進行擴展決策。
-    graph.add_edge("query_lore", "expansion_decision")
+    # 3. 在拿到 LORE 数据后，专门进行组装 (assemble) 上下文。
+    graph.add_edge("query_lore", "assemble_context")
+    # 4. 最后，带着完整的上下文进行扩展决策。
+    graph.add_edge("assemble_context", "expansion_decision")
     
     graph.add_conditional_edges(
         "expansion_decision",
@@ -1034,22 +1064,22 @@ def create_main_response_graph() -> StateGraph:
         }
     )
     
-    # SFW 路徑
+    # SFW 路径
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     
-    # NSFW 新路徑
+    # NSFW 新路径
     graph.add_edge("direct_nsfw_generation", "rendering_junction")
 
-    # 匯合點及最終流程
+    # 汇合点及最终流程
     graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v24.0 - 拓撲結構修正)
+# 函式：创建主回应图
 
         
 
@@ -1138,6 +1168,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
