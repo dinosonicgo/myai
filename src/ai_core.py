@@ -3358,28 +3358,9 @@ class AILover:
         return False
     # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
 
-    # 函式：判斷是否為描述性且露骨的指令
-    # 說明：一個簡單的輔助函式，用於檢測使用者的輸入是否可能包含需要轉化為世界觀的露骨描述。
-    def _is_descriptive_and_explicit(self, text: str) -> bool:
-        """一個簡單的輔助函式，用於檢測使用者的輸入是否可能包含需要轉化為世界觀的露骨描述。"""
-        descriptive_keywords = ["詳細描述", "描述", "描寫"]
-        explicit_keywords = ["性", "肉穴", "肉棒", "插入", "販售", "交合", "姦", "性交", "做愛", "脫光", "裸露", "暴露", "激情", "高潮", "舔", "吸吮", "肛門", "陰道", "乳房", "陰莖", "陰蒂", "自慰", "調教", "奴役", "奴隸", "鞭打", "強暴", "輪姦", "猥褻", "猥瑣", "亂倫", "獸交", "肛交", "口交", "足交", "露出", "援交", "賣淫"]
-        
-        if any(keyword in text for keyword in descriptive_keywords) and \
-           any(keyword in text for keyword in explicit_keywords):
-            return True
-        return False
-    # 函式：判斷是否為描述性且露骨的指令
 
-    # 函式：聊天主流程 (v198.0 - 已廢棄)
-    # 說明：此函式已被 LangGraph 架構取代，其邏輯已遷移至 src/graph.py 中的節點。保留此空函式結構以備查。
-    async def chat(self, user_input: str) -> str:
-        """
-        [v198.0 已廢棄] 此函式的所有邏輯均已遷移至 `src/graph.py` 中定義的 StateGraph。
-        新的調用入口點現在位於 `discord_bot.py`，它會直接調用已編譯的 LangGraph 應用。
-        """
-        raise NotImplementedError("AILover.chat() is deprecated. Use the compiled LangGraph application instead.")
-    # 函式：聊天主流程 (v198.0 - 已廢棄)
+
+
 
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
     # 更新紀錄:
@@ -3476,6 +3457,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
