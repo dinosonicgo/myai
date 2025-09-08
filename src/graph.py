@@ -286,29 +286,29 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：组装上下文 (v30.1 - 健壯性修正)
+# 函式：组装上下文 (v30.2 - Pydantic 物件訪問修正)
 # 更新紀錄:
-# v30.1 (2025-09-09): [災難性BUG修復] 根據 AttributeError Traceback，強化了此節點的防禦性程式設計。修改了對 `scene_analysis` 的訪問方式，以安全地處理因快速通道跳過節點而導致該狀態為 None 的情況，從根本上解決了因此引發的崩潰問題。
-# v30.0 (2025-09-09): [全新創建] 一個全新的、職責單一的節點。
+# v30.2 (2025-09-09): [災難性BUG修復] 根據 AttributeError Traceback，徹底修正了上一版引入的語法錯誤。舊版本錯誤地對 Pydantic 物件使用了字典的 .get() 方法。新版本改為使用正確的、帶有 None 檢查的物件屬性點號表示法（`scene_analysis.viewing_mode if scene_analysis else False`），從根本上解決了因此引發的崩潰問題。
+# v30.1 (2025-09-09): [災難性BUG修復] 強化了此節點的防禦性程式設計。
 async def assemble_context_node(state: ConversationGraphState) -> Dict:
     """
-    [v30.1 修正] 一個全新的、職責單一的節點。
+    [v30.2 修正] 一個全新的、職責單一的節點。
     它的唯一任務是在 LORE 查詢完成后，將所有 LORE 數據和遊戲狀態組裝成最終的 structured_context。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     raw_lore_objects = state.get('raw_lore_objects', [])
     
-    # [v30.1 核心修正] 增加更安全的預設值處理
-    scene_analysis = state.get('scene_analysis') or {}
-    is_remote_scene = scene_analysis.get('viewing_mode') == 'remote'
+    # [v30.2 核心修正] 使用正確的物件屬性訪問語法，並安全地處理 None 的情況
+    scene_analysis = state.get('scene_analysis') 
+    is_remote_scene = scene_analysis.viewing_mode == 'remote' if scene_analysis else False
     
     logger.info(f"[{user_id}] (Graph) Node: assemble_context -> 正在将 {len(raw_lore_objects)} 条 LORE 记录组装为最终上下文...")
     
     structured_context = ai_core._assemble_context_from_lore(raw_lore_objects, is_remote_scene=is_remote_scene)
     
     return {"structured_context": structured_context}
-# 函式：组装上下文 (v30.1 - 健壯性修正)
+# 函式：组装上下文 (v30.2 - Pydantic 物件訪問修正)
 
 
 
@@ -1324,6 +1324,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
