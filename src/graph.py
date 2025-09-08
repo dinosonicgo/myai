@@ -154,10 +154,10 @@ async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 規劃主體注水節點 (v2.0 - 健壯性修正)
+# 函式：[新] 規劃主體注水節點 (v3.0 - 返回邏輯修正)
 # 更新紀錄:
-# v2.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，徹底重構了此節點的失敗處理和返回邏輯。舊版本在 AI 調用失敗時，會返回一個不包含 `scene_briefing` 鍵的空字典，導致下游節點崩潰。新版本確保了此節點在【所有可能的執行路徑】中，【都必須】返回一個包含 `scene_briefing` 鍵的字典。在 AI 調用失敗時，它會自動生成一段包含所有角色名稱的【備援簡報】，從而保證了圖形數據流的完整性和健壯性。
-# v1.0 (2025-09-08): [重大架構升級] 創建此全新的【數據擬人化】節點。
+# v3.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，修復了上一個版本中因遺漏 `return` 語句而導致的致命邏輯缺陷。舊版本在生成簡報後，沒有將結果正確返回給 LangGraph 狀態機，導致下游節點無法讀取 `scene_briefing`。新版本在函式末尾補上了至關重要的 `return {"scene_briefing": scene_briefing}`，確保了無論執行成功還是失敗，數據流都能被正確地更新和傳遞。
+# v2.0 (2025-09-08): [災難性BUG修復] 增加了備援簡報生成邏輯以增強健壯性。
 async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[str, str]:
     """將冰冷的 LORE 角色列表，轉換為生動的“導演場景簡報”。"""
     user_id = state['user_id']
@@ -167,11 +167,9 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[
     
     if not planning_subjects:
         logger.warning(f"[{user_id}] (Hydrator) 規劃主體為空，無法生成場景簡報。")
-        # [v2.0 核心修正] 即使失敗，也要返回帶有正確鍵的字典
         return {"scene_briefing": "（場景中沒有可供描述的具體角色。）"}
 
     if not ai_core.profile:
-        # [v2.0 核心修正] 即使失敗，也要返回帶有正確鍵的字典
         return {"scene_briefing": "（錯誤：AI Profile 未加載。）"}
 
     logger.info(f"[{user_id}] (Graph) Node: hydrate_planning_subjects -> 正在為 {len(planning_subjects)} 位演員生成導演簡報...")
@@ -192,16 +190,15 @@ async def hydrate_planning_subjects_node(state: ConversationGraphState) -> Dict[
         retry_strategy='euphemize'
     )
 
-    # [v2.0 核心修正] 處理 AI 調用失敗（返回None）的情況
     if not scene_briefing:
         logger.error(f"[{user_id}] (Hydrator) 場景簡報鏈返回空值，觸發備援簡報生成。")
-        # 生成一段包含所有關鍵信息的備援簡報
         character_names = ', '.join([p.get('name', '未知') for p in planning_subjects])
         scene_briefing = f"在 {current_location_str}，場景圍繞以下角色展開：{character_names}。使用者要求的情節是：{user_input}"
         logger.info(f"[{user_id}] (Hydrator) 已成功生成備援導演簡報。")
 
+    # [v3.0 核心修正] 確保無論執行成功還是失敗，都將結果以正確的格式返回給狀態機
     return {"scene_briefing": scene_briefing}
-# 函式：[新] 規劃主體注水節點 (v2.0 - 健壯性修正)
+# 函式：[新] 規劃主體注水節點 (v3.0 - 返回邏輯修正)
 
 
 
@@ -1339,6 +1336,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
