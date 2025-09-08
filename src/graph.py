@@ -286,23 +286,32 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：组装上下文
+# 函式：组装上下文 (v30.1 - 健壯性修正)
+# 更新紀錄:
+# v30.1 (2025-09-09): [災難性BUG修復] 根據 AttributeError Traceback，強化了此節點的防禦性程式設計。修改了對 `scene_analysis` 的訪問方式，以安全地處理因快速通道跳過節點而導致該狀態為 None 的情況，從根本上解決了因此引發的崩潰問題。
+# v30.0 (2025-09-09): [全新創建] 一個全新的、職責單一的節點。
 async def assemble_context_node(state: ConversationGraphState) -> Dict:
     """
-    [v30.0 新增] 一个全新的、职责单一的节 点。
-    它的唯一任务是在 LORE 查询完成后，将所有 LORE 数据和游戏状态组装成最终的 structured_context。
+    [v30.1 修正] 一個全新的、職責單一的節點。
+    它的唯一任務是在 LORE 查詢完成后，將所有 LORE 數據和遊戲狀態組裝成最終的 structured_context。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     raw_lore_objects = state.get('raw_lore_objects', [])
-    is_remote_scene = state.get('scene_analysis', {}).viewing_mode == 'remote'
+    
+    # [v30.1 核心修正] 增加更安全的預設值處理
+    scene_analysis = state.get('scene_analysis') or {}
+    is_remote_scene = scene_analysis.get('viewing_mode') == 'remote'
     
     logger.info(f"[{user_id}] (Graph) Node: assemble_context -> 正在将 {len(raw_lore_objects)} 条 LORE 记录组装为最终上下文...")
     
     structured_context = ai_core._assemble_context_from_lore(raw_lore_objects, is_remote_scene=is_remote_scene)
     
     return {"structured_context": structured_context}
-# 函式：组装上下文
+# 函式：组装上下文 (v30.1 - 健壯性修正)
+
+
+
 
 # 函式：LORE擴展決策 (v32.0 - 健壯性與安全查詢適配)
 # 更新紀錄:
@@ -1047,17 +1056,16 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v32.0 - 快速通道修正)
+# 函式：創建主回應圖 (v33.0 - 快速通道拓撲修正)
 # 更新紀錄:
-# v32.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了“延续性指令”的快速通道邏輯。舊版本會錯誤地繞過 LORE 查詢節點，導致續寫時無法加載上一輪創建的角色，從而引發“無米之炊”的連鎖錯誤。新版本修正了路由目標，確保快速通道在繞過 LORE 擴展的同時，【必須經過 LORE 查詢】，從而保證了劇情續寫的連續性和角色持久化。
-# v31.0 (2025-09-08): [重大架構重構] 為“延续性指令”開闢了專用的快速通道。
+# v33.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError Log，再次重構了“快速通道”的拓撲結構。舊版本會錯誤地跳過 `perceive_and_set_view_node`，導致下游節點因缺少 `scene_analysis` 狀態而崩潰。新版本將此關鍵節點重新加入快速通道中，確保了所有必要的狀態數據都能在進入 LORE 查詢之前被正確生成。
+# v32.0 (2025-09-08): [災難性BUG修復] 修正了“延续性指令”的快速通道邏輯。
 def create_main_response_graph() -> StateGraph:
     """
-    [v32.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
+    [v33.0 修正] 創建主回應圖，內建對“延续性指令”的、經過修正的快速通道。
     """
     graph = StateGraph(ConversationGraphState)
     
-    # --- 節點註冊 (保持不變) ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("perceive_and_set_view", perceive_and_set_view_node)
@@ -1084,10 +1092,8 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- [v32.0 核心修正] 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    # 路由器：用於區分新指令和延续性指令
     def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
         if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
             logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】。")
@@ -1095,25 +1101,25 @@ def create_main_response_graph() -> StateGraph:
         else:
             return "standard_flow"
 
-    # 1. 意圖分類後，立即進行路由
+    # [v33.0 核心修正] 調整圖的拓撲結構
     graph.add_conditional_edges(
         "classify_intent",
         route_after_intent_classification,
         {
             "standard_flow": "retrieve_memories",
-            "continuation_flow": "query_lore"  # [v32.0 核心修正] 快速通道直接跳到LORE查詢
+            "continuation_flow": "perceive_and_set_view"  # 快速通道現在跳到感知節點
         }
     )
 
-    # 2. 標準流程（新指令）
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
+    
+    # 無論是標準流程還是快速通道，都會經過感知節點，然後再到 LORE 查詢
     graph.add_edge("perceive_and_set_view", "query_lore")
     
-    # 3. 匯合點：無論是標準流程還是快速通道，都會到達 query_lore
+    # 後續流程保持不變
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    # 4. LORE擴展決策
     graph.add_conditional_edges(
         "expansion_decision",
         route_expansion_decision,
@@ -1126,9 +1132,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
-    # 5. 規劃器路由及後續流程 (保持不變)
     def route_to_planner(state: ConversationGraphState) -> str:
-        # ... (此函式內容保持不變)
         user_id = state['user_id']
         intent_classification = state.get('intent_classification')
         if not intent_classification: return "sfw_planner" 
@@ -1166,7 +1170,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v32.0 - 快速通道修正)
+# 函式：創建主回應圖 (v33.0 - 快速通道拓撲修正)
 
         
 
@@ -1320,6 +1324,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
