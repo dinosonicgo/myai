@@ -81,57 +81,73 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：意圖分類節點 (v2.0 - 意圖繼承)
 
-# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
+# 函式：檢索記憶節點 (v30.0 - 清洗邏輯修正)
 # 更新紀錄:
-# v29.0 (2025-09-08): [重大架構重構] 此節點的職責已升級為【唯一的 NSFW 輸入清洗源頭】。它不再使用脆弱的實體提取鏈，而是強制性地使用更強大的“文學評論家”鏈將原始輸入轉換為一段安全的文學概述。這段安全的概述將被用於 RAG 檢索，並同時儲存到新的 `sanitized_query_for_tools` 狀態中，供所有下游內部工具鏈安全使用，從根本上解決因多個節點重複處理原始 NSFW 輸入而導致的超時和掛起問題。
-# v28.0 (2025-09-12): [災難性BUG修復] 專用記憶檢索節點，執行RAG操作。
+# v30.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此節點的“源頭清洗”邏輯。舊版本錯誤地使用了為“長篇小說”設計的“文學評論家”鏈來處理“簡短指令”，導致上下文被嚴重污染，引發了劇情不連續、內容不露骨、LORE被忽略等一系列災難性連鎖反應。新版本回歸了正確的備援策略：1. 首先樂觀地嘗試使用原始輸入執行RAG。2. 僅在遭遇內容審查失敗時，才啟動備援，使用 `entity_extraction_chain` 將指令解構為安全的【關鍵詞】，並用這些關鍵詞重試RAG。此修改從根本上保證了傳遞給下游的上下文的準確性和意圖的完整性。
+# v29.0 (2025-09-08): [重大架構重構] 此節點的職責已升級為【唯一的 NSFW 輸入清洗源頭】。
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
     """
-    [v29.0 源頭清洗] 專用記憶檢索與輸入清洗節點。
-    它會將原始輸入轉換為安全的文學概述，用於RAG，並將其傳遞給下游。
+    [v30.0 修正] 檢索記憶，並內建一個專為【使用者指令】設計的、基於關鍵詞解構的健壯備援機制。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input_for_retrieval = state['messages'][-1].content
+    user_input = state['messages'][-1].content
     
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在對輸入 '{user_input_for_retrieval[:30]}...' 執行【源頭清洗】與記憶檢索...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於指令 '{user_input[:30]}...' 檢索記憶...")
     
-    sanitized_query = ""
+    query_for_rag = user_input
+    sanitized_query_for_downstream = user_input # 預設情況下，下游工具鏈也使用原始輸入
+
     try:
-        # --- 步驟 1: 強制性的安全預清洗 ---
-        # 使用強大的“文學評論家”鏈，將潛在的 NSFW 輸入轉換為安全的文學概述。
-        logger.info(f"[{user_id}] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對輸入進行強制性安全預清洗...")
-        literary_chain = ai_core.get_literary_euphemization_chain()
-
-        # 使用 ainvoke_with_rotation 並指定 euphemize 策略，以確保即使清洗鏈本身被審查也能有備援
-        sanitized_query = await ai_core.ainvoke_with_rotation(
-            literary_chain, 
-            {"dialogue_history": user_input_for_retrieval},
-            retry_strategy='euphemize' 
-        )
-        
-        # 如果委婉化重試後仍然失敗，則觸發終極備援
-        if not sanitized_query or not sanitized_query.strip():
-            logger.error(f"[{user_id}] (RAG Pre-cleaner) '文學評論家'清洗鏈最終失敗，將觸發終極備援。")
-            raise ValueError("Literary chain failed to produce output.")
-
-        logger.info(f"[{user_id}] (RAG Pre-cleaner) 輸入已成功預清洗為安全的文學概述: '{sanitized_query[:50]}...'")
+        # --- 步驟 1: 樂觀嘗試 ---
+        # 直接使用原始的、未經修改的使用者輸入執行 RAG。
+        # 這樣可以最大限度地保留原始意圖，特別是在 SFW 或邊緣情況下。
+        logger.info(f"[{user_id}] (RAG) 正在樂觀地嘗試使用原始輸入執行 RAG...")
+        rag_context_str = await ai_core.retrieve_and_summarize_memories(query_for_rag)
+        logger.info(f"[{user_id}] (RAG) 樂觀嘗試成功。")
 
     except Exception as e:
-        # --- 步驟 2: 終極備援 ---
-        logger.error(f"[{user_id}] (RAG Pre-cleaner) 安全預清洗失敗: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
-        sanitized_query = user_input_for_retrieval
+        # --- 步驟 2: 基於關鍵詞解構的備援機制 ---
+        # 僅在樂觀嘗試因內容審查等問題失敗時，才觸發此備援。
+        logger.warning(f"[{user_id}] (RAG) 樂觀嘗試失敗 ({type(e).__name__})，啟動【指令解構】備援策略...")
+        try:
+            entity_extraction_chain = ai_core.get_entity_extraction_chain()
+            
+            # 我們仍然使用 'none' 策略快速失敗，以防提取鏈本身也掛起
+            entity_result = await ai_core.ainvoke_with_rotation(
+                entity_extraction_chain, 
+                {"text_input": user_input},
+                retry_strategy='none'
+            )
 
-    # --- 步驟 3: 執行檢索 ---
-    # 使用清洗後的安全查詢文本來執行 RAG
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
+            if not entity_result or not entity_result.names:
+                logger.error(f"[{user_id}] (RAG Fallback) 指令解構失敗：未能提取任何關鍵詞。")
+                raise ValueError("Entity extraction failed in fallback.")
+
+            # 使用提取出的安全關鍵詞作為新的查詢文本
+            keyword_query = " ".join(entity_result.names)
+            logger.info(f"[{user_id}] (RAG Fallback) 指令已成功解構為安全關鍵詞: '{keyword_query}'。正在使用關鍵詞重試RAG...")
+            
+            query_for_rag = keyword_query
+            sanitized_query_for_downstream = keyword_query # 下游也使用這個安全的版本
+            rag_context_str = await ai_core.retrieve_and_summarize_memories(query_for_rag)
+            logger.info(f"[{user_id}] (RAG Fallback) 關鍵詞重試成功。")
+
+        except Exception as fallback_e:
+            # --- 步驟 3: 終極備援 ---
+            logger.error(f"[{user_id}] (RAG Fallback) 【指令解構】備援策略最終失敗: {fallback_e}。返回空的 RAG 上下文。", exc_info=True)
+            rag_context_str = "（長期記憶檢索因內容安全限制或技術錯誤而失敗。）"
+            # 在最壞的情況下，確保下游仍然有一個（雖然是原始的）查詢文本可用
+            sanitized_query_for_downstream = user_input
     
-    # --- 步驟 4: 返回結果，並將安全查詢文本存入狀態供下游使用 ---
     return {
         "rag_context": rag_context_str,
-        "sanitized_query_for_tools": sanitized_query
+        "sanitized_query_for_tools": sanitized_query_for_downstream
     }
-# 函式：檢索記憶節點 (v29.0 - 源頭清洗)
+# 函式：檢索記憶節點 (v30.0 - 清洗邏輯修正)
+
+
+
 
 # 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
 # 更新紀錄:
@@ -1291,6 +1307,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
