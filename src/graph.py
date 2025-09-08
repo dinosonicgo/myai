@@ -709,10 +709,87 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
+
+
+
+
+# 函式：[新] 直接 NSFW 生成節點 (v1.0 - 指令轟炸模式)
+# 更新紀錄:
+# v1.0 (2025-09-25): [重大架構重構] 創建此節點以實現全新的「單次指令轟炸」NSFW流程。它負責收集所有必要的上下文和指令，並調用 get_direct_nsfw_chain 來直接生成最終的小說文本。
+async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
+    """[NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|NSFW Direct) Node: direct_nsfw_generation -> 正在執行【指令轟炸】...")
+
+    if not ai_core.profile:
+        return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
+
+    # 準備與 SFW 規劃節點完全相同的世界快照，以確保上下文一致性
+    gs = ai_core.profile.game_state
+    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
+    
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
+        'quests_context': state.get('structured_context', {}).get('quests_context', ''),
+        'location_context': state.get('structured_context', {}).get('location_context', ''),
+        'npc_context': state.get('structured_context', {}).get('npc_context', ''),
+        'relevant_npc_context': state.get('structured_context', {}).get('relevant_npc_context', ''),
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': gs.viewing_mode,
+        'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+
+    # 準備調用鏈所需的參數
+    chain_input = {
+        "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+        "world_snapshot": world_snapshot,
+        "chat_history": chat_history_str,
+        "user_input": user_input,
+    }
+
+    # 調用新的直接生成鏈
+    narrative_text = await ai_core.ainvoke_with_rotation(
+        ai_core.get_direct_nsfw_chain(),
+        chain_input,
+        retry_strategy='force'  # 這是最終輸出，使用最強的重試策略
+    )
+
+    if not narrative_text:
+        narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
+        
+    return {"llm_response": narrative_text}
+# 函式：[新] 直接 NSFW 生成節點 (v1.0 - 指令轟炸模式)
+
+
+
+
+
+
+
+
+
+
+
+# 函式：創建主回應圖 (v23.0 - 指令轟炸模式)
+# 更新紀錄:
+# v23.0 (2025-09-25): [重大架構重構] 徹底重構了圖的NSFW分支。移除了舊的 `nsfw_breakthrough`, `nsfw_refinement`, `nsfw_final_rendering` 節點，並替換為單一的 `direct_nsfw_generation_node` 節點，以實現全新的「單次指令轟炸」生成流程。
+# v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。
+# v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
     graph = StateGraph(ConversationGraphState)
     
+    # --- 節點註冊 ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
@@ -722,11 +799,12 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
-    graph.add_node("nsfw_refinement", nsfw_refinement_node)
+    
+    # [v23.0 新增] 註冊新的 NSFW 節點
+    graph.add_node("direct_nsfw_generation", direct_nsfw_generation_node)
+
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
-    graph.add_node("nsfw_final_rendering", final_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     graph.add_node("planner_junction", lambda state: {})
@@ -740,6 +818,7 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
+    # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     graph.add_edge("classify_intent", "retrieve_memories")
     graph.add_edge("retrieve_memories", "query_lore")
@@ -766,8 +845,10 @@ def create_main_response_graph() -> StateGraph:
         ai_core = state['ai_core']
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
+        
+        # [v23.0 核心修正] 更新路由邏輯
         if 'nsfw' in intent:
-            return "nsfw_planner"
+            return "direct_nsfw_planner"
         if viewing_mode == 'remote':
             return "remote_sfw_planner"
         else:
@@ -779,22 +860,34 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_planner": "nsfw_breakthrough" 
+            # [v23.0 核心修正] 將 NSFW 意圖路由到新節點
+            "direct_nsfw_planner": "direct_nsfw_generation" 
         }
     )
     
+    # SFW 路徑
     graph.add_edge("sfw_planning", "tool_execution")
     graph.add_edge("remote_sfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
-    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
-    graph.add_edge("nsfw_refinement", "nsfw_final_rendering")
-    graph.add_edge("nsfw_final_rendering", "rendering_junction")
+    
+    # [v23.0 核心修正] NSFW 新路徑
+    graph.add_edge("direct_nsfw_generation", "rendering_junction")
+
+    # 匯合點及最終流程
     graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
     
     return graph.compile()
+# 函式：創建主回應圖 (v23.0 - 指令轟炸模式)
+
+        
+
+
+
+
+
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
@@ -876,5 +969,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
