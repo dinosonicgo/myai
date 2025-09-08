@@ -267,11 +267,12 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
     return {"structured_context": structured_context}
 # 函式：组装上下文
 
+# 函式：LORE扩展决策
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
-    [v29.0 修正] LORE擴展決策節點。
-    內建一個全新的「輸入預清洗」機制。在調用決策鏈之前，會先使用「文學評論家」鏈將潛在的露骨輸入安全地委婉化，
-    旨在從根本上解決決策鏈自身因輸入內容而遭遇審查的問題。
+    [v31.0 修正] LORE扩展决策节 点。
+    彻底重构了其安全机制。不再使用脆弱的关键词判断，而是强制性地、无条件地对其接收的所有 user_input
+    进行“文学评论家”式的安全预清洗，旨在从根本上杜绝此节 点自身因输入内容而遭遇审查的风险。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -279,22 +280,21 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於語意匹配，判斷是否擴展...")
     
-    # [v29.0 核心修正] 輸入預清洗步驟
+    # [v31.0 核心修正] 强制性的、无条件的输入预清洗步骤
     sanitized_input_for_decision = user_input
     try:
-        # 使用一個簡單的檢查來判斷是否需要執行耗時的委婉化
-        if ai_core._is_descriptive_and_explicit(user_input):
-            logger.warning(f"[{user_id}] (Expansion Decision) 檢測到潛在的露骨描述輸入，啟動預清洗...")
-            literary_chain = ai_core.get_literary_euphemization_chain()
-            # 這裡不使用 ainvoke_with_rotation，因為我們不希望它再次觸發複雜的備援
-            sanitized_input_for_decision = await literary_chain.ainvoke({"dialogue_history": user_input})
-            if not sanitized_input_for_decision:
-                logger.error(f"[{user_id}] (Expansion Decision) 預清洗步驟未能生成安全文本，將回退至使用原始輸入。")
-                sanitized_input_for_decision = user_input
-            else:
-                logger.info(f"[{user_id}] (Expansion Decision) 輸入已成功預清洗。")
+        logger.info(f"[{user_id}] (Expansion Decision) 正在对输入执行强制性安全预清洗...")
+        literary_chain = ai_core.get_literary_euphemization_chain()
+        # 直接调用 ainvoke，不使用 ainvoke_with_rotation 以避免复杂的备援嵌套
+        sanitized_input_for_decision = await literary_chain.ainvoke({"dialogue_history": user_input})
+        
+        if not sanitized_input_for_decision or not sanitized_input_for_decision.strip():
+            logger.error(f"[{user_id}] (Expansion Decision) 预清洗步骤未能生成安全文本，将回退至使用原始输入。")
+            sanitized_input_for_decision = user_input
+        else:
+            logger.info(f"[{user_id}] (Expansion Decision) 输入已成功预清洗为: '{sanitized_input_for_decision[:100]}...'")
     except Exception as e:
-        logger.error(f"[{user_id}] (Expansion Decision) 在預清洗輸入時發生錯誤: {e}，將回退至使用原始輸入。")
+        logger.error(f"[{user_id}] (Expansion Decision) 在预清洗输入时发生错误: {e}，将回退至使用原始输入。")
         sanitized_input_for_decision = user_input
 
     lightweight_lore_for_decision = []
@@ -312,7 +312,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     examples_str = """
 - **情境 1**: 
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
-    - 使用者輸入: `繼續描述那個賣魚的女人`
+    - 使用者輸入: `继续描述那个卖鱼的女人`
     - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
 - **情境 2**:
     - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
@@ -337,6 +337,7 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
+# 函式：LORE扩展决策
 
 async def character_quantification_node(state: ConversationGraphState) -> Dict:
     """[6A.1] 將模糊的群體描述轉化為具體的角色列表。"""
@@ -882,14 +883,14 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# graph.py
-
-# 函式：[新] 直接 NSFW 生成節點 (v2.0 - LORE 數據流修復)
-# 更新紀錄:
-# v2.0 (2025-09-25): [災難性BUG修復] 徹底重構了此節點的數據來源。它現在會直接從 state['planning_subjects'] 中獲取本回合最新的、包含新創建角色的完整列表，而不是依賴於陳舊的 structured_context。此修改從根本上解決了新創建的NPC無法在當前回合NSFW場景中出現的嚴重數據流問題。
-# v1.0 (2025-09-25): [重大架構重構] 創建此節點以實現全新的「單次指令轟炸」NSFW流程。
+# 函式：直接 NSFW 生成节 点
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。"""
+    """
+    [v31.0 修正] [NSFW Path] 執行單次指令轟炸，直接生成最終的NSFW小說內容。
+    內建全新的“场景自检”和“强制LORE扩展”机制。在生成前，它会检查场景中是否存在具名的NPC。
+    如果不存在，它将绕过上游错误的决策，强制执行一次LORE扩展流程，以确保最终的生成请求总是有具体的角色可供驱使，
+    从而极大提高突破审查的成功率。
+    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -898,19 +899,36 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    gs = ai_core.profile.game_state
-    chat_history_str = _get_formatted_chat_history(ai_core, user_id)
-    
-    # [v2.0 核心修正] 從 state['planning_subjects'] 獲取最新角色列表，而不是依賴舊的 structured_context
-    # planning_subjects 包含了本回合所有可用的角色，無論是舊的還是剛剛新創建的
+    # [v31.0 核心修正] 场景自检与强制LORE扩展
     latest_characters = state.get('planning_subjects', [])
     if not latest_characters:
-        # 作為備援，如果 planning_subjects 為空，則嘗試從原始 LORE 物件中提取
-        lore_objects = state.get('raw_lore_objects', [])
-        latest_characters = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-        logger.warning(f"[{user_id}] (NSFW Node) 未在 state 中找到 'planning_subjects'，已回退至使用 'raw_lore_objects'。")
+        logger.warning(f"[{user_id}] (NSFW Node) 检测到“无米之炊”场景（无具名NPC），正在启动【强制LORE扩展】备援机制...")
+        
+        # 步骤 1: 量化
+        quant_state = await character_quantification_node(state)
+        quantified_list = quant_state.get('quantified_character_list', [])
+        
+        if not quantified_list:
+            logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：量化步骤未能识别出任何可创建的角色。")
+        else:
+            # 步骤 2: 扩展
+            logger.info(f"[{user_id}] (NSFW Node) 强制扩展：已量化出 {len(quantified_list)} 个角色，正在执行扩展...")
+            # 创建一个临时的、只包含量化结果的 state 字典来调用扩展节 点
+            temp_state_for_expansion = state.copy()
+            temp_state_for_expansion['quantified_character_list'] = quantified_list
+            
+            expansion_result = await lore_expansion_node(temp_state_for_expansion)
+            latest_characters = expansion_result.get('planning_subjects', [])
+            
+            if latest_characters:
+                logger.info(f"[{user_id}] (NSFW Node) 强制LORE扩展成功！已生成并加载 {len(latest_characters)} 个角色作为场景主体。")
+            else:
+                logger.error(f"[{user_id}] (NSFW Node) 强制LORE扩展失败：扩展步骤未能返回任何角色。")
 
-    # [v2.0 核心修正] 基於最新的角色列表，動態生成 npc_context 字符串
+    gs = ai_core.profile.game_state
+    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
+    
+    # --- 后续流程与之前版本相同，但现在有了可靠的角色数据 ---
     dossiers = []
     for char_data in latest_characters:
         name = char_data.get('name', '未知名稱')
@@ -918,14 +936,12 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         if 'description' in char_data: dossier_content.append(f"- 描述: {char_data['description']}")
         dossiers.append("\n".join(dossier_content))
     
-    # 總是包含核心主角
     dossiers.insert(0, f"--- 檔案: {ai_core.profile.ai_profile.name} (AI 角色) ---\n- 描述: {ai_core.profile.ai_profile.description}")
     dossiers.insert(0, f"--- 檔案: {ai_core.profile.user_profile.name} (使用者角色) ---\n- 描述: {ai_core.profile.user_profile.description}")
         
     realtime_npc_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
     logger.info(f"[{user_id}] (NSFW Node) 已為世界快照生成了包含 {len(latest_characters)} 個NPC的即時上下文。")
 
-    # [v2.0 核心修正] 使用這個全新的、即時的 npc_context 來構建世界快照
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -935,7 +951,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': realtime_npc_context, # 使用即時生成的上下文
+        'npc_context': realtime_npc_context,
         'relevant_npc_context': "(已整合至上方檔案)",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
@@ -943,7 +959,6 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    # 準備調用鏈所需的參數
     chain_input = {
         "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
         "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
@@ -953,7 +968,6 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         "user_input": user_input,
     }
 
-    # 調用直接生成鏈
     narrative_text = await ai_core.ainvoke_with_rotation(
         ai_core.get_direct_nsfw_chain(),
         chain_input,
@@ -964,8 +978,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：[新] 直接 NSFW 生成節點 (v2.0 - LORE 數據流修復)
-
+# 函式：直接 NSFW 生成节 点
 
 
 
@@ -1168,6 +1181,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
