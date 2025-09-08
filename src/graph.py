@@ -74,14 +74,50 @@ async def classify_intent_node(state: ConversationGraphState) -> Dict:
     }
 
 async def retrieve_memories_node(state: ConversationGraphState) -> Dict:
-    """[2] 專用記憶檢索節點，執行RAG操作。"""
+    """
+    [v27.0 修正] 專用記憶檢索節點，執行RAG操作。
+    內建一個特殊的、針對性的備援機制，以從根本上解決因RAG預處理鏈自身被審查而導致的無限重試循環。
+    """
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input_for_retrieval = state['messages'][-1].content
     
     logger.info(f"[{user_id}] (Graph|2) Node: retrieve_memories -> 正在基於原始查詢 '{user_input_for_retrieval[:30]}...' 檢索相關長期記憶...")
     
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input_for_retrieval)
+    sanitized_query = ""
+    try:
+        # --- 步驟 1: 樂觀嘗試 ---
+        # 嘗試使用實體提取鏈來創建一個安全的、只包含關鍵詞的查詢。
+        logger.info(f"[{user_id}] (RAG) 正在嘗試使用實體提取鏈進行查詢預處理...")
+        entity_extraction_chain = ai_core.get_entity_extraction_chain()
+        # 這裡我們直接調用 ainvoke，讓 ainvoke_with_rotation 的邏輯在外部處理
+        entity_result = await ai_core.ainvoke_with_rotation(
+            entity_extraction_chain, 
+            {"text_input": user_input_for_retrieval},
+            # 注意：這裡我們仍然使用 euphemize，但下面的邏輯會處理它的失敗
+            retry_strategy='euphemize' 
+        )
+        
+        # 如果委婉化重試最終失敗，ainvoke_with_rotation 會返回 None
+        if not entity_result or not entity_result.names:
+            logger.warning(f"[{user_id}] (RAG) 實體提取鏈（包括委婉化重試）最終失敗或未返回任何實體。")
+            # 拋出異常以觸發下方的終極備援
+            raise ValueError("Entity extraction failed to produce a valid query.")
+
+        sanitized_query = " ".join(entity_result.names)
+        logger.info(f"[{user_id}] (RAG) 預處理成功，已生成安全查詢: '{sanitized_query}'")
+
+    except Exception as e:
+        # --- 步驟 2: 終極備援 ---
+        # 如果上述任何步驟（包括委婉化重試）失敗，則啟動這個最簡單、最不可能失敗的備援。
+        logger.error(f"[{user_id}] (RAG) 查詢預處理遭遇無法恢復的錯誤: {e}。啟動【終極備援】：直接使用原始輸入進行本地檢索。")
+        # 直接使用未經修改的原始輸入。這是安全的，因為檢索器是本地操作。
+        sanitized_query = user_input_for_retrieval
+
+    # --- 步驟 3: 執行檢索 ---
+    # 無論使用安全查詢還是原始查詢，最終都在這裡執行本地檢索。
+    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
+    
     return {"rag_context": rag_context_str}
 
 async def query_lore_node(state: ConversationGraphState) -> Dict:
@@ -1079,6 +1115,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
