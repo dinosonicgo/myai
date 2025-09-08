@@ -973,10 +973,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：直接 NSFW 生成節點 (v33.1 - 變數名修正)
+# 函式：直接 NSFW 生成節點 (v34.0 - 統一協議)
 # 更新紀錄:
-# v33.1 (2025-09-09): [災難性BUG修復] 根據 KeyError Traceback，修正了傳遞給 ainvoke 的字典中核心協議的鍵名。將 `ai_core.modular_prompts.get("00_core_protocol", ...)` 的結果賦值給了與 Prompt 模板佔位符完全一致的 `core_protocol_prompt` 鍵，解決了因命名不一致導致的崩潰問題。
-# v33.0 (2025-09-09): [災難性BUG修復] 實現了“雙軌歷史管理”，強制使用高保真度的原始對話歷史。
+# v34.0 (2025-09-09): [災難性BUG修復 & 重大架構簡化] 為了適配 ai_core 中統一協議的重構，此節點在構造 `chain_input` 時，移除了對 `action_sexual_content_prompt` 的注入。現在它只傳遞核心協議和風格指令，使調用邏輯更簡潔、更不易出錯。
+# v33.1 (2025-09-09): [災難性BUG修復] 修正了傳遞給 ainvoke 的字典鍵名。
 async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str, str]:
     """
     [NSFW Path] 執行單次指令轟炸，並始終使用高保真度的原始對話歷史作為上下文。
@@ -1024,10 +1024,9 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    # [v33.1 核心修正] 統一傳入的字典鍵名
+    # [v34.0 核心修正] 簡化 chain_input，移除已合併的 action_sexual_content_prompt
     chain_input = {
         "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
-        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
         "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "world_snapshot": world_snapshot,
         "chat_history": chat_history_for_chain,
@@ -1045,7 +1044,7 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
         narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
         
     return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v33.1 - 變數名修正)
+# 函式：直接 NSFW 生成節點 (v34.0 - 統一協議)
 
 
 
@@ -1323,6 +1322,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
