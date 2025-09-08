@@ -949,16 +949,16 @@ async def direct_nsfw_generation_node(state: ConversationGraphState) -> Dict[str
 
 
 
-# 函式：創建主回應圖 (v23.0 - 指令轟炸模式)
+# 函式：創建主回應圖 (v24.0 - 拓撲結構修正)
 # 更新紀錄:
-# v23.0 (2025-09-25): [重大架構重構] 徹底重構了圖的NSFW分支。移除了舊的 `nsfw_breakthrough`, `nsfw_refinement`, `nsfw_final_rendering` 節點，並替換為單一的 `direct_nsfw_generation_node` 節點，以實現全新的「單次指令轟炸」生成流程。
+# v24.0 (2025-09-25): [災難性BUG修復] 根據 LOG 分析，徹底重構了圖的拓撲結構。將 perceive_and_set_view 節點的執行順序提前到 query_lore 之前。此修改確保了 LORE 查詢總能基於當前回合最新確定的場景視角（特別是遠程視角）來進行，從根本上解決了因時序錯亂導致的數據流中斷和程式靜默失敗的問題。
+# v23.0 (2025-09-25): [重大架構重構] 徹底重構了圖的NSFW分支，實現了「單次指令轟炸」流程。
 # v22.0 (2025-09-22): [災難性BUG修復] 解决了因重命名渲染节点导致的 NameError。
-# v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖"""
     graph = StateGraph(ConversationGraphState)
     
-    # --- 節點註冊 ---
+    # --- 節點註冊 (無變更) ---
     graph.add_node("classify_intent", classify_intent_node)
     graph.add_node("retrieve_memories", retrieve_memories_node)
     graph.add_node("query_lore", query_lore_node)
@@ -968,10 +968,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("lore_expansion", lore_expansion_node)
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    
-    # [v23.0 新增] 註冊新的 NSFW 節點
     graph.add_node("direct_nsfw_generation", direct_nsfw_generation_node)
-
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
@@ -987,12 +984,17 @@ def create_main_response_graph() -> StateGraph:
         
     graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
 
-    # --- 圖的邊緣連接 ---
+    # --- 圖的邊緣連接 (核心修正) ---
     graph.set_entry_point("classify_intent")
     graph.add_edge("classify_intent", "retrieve_memories")
-    graph.add_edge("retrieve_memories", "query_lore")
-    graph.add_edge("query_lore", "perceive_and_set_view")
-    graph.add_edge("perceive_and_set_view", "expansion_decision")
+    
+    # [v24.0 核心修正] 調整節點順序
+    # 1. 先感知 (perceive) 和設定視角 (set_view)，確定我們要去哪裡。
+    graph.add_edge("retrieve_memories", "perceive_and_set_view")
+    # 2. 然後帶著這個確定的視角去查詢 (query) LORE。
+    graph.add_edge("perceive_and_set_view", "query_lore")
+    # 3. 最後根據查詢到的 LORE 進行擴展決策。
+    graph.add_edge("query_lore", "expansion_decision")
     
     graph.add_conditional_edges(
         "expansion_decision",
@@ -1015,7 +1017,6 @@ def create_main_response_graph() -> StateGraph:
         viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
         logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
         
-        # [v23.0 核心修正] 更新路由邏輯
         if 'nsfw' in intent:
             return "direct_nsfw_planner"
         if viewing_mode == 'remote':
@@ -1029,7 +1030,6 @@ def create_main_response_graph() -> StateGraph:
         { 
             "sfw_planner": "sfw_planning", 
             "remote_sfw_planner": "remote_sfw_planning",
-            # [v23.0 核心修正] 將 NSFW 意圖路由到新節點
             "direct_nsfw_planner": "direct_nsfw_generation" 
         }
     )
@@ -1040,7 +1040,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("tool_execution", "sfw_narrative_rendering")
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     
-    # [v23.0 核心修正] NSFW 新路徑
+    # NSFW 新路徑
     graph.add_edge("direct_nsfw_generation", "rendering_junction")
 
     # 匯合點及最終流程
@@ -1049,7 +1049,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v23.0 - 指令轟炸模式)
+# 函式：創建主回應圖 (v24.0 - 拓撲結構修正)
 
         
 
@@ -1138,6 +1138,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
