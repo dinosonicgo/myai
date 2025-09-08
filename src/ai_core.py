@@ -2157,8 +2157,9 @@ class AILover:
 
     
 
-        # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
+    # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
     # 更新紀錄:
+    # v2.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此函式的錯誤處理邏輯。現在，對內部 `entity_extraction_chain` 的調用增加了與 `retrieve_memories_node` 相同的【快速失敗】保護機制（`retry_strategy='none'` + `try...except`）。此修改旨在從根本上解決當使用者輸入露骨內容時，此函式因觸發複雜且不穩定的委婉化重試鏈而導致整個圖形流程卡死的問題。
     # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
     async def _query_lore_from_entities(self, user_input: str, is_remote_scene: bool = False) -> List[Lore]:
         """[新] 提取實體並查詢其原始LORE對象。這是專門為新的 query_lore_node 設計的。"""
@@ -2171,9 +2172,26 @@ class AILover:
             recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
             text_for_extraction = f"{user_input}\n{recent_dialogue}"
 
-        entity_extraction_chain = self.get_entity_extraction_chain()
-        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_for_extraction})
-        extracted_names = set(entity_result.names if entity_result else [])
+        # [v2.0 核心修正] 增加健壯的錯誤處理，防止因內容審查而卡死
+        extracted_names = set()
+        try:
+            entity_extraction_chain = self.get_entity_extraction_chain()
+            # 使用 'none' 策略以快速失敗，避免進入複雜的委婉化重試循環
+            entity_result = await self.ainvoke_with_rotation(
+                entity_extraction_chain, 
+                {"text_input": text_for_extraction},
+                retry_strategy='none' 
+            )
+            
+            if entity_result and entity_result.names:
+                extracted_names = set(entity_result.names)
+            else:
+                # 處理 ainvoke_with_rotation 因安全錯誤且 retry_strategy='none' 而返回 None 的情況
+                logger.warning(f"[{self.user_id}] (LORE Querier) 實體提取鏈因內容審查返回空結果，將跳過基於使用者輸入的LORE查詢。")
+        except Exception as e:
+            # 捕獲其他可能的異常
+            logger.error(f"[{self.user_id}] (LORE Querier) 在從使用者輸入中提取實體時發生錯誤: {e}。將跳過此步驟。")
+
         
         location_path = self.profile.game_state.location_path
         if not is_remote_scene:
@@ -2204,7 +2222,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (LORE Querier) 查詢到 {len(final_lores)} 條唯一的LORE記錄。")
         return final_lores
-    # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
+    # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
 
 
 
@@ -3457,6 +3475,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
