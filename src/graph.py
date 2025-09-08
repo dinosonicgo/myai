@@ -385,7 +385,90 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     return {"turn_plan": plan}
 
 
+# graph.py
 
+async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
+    """
+    [v26.0 修正] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
+    """
+    if not ai_core.profile: return "（沒有最近的對話歷史）"
+    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    if not chat_history_manager.messages:
+        return "（沒有最近的對話歷史）"
+        
+    recent_messages = chat_history_manager.messages[-num_messages:]
+    if not recent_messages:
+        return "（沒有最近的對話歷史）"
+
+    raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
+
+    # 創建即時的、輕量級的摘要鏈
+    summarizer_prompt_template = """你的唯一任務是扮演一名小說編輯。請閱讀下方的【對話紀錄】，並將其提煉成一段簡潔的、客觀的、第三人稱的【前情提要】。
+
+【核心規則】
+1.  **只提取核心劇情**: 你的摘要【必須且只能】包含關鍵的劇情發展、角色的核心行動和重要的狀態變化。
+2.  **禁止對話**: 【絕對禁止】在摘要中包含任何直接的對話引號。
+3.  **保持中立**: 不要添加任何原始文本中沒有的推論或評論。
+4.  **簡潔至上**: 你的目標是用最少的文字講清楚故事的來龍去脈。
+
+---
+【對話紀錄】:
+{dialogue_history}
+---
+【前情提要】:
+"""
+    summarizer_prompt = ChatPromptTemplate.from_template(summarizer_prompt_template)
+    summarizer_llm = ai_core._create_llm_instance(temperature=0.0)
+    summarizer_chain = summarizer_prompt | summarizer_llm | StrOutputParser()
+
+    try:
+        # --- 步驟 1: 樂觀嘗試 ---
+        # 直接嘗試摘要原始的、可能露骨的歷史文本。
+        logger.info(f"[{user_id}] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...")
+        summary = await summarizer_chain.ainvoke({"dialogue_history": raw_history_text})
+
+        # 檢查是否因為審查而返回空值
+        if not summary or not summary.strip():
+            # 拋出一個自定義的異常，以觸發下方的備援機制
+            raise Exception("SafetyError: Direct summarization returned empty content.")
+            
+        logger.info(f"[{user_id}] (History Summarizer) 直接摘要成功。")
+        return f"【前情提要】:\n{summary}"
+
+    except Exception as e:
+        error_str = str(e).lower()
+        # --- 步驟 2: NSFW 安全備援機制 ---
+        # 只有當錯誤明確是因內容審查引起時，才啟動這個耗時但強大的備援
+        if "safety" in error_str or "blocked" in error_str:
+            logger.warning(f"[{user_id}] (History Summarizer) 直接摘要失敗，觸發【文學評論家】NSFW安全備援...")
+            try:
+                # 步驟 2a: 使用「文學評論家」鏈將露骨歷史「清洗」成安全的文學概述
+                literary_chain = ai_core.get_literary_euphemization_chain()
+                safe_literary_overview = await literary_chain.ainvoke({"dialogue_history": raw_history_text})
+                
+                if not safe_literary_overview or not safe_literary_overview.strip():
+                    raise Exception("Literary euphemization also returned empty content.")
+
+                logger.info(f"[{user_id}] (History Summarizer) 文學式委婉化成功，正在基於安全的概述重新生成摘要...")
+                
+                # 步驟 2b: 將這個【安全的概述】再次交給原始的摘要器，生成最終的「前情提要」
+                final_summary = await summarizer_chain.ainvoke({"dialogue_history": safe_literary_overview})
+
+                if not final_summary or not final_summary.strip():
+                     raise Exception("Final summarization after euphemization returned empty content.")
+
+                logger.info(f"[{user_id}] (History Summarizer) NSFW 安全備援成功完成。")
+                return f"【前情提要】:\n{final_summary}"
+
+            except Exception as fallback_e:
+                # --- 步驟 3: 終極備援 ---
+                # 如果連「文學評論家」備援都失敗了，則退回到最安全、最簡單的模式
+                logger.error(f"[{user_id}] (History Summarizer) 【文學評論家】備援機制最終失敗: {fallback_e}。啟動終極備援。", exc_info=True)
+                return _get_formatted_chat_history(ai_core, user_id, num_messages=2)
+        else:
+            # 如果是其他類型的錯誤（如網絡問題），則直接觸發終極備援
+            logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生非安全相關的未知錯誤: {e}。啟動終極備援。", exc_info=True)
+            return _get_formatted_chat_history(ai_core, user_id, num_messages=2)
 
 
 
@@ -996,6 +1079,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
