@@ -220,13 +220,15 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI核心 (v204.0 - 補完鏈屬性初始化)
+    # 更新紀錄:
+    # v204.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError Log，為 v22.0 中新增的 NSFW 思維鏈（nsfw_breakthrough_chain, nsfw_refinement_chain, final_novelist_chain）在初始化函式中補完了屬性聲明。此修改確保了 hasattr() 能夠正確檢測到這些鏈的存在，從根本上解決了因屬性未定義而導致的崩潰問題。
+    # v203.1 (2025-09-05): [災難性BUG修復] 完成了延遲加載重構。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
         self.gm_model: Optional[Runnable] = None
         
-        # [v203.1] 所有链都初始化为 None，将在 get 方法中被延遲加載
         self.personal_memory_chain: Optional[Runnable] = None
         self.scene_expansion_chain: Optional[Runnable] = None
         self.scene_casting_chain: Optional[Runnable] = None
@@ -238,7 +240,7 @@ class AILover:
         self.action_intent_chain: Optional[Runnable] = None
         self.rag_summarizer_chain: Optional[Runnable] = None
         self.planning_chain: Optional[Runnable] = None
-        self.narrative_chain: Optional[Runnable] = None
+        self.sfw_narrative_chain: Optional[Runnable] = None # Renamed from narrative_chain
         self.direct_nsfw_chain: Optional[Runnable] = None
         self.remote_scene_generator_chain: Optional[Runnable] = None
         self.entity_extraction_chain: Optional[Runnable] = None
@@ -250,6 +252,11 @@ class AILover:
         self.profile_completion_chain: Optional[Runnable] = None
         self.profile_parser_chain: Optional[Runnable] = None
         self.profile_rewriting_chain: Optional[Runnable] = None
+
+        # [v204.0 核心修正] 補完新鏈的屬性聲明
+        self.nsfw_breakthrough_planning_chain: Optional[Runnable] = None
+        self.nsfw_refinement_chain: Optional[Runnable] = None
+        self.final_novelist_chain: Optional[Runnable] = None
 
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
@@ -272,7 +279,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI核心 (v204.0 - 補完鏈屬性初始化)
     
 
 
@@ -1630,10 +1637,10 @@ class AILover:
 
 
     
-    # 函式：獲取場景選角鏈 (v218.0 - 外觀與性別強制令)
+    # 函式：獲取場景選角鏈 (v219.0 - 強制專有名稱)
     # 更新紀錄:
-    # v218.0 (2025-09-08): [災難性BUG修復 & 品質提升] 根據使用者反饋，對此鏈的 Prompt 進行了決定性強化。注入了全新的【外觀強制令】和【命名性別協調鐵則】。前者強制要求 AI 為每一個新創建的角色都撰寫詳細、具體的外觀描述；後者則確保角色的名字必須與其性別相匹配。此修改旨在從 LORE 創建的源頭，就徹底杜絕因 AI 即興發揮而導致的角色形象不當（如“豐腴的男性”）或邏輯混亂的問題。
-    # v217.0 (2025-09-22): [重大品質提升] 徹底重構了命名協議，引入了帶有“預設風格回退”機制的決策樹。
+    # v219.0 (2025-09-09): [災難性BUG修復 & 品質提升] 根據 LOG 中出現的“老乞丐”等匿名 LORE，為 Prompt 注入了全新的【強制專有名稱鐵則】。此規則以最嚴厲的措辭，絕對禁止 AI 使用任何描述性稱號（如‘一個男人’）來填充角色的 `name` 欄位，強制其必須為每一個新 LORE 都發明一個符合背景的【具體專有名稱】，從根本上解決了 LORE 命名不具體的問題。
+    # v218.0 (2025-09-08): [災難性BUG修復 & 品質提升] 注入了【外觀強制令】和【命名性別協調鐵則】。
     def get_scene_casting_chain(self) -> Runnable:
         if not hasattr(self, 'scene_casting_chain') or self.scene_casting_chain is None:
             from .schemas import SceneCastingResult
@@ -1641,26 +1648,23 @@ class AILover:
             
             casting_prompt_template = """你現在扮演一位【文化顧問兼選角導演】。你的唯一任務是接收一份【角色描述列表】，並為列表中的【每一項】都創建一個符合其文化背景的、細節豐富的、完整的 JSON 角色檔案。
 
-# === 【【【最高指導原則：v217.0 命名決策樹】】】 ===
+# === 【【【v219.0 新增：最高命名原則】】】 ===
 
-# 你【必須】嚴格遵循以下具有優先級的決策流程來為角色命名：
+# 1.  **【強制專有名稱鐵則 (Proper-Name Mandate) - 絕對優先級】**:
+#     對於你創造的【每一個】角色，你【絕對禁止】使用任何通用的、描述性的稱號（例如：「一個男人」、「老乞丐」、「獨臂乞丐」）來填充其 `name` 欄位。你【必須】為其發明一個符合其文化背景和性別的【具體專有名稱】（例如：「格雷戈」、「莉莉絲」、「卡恩」）。
 
-# --- 第一優先級：明確的文化指令 ---
-#   1. **分析**: 首先，檢查【核心世界觀】或【角色描述】中是否包含任何【明確的、指向特定地球文化的詞彙】。
-#   2. **執行**: 如果存在，你【必須】嚴格遵循該文化風格進行命名。
+# 2.  **【命名性別協調鐵則 (Gender-Name Coordination)】**:
+#     你為角色發明的【專有名稱】【絕對必須】與其描述所暗示的**性別**相匹配。例如，不要為一個“魁梧的男戰士”取名為“莉莉絲”。
 
-# --- 第二優先級：預設風格回退 (Default Fallback) ---
-#   1. **分析**: 如果，且僅如果，在世界觀和角色描述中【完全沒有】找到任何明確的文化線索，但場景主題是關於“魔法”、“奇幻”等，
-#   2. **執行**: 你【必須】採用【西方奇幻音譯風格】作為預設命名規則。
+# 3.  **【v217.0 命名決策樹】**:
+#     在遵循以上兩條鐵則的前提下，你【必須】嚴格遵循以下具有優先級的決策流程來決定命名的【風格】：
+#     - **第一優先級 (明確指令)**: 如果【核心世界觀】或【角色描述】中包含任何【明確的、指向特定地球文化的詞彙】，你【必須】嚴格遵循該文化風格。
+#     - **第二優先級 (預設回退)**: 如果【完全沒有】找到任何明確的文化線索，你【必須】採用【西方奇幻音譯風格】作為預設命名規則。
 
-# **--- 语言强制 ---**
-#   - 所有最終名稱【必須且只能】使用【繁體中文】。
-
-# === 【【【v218.0 新增核心規則】】】 ===
+# === 【【【核心創作規則】】】 ===
 
 # 1.  **【外觀強制令 (Appearance Mandate)】**: 對於你創造的【每一個】新角色，你【必須】為其 `appearance` 欄位撰寫一段**詳細、具體、生動的外觀描述**。此描述【必須】與其角色描述（如職業、種族）和性別相匹配。
-# 2.  **【命名性別協調鐵則 (Gender-Name Coordination)】**: 你為角色發明的【專有名稱】【絕對必須】與其描述所暗示的**性別**相匹配。例如，不要為一個“魁梧的男戰士”取名為“莉莉絲”。
-# 3.  **【一一對應鐵則】**: 你【必須】為下方 `character_descriptions_list` 中的【每一個字串】，都創建一個對應的、獨立的角色檔案。
+# 2.  **【一一對應鐵則】**: 你【必須】為下方 `character_descriptions_list` 中的【每一個字串】，都創建一個對應的、獨立的角色檔案。
 
 ---
 【核心世界觀 (你的命名風格決策依據)】: 
@@ -1672,14 +1676,15 @@ class AILover:
 【角色描述列表 (你的唯一數據來源)】:
 {character_descriptions_list}
 ---
-請嚴格遵循以上所有規則，為列表中的每一個描述都創建一個完整的、命名風格與性別絕對正確的、且外觀細節豐富的角色檔案。
+請嚴格遵循以上所有規則，為列表中的每一個描述都創建一個擁有【具體專有名稱】的、命名風格與性別絕對正確的、且外觀細節豐富的角色檔案。
 """
             
             prompt = ChatPromptTemplate.from_template(casting_prompt_template)
             
             self.scene_casting_chain = prompt | casting_llm
         return self.scene_casting_chain
-    # 函式：獲取場景選角鏈 (v218.0 - 外觀與性別強制令)
+    # 函式：獲取場景選角鏈 (v219.0 - 強制專有名稱)
+
 
 
     
@@ -3511,6 +3516,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
