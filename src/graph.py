@@ -313,54 +313,55 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：LORE擴展決策 (v32.0 - 健壯性與安全查詢適配)
+# 函式：LORE擴展決策 (v33.0 - 注入地理位置)
 # 更新紀錄:
-# v32.0 (2025-09-08): [重大架構重構 & 健壯性] 此節點不再處理原始 user_input，而是改為使用上游傳入的、絕對安全的 `sanitized_query_for_tools`。同時，徹底移除了內部脆弱的“預清洗”備援邏輯，改為依賴上游的源頭清洗，從根本上解決了因嵌套備援失敗而導致的 `ValueError`。
-# v31.0 (2025-09-12): [災難性BUG修復] LORE擴展決策節點。
+# v33.0 (2025-09-09): [災難性BUG修復] 為了配合決策鏈的【地理位置約束】升級，此節點現在會智能地從 `SceneAnalysisResult` 或 `GameState` 中提取出當前的有效場景路徑，並將其作為一個新的、關鍵的 `target_location_path_str` 參數傳遞給決策鏈，確保決策的準確性。
+# v32.0 (2025-09-08): [重大架構重構 & 健壯性] 此節點改為使用安全的 `sanitized_query_for_tools`。
 async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     """
-    [v32.0 修正] LORE擴展決策節點，使用預清洗過的查詢文本進行決策。
+    [v33.0 修正] LORE擴展決策節點，注入地理位置約束。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # [v32.0 核心修正] 直接使用上游傳入的安全查詢文本，不再處理原始輸入
     safe_query_text = state['sanitized_query_for_tools']
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '{safe_query_text[:30]}...' 判斷是否擴展...")
-
-    # [v32.0 核心修正] 移除所有內部的預清洗邏輯，因為輸入已經是安全的
     
+    if not ai_core.profile:
+        return {"expansion_decision": ExpansionDecision(should_expand=False, reasoning="錯誤：AI profile 未加載。")}
+
+    # [v33.0 核心修正] 確定目標場景地點
+    gs = ai_core.profile.game_state
+    scene_analysis = state.get('scene_analysis')
+    
+    target_location_path: List[str]
+    if scene_analysis and scene_analysis.target_location_path:
+        target_location_path = scene_analysis.target_location_path
+    else:
+        target_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+    
+    target_location_path_str = " > ".join(target_location_path)
+    logger.info(f"[{user_id}] (Expansion Decision) 已將決策範圍嚴格限定在場景: '{target_location_path_str}'")
+
     lightweight_lore_for_decision = []
     for lore in raw_lore_objects:
         if lore.category == 'npc_profile':
             content = lore.content
             lightweight_lore_for_decision.append({
                 "name": content.get("name"),
-                "gender": content.get("gender"),
-                "description": content.get("description")
+                "description": content.get("description"),
+                "location_path": content.get("location_path", []) # 確保傳遞地點信息
             })
 
     lore_json_str = json.dumps(lightweight_lore_for_decision, ensure_ascii=False, indent=2)
     
-    examples_str = """
-- **情境 1**: 
-    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位販賣活魚的女性性神教徒..."}]`
-    - 使用者輸入: `继续描述那个卖鱼的女人`
-    - **你的決策**: `should_expand: false` (理由應類似於: 場景中已存在符合 '賣魚的女人' 描述的角色 (例如 '海妖吟')，應優先與其互動。)
-- **情境 2**:
-    - 現有角色JSON: `[{"name": "海妖吟", "description": "一位女性性神教徒..."}]`
-    - 使用者輸入: `這時一個衛兵走了過來`
-    - **你的決策**: `should_expand: true` (理由應類似於: 場景中缺乏能夠扮演 '衛兵' 的角色，需要創建新角色以響應指令。)
-"""
-
     decision_chain = ai_core.get_expansion_decision_chain()
-    # [v32.0 核心修正] 將 user_input 替換為 safe_query_text
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
         {
+            "target_location_path_str": target_location_path_str,
             "user_input": safe_query_text,
             "existing_characters_json": lore_json_str,
-            "examples": examples_str
         },
         retry_strategy='euphemize'
     )
@@ -371,7 +372,10 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
-# 函式：LORE擴展決策 (v32.0 - 健壯性與安全查詢適配)
+# 函式：LORE擴展決策 (v33.0 - 注入地理位置)
+
+
+
 
 async def character_quantification_node(state: ConversationGraphState) -> Dict:
     """[6A.1] 將模糊的群體描述轉化為具體的角色列表。"""
@@ -1324,6 +1328,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
