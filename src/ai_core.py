@@ -2082,12 +2082,12 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v4.0 - Cohere 失敗優雅降級)
+    # 函式：[新] 檢索並總結記憶 (v5.0 - 職責分離)
     # 更新紀錄:
-    # v4.0 (2025-09-22): [災難性BUG修復] 徹底重構了 RAG 流程，增加了對 Cohere Reranker API 速率超限的優雅降級機制。當檢測到 Cohere API 失敗時，系統會自動跳過 Reranker，並直接使用基礎檢索器的結果，從而確保 RAG 流程的健壯性和上下文的穩定供應。
+    # v5.0 (2025-09-25): [災難性BUG修復] 根據 LOG 分析，徹底移除了此函式內部所有關於“查詢預處理”的冗餘邏輯。此函式的職責被明確為“單純的執行者”，它現在無條件地信任並使用由上游節點（retrieve_memories_node）傳入的查詢文本。此修改旨在從根本上消除因重複預處理而導致的無限重試循環。
+    # v4.0 (2025-09-22): [災難性BUG修復] 增加了對 Cohere API 失敗的優雅降級。
     # v3.0 (2025-09-06): [健壯性] 增加了更強的 try...except 異常捕獲機制。
-    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了此函式的邏輯。
-    async def retrieve_and_summarize_memories(self, user_input: str) -> str:
+    async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
@@ -2095,48 +2095,40 @@ class AILover:
         
         retrieved_docs = []
         try:
-            # --- 步驟 1: 生成安全查詢 (保持不變) ---
-            logger.info(f"[{self.user_id}] (RAG) 正在對使用者輸入進行預處理以創建安全查詢...")
-            entity_extraction_chain = self.get_entity_extraction_chain()
-            entity_result = await self.ainvoke_with_rotation(
-                entity_extraction_chain, 
-                {"text_input": user_input},
-                retry_strategy='euphemize'
-            )
+            # --- 步驟 1: [v5.0 核心修正] 直接使用傳入的查詢文本 ---
+            # 所有關於“預處理”和“創建安全查詢”的邏輯已被徹底移除。
+            # 此函式現在完全信任其調用者（retrieve_memories_node）已經提供了一個合適的查詢文本。
             
-            sanitized_query = " ".join(entity_result.names) if entity_result and entity_result.names else user_input
-            logger.info(f"[{self.user_id}] (RAG) 已生成安全查詢: '{sanitized_query}'")
-
-            # --- 步驟 2: [v4.0 核心修正] 帶有優雅降級的檢索 ---
+            # --- 步驟 2: 帶有優雅降級的檢索 ---
             try:
                 # 首次嘗試：使用帶有 Reranker 的完整檢索器
-                logger.info(f"[{self.user_id}] (RAG) 正在使用完整的「檢索+重排」流程...")
+                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用查詢 '{query_text[:30]}...' 執行完整的「檢索+重排」流程...")
                 retrieved_docs = await self.ainvoke_with_rotation(
                     self.retriever, 
-                    sanitized_query,
+                    query_text,
                     retry_strategy='euphemize'
                 )
             except RuntimeError as e:
                 # 如果捕獲到我們自定義的 Cohere 速率限制異常
                 if "COHERE_RATE_LIMIT_EXCEEDED" in str(e):
-                    logger.warning(f"[{self.user_id}] (RAG) Cohere Reranker 速率超限，啟動【優雅降級】策略...")
+                    logger.warning(f"[{self.user_id}] (RAG Executor) Cohere Reranker 速率超限，啟動【優雅降級】策略...")
                     if hasattr(self.retriever, 'base_retriever'):
                         # 退回到基礎檢索器 (EnsembleRetriever) 再次嘗試
-                        logger.info(f"[{self.user_id}] (RAG) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
+                        logger.info(f"[{self.user_id}] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
                         retrieved_docs = await self.ainvoke_with_rotation(
                             self.retriever.base_retriever,
-                            sanitized_query,
+                            query_text,
                             retry_strategy='euphemize'
                         )
-                        logger.info(f"[{self.user_id}] (RAG) 基礎檢索器重試成功。")
+                        logger.info(f"[{self.user_id}] (RAG Executor) 基礎檢索器重試成功。")
                     else:
-                        logger.error(f"[{self.user_id}] (RAG) 優雅降級失敗：找不到 base_retriever。")
+                        logger.error(f"[{self.user_id}] (RAG Executor) 優雅降級失敗：找不到 base_retriever。")
                         raise e # 如果找不到基礎檢索器，則重新拋出原始異常
                 else:
                     raise e # 如果是其他 RuntimeError，也重新拋出
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 在 RAG 檢索的預處理或調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 在 RAG 檢索的調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
             return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
 
         if retrieved_docs is None:
@@ -2159,7 +2151,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v4.0 - Cohere 失敗優雅降級)
+    # 函式：[新] 檢索並總結記憶 (v5.0 - 職責分離)
 
 
 
@@ -3484,6 +3476,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
