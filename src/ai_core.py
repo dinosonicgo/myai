@@ -220,7 +220,7 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v204.0 - 補完鏈屬性初始化)
+# 函式：初始化AI核心 (v204.0 - 補完鏈屬性初始化)
     # 更新紀錄:
     # v204.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError Log，為 v22.0 中新增的 NSFW 思維鏈（nsfw_breakthrough_chain, nsfw_refinement_chain, final_novelist_chain）在初始化函式中補完了屬性聲明。此修改確保了 hasattr() 能夠正確檢測到這些鏈的存在，從根本上解決了因屬性未定義而導致的崩潰問題。
     # v203.1 (2025-09-05): [災難性BUG修復] 完成了延遲加載重構。
@@ -602,7 +602,7 @@ class AILover:
     # 函式：[新] 獲取 NSFW 計畫潤色鏈 (v4.1 - 縮排修正)
     
 
-    # 函式：獲取統一敘事渲染鏈 (v223.1 - 縮排修正)
+   # 函式：獲取統一敘事渲染鏈 (v223.1 - 縮排修正)
     # 更新紀錄:
     # v223.1 (2025-09-09): [災難性BUG修復] 修正了函式定義的縮排錯誤。
     # v223.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError，補完了此函式的定義。
@@ -837,7 +837,7 @@ class AILover:
 
 
     
-    # 函式：獲取 NSFW 突破性規劃鏈 (v15.1 - 縮排修正)
+# 函式：[全新] 獲取 NSFW 突破性規劃鏈 (v15.1 - 縮排修正)
     # 更新紀錄:
     # v15.1 (2025-09-09): [災難性BUG修復] 修正了函式定義的縮排錯誤。
     # v15.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError，補完了此函式的定義。
@@ -895,7 +895,6 @@ class AILover:
             self.nsfw_breakthrough_planning_chain = prompt | planner_llm | StrOutputParser()
         return self.nsfw_breakthrough_planning_chain
     # 函式：獲取 NSFW 突破性規劃鏈 (v15.1 - 縮排修正)
-
     
 
     # 函式：關閉 AI 實例並釋放資源 (v198.1 - 資源回收強化)
@@ -3719,6 +3718,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
