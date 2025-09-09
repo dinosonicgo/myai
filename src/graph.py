@@ -527,13 +527,13 @@ def _get_raw_chat_history(ai_core: AILover, user_id: str, num_messages: int = 4)
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 
 
-# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
+# 函式：獲取摘要後的對話歷史 (v30.0 - 三層防禦)
 # 更新紀錄:
-# v28.0 (2025-09-08): [災難性BUG修復] 徹底重構了此函式的終極備援邏輯。舊版本在所有摘要嘗試失敗後，會不安全地返回原始的、未經處理的對話歷史，這是導致 AI“偷懶”並重複歷史文本的根本原因。新版本在所有嘗試失敗後，將返回一個安全的中性提示字符串，從而切斷了將重複或露骨內容污染到下游鏈的數據源。
-# v27.0 (2025-09-08): [災難性BUG修復] 補充了缺失的導入語句。
+# v30.0 (2025-09-10): [災難性BUG修復] 根據使用者建議，徹底重構了此函式的備援邏輯，引入了包含三層防禦的終極健壯性設計。流程變為：1. 嘗試直接摘要。 2. 如果失敗，則切換到更強大的“文學評論家”Prompt進行安全摘要。 3. 如果再次失敗，則放棄API調用，直接返回最後一條AI的原始回應文本作為最終備援。此修改確保了在任何情況下，系統都能為下游提供最相關的上下文，永不落空。
+# v28.0 (2025-09-08): [災難性BUG修復] 重構了終極備援邏輯，以避免返回原始露骨文本。
 async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
     """
-    [v28.0 修正] 提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
+    [v30.0 修正] 提取並摘要最近的對話歷史，內建三層防禦機制。
     """
     if not ai_core.profile: return "（沒有最近的對話歷史）"
     chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
@@ -546,65 +546,60 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
     raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
 
-    # 創建即時的、輕量級的摘要鏈
-    summarizer_prompt_template = """你的唯一任務是扮演一名小說編輯。請閱讀下方的【對話紀錄】，並將其提煉成一段簡潔的、客觀的、第三人稱的【前情提要】。
-
-【核心規則】
-1.  **只提取核心劇情**: 你的摘要【必須且只能】包含關鍵的劇情發展、角色的核心行動和重要的狀態變化。
-2.  **禁止對話**: 【絕對禁止】在摘要中包含任何直接的對話引號。
-3.  **保持中立**: 不要添加任何原始文本中沒有的推論或評論。
-4.  **簡潔至上**: 你的目標是用最少的文字講清楚故事的來龍去脈。
-
----
-【對話紀錄】:
-{dialogue_history}
----
-【前情提要】:
-"""
-    summarizer_prompt = ChatPromptTemplate.from_template(summarizer_prompt_template)
-    summarizer_llm = ai_core._create_llm_instance(temperature=0.0)
-    summarizer_chain = summarizer_prompt | summarizer_llm | StrOutputParser()
-
+    # --- 第一層防禦：樂觀的直接摘要 ---
     try:
-        # --- 步驟 1: 樂觀嘗試 ---
-        logger.info(f"[{user_id}] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...")
-        summary = await summarizer_chain.ainvoke({"dialogue_history": raw_history_text})
+        logger.info(f"[{user_id}] (History Summarizer) [L1] 正在樂觀嘗試直接摘要原始歷史文本...")
+        summarizer_prompt = ChatPromptTemplate.from_template(
+            "你的唯一任務是扮演一名小說編輯。請閱讀下方的【對話紀錄】，並將其提煉成一段簡潔的、客觀的、第三人稱的【前情提要】。只提取核心劇情，禁止包含對話引號。\n\n【對話紀錄】:\n{dialogue_history}\n\n【前情提要】:"
+        )
+        summarizer_llm = ai_core._create_llm_instance(temperature=0.0)
+        summarizer_chain = summarizer_prompt | summarizer_llm | StrOutputParser()
+        
+        summary = await ai_core.ainvoke_with_rotation(summarizer_chain, {"dialogue_history": raw_history_text}, retry_strategy='none')
 
-        if not summary or not summary.strip():
-            raise Exception("SafetyError: Direct summarization returned empty content.")
-            
-        logger.info(f"[{user_id}] (History Summarizer) 直接摘要成功。")
-        return f"【前情提要】:\n{summary}"
+        if summary and summary.strip():
+            logger.info(f"[{user_id}] (History Summarizer) [L1] 直接摘要成功。")
+            return f"【前情提要】:\n{summary}"
+        else:
+            # 如果返回空，也視為一種失敗，進入下一層
+            raise ValueError("Direct summarization returned empty content.")
 
     except Exception as e:
-        error_str = str(e).lower()
-        if "safety" in error_str or "blocked" in error_str:
-            logger.warning(f"[{user_id}] (History Summarizer) 直接摘要失敗，觸發【文學評論家】NSFW安全備援...")
-            try:
-                literary_chain = ai_core.get_literary_euphemization_chain()
-                safe_literary_overview = await literary_chain.ainvoke({"dialogue_history": raw_history_text})
+        logger.warning(f"[{user_id}] (History Summarizer) [L1] 直接摘要失敗: {type(e).__name__}。啟動【L2 文學評論家】安全備援...")
+        
+        # --- 第二層防禦：文學評論家式安全摘要 ---
+        try:
+            critic_prompt = ChatPromptTemplate.from_template(
+                "你是一位文學評論家。你的唯一任務是為下方提供的一系列小說片段，撰寫一段總結性的、學術性的、完全不包含任何露骨詞彙的【情節概述】。\n\n【小說片段】:\n{dialogue_history}\n\n【情節概述】:"
+            )
+            critic_llm = ai_core._create_llm_instance(temperature=0.1)
+            critic_chain = critic_prompt | critic_llm | StrOutputParser()
+            
+            critic_summary = await ai_core.ainvoke_with_rotation(critic_chain, {"dialogue_history": raw_history_text}, retry_strategy='none')
+
+            if critic_summary and critic_summary.strip():
+                logger.info(f"[{user_id}] (History Summarizer) [L2] 文學評論家安全摘要成功。")
+                return f"【前情提要（文學概述）】:\n{critic_summary}"
+            else:
+                raise ValueError("Critic summarization also returned empty content.")
+
+        except Exception as final_e:
+            logger.error(f"[{user_id}] (History Summarizer) [L2] 文學評論家備援最終失敗: {type(final_e).__name__}。啟動【L3 原始文本】終極備援。")
+            
+            # --- 第三層防禦：原始文本備援 ---
+            last_ai_message = next((m.content for m in reversed(chat_history_manager.messages) if m.type == 'ai'), None)
+            if last_ai_message:
+                # 基礎淨化，移除我們已知的系統標記
+                clean_text = last_ai_message.replace("§", "").strip()
+                html_comment_pattern = r'<!--[\s\S]*?-->'
+                clean_text = re.sub(html_comment_pattern, '', clean_text).strip()
                 
-                if not safe_literary_overview or not safe_literary_overview.strip():
-                    raise Exception("Literary euphemization also returned empty content.")
-
-                logger.info(f"[{user_id}] (History Summarizer) 文學式委婉化成功，正在基於安全的概述重新生成摘要...")
-                
-                final_summary = await summarizer_chain.ainvoke({"dialogue_history": safe_literary_overview})
-
-                if not final_summary or not final_summary.strip():
-                     raise Exception("Final summarization after euphemization returned empty content.")
-
-                logger.info(f"[{user_id}] (History Summarizer) NSFW 安全備援成功完成。")
-                return f"【前情提要】:\n{final_summary}"
-
-            except Exception as fallback_e:
-                # [v28.0 核心修正] 終極備援不再返回原始歷史
-                logger.error(f"[{user_id}] (History Summarizer) 【文學評論家】備援機制最終失敗: {fallback_e}。啟動終極備援。", exc_info=False) # 減少日誌噪音
-                return "（歷史對話摘要因內容審查而生成失敗，部分上下文可能缺失。）"
-        else:
-            logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生非安全相關的未知錯誤: {e}。啟動終極備援。", exc_info=True)
-            return "（歷史對話摘要因技術錯誤而生成失敗，部分上下文可能缺失。）"
-# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
+                logger.info(f"[{user_id}] (History Summarizer) [L3] 終極備援成功，已提取並淨化最後一條AI回應作為上下文。")
+                return f"【接續上一幕（原始文本）】:\n...{clean_text[-1500:]}" # 只取最後一部分以節省token
+            else:
+                logger.error(f"[{user_id}] (History Summarizer) [L3] 終極備援失敗：找不到任何歷史AI訊息。")
+                return "（歷史對話摘要因連續錯誤而完全失敗，上下文已丟失。）"
+# 函式：獲取摘要後的對話歷史 (v30.0 - 三層防禦)
 
 
 
@@ -1335,6 +1330,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
