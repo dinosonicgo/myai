@@ -1,74 +1,71 @@
-### AI Lover Log - Last updated at 2025-09-09T23:03:31.920623 ###
+### AI Lover Log - Last updated at 2025-09-09T23:07:22.057684 ###
 
-2025-09-09 22:34:03 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
-2025-09-09 22:34:03 - [ERROR] - [512280345618546699] 背景LORE提取與擴展任務執行時發生未預期的異常: cannot import name 'ValidationError' from 'src.schemas' (D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\schemas.py)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 164, in query_lore_node
+    safe_query_text = state['sanitized_query_for_tools']
+KeyError: 'sanitized_query_for_tools'
+2025-09-09 23:06:50 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
+2025-09-09 23:06:51 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
+2025-09-09 23:06:52 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
+2025-09-09 23:06:55 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
+2025-09-09 23:06:55 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
+2025-09-09 23:07:08 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-09 23:07:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-09 23:07:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-09 23:07:11 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+2025-09-09 23:07:15 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
+2025-09-09 23:07:15 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-09 23:07:15 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-09 23:07:15 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
+2025-09-09 23:07:15 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] 未找到歷史對話記錄，無需恢復記憶。
+2025-09-09 23:07:16 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-09 23:07:16 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
+2025-09-09 23:07:17 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
+2025-09-09 23:07:17 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-09 23:07:17 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '坐下...' 進行意圖分類...
+2025-09-09 23:07:17 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['迷雾森林', 'DINO', '坐下', '溪语小屋', '碧']
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
+2025-09-09 23:07:19 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
+2025-09-09 23:07:19 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: 'DINO'
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 1 條LORE作為本回合上下文。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 1 条 LORE 记录组装为最终上下文...
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '坐下...' 判斷是否擴展...
+2025-09-09 23:07:19 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
+2025-09-09 23:07:19 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知但非安全相關的錯誤: "Input to ChatPromptTemplate is missing variables {'ai_name'}.  Expected: ['ai_name', 'existing_characters_json', 'user_input'] Received: ['user_input', 'existing_characters_json', 'examples']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1134, in _background_lore_extraction
-    try:
-ImportError: cannot import name 'ValidationError' from 'src.schemas' (D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\schemas.py)
-2025-09-09 22:34:39 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-09 22:34:42 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-09 22:34:42 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-09 22:34:43 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-09 22:38:43 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-09 22:38:43 - [INFO] - [512280345618546699] 已從 SQL 資料庫安全地清除了所有相關記錄。
-2025-09-09 22:38:43 - [INFO] - [512280345618546699] (第 1 次嘗試) 已成功刪除向量數據庫目錄。
-2025-09-09 22:38:49 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-09 22:38:49 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-09 22:38:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-09 22:38:49 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-09 22:38:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-09 22:39:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-09 22:39:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-09 22:39:13 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-09 22:39:13 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-09 22:39:21 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-09 22:39:22 - [INFO] - [512280345618546699] 資料庫為空，暫時使用純向量檢索器作為基礎。
-2025-09-09 22:39:23 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
-2025-09-09 22:39:23 - [INFO] - [512280345618546699] 正在處理 'canon' 向量化批次 1/1 (使用 API Key #2)...
-2025-09-09 22:39:24 - [INFO] - [512280345618546699] 批次 1 成功處理。
-2025-09-09 22:39:24 - [INFO] - [512280345618546699] /start 流程：正在強制初始化 AI 核心組件...
-2025-09-09 22:39:24 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] 已從向量儲存中清理了 1 條舊的 'canon' 記錄。
-2025-09-09 22:39:25 - [INFO] - [512280345618546699] 正在處理 'canon' 向量化批次 1/1 (使用 API Key #3)...
-2025-09-09 22:39:26 - [INFO] - [512280345618546699] 批次 1 成功處理。
-2025-09-09 22:39:26 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本...
-2025-09-09 22:39:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
-2025-09-09 22:39:30 - [INFO] - [512280345618546699] 正在處理 'npc_profile' 類別的 1 個實體...
-2025-09-09 22:39:30 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-09 22:39:35 - [INFO] - [512280345618546699] 已為新實體 'DINO' (標準名: Dino) 創建了 LORE 條目，主鍵為 'Dino'。
-2025-09-09 22:39:35 - [INFO] - [512280345618546699] 正在處理 'location_info' 類別的 1 個實體...
-2025-09-09 22:39:40 - [INFO] - [512280345618546699] 已為新實體 '性神城' (標準名: 性神城) 創建了 LORE 條目，主鍵為 '性神城'。
-2025-09-09 22:39:40 - [INFO] - [512280345618546699] 正在處理 'creature_info' 類別的 1 個實體...
-2025-09-09 22:39:45 - [INFO] - [512280345618546699] 已為新實體 '天空龍' (標準名: 天空龍) 創建了 LORE 條目，主鍵為 '天空龍'。
-2025-09-09 22:39:45 - [INFO] - [512280345618546699] 正在處理 'world_lore' 類別的 2 個實體...
-2025-09-09 22:39:50 - [INFO] - [512280345618546699] 已為新實體 '性神恩澤' (標準名: 性神恩澤) 創建了 LORE 條目，主鍵為 '性神恩澤'。
-2025-09-09 22:39:55 - [INFO] - [512280345618546699] 已為新實體 '性神教' (標準名: 性神教) 創建了 LORE 條目，主鍵為 '性神教'。
-2025-09-09 22:39:55 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
-2025-09-09 22:39:55 - [INFO] - [512280345618546699] (Setup Graph) Node: complete_profiles_node -> 正在補完角色檔案...
-2025-09-09 22:39:55 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
-2025-09-09 22:39:56 - [INFO] - [512280345618546699] 正在為角色 'DINO' 執行安全的檔案補完...
-2025-09-09 22:39:57 - [INFO] - [512280345618546699] 正在為角色 '碧' 執行安全的檔案補完...
-2025-09-09 22:40:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-09 22:40:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-09 22:40:00 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
-2025-09-09 22:40:05 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-09 22:40:05 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-09 22:40:23 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
-2025-09-09 22:40:23 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
-2025-09-09 22:40:24 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
-2025-09-09 22:40:24 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-09 22:40:24 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '坐下...' 進行意圖分類...
-2025-09-09 22:40:24 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-09 22:40:25 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
-2025-09-09 22:40:25 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
-2025-09-09 22:40:25 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-09 22:40:25 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生未捕獲的異常: KeyError: 'sanitized_query_for_tools'
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3387, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name'}.  Expected: ['ai_name', 'existing_characters_json', 'user_input'] Received: ['user_input', 'existing_characters_json', 'examples']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-09 23:07:19 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生未捕獲的異常: KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name'}.  Expected: ['ai_name', 'existing_characters_json', 'user_input'] Received: ['user_input', 'existing_characters_json', 'examples']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1211, in on_message
     final_state = await self.main_response_graph.ainvoke(initial_state)
@@ -84,19 +81,22 @@ Traceback (most recent call last):
     input = await step.ainvoke(input, config, **kwargs)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
     ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 164, in query_lore_node
-    safe_query_text = state['sanitized_query_for_tools']
-KeyError: 'sanitized_query_for_tools'
-2025-09-09 23:00:27 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
-2025-09-09 23:00:28 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
-2025-09-09 23:00:29 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
-2025-09-09 23:00:32 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
-2025-09-09 23:03:18 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-09 23:03:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-09 23:03:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-09 23:03:21 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-09 23:03:31 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
-2025-09-09 23:03:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-09 23:03:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-09 23:03:31 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-09 23:03:31 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 365, in expansion_decision_node
+    decision = await ai_core.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3430, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3387, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name'}.  Expected: ['ai_name', 'existing_characters_json', 'user_input'] Received: ['user_input', 'existing_characters_json', 'examples']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
