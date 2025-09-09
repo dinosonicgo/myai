@@ -898,12 +898,15 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：持久化狀態節點 (v12.0 - 意圖持久化)
+# graph.py
+
+# 函式：持久化狀態節點 (v13.0 - 觸發背景LORE擴展)
 # 更新紀錄:
-# v12.0 (2025-09-08): [災難性BUG修復] 新增了核心邏輯，在儲存對話歷史後，會將當前回合的最終意圖分類（SFW/NSFW）寫入 GameState 並持久化到資料庫。此修改是為了讓 `classify_intent_node` 能夠在下一輪的延续性指令（如“继续”）中，準確地繼承上一輪的上下文狀態。
+# v13.0 (2025-09-09): [重大功能擴展] 在此節點的末尾，新增了對 `_background_lore_extraction` 背景任務的非阻塞調用。此修改將“事後LORE擴展”功能無縫整合進主對話流程，使得世界觀能夠在每次互動後動態成長，同時不影響對使用者的回應速度。
+# v12.0 (2025-09-08): [災難性BUG修復] 新增了核心邏輯，在儲存對話歷史後，會將當前回合的最終意圖分類（SFW/NSFW）寫入 GameState 並持久化到資料庫。
 # v11.0 (2025-09-08): 原始創建。
 async def persist_state_node(state: ConversationGraphState) -> Dict:
-    """[11] 統一的狀態持久化節點，負責儲存對話歷史並將當前意圖持久化。"""
+    """[11] 統一的狀態持久化節點，負責儲存對話歷史、持久化意圖，並觸發背景LORE擴展。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -911,10 +914,13 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
     intent_classification = state.get('intent_classification')
     logger.info(f"[{user_id}] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...")
     
-    # [v12.0 核心修正] 持久化當前回合的意圖
-    if ai_core.profile and intent_classification:
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] 在 persist_state_node 中 ai_core.profile 為空，無法持久化。")
+        return {}
+    
+    # 持久化當前回合的意圖
+    if intent_classification:
         current_intent_type = intent_classification.intent_type
-        # 只有在意圖發生變化時才寫入資料庫，以減少不必要的 I/O
         if ai_core.profile.game_state.last_intent_type != current_intent_type:
             logger.info(f"[{user_id}] (Persist) 正在將當前意圖 '{current_intent_type}' 持久化到 GameState...")
             ai_core.profile.game_state.last_intent_type = current_intent_type
@@ -943,8 +949,25 @@ async def persist_state_node(state: ConversationGraphState) -> Dict:
         tasks.append(save_to_sql())
         await asyncio.gather(*tasks, return_exceptions=True)
         
+        # [v13.0 核心修正] 在所有主要持久化完成後，非阻塞地觸發背景LORE擴展
+        logger.info(f"[{user_id}] (Persist) 正在將 LORE 提取任務分派到背景執行...")
+        asyncio.create_task(ai_core._background_lore_extraction(user_input, clean_response))
+
     return {}
-# 函式：持久化狀態節點 (v12.0 - 意圖持久化)
+# 函式：持久化狀態節點 (v13.0 - 觸發背景LORE擴展)```
+
+---
+
+請複製並覆蓋 `graph.py` 中的 `persist_state_node` 函式。
+
+至此，針對您提出的所有問題的修正已全部提供完畢。這些修改應該能解決命名不一致的問題，並成功引入一個健壯的世界觀動態成長機制。請您應用所有變更後重新測試。
+
+
+
+
+
+
+
 
 def _get_formatted_chat_history(ai_core: AILover, user_id: str, num_messages: int = 10) -> str:
     """從 AI 核心實例中提取並格式化最近的對話歷史。"""
@@ -1333,6 +1356,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
