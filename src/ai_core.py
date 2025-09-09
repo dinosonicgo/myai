@@ -1118,9 +1118,10 @@ class AILover:
 
 
 
-    # 函式：[全新] 背景LORE提取與擴展 (v1.1 - 显式类型转换)
+    # 函式：[全新] 背景LORE提取與擴展 (v1.2 - 修正導入路徑)
     # 更新紀錄:
-    # v1.1 (2025-09-10): [災難性BUG修復] 解决了因 `get_lore_extraction_chain` 改用 `JsonOutputParser` 后，返回类型变为 dict 而非 Pydantic 对象，导致的 `AttributeError: 'dict' object has no attribute 'plan'` 致命错误。新增了 `ToolCallPlan.model_validate()` 步骤，以确保在处理前将返回的字典显式转换为 Pydantic 对象，恢复了背景LORE扩展功能的正常运作。
+    # v1.2 (2025-09-10): [災難性BUG修復] 修正了 `ValidationError` 的導入路徑。`ValidationError` 應從 `pydantic` 核心庫導入，而不是從本地的 `schemas.py`，從而解決了導致背景任務崩潰的 `ImportError`。
+    # v1.1 (2025-09-10): [災難性BUG修復] 新增了 `ToolCallPlan.model_validate()` 步驟以修復 `AttributeError`。
     # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
@@ -1131,7 +1132,8 @@ class AILover:
             return
             
         try:
-            from .schemas import ToolCallPlan, ValidationError
+            # [v1.2 核心修正] 從正確的路徑導入Pydantic模型
+            from .schemas import ToolCallPlan
 
             await asyncio.sleep(5.0)
 
@@ -1164,7 +1166,6 @@ class AILover:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。")
                 return
 
-            # [v1.1 核心修正] 将返回的字典显式转换为 Pydantic 对象
             try:
                 extraction_plan = ToolCallPlan.model_validate(extraction_plan_dict)
             except ValidationError as e:
@@ -1180,7 +1181,7 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：[全新] 背景LORE提取與擴展 (v1.1 - 显式类型转换)
+    # 函式：[全新] 背景LORE提取與擴展 (v1.2 - 修正導入路徑)
 
 
 
@@ -3656,6 +3657,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
