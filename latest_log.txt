@@ -1,70 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-09T21:18:07.537396 ###
+### AI Lover Log - Last updated at 2025-09-09T21:23:09.821707 ###
 
-2025-09-09 20:55:19 - [INFO] - [512280345618546699] (Euphemizer|解構) 提取到關鍵詞: ['瑪琳娜']
-2025-09-09 20:55:19 - [INFO] - [512280345618546699] (Euphemizer|重構) 正在將關鍵詞重構為安全句子...
-2025-09-09 20:55:19 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
-2025-09-09 20:55:19 - [INFO] - [512280345618546699] (Euphemizer|重構) 重構成功，安全文本: '描述一個名為瑪琳娜的角色。...'
-2025-09-09 20:55:21 - [INFO] - [512280345618546699] (RAG Pre-cleaner) 輸入已成功預清洗為安全的文學概述: '【情節概述】:
-
-此片段聚焦於瑪琳娜，一位在特定情境下展現出複雜心理狀態的角色。其行為模式暗示了一種...'
-2025-09-09 20:55:21 - [INFO] - [512280345618546699] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對查詢 '【情節概述】:
-
-此片段聚焦於瑪琳娜，一位在特定情境下展現出...' 進行強制性安全預清洗...
-2025-09-09 20:55:21 - [INFO] - [512280345618546699] (RAG Pre-cleaner) 查詢已成功預清洗為: '好的，請提供您的【小說手稿片段】。我將依據您提供的核心原則，為其撰寫一段精煉、客觀、使用學術和文學語...'
-2025-09-09 20:55:21 - [INFO] - [512280345618546699] (RAG Executor) 正在使用【安全查詢】執行完整的「檢索+重排」流程...
-2025-09-09 20:55:22 - [ERROR] - [512280345618546699] 檢測到 Cohere Reranker API 速率超限。將向上拋出異常以觸發優雅降級。
-2025-09-09 20:55:22 - [WARNING] - [512280345618546699] (RAG Executor) Cohere Reranker 速率超限，啟動【優雅降級】策略...
-2025-09-09 20:55:22 - [INFO] - [512280345618546699] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...
-2025-09-09 20:55:22 - [INFO] - [512280345618546699] (RAG Executor) 基礎檢索器重試成功。
-2025-09-09 20:55:22 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 8 份文檔，正在將其合併並進行一次性批次清洗...
-2025-09-09 20:55:25 - [WARNING] - [512280345618546699] 鏈遭遇內容審查，且重試策略為 'none'。為防止循環錯誤，將立即終止並返回 None。
-2025-09-09 20:55:25 - [WARNING] - [512280345618546699] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'nsfw_descriptive' 统一处理感知与视角...
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (View Mode) 检测到描述性意图，准备进入/更新远程视角。
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '【情節概述】:
-
-此片段聚焦於瑪琳娜，一位在特定情境下展現出...' 執行LORE查詢...
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 性神城 > 瀆神者市集
-2025-09-09 20:55:25 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 4 位常駐NPC。
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['瑪琳娜', '艾瑟利亞大陸', '迷霧森林深處']
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 2 條唯一的LORE記錄。
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 2 條相關LORE。
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 5 條LORE作為本回合上下文。
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 5 条 LORE 记录组装为最终上下文...
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '【情節概述】:
-
-此片段聚焦於瑪琳娜，一位在特定情境下展現出...' 判斷是否擴展...
-2025-09-09 20:55:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: False。理由: 劇本描述的角色瑪琳娜與現有角色JSON中的「瑪琳娜」在名稱和描述上高度吻合，皆為在瀆神者市集販賣海鮮的女性，且都與性神教有關聯。因此，無需擴展LORE，應優先利用現有角色。
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (Graph) Node: prepare_existing_subjects -> 已将 4 个现有NPC打包为规划主体。
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (Router) Routing to planner. Intent: 'nsfw_descriptive', Final Viewing Mode: 'remote'
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (Graph|NSFW Chain) Node: nsfw_breakthrough_node -> 正在執行【指令轟炸】...
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (NSFW Node) 檢測到新指令，正在準備摘要歷史以鼓勵創新...
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
-2025-09-09 20:55:27 - [INFO] - [512280345618546699] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...
-2025-09-09 20:55:29 - [INFO] - [512280345618546699] (History Summarizer) 直接摘要成功。
-2025-09-09 20:55:29 - [WARNING] - [512280345618546699] (NSFW Node) 檢測到遠景模式，正在隔離本地上下文數據...
-2025-09-09 20:55:29 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-09 20:55:34 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生未捕獲的異常: KeyError: 'narrative_outline'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1211, in on_message
-    final_state = await self.main_response_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
-    async for _ in runner.atick(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
-    await arun_with_retry(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
-    return await task.proc.ainvoke(task.input, config)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
-    input = await step.ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 791, in nsfw_refinement_node
     narrative_outline_draft = state['narrative_outline']
 KeyError: 'narrative_outline'
 2025-09-09 20:58:46 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
@@ -100,3 +35,68 @@ KeyError: 'narrative_outline'
 2025-09-09 21:18:06 - [INFO] - [512280345618546699] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對查詢 '【情節概述】:
 
 該片段描寫了角色瑪琳娜在經歷一系列強迫性互...' 進行強制性安全預清洗...
+2025-09-09 21:18:08 - [INFO] - [512280345618546699] (RAG Pre-cleaner) 查詢已成功預清洗為: '【情節概述】:
+
+該片段聚焦於角色瑪琳娜在經歷一系列非自願的互動後，其身心所承受的極端壓力與生理反應...'
+2025-09-09 21:18:08 - [INFO] - [512280345618546699] (RAG Executor) 正在使用【安全查詢】執行完整的「檢索+重排」流程...
+2025-09-09 21:18:08 - [ERROR] - [512280345618546699] 檢測到 Cohere Reranker API 速率超限。將向上拋出異常以觸發優雅降級。
+2025-09-09 21:18:08 - [WARNING] - [512280345618546699] (RAG Executor) Cohere Reranker 速率超限，啟動【優雅降級】策略...
+2025-09-09 21:18:08 - [INFO] - [512280345618546699] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...
+2025-09-09 21:18:09 - [INFO] - [512280345618546699] (RAG Executor) 基礎檢索器重試成功。
+2025-09-09 21:18:09 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 8 份文檔，正在將其合併並進行一次性批次清洗...
+2025-09-09 21:18:11 - [WARNING] - [512280345618546699] 鏈遭遇內容審查，且重試策略為 'none'。為防止循環錯誤，將立即終止並返回 None。
+2025-09-09 21:18:11 - [WARNING] - [512280345618546699] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'nsfw_descriptive' 统一处理感知与视角...
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (View Mode) 检测到描述性意图，准备进入/更新远程视角。
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '【情節概述】:
+
+該片段描寫了角色瑪琳娜在經歷一系列強迫性互...' 執行LORE查詢...
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 性神城 > 瀆神者市集
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 4 位常駐NPC。
+2025-09-09 21:18:11 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['艾瑟利亞大陸', '迷霧森林深處', '瑪琳娜']
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 2 條唯一的LORE記錄。
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 2 條相關LORE。
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 5 條LORE作為本回合上下文。
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 5 条 LORE 记录组装为最终上下文...
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '【情節概述】:
+
+該片段描寫了角色瑪琳娜在經歷一系列強迫性互...' 判斷是否擴展...
+2025-09-09 21:18:12 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: False。理由: 劇本描述了角色瑪琳娜的狀態，而現有角色名單中已有同名角色「瑪琳娜」，其描述為「一位在瀆神者市集販賣海鮮的魚人女子」，符合劇本對角色的指涉。因此，無需擴展LORE。
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (Graph) Node: prepare_existing_subjects -> 已将 4 个现有NPC打包为规划主体。
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (Router) Routing to planner. Intent: 'nsfw_descriptive', Final Viewing Mode: 'remote'
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (Graph|NSFW Chain Pt.1) Node: nsfw_breakthrough_node -> 正在生成NSFW故事大纲草稿...
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (NSFW Node) 檢測到新指令，正在準備摘要歷史以鼓勵創新...
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-09 21:18:13 - [INFO] - [512280345618546699] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...
+2025-09-09 21:18:15 - [INFO] - [512280345618546699] (History Summarizer) 直接摘要成功。
+2025-09-09 21:18:15 - [WARNING] - [512280345618546699] (NSFW Node) 檢測到遠景模式，正在隔離本地上下文數據...
+2025-09-09 21:18:15 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
+2025-09-09 21:18:27 - [INFO] - [512280345618546699] (Graph|NSFW Chain Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...
+2025-09-09 21:18:27 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
+2025-09-09 21:19:57 - [WARNING] - [512280345618546699] API 調用在 90 秒後超時。這可能是由於 API 問題或內容過濾掛起。將嘗試使用下一個金鑰...
+2025-09-09 21:19:57 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生未捕獲的異常: ServiceUnavailable: 503 API call timed out.
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1211, in on_message
+    final_state = await self.main_response_graph.ainvoke(initial_state)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
+    async for _ in runner.atick(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
+    await arun_with_retry(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
+    input = await step.ainvoke(input, config, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 796, in nsfw_refinement_node
+    final_outline = await ai_core.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3446, in ainvoke_with_rotation
+    raise ServiceUnavailable("API call timed out.") from None
+google.api_core.exceptions.ServiceUnavailable: 503 API call timed out.
