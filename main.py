@@ -92,30 +92,71 @@ def _check_and_install_dependencies():
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# 函式：[全新] 背景任務 - 自動推送LOG到GitHub倉庫 (v1.0)
-async def start_git_log_pusher_task(bot_instance: AILoverBot):
-    """一個背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
-    await bot_instance.wait_until_ready() # 等待Bot完全啟動
-    cog_instance = bot_instance.get_cog("BotCog")
-    if not cog_instance:
-        print("🔥 [Git Log Pusher] 致命錯誤：無法獲取BotCog實例，自動推送功能已停用。")
-        return
-
-    print("✅ 背景任務：Git LOG 自動推送器已啟動。")
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v2.0 - 獨立化)
+async def start_git_log_pusher_task():
+    """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
+    await asyncio.sleep(15) # 初始延遲，等待其他服務啟動
+    print("✅ [守護任務] LOG 自動推送器已啟動。")
     
+    project_root = Path(__file__).resolve().parent
+    log_file_path = project_root / "data" / "logs" / "app.log"
+    upload_log_path = project_root / "latest_log.txt"
+
+    def run_git_commands():
+        """同步執行Git指令的輔助函式。"""
+        try:
+            if not log_file_path.is_file():
+                print(f"🟡 [LOG Pusher] 等待日誌檔案創建...")
+                return True
+
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            latest_lines = lines[-100:]
+            log_content_to_write = "".join(latest_lines)
+
+            with open(upload_log_path, 'w', encoding='utf-8') as f:
+                f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
+                f.write(log_content_to_write)
+
+            subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=project_root, capture_output=True)
+            
+            commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            commit_process = subprocess.run(
+                ["git", "commit", "-m", commit_message], 
+                capture_output=True, text=True, encoding='utf-8', cwd=project_root
+            )
+            
+            if commit_process.returncode != 0 and "nothing to commit" not in commit_process.stdout:
+                raise subprocess.CalledProcessError(
+                    commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
+                )
+
+            subprocess.run(["git", "push", "origin", "main"], check=True, cwd=project_root, capture_output=True)
+            
+            print(f"✅ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - 最新LOG已成功推送到GitHub。")
+            return True
+        except subprocess.CalledProcessError as e:
+            error_output = e.stderr or e.stdout
+            if "nothing to commit" in error_output:
+                print(f"⚪️ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - LOG無變更，跳過推送。")
+                return True
+            print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
+            return False
+        except Exception as e:
+            print(f"🔥 [LOG Pusher] 執行時發生未知錯誤: {e}")
+            return False
+
     while not shutdown_event.is_set():
         try:
-            # 每 5 分鐘 (300秒) 執行一次
+            await asyncio.to_thread(run_git_commands)
             await asyncio.sleep(300) 
-            # 調用 BotCog 中的核心邏輯，不傳入 interaction
-            await cog_instance.push_log_to_github_repo()
         except asyncio.CancelledError:
-            print("⚪️ [Git Log Pusher] 背景任務被正常取消。")
+            print("⚪️ [LOG Pusher] 背景任務被正常取消。")
             break
         except Exception as e:
-            print(f"🔥 [Git Log Pusher] 背景任務主循環發生錯誤: {e}")
-            await asyncio.sleep(60) # 發生錯誤時等待1分鐘再重試
-# 函式：[全新] 背景任務 - 自動推送LOG到GitHub倉庫 (v1.0)
+            print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
+            await asyncio.sleep(60)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v2.0 - 獨立化)
 
 async def main():
     MAIN_PY_VERSION = "v6.0"
@@ -123,33 +164,40 @@ async def main():
     
     _check_and_install_dependencies()
 
+    # 函式：[核心服務] Discord Bot 啟動器 (v2.0 - 錯誤隔離)
     async def start_discord_bot_task():
-        if not settings.DISCORD_BOT_TOKEN:
-            print("錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。")
-            await asyncio.sleep(10)
-            return
+        """啟動Discord Bot的核心服務。內建錯誤處理以防止其崩潰影響其他任務。"""
         try:
-            # [v6.0 修正] 傳入關閉事件
+            if not settings.DISCORD_BOT_TOKEN:
+                print("🔥 [Discord Bot] 錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。服務無法啟動。")
+                await asyncio.sleep(3600) # 等待一小時，避免在日誌中刷屏
+                return
+
+            print("🚀 [Discord Bot] 正在嘗試啟動核心服務...")
             bot = AILoverBot(shutdown_event=shutdown_event)
-            # [核心修改] 將 bot 實例傳遞給定時任務
-            asyncio.create_task(start_git_log_pusher_task(bot))
             async with bot:
                 await bot.start(settings.DISCORD_BOT_TOKEN)
         except Exception as e:
-            print(f"啟動 Discord Bot 時發生錯誤: {e}")
+            print(f"🔥 [Discord Bot] 核心服務啟動失敗或在運行時發生致命錯誤: {e}")
+            # 打印更詳細的追蹤訊息，以便除錯
+            import traceback
+            traceback.print_exc()
+            print("🔴 [Discord Bot] 核心服務已停止。守護任務將繼續運行。")
+    # 函式：[核心服務] Discord Bot 啟動器 (v2.0 - 錯誤隔離)
 
     async def start_web_server_task():
         config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
         server = uvicorn.Server(config)
-        # [v6.0 新增] 讓 web server 也能響應關閉事件
         web_task = asyncio.create_task(server.serve())
         await shutdown_event.wait()
         server.should_exit = True
         await web_task
 
+    # 函式：[守護任務] GitHub 自動更新檢查器
     async def start_github_update_checker_task():
+        """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
         await asyncio.sleep(10)
-        print("✅ 背景任務：GitHub 自動更新檢查器已啟動。")
+        print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
         def run_git_command(command: list) -> tuple[int, str, str]:
             process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False)
             return process.returncode, process.stdout, process.stderr
@@ -164,45 +212,56 @@ async def main():
                         print("✅ [自動更新] 程式碼強制同步成功！")
                         print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
                         await asyncio.sleep(3)
-                        # [v6.0 核心修正] 設置事件，而不是退出
                         shutdown_event.set()
                         break 
                     else:
                         print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
-                # [v6.0 修正] 使用 asyncio.sleep 進行非阻塞等待
                 await asyncio.sleep(300)
+            except asyncio.CancelledError:
+                print("⚪️ [自動更新] 背景任務被正常取消。")
+                break
             except FileNotFoundError:
                 print("🔥 [自動更新] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
                 break
             except Exception as e:
                 print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
                 await asyncio.sleep(600)
+    # 函式：[守護任務] GitHub 自動更新檢查器
 
     try:
         print("初始化資料庫...")
         await init_db()
         
-        tasks_to_run = []
+        tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
+        # 核心服務
         if mode in ["all", "discord"]:
-            tasks_to_run.append(asyncio.create_task(start_discord_bot_task()))
+            tasks.append(start_discord_bot_task())
         if mode in ["all", "web"]:
-            tasks_to_run.append(asyncio.create_task(start_web_server_task()))
+            tasks.append(start_web_server_task())
+
+        # 守護任務 (始終運行，除非被模式排除)
+        if mode in ["all", "discord"]:
+            tasks.append(start_github_update_checker_task())
+            tasks.append(start_git_log_pusher_task())
+
+        if not tasks:
+            print(f"錯誤：未知的運行模式 '{mode}'。請使用 'all', 'discord', 或 'web'。")
+            return
 
         print(f"\n啟動 AI戀人系統 (模式: {mode})...")
         
-        # [v6.0 核心修正] 等待關閉事件
-        if tasks_to_run:
-            await shutdown_event.wait()
-            print("收到關閉信號，正在優雅地終止所有任務...")
-            # 取消所有正在運行的任務
-            for task in tasks_to_run:
-                task.cancel()
-            await asyncio.gather(*tasks_to_run, return_exceptions=True)
+        # 並行運行所有選定的任務
+        await asyncio.gather(*tasks)
+
+        # 如果 gather 結束 (通常是因為 shutdown_event 被設置)，則執行清理
+        print("收到關閉信號或所有任務已結束，正在優雅地終止主程式...")
 
     except Exception as e:
         print(f"\n主程式運行時發生未處理的錯誤: {str(e)}")
+        import traceback
+        traceback.print_exc()
         await asyncio.sleep(5)
     finally:
         print("主程式 main() 函式已結束。")
