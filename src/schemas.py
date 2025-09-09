@@ -201,9 +201,10 @@ class ToolCall(BaseModel):
                 return value
         return value
 
+# 函式：角色行動模型
 class CharacterAction(BaseModel):
     character_name: str = Field(description="執行此行動的角色的【確切】名字。")
-    reasoning: str = Field(description="【必需】解釋該角色【為什麼】要採取這個行動。此理由必須與其性格、好感度、當前情境和目標緊密相關。")
+    reasoning: Optional[str] = Field(default=None, description="【可選】解釋該角色【為什麼】要採取這個行動。此理由必須與其性格、好感度、當前情境和目標緊密相關。")
     action_description: Optional[str] = Field(default=None, description="對該角色將要執行的【具體物理動作】的清晰、簡潔的描述。如果行動主要是對話，此欄位可為空。")
     dialogue: Optional[str] = Field(default=None, description="如果該角色在行動中或行動後會說話，請在此處提供確切的對話內容。")
     tool_call: Optional[ToolCall] = Field(default=None, description="如果此行動需要呼叫一個工具來改變世界狀態（如移動、使用物品），請在此處定義工具呼叫。") 
@@ -214,6 +215,7 @@ class CharacterAction(BaseModel):
         if not self.action_description and not self.dialogue:
             raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
+# 函式：角色行動模型
 
 # 類別：回合計劃 (v16.0 - 電影式場景設定)
 # 更新紀錄:
@@ -399,6 +401,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
