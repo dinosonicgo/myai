@@ -21,6 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import subprocess
 import importlib.metadata
+import datetime
 
 # [v6.0 新增] 創建一個全局的關閉事件
 shutdown_event = asyncio.Event()
@@ -91,6 +92,31 @@ def _check_and_install_dependencies():
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# 函式：[全新] 背景任務 - 自動推送LOG到GitHub倉庫 (v1.0)
+async def start_git_log_pusher_task(bot_instance: AILoverBot):
+    """一個背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
+    await bot_instance.wait_until_ready() # 等待Bot完全啟動
+    cog_instance = bot_instance.get_cog("BotCog")
+    if not cog_instance:
+        print("🔥 [Git Log Pusher] 致命錯誤：無法獲取BotCog實例，自動推送功能已停用。")
+        return
+
+    print("✅ 背景任務：Git LOG 自動推送器已啟動。")
+    
+    while not shutdown_event.is_set():
+        try:
+            # 每 5 分鐘 (300秒) 執行一次
+            await asyncio.sleep(300) 
+            # 調用 BotCog 中的核心邏輯，不傳入 interaction
+            await cog_instance.push_log_to_github_repo()
+        except asyncio.CancelledError:
+            print("⚪️ [Git Log Pusher] 背景任務被正常取消。")
+            break
+        except Exception as e:
+            print(f"🔥 [Git Log Pusher] 背景任務主循環發生錯誤: {e}")
+            await asyncio.sleep(60) # 發生錯誤時等待1分鐘再重試
+# 函式：[全新] 背景任務 - 自動推送LOG到GitHub倉庫 (v1.0)
+
 async def main():
     MAIN_PY_VERSION = "v6.0"
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
@@ -105,6 +131,8 @@ async def main():
         try:
             # [v6.0 修正] 傳入關閉事件
             bot = AILoverBot(shutdown_event=shutdown_event)
+            # [核心修改] 將 bot 實例傳遞給定時任務
+            asyncio.create_task(start_git_log_pusher_task(bot))
             async with bot:
                 await bot.start(settings.DISCORD_BOT_TOKEN)
         except Exception as e:
@@ -161,11 +189,6 @@ async def main():
             tasks_to_run.append(asyncio.create_task(start_discord_bot_task()))
         if mode in ["all", "web"]:
             tasks_to_run.append(asyncio.create_task(start_web_server_task()))
-
-        # 只有在 discord bot 運行時才啟動更新檢查器
-        if mode in ["all", "discord"]:
-            update_checker_task = asyncio.create_task(start_github_update_checker_task())
-            tasks_to_run.append(update_checker_task)
 
         print(f"\n啟動 AI戀人系統 (模式: {mode})...")
         
