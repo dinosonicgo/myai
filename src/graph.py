@@ -677,15 +677,25 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
 
+
+
+
+
+# 函式：直接 NSFW 生成節點 (v37.0 - 雙軌歷史管理修復)
+# 更新紀錄:
+# v37.0 (2025-09-09): [災難性BUG修復] 根據 LOG 中 AI 返回歷史文本的根本原因，徹底修復了上一版引入的邏輯錯誤。此版本恢復了“雙軌歷史管理”的正確實現：1) 對於【延續性指令】(如“繼續”)，使用 `_get_raw_chat_history` 獲取高保真原文以確保劇情無縫銜接。 2) 對於【新指令】，則改回使用 `_get_summarized_chat_history` 獲取經過摘要和清洗的前情提要。此修改旨在防止 AI 在處理新指令時，因看到過於相似的原始歷史而觸發“禁止重複”原則，從而導致其放棄生成新內容並錯誤地返回舊文本。
+# v36.0 (2025-09-09): [重大品質提升] 強化了對“繼續”指令的續寫邏輯。
 async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
-    """[數據偽裝-步驟1] 生成初步的、自然語言的“劇本大綱”草稿。"""
+    """
+    [NSFW Path] 執行單次指令轟炸，並採用雙軌歷史管理策略以確保內容的創新性與連續性。
+    """
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...")
+    input_analysis = state.get('input_analysis')
+    logger.info(f"[{user_id}] (Graph|NSFW Chain) Node: nsfw_breakthrough_node -> 正在執行【指令轟炸】...")
 
     if not ai_core.profile:
-        return {"narrative_outline": "错误：AI profile 未加载，无法规划。"}
+        return {"narrative_outline": "（系統錯誤：AI profile 未加載，無法生成內容。）", "world_snapshot": ""}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -694,8 +704,29 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
     planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
 
     gs = ai_core.profile.game_state
-    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
+    
+    user_input_for_chain: str
+    chat_history_for_chain: str
 
+    # [v37.0 核心修正] 實現雙軌歷史與指令管理
+    if input_analysis and input_analysis.input_type == 'continuation':
+        # --- 延續性指令：使用高保真原始歷史與強化指令 ---
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到延续性指令，正在準備高保真上下文和強化引導句...")
+        user_input_for_chain = "使用者要求你深入細節、毫不保留地接續上一幕的情節，推進角色的互動，並加劇場景的感官刺激。"
+        chat_history_for_chain = _get_raw_chat_history(ai_core, user_id, num_messages=8)
+    else:
+        # --- 新指令：使用摘要歷史以鼓勵創新 ---
+        logger.info(f"[{user_id}] (NSFW Node) 檢測到新指令，正在準備摘要歷史以鼓勵創新...")
+        user_input_for_chain = state['messages'][-1].content
+        chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
+    
+    dossiers = []
+    for char_data in planning_subjects_raw:
+        name = char_data.get('name', '未知名稱')
+        dossier_content = [f"--- 檔案: {name} ---", f"- 描述: {char_data.get('description', '無')}"]
+        dossiers.append("\n".join(dossier_content))
+    realtime_npc_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
+    
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -705,14 +736,15 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
         'possessions_context': state.get('structured_context', {}).get('possessions_context', ''),
         'quests_context': state.get('structured_context', {}).get('quests_context', ''),
         'location_context': state.get('structured_context', {}).get('location_context', ''),
-        'npc_context': "(已棄用，請參考 planning_subjects_json)",
-        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'npc_context': realtime_npc_context,
+        'relevant_npc_context': "(已整合至上方檔案)",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
-    
+
+    # 調用第一階段的鏈：情節架構師
     outline_draft = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_breakthrough_planning_chain(),
         {
@@ -720,16 +752,17 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
             "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
-            "chat_history": chat_history_str,
+            "chat_history": chat_history_for_chain,
             "planning_subjects_json": planning_subjects_json,
-            "user_input": user_input,
+            "user_input": user_input_for_chain,
         },
         retry_strategy='euphemize'
     )
     if not outline_draft:
         outline_draft = "安全備援：NSFW大纲生成鏈最终失败。"
-
+        
     return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
+# 函式：直接 NSFW 生成節點 (v37.0 - 雙軌歷史管理修復)
 
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
     """[數據偽裝-步驟2] 接收大綱草稿，並將其豐富為最終的、詳細的故事大綱。"""
@@ -1245,3 +1278,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
