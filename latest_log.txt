@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-09T19:38:01.258493 ###
+### AI Lover Log - Last updated at 2025-09-09T19:43:03.549779 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
-    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...徒相關的場景。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...徒相關的場景。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-09 18:35:02 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...對神祇的獻祭。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...對神祇的獻祭。'}, input_type=dict]
+2025-09-09 19:39:20 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
+2025-09-09 19:39:21 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
+2025-09-09 19:39:26 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
+2025-09-09 19:39:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-09 19:39:28 - [INFO] - [512280345618546699] 背景任務：提取到 5 條新LORE，準備執行擴展...
+2025-09-09 19:39:28 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 5 個任務) ---
+2025-09-09 19:39:32 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
+2025-09-09 19:39:33 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '性神教徒...'性神教徒的信仰'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-09 18:35:03 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述活物與神祇之間，與神恩澤相關的互動。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-09 18:35:03 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...澤相關的互動。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...澤相關的互動。'}, input_type=dict]
+2025-09-09 19:39:33 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
+2025-09-09 19:39:34 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神祇相關的場景，其中涉及性行為、性的愉悅以及被視為神聖的祝福。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-09 19:39:34 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...'性神教徒的信仰'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
     validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...澤相關的互動。'}, input_type=dict]
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...'性神教徒的信仰'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...澤相關的互動。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-09 18:35:07 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '塞巴...帶皮質手提包。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '塞巴...帶皮質手提包。'}, input_type=dict]
+2025-09-09 19:39:39 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '瀆神者市...ame': '瀆神者市集'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-09 18:35:08 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '塞巴斯蒂安與皮質手提包相關聯。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-09 18:35:08 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '塞巴...手提包相關聯。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '塞巴...手提包相關聯。'}, input_type=dict]
+2025-09-09 19:39:40 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個場景，其中在瀆神者市集和性神城之間，海產與性行為有關聯。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-09 19:39:40 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...ame': '瀆神者市集'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
     validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '塞巴...手提包相關聯。'}, input_type=dict]
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...ame': '瀆神者市集'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '塞巴...手提包相關聯。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-09 18:35:12 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...祝福』或體驗。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...祝福』或體驗。'}, input_type=dict]
+2025-09-09 19:39:45 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '魚販瑪琳...販瑪琳娜的儀式'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-09 18:35:13 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神城相關的場景，其中包含神聖祝福的元素。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-09 18:35:13 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...聖祝福的元素。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...聖祝福的元素。'}, input_type=dict]
+2025-09-09 19:39:46 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述瑪琳娜作為性神，接受神聖的恩澤。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-09 19:39:46 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述瑪琳...販瑪琳娜的儀式'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
     validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...聖祝福的元素。'}, input_type=dict]
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述瑪琳...販瑪琳娜的儀式'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...聖祝福的元素。'}, input_type=dict]
+2025-09-09 19:39:51 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '性神教徒...教徒的女性特徵'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-09 19:39:52 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個場景，其中角色瑪琳娜與性神教徒有關聯。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-09 19:39:52 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...教徒的女性特徵'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-09 18:35:13 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
-2025-09-09 18:35:13 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
-2025-09-09 19:37:47 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-09 19:37:50 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-09 19:37:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-09 19:37:50 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...教徒的女性特徵'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-09 19:39:57 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '性神恩澤...恩澤的體現方式'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-09 19:39:58 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神和大海相關的場景。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-09 19:39:58 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...恩澤的體現方式'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+original_name
+  Field required [type=missing, input_value={'content': '描述一個...恩澤的體現方式'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-09 19:39:58 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-09 19:39:58 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
