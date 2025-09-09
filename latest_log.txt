@@ -1,29 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-09T23:31:23.421668 ###
+### AI Lover Log - Last updated at 2025-09-09T23:36:25.929850 ###
 
-2025-09-09 23:29:01 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-09 23:29:01 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-09 23:29:01 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-09 23:29:01 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-09 23:29:01 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] 成功恢復了 2 條對話記錄到短期記憶中。
-2025-09-09 23:29:02 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
-2025-09-09 23:29:02 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-09 23:29:03 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '坐下...' 進行意圖分類...
-2025-09-09 23:29:03 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
-2025-09-09 23:29:04 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-09 23:29:05 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['溪语小屋', '迷雾森林', '使用者', 'DINO', 'AI', '碧']
 2025-09-09 23:29:05 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
 2025-09-09 23:29:05 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
 2025-09-09 23:29:05 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
@@ -100,3 +76,27 @@ NameError: name 'PROJ_DIR' is not defined
 2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
 2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '坐下...' 判斷是否擴展...
 2025-09-09 23:31:23 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: False。理由: 这是一个应由核心角色（如 碧）响应的互动指令，无需创造新角色。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Graph|7A) Node: sfw_planning -> 正在基於指令 '坐下...' 生成SFW行動計劃...
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (History Summarizer) [L1] 正在樂觀嘗試直接摘要原始歷史文本...
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
+2025-09-09 23:31:24 - [INFO] - [512280345618546699] (History Summarizer) [L1] 直接摘要成功。
+2025-09-09 23:31:24 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生未捕獲的異常: NameError: name 'PROJ_DIR' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1211, in on_message
+    final_state = await self.main_response_graph.ainvoke(initial_state)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
+    async for _ in runner.atick(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
+    await arun_with_retry(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
+    input = await step.ainvoke(input, config, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 505, in sfw_planning_node
+    with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
+NameError: name 'PROJ_DIR' is not defined
