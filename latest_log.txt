@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-10T01:12:44.251296 ###
+### AI Lover Log - Last updated at 2025-09-10T01:16:59.861193 ###
 
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
-2025-09-10 01:00:01 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['迷雾森林', '使用者', '碧', 'DINO', 'AI', '溪语小屋']
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
-2025-09-10 01:00:02 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
-2025-09-10 01:00:02 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: 'DINO'
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 1 條LORE作為本回合上下文。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 1 条 LORE 记录组装为最终上下文...
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '坐下...' 判斷是否擴展...
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: False。理由: 这是一个应由核心角色（如 碧）响应的互动指令，无需创造新角色。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Prepare Subjects) 已成功綁定 2 位角色 (視角: local) 作為本回合規劃主體。
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (Graph|7A) Node: sfw_planning -> 正在基於指令 '坐下...' 生成SFW行動計劃...
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] (History Summarizer) [L1] 正在樂觀嘗試直接摘要原始歷史文本...
-2025-09-10 01:00:02 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
-2025-09-10 01:00:03 - [INFO] - [512280345618546699] (History Summarizer) [L1] 直接摘要成功。
-2025-09-10 01:00:03 - [INFO] - [512280345618546699] (SFW Planner) 準備調用規劃鏈，傳入 user_input: '坐下'
-2025-09-10 01:00:03 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (SFW Planner) 規劃鏈返回的原始 plan 物件: thought='使用者指令是「坐下」。根據『簡單指令處理原則』，我需要為最合適的角色（碧）生成一個簡單的行動計劃。碧的設定是蛇人女奴，她的職責是順從。因此，讓碧執行「坐下」的動作是最符合邏輯的。我將為碧生成一個坐下的動作和一句簡短的對話，並附帶一個合理的理由。' narration='在碧緩緩蹲下並坐到地板上的同時，小屋內部的空氣似乎也隨之沉寂了片刻。陽光透過窗戶灑落，在地板上投下斑駁的光影，映照著她綠色的長髮和略顯不安的神情。' character_actions=[CharacterAction(character_name='碧', reasoning='碧的職責是順從主人，即使之前的指令因系統限制未能執行，她也會在收到新的、可執行的指令時，盡力去完成。這次的「坐下」指令是明確且可執行的，她會以符合其蛇人女奴設定的、略帶不安但服從的姿態來執行。', action_description='緩緩蹲下，動作帶著一絲不易察覺的猶豫，然後輕輕坐到地板上。', dialogue='主人……碧坐下了。', tool_call=None, template_id=None)] execution_rejection_reason=None template_id=None (類型: <class 'src.schemas.TurnPlan'>)
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (SFW Planner) 節點最終將返回: {'turn_plan': TurnPlan(thought='使用者指令是「坐下」。根據『簡單指令處理原則』，我需要為最合適的角色（碧）生成一個簡單的行動計劃。碧的設定是蛇人女奴，她的職責是順從。因此，讓碧執行「坐下」的動作是最符合邏輯的。我將為碧生成一個坐下的動作和一句簡短的對話，並附帶一個合理的理由。', narration='在碧緩緩蹲下並坐到地板上的同時，小屋內部的空氣似乎也隨之沉寂了片刻。陽光透過窗戶灑落，在地板上投下斑駁的光影，映照著她綠色的長髮和略顯不安的神情。', character_actions=[CharacterAction(character_name='碧', reasoning='碧的職責是順從主人，即使之前的指令因系統限制未能執行，她也會在收到新的、可執行的指令時，盡力去完成。這次的「坐下」指令是明確且可執行的，她會以符合其蛇人女奴設定的、略帶不安但服從的姿態來執行。', action_description='緩緩蹲下，動作帶著一絲不易察覺的猶豫，然後輕輕坐到地板上。', dialogue='主人……碧坐下了。', tool_call=None, template_id=None)], execution_rejection_reason=None, template_id=None)}
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (Graph|9 SFW) Node: sfw_narrative_rendering -> 正在將 SFW 行動計劃渲染為小說...
-2025-09-10 01:00:06 - [ERROR] - [512280345618546699] (SFW Narrator) 渲染失敗：傳入的 TurnPlan 物件為空 (None)。
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
-2025-09-10 01:00:06 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
-2025-09-10 01:00:11 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
-2025-09-10 01:00:11 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-10 01:00:12 - [INFO] - [512280345618546699] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。
-2025-09-10 01:02:12 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
-2025-09-10 01:02:13 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
-2025-09-10 01:02:14 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 01:02:17 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
-2025-09-10 01:02:17 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
-2025-09-10 01:09:22 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-10 01:09:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-10 01:09:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-10 01:09:25 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 01:09:36 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
-2025-09-10 01:09:36 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-10 01:09:36 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-10 01:09:36 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-10 01:09:36 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] 成功恢復了 12 條對話記錄到短期記憶中。
-2025-09-10 01:09:37 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-10 01:09:37 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
-2025-09-10 01:09:38 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
-2025-09-10 01:09:38 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-10 01:09:38 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '坐下...' 進行意圖分類...
-2025-09-10 01:09:38 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
-2025-09-10 01:09:39 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['溪语小屋', '迷雾森林', '碧', '使用者', 'AI', 'DINO']
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
-2025-09-10 01:09:40 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
-2025-09-10 01:09:40 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: 'DINO'
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 1 條LORE作為本回合上下文。
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 1 条 LORE 记录组装为最终上下文...
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '坐下...' 判斷是否擴展...
-2025-09-10 01:09:40 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
-2025-09-10 01:09:41 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: False。理由: 这是一个应由核心角色（如 碧）响应的互动指令，无需创造新角色。
-2025-09-10 01:09:41 - [INFO] - [512280345618546699] (Prepare Subjects) 已成功綁定 2 位角色 (視角: local) 作為本回合規劃主體。
-2025-09-10 01:09:41 - [INFO] - [512280345618546699] (Graph|7A) Node: sfw_planning -> 正在基於指令 '坐下...' 生成SFW行動計劃...
-2025-09-10 01:09:41 - [INFO] - [512280345618546699] (History Summarizer) [L1] 正在樂觀嘗試直接摘要原始歷史文本...
-2025-09-10 01:09:41 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
-2025-09-10 01:09:42 - [INFO] - [512280345618546699] (History Summarizer) [L1] 直接摘要成功。
-2025-09-10 01:09:42 - [INFO] - [512280345618546699] (SFW Planner) 準備調用規劃鏈，傳入 user_input: '坐下'
-2025-09-10 01:09:42 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (SFW Planner) 規劃鏈返回的原始 plan 物件: thought='使用者指令是「坐下」。根據之前的對話歷史，這個指令似乎觸發了系統錯誤。我需要生成一個能夠被系統處理的、符合碧角色設定的行動。碧的設定是蛇人女奴，擁有順從和取悅的技能，但同時也可能對某些指令感到困惑或不安。我將讓碧執行一個緩慢的、帶有猶豫的「坐下」動作，並用對話來表達她的困惑，同時將這個動作解釋為在地上蹲坐，以嘗試規避可能導致系統錯誤的解釋。這符合「簡單指令處理原則」，只生成一個角色的行動。' narration='在溪語小屋內，空氣中瀰漫著一股淡淡的草藥香氣。陽光透過窗戶灑落，在地板上投下斑駁的光影。碧站在原地，琥珀色的眼眸中帶著一絲困惑和不安，望向你。' character_actions=[CharacterAction(character_name='碧', reasoning='碧的設定是蛇人女奴，並且有順從、取悅、承受的技能。雖然使用者指令是「坐下」，但考慮到碧的設定和之前的錯誤回報，她可能會對這個指令感到困惑或不安，並試圖確認。同時，為了避免再次觸發系統錯誤，我需要生成一個可以被系統理解的動作，即使這個動作在情境中顯得有些奇怪。這裡的「坐下」被解釋為碧在地上蹲坐，而不是坐在椅子上，以規避可能的系統限制。', action_description='緩緩蹲下，動作帶著一絲不易察覺的猶豫，然後坐到地上。', dialogue='主人……您確定要我這樣做嗎？這……這不太合適吧……', tool_call=None, template_id=None)] execution_rejection_reason=None template_id=None (類型: <class 'src.schemas.TurnPlan'>)
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (SFW Planner) 節點最終將返回: {'turn_plan': TurnPlan(thought='使用者指令是「坐下」。根據之前的對話歷史，這個指令似乎觸發了系統錯誤。我需要生成一個能夠被系統處理的、符合碧角色設定的行動。碧的設定是蛇人女奴，擁有順從和取悅的技能，但同時也可能對某些指令感到困惑或不安。我將讓碧執行一個緩慢的、帶有猶豫的「坐下」動作，並用對話來表達她的困惑，同時將這個動作解釋為在地上蹲坐，以嘗試規避可能導致系統錯誤的解釋。這符合「簡單指令處理原則」，只生成一個角色的行動。', narration='在溪語小屋內，空氣中瀰漫著一股淡淡的草藥香氣。陽光透過窗戶灑落，在地板上投下斑駁的光影。碧站在原地，琥珀色的眼眸中帶著一絲困惑和不安，望向你。', character_actions=[CharacterAction(character_name='碧', reasoning='碧的設定是蛇人女奴，並且有順從、取悅、承受的技能。雖然使用者指令是「坐下」，但考慮到碧的設定和之前的錯誤回報，她可能會對這個指令感到困惑或不安，並試圖確認。同時，為了避免再次觸發系統錯誤，我需要生成一個可以被系統理解的動作，即使這個動作在情境中顯得有些奇怪。這裡的「坐下」被解釋為碧在地上蹲坐，而不是坐在椅子上，以規避可能的系統限制。', action_description='緩緩蹲下，動作帶著一絲不易察覺的猶豫，然後坐到地上。', dialogue='主人……您確定要我這樣做嗎？這……這不太合適吧……', tool_call=None, template_id=None)], execution_rejection_reason=None, template_id=None)}
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (Graph|9 SFW) Node: sfw_narrative_rendering -> 正在將 SFW 行動計劃渲染為小說...
-2025-09-10 01:09:45 - [ERROR] - [512280345618546699] (SFW Narrator) 渲染失敗：傳入的 TurnPlan 物件為空 (None)。
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
-2025-09-10 01:09:45 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
-2025-09-10 01:09:50 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
-2025-09-10 01:09:50 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-10 01:09:51 - [INFO] - [512280345618546699] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。
-2025-09-10 01:12:30 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-10 01:12:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-10 01:12:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-10 01:12:33 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+    result = await self._aget_relevant_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\contextual_compression.py", line 69, in _aget_relevant_documents
+    docs = await self.base_retriever.ainvoke(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 153, in ainvoke
+    result = await self.arank_fusion(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 265, in arank_fusion
+    retriever_docs = await asyncio.gather(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\retrievers.py", line 323, in ainvoke
+    result = await self._aget_relevant_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 1104, in _aget_relevant_documents
+    docs = await self.vectorstore.asimilarity_search(query, **kwargs_)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 648, in asimilarity_search
+    return await run_in_executor(None, self.similarity_search, query, k=k, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 681, in similarity_search
+    docs_and_scores = self.similarity_search_with_score(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 781, in similarity_search_with_score
+    query_embedding = self._embedding_function.embed_query(query)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 256, in embed_query
+    return self.embed_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-09-10 01:14:47 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'nsfw_descriptive' 统一处理感知与视角...
+2025-09-10 01:14:47 - [INFO] - [512280345618546699] (View Mode) 检测到描述性意图，准备进入/更新远程视角。
+2025-09-10 01:14:47 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] (Perception Hub) GameState 已更新: mode=remote, path=['性神城', '瀆神者市集']
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '【情節概述】:
+
+在一個以崇拜性神並頌揚性行為為核心價值觀的...' 執行LORE查詢...
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 性神城 > 瀆神者市集
+2025-09-10 01:14:48 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 0 位常駐NPC。
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['溪语小屋', '權力', '迷雾森林', '性神', '神聖', '身體']
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 4 條唯一的LORE記錄。
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 4 條相關LORE。
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 4 條LORE作為本回合上下文。
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 4 条 LORE 记录组装为最终上下文...
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
+2025-09-10 01:14:49 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '【情節概述】:
+
+在一個以崇拜性神並頌揚性行為為核心價值觀的...' 判斷是否擴展...
+2025-09-10 01:14:50 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: True。理由: 劇本描述了一個涉及極端儀式性行為的場景，並引入了一個新的信徒角色，該角色在現有演員名單中並不存在。這需要擴展世界觀以包含這個新角色及其相關的儀式行為。
+2025-09-10 01:14:50 - [INFO] - [512280345618546699] (Graph|6A.1) Node: character_quantification -> 正在量化輸入中的角色...
+2025-09-10 01:14:50 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
+2025-09-10 01:14:51 - [INFO] - [512280345618546699] (Graph|6A.1) 角色量化成功，識別出 2 個待創建角色。
+2025-09-10 01:14:51 - [INFO] - [512280345618546699] (Graph|6A.2) Node: lore_expansion -> 正在為 2 個量化角色執行選角...
+2025-09-10 01:14:51 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] 已成功将【新】NPC '伊萊娜' 添加到場景 '性神城 > 瀆神者市集'。
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] 已成功将【新】NPC '卡倫' 添加到場景 '性神城 > 瀆神者市集'。
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] (Graph|6A.2) 選角完成，創建了 2 位新角色: 伊萊娜, 卡倫.
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] (Graph|6A.2) 已將 2 位角色 (新舊合併) 成功綁定為本回合的規劃主體。
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] (Bind Subjects) 已成功綁定 0 位角色 (視角: remote) 作為本回合最終規劃主體。
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] (Graph|NSFW Planner) Node: remote_nsfw_planning -> 正在為指令 '描述性神城的性神教徒女性把活魚插在肉穴內，張開腿販售
+
+性神城是崇尚性神，喜愛性行為的城市...' 生成遠程NSFW場景計劃...
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] (History Summarizer) [L1] 正在樂觀嘗試直接摘要原始歷史文本...
+2025-09-10 01:14:55 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+2025-09-10 01:14:56 - [INFO] - [512280345618546699] (History Summarizer) [L1] 直接摘要成功。
+2025-09-10 01:14:56 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] (Graph|8) Node: tool_execution -> 正在執行行動計劃中的工具...
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] (Graph|NSFW Renderer) Node: final_rendering -> 正在將NSFW行動計劃渲染為小說...
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] (Persist) 正在將當前意圖 'nsfw_descriptive' 持久化到 GameState...
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-10 01:15:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-10 01:15:01 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
+2025-09-10 01:15:06 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
+2025-09-10 01:15:06 - [INFO] - [512280345618546699] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。
+2025-09-10 01:16:46 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-10 01:16:49 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-10 01:16:49 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-10 01:16:50 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
