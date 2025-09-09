@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-10T07:50:17.739387 ###
+### AI Lover Log - Last updated at 2025-09-10T07:55:19.927969 ###
 
-2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|6A.1) 角色量化成功，識別出 4 個待創建角色。
-2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|6A.2) Node: lore_expansion -> 正在為 4 個量化角色執行選角...
-2025-09-10 01:28:25 - [INFO] - [512280345618546699] 已成功将【新】NPC '艾拉' 添加到場景 '性神城'。
-2025-09-10 01:28:25 - [INFO] - [512280345618546699] 已成功将【新】NPC '巴特' 添加到場景 '性神城'。
-2025-09-10 01:28:25 - [WARNING] - [512280345618546699] 【NPC 命名冲突】: 角色 '卡爾' 的所有预生成名称 (卡爾) 均已存在或與核心主角衝突。启动最终备援：强制LLM重命名。
-2025-09-10 01:28:25 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] 最终备援成功，AI为角色生成了新名称: '塵埃'
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] 已成功将【新】NPC '塵埃' 添加到場景 '性神城'。
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] 已成功将【新】NPC '瑪麗' 添加到場景 '性神城'。
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|6A.2) 選角完成，創建了 4 位新角色: 艾拉, 巴特, 塵埃, 瑪麗.
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|6A.2) 已將 8 位角色 (新舊合併) 成功綁定為本回合的規劃主體。
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Router) Routing to planner. Intent: 'nsfw_descriptive', Final Viewing Mode: 'remote'
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
-2025-09-10 01:28:26 - [INFO] - [512280345618546699] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...
-2025-09-10 01:28:26 - [WARNING] - [512280345618546699] (History Summarizer) 直接摘要失敗，觸發【文學評論家】NSFW安全備援...
-2025-09-10 01:28:27 - [ERROR] - [512280345618546699] (History Summarizer) 【文學評論家】備援機制最終失敗: Literary euphemization also returned empty content.。啟動終極備援。
-2025-09-10 01:28:30 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...
-2025-09-10 01:29:19 - [INFO] - [512280345618546699] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...
-2025-09-10 01:29:24 - [INFO] - [512280345618546699] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...
-2025-09-10 01:29:24 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
-2025-09-10 01:29:25 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
-2025-09-10 01:29:30 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
-2025-09-10 01:29:30 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-10 01:29:30 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '在性神城這個將慾望奉為神明的城市，瀰漫著一股即使在白天也揮之不去的、混合著香料、汗水和某種難以名狀的...' 清洗為安全的文學概述...
-2025-09-10 01:29:32 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '在一個以慾望為核心信仰的城市景觀中，一段涉及權力轉移與儀式性臣服的場景被描繪。一位名為艾拉的年輕女性...'
-2025-09-10 01:29:33 - [INFO] - [512280345618546699] 背景任務：提取到 2 條新LORE，準備執行擴展...
-2025-09-10 01:29:33 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 2 個任務) ---
-2025-09-10 01:29:37 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...被扭曲的臣服。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...被扭曲的臣服。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-10 01:29:38 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與神祇相關的團體。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-10 01:29:38 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-10 07:51:50 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
-    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-10 01:29:42 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...稱為「淨化」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...稱為「淨化」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-10 01:29:44 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神教徒相關的淨化過程。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-10 01:29:44 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
+    result = self.client.batch_embed_contents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
+    response = rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
+    result = target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+The above exception was the direct cause of the following exception:
+
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
-    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
-lore_key
-  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-standardized_name
-  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-10 01:29:44 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
-2025-09-10 01:29:44 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
-2025-09-10 07:10:01 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-10 07:10:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-10 07:10:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-10 07:10:05 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 07:49:46 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
-2025-09-10 07:49:47 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
-2025-09-10 07:49:48 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 07:49:51 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
-2025-09-10 07:49:51 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
-2025-09-10 07:50:04 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-10 07:50:06 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-10 07:50:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-10 07:50:07 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 07:50:12 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-10 07:50:13 - [INFO] - [512280345618546699] 已從 SQL 資料庫安全地清除了所有相關記錄。
-2025-09-10 07:50:13 - [INFO] - [512280345618546699] (第 1 次嘗試) 已成功刪除向量數據庫目錄。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1552, in _background_process_canon
+    chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2801, in add_canon_to_vector_store
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2770, in add_canon_to_vector_store
+    await asyncio.to_thread(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 606, in add_texts
+    embeddings = self._embedding_function.embed_documents(texts)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
