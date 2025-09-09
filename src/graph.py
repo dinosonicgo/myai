@@ -912,20 +912,33 @@ async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     
     return {"tool_results": results_summary}
 
-# [v22.0 新增] 恢复并重命名的 SFW 专用渲染节点
+# 函式：SFW敘事渲染節點 (v2.0 - 渲染前置檢查)
+# 更新紀錄:
+# v2.0 (2025-09-10): [災難性BUG修復] 注入了渲染前置檢查邏輯。此節點現在會嚴格驗證傳入的 TurnPlan 是否包含任何可供渲染的內容（thought, narration, 或 character_actions）。如果計畫為空，它將直接返回一個明確的錯誤訊息，而不是繼續調用LLM。此修改旨在從根本上解決因上游規劃節點返回邏輯上為空的計畫而導致的「無聲失效」問題。
+# v1.0 (2025-09-10): [全新創建] 根據 v22.0 的圖重構，創建此專用於 SFW 路徑的渲染節點。
 async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[SFW Path] 将 SFW 的 TurnPlan 渲染成小说文本。"""
+    """[SFW Path] 将 SFW 的 TurnPlan 渲染成小说文本，并在渲染前进行有效性检查。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     turn_plan = state.get('turn_plan')
     logger.info(f"[{user_id}] (Graph|9 SFW) Node: sfw_narrative_rendering -> 正在將 SFW 行動計劃渲染為小說...")
 
+    # --- [v2.0 核心修正] 渲染前置有效性檢查 ---
     if not turn_plan:
+        logger.error(f"[{user_id}] (SFW Narrator) 渲染失敗：傳入的 TurnPlan 物件為空 (None)。")
         return {"llm_response": "（系統錯誤：未能生成有效的 SFW 行動計劃。）"}
         
+    # 優先級 1: 檢查是否存在由規劃器直接返回的拒絕理由
     if turn_plan.execution_rejection_reason:
         logger.warning(f"[{user_id}] (SFW Narrator) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
         return {"llm_response": turn_plan.execution_rejection_reason}
+
+    # 優先級 2: 檢查計畫是否為邏輯上的空計畫
+    is_plan_empty = not (turn_plan.thought or turn_plan.narration or turn_plan.character_actions)
+    if is_plan_empty:
+        logger.error(f"[{user_id}] (SFW Narrator) 渲染失敗：TurnPlan 不包含任何可供渲染的內容。這通常意味著規劃鏈未能為當前指令生成有意義的計畫。")
+        return {"llm_response": "（系統錯誤：未能生成有效的 SFW 行動計劃。）"}
+    # --- 檢查結束 ---
     
     chain_input = {
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
@@ -941,6 +954,7 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
     if not narrative_text:
         narrative_text = "（AI 在將 SFW 計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
+# 函式：SFW敘事渲染節點 (v2.0 - 渲染前置檢查)
 
 # 函式：最終渲染節點 (v3.0 - 適配統一指令)
 # 更新紀錄:
@@ -1388,5 +1402,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
