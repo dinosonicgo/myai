@@ -455,10 +455,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|6A.2) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
 
-# 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
+# 函式：SFW規劃節點 (v4.0 - 數據流最終修正)
 # 更新紀錄:
-# v3.0 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，修正了此節點的指令來源。現在它會從文件系統加載一個乾淨的、SFW專用的 one_instruction，並將其連同 username, ai_name 等所有必需的變數一起傳遞給鏈，從根本上解決了指令污染和數據流中斷的問題。
-# v2.0 (2025-09-09): [災難性BUG修復] 移除了對 `one_instruction` 參數的傳遞。
+# v4.0 (2025-09-09): [災難性BUG修復] 根據徹底的根本原因分析，最終確定了正確的數據流模式。此節點現在負責從文件系統加載乾淨的 SFW 指令，並將其與 profile 中的所有其他必要數據（如 username, ai_name）一起，完整地傳遞給鏈進行格式化，從而一勞永逸地解決了所有相關的 KeyError。
+# v3.0 (2025-09-09): [災難性BUG修復] 修正了指令來源。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -495,7 +495,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    # [v3.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
+    # [v4.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
     try:
         with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
             clean_one_instruction = f.read()
@@ -511,13 +511,16 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
             "chat_history": chat_history_str,
             "planning_subjects_json": planning_subjects_json,
             "user_input": user_input,
+            # 確保模板需要的所有變數都被傳遞
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
         },
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
+# 函式：SFW規劃節點 (v4.0 - 數據流最終修正)
 
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -614,10 +617,10 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
                 return "（歷史對話摘要因連續錯誤而完全失敗，上下文已丟失。）"
 # 函式：獲取摘要後的對話歷史 (v30.0 - 三層防禦)
 
-# 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
+# 函式：遠程SFW規劃節點 (v4.0 - 數據流最終修正)
 # 更新紀錄:
-# v3.0 (2025-09-09): [災難性BUG修復] 與 sfw_planning_node 同步，修正了指令來源。現在它會從文件系統加載一個乾淨的、SFW專用的 one_instruction，確保源頭隔離。
-# v2.0 (2025-09-09): [災難性BUG修復] 移除了對 `one_instruction` 參數的傳遞。
+# v4.0 (2025-09-09): [災難性BUG修復] 與 sfw_planning_node 同步，確保從文件加載乾淨指令並傳遞所有必要變數。
+# v3.0 (2025-09-09): [災難性BUG修復] 修正了指令來源。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -670,7 +673,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    # [v3.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
+    # [v4.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
     try:
         with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
             clean_one_instruction = f.read()
@@ -687,13 +690,16 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
             "planning_subjects_json": planning_subjects_json,
             "target_location_path_str": target_location_path_str,
             "user_input": user_input,
+            # 確保模板需要的所有變數都被傳遞
+            "username": ai_core.profile.user_profile.name,
+            "ai_name": ai_core.profile.ai_profile.name,
         },
         retry_strategy='euphemize'
     )
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
+# 函式：遠程SFW規劃節點 (v4.0 - 數據流最終修正)
 
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[NSFW Path] 遠程NSFW描述路徑專用規劃器，生成結構化的、露骨的行動計劃。"""
@@ -1386,3 +1392,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
