@@ -843,17 +843,40 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
         narrative_text = "（AI 在將 SFW 計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
 
+
+
+
+
+
+
+# 函式：最終渲染節點 (v2.0 - 適配源頭隔離)
+# 更新紀錄:
+# v2.0 (2025-09-10): [災難性BUG修復] 為了配合渲染鏈的“源頭隔離”重構，此節點的邏輯被完全重寫。它現在負責將完整的 world_snapshot 分解為包含敏感指令的 `director_view_prompt` 和只包含純數據的 `core_data_snapshot`，然後將它們分別傳遞給渲染鏈中對應的 system 和 human prompt 區域。
 async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[數據偽裝-最終步驟] 將最終的自然語言大綱渲染為電影感小說。"""
+    """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     narrative_outline = state['narrative_outline']
+    world_snapshot = state.get('world_snapshot', '')
     logger.info(f"[{user_id}] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...")
 
     if not narrative_outline or "安全備援" in narrative_outline:
         return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
         
+    # [v2.0 核心修正] 分離導演視角指令和核心數據
+    director_view_prompt = ""
+    core_data_snapshot = world_snapshot
+    
+    director_view_pattern = r"(# ==============================================================================\n# == 👁️ 導演視角與情境最高指令[\s\S]*?# == 最高指令結束 ==\n# ==============================================================================\n)"
+    match = re.search(director_view_pattern, world_snapshot)
+    if match:
+        director_view_prompt = match.group(1)
+        core_data_snapshot = world_snapshot.replace(director_view_prompt, "").strip()
+        logger.info(f"[{user_id}] (Rendering Prep) 已成功將導演視角指令從世界快照中分離。")
+
     chain_input = {
+        "director_view_prompt": director_view_prompt,
+        "core_data_snapshot": core_data_snapshot,
         "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
         "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
         "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
@@ -868,10 +891,18 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     if not narrative_text:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
+# 函式：最終渲染節點 (v2.0 - 適配源頭隔離)
 
-# 函式：驗證並重寫節點 (v1.2 - 多層淨化)
+
+
+
+
+
+
+# 函式：驗證並重寫節點 (v1.3 - 強力HTML註解淨化)
 # 更新紀錄:
-# v1.2 (2025-09-08): [災難性BUG修復] 根據使用者建議，徹底重構了淨化邏輯，引入了更可靠的“起始符號”策略。現在的淨化流程是一個多層防禦系統，優先尋找 `§` 符號，如果失敗則回退到舊的標記，最後再進行通用清理，極大地增強了抗洩漏能力。
+# v1.3 (2025-09-10): [災難性BUG修復] 根據使用者回報的指令洩漏問題，新增了第四層淨化防禦。使用正則表達式強力移除所有HTML註解格式的內容 (`<!-- ... -->`)，從根本上杜絕此類系統指令的洩漏。
+# v1.2 (2025-09-08): [災難性BUG修復] 根據使用者建議，徹底重構了淨化邏輯，引入了更可靠的“起始符號”策略。
 # v1.1 (2025-09-08): [災難性BUG修復] 注入了針對指令轟炸模式下“系統指令洩漏”的專門淨化邏輯。
 async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     """[10] 統一的輸出驗證與淨化節點。"""
@@ -885,9 +916,16 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
     
     clean_response = initial_response
     
+    # --- [v1.3 新增] 第零層 (最高優先級)：強力移除HTML註解 ---
+    html_comment_pattern = r'<!--[\s\S]*?-->'
+    if '<!--' in clean_response:
+        logger.warning(f"[{user_id}] 檢測到HTML註解洩漏，正在啟動強力淨化...")
+        clean_response = re.sub(html_comment_pattern, '', clean_response)
+        logger.info(f"[{user_id}] HTML註解淨化成功。")
+
     # --- [v1.2 核心修正] 多層淨化系統 ---
     
-    # 第一層 (最高優先級)：尋找 § 起始符號
+    # 第一層：尋找 § 起始符號
     start_marker = "§"
     if start_marker in clean_response:
         logger.warning(f"[{user_id}] 檢測到「§」起始符號，正在啟動最高優先級淨化...")
@@ -900,7 +938,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
             clean_response = ""
     else:
         # 第二層 (備援)：尋找舊的洩漏標記
-        leak_marker = "【你創作的小說章節】:"
+        leak_marker = "【你续写的完整小说章节】:"
         if leak_marker in clean_response:
             logger.warning(f"[{user_id}] 未找到「§」，但檢測到舊的洩漏標記，啟動備援淨化...")
             parts = clean_response.split(leak_marker, 1)
@@ -922,7 +960,7 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         return {"final_output": "（...）"}
         
     return {"final_output": final_response}
-# 函式：驗證並重寫節點 (v1.2 - 多層淨化)
+# 函式：驗證並重寫節點 (v1.3 - 強力HTML註解淨化)
 
 
 
@@ -1278,4 +1316,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
