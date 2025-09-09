@@ -1137,9 +1137,7 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 # v22.0 (2025-09-09): [重大架構重構] 根據“數據偽裝下的思維鏈”策略，徹底重構了 NSFW 處理路徑。舊的單一 `direct_nsfw_generation_node` 被一個包含三個新節點（`nsfw_breakthrough_node`, `nsfw_refinement_node`, `final_rendering_node`）的、邏輯更清晰的子鏈所取代。此修改旨在通過將“規劃”和“渲染”分離，從根本上解決 LORE 應用、劇情連續性和複雜指令遵循的三大核心問題。
 # v33.0 (2025-09-09): [災難性BUG修復] 修正了快速通道的拓撲結構。
 def create_main_response_graph() -> StateGraph:
-    """
-    [v22.0 修正] 創建主回應圖，內建全新的 NSFW 思維鏈。
-    """
+    """創建主回應圖，實現“導演方法論”的規劃-執行-渲染分離架構。"""
     graph = StateGraph(ConversationGraphState)
     
     # --- 節點註冊 ---
@@ -1151,96 +1149,81 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("character_quantification", character_quantification_node)
     graph.add_node("lore_expansion", lore_expansion_node)
+    graph.add_node("prepare_existing_subjects", lambda state: {"planning_subjects": [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']})
+    
+    # 規劃器節點
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
-    # [v22.0 新增] 註冊新的 NSFW 思維鏈節點
-    graph.add_node("nsfw_breakthrough", nsfw_breakthrough_node)
-    graph.add_node("nsfw_refinement", nsfw_refinement_node)
-    graph.add_node("final_rendering", final_rendering_node)
-    
+    graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
+
+    # 執行與渲染節點
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
+    graph.add_node("final_rendering", final_rendering_node) # NSFW 渲染器
+    
+    # 後處理節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
+    
+    # 匯合點
     graph.add_node("planner_junction", lambda state: {})
+    graph.add_node("execution_junction", lambda state: {})
     graph.add_node("rendering_junction", lambda state: {})
     
-    def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
-        lore_objects = state.get('raw_lore_objects', [])
-        planning_subjects = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
-        logger.info(f"[{state['user_id']}] (Graph) Node: prepare_existing_subjects -> 已将 {len(planning_subjects)} 个现有NPC打包为规划主体。")
-        return {"planning_subjects": planning_subjects}
-        
-    graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
-
     # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
     def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
-        if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation':
-            logger.info(f"[{state['user_id']}] (Router) 檢測到延续性指令，正在啟用【快速通道】。")
-            return "continuation_flow"
-        else:
-            return "standard_flow"
+        return "continuation_flow" if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation' else "standard_flow"
 
-    graph.add_conditional_edges(
-        "classify_intent",
-        route_after_intent_classification,
-        { "standard_flow": "retrieve_memories", "continuation_flow": "perceive_and_set_view" }
-    )
+    graph.add_conditional_edges("classify_intent", route_after_intent_classification, { "standard_flow": "retrieve_memories", "continuation_flow": "perceive_and_set_view" })
 
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
     graph.add_edge("assemble_context", "expansion_decision")
     
-    graph.add_conditional_edges(
-        "expansion_decision",
-        route_expansion_decision,
-        { "expand_lore": "character_quantification", "continue_to_planner": "prepare_existing_subjects" }
-    )
+    graph.add_conditional_edges("expansion_decision", route_expansion_decision, { "expand_lore": "character_quantification", "continue_to_planner": "prepare_existing_subjects" })
     graph.add_edge("character_quantification", "lore_expansion")
     graph.add_edge("lore_expansion", "planner_junction")
     graph.add_edge("prepare_existing_subjects", "planner_junction")
 
     def route_to_planner(state: ConversationGraphState) -> str:
-        user_id = state['user_id']
-        intent_classification = state.get('intent_classification')
-        if not intent_classification: return "sfw_planner" 
-        intent = intent_classification.intent_type
-        ai_core = state['ai_core']
-        viewing_mode = ai_core.profile.game_state.viewing_mode if ai_core.profile else 'local'
-        logger.info(f"[{user_id}] (Router) Routing to planner. Intent: '{intent}', Final Viewing Mode: '{viewing_mode}'")
+        intent = state['intent_classification'].intent_type
+        viewing_mode = state['ai_core'].profile.game_state.viewing_mode
         
         if 'nsfw' in intent:
-            return "nsfw_chain_of_thought" # [v22.0 修正] 路由到新的 NSFW 思維鏈
-        if viewing_mode == 'remote':
-            return "remote_sfw_planner"
+            if viewing_mode == 'remote':
+                return "remote_nsfw_planner"
+            else:
+                # TODO: 實現本地 NSFW 規劃器
+                return "sfw_planner" # 臨時備援
         else:
-            return "sfw_planner"
+            return "remote_sfw_planner" if viewing_mode == 'remote' else "sfw_planner"
 
-    graph.add_conditional_edges(
-        "planner_junction",
-        route_to_planner,
-        { 
-            "sfw_planner": "sfw_planning", 
-            "remote_sfw_planner": "remote_sfw_planning",
-            "nsfw_chain_of_thought": "nsfw_breakthrough" # [v22.0 修正] 路由到新鏈的第一步
-        }
-    )
+    graph.add_conditional_edges("planner_junction", route_to_planner, { 
+        "sfw_planner": "sfw_planning", 
+        "remote_sfw_planner": "remote_sfw_planning",
+        "remote_nsfw_planner": "remote_nsfw_planning"
+    })
     
-    # SFW 路徑
-    graph.add_edge("sfw_planning", "tool_execution")
-    graph.add_edge("remote_sfw_planning", "tool_execution")
-    graph.add_edge("tool_execution", "sfw_narrative_rendering")
+    graph.add_edge("sfw_planning", "execution_junction")
+    graph.add_edge("remote_sfw_planning", "execution_junction")
+    graph.add_edge("remote_nsfw_planning", "execution_junction")
+    
+    graph.add_edge("execution_junction", "tool_execution")
+
+    def route_to_renderer(state: ConversationGraphState) -> str:
+        return "final_renderer" if 'nsfw' in state['intent_classification'].intent_type else "sfw_renderer"
+
+    graph.add_conditional_edges("tool_execution", route_to_renderer, {
+        "sfw_renderer": "sfw_narrative_rendering",
+        "final_renderer": "final_rendering"
+    })
+
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
-    
-    # [v22.0 新增] NSFW 思維鏈路徑
-    graph.add_edge("nsfw_breakthrough", "nsfw_refinement")
-    graph.add_edge("nsfw_refinement", "final_rendering")
     graph.add_edge("final_rendering", "rendering_junction")
-
-    # 統一的後處理路徑
+    
     graph.add_edge("rendering_junction", "validate_and_rewrite")
     graph.add_edge("validate_and_rewrite", "persist_state")
     graph.add_edge("persist_state", END)
@@ -1400,6 +1383,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
