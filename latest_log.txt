@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-10T00:31:12.105218 ###
+### AI Lover Log - Last updated at 2025-09-10T00:36:06.335271 ###
 
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
-2025-09-10 00:31:06 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-10 00:31:07 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['使用者', '碧', '迷雾森林', 'AI', 'DINO', '溪语小屋']
 2025-09-10 00:31:07 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
 2025-09-10 00:31:07 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
 2025-09-10 00:31:07 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
@@ -100,3 +91,12 @@ Traceback (most recent call last):
 pydantic_core._pydantic_core.ValidationError: 1 validation error for TurnPlan
   Value error, 一個 TurnPlan 必須至少包含 'thought'、'narration'、'character_actions' 或 'execution_rejection_reason' 中的一項。 [type=value_error, input_value={'character_actions': []}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/value_error
+2025-09-10 00:35:34 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
+2025-09-10 00:35:35 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
+2025-09-10 00:35:36 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
+2025-09-10 00:35:39 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
+2025-09-10 00:35:39 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
+2025-09-10 00:35:54 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-10 00:35:56 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-10 00:35:56 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-10 00:35:57 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
