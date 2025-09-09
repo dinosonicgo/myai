@@ -1246,7 +1246,7 @@ class AILover:
             ])
             self.remote_sfw_planning_chain = prompt | planner_llm
         return self.remote_sfw_planning_chain
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)```
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)
 
 
 
@@ -3657,6 +3657,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
