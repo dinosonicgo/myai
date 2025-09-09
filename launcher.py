@@ -47,18 +47,21 @@ def _run_command(command, working_dir=None):
         sys.exit(1)
 # 函式：執行命令
 
-# 函式：主啟動邏輯 (v3.2 - 健壯性重啟)
+# 函式：主啟動邏輯 (v4.0 - 健壯性重啟與遠程修復)
+# 更新紀錄:
+# v4.0 (2025-09-10): [架構重構] 徹底重構了熔斷機制。現在，在連續失敗後，守護進程將進入長時冷却模式並持續嘗試重啟，而不是直接退出，以確保遠程修復通道的絕對可用性。
+# v3.2 (2025-09-04): [灾难性BUG修复] 提供了完整的文件内容。
 def main():
     """主啟動函式，包含守護進程和熔斷機制。"""
     current_dir = Path(__file__).resolve().parent
 
     print("--- AI Lover 啟動器 ---")
 
-    # [核心修改] 引入熔斷機制變數
     failure_count = 0
     last_failure_time = 0.0
-    FAILURE_THRESHOLD = 5  # 連續失敗5次則熔斷
-    FAILURE_WINDOW = 60    # 60秒內的連續失敗才計數
+    FAILURE_THRESHOLD = 5
+    FAILURE_WINDOW = 60 
+    COOLDOWN_SECONDS = 300 # 進入冷却模式後的等待時間 (5分鐘)
 
     while True:
         print("\n--- 步驟 1/3: 檢查 Git 環境 ---")
@@ -102,26 +105,30 @@ def main():
             break
         except Exception as e:
             print(f"\n[啟動器] 執行 main.py 時發生嚴重錯誤: {e}")
-            return_code = 1 # 將未知錯誤也視為失敗
+            return_code = 1
         finally:
             current_time = time.time()
             if return_code == 0:
                 print(f"\n[啟動器] 偵測到主程式正常退出 (返回碼 0)。")
-                failure_count = 0 # 成功運行後重置失敗計數器
+                failure_count = 0 
             else:
                 print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
-                # [核心修改] 熔斷邏輯
+                
                 if current_time - last_failure_time < FAILURE_WINDOW:
                     failure_count += 1
                 else:
-                    failure_count = 1 # 超過時間窗口，重置計數
+                    failure_count = 1
                 
                 last_failure_time = current_time
                 
+                # [v4.0 核心修正] 重構熔斷機制為長時冷却
                 if failure_count >= FAILURE_THRESHOLD:
-                    print(f"🔥🔥🔥 [啟動器熔斷] 在 {FAILURE_WINDOW} 秒內連續失敗 {failure_count} 次！")
-                    print("[啟動器] 為防止資源耗盡，守護進程已停止。請檢查LOG以修復持續性BUG。")
-                    break # 觸發熔斷，跳出 while 循環
+                    print(f"🔥🔥🔥 [啟動器冷却模式] 在 {FAILURE_WINDOW} 秒內連續失敗 {failure_count} 次！")
+                    print(f"[啟動器] 系統可能存在持續性BUG。為防止資源耗盡，將進入 {COOLDOWN_SECONDS} 秒的長時冷却。")
+                    print(f"[啟動器] 在此期間，您可以推送修復到GitHub倉庫。冷却結束後，系統將自動拉取最新程式碼並嘗試重啟。")
+                    time.sleep(COOLDOWN_SECONDS)
+                    failure_count = 0 # 冷却結束後重置計數器，給予新程式碼一個完整的重試機會
+                    continue # 跳過下方的短時等待，直接進入下一個循環
             
             print(f"[啟動器] 將在 5 秒後嘗試重啟...")
             time.sleep(5)
@@ -130,7 +137,7 @@ def main():
         print("\n----------------------------------------------------")
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
-# 函式：主啟動邏輯 (v3.2 - 健壯性重啟)
+# 函式：主啟動邏輯 (v4.0 - 健壯性重啟與遠程修復)
 
 if __name__ == "__main__":
     main()
