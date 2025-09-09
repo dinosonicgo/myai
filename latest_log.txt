@@ -1,48 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-09T23:29:08.179620 ###
+### AI Lover Log - Last updated at 2025-09-09T23:31:23.421668 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1211, in on_message
-    final_state = await self.main_response_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
-    async for _ in runner.atick(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
-    await arun_with_retry(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
-    return await task.proc.ainvoke(task.input, config)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
-    input = await step.ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 501, in sfw_planning_node
-    plan = await ai_core.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3443, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3400, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
-    output: Output = await coro_with_context(coro, context)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
-    inner_input_ = self._validate_input(inner_input)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
-    raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name', 'username'}.  Expected: ['ai_name', 'chat_history', 'planning_subjects_json', 'response_style_prompt', 'user_input', 'username', 'world_snapshot'] Received: ['response_style_prompt', 'world_snapshot', 'chat_history', 'planning_subjects_json', 'user_input']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-09 23:28:36 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
-2025-09-09 23:28:37 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
-2025-09-09 23:28:38 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
-2025-09-09 23:28:41 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
-2025-09-09 23:28:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
-2025-09-09 23:28:54 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-09 23:28:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-09 23:28:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-09 23:28:57 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
-2025-09-09 23:29:01 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
 2025-09-09 23:29:01 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-09-09 23:29:01 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-09-09 23:29:01 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
@@ -100,3 +57,46 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 504, in sfw_planning_node
     with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
 NameError: name 'PROJ_DIR' is not defined
+2025-09-09 23:30:51 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
+2025-09-09 23:30:52 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
+2025-09-09 23:30:53 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
+2025-09-09 23:30:56 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
+2025-09-09 23:30:56 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
+2025-09-09 23:31:09 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-09 23:31:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-09 23:31:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-09 23:31:13 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+2025-09-09 23:31:19 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '坐下...'
+2025-09-09 23:31:19 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-09 23:31:19 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-09 23:31:19 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
+2025-09-09 23:31:19 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+2025-09-09 23:31:19 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] 成功恢復了 2 條對話記錄到短期記憶中。
+2025-09-09 23:31:20 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
+2025-09-09 23:31:20 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-09 23:31:21 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '坐下...' 進行意圖分類...
+2025-09-09 23:31:21 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (Router 1) 檢測到SFW意圖，進入【快速通道】。
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'sfw' 统一处理感知与视角...
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (Perception Hub) GameState 无需更新。
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '坐下...' 執行LORE查詢...
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 迷雾森林 > 溪语小屋
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 1 位常駐NPC。
+2025-09-09 23:31:22 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['DINO', '迷雾森林', '溪语小屋', 'AI', '碧', '使用者']
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
+2025-09-09 23:31:23 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: '碧'
+2025-09-09 23:31:23 - [WARNING] - [512280345618546699] (LORE Querier) 已過濾掉與核心主角同名的LORE記錄: 'DINO'
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 1 條LORE作為本回合上下文。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 1 条 LORE 记录组装为最终上下文...
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '坐下...' 判斷是否擴展...
+2025-09-09 23:31:23 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
