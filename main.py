@@ -252,11 +252,32 @@ async def main():
 
         print(f"\n啟動 AI戀人系統 (模式: {mode})...")
         
-        # 並行運行所有選定的任務
-        await asyncio.gather(*tasks)
+        # [v6.0 核心修正] 使用 asyncio.wait 實現優雅關閉
+        # 1. 創建一個專門等待關閉信號的任務
+        shutdown_waiter = asyncio.create_task(shutdown_event.wait())
+        
+        # 2. 將所有要運行的任務（包括 shutdown_waiter）轉換為 Task 物件
+        all_tasks = {asyncio.create_task(t) for t in tasks}
+        all_tasks.add(shutdown_waiter)
 
-        # 如果 gather 結束 (通常是因為 shutdown_event 被設置)，則執行清理
-        print("收到關閉信號或所有任務已結束，正在優雅地終止主程式...")
+        # 3. 等待任何一個任務完成
+        done, pending = await asyncio.wait(all_tasks, return_when=asyncio.FIRST_COMPLETED)
+
+        # 4. 如果是 shutdown_waiter 完成了，說明收到了關閉信號
+        if shutdown_waiter in done:
+            print("收到關閉信號，正在優雅地終止所有背景任務...")
+        else:
+            # 如果是其他任務意外結束，也觸發關閉流程
+            print("一個核心任務意外終止，正在關閉其他任務...")
+            shutdown_event.set() # 確保其他任務也能收到信號
+
+        # 5. 取消所有仍在運行的任務
+        for task in pending:
+            task.cancel()
+        
+        # 6. 等待所有任務的取消操作完成
+        await asyncio.gather(*pending, return_exceptions=True)
+        print("所有任務已清理完畢。")
 
     except Exception as e:
         print(f"\n主程式運行時發生未處理的錯誤: {str(e)}")
