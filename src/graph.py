@@ -771,29 +771,38 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
 
 
 
-# 函式：NSFW 潤色節點 (v2.0 - 數據流修復)
+# 函式：NSFW 潤色節點 (v3.0 - 適配統一指令)
 # 更新紀錄:
-# v2.0 (2025-09-10): [災難性BUG修復] 修正了此節點的輸出邏輯。現在它會將潤色後的結果正確地放回 `narrative_outline` 鍵中，以確保數據流能夠順利傳遞到最終的渲染節點。同時增加了對潤色失敗的處理，確保流程的健壯性。
+# v3.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，重寫了此節點的參數組裝邏輯。它現在會加載 `00_supreme_directive.txt` 並將其傳遞給潤色鏈。同時，精簡了傳遞的上下文，不再傳遞完整的 world_snapshot，只傳遞潤色所需的核心角色檔案，以減輕API負載。
+# v2.0 (2025-09-10): [災難性BUG修復] 修正了此節點的輸出邏輯以修復數據流。
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[數據偽裝-步驟2] 接收大綱草稿，並將其豐富為最終的、詳細的故事大綱。"""
+    """[数据伪装-步骤2] 接收大纲草稿，并将其丰富为最终的、详细的故事大纲。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     narrative_outline_draft = state['narrative_outline']
     logger.info(f"[{user_id}] (Graph|NSFW Chain Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...")
 
     if not ai_core.profile or "安全備援" in narrative_outline_draft:
-        # 如果上一步失敗，直接將現有大綱傳遞下去，不進行任何操作
         return {} 
 
     chat_history_str = _get_raw_chat_history(ai_core, user_id)
-    world_snapshot = state.get('world_snapshot', '') 
+    
+    planning_subjects_raw = state.get('planning_subjects', [])
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+
+    # 讀取統一的最高指導原則
+    supreme_directive = ai_core.modular_prompts.get("00_supreme_directive", "警告：最高指導原則未加載。")
+    # 格式化指令，填入動態變數
+    formatted_directive = supreme_directive.format(
+        username=ai_core.profile.user_profile.name,
+        ai_name=ai_core.profile.ai_profile.name
+    )
 
     final_outline = await ai_core.ainvoke_with_rotation(
         ai_core.get_nsfw_refinement_chain(),
         {
-            "system_prompt": ai_core.profile.one_instruction,
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot,
+            "supreme_directive": formatted_directive,
+            "planning_subjects_json": planning_subjects_json,
             "chat_history": chat_history_str,
             "narrative_outline_draft": narrative_outline_draft
         },
@@ -801,12 +810,10 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
     )
     if not final_outline or not final_outline.strip():
         logger.warning(f"[{user_id}] (Graph|NSFW Chain Pt.2) NSFW大纲润色链返回空值，將使用未經潤色的原始大綱繼續流程。")
-        # 返回空字典，langgraph會自動沿用上一步的narrative_outline
         return {}
 
-    # [核心修正] 將潤色後的結果放回正確的鍵中
     return {"narrative_outline": final_outline}
-# 函式：NSFW 潤色節點 (v2.0 - 數據流修復)
+# 函式：NSFW 潤色節點 (v3.0 - 適配統一指令)
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """[8] 統一的工具執行節點 (主要用於 SFW 路徑)。"""
@@ -863,9 +870,10 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
 
 
 
-# 函式：最終渲染節點 (v2.0 - 適配源頭隔離)
+# 函式：最終渲染節點 (v3.0 - 適配統一指令)
 # 更新紀錄:
-# v2.0 (2025-09-10): [災難性BUG修復] 為了配合渲染鏈的“源頭隔離”重構，此節點的邏輯被完全重寫。它現在負責將完整的 world_snapshot 分解為包含敏感指令的 `director_view_prompt` 和只包含純數據的 `core_data_snapshot`，然後將它們分別傳遞給渲染鏈中對應的 system 和 human prompt 區域。
+# v3.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，重寫了此節點的參數組裝邏輯。
+# v2.0 (2025-09-10): [災難性BUG修復] 重構了此節點的邏輯以實現“源頭隔離”。
 async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
     user_id = state['user_id']
@@ -876,11 +884,20 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
 
     if not narrative_outline or "安全備援" in narrative_outline:
         return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
-        
-    # [v2.0 核心修正] 分離導演視角指令和核心數據
+    
+    if not ai_core.profile:
+        return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
+
+    # 讀取並格式化統一的最高指導原則
+    supreme_directive_template = ai_core.modular_prompts.get("00_supreme_directive", "警告：最高指導原則未加載。")
+    supreme_directive = supreme_directive_template.format(
+        username=ai_core.profile.user_profile.name,
+        ai_name=ai_core.profile.ai_profile.name
+    )
+    
+    # 分離導演視角指令和核心數據
     director_view_prompt = ""
     core_data_snapshot = world_snapshot
-    
     director_view_pattern = r"(# ==============================================================================\n# == 👁️ 導演視角與情境最高指令[\s\S]*?# == 最高指令結束 ==\n# ==============================================================================\n)"
     match = re.search(director_view_pattern, world_snapshot)
     if match:
@@ -888,12 +905,12 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         core_data_snapshot = world_snapshot.replace(director_view_prompt, "").strip()
         logger.info(f"[{user_id}] (Rendering Prep) 已成功將導演視角指令從世界快照中分離。")
 
+    # 將導演視角指令與最高指導原則合併，形成完整的系統級指令
+    final_system_prompt = f"{director_view_prompt}\n\n{supreme_directive}"
+
     chain_input = {
-        "director_view_prompt": director_view_prompt,
+        "supreme_directive": final_system_prompt,
         "core_data_snapshot": core_data_snapshot,
-        "system_prompt": ai_core.profile.one_instruction if ai_core.profile else "預設系統指令",
-        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
-        "response_style_prompt": ai_core.profile.response_style_prompt if ai_core.profile else "預設風格",
         "narrative_outline": narrative_outline
     }
         
@@ -905,7 +922,7 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     if not narrative_text:
         narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
-# 函式：最終渲染節點 (v2.0 - 適配源頭隔離)
+# 函式：最終渲染節點 (v3.0 - 適配統一指令)
 
 
 
@@ -1330,6 +1347,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
