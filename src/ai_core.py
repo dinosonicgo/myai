@@ -1502,7 +1502,7 @@ class AILover:
 
 
 
-    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
+# 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
     # 更新紀錄:
     # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為“解構-重構”委婉化策略的第二步。它接收一組安全的關鍵詞（而不是原始的露骨文本），並在此基礎上構建一個中性的、安全的句子，從根本上規避了委婉化過程本身被審查的悖論。
     def get_euphemization_chain(self) -> Runnable:
@@ -2326,23 +2326,42 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
+    # 函式：[新] 檢索並總結記憶 (v5.2 - 快速失敗)
     # 更新紀錄:
-    # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 根據使用者反饋，徹底重構了文檔清洗邏輯以解決“重試風暴”和效能低下的問題。新版本採用了“批次處理”策略：不再為每個檢索到的文檔單獨調用LLM進行清洗，而是將所有文檔內容合併為一個大的文本塊，然後用一次LLM調用（文學評論家鏈）將其整體安全化，再用第二次LLM調用進行摘要。此修改將此函式的LLM調用次數從 N+1 次恆定為 2 次，極大提升了速度並降低了API速率超限的風險。
-    # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
+    # v5.2 (2025-09-08): [災難性BUG修復] 根據 LOG 中 `RAG Pre-cleaner` 輸出自身 Prompt 的問題，徹底重構了此函式的備援邏輯。現在它完全依賴 `ainvoke_with_rotation` 內建的、更強大的「解構-重構」委婉化策略，並增加了對備援最終失敗（返回 None）的安全處理，從根本上解決了因備援鏈自身失敗而導致的數據污染問題。
+    # v5.1 (2025-09-08): [災難性BUG修復] 根據使用者反饋，在 RAG 流程的開頭增加了強制性的安全預清洗步驟。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
+        # --- 步驟 1: 強制性的安全預清洗 ---
+        logger.info(f"[{self.user_id}] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對查詢 '{query_text[:30]}...' 進行強制性安全預清洗...")
+        literary_chain = self.get_literary_euphemization_chain()
+        
+        # [v5.2 核心修正] 完全依賴 ainvoke_with_rotation 內建的、更強大的備援機制
+        sanitized_query = await self.ainvoke_with_rotation(
+            literary_chain,
+            {"dialogue_history": query_text},
+            retry_strategy='euphemize'
+        )
+        
+        # 如果所有備援都失敗，ainvoke_with_rotation 會返回 None
+        if not sanitized_query or not sanitized_query.strip():
+            logger.error(f"[{self.user_id}] (RAG Pre-cleaner) '文學評論家'清洗鏈即使在備援後也最終失敗。將使用原始查詢進行檢索。")
+            sanitized_query = query_text # 終極備援：使用原始查詢
+
+        logger.info(f"[{self.user_id}] (RAG Pre-cleaner) 查詢已成功預清洗為: '{sanitized_query[:50]}...'")
+
+        # --- 步驟 2: 執行檢索 ---
         retrieved_docs = []
         try:
             try:
-                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用查詢 '{query_text[:30]}...' 執行完整的「檢索+重排」流程...")
+                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用【安全查詢】執行完整的「檢索+重排」流程...")
                 retrieved_docs = await self.ainvoke_with_rotation(
                     self.retriever, 
-                    query_text,
+                    sanitized_query,
                     retry_strategy='euphemize'
                 )
             except RuntimeError as e:
@@ -2352,7 +2371,7 @@ class AILover:
                         logger.info(f"[{self.user_id}] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
                         retrieved_docs = await self.ainvoke_with_rotation(
                             self.retriever.base_retriever,
-                            query_text,
+                            sanitized_query,
                             retry_strategy='euphemize'
                         )
                         logger.info(f"[{self.user_id}] (RAG Executor) 基礎檢索器重試成功。")
@@ -2366,6 +2385,7 @@ class AILover:
             logger.error(f"[{self.user_id}] 在 RAG 檢索的調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
             return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
 
+        # [v5.2 核心修正] 安全處理備援失敗返回的 None
         if retrieved_docs is None:
             logger.warning(f"[{self.user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
             retrieved_docs = []
@@ -2373,18 +2393,16 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # --- [v6.0 核心修正] 批次清洗與摘要 ---
+        # --- 步驟 3: 對檢索結果進行批次清洗與摘要 ---
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在將其合併並進行一次性批次清洗...")
         
-        # 步驟 1: 將所有文檔內容合併為單一文本塊
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # 步驟 2: 對合併後的單一文本塊進行一次性的文學化清洗
-        literary_chain = self.get_literary_euphemization_chain()
+        # 這裡的清洗使用 'none' 策略，因為如果連批次清洗都失敗，再遞歸重試沒有意義
         safe_overview_of_all_docs = await self.ainvoke_with_rotation(
             literary_chain,
             {"dialogue_history": combined_content},
-            retry_strategy='none' # 如果連批次清洗都失敗，直接終止，不再嘗試修復
+            retry_strategy='none' 
         )
 
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
@@ -2392,15 +2410,13 @@ class AILover:
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
         
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
-
-        # 步驟 3: 將清洗後的單一安全概述傳遞給摘要器
-        # 我們將其包裝在一個 Document 物件中以符合摘要器鏈的輸入格式
+        
         docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
         
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             docs_for_summarizer,
-            retry_strategy='none' # 摘要器理論上不應再失敗，但為保險起見也快速失敗
+            retry_strategy='none'
         )
 
         if not summarized_context or not summarized_context.strip():
@@ -2409,7 +2425,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
+    # 函式：[新] 檢索並總結記憶 (v5.2 - 快速失敗)
 
 
 
@@ -3251,87 +3267,71 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
+    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
     # 更新紀錄:
-    # v209.0 (2025-09-08): [災難性BUG修復] 根據 LOG 中出現的無限重試風暴，徹底重構了此函式的核心邏輯。舊版本在備援時會回頭調用另一個同樣脆弱的鏈（entity_extraction_chain），導致了致命的遞歸失敗循環。新版本移除了所有脆弱的“解構-重構”步驟，改為直接調用專為處理露骨內容而設計的、更強大的“文學評論家”鏈，將失敗的輸入一次性地、安全地轉換為文學概述後再進行重試，從根本上解決了重試風暴問題。
-    # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
+    # v208.1 (2025-09-22): [災難性BUG修復] 根據LOG分析，為委婉化流程增加了輸入長度保護機制。如果待處理的文本超過4000字符，將直接跳過重試，以防止因輸入過長導致的API錯誤和不必要的Token消耗。
+    # v208.0 (2025-09-06): [重大架構重構] 徹底重寫了此函式的核心邏輯，引入“解構-重構”策略。不再直接委婉化原始文本，而是先提取安全的關鍵詞，再用一個專門的鏈將關鍵詞重構成安全的句子，從根本上解決了備援鏈自身因輸入露骨內容而被審查的悖論。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        [v209.0 新架構] 一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
-        它通過強大的“文學評論家”鏈將失敗的輸入安全化後重試。
+        一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
+        它採用“解構-重構”策略，先提取關鍵詞，再將其重組為安全的句子後重試。
         """
-        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構委婉化】策略...")
         
         try:
-            # --- 步驟 1: 提取需要處理的文本 ---
+            # 步驟 1: 從失敗的參數中提取出需要處理的原始文本
             text_to_euphemize = ""
             key_to_replace = None
             
-            # 處理字典類型的參數
             if isinstance(failed_params, dict):
-                # 優先尋找類型為 list[Document] 的文檔列表
-                doc_list_values = {k: v for k, v in failed_params.items() if isinstance(v, list) and all(isinstance(i, Document) for i in v)}
-                if doc_list_values:
-                    # 如果找到文檔列表，將它們的內容合併為一個長文本進行清洗
-                    key_to_replace = list(doc_list_values.keys())[0]
-                    docs_to_process = doc_list_values[key_to_replace]
-                    text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
-                else:
-                    # 如果沒有文檔列表，則尋找最長的字符串
-                    string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
-                    if string_values:
-                        key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
-                        text_to_euphemize = string_values[key_to_replace]
-            # 處理字符串類型的參數
+                string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
+                if string_values:
+                    key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
+                    text_to_euphemize = string_values[key_to_replace]
             elif isinstance(failed_params, str):
                 text_to_euphemize = failed_params
-            # 處理文檔列表類型的參數
-            elif isinstance(failed_params, list) and all(isinstance(i, Document) for i in failed_params):
-                 text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
 
             if not text_to_euphemize:
                 raise ValueError("無法從參數中提取可委婉化的文本。")
 
-            # 長度保護
+            # [v208.1 新增] 長度保護
             MAX_EUPHEMIZE_LENGTH = 4000
             if len(text_to_euphemize) > MAX_EUPHEMIZE_LENGTH:
                 logger.error(f"[{self.user_id}] (Euphemizer) 待處理文本長度 ({len(text_to_euphemize)}) 超過 {MAX_EUPHEMIZE_LENGTH} 字符上限，為避免效能問題已跳過委婉化重試。")
                 return None
 
-            # --- 步驟 2: 使用“文學評論家”鏈進行一次性、強大的清洗 ---
-            logger.info(f"[{self.user_id}] (Euphemizer) 正在將 '{text_to_euphemize[:50]}...' 清洗為安全的文學概述...")
-            literary_chain = self.get_literary_euphemization_chain()
-            safe_text = await self.ainvoke_with_rotation(
-                literary_chain,
-                {"dialogue_history": text_to_euphemize}
-            )
+            # 步驟 2: 【解構】 - 提取安全的關鍵詞
+            logger.info(f"[{self.user_id}] (Euphemizer|解構) 正在從 '{text_to_euphemize[:50]}...' 中提取關鍵詞...")
+            entity_extraction_chain = self.get_entity_extraction_chain()
+            entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
+            
+            keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
+            if not keywords_for_euphemization:
+                raise ValueError("未能從文本中提取任何關鍵詞。")
+            logger.info(f"[{self.user_id}] (Euphemizer|解構) 提取到關鍵詞: {keywords_for_euphemization[:10]}")
+            
+            # 步驟 3: 【重構】 - 將關鍵詞重組為安全句子
+            logger.info(f"[{self.user_id}] (Euphemizer|重構) 正在將關鍵詞重構為安全句子...")
+            euphemization_chain = self.get_euphemization_chain()
+            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
             
             if not safe_text:
-                raise ValueError("文學評論家鏈未能生成安全文本。")
-            logger.info(f"[{self.user_id}] (Euphemizer) 清洗成功，生成安全文本: '{safe_text[:50]}...'")
+                raise ValueError("委婉化重構鏈未能生成安全文本。")
+            logger.info(f"[{self.user_id}] (Euphemizer|重構) 重構成功，安全文本: '{safe_text[:50]}...'")
 
-            # --- 步驟 3: 準備重試參數並執行 ---
+            # 步驟 4: 使用重構後的安全文本進行重試
             retry_params = failed_params
-            
-            # 根據原始參數類型，構造重試參數
             if isinstance(retry_params, dict) and key_to_replace:
-                # 如果原始是文檔列表，則用清洗後的文本創建一個新的單一文檔
-                if isinstance(retry_params[key_to_replace], list) and all(isinstance(i, Document) for i in retry_params[key_to_replace]):
-                    retry_params[key_to_replace] = [Document(page_content=safe_text)]
-                else: # 否則，直接替換字符串
-                    retry_params[key_to_replace] = safe_text
+                retry_params[key_to_replace] = safe_text
             elif isinstance(retry_params, str):
                 retry_params = safe_text
-            elif isinstance(retry_params, list) and all(isinstance(i, Document) for i in retry_params):
-                retry_params = [Document(page_content=safe_text)]
-
 
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【文學評論家委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
+            logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
+    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
 
 
 
@@ -3726,6 +3726,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
