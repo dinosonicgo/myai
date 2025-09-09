@@ -1079,18 +1079,19 @@ class AILover:
 
 
 
-        # 函式：[全新] 獲取 LORE 提取鏈 (v1.0 - 全新創建)
+    # 函式：[全新] 獲取 LORE 提取鏈 (v1.1 - JSON字串優先)
     # 更新紀錄:
-    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE），以實現世界觀的動態成長。
+    # v1.1 (2025-09-10): [災難性BUG修復] 根據 ValidationError Log，徹底重構了此鏈的輸出解析策略。放棄了不穩定的 `.with_structured_output()`，改為強制LLM輸出一個JSON字串，然後在鏈的末尾使用更健壯的 `JsonOutputParser` 進行解析，從根本上解決因LLM輸出格式不穩定導致的崩潰問題。
+    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE）。
     def get_lore_extraction_chain(self) -> Runnable:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的鏈。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
-            from .schemas import ToolCallPlan
+            from langchain_core.output_parsers import JsonOutputParser
             
             # 使用一個低溫度的模型以確保提取的準確性和一致性
-            extractor_llm = self._create_llm_instance(temperature=0.1).with_structured_output(ToolCallPlan)
+            extractor_llm = self._create_llm_instance(temperature=0.1)
             
-            prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的、以前未被記錄的】世界設定、背景知識或角色特性，並為其生成一個結構化的【LORE擴展計畫JSON】。
+            prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的、以前未被記錄的】世界設定、背景知識或角色特性，並為其生成一個結構化的【LORE擴展計畫】。
 
 # === 【【【核心分析原則】】】 ===
 1.  **【新穎性優先 (Novelty First)】**: 你的首要職責是【過濾】。你【絕對禁止】提取那些在【現有LORE摘要】中已經存在的資訊。你只對【全新的知識】感興趣。
@@ -1098,13 +1099,14 @@ class AILover:
 3.  **【工具選擇】**:
     *   對於描述**群體、組織或概念**的知識（例如“性神教徒的信仰”），使用 `add_or_update_world_lore` 工具。
     *   對於描述**特定生物或物種**的知識（例如“水晶雞的習性”），使用 `define_creature_type` 工具。
+4.  **【輸出格式強制令】**: 你的最終輸出【必須且只能】是一個符合 `ToolCallPlan` Pydantic 格式的、單一的 **JSON 字串**。**絕對禁止**包含任何額外的解釋、註解或非JSON格式的文字。
 
 # === 【【【行為模型範例 (最重要！)】】】 ===
 #
 #   --- 範例 1：提取群體特性 ---
 #   - **現有LORE摘要**: (空的)
 #   - **小說文本**: "莉莉絲是一名虔誠的性神教徒，對她而言，每一次性愛都是對神祇的崇高獻祭。"
-#   - **【✅ 你的擴展計畫】**:
+#   - **【✅ 你的JSON字串輸出】**:
 #     ```json
 #     {{
 #       "plan": [
@@ -1122,29 +1124,10 @@ class AILover:
 #   --- 範例 2：過濾已有資訊 ---
 #   - **現有LORE摘要**: `- [world_lore] 性神教徒的信仰`
 #   - **小說文本**: "另一位性神教徒也同樣認為，性愛是神聖的儀式。"
-#   - **【✅ 你的擴展計畫】**:
+#   - **【✅ 你的JSON字串輸出】**:
 #     ```json
 #     {{
 #       "plan": []
-#     }}
-#     ```
-#     (**成功原因**: AI 識別出這個概念已經存在，因此返回了空的計畫。)
-#
-#   --- 範例 3：提取生物習性 ---
-#   - **現有LORE摘要**: (空的)
-#   - **小說文本**: "遠處傳來水晶雞的鳴叫，牠們只在月光下才會產下發光的蛋。"
-#   - **【✅ 你的擴展計畫】**:
-#     ```json
-#     {{
-#       "plan": [
-#         {{
-#           "tool_name": "define_creature_type",
-#           "parameters": {{
-#             "original_name": "水晶雞",
-#             "description": "一種只在月光下產下發光蛋的生物。"
-#           }}
-#         }}
-#       ]
 #     }}
 #     ```
 
@@ -1158,12 +1141,13 @@ class AILover:
 【小說文本 (你的主要分析對象)】:
 {final_response_text}
 ---
-請嚴格遵循以上所有規則，開始你的分析並生成 LORE 擴展計畫 JSON。
+請嚴格遵循以上所有規則，開始你的分析並只生成 LORE 擴展計畫的 JSON 字串。
 """
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.lore_extraction_chain = prompt | extractor_llm
+            # [核心修正] 改用更穩健的 JsonOutputParser
+            self.lore_extraction_chain = prompt | extractor_llm | JsonOutputParser()
         return self.lore_extraction_chain
-    # 函式：[全新] 獲取 LORE 提取鏈 (v1.0 - 全新創建)
+    # 函式：[全新] 獲取 LORE 提取鏈 (v1.1 - JSON字串優先)
 
 
 
@@ -3726,6 +3710,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
