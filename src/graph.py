@@ -1132,12 +1132,12 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v22.0 - 引入 NSFW 思維鏈)
+# 函式：創建主回應圖 (v24.0 - 意圖驅動路由)
 # 更新紀錄:
-# v22.0 (2025-09-09): [重大架構重構] 根據“數據偽裝下的思維鏈”策略，徹底重構了 NSFW 處理路徑。舊的單一 `direct_nsfw_generation_node` 被一個包含三個新節點（`nsfw_breakthrough_node`, `nsfw_refinement_node`, `final_rendering_node`）的、邏輯更清晰的子鏈所取代。此修改旨在通過將“規劃”和“渲染”分離，從根本上解決 LORE 應用、劇情連續性和複雜指令遵循的三大核心問題。
-# v33.0 (2025-09-09): [災難性BUG修復] 修正了快速通道的拓撲結構。
+# v24.0 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，徹底重構了圖的拓撲結構。引入了全新的“意圖驅動”路由機制。在圖的開頭新增了`route_to_pre_processing`路由器，它會根據意圖分類結果，為SFW指令選擇一條跳過所有NSFW清洗步驟的“快速通道”，從根本上解決了因SFW指令被過度處理而導致的數據污染和連鎖失敗問題。
+# v23.0 (2025-09-10): [重大架構重構] 引入了“導演方法論”，將所有路徑重構為“規劃-執行-渲染”的分離架構。
 def create_main_response_graph() -> StateGraph:
-    """創建主回應圖，實現“導演方法論”的規劃-執行-渲染分離架構。"""
+    """創建主回應圖，實現“導演方法論”和“意圖驅動路由”的健壯架構。"""
     graph = StateGraph(ConversationGraphState)
     
     # --- 節點註冊 ---
@@ -1159,7 +1159,7 @@ def create_main_response_graph() -> StateGraph:
     # 執行與渲染節點
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
-    graph.add_node("final_rendering", final_rendering_node) # NSFW 渲染器
+    graph.add_node("final_rendering", final_rendering_node)
     
     # 後處理節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
@@ -1173,10 +1173,27 @@ def create_main_response_graph() -> StateGraph:
     # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    def route_after_intent_classification(state: ConversationGraphState) -> Literal["standard_flow", "continuation_flow"]:
-        return "continuation_flow" if state.get("input_analysis") and state["input_analysis"].input_type == 'continuation' else "standard_flow"
+    # [v24.0 核心修正] 新增第一個路由器，實現意圖驅動的流程控制
+    def route_to_pre_processing(state: ConversationGraphState) -> Literal["needs_sanitization", "fast_track"]:
+        intent = state['intent_classification'].intent_type
+        if 'nsfw' in intent:
+            logger.info(f"[{state['user_id']}] (Router 1) 檢測到NSFW意圖，進入【源頭清洗】路徑。")
+            return "needs_sanitization"
+        else:
+            logger.info(f"[{state['user_id']}] (Router 1) 檢測到SFW意圖，進入【快速通道】。")
+            # 對於SFW路徑，我們需要手動將原始輸入填充到sanitized_query_for_tools，因為它跳過了清洗節點
+            user_input = state['messages'][-1].content
+            state['sanitized_query_for_tools'] = user_input
+            return "fast_track"
 
-    graph.add_conditional_edges("classify_intent", route_after_intent_classification, { "standard_flow": "retrieve_memories", "continuation_flow": "perceive_and_set_view" })
+    graph.add_conditional_edges(
+        "classify_intent",
+        route_to_pre_processing,
+        {
+            "needs_sanitization": "retrieve_memories", # NSFW路徑 -> 清洗
+            "fast_track": "perceive_and_set_view"      # SFW路徑 -> 直接跳到視角設定
+        }
+    )
 
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "query_lore")
@@ -1197,7 +1214,8 @@ def create_main_response_graph() -> StateGraph:
                 return "remote_nsfw_planner"
             else:
                 # TODO: 實現本地 NSFW 規劃器
-                return "sfw_planner" # 臨時備援
+                logger.warning(f"[{state['user_id']}] (Router 2) 本地NSFW規劃器未實現，臨時回退到SFW規劃器。")
+                return "sfw_planner" 
         else:
             return "remote_sfw_planner" if viewing_mode == 'remote' else "sfw_planner"
 
@@ -1229,7 +1247,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v22.0 - 引入 NSFW 思維鏈)
+# 函式：創建主回應圖 (v24.0 - 意圖驅動路由)
 
         
 
@@ -1383,6 +1401,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
