@@ -213,11 +213,15 @@ async def query_lore_node(state: ConversationGraphState) -> Dict:
     return {"raw_lore_objects": filtered_lores_list}
 # 函式：查詢 LORE 節點 (v29.0 - 適配安全查詢)
 
-# 函式：感知并设定视角
+# 函式：感知并设定视角 (v31.0 - SFW路徑數據流修復)
+# 更新紀錄:
+# v31.0 (2025-09-09): [災難性BUG修復] 根據 KeyError Traceback，為此節點注入了全新的核心職責。現在，它會在執行自身邏輯前，主動檢查 `sanitized_query_for_tools` 是否存在。如果不存在（意味著流程來自SFW快速通道），它會從原始使用者輸入中創建此鍵值對，從而確保了下游節點（如 query_lore）的數據流完整性，從根本上解決了SFW路徑的崩潰問題。
+# v30.0 (2025-09-09): [災難性BUG修復] 解决了因節點邏輯合併導致的數據流斷裂問題。
 async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     """
-    [v30.0 修正] 一个统一的节 点，负责分析场景、根据意图设定视角、并持久化状态。
+    [v31.0 修正] 一个统一的节点，负责分析场景、根据意图设定视角、并持久化状态。
     其职责已被精简，不再负责组装上下文，只专注于视角的分析与更新。
+    同時，它也負責為 SFW 快速通道補全必要的數據流。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -225,8 +229,14 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph) Node: perceive_and_set_view -> 正在基於意圖 '{intent}' 统一处理感知与视角...")
 
+    # [v31.0 核心修正] 確保 sanitized_query_for_tools 在 SFW 快速通道中被創建
+    sanitized_query = state.get('sanitized_query_for_tools')
+    if not sanitized_query:
+        logger.info(f"[{user_id}] (Perception Hub) 檢測到 SFW 快速通道，正在從原始輸入創建 sanitized_query_for_tools...")
+        sanitized_query = user_input
+
     if not ai_core.profile:
-        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：AI profile 未加载。', action_summary=user_input)}
+        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：AI profile 未加载。', action_summary=user_input), "sanitized_query_for_tools": sanitized_query}
 
     gs = ai_core.profile.game_state
     new_viewing_mode = gs.viewing_mode
@@ -235,7 +245,6 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     if 'descriptive' in intent:
         logger.info(f"[{user_id}] (View Mode) 检测到描述性意图，准备进入/更新远程视角。")
         
-        # 为了进行地点推断，我们需要一个临时的、轻量级的上下文
         scene_context_lores = [lore.content for lore in state.get('raw_lore_objects_for_view_decision', []) if lore.category == 'npc_profile']
         scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
         
@@ -279,9 +288,11 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
         action_summary=user_input
     )
     
-    # [v30.0 核心修正] 不再返回 structured_context，因为 LORE 数据尚未完全查询
-    return {"scene_analysis": scene_analysis}
-# 函式：感知并设定视角
+    return {
+        "scene_analysis": scene_analysis,
+        "sanitized_query_for_tools": sanitized_query
+    }
+# 函式：感知并设定视角 (v31.0 - SFW路徑數據流修復)
 
 
 
@@ -1132,10 +1143,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v24.0 - 意圖驅動路由)
+# 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
 # 更新紀錄:
-# v24.0 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，徹底重構了圖的拓撲結構。引入了全新的“意圖驅動”路由機制。在圖的開頭新增了`route_to_pre_processing`路由器，它會根據意圖分類結果，為SFW指令選擇一條跳過所有NSFW清洗步驟的“快速通道”，從根本上解決了因SFW指令被過度處理而導致的數據污染和連鎖失敗問題。
-# v23.0 (2025-09-10): [重大架構重構] 引入了“導演方法論”，將所有路徑重構為“規劃-執行-渲染”的分離架構。
+# v24.1 (2025-09-09): [災難性BUG修復] 移除了在路由函式 `route_to_pre_processing` 中對 state 的無效修改。路由函式只負責返回路徑名稱，不能修改狀態。真正的狀態修復邏輯已被移至下游的 `perceive_and_set_view_node` 節點中。
+# v24.0 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，徹底重構了圖的拓撲結構。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖，實現“導演方法論”和“意圖驅動路由”的健壯架構。"""
     graph = StateGraph(ConversationGraphState)
@@ -1173,7 +1184,7 @@ def create_main_response_graph() -> StateGraph:
     # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    # [v24.0 核心修正] 新增第一個路由器，實現意圖驅動的流程控制
+    # [v24.1 核心修正] 移除對 state 的無效修改，路由函式只負責返回路徑名稱
     def route_to_pre_processing(state: ConversationGraphState) -> Literal["needs_sanitization", "fast_track"]:
         intent = state['intent_classification'].intent_type
         if 'nsfw' in intent:
@@ -1181,9 +1192,6 @@ def create_main_response_graph() -> StateGraph:
             return "needs_sanitization"
         else:
             logger.info(f"[{state['user_id']}] (Router 1) 檢測到SFW意圖，進入【快速通道】。")
-            # 對於SFW路徑，我們需要手動將原始輸入填充到sanitized_query_for_tools，因為它跳過了清洗節點
-            user_input = state['messages'][-1].content
-            state['sanitized_query_for_tools'] = user_input
             return "fast_track"
 
     graph.add_conditional_edges(
@@ -1247,7 +1255,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v24.0 - 意圖驅動路由)
+# 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
 
         
 
@@ -1401,6 +1409,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
