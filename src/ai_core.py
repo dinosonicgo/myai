@@ -2591,9 +2591,10 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 增加常識性規則)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.3 - 變數與轉義修正)
     # 更新紀錄:
-    # v4.2 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，為Prompt注入了【互動感知鐵則】。此規則強制LLM在面對互動性指令時，必須優先利用已存在的角色（特別是AI戀人），而不是錯誤地創造新角色來執行動作，從根本上為決策節點增加了必要的常識。
+    # v4.3 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，為 prompt_template 新增了必需的 `ai_name` 輸入變數，並修正了調用點以傳遞此變數。同時，將範例中的 `{ai_name}` 替換為 `{{ai_name}}` 以防止 LangChain 解析器將其誤認為是未提供的變數。
+    # v4.2 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，為Prompt注入了【互動感知鐵則】。
     # v4.1 (2025-09-06): [災難性BUG修復] 徹底重寫了提示詞中的所有範例，移除了所有大括號 {} 佔位符。
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
@@ -2632,7 +2633,7 @@ class AILover:
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 增加常識性規則)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.3 - 變數與轉義修正)
 
 
 
@@ -3660,6 +3661,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
