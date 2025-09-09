@@ -1171,48 +1171,26 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
 
 
 
-# 函式：創建主回應圖 (v28.0 - 角色綁定邏輯最終統一)
+# 函式：創建主回應圖 (v29.0 - 統一角色綁定節點)
 # 更新紀錄:
-# v28.0 (2025-09-10): [災難性BUG修復] 根據日誌中的數據流丟失現象，最終定位到問題根源：`lore_expansion_node` 和 `prepare_existing_subjects_node` 的邏輯不一致。此版本將兩個節點的【正確的、具有視角感知能力的】邏輯定義統一併內聯到圖的創建函式中，確保了無論流程走向哪個分支，角色綁定邏輯都絕對一致，從而徹底解決了因狀態衝突導致的數據在節點間傳遞時被清空（變為None）的致命問題。
+# v29.0 (2025-09-10): [災難性BUG修復] 根據日誌中的數據流丟失現象，最終確定問題源於圖拓撲結構中的狀態衝突。此版本引入了一個全新的、職責單一的 `bind_planning_subjects_node` 節點。現在，所有LORE處理路徑（擴展與不擴展）都必須匯合於此節點，以確保 `planning_subjects` 狀態永遠由一個統一的、具有正確視角感知邏輯的來源生成。這徹底解決了因節點邏輯不一致導致的數據在節點間傳遞時被清空（變為None）的致命問題。
+# v28.0 (2025-09-10): [災難性BUG修復] 統一了所有角色綁定節點(`lore_expansion`, `prepare_existing_subjects`)的定義。
 # v27.0 (2025-09-10): [災難性BUG修復] 根據使用者指導，徹底重構了 `prepare_existing_subjects` 和 `lore_expansion` 節點。
-# v26.0 (2025-09-10): [災難性BUG修復] 徹底重構了`prepare_existing_subjects`節點的邏輯。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖，實現“導演方法論”和“意圖驅動路由”的健壯架構。"""
     graph = StateGraph(ConversationGraphState)
     
-    # --- [v28.0 核心修正] 將所有與圖拓撲結構緊密相關的節點邏輯內聯定義，確保一致性 ---
-    
-    def lore_expansion_node(state: ConversationGraphState) -> Dict:
-        """[擴展路徑] 專用的LORE擴展執行節點，並根據視角模式綁定正確的角色。"""
-        user_id = state['user_id']
-        ai_core = state['ai_core']
-        
-        # 基礎規劃主體只包含場景中的NPC
-        planning_subjects = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
-        
-        # (此處省略了實際調用LORE擴展鏈的異步程式碼，因為它在ai_core中處理，
-        # 這裡的重點是處理擴展【之後】的角色綁定邏輯)
-        # 假設新角色已經被創建並可以從 ai_core 中查詢到
-        
-        # 根據視角模式，決定是否加入核心主角
-        if ai_core.profile and ai_core.profile.game_state.viewing_mode == 'local':
-            existing_names = {subj.get('name', '').lower() for subj in planning_subjects}
-            user_profile_dict = ai_core.profile.user_profile.model_dump()
-            ai_profile_dict = ai_core.profile.ai_profile.model_dump()
-            if user_profile_dict.get('name', '').lower() not in existing_names:
-                planning_subjects.append(user_profile_dict)
-            if ai_profile_dict.get('name', '').lower() not in existing_names:
-                planning_subjects.append(ai_profile_dict)
-        
-        logger.info(f"[{user_id}] (Lore Expansion) 已成功綁定 {len(planning_subjects)} 位角色 (視角: {ai_core.profile.game_state.viewing_mode}) 作為規劃主體。")
-        return {"planning_subjects": planning_subjects}
-
-    def prepare_existing_subjects_node(state: ConversationGraphState) -> Dict:
-        """[非擴展路徑] 準備規劃所需的角色列表，並根據視角模式強制包含核心主角。"""
+    # --- [v29.0 核心修正] 創建一個全新的、統一的角色綁定節點 ---
+    def bind_planning_subjects_node(state: ConversationGraphState) -> Dict:
+        """
+        一個統一的匯合點，負責根據視角模式，將所有相關角色（NPC+核心主角）
+        最終綁定到 planning_subjects 狀態中。
+        """
         user_id = state['user_id']
         ai_core = state['ai_core']
         
         # 1. 基礎列表只包含從LORE中查詢到的NPC
+        # 注意：此時的 raw_lore_objects 可能已經被 lore_expansion_node 更新過
         planning_subjects = [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
         
         # 2. 根據視角模式，決定是否加入核心主角
@@ -1226,7 +1204,7 @@ def create_main_response_graph() -> StateGraph:
             if ai_profile_dict.get('name', '').lower() not in existing_names:
                 planning_subjects.append(ai_profile_dict)
         
-        logger.info(f"[{user_id}] (Prepare Subjects) 已成功綁定 {len(planning_subjects)} 位角色 (視角: {ai_core.profile.game_state.viewing_mode}) 作為本回合規劃主體。")
+        logger.info(f"[{user_id}] (Bind Subjects) 已成功綁定 {len(planning_subjects)} 位角色 (視角: {ai_core.profile.game_state.viewing_mode}) 作為本回合最終規劃主體。")
         return {"planning_subjects": planning_subjects}
 
     # --- 節點註冊 ---
@@ -1238,49 +1216,35 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("expansion_decision", expansion_decision_node)
     graph.add_node("character_quantification", character_quantification_node)
     
-    # [v28.0 核心修正] 註冊在本地定義的、邏輯絕對一致的節點
-    graph.add_node("lore_expansion", lore_expansion_node)
-    graph.add_node("prepare_existing_subjects", prepare_existing_subjects_node)
+    # lore_expansion_node 現在只負責擴展LORE，不再處理主角綁定
+    graph.add_node("lore_expansion", lore_expansion_node) 
+    # prepare_existing_subjects_node 現在只是一個占位符/傳遞節點
+    graph.add_node("prepare_existing_subjects", lambda state: {})
+
+    # [v29.0 新增] 註冊統一的角色綁定節點
+    graph.add_node("bind_planning_subjects", bind_planning_subjects_node)
     
-    # 規劃器節點
+    # 規劃器與後續節點
     graph.add_node("sfw_planning", sfw_planning_node)
     graph.add_node("remote_sfw_planning", remote_sfw_planning_node)
     graph.add_node("remote_nsfw_planning", remote_nsfw_planning_node)
-
-    # 執行與渲染節點
     graph.add_node("tool_execution", tool_execution_node)
     graph.add_node("sfw_narrative_rendering", sfw_narrative_rendering_node)
     graph.add_node("final_rendering", final_rendering_node)
-    
-    # 後處理節點
     graph.add_node("validate_and_rewrite", validate_and_rewrite_node)
     graph.add_node("persist_state", persist_state_node)
     
-    # 匯合點
-    graph.add_node("planner_junction", lambda state: {})
-    graph.add_node("rendering_junction", lambda state: {})
-    
-    # --- 圖的邊緣連接 ---
+    # --- 圖的邊緣連接 (v29.0 拓撲重構) ---
     graph.set_entry_point("classify_intent")
     
     def route_to_pre_processing(state: ConversationGraphState) -> Literal["needs_sanitization", "fast_track"]:
         intent = state['intent_classification'].intent_type
         if 'nsfw' in intent:
-            logger.info(f"[{state['user_id']}] (Router 1) 檢測到NSFW意圖，進入【源頭清洗】路徑。")
             return "needs_sanitization"
         else:
-            logger.info(f"[{state['user_id']}] (Router 1) 檢測到SFW意圖，進入【快速通道】。")
             return "fast_track"
 
-    graph.add_conditional_edges(
-        "classify_intent",
-        route_to_pre_processing,
-        {
-            "needs_sanitization": "retrieve_memories",
-            "fast_track": "perceive_and_set_view"
-        }
-    )
-
+    graph.add_conditional_edges("classify_intent", route_to_pre_processing, {"needs_sanitization": "retrieve_memories", "fast_track": "perceive_and_set_view"})
     graph.add_edge("retrieve_memories", "perceive_and_set_view")
     graph.add_edge("perceive_and_set_view", "query_lore")
     graph.add_edge("query_lore", "assemble_context")
@@ -1288,34 +1252,33 @@ def create_main_response_graph() -> StateGraph:
     
     graph.add_conditional_edges("expansion_decision", route_expansion_decision, { "expand_lore": "character_quantification", "continue_to_planner": "prepare_existing_subjects" })
     graph.add_edge("character_quantification", "lore_expansion")
-    graph.add_edge("lore_expansion", "planner_junction")
-    graph.add_edge("prepare_existing_subjects", "planner_junction")
+    
+    # [v29.0 核心修正] 所有LORE處理路徑都匯合到統一的綁定節點
+    graph.add_edge("lore_expansion", "bind_planning_subjects")
+    graph.add_edge("prepare_existing_subjects", "bind_planning_subjects")
 
     def route_to_planner(state: ConversationGraphState) -> str:
         intent = state['intent_classification'].intent_type
         viewing_mode = state['ai_core'].profile.game_state.viewing_mode
-        
         if 'nsfw' in intent:
-            if viewing_mode == 'remote':
-                return "remote_nsfw_planner"
-            else:
-                logger.warning(f"[{state['user_id']}] (Router 2) 本地NSFW規劃器未實現，臨時回退到SFW規劃器。")
-                return "sfw_planner" 
+            return "remote_nsfw_planner" if viewing_mode == 'remote' else "sfw_planner" # 臨時回退
         else:
             return "remote_sfw_planner" if viewing_mode == 'remote' else "sfw_planner"
 
-    graph.add_conditional_edges("planner_junction", route_to_planner, { 
+    # [v29.0 核心修正] 從統一的綁定節點路由到規劃器
+    graph.add_conditional_edges("bind_planning_subjects", route_to_planner, { 
         "sfw_planner": "sfw_planning", 
         "remote_sfw_planner": "remote_sfw_planning",
         "remote_nsfw_planner": "remote_nsfw_planning"
     })
     
+    # 後續流程保持不變
     graph.add_edge("sfw_planning", "sfw_narrative_rendering")
     graph.add_edge("remote_sfw_planning", "sfw_narrative_rendering")
-    
     graph.add_edge("remote_nsfw_planning", "tool_execution")
     graph.add_edge("tool_execution", "final_rendering")
     
+    graph.add_node("rendering_junction", lambda state: {}) # 重新添加匯合點
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     graph.add_edge("final_rendering", "rendering_junction")
     
@@ -1324,7 +1287,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v28.0 - 角色綁定邏輯最終統一)
+# 函式：創建主回應圖 (v29.0 - 統一角色綁定節點)
 
 
 
@@ -1474,6 +1437,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
