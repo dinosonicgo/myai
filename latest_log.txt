@@ -1,29 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-09T19:53:08.000683 ###
+### AI Lover Log - Last updated at 2025-09-09T20:14:09.130299 ###
 
-2025-09-09 19:39:20 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
-2025-09-09 19:39:21 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
-2025-09-09 19:39:26 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
-2025-09-09 19:39:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
-2025-09-09 19:39:28 - [INFO] - [512280345618546699] 背景任務：提取到 5 條新LORE，準備執行擴展...
-2025-09-09 19:39:28 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 5 個任務) ---
-2025-09-09 19:39:32 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
-2025-09-09 19:39:33 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
-original_name
-  Field required [type=missing, input_value={'content': '性神教徒...'性神教徒的信仰'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-09 19:39:33 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-09 19:39:34 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神祇相關的場景，其中涉及性行為、性的愉悅以及被視為神聖的祝福。'。正在用其重試工具 'add_or_update_world_lore'...
-2025-09-09 19:39:34 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
-original_name
-  Field required [type=missing, input_value={'content': '描述一個...'性神教徒的信仰'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
-    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
-original_name
   Field required [type=missing, input_value={'content': '描述一個...'性神教徒的信仰'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 2025-09-09 19:39:39 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 1 validation error for AddOrUpdateWorldLoreArgs
@@ -100,3 +76,27 @@ original_name
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 2025-09-09 19:39:58 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
 2025-09-09 19:39:58 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-09 20:13:54 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-09 20:13:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-09 20:13:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-09 20:13:57 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+2025-09-09 20:14:04 - [INFO] - [512280345618546699] 接收到來自 'dinosonicgo' 在頻道 'Direct Message with Unknown User' 中的消息: '請"重新描述"
+
+性神教徒的女性喜歡被”性凌辱”，她們能在任...'
+2025-09-09 20:14:04 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-09 20:14:04 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-09 20:14:04 - [INFO] - [512280345618546699] 已成功加載 3 個戰術指令模組: 00_core_protocol, action_macro_movement, action_sexual_content
+2025-09-09 20:14:04 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #1 創建。下一次將使用 Key #2。
+2025-09-09 20:14:05 - [INFO] - [512280345618546699] 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] 成功恢復了 3 條對話記錄到短期記憶中。
+2025-09-09 20:14:06 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] (Graph|1) Node: classify_intent -> 正在進行初步輸入類型分析...
+2025-09-09 20:14:06 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #2 創建。下一次將使用 Key #3。
+2025-09-09 20:14:07 - [INFO] - [512280345618546699] (Graph|1) 正在对具体指令 '請"重新描述"
+
+性神教徒的女性喜歡被”性凌辱”，她們能在任...' 進行意圖分類...
+2025-09-09 20:14:08 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #3 創建。下一次將使用 Key #4。
