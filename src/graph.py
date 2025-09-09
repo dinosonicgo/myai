@@ -4,6 +4,7 @@
 # v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
 # v21.0 (2025-09-09): [重大架構重構] 对图的拓扑结构进行了精细化重构。
 import sys
+from pathlib import Path
 import asyncio
 import json
 import re
@@ -522,6 +523,8 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
         plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
 # 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
+
+
 
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -1428,6 +1431,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
