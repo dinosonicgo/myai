@@ -2269,6 +2269,10 @@ class AILover:
         return self.action_intent_chain
     # 函式：獲取動作意圖解析鏈 (v203.1 - 延遲加載重構)
 
+
+
+
+
     # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
     def get_param_reconstruction_chain(self) -> Runnable:
         if not hasattr(self, 'param_reconstruction_chain') or self.param_reconstruction_chain is None:
@@ -2307,6 +2311,18 @@ class AILover:
             self.param_reconstruction_chain = prompt | reconstruction_llm | JsonOutputParser()
         return self.param_reconstruction_chain
     # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
+
+
+
+
+
+
+
+
+
+
+    
+
 
 
 
@@ -2892,12 +2908,19 @@ class AILover:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
-    
-    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
+
+
+
+
+
+
+
+
+
+    # 函式：執行工具呼叫計畫 (v184.0 - 參數重建備援)
     # 更新紀錄:
-    # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。在執行任何工具調用前，此函式會強制檢查所有針對 NPC 的創建/更新操作，如果目標名稱與使用者角色或 AI 戀人匹配，則該操作將被立即攔截並移除。此修改旨在從工具執行層面徹底杜絕核心主角被錯誤地當作 NPC 寫入 LORE 的嚴重問題。
-    # v183.1 (2025-09-06): [健壯性] 增加了對工具執行失敗的委婉化重試備援機制。
-    # v183.0 (2025-09-03): [健壯性] 將串行任務之間的延遲增加到 4.0 秒。
+    # v184.0 (2025-09-10): [災難性BUG修復] 徹底重構了錯誤處理邏輯。在現有的委婉化重試基礎上，新增了針對 `ValidationError` 的最終備援機制。當參數驗證失敗時，會觸發一個全新的「參數重建鏈」，該鏈會根據錯誤訊息和正確的Schema，嘗試智能地修復損壞的參數JSON，極大提升了背景LORE擴展任務在面對結構損壞的LLM輸出時的成功率。
+    # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -2909,7 +2932,6 @@ class AILover:
             if not self.profile:
                 return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
             
-            # [v183.2 核心修正] 計畫淨化步驟
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
@@ -2917,36 +2939,23 @@ class AILover:
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
                 is_illegal = False
-                # 檢查所有可能操作 NPC 的工具
                 if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "update_npc_profile"]:
-                    # 檢查參數中是否有名稱字段
-                    name_to_check = ""
-                    if 'name' in call.parameters: name_to_check = call.parameters['name']
-                    elif 'standardized_name' in call.parameters: name_to_check = call.parameters['standardized_name']
-                    elif 'original_name' in call.parameters: name_to_check = call.parameters['original_name']
-                    
+                    name_to_check = next((call.parameters.get(k) for k in ['name', 'standardized_name', 'original_name'] if k in call.parameters), "")
                     if name_to_check and name_to_check.lower() in protected_names:
                         is_illegal = True
                         logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
-                
                 if not is_illegal:
                     purified_plan.append(call)
 
             if not purified_plan:
-                logger.info(f"[{self.user_id}] 場景擴展計畫在淨化後為空，無需執行。")
                 return "場景擴展計畫在淨化後為空。"
 
             logger.info(f"--- [{self.user_id}] 開始串行執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
             
             tool_name_to_category = {
-                "create_new_npc_profile": "npc_profile",
-                "add_or_update_npc_profile": "npc_profile",
-                "update_npc_profile": "npc_profile",
-                "add_or_update_location_info": "location_info",
-                "add_or_update_item_info": "item_info",
-                "define_creature_type": "creature_info",
-                "add_or_update_quest_lore": "quest",
-                "add_or_update_world_lore": "world_lore",
+                "create_new_npc_profile": "npc_profile", "add_or_update_npc_profile": "npc_profile", "update_npc_profile": "npc_profile",
+                "add_or_update_location_info": "location_info", "add_or_update_item_info": "item_info",
+                "define_creature_type": "creature_info", "add_or_update_quest_lore": "quest", "add_or_update_world_lore": "world_lore",
             }
 
             summaries = []
@@ -2955,84 +2964,69 @@ class AILover:
             for call in purified_plan:
                 await asyncio.sleep(4.0) 
 
-                category = tool_name_to_category.get(call.tool_name)
-                if category and call.tool_name != 'update_npc_profile':
-                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name', 'original_name']
-                    entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
-
-                    if entity_name:
-                        resolution_chain = self.get_single_entity_resolution_chain()
-                        existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
-                        existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
-                        
-                        resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
-                            "category": category,
-                            "new_entity_json": json.dumps({"name": entity_name, "location_path": call.parameters.get('location_path', current_location_path)}, ensure_ascii=False),
-                            "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
-                        })
-                        
-                        if resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution:
-                            res = resolution_plan.resolution
-                            std_name = res.standardized_name or res.original_name
-                            if res.decision == 'EXISTING' and res.matched_key:
-                                lore_key = res.matched_key
-                            else:
-                                path_prefix = " > ".join(call.parameters.get('location_path', current_location_path))
-                                safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
-                                lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
-                            
-                            call.parameters.update({
-                                "lore_key": lore_key,
-                                "standardized_name": std_name,
-                                "original_name": res.original_name
-                            })
-                            if name_key_found: call.parameters.pop(name_key_found, None)
-
-                if call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
-                    call.parameters['location_path'] = current_location_path
-
                 tool_to_execute = available_tools.get(call.tool_name)
-                if not tool_to_execute: continue
+                if not tool_to_execute:
+                    summaries.append(f"任務警告: 計畫中的工具 '{call.tool_name}' 不存在。")
+                    continue
 
                 try:
+                    category = tool_name_to_category.get(call.tool_name)
+                    if category and call.tool_name != 'update_npc_profile':
+                        possible_name_keys = ['original_name', 'name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                        entity_name = next((call.parameters.get(k) for k in possible_name_keys if k in call.parameters), None)
+
+                        if entity_name:
+                            resolution_chain = self.get_single_entity_resolution_chain()
+                            existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
+                            existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
+                            
+                            resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
+                                "category": category,
+                                "new_entity_json": json.dumps({"name": entity_name}, ensure_ascii=False),
+                                "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                            })
+                            
+                            if resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution:
+                                res = resolution_plan.resolution
+                                std_name = res.standardized_name or res.original_name
+                                lore_key = res.matched_key if res.decision == 'EXISTING' and res.matched_key else f"{' > '.join(current_location_path)} > {std_name}"
+                                call.parameters.update({"lore_key": lore_key, "standardized_name": std_name})
+
+                    if 'location_path' not in call.parameters and call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"]:
+                        call.parameters['location_path'] = current_location_path
+
                     validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
                     result = await tool_to_execute.ainvoke(validated_args.model_dump())
                     summary = f"任務成功: {result}"
                     logger.info(f"[{self.user_id}] {summary}")
                     summaries.append(summary)
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 首次執行失敗: {e}。啟動【委婉化重試】策略...")
+
+                except ValidationError as e:
+                    logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 參數驗證失敗，啟動【參數重建】備援... 錯誤: {e}")
                     try:
-                        euphemization_chain = self.get_euphemization_chain()
+                        reconstruction_chain = self.get_param_reconstruction_chain()
+                        reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
+                            "tool_name": call.tool_name,
+                            "original_params": json.dumps(call.parameters, ensure_ascii=False),
+                            "validation_error": str(e),
+                            "correct_schema": tool_to_execute.args_schema.schema_json()
+                        })
                         
-                        text_params = {k: v for k, v in call.parameters.items() if isinstance(v, str)}
-                        if not text_params: raise ValueError("參數中無可委婉化的文本。")
-                        
-                        key_to_euphemize = max(text_params, key=lambda k: len(text_params[k]))
-                        text_to_euphemize = text_params[key_to_euphemize]
-                        
-                        entity_extraction_chain = self.get_entity_extraction_chain()
-                        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
-                        keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
-
-                        safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
-                        if not safe_text: raise ValueError("委婉化鏈未能生成安全文本。")
-
-                        retry_params = call.parameters.copy()
-                        retry_params[key_to_euphemize] = safe_text
-                        
-                        logger.info(f"[{self.user_id}] (重試) 已生成安全參數 '{key_to_euphemize}': '{safe_text}'。正在用其重試工具 '{call.tool_name}'...")
-                        
-                        validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-                        result = await tool_to_execute.ainvoke(validated_retry_args.model_dump())
-                        
-                        summary = f"任務成功 (委婉化重試): {result}"
+                        logger.info(f"[{self.user_id}] (重建備援) 已生成修復後的參數: {reconstructed_params}。正在用其重試...")
+                        validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
+                        result = await tool_to_execute.ainvoke(validated_args.model_dump())
+                        summary = f"任務成功 (參數重建備援): {result}"
                         logger.info(f"[{self.user_id}] {summary}")
                         summaries.append(summary)
-                    except Exception as retry_e:
-                        summary = f"任務失敗 (重試後): for {call.tool_name}: {retry_e}"
+                    except Exception as recon_e:
+                        summary = f"任務失敗 (重建後): for {call.tool_name}: {recon_e}"
                         logger.error(f"[{self.user_id}] {summary}", exc_info=True)
                         summaries.append(summary)
+                
+                except Exception as e:
+                    summary = f"任務失敗: for {call.tool_name}: {e}"
+                    logger.error(f"[{self.user_id}] {summary}", exc_info=True)
+                    summaries.append(summary)
 
             logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
             return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
@@ -3040,7 +3034,7 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
+    # 函式：執行工具呼叫計畫 (v184.0 - 參數重建備援)
 
 
     
@@ -3732,6 +3726,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
