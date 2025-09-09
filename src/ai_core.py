@@ -2028,30 +2028,27 @@ class AILover:
     
     
     
-    # 函式：獲取 SFW 回合計劃鏈 (v218.0 - 提示詞格式化最終修正)
+     # 函式：獲取 SFW 回合計劃鏈 (v220.0 - 簡化提示詞)
     # 更新紀錄:
-    # v218.0 (2025-09-09): [災難性BUG修復] 根據反覆的靜默失敗日誌，最終定位到提示詞格式化的根本錯誤。徹底移除了模板定義中的 f-string，並將所有變數佔位符（如 {response_style_prompt}）恢復為標準的單大括號語法。此修改確保了 LangChain 能夠正確識別並填充所有傳入的變數，從而解決了因模板解析錯誤導致的規劃失敗。
-    # v217.0 (2025-09-09): [災難性BUG修復] 還原了提示詞結構。
+    # v220.0 (2025-09-09): [重大架構簡化] 根據 Pydantic 模型優化，徹底移除了先前為處理簡單指令而添加的複雜【簡單指令處理原則】。現在模型本身已足夠靈活，無需在提示詞中進行額外約束，使提示詞回歸簡潔和高效。
+    # v219.0 (2025-09-09): [災難性BUG修復] 注入了【簡單指令處理原則】。
     def get_sfw_planning_chain(self) -> Runnable:
         """獲取或創建 SFW 路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'sfw_planning_chain') or self.sfw_planning_chain is None:
             from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
             
-            # [v218.0 核心修正] 移除 f-string，使用標準的多行字符串以確保 LangChain 正確解析
             system_prompt_template = """# ==============================================================================
-# == 🧠 系統核心指令 (SFW 規劃模式 - v218.0) 🧠
+# == 🧠 系統核心指令 (SFW 規劃模式 - v220.0) 🧠
 # ==============================================================================
 # 說明：你是一位擁有極高智慧和創造力的遊戲管理大師（GM）。你的任務是分析所有
 #       上下文，為接下來的回合制定一份詳細、合理的【行動計劃 JSON】。
 
-# --- 【【【最高規劃原則：LORE 數據綁定 (LORE BINDING) - 絕對強制】】】 ---
-# 你的【唯一任務】是將下方 `planning_subjects_json` 中提供的、【已經存在】的角色檔案，編排成一個符合使用者指令的互動場景。
-# 你【絕對禁止】在你的計畫中，創造任何不存在於 `planning_subjects_json` 中的新角色。你的職責是【執行】，而不是【再創造】。
-# 你的計畫中的 `character_actions` 列表，【必須且只能】包含來自 `planning_subjects_json` 的角色。
+# --- 【【【核心規劃原則】】】 ---
+# 1.  **【LORE 數據綁定】**: 你的【唯一任務】是將 `planning_subjects_json` 中提供的、【已經存在】的角色編排成一個符合使用者指令的互動場景。【絕對禁止】創造任何不存在的角色。
 
 # --- 【【【輸出邏輯約束】】】 ---
-# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和/或 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
 # - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 # ------------------------------------------------------------------------------
 # 【使用者自訂風格指令 (RENDER STYLE - HIGHEST PRIORITY)】
@@ -2079,7 +2076,7 @@ class AILover:
 # --- 使用者最新指令 ---
 {user_input}
 # --- 你的任務 ---
-請嚴格遵循【最高規劃原則】，只使用上方【規劃主體】中提供的角色，並【緊密銜接最近的對話歷史】，生成行動計劃 JSON。
+請嚴格遵循所有規劃原則，生成行動計劃 JSON。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -2087,7 +2084,7 @@ class AILover:
             ])
             self.sfw_planning_chain = prompt | planner_llm
         return self.sfw_planning_chain
-    # 函式：獲取 SFW 回合計劃鏈 (v218.0 - 提示詞格式化最終修正)
+    # 函式：獲取 SFW 回合計劃鏈 (v220.0 - 簡化提示詞)
 
 
 
@@ -3661,6 +3658,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
