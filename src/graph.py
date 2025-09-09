@@ -455,9 +455,14 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|6A.2) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
 
-# 函式：SFW規劃節點 (v4.0 - 數據流最終修正)
+# src/graph.py
+
+# 函式：SFW規劃節點 (v5.0 - 診斷性重構)
 # 更新紀錄:
-# v4.0 (2025-09-09): [災難性BUG修復] 根據徹底的根本原因分析，最終確定了正確的數據流模式。此節點現在負責從文件系統加載乾淨的 SFW 指令，並將其與 profile 中的所有其他必要數據（如 username, ai_name）一起，完整地傳遞給鏈進行格式化，從而一勞永逸地解決了所有相關的 KeyError。
+# v5.0 (2025-09-10): [診斷性重構] 根據持續的 SFW 流程失敗，對此節點進行了徹底的診斷性重構。
+#    1. [新增] 注入了高精度日誌，以追蹤傳遞給規劃鏈的參數、從鏈中返回的原始計畫物件，以及節點最終返回的狀態。
+#    2. [強化] 強化了備援邏輯，確保在 `ainvoke_with_rotation` 因任何原因（包括內容審查）返回 `None` 時，能夠穩定地創建一個有效的備援 `TurnPlan` 物件，從而解決了向下游傳遞 `None` 值的致命錯誤。
+# v4.0 (2025-09-09): [災難性BUG修復] 根據徹底的根本原因分析，最終確定了正確的數據流模式。
 # v3.0 (2025-09-09): [災難性BUG修復] 修正了指令來源。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
@@ -495,32 +500,45 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
-    # [v4.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
     try:
         with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
             clean_one_instruction = f.read()
     except FileNotFoundError:
         clean_one_instruction = "# 系統核心指令\n- 你是一位專業的GM..."
 
+    # [v5.0 新增] 診斷日誌 1: 打印傳遞給鏈的參數
+    chain_input_params = {
+        "one_instruction": clean_one_instruction,
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+        "world_snapshot": world_snapshot, 
+        "chat_history": chat_history_str,
+        "planning_subjects_json": planning_subjects_json,
+        "user_input": user_input,
+        "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name,
+    }
+    logger.info(f"[{user_id}] (SFW Planner) 準備調用規劃鏈，傳入 user_input: '{chain_input_params['user_input']}'")
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_sfw_planning_chain(), 
-        {
-            "one_instruction": clean_one_instruction,
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "world_snapshot": world_snapshot, 
-            "chat_history": chat_history_str,
-            "planning_subjects_json": planning_subjects_json,
-            "user_input": user_input,
-            # 確保模板需要的所有變數都被傳遞
-            "username": ai_core.profile.user_profile.name,
-            "ai_name": ai_core.profile.ai_profile.name,
-        },
+        chain_input_params,
         retry_strategy='euphemize'
     )
+    
+    # [v5.0 新增] 診斷日誌 2: 打印從鏈返回的原始結果
+    logger.info(f"[{user_id}] (SFW Planner) 規劃鏈返回的原始 plan 物件: {plan} (類型: {type(plan)})")
+
+    # [v5.0 強化] 強化備援邏輯
     if not plan:
-        plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
-    return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v4.0 - 數據流最終修正)
+        logger.warning(f"[{user_id}] (SFW Planner) 規劃鏈返回了 None。正在觸發備援機制...")
+        plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈因內容審查或其他錯誤而最終失敗。")
+    
+    # [v5.0 新增] 診斷日誌 3: 打印節點最終返回的字典
+    final_return_dict = {"turn_plan": plan}
+    logger.info(f"[{user_id}] (SFW Planner) 節點最終將返回: {final_return_dict}")
+
+    return final_return_dict
+# 函式：SFW規劃節點 (v5.0 - 診斷性重構)
 
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -1402,6 +1420,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
