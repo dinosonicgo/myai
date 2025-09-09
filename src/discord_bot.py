@@ -36,6 +36,11 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 
 from langchain_core.output_parsers import StrOutputParser
 
+
+import subprocess
+import datetime
+from pathlib import Path
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -1630,4 +1635,5 @@ class AILoverBot(commands.Bot):
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
+
 
