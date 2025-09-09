@@ -459,9 +459,10 @@ async def lore_expansion_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|6A.2) 已將 {len(planning_subjects)} 位角色 (新舊合併) 成功綁定為本回合的規劃主體。")
     return {"planning_subjects": planning_subjects}
 
-# 函式：SFW規劃節點 (v2.0 - 源頭隔離修正)
+# 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 # 更新紀錄:
-# v2.0 (2025-09-09): [災難性BUG修復] 根據源頭指令隔離原則，移除了對 `one_instruction` 參數的傳遞。新的 `get_sfw_planning_chain` 會自行從文件加載乾淨的指令，從而徹底解決了數據庫污染問題。
+# v3.0 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，修正了此節點的指令來源。現在它會從文件系統加載一個乾淨的、SFW專用的 one_instruction，並將其連同 username, ai_name 等所有必需的變數一起傳遞給鏈，從根本上解決了指令污染和數據流中斷的問題。
+# v2.0 (2025-09-09): [災難性BUG修復] 移除了對 `one_instruction` 參數的傳遞。
 async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7A] SFW路徑專用規劃器，生成結構化行動計劃。"""
     user_id = state['user_id']
@@ -498,10 +499,17 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
     
+    # [v3.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
+    try:
+        with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
+            clean_one_instruction = f.read()
+    except FileNotFoundError:
+        clean_one_instruction = "# 系統核心指令\n- 你是一位專業的GM..."
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_sfw_planning_chain(), 
         {
-            # [v2.0 核心修正] 移除 one_instruction，鏈會自己加載
+            "one_instruction": clean_one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot, 
             "chat_history": chat_history_str,
@@ -513,7 +521,7 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：SFW規劃節點 (v2.0 - 源頭隔離修正)
+# 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -613,9 +621,10 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
 
 
-# 函式：遠程SFW規劃節點 (v2.0 - 源頭隔離修正)
+# 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 # 更新紀錄:
-# v2.0 (2025-09-09): [災難性BUG修復] 根據源頭指令隔離原則，移除了對 `one_instruction` 參數的傳遞。新的 `get_remote_sfw_planning_chain` 會自行從文件加載乾淨的指令。
+# v3.0 (2025-09-09): [災難性BUG修復] 與 sfw_planning_node 同步，修正了指令來源。現在它會從文件系統加載一個乾淨的、SFW專用的 one_instruction，確保源頭隔離。
+# v2.0 (2025-09-09): [災難性BUG修復] 移除了對 `one_instruction` 參數的傳遞。
 async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[7D] SFW 描述路徑專用規劃器，生成遠景場景的結構化行動計劃。"""
     user_id = state['user_id']
@@ -668,10 +677,17 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     }
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
+    # [v3.0 核心修正] 從文件加載乾淨的指令，確保源頭隔離
+    try:
+        with open(PROJ_DIR / "prompts" / "one_instruction_template.txt", "r", encoding="utf-8") as f:
+            clean_one_instruction = f.read()
+    except FileNotFoundError:
+        clean_one_instruction = "# 系統核心指令\n- 你是一位專業的GM..."
+
     plan = await ai_core.ainvoke_with_rotation(
         ai_core.get_remote_sfw_planning_chain(),
         {
-            # [v2.0 核心修正] 移除 one_instruction，鏈會自己加載
+            "one_instruction": clean_one_instruction,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
             "world_snapshot": world_snapshot,
             "chat_history": chat_history_str,
@@ -684,7 +700,7 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程SFW規劃鏈失敗。")
     return {"turn_plan": plan}
-# 函式：遠程SFW規劃節點 (v2.0 - 源頭隔離修正)
+# 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 
 
 
@@ -1412,6 +1428,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
