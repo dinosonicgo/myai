@@ -15,7 +15,6 @@ def _run_command(command, working_dir=None):
     """執行一個 shell 命令並返回成功與否。"""
     try:
         print(f"▶️ 正在執行: {' '.join(command)}")
-        # 修正：确保 working_dir 存在且有效
         if working_dir and not Path(working_dir).is_dir():
             print(f"🔥 错误: 工作目录不存在: {working_dir}")
             return False
@@ -48,12 +47,18 @@ def _run_command(command, working_dir=None):
         sys.exit(1)
 # 函式：執行命令
 
-# 函式：主啟動邏輯 (v3.1 - 修复依赖)
+# 函式：主啟動邏輯 (v3.2 - 健壯性重啟)
 def main():
-    """主啟動函式。"""
+    """主啟動函式，包含守護進程和熔斷機制。"""
     current_dir = Path(__file__).resolve().parent
 
     print("--- AI Lover 啟動器 ---")
+
+    # [核心修改] 引入熔斷機制變數
+    failure_count = 0
+    last_failure_time = 0.0
+    FAILURE_THRESHOLD = 5  # 連續失敗5次則熔斷
+    FAILURE_WINDOW = 60    # 60秒內的連續失敗才計數
 
     while True:
         print("\n--- 步驟 1/3: 檢查 Git 環境 ---")
@@ -82,6 +87,7 @@ def main():
         args_to_pass = sys.argv[1:]
         command_to_run = [sys.executable, "main.py"] + args_to_pass
         process = None
+        return_code = -1
 
         try:
             print(f"🚀 準備執行: {' '.join(command_to_run)}")
@@ -89,28 +95,42 @@ def main():
             process = subprocess.Popen(command_to_run, text=True, encoding='utf-8')
             return_code = process.wait()
 
-            if return_code == 0:
-                print("\n[啟動器] 偵測到主程式正常退出 (返回碼 0)，將在 5 秒後自動重啟以應用更新...")
-                time.sleep(5)
-            else:
-                print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
-                print("[啟動器] 守護進程已停止。")
-                break
-
         except KeyboardInterrupt:
             print("\n[啟動器] 偵測到使用者中斷，正在關閉...")
             if process:
                 process.terminate()
             break
         except Exception as e:
-            print(f"\n[啟動器] 執行 main.py 時發生錯誤: {e}")
-            break
+            print(f"\n[啟動器] 執行 main.py 時發生嚴重錯誤: {e}")
+            return_code = 1 # 將未知錯誤也視為失敗
+        finally:
+            current_time = time.time()
+            if return_code == 0:
+                print(f"\n[啟動器] 偵測到主程式正常退出 (返回碼 0)。")
+                failure_count = 0 # 成功運行後重置失敗計數器
+            else:
+                print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
+                # [核心修改] 熔斷邏輯
+                if current_time - last_failure_time < FAILURE_WINDOW:
+                    failure_count += 1
+                else:
+                    failure_count = 1 # 超過時間窗口，重置計數
+                
+                last_failure_time = current_time
+                
+                if failure_count >= FAILURE_THRESHOLD:
+                    print(f"🔥🔥🔥 [啟動器熔斷] 在 {FAILURE_WINDOW} 秒內連續失敗 {failure_count} 次！")
+                    print("[啟動器] 為防止資源耗盡，守護進程已停止。請檢查LOG以修復持續性BUG。")
+                    break # 觸發熔斷，跳出 while 循環
+            
+            print(f"[啟動器] 將在 5 秒後嘗試重啟...")
+            time.sleep(5)
 
     if os.name == 'nt':
         print("\n----------------------------------------------------")
         print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
         os.system("pause")
-# 函式：主啟動邏輯 (v3.1 - 修复依赖)
+# 函式：主啟動邏輯 (v3.2 - 健壯性重啟)
 
 if __name__ == "__main__":
     main()
