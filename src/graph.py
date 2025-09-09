@@ -674,6 +674,64 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
 
 
 
+async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
+    """[NSFW Path] 遠程NSFW描述路徑專用規劃器，生成結構化的、露骨的行動計劃。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content
+    logger.info(f"[{user_id}] (Graph|NSFW Planner) Node: remote_nsfw_planning -> 正在為指令 '{user_input[:50]}...' 生成遠程NSFW場景計劃...")
+
+    if not ai_core.profile:
+        return {"turn_plan": TurnPlan(execution_rejection_reason="錯誤：AI profile 未加載，無法規劃。")}
+
+    gs = ai_core.profile.game_state
+    target_location_path_str = " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定地點"
+
+    planning_subjects_raw = state.get('planning_subjects')
+    if planning_subjects_raw is None:
+        lore_objects = state.get('raw_lore_objects', [])
+        planning_subjects_raw = [lore.content for lore in lore_objects if lore.category == 'npc_profile']
+    planning_subjects_json = json.dumps(planning_subjects_raw, ensure_ascii=False, indent=2)
+
+    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
+
+    full_context_dict = {
+        'username': ai_core.profile.user_profile.name,
+        'ai_name': ai_core.profile.ai_profile.name,
+        'world_settings': ai_core.profile.world_settings or "未設定",
+        'ai_settings': ai_core.profile.ai_profile.description or "未設定",
+        'retrieved_context': state.get('rag_context', ''),
+        'possessions_context': "(遠程觀察模式)",
+        'quests_context': "(遠程觀察模式)",
+        'location_context': f"遠程觀察地點: {target_location_path_str}",
+        'npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'relevant_npc_context': "(已棄用，請參考 planning_subjects_json)",
+        'player_location': " > ".join(gs.location_path),
+        'viewing_mode': 'remote',
+        'remote_target_path_str': target_location_path_str,
+    }
+    world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
+
+    plan = await ai_core.ainvoke_with_rotation(
+        ai_core.get_remote_nsfw_planning_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_str,
+            "planning_subjects_json": planning_subjects_json,
+            "target_location_path_str": target_location_path_str,
+            "user_input": user_input,
+        },
+        retry_strategy='force'
+    )
+    if not plan:
+        plan = TurnPlan(execution_rejection_reason="安全備援：遠程NSFW規劃鏈失敗。")
+    return {"turn_plan": plan}
+
+
+
 
 
 # 函式：NSFW 突破節點 (v38.1 - 數據流修復)
@@ -875,27 +933,23 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
 # v3.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，重寫了此節點的參數組裝邏輯。
 # v2.0 (2025-09-10): [災難性BUG修復] 重構了此節點的邏輯以實現“源頭隔離”。
 async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
-    """[数据伪装-最终步骤] 将最终的自然语言大纲渲染为电影感小说。"""
+    """[NSFW Path] 將 TurnPlan JSON 渲染為最終的、露骨的電影感小說。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    narrative_outline = state['narrative_outline']
+    turn_plan = state.get('turn_plan')
     world_snapshot = state.get('world_snapshot', '')
-    logger.info(f"[{user_id}] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...")
+    logger.info(f"[{user_id}] (Graph|NSFW Renderer) Node: final_rendering -> 正在將NSFW行動計劃渲染為小說...")
 
-    if not narrative_outline or "安全備援" in narrative_outline:
-        return {"llm_response": narrative_outline or "（系统错误：未能生成有效的叙事大纲。）"}
-    
+    if not turn_plan:
+        return {"llm_response": "（系統錯誤：未能生成有效的NSFW行動計劃。）"}
+        
+    if turn_plan.execution_rejection_reason:
+        logger.warning(f"[{user_id}] (NSFW Renderer) 檢測到上游規劃節點的執行否決，跳過渲染。理由: {turn_plan.execution_rejection_reason}")
+        return {"llm_response": turn_plan.execution_rejection_reason}
+
     if not ai_core.profile:
         return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
 
-    # 讀取並格式化統一的最高指導原則
-    supreme_directive_template = ai_core.modular_prompts.get("00_supreme_directive", "警告：最高指導原則未加載。")
-    supreme_directive = supreme_directive_template.format(
-        username=ai_core.profile.user_profile.name,
-        ai_name=ai_core.profile.ai_profile.name
-    )
-    
-    # 分離導演視角指令和核心數據
     director_view_prompt = ""
     core_data_snapshot = world_snapshot
     director_view_pattern = r"(# ==============================================================================\n# == 👁️ 導演視角與情境最高指令[\s\S]*?# == 最高指令結束 ==\n# ==============================================================================\n)"
@@ -903,15 +957,14 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
     if match:
         director_view_prompt = match.group(1)
         core_data_snapshot = world_snapshot.replace(director_view_prompt, "").strip()
-        logger.info(f"[{user_id}] (Rendering Prep) 已成功將導演視角指令從世界快照中分離。")
-
-    # 將導演視角指令與最高指導原則合併，形成完整的系統級指令
-    final_system_prompt = f"{director_view_prompt}\n\n{supreme_directive}"
 
     chain_input = {
-        "supreme_directive": final_system_prompt,
+        "director_view_prompt": director_view_prompt,
+        "system_prompt": ai_core.profile.one_instruction,
+        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
+        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
         "core_data_snapshot": core_data_snapshot,
-        "narrative_outline": narrative_outline
+        "turn_plan_json": turn_plan.model_dump_json(indent=2)
     }
         
     narrative_text = await ai_core.ainvoke_with_rotation(
@@ -920,7 +973,7 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         retry_strategy='force'
     )
     if not narrative_text:
-        narrative_text = "（AI 在将故事大纲扩展为最终小说时遭遇了内容安全限制。）"
+        narrative_text = "（AI 在将NSFW計劃渲染为小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 # 函式：最終渲染節點 (v3.0 - 適配統一指令)
 
@@ -1347,6 +1400,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
