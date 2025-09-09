@@ -996,7 +996,7 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
+# 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
     # 更新紀錄:
     # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
     # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
@@ -2028,7 +2028,7 @@ class AILover:
     
     
     
-    # 函式：獲取 SFW 回合計劃鏈 (v214.0 - 提示詞格式化修正)
+   # 函式：獲取 SFW 回合計劃鏈 (v214.0 - 提示詞格式化修正)
     # 更新紀錄:
     # v214.0 (2025-09-25): [災難性BUG修復] 徹底重構了提示詞的構建邏輯。不再接受一個待格式化的 `system_prompt`，而是在函式內部直接將 `one_instruction` 和 `response_style_prompt` 安全地格式化進主模板中，從根本上解決了因 LangChain 變數注入混亂導致的 `KeyError`。
     # v213.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則。
@@ -3661,6 +3661,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
