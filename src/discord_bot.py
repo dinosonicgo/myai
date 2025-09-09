@@ -20,6 +20,9 @@ import os
 import sys
 import subprocess
 import gc
+import subprocess
+import datetime
+from pathlib import Path
 
 from .logger import logger
 from .ai_core import AILover
@@ -35,11 +38,6 @@ from langchain_core.messages import HumanMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
 
 from langchain_core.output_parsers import StrOutputParser
-
-
-import subprocess
-import datetime
-from pathlib import Path
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -1456,7 +1454,7 @@ class BotCog(commands.Cog):
         asyncio.create_task(self._perform_update_and_restart(interaction))
     # 函式：管理員強制更新 (v40.2 - 背景任務重構)
 
-# 函式：執行更新與重啟的背景任務 (v1.2 - 新增更新通知)
+    # 函式：執行更新與重啟的背景任務 (v1.2 - 新增更新通知)
     # 更新紀錄:
     # v1.2 (2025-09-21): [功能擴展] 新增了在更新成功、觸發重啟前，向 ADMIN_USER_ID 發送私訊通知的邏輯。
     # v1.1 (2025-09-06): [災難性BUG修復] 移除了 `sys.exit(0)` 調用，改為設置一個從 main.py 傳入的全局 `shutdown_event`。
@@ -1585,11 +1583,91 @@ class BotCog(commands.Cog):
         else:
             await interaction.response.send_message(f"錯誤：找不到使用者 {target_user_id} 的 `{category}` / `{key}` Lore。", ephemeral=True)
 
+    # 函式：[全新] 推送LOG到GitHub倉庫 (v1.0)
+    async def push_log_to_github_repo(self, interaction: Optional[discord.Interaction] = None):
+        """核心邏輯：讀取最新的LOG並使用git指令推送到公開倉庫。"""
+        user_id = str(interaction.user.id) if interaction else "System"
+        logger.info(f"[{user_id}] (Git Log Pusher) 觸發LOG推送任務...")
+
+        try:
+            project_root = PROJ_DIR
+            log_file_path = project_root / "data" / "logs" / "app.log"
+            
+            if not log_file_path.is_file():
+                logger.error(f"(Git Log Pusher) 錯誤：找不到日誌檔案於 {log_file_path}")
+                if interaction:
+                    await interaction.followup.send("❌ **推送失敗**：在伺服器上找不到日誌檔案。", ephemeral=True)
+                return
+
+            # 讀取日誌檔案的最後100行
+            with open(log_file_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+                latest_lines = lines[-100:]
+                log_content_to_write = "".join(latest_lines)
+
+            # 創建一個專門用於上傳的檔案，避免污染原始日誌
+            upload_log_path = project_root / "latest_log.txt"
+            with open(upload_log_path, 'w', encoding='utf-8') as f:
+                f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
+                f.write(log_content_to_write)
+
+            def run_git_commands():
+                """同步執行Git指令的輔助函式。"""
+                # 1. 將日誌檔案加入暫存區
+                subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=project_root)
+                
+                # 2. 提交變更
+                commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                commit_process = subprocess.run(
+                    ["git", "commit", "-m", commit_message], 
+                    capture_output=True, text=True, encoding='utf-8', cwd=project_root
+                )
+                
+                # 如果commit失敗是因為沒有變更，也算成功
+                if commit_process.returncode != 0 and "nothing to commit" not in commit_process.stdout.decode('utf-8', errors='ignore'):
+                    raise subprocess.CalledProcessError(
+                        commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
+                    )
+
+                # 3. 推送到遠端
+                subprocess.run(["git", "push", "origin", "main"], check=True, cwd=project_root)
+
+            # 在背景執行緒中運行同步的git指令，避免阻塞
+            await asyncio.to_thread(run_git_commands)
+            
+            log_url = "https://github.com/dinosonicgo/myai/blob/main/latest_log.txt"
+            success_message = f"✅ **LOG 推送成功！**\n🔗 **連結**:\n{log_url}"
+            
+            if interaction:
+                await interaction.followup.send(success_message, ephemeral=True)
+            
+            logger.info(f"(Git Log Pusher) 最新LOG已成功推送到GitHub倉庫。")
+
+        except subprocess.CalledProcessError as e:
+            error_output = e.stderr or e.stdout
+            logger.error(f"(Git Log Pusher) Git指令執行失敗: {error_output}", exc_info=True)
+            if interaction:
+                await interaction.followup.send(f"❌ **推送失敗**：Git指令執行時發生錯誤。\n`{error_output}`", ephemeral=True)
+        except Exception as e:
+            logger.error(f"(Git Log Pusher) 推送LOG時發生未知錯誤: {e}", exc_info=True)
+            if interaction:
+                await interaction.followup.send(f"❌ **推送失敗**：發生未知的伺服器錯誤。\n`{e}`", ephemeral=True)
+    # 函式：[全新] 推送LOG到GitHub倉庫 (v1.0)
+
+    # 指令：[全新] 管理員手動推送LOG (v2.0 - 適配Git推送)
+    @app_commands.command(name="admin_push_log", description="[管理員] 強制將最新的100條LOG推送到GitHub倉庫。")
+    @app_commands.check(is_admin)
+    async def admin_push_log(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        await self.push_log_to_github_repo(interaction)
+    # 指令：[全新] 管理員手動推送LOG (v2.0 - 適配Git推送)
+
     @admin_set_affinity.error
     @admin_reset.error
     @admin_check_status.error
     @admin_check_lore.error
     @admin_force_update.error
+    @admin_push_log.error
     async def on_admin_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message("你沒有權限使用此指令。", ephemeral=True)
@@ -1635,5 +1713,3 @@ class AILoverBot(commands.Bot):
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
-
-
