@@ -1133,9 +1133,10 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
     else:
         return "continue_to_planner"
 
-# 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
+# 函式：創建主回應圖 (v25.0 - SFW拓撲修復)
 # 更新紀錄:
-# v24.1 (2025-09-09): [災難性BUG修復] 移除了在路由函式 `route_to_pre_processing` 中對 state 的無效修改。路由函式只負責返回路徑名稱，不能修改狀態。真正的狀態修復邏輯已被移至下游的 `perceive_and_set_view_node` 節點中。
+# v25.0 (2025-09-10): [災難性BUG修復] 根據 "坐下" 指令的持續失敗日誌，對圖的拓撲結構進行了根本性的修正。舊結構錯誤地將所有規劃節點的輸出都強制通過 `tool_execution_node`，導致不含工具的SFW計畫數據流被污染。新結構將規劃與渲染進行了正確的配對連接 (`sfw_planning` -> `sfw_narrative_rendering`)，確保了SFW路徑的數據純淨性，從根本上解決了該流程的崩潰問題。
+# v24.1 (2025-09-09): [災難性BUG修復] 移除了在路由函式 `route_to_pre_processing` 中對 state 的無效修改。
 # v24.0 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，徹底重構了圖的拓撲結構。
 def create_main_response_graph() -> StateGraph:
     """創建主回應圖，實現“導演方法論”和“意圖驅動路由”的健壯架構。"""
@@ -1168,13 +1169,13 @@ def create_main_response_graph() -> StateGraph:
     
     # 匯合點
     graph.add_node("planner_junction", lambda state: {})
-    graph.add_node("execution_junction", lambda state: {})
+    # [v25.0 移除] execution_junction 不再需要作為所有路徑的匯合點
+    # graph.add_node("execution_junction", lambda state: {})
     graph.add_node("rendering_junction", lambda state: {})
     
     # --- 圖的邊緣連接 ---
     graph.set_entry_point("classify_intent")
     
-    # [v24.1 核心修正] 移除對 state 的無效修改，路由函式只負責返回路徑名稱
     def route_to_pre_processing(state: ConversationGraphState) -> Literal["needs_sanitization", "fast_track"]:
         intent = state['intent_classification'].intent_type
         if 'nsfw' in intent:
@@ -1188,8 +1189,8 @@ def create_main_response_graph() -> StateGraph:
         "classify_intent",
         route_to_pre_processing,
         {
-            "needs_sanitization": "retrieve_memories", # NSFW路徑 -> 清洗
-            "fast_track": "perceive_and_set_view"      # SFW路徑 -> 直接跳到視角設定
+            "needs_sanitization": "retrieve_memories",
+            "fast_track": "perceive_and_set_view"
         }
     )
 
@@ -1211,7 +1212,6 @@ def create_main_response_graph() -> StateGraph:
             if viewing_mode == 'remote':
                 return "remote_nsfw_planner"
             else:
-                # TODO: 實現本地 NSFW 規劃器
                 logger.warning(f"[{state['user_id']}] (Router 2) 本地NSFW規劃器未實現，臨時回退到SFW規劃器。")
                 return "sfw_planner" 
         else:
@@ -1223,20 +1223,16 @@ def create_main_response_graph() -> StateGraph:
         "remote_nsfw_planner": "remote_nsfw_planning"
     })
     
-    graph.add_edge("sfw_planning", "execution_junction")
-    graph.add_edge("remote_sfw_planning", "execution_junction")
-    graph.add_edge("remote_nsfw_planning", "execution_junction")
+    # --- [v25.0 核心修正] 重構SFW路徑的拓撲 ---
+    # SFW規劃的結果直接送去SFW渲染器，不再經過工具執行節點
+    graph.add_edge("sfw_planning", "sfw_narrative_rendering")
+    graph.add_edge("remote_sfw_planning", "sfw_narrative_rendering")
     
-    graph.add_edge("execution_junction", "tool_execution")
-
-    def route_to_renderer(state: ConversationGraphState) -> str:
-        return "final_renderer" if 'nsfw' in state['intent_classification'].intent_type else "sfw_renderer"
-
-    graph.add_conditional_edges("tool_execution", route_to_renderer, {
-        "sfw_renderer": "sfw_narrative_rendering",
-        "final_renderer": "final_rendering"
-    })
-
+    # NSFW規劃的結果，由於可能包含工具調用，仍然需要先經過工具執行
+    graph.add_edge("remote_nsfw_planning", "tool_execution")
+    graph.add_edge("tool_execution", "final_rendering")
+    
+    # 所有渲染器的輸出匯合到同一個後處理流程
     graph.add_edge("sfw_narrative_rendering", "rendering_junction")
     graph.add_edge("final_rendering", "rendering_junction")
     
@@ -1245,7 +1241,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("persist_state", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
+# 函式：創建主回應圖 (v25.0 - SFW拓撲修復)
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
@@ -1392,4 +1388,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
