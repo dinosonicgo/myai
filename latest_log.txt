@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-10T01:26:53.352648 ###
+### AI Lover Log - Last updated at 2025-09-10T01:31:55.705530 ###
 
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
+2025-09-10 01:28:16 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '【情節概述】:
 
-The above exception was the direct cause of the following exception:
+此片段描繪了一個複雜的權力結構與角色互動的...' 執行LORE查詢...
+2025-09-10 01:28:16 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 性神城
+2025-09-10 01:28:16 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 4 位常駐NPC。
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['溪语小屋', '乞丐', '性玩具', '迷雾森林', '性神教徒', '性神城']
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 2 條唯一的LORE記錄。
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 2 條相關LORE。
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 6 條LORE作為本回合上下文。
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 6 条 LORE 记录组装为最终上下文...
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
+2025-09-10 01:28:17 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '【情節概述】:
 
+此片段描繪了一個複雜的權力結構與角色互動的...' 判斷是否擴展...
+2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: True。理由: 劇本中描述了一個由三位「乞丐」角色主導的互動場景，其中一位「性神教徒」女性處於被動地位。現有的演員名單中有三位被歸類為「乞丐」的角色（巴納比、艾爾文、馬丁），他們符合劇本對乞丐角色的要求。然而，劇本中明確提到「三位乞丐角色主導的互動」，並且強調了「權力的轉移與臣服」，以及女性角色「自願接受被動角色」的姿態，這暗示了乞丐角色在此場景中扮演著主導和施加權力的角色，這與現有乞丐角色的描述（僅僅是乞討維生、生活艱辛、對未來迷茫）存在顯著差異。現有角色更像是被動的受助者，而非能夠主導權力轉移的施予者。因此，需要擴展LORE以引入能夠承擔這種主導和權力施加角色的新乞丐形象。
+2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|6A.1) Node: character_quantification -> 正在量化輸入中的角色...
+2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|6A.1) 角色量化成功，識別出 4 個待創建角色。
+2025-09-10 01:28:19 - [INFO] - [512280345618546699] (Graph|6A.2) Node: lore_expansion -> 正在為 4 個量化角色執行選角...
+2025-09-10 01:28:25 - [INFO] - [512280345618546699] 已成功将【新】NPC '艾拉' 添加到場景 '性神城'。
+2025-09-10 01:28:25 - [INFO] - [512280345618546699] 已成功将【新】NPC '巴特' 添加到場景 '性神城'。
+2025-09-10 01:28:25 - [WARNING] - [512280345618546699] 【NPC 命名冲突】: 角色 '卡爾' 的所有预生成名称 (卡爾) 均已存在或與核心主角衝突。启动最终备援：强制LLM重命名。
+2025-09-10 01:28:25 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #5 創建。下一次將使用 Key #6。
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] 最终备援成功，AI为角色生成了新名称: '塵埃'
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] 已成功将【新】NPC '塵埃' 添加到場景 '性神城'。
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] 已成功将【新】NPC '瑪麗' 添加到場景 '性神城'。
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|6A.2) 選角完成，創建了 4 位新角色: 艾拉, 巴特, 塵埃, 瑪麗.
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|6A.2) 已將 8 位角色 (新舊合併) 成功綁定為本回合的規劃主體。
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Router) Routing to planner. Intent: 'nsfw_descriptive', Final Viewing Mode: 'remote'
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #0 創建。下一次將使用 Key #1。
+2025-09-10 01:28:26 - [INFO] - [512280345618546699] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...
+2025-09-10 01:28:26 - [WARNING] - [512280345618546699] (History Summarizer) 直接摘要失敗，觸發【文學評論家】NSFW安全備援...
+2025-09-10 01:28:27 - [ERROR] - [512280345618546699] (History Summarizer) 【文學評論家】備援機制最終失敗: Literary euphemization also returned empty content.。啟動終極備援。
+2025-09-10 01:28:30 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...
+2025-09-10 01:29:19 - [INFO] - [512280345618546699] (Graph|Final Rendering) Node: final_rendering -> 正在将故事大纲渲染为最终小说...
+2025-09-10 01:29:24 - [INFO] - [512280345618546699] (Graph|10) Node: validate_and_rewrite -> 正在對 LLM 原始輸出進行內容保全式淨化...
+2025-09-10 01:29:24 - [INFO] - [512280345618546699] (Graph|11) Node: persist_state -> 正在持久化狀態與記憶...
+2025-09-10 01:29:25 - [INFO] - [512280345618546699] (Persist) 正在將 LORE 提取任務分派到背景執行...
+2025-09-10 01:29:30 - [INFO] - [512280345618546699] 背景任務：LORE 提取器已啟動...
+2025-09-10 01:29:30 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-10 01:29:30 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '在性神城這個將慾望奉為神明的城市，瀰漫著一股即使在白天也揮之不去的、混合著香料、汗水和某種難以名狀的...' 清洗為安全的文學概述...
+2025-09-10 01:29:32 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '在一個以慾望為核心信仰的城市景觀中，一段涉及權力轉移與儀式性臣服的場景被描繪。一位名為艾拉的年輕女性...'
+2025-09-10 01:29:33 - [INFO] - [512280345618546699] 背景任務：提取到 2 條新LORE，準備執行擴展...
+2025-09-10 01:29:33 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 2 個任務) ---
+2025-09-10 01:29:37 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...被扭曲的臣服。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...被扭曲的臣服。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-10 01:29:38 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與神祇相關的團體。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-10 01:29:38 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2312, in retrieve_and_summarize_memories
-    retrieved_docs = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3488, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3445, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\retrievers.py", line 323, in ainvoke
-    result = await self._aget_relevant_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\contextual_compression.py", line 69, in _aget_relevant_documents
-    docs = await self.base_retriever.ainvoke(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 153, in ainvoke
-    result = await self.arank_fusion(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 265, in arank_fusion
-    retriever_docs = await asyncio.gather(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\retrievers.py", line 323, in ainvoke
-    result = await self._aget_relevant_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 1104, in _aget_relevant_documents
-    docs = await self.vectorstore.asimilarity_search(query, **kwargs_)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 648, in asimilarity_search
-    return await run_in_executor(None, self.similarity_search, query, k=k, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 681, in similarity_search
-    docs_and_scores = self.similarity_search_with_score(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 781, in similarity_search_with_score
-    query_embedding = self._embedding_function.embed_query(query)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 256, in embed_query
-    return self.embed_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-2025-09-10 01:25:54 - [INFO] - [512280345618546699] (Graph) Node: perceive_and_set_view -> 正在基於意圖 'nsfw_descriptive' 统一处理感知与视角...
-2025-09-10 01:25:54 - [INFO] - [512280345618546699] (View Mode) 检测到描述性意图，准备进入/更新远程视角。
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] (Perception Hub) GameState 已更新: mode=remote, path=['性神城']
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] (Graph|3) Node: query_lore -> 正在基於【安全查詢文本】 '這段手稿片段描繪了一個複雜的權力動態場景，其中一名女性信徒在...' 執行LORE查詢...
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] (LORE Querier) 已鎖定有效場景: 性神城
-2025-09-10 01:25:55 - [INFO] - [512280345618546699] (LORE Querier) 在有效場景中找到 0 位常駐NPC。
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['溪语小屋', '性神教', '迷雾森林', '性神教徒', '性神城']
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 3 條唯一的LORE記錄。
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (LORE Querier) 從安全查詢文本中提取並查詢到 3 條相關LORE。
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (LORE Querier) 經過上下文優先合併與過濾後，共鎖定 3 條LORE作為本回合上下文。
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (Graph) Node: assemble_context -> 正在将 3 条 LORE 记录组装为最终上下文...
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (Context Assembler) 上下文簡報組裝完畢。
-2025-09-10 01:25:56 - [INFO] - [512280345618546699] (Graph|5) Node: expansion_decision -> 正在基於【安全查詢文本】 '這段手稿片段描繪了一個複雜的權力動態場景，其中一名女性信徒在...' 判斷是否擴展...
-2025-09-10 01:25:57 - [INFO] - [512280345618546699] (Graph|5) LORE擴展決策: True。理由: 劇本要求描寫一個包含女性信徒和三名男性角色的複雜權力動態場景，但現有演員名單為空，因此需要擴展演員名單以滿足場景需求。
-2025-09-10 01:25:57 - [INFO] - [512280345618546699] (Graph|6A.1) Node: character_quantification -> 正在量化輸入中的角色...
-2025-09-10 01:25:57 - [INFO] - [512280345618546699] (Graph|6A.1) 角色量化成功，識別出 4 個待創建角色。
-2025-09-10 01:25:57 - [INFO] - [512280345618546699] (Graph|6A.2) Node: lore_expansion -> 正在為 4 個量化角色執行選角...
-2025-09-10 01:26:03 - [INFO] - [512280345618546699] 已成功将【新】NPC '塞蕾娜' 添加到場景 '性神城'。
-2025-09-10 01:26:03 - [INFO] - [512280345618546699] 已成功将【新】NPC '巴納比' 添加到場景 '性神城'。
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] 已成功将【新】NPC '艾爾文' 添加到場景 '性神城'。
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] 已成功将【新】NPC '馬丁' 添加到場景 '性神城'。
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] (Graph|6A.2) 選角完成，創建了 4 位新角色: 塞蕾娜, 巴納比, 艾爾文, 馬丁.
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] (Graph|6A.2) 已將 4 位角色 (新舊合併) 成功綁定為本回合的規劃主體。
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] (Router) Routing to planner. Intent: 'nsfw_descriptive', Final Viewing Mode: 'remote'
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.1) Node: nsfw_breakthrough -> 正在生成NSFW故事大纲草稿...
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] LLM 實例已使用 API Key #4 創建。下一次將使用 Key #5。
-2025-09-10 01:26:04 - [INFO] - [512280345618546699] (History Summarizer) 正在樂觀嘗試直接摘要原始歷史文本...
-2025-09-10 01:26:05 - [INFO] - [512280345618546699] (History Summarizer) 直接摘要成功。
-2025-09-10 01:26:16 - [INFO] - [512280345618546699] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...祇相關的團體。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-10 01:29:42 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...稱為「淨化」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...稱為「淨化」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-10 01:29:44 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '描述一個與性神教徒相關的淨化過程。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-10 01:29:44 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3011, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '性神...關的淨化過程。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-10 01:29:44 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-10 01:29:44 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
