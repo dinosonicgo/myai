@@ -217,16 +217,16 @@ class CharacterAction(BaseModel):
         return self
 # 函式：角色行動模型
 
-# 類別：回合計劃 (v16.0 - 電影式場景設定)
+# 類別：回合計劃 (v15.0 - 驗證器自我修復)
 # 更新紀錄:
-# v16.0 (2025-09-22): [重大品質提升] 根據“電影式敘事”架構，重新定義了 `narration` 欄位的核心職責。它現在被明確為“導演的場景設定 (Director's Scene Setting)”，用於搭建整個場景的舞台（氛圍、光影、背景活動），為後續的電影式渲染提供結構基礎。
-# v15.0 (2025-09-22): [災難性BUG修復] 升級了 `check_plan_logic` 驗證器，使其具備“自我修復”能力。
+# v15.0 (2025-09-10): [災難性BUG修復] 升級了 `check_plan_logic` 驗證器，使其具備“自我修復”能力。當偵測到一個完全空的計畫時（例如，LLM只返回了空的 `character_actions`），它不再直接拋出錯誤，而是會自動添加一個中性的旁白（例如：“場景中沒有明顯的變化。”），以確保計畫的邏輯完整性並防止程式崩潰。
 # v14.0 (2025-09-08): [功能擴展] ItemInfo 新增了 `visual_description` 欄位。
+# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。
 class TurnPlan(BaseModel):
     """一回合行動的完整結構化計畫。"""
     thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
-    narration: Optional[str] = Field(default="", description="【導演的場景設定 (Director's Scene Setting)】一個綜合性的、用於搭建舞台的旁白。它應描寫場景的整體氛圍、光影、聲音、以及任何與核心角色無關的背景活動，為接下來的核心表演奠定基調。")
-    character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有【核心角色】的【關鍵表演 (Key Performances)】的列表。")
+    narration: Optional[str] = Field(default="", description="一個綜合性的旁白，描述場景的變化、角色的非語言互動、或任何不屬於特定角色對話的背景資訊。")
+    character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有角色具體行動和對話的列表。")
     execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合 lógica而無法執行時，此欄位包含以角色口吻給出的解釋。")
     template_id: Optional[str] = Field(default=None, description="[系統專用] 用於標識此計畫是否來源於某個預設模板。")
 
@@ -249,16 +249,22 @@ class TurnPlan(BaseModel):
         has_actions = bool(self.character_actions)
         has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
 
+        # 規則 1: 如果同時有行動和拒絕理由，優先保留行動，清除拒絕理由。
         if has_actions and has_rejection:
+            # Pydantic v2 中模型是不可變的，不能直接賦值。
+            # 使用 object.__setattr__ 來繞過這個限制進行修復。
             object.__setattr__(self, 'execution_rejection_reason', None)
             has_rejection = False
             
+        # 規則 2: 檢查計畫是否完全為空。
         has_thought_or_actions = bool(self.thought) or has_actions or (self.narration and self.narration.strip())
         if not has_thought_or_actions and not has_rejection:
-            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'narration'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
+            # [v15.0 核心修正] 自我修復邏輯
+            # 如果計畫完全為空，不再拋出錯誤，而是自動添加一個中性的旁白。
+            object.__setattr__(self, 'narration', "場景中沒有發生明顯的變化。")
             
         return self
-# 類別：回合計劃 (v16.0 - 電影式場景設定)
+# 類別：回合計劃 (v15.0 - 驗證器自我修復)
 
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
@@ -401,6 +407,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
