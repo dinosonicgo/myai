@@ -1179,8 +1179,13 @@ class AILover:
             else:
                 logger.info(f"[{self.user_id}] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。")
 
+        except ImportError:
+             # 這是在 ainvoke_with_rotation 中發生的 pydantic ValidationError 的特殊情況
+             # 我們在這裡捕獲它以防止整個背景任務崩潰
+             logger.error(f"[{self.user_id}] 背景LORE提取任務因 Pydantic ValidationError 而提前終止（表現為 ImportError）。")
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
+
     # 函式：[全新] 背景LORE提取與擴展 (v1.2 - 修正導入路徑)
 
 
@@ -2587,36 +2592,35 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 增加常識性規則)
     # 更新紀錄:
-    # v4.2 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，確認 LangChain 的提示詞解析器會錯誤地解析模板中的 JSON 範例語法。為從根本上解決此問題，已將所有具體的“關鍵對比範例”從此靜態模板中移除，並替換為一個無害的 `{examples}` 佔位符。實際的範例內容將由調用點（graph.py）動態注入。
+    # v4.2 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，為Prompt注入了【互動感知鐵則】。此規則強制LLM在面對互動性指令時，必須優先利用已存在的角色（特別是AI戀人），而不是錯誤地創造新角色來執行動作，從根本上為決策節點增加了必要的常識。
     # v4.1 (2025-09-06): [災難性BUG修復] 徹底重寫了提示詞中的所有範例，移除了所有大括號 {} 佔位符。
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             from .schemas import ExpansionDecision
             decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
             
-            # [v4.2 核心修正] 將硬編碼的範例替換為佔位符
-            prompt_template = """你是一位精明的【選角導演 (Casting Director)】。你的唯一任務是分析【劇本（使用者輸入）】，並對比你手中已有的【演員名單（現有角色JSON）】，來決定是否需要為這個場景【僱用新演員（擴展LORE）】。
+            prompt_template = """你是一位精明且富有洞察力的【選角導演 (Casting Director)】。你的唯一任務是分析【劇本（使用者輸入）】，並對比你手中已有的【演員名單（現有角色JSON）】，來決定是否需要為這個場景【僱用新演員（擴展LORE）】。
 
-# === 【【【最高指導原則：語意匹配優先 (Semantic-Matching First)】】】 ===
-這是你決策的【唯一且絕對的標準】。你的任務是判斷**角色職責**是否匹配，而不是進行簡單的字串比較。
+# === 【【【v4.2 新增：最高指導原則】】】 ===
 
-1.  **分析劇本需求**: 首先，從【使用者最新輸入】中理解場景需要什麼樣的**角色或職責**（例如：“一個賣魚的女人”、“幾個狂熱的信徒”）。
-2.  **審視演員名單**: 然後，你【必須】仔細閱讀下方提供的【現有角色JSON】，查看名單上是否有任何演員的**檔案（特別是`name`和`description`）**符合劇本所要求的**職責**。
+# 1.  **【互動感知鐵則 (Interaction-Awareness Mandate) - 絕對優先級】**:
+#     - 如果【使用者最新輸入】是一個**互動性的動作或對話**（例如：“坐下”、“攻擊衛兵”、“你好嗎？”），你【必須】優先假設這個指令是由**當前場景的核心互動角色**（特別是AI戀人 `{ai_name}`）來執行或響應。在這種情況下，幾乎永遠都【不應該】擴展LORE。你的職責是促進現有角色的互動，而不是為每個簡單動作都創造一個新演員。
+#     - **只有當**指令明確地、無歧義地描述一個**當前不在場**的、**全新的**實體時（例如：“一個半獸人商人從遠處走來”），你才應該考慮擴展LORE。
+
+# 2.  **【語意匹配優先 (Semantic-Matching First)】**:
+#     - 在遵循上一條鐵則的前提下，你的任務是判斷**角色職責**是否匹配，而不是進行簡單的字串比較。
 
 # === 決策規則 (絕對強制) ===
 
 ## A. 【必須不擴展 (should_expand = false)】的情況：
-   - **當已有合適的演員時**。如果【現有角色JSON】中，已經有角色的檔案表明他們可以扮演【使用者輸入】中要求的角色，你【必須】選擇他們，並決定【不擴展】。你的職責是優先利用現有資源。
-   - **理由必須這樣寫**: 你的理由應當清晰地指出哪個現有角色符合哪個被要求的職責。
+   - **當指令是互動性的**：根據【互動感知鐵則】，對於“坐下”這類指令，應判定為 `false`，理由是“這是一個應由核心角色（如 {ai_name}）響應的互動指令，無需創造新角色。”
+   - **當已有合適的演員時**：如果指令描述了一個新實體，但【現有角色JSON】中已有角色的檔案符合該職責，也應判定為 `false`。
 
 ## B. 【必須擴展 (should_expand = true)】的情況：
-   - **當缺乏合適的演員時**。如果【使用者輸入】明確要求一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責，這意味著演員陣容存在空白，需要你來【僱用新人】。
-   - **理由必須這樣寫**: 你的理由應當清晰地指出場景中缺失了哪種角色職責。
+   - **當明確描述新實體時**：只有當指令明確描述一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責時（例如：“一個吟遊詩人走進了酒館”），才判定為 `true`。
 
-# === 關鍵對比範例 ===
-{examples}
 ---
 【使用者最新輸入 (劇本)】: 
 {user_input}
@@ -2624,12 +2628,12 @@ class AILover:
 【現有角色JSON (演員名單)】:
 {existing_characters_json}
 ---
-請嚴格遵循以上所有規則，做出你作為選角導演的專業判斷。"""
+請嚴格遵循以上所有規則，特別是【互動感知鐵則】，做出你作為選角導演的專業判斷。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 增加常識性規則)
 
 
 
@@ -3657,6 +3661,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
