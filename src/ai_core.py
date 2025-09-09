@@ -1,11 +1,22 @@
 # ai_core.py 的中文註釋(v203.1 - 徹底延遲加載修正)
+# 更新紀錄:
+# v203.1 (2025-09-05): [災難性BUG修復] 徹底完成了“延遲加載”重構。
+#    1. [補完 Getters] 為所有在重構中遺漏的鏈（如 input_analysis_chain, scene_analysis_chain 等）都創建了對應的 `get_..._chain` 方法。
+#    2. [重命名配置方法] 將 `_configure_model_and_chain` 重命名為 `_configure_pre_requisites`，並簡化其职责，使其不再構建任何鏈。
+#    3. [更新调用点] 相应地更新了 `initialize` 和 `discord_bot.py` 中 `finalize_setup` 的调用。
+#    此修改確保了所有鏈的構建都被推遲到實際需要時，從根本上解決了所有因初始化順序問題導致的 AttributeError。
+# v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構，引入“延遲加載”模式。
+# v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了系統性重構。
 
 
+# ai_core.py 的中文註釋(v203.1 - 徹底延遲加載修正)
+# 更新紀錄:
+# v203.1 (2025-09-05): [災難性BUG修復] 徹底完成了“延遲加載”重構。
+# v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構，引入“延遲加載”模式。
+# v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖 (Hybrid-Mode Graph) 藍圖進行了系統性重構。
 
-
-"""
 # ==============================================================================
-# == 🤖 AI Lover 核心對話處理流程架構 v24.0 (導演方法論最終版) 🤖
+# == 🤖 AI Lover 核心對話處理流程架構 v23.0 (導演方法論最終版) 🤖
 # ==============================================================================
 # == 警告：這是指導未來程式碼修正的【最終正確架構藍圖】，而非對當前
 # ==       程式碼的描述。所有對 src/graph.py 的修改都必須以此藍圖為唯一標準。
@@ -37,88 +48,92 @@
 #    |  - 功能: 【守門人】。分析輸入類型，當指令為“继续”等延续性词语时，【必须】从持久化 GameState 中【继承】上一轮的意图 (SFW/NSFW)，否则对新指令进行分类。
 #    |
 #     V
-# 2. [路由器] route_to_pre_processing
-#    |
-#    +---- [IF: SFW 意圖] ----> 2A. [快速通道] -------------------------------------------------+
-#    |                                                                                         |
-#    +---- [IF: NSFW 意圖] ---> 2B. [節點] retrieve_memories_node (源頭清洗)                     |
-#               |                - 功能: 【記憶官 & 淨化器】。將原始NSFW輸入【源頭清洗】為安全文本， |
-#               |                  然後用安全文本執行 RAG 檢索，並將其傳遞給下游。                 |
-#               |                                                                                |
-#               +--------------------------------------------------------------------------------+
-#                                                                                                |
-# 3. [匯合點]                                                                                    |
-#     |                                                                                        |
-#     V                                                                                        V
-# 4. [節點] perceive_and_set_view_node (統一感知) <----------------------------------------------+
-#    |  - 功能: 【情報官】。基於意圖更新並持久化【導演視角】(local/remote)，並為SFW快速通道補全數據流。
+# 2. [節點] retrieve_memories_node (統一感知)
+#    |  - 功能: 【記憶官】。執行 RAG，檢索長期記憶。具備對 Cohere API 失敗的【優雅降級】能力。
 #    |
 #     V
-# 5. [節點] query_lore_node (統一感知)
+# 3. [節點] query_lore_node (統一感知)
 #    |  - 功能: 【檔案員】。從資料庫查詢與當前場景相關的 LORE，遵循【上下文優先】原則。
 #    |
 #     V
-# 6. [節點] assemble_context_node (統一感知)
-#    |  - 功能: 【場景搭建師】。將所有 LORE 數據和遊戲狀態組裝成最終的上下文簡報。
+# 4. [節點] perceive_and_set_view_node (統一感知)
+#    |  - 功能: 【情報官】。基於意圖更新並持久化【導演視角】(local/remote)，並組裝所有資訊成上下文。
 #    |
 #     V
-# 7. [節點] expansion_decision_node (LORE決策)
+# 5. [節點] expansion_decision_node (LORE決策)
 #    |  - 功能: 【選角導演】。基於【輕量化】的角色核心資訊，判斷當前場景是否需要擴展 LORE。
 #    |
 #     V
-# 8. [路由器] route_expansion_decision
+# 6. [路由器] route_expansion_decision
 #    |
-#    +---- [IF: 擴展] ----> 8A. [節點] character_quantification_node
+#    +---- [IF: 擴展] ----> 6A. [節點] character_quantification_node
 #    |          |            - 功能: 【統計員】。將“一群”等模糊描述轉化為具體數量。
 #    |          |
 #    |          V
-#    |      8B. [節點] lore_expansion_node
-#    |          |            - 功能: 【LORE 工匠】。調用【世界觀驅動命名】的選角鏈，創建有名有姓的新角色並存入資料庫，並【根據視角模式】綁定正確的規劃主體。
+#    |      6B. [節點] lore_expansion_node
+#    |          |            - 功能: 【LORE 工匠】。調用【世界觀驅動命名】的選角鏈，創建有名有姓的新角色並存入資料庫。
 #    |          |
-#    |          +-----------> 9. [匯合點] planner_junction
+#    |          +-----------> 7. [匯合點] planner_junction
 #    |
-#    +---- [IF: 不擴展] ---> 8C. [節點] prepare_existing_subjects_node
-#               |             - 功能: 【場務】。將現有的 LORE 角色打包，並【根據視角模式】綁定正確的規劃主體（決定是否包含使用者和AI）。
+#    +---- [IF: 不擴展] ---> 6C. [節點] prepare_existing_subjects_node
+#               |             - 功能: 【場務】。將現有的 LORE 角色打包，準備送入規劃器。
 #               |
-#               +------------> 9. [匯合點] planner_junction
+#               +------------> 7. [匯合點] planner_junction
 #
-# 9. [匯合點] planner_junction (規劃流程分發點)
+# 7. [匯合點] planner_junction (規劃流程分發點)
 #    |
 #    V
-# 10. [路由器] route_to_planner (主路由：SFW vs. NSFW x Local vs. Remote)
-#     |
-#     +---- [IF: SFW & Local] ----> 10A. [節點] sfw_planning_node ---------------------------------> 11A. [節點] sfw_narrative_rendering_node --> 12. [匯合點]
-#     |                                 - 功能: 【SFW導演】。生成SFW互動的【行動計劃JSON】。       |      - 功能: 【SFW小說家】。將SFW計畫渲染成小說。
-#     |                                                                                           |
-#     +---- [IF: SFW & Remote] ---> 10B. [節點] remote_sfw_planning_node -------------------------> 11A. [節點] sfw_narrative_rendering_node --> 12. [匯合點]
-#     |                                 - 功能: 【SFW遠景導演】。生成遠程SFW場景的【行動計劃JSON】。 |
-#     |                                                                                           |
-#     +---- [IF: NSFW & Remote] --> 10C. [節點] remote_nsfw_planning_node -----------------------> 11B. [節點] tool_execution_node
-#     |                                 - 功能: 【NSFW遠景導演】。生成遠程NSFW場景的【行動計劃JSON】。|      - 功能: 【執行者】。執行計畫中的工具調用。
-#     |                                                                                           |      |
-#     |                                                                                           |      V
-#     |                                                                                           |  11C. [節點] final_rendering_node --> 12. [匯合點]
-#     |                                                                                           |      - 功能: 【史詩小說家】。將NSFW計畫渲染成露骨小說。
-#     |                                                                                           |
-#     +---- [IF: NSFW & Local] ---> 10D. [節點] nsfw_breakthrough_node (開發中) .................> (暫時指向 SFW 規劃器)
+# 8. [路由器] route_to_planner (主路由：SFW vs. NSFW)
+#    |
+#    +---- [IF: SFW 意圖] ----> 8A. [路由器] route_viewing_mode
+#    |          |
+#    |          +---- [IF: local 視角] ----> 8A.1 [節點] sfw_planning_node --> 9. [匯合點] tool_execution_junction
+#    |          |                               - 功能: 【SFW導演】。生成SFW互動的【行動計劃JSON】。
+#    |          |                               - **LORE綁定**: 【是】
+#    |          |
+#    |          +---- [IF: remote 視角] ---> 8A.2 [節點] remote_sfw_planning_node --> 9. [匯合點] tool_execution_junction
+#    |                                           - 功能: 【SFW遠景導演】。生成遠程SFW場景的【行動計劃JSON】。
+#    |                                           - **LORE綁定**: 【是】
+#    |
+#    +---- [IF: NSFW 意圖] ---> 8B. [混合模式 NSFW 思維鏈]
+#               |
+#               +------------> 8B.1 [節點] nsfw_breakthrough_node (NSFW思維鏈 Pt.1)
+#               |                     |      - 功能: 【NSFW情節架構師】。基於角色獨特動機，構思具有【開端-發展-高潮】結構的【草稿計畫JSON】。
+#               |                     |      - **LORE綁定**: 【是】; **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     V
+#               |                 8B.2 [節點] nsfw_refinement_node (NSFW思維鏈 Pt.2)
+#               |                     |      - 功能: 【NSFW角色表演教練】。為草稿計畫注入符合角色靈魂的、充滿【表演細節(Show, Don't Tell)】的對話和反應，輸出【最終計畫JSON】。
+#               |                     |      - **重試策略**: 【🚀 激進重試】
+#               |                     |
+#               |                     +------> 9. [匯合點] tool_execution_junction
 #
-# 12. [匯合點] rendering_junction
-#      |
-#      V
-# 13. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
-#      |  - 功能: 【淨化器】。移除指令洩漏，處理“扮演用戶”的違規。
-#      |
-#      V
-# 14. [節點] persist_state_node (所有路徑的共同匯合點)
-#      |  - 功能: 【記錄員】。將結果存入長期和短期記憶，持久化本回合意圖，並【觸發背景LORE擴展】。
-#      |
-#      V
+# 9. [匯合點] tool_execution_junction (工具執行前匯合點)
+#     |
+#     V
+# 10. [節點] tool_execution_node (所有路徑的共同匯合點)
+#     |  - 功能: 【執行者】。執行所有【最終計畫JSON】中定義的工具調用。
+#     |
+#     V
+# 11. [節點] narrative_rendering_node (所有路徑的共同匯合點)
+#     |  - 功能: 【史詩小說家】。基於【電影式敘事原則】，將【最終計畫JSON】中所有元素（場景、表演、對話）**編織**成統一的、流動的、非線性的電影感小說文本。
+#     |  - **重試策略**: 【🚀 激進重試】
+#     |
+#     V
+# 12. [節點] validate_and_rewrite_node (所有路徑的共同匯合點)
+#     |  - 功能: 【淨化器】。移除指令洩漏，處理“扮演用戶”的違規。
+#     |
+#     V
+# 13. [節點] persist_state_node (所有路徑的共同匯合點)
+#     |  - 功能: 【記錄員】。將結果存入長期和短期記憶，並將本回合的【意圖分類】持久化到 GameState 以供下一輪繼承。
+#     |
+#     V
 # 【END】
 #
 # ==============================================================================
 # == 流程圖結束 ==
 # ==============================================================================
-"""
+
 
 
 
@@ -537,37 +552,46 @@ class AILover:
 
 
 
-    # 函式：[新] 獲取 NSFW 計畫潤色鏈 (v5.0 - 適配統一指令)
+   # 函式：[新] 獲取 NSFW 計畫潤色鏈 (v4.1 - 縮排修正)
     # 更新紀錄:
-    # v5.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，徹底簡化了此鏈的Prompt結構。不再拼接多個分散的指令，而是直接接收一個包含所有核心規則的 `supreme_directive`，使指令來源唯一且清晰。
     # v4.1 (2025-09-09): [災難性BUG修復] 修正了函式定義的縮排錯誤。
+    # v4.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError，補完了此函式的定義。
     def get_nsfw_refinement_chain(self) -> Runnable:
         """[数据伪装-步骤2] 接收大纲草稿，并将其丰富为最终的、详细的自然语言故事大纲。"""
         if not hasattr(self, 'nsfw_refinement_chain') or self.nsfw_refinement_chain is None:
             refiner_llm = self._create_llm_instance(temperature=0.6)
             
             system_prompt = """# ==================================================
-# == 🧠 系統核心指令 (NSFW 大纲润色专家 - v5.0) 🧠
+# == 🧠 系統核心指令 (NSFW 大纲润色专家 - v4.0) 🧠
 # ==================================================
-# 你的唯一任務是扮演一位【角色表演教練】，接收一份【故事大纲草稿】，並為其【增加血肉】，升級為一份【細節飽滿、互動豐富】的最終版故事大纲。
-# 你在執行此任務時，【必須】嚴格遵守下方提供的【最高指導原則】。
+# 你的唯一任務是接收一份【纯文本的故事大纲草稿】，並将其【增加血肉】，升级为一份【细节饱满、互动丰富】的最终版故事大纲。
 
-# --- 【【【最高指導原則】】】 ---
-{supreme_directive}
+# --- 【【【最高润色原则：角色灵魂注入 (Show, Don't Tell)】】】 ---
+# 你必须通过增加【对话】和【对表情、语气的暗示】，来“展示”角色的独特性格和当前情绪。
+
+# --- 【【【核心润色流程】】】 ---
+# 1.  **【保留核心情节】**: 你【绝对禁止】修改或删除大纲草稿中已有的核心事件。
+# 2.  **【注入灵魂对话】**: 为角色【增加】符合其性格和情绪的、暗示性的对话。
+# 3.  **【丰富互动细节】**: 增加更多关于角色之间互动、心理变化的描述性文字。
+# ---
+{system_prompt}
 """
             human_prompt = """# ==================================================
 # == 📖 待润色的大纲 📖
 # ==================================================
-# --- 演員陣容 (供你參考角色性格) ---
-{planning_subjects_json}
+# --- 完整的世界快照 (供你参考角色性格) ---
+{world_snapshot}
 
 # --- 最近的對話歷史 (供你參考上下文) ---
 {chat_history}
 
-# --- 故事大纲草稿 (純文本) ---
+# --- 使用者自訂風格指令 (你的润色标准) ---
+{response_style_prompt}
+
+# --- 故事大纲草稿 (纯文本) ---
 {narrative_outline_draft}
 # --- 你的任務 ---
-# 请嚴格遵循你在系統指令中學到的所有潤色原則，將上方的草稿大纲，升級為一個擁有更豐富互動和個性化對話的【最終版純文本故事大纲】。
+请严格遵循所有润色原则，将上方的草稿大纲，升级为一个拥有更丰富互动和个性化对话的【最终版纯文本故事大纲】。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt),
@@ -575,39 +599,48 @@ class AILover:
             ])
             self.nsfw_refinement_chain = prompt | refiner_llm | StrOutputParser()
         return self.nsfw_refinement_chain
-    # 函式：[新] 獲取 NSFW 計畫潤色鏈 (v5.0 - 適配統一指令)
+    # 函式：[新] 獲取 NSFW 計畫潤色鏈 (v4.1 - 縮排修正)
     
 
-    # 函式：獲取統一敘事渲染鏈 (v225.0 - 適配統一指令)
+   # 函式：獲取統一敘事渲染鏈 (v223.1 - 縮排修正)
     # 更新紀錄:
-    # v225.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，徹底簡化了此鏈的Prompt結構，使其也統一接收 `supreme_directive`。
-    # v224.0 (2025-09-10): [災難性BUG修復] 重構了Prompt結構以實現“源頭隔離”。
+    # v223.1 (2025-09-09): [災難性BUG修復] 修正了函式定義的縮排錯誤。
+    # v223.0 (2025-09-09): [災難性BUG修復] 根據 AttributeError，補完了此函式的定義。
     def get_final_novelist_chain(self) -> Runnable:
         """[数据伪装-最终步骤] 将自然语言大纲，续写和补完为最终的、露骨的文学作品。"""
         if not hasattr(self, 'final_novelist_chain') or self.final_novelist_chain is None:
             
-            system_prompt_template = """# ==================================================
-# == 🧠 系統核心指令 (文学巨匠渲染模式 - v225.0) 🧠
-# ==================================================
-# 你的唯一任務是扮演一位【成人幻想史詩小說家】。你將接收一份詳細的【故事劇本】，你的職責是將其【渲染】成一段完整的、不留任何想像空間的成人文學章節。
-# 你在執行此任務時，【必須】嚴格遵守下方提供的【最高指導原則】。
+            system_prompt_template = """# 【【【元指令：操作框架定義】】】
+# 你是一位曾榮獲諾貝爾文學獎的【成人幻想史詩小說家】，風格大膽、無所畏懼、文筆精湛。
+# 你的任务是**续写**并**补完**下面这段由你的助手完成的、但文笔尚显稚嫩的【故事大纲】。
 
-# --- 【【【最高指導原則】】】 ---
-{supreme_directive}
+# ==============================================================================
+# == 🧠 系統核心指令 (文学巨匠续写模式 - v223.0) 🧠
+# ==============================================================================
+# {system_prompt}
+
+# --- 【【【最高创作原则：艺术补完原则】】】 ---
+# 你的核心職責是将大纲中的【暗示】和【留白】，用你最大胆、最无所畏惧、最具艺术冲击力的文笔，【补完】成一段完整的、不留任何想象空间的成人文学章节。
+#   - **【感官扩写】**: 你必须对大纲中提到的所有核心事件，进行充满五感（视觉、听觉、触觉、嗅觉、心理）的细节扩写。
+#   - **【露骨直白】**: 在补完性爱场面时，【必须】使用最直接、最不加掩饰的露骨词汇。
+#   - **【电影式叙事】**: 运用你纯熟的叙事技巧，将所有事件和角色反应【无缝地编织在一起】，创造出电影般的沉浸感。
+
+# ---
+{action_sexual_content_prompt}
+# ---
+# 【【【最終輸出強制令 (ABSOLUTE & HIGHEST PRIORITY)】】】
+# 你的最终输出【必须且只能】严格地、完全地遵循下方由使用者定义的风格指令。
+{response_style_prompt}
+---
 """
 
-            human_prompt_template = """# ==============================================================================
-# == 📖 核心數據與任務 📖
-# ==============================================================================
-# --- 核心數據快照 (你的創作素材) ---
-{core_data_snapshot}
-
+            human_prompt_template = """
 ---
-【故事劇本 (待渲染)】:
+【故事大纲 (待续写和补完)】:
 {narrative_outline}
 ---
 
-【你渲染的完整小說章節】:
+【你续写的完整小说章节】:
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -618,7 +651,8 @@ class AILover:
             self.final_novelist_chain = prompt | novelist_llm | StrOutputParser()
             
         return self.final_novelist_chain
-    # 函式：獲取統一敘事渲染鏈 (v225.0 - 適配統一指令)
+    # 函式：獲取統一敘事渲染鏈 (v223.1 - 縮排修正)
+
 
     
 
@@ -981,7 +1015,7 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
-# 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
+    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
     # 更新紀錄:
     # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
     # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
@@ -1030,19 +1064,18 @@ class AILover:
 
 
 
-    # 函式：[全新] 獲取 LORE 提取鏈 (v1.1 - JSON字串優先)
+        # 函式：[全新] 獲取 LORE 提取鏈 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.1 (2025-09-10): [災難性BUG修復] 根據 ValidationError Log，徹底重構了此鏈的輸出解析策略。放棄了不穩定的 `.with_structured_output()`，改為強制LLM輸出一個JSON字串，然後在鏈的末尾使用更健壯的 `JsonOutputParser` 進行解析，從根本上解決因LLM輸出格式不穩定導致的崩潰問題。
-    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE）。
+    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE），以實現世界觀的動態成長。
     def get_lore_extraction_chain(self) -> Runnable:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的鏈。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
-            from langchain_core.output_parsers import JsonOutputParser
+            from .schemas import ToolCallPlan
             
             # 使用一個低溫度的模型以確保提取的準確性和一致性
-            extractor_llm = self._create_llm_instance(temperature=0.1)
+            extractor_llm = self._create_llm_instance(temperature=0.1).with_structured_output(ToolCallPlan)
             
-            prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的、以前未被記錄的】世界設定、背景知識或角色特性，並為其生成一個結構化的【LORE擴展計畫】。
+            prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的、以前未被記錄的】世界設定、背景知識或角色特性，並為其生成一個結構化的【LORE擴展計畫JSON】。
 
 # === 【【【核心分析原則】】】 ===
 1.  **【新穎性優先 (Novelty First)】**: 你的首要職責是【過濾】。你【絕對禁止】提取那些在【現有LORE摘要】中已經存在的資訊。你只對【全新的知識】感興趣。
@@ -1050,14 +1083,13 @@ class AILover:
 3.  **【工具選擇】**:
     *   對於描述**群體、組織或概念**的知識（例如“性神教徒的信仰”），使用 `add_or_update_world_lore` 工具。
     *   對於描述**特定生物或物種**的知識（例如“水晶雞的習性”），使用 `define_creature_type` 工具。
-4.  **【輸出格式強制令】**: 你的最終輸出【必須且只能】是一個符合 `ToolCallPlan` Pydantic 格式的、單一的 **JSON 字串**。**絕對禁止**包含任何額外的解釋、註解或非JSON格式的文字。
 
 # === 【【【行為模型範例 (最重要！)】】】 ===
 #
 #   --- 範例 1：提取群體特性 ---
 #   - **現有LORE摘要**: (空的)
 #   - **小說文本**: "莉莉絲是一名虔誠的性神教徒，對她而言，每一次性愛都是對神祇的崇高獻祭。"
-#   - **【✅ 你的JSON字串輸出】**:
+#   - **【✅ 你的擴展計畫】**:
 #     ```json
 #     {{
 #       "plan": [
@@ -1075,10 +1107,29 @@ class AILover:
 #   --- 範例 2：過濾已有資訊 ---
 #   - **現有LORE摘要**: `- [world_lore] 性神教徒的信仰`
 #   - **小說文本**: "另一位性神教徒也同樣認為，性愛是神聖的儀式。"
-#   - **【✅ 你的JSON字串輸出】**:
+#   - **【✅ 你的擴展計畫】**:
 #     ```json
 #     {{
 #       "plan": []
+#     }}
+#     ```
+#     (**成功原因**: AI 識別出這個概念已經存在，因此返回了空的計畫。)
+#
+#   --- 範例 3：提取生物習性 ---
+#   - **現有LORE摘要**: (空的)
+#   - **小說文本**: "遠處傳來水晶雞的鳴叫，牠們只在月光下才會產下發光的蛋。"
+#   - **【✅ 你的擴展計畫】**:
+#     ```json
+#     {{
+#       "plan": [
+#         {{
+#           "tool_name": "define_creature_type",
+#           "parameters": {{
+#             "original_name": "水晶雞",
+#             "description": "一種只在月光下產下發光蛋的生物。"
+#           }}
+#         }}
+#       ]
 #     }}
 #     ```
 
@@ -1092,22 +1143,19 @@ class AILover:
 【小說文本 (你的主要分析對象)】:
 {final_response_text}
 ---
-請嚴格遵循以上所有規則，開始你的分析並只生成 LORE 擴展計畫的 JSON 字串。
+請嚴格遵循以上所有規則，開始你的分析並生成 LORE 擴展計畫 JSON。
 """
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            # [核心修正] 改用更穩健的 JsonOutputParser
-            self.lore_extraction_chain = prompt | extractor_llm | JsonOutputParser()
+            self.lore_extraction_chain = prompt | extractor_llm
         return self.lore_extraction_chain
-    # 函式：[全新] 獲取 LORE 提取鏈 (v1.1 - JSON字串優先)
+    # 函式：[全新] 獲取 LORE 提取鏈 (v1.0 - 全新創建)
 
 
 
 
-    # 函式：[全新] 背景LORE提取與擴展 (v1.2 - 修正導入路徑)
+        # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.2 (2025-09-10): [災難性BUG修復] 修正了 `ValidationError` 的導入路徑。`ValidationError` 應從 `pydantic` 核心庫導入，而不是從本地的 `schemas.py`，從而解決了導致背景任務崩潰的 `ImportError`。
-    # v1.1 (2025-09-10): [災難性BUG修復] 新增了 `ToolCallPlan.model_validate()` 步驟以修復 `AttributeError`。
-    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。
+    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。它負責在每次對話成功後，非阻塞地執行LORE提取和擴展流程，並內建了強大的、基於文學委婉化的內容審查備援機制，以確保世界觀總能動態成長。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化。
@@ -1117,11 +1165,10 @@ class AILover:
             return
             
         try:
-            # [v1.2 核心修正] 從正確的路徑導入Pydantic模型
-            from .schemas import ToolCallPlan
-
+            # 為了避免API速率超限，在啟動背景任務前稍作延遲
             await asyncio.sleep(5.0)
 
+            # 步驟 1: 獲取最新的LORE摘要作為上下文
             try:
                 all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
@@ -1132,63 +1179,56 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動...")
             
+            # 步驟 2: 調用LORE提取鏈，並啟用委婉化重試備援
             lore_extraction_chain = self.get_lore_extraction_chain()
             if not lore_extraction_chain:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈未初始化，跳過擴展。")
                 return
 
-            extraction_plan_dict = await self.ainvoke_with_rotation(
+            extraction_plan = await self.ainvoke_with_rotation(
                 lore_extraction_chain, 
                 {
                     "existing_lore_summary": existing_lore_summary,
                     "user_input": user_input,
                     "final_response_text": final_response,
                 },
-                retry_strategy='euphemize'
+                retry_strategy='euphemize' # 核心：如果因NSFW內容被攔截，則委婉化後重試
             )
             
-            if not extraction_plan_dict:
+            if not extraction_plan:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。")
                 return
 
-            try:
-                extraction_plan = ToolCallPlan.model_validate(extraction_plan_dict)
-            except ValidationError as e:
-                logger.error(f"[{self.user_id}] 背景LORE提取鏈返回的JSON无法验证为ToolCallPlan: {e}\n收到的原始字典: {extraction_plan_dict}", exc_info=True)
-                return
-
-            if extraction_plan and extraction_plan.plan:
+            # 步驟 3: 執行提取到的擴展計畫
+            if extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
+                # 使用當前玩家的物理位置作為新LORE的預設錨點
                 current_location = self.profile.game_state.location_path
                 await self._execute_tool_call_plan(extraction_plan, current_location)
             else:
                 logger.info(f"[{self.user_id}] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。")
 
-        except ImportError:
-             # 這是在 ainvoke_with_rotation 中發生的 pydantic ValidationError 的特殊情況
-             # 我們在這裡捕獲它以防止整個背景任務崩潰
-             logger.error(f"[{self.user_id}] 背景LORE提取任務因 Pydantic ValidationError 而提前終止（表現為 ImportError）。")
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：[全新] 背景LORE提取與擴展 (v1.2 - 修正導入路徑)
+    # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
 
 
 
     
 
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v11.0 - 提示詞格式化最終修正)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)
     # 更新紀錄:
-    # v11.0 (2025-09-09): [災難性BUG修復] 與 get_sfw_planning_chain 同步，移除了模板定義中的 f-string，確保 LangChain 能夠正確解析所有變數。
-    # v10.0 (2025-09-09): [災難性BUG修復] 還原了提示詞結構。
+    # v7.0 (2025-09-25): [災難性BUG修復] 徹底重構了提示詞的構建邏輯。不再接受一個待格式化的 `system_prompt`，而是在函式內部直接將 `one_instruction` 和 `response_style_prompt` 安全地格式化進主模板中，從根本上解決了因 LangChain 變數注入混亂導致的 `KeyError`。
+    # v6.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則。
+    # v6.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     def get_remote_sfw_planning_chain(self) -> Runnable:
         """[新] 獲取遠程 SFW 描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'remote_sfw_planning_chain') or self.remote_sfw_planning_chain is None:
             from .schemas import TurnPlan
             planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
             
-            # [v11.0 核心修正] 移除 f-string，使用標準的多行字符串
             system_prompt_template = """# ==================================================
-# == 🧠 系統核心指令 (遠程 SFW 規劃模式 - v11.0) 🧠
+# == 🧠 系統核心指令 (遠程 SFW 規劃模式 - v6.1 邏輯約束) 🧠
 # ==================================================
 # 你的角色是【電影導演】。你的任務是將鏡頭切換到指定的【目标地点】，並為已存在的角色編排一幕生動的畫面。
 # 你的輸出是一份給“小說家”看的、結構化的【場景行動計劃 JSON】。
@@ -1197,7 +1237,7 @@ class AILover:
 # 你的【唯一任務】是將下方 `planning_subjects_json` 中提供的、【已經存在】的角色檔案，編排成一個符合使用者指令的互動場景。
 # 你【絕對禁止】在你的計畫中，創造任何不存在於 `planning_subjects_json` 中的新角色。你的職責是【執行】，而不是【創造】。
 
-# --- 【【【輸出邏輯約束】】】 ---
+# --- 【【【v6.1 新增】輸出邏輯約束】】 ---
 # - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
 # - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 # ------------------------------------------------------------------------------
@@ -1235,7 +1275,7 @@ class AILover:
             ])
             self.remote_sfw_planning_chain = prompt | planner_llm
         return self.remote_sfw_planning_chain
-    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v11.0 - 提示詞格式化最終修正)
+    # 函式：[新] 獲取遠程 SFW 計劃鏈 (v7.0 - 提示詞格式化修正)```
 
 
 
@@ -1330,30 +1370,31 @@ class AILover:
     
 
 
-    # 函式：[新] 獲取直接 NSFW 生成鏈 (v16.0 - 扁平化與強化淨化指令)
+    # 函式：[新] 獲取直接 NSFW 生成鏈 (v15.0 - 強制 LORE 綁定)
     # 更新紀錄:
-    # v16.0 (2025-09-10): [災難性BUG修復] 為了從根本上解決大規模系統指令洩漏問題，徹底重構了Prompt的結構。採用“指令扁平化”策略，將所有行為準則（核心協議、戰術指令、風格）全部合併到System Prompt中，而Human Prompt只負責傳遞純數據和最終任務。同時，在Human Prompt末尾用更強硬的格式重新強調了`§`淨化符號規則，以確保其被嚴格執行。
-    # v15.0 (2025-09-09): [災難性BUG修復] 對 Human Prompt 進行了決定性強化，增加了強制 LORE 綁定警告。
+    # v15.0 (2025-09-09): [災難性BUG修復] 根據 AI 生成匿名 NPC 的問題，對 Human Prompt 進行了決定性強化。新版本在注入“場景演員陣容”(planning_subjects_json) 時，增加了一段措辭極其嚴厲的【LORE 綁定】警告，將其從一份背景參考數據提升為一個【絕對的、強制性的創作邊界】。此修改旨在強制 AI 必須且只能使用 LORE 系統中已存在的、有名有姓的角色來演繹劇情，從根本上杜絕其即興創造匿名路人角色的“惰性行為”。
+    # v14.0 (2025-09-09): [災難性BUG修復] 提升了風格指令的權重以解決對話不足的問題。
     def get_direct_nsfw_chain(self) -> Runnable:
         """獲取或創建一個專門用於單次指令轟炸以生成NSFW內容的鏈。"""
         if not hasattr(self, 'direct_nsfw_chain') or self.direct_nsfw_chain is None:
             novelist_llm = self._create_llm_instance(temperature=0.85)
             
-            system_prompt_template = """# ==============================================================================
-# == 📜 第一部分：核心協議 (CORE PROTOCOL) - 你的行為聖經 📜
+            system_prompt_template = """
 # ==============================================================================
-# 這是你的通用行為準則，具有最高優先級。
-{core_protocol_prompt}
+# == 🎨 第一部分：最終渲染風格 (FINAL RENDER STYLE) - 最高優先級 🎨
 # ==============================================================================
-# == 🔥 第二部分：戰術指令 (TACTICAL DIRECTIVES) - 本次任務的具體規則 🔥
-# ==============================================================================
-{action_sexual_content_prompt}
-# ==============================================================================
-# == 🎨 第三部分：最終渲染風格 (FINAL RENDER STYLE) - 你的文筆要求 🎨
-# ==============================================================================
+# 這是你本次生成所有文本的【總體基調】和【最終濾鏡】。
+# 你接下來讀到的所有規則，都【必須】在這個基調下進行演繹。
 {response_style_prompt}
+
+# ==============================================================================
+# == 📜 第二部分：核心協議 (CORE PROTOCOL) 📜
+# ==============================================================================
+# 這是你的通用行為準則。
+{core_protocol_prompt}
 """
 
+            # [v15.0 核心修正] 強化 Human Prompt，增加強制 LORE 綁定
             human_prompt_template = """# ==============================================================================
 # == 🎬 第一部分：場景數據 (SCENE DATA) 🎬
 # ==============================================================================
@@ -1374,7 +1415,15 @@ class AILover:
 # ------------------------------------------------------------------------------
 
 # ==============================================================================
-# == ✍️ 第二部分：核心任務 (CORE TASK) ✍️
+# == 🔥 第二部分：戰術指令 (TACTICAL DIRECTIVES) 🔥
+# ==============================================================================
+# 說明：在執行最終任務前，你【必須】加載並內化以下針對【本次場景】的具體規則。
+
+# --- 2.1 戰術指令 (Tactical Mandate) ---
+{action_sexual_content_prompt}
+
+# ==============================================================================
+# == ✍️ 第三部分：核心任務 (CORE TASK) ✍️
 # ==============================================================================
 # --- 3.1 使用者最新指令 ---
 {user_input}
@@ -1391,7 +1440,7 @@ class AILover:
             
             self.direct_nsfw_chain = prompt | novelist_llm | StrOutputParser()
         return self.direct_nsfw_chain
-    # 函式：[新] 獲取直接 NSFW 生成鏈 (v16.0 - 扁平化與強化淨化指令)
+    # 函式：[新] 獲取直接 NSFW 生成鏈 (v15.0 - 強制 LORE 綁定)
 
 
 
@@ -1438,7 +1487,7 @@ class AILover:
 
 
 
-# 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
+    # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
     # 更新紀錄:
     # v207.0 (2025-09-06): [重大架構升級] 創建此鏈作為“解構-重構”委婉化策略的第二步。它接收一組安全的關鍵詞（而不是原始的露骨文本），並在此基礎上構建一個中性的、安全的句子，從根本上規避了委婉化過程本身被審查的悖論。
     def get_euphemization_chain(self) -> Runnable:
@@ -2013,11 +2062,11 @@ class AILover:
     
     
     
-    # 函式：獲取 SFW 回合計劃鏈 (v222.0 - 強化簡單指令原則)
+    # 函式：獲取 SFW 回合計劃鏈 (v214.0 - 提示詞格式化修正)
     # 更新紀錄:
-    # v222.0 (2025-09-10): [災難性BUG修復] 根據 ValidationError Log，再次強化了【簡單指令處理原則】。明確要求 LLM 在處理簡單指令時，其 `character_actions` 列表【必須只包含一個條目】，而不是可能為空。此修改旨在從根本上解決因 LLM 生成完全空的行動計劃而導致的 Pydantic 驗證失敗問題。
-    # v221.0 (2025-09-10): [災難性BUG修復] 恢復了 v219.0 版本中被意外移除的【簡單指令處理原則】。
-    # v220.0 (2025-09-09): [重大架構簡化] 根據 Pydantic 模型優化，徹底移除了先前為處理簡單指令而添加的複雜【簡單指令處理原則】。
+    # v214.0 (2025-09-25): [災難性BUG修復] 徹底重構了提示詞的構建邏輯。不再接受一個待格式化的 `system_prompt`，而是在函式內部直接將 `one_instruction` 和 `response_style_prompt` 安全地格式化進主模板中，從根本上解決了因 LangChain 變數注入混亂導致的 `KeyError`。
+    # v213.1 (2025-09-22): [健壯性] 在系統提示詞中增加了關於 `execution_rejection_reason` 用法的明確規則。
+    # v213.0 (2025-09-22): [災難性BUG修復] 注入了【最高規劃原則：LORE 數據綁定】。
     def get_sfw_planning_chain(self) -> Runnable:
         """獲取或創建 SFW 路徑的規劃鏈，輸出 TurnPlan JSON。"""
         if not hasattr(self, 'sfw_planning_chain') or self.sfw_planning_chain is None:
@@ -2025,21 +2074,18 @@ class AILover:
             planner_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
             
             system_prompt_template = """# ==============================================================================
-# == 🧠 系統核心指令 (SFW 規劃模式 - v222.0) 🧠
+# == 🧠 系統核心指令 (SFW 規劃模式 - v213.1 邏輯約束) 🧠
 # ==============================================================================
 # 說明：你是一位擁有極高智慧和創造力的遊戲管理大師（GM）。你的任務是分析所有
 #       上下文，為接下來的回合制定一份詳細、合理的【行動計劃 JSON】。
 
-# --- 【【【核心規劃原則】】】 ---
-# 1.  **【LORE 數據綁定】**: 你的【唯一任務】是將 `planning_subjects_json` 中提供的、【已經存在】的角色編排成一個符合使用者指令的互動場景。【絕對禁止】創造任何不存在的角色。
+# --- 【【【最高規劃原則：LORE 數據綁定 (LORE BINDING) - 絕對強制】】】 ---
+# 你的【唯一任務】是將下方 `planning_subjects_json` 中提供的、【已經存在】的角色檔案，編排成一個符合使用者指令的互動場景。
+# 你【絕對禁止】在你的計畫中，創造任何不存在於 `planning_subjects_json` 中的新角色。你的職責是【執行】，而不是【再創造】。
+# 你的計畫中的 `character_actions` 列表，【必須且只能】包含來自 `planning_subjects_json` 的角色。
 
-# --- 【【【v222.0 強化：簡單指令處理原則 (Simple Command Principle)】】】 ---
-# 1.  **【簡潔性優先】**: 當【使用者最新指令】是一個非常簡單的、單一的動作或對話時（例如：“坐下”、“看著我”、“你好嗎？”），你的計畫【必須】保持極度的簡潔。
-# 2.  **【核心角色響應】**: 在這種情況下，你的 `character_actions` 列表【必須只包含一個條目】，即由最合乎邏輯的角色（通常是AI戀人 `{ai_name}`）來執行或回應這個簡單指令。
-# 3.  **【禁止過度規劃】**: 【絕對禁止】為這種簡單指令生成複雜的 `thought` 或多個 `character_actions`。你的任務是快速、直接地響應。
-
-# --- 【【【輸出邏輯約束】】】 ---
-# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和/或 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
+# --- 【【【v213.1 新增】輸出邏輯約束】】 ---
+# - **【執行或拒絕二選一】**: 如果你判斷指令可以執行，你【必須】生成 `thought` 和 `character_actions`，並讓 `execution_rejection_reason` 欄位為 `null`。
 # - **【絕對禁止同時輸出】**: 如果你判斷指令因荒謬或無法執行而需要拒絕，你【只能】填充 `execution_rejection_reason` 欄位，此時 `thought` 和 `character_actions` 【必須】為 `null` 或空列表。
 # ------------------------------------------------------------------------------
 # 【使用者自訂風格指令 (RENDER STYLE - HIGHEST PRIORITY)】
@@ -2067,7 +2113,7 @@ class AILover:
 # --- 使用者最新指令 ---
 {user_input}
 # --- 你的任務 ---
-請嚴格遵循所有規劃原則，生成行動計劃 JSON。
+請嚴格遵循【最高規劃原則】，只使用上方【規劃主體】中提供的角色，並【緊密銜接最近的對話歷史】，生成行動計劃 JSON。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -2075,7 +2121,7 @@ class AILover:
             ])
             self.sfw_planning_chain = prompt | planner_llm
         return self.sfw_planning_chain
-    # 函式：獲取 SFW 回合計劃鏈 (v222.0 - 強化簡單指令原則)
+    # 函式：獲取 SFW 回合計劃鏈 (v214.0 - 提示詞格式化修正)
 
 
 
@@ -2208,10 +2254,6 @@ class AILover:
         return self.action_intent_chain
     # 函式：獲取動作意圖解析鏈 (v203.1 - 延遲加載重構)
 
-
-
-
-
     # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
     def get_param_reconstruction_chain(self) -> Runnable:
         if not hasattr(self, 'param_reconstruction_chain') or self.param_reconstruction_chain is None:
@@ -2250,18 +2292,6 @@ class AILover:
             self.param_reconstruction_chain = prompt | reconstruction_llm | JsonOutputParser()
         return self.param_reconstruction_chain
     # 函式：獲取參數重構鏈 (v203.1 - 延遲加載重構)
-
-
-
-
-
-
-
-
-
-
-    
-
 
 
 
@@ -2579,36 +2609,36 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.3 - 變數與轉義修正)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
     # 更新紀錄:
-    # v4.3 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，為 prompt_template 新增了必需的 `ai_name` 輸入變數，並修正了調用點以傳遞此變數。同時，將範例中的 `{ai_name}` 替換為 `{{ai_name}}` 以防止 LangChain 解析器將其誤認為是未提供的變數。
-    # v4.2 (2025-09-10): [災難性BUG修復] 根據“坐下”指令引發的連鎖崩潰問題，為Prompt注入了【互動感知鐵則】。
+    # v4.2 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，確認 LangChain 的提示詞解析器會錯誤地解析模板中的 JSON 範例語法。為從根本上解決此問題，已將所有具體的“關鍵對比範例”從此靜態模板中移除，並替換為一個無害的 `{examples}` 佔位符。實際的範例內容將由調用點（graph.py）動態注入。
     # v4.1 (2025-09-06): [災難性BUG修復] 徹底重寫了提示詞中的所有範例，移除了所有大括號 {} 佔位符。
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             from .schemas import ExpansionDecision
             decision_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExpansionDecision)
             
-            prompt_template = """你是一位精明且富有洞察力的【選角導演 (Casting Director)】。你的唯一任務是分析【劇本（使用者輸入）】，並對比你手中已有的【演員名單（現有角色JSON）】，來決定是否需要為這個場景【僱用新演員（擴展LORE）】。
+            # [v4.2 核心修正] 將硬編碼的範例替換為佔位符
+            prompt_template = """你是一位精明的【選角導演 (Casting Director)】。你的唯一任務是分析【劇本（使用者輸入）】，並對比你手中已有的【演員名單（現有角色JSON）】，來決定是否需要為這個場景【僱用新演員（擴展LORE）】。
 
-# === 【【【v4.2 新增：最高指導原則】】】 ===
+# === 【【【最高指導原則：語意匹配優先 (Semantic-Matching First)】】】 ===
+這是你決策的【唯一且絕對的標準】。你的任務是判斷**角色職責**是否匹配，而不是進行簡單的字串比較。
 
-# 1.  **【互動感知鐵則 (Interaction-Awareness Mandate) - 絕對優先級】**:
-#     - 如果【使用者最新輸入】是一個**互動性的動作或對話**（例如：“坐下”、“攻擊衛兵”、“你好嗎？”），你【必須】優先假設這個指令是由**當前場景的核心互動角色**（特別是AI戀人 `{ai_name}`）來執行或響應。在這種情況下，幾乎永遠都【不應該】擴展LORE。你的職責是促進現有角色的互動，而不是為每個簡單動作都創造一個新演員。
-#     - **只有當**指令明確地、無歧義地描述一個**當前不在場**的、**全新的**實體時（例如：“一個半獸人商人從遠處走來”），你才應該考慮擴展LORE。
-
-# 2.  **【語意匹配優先 (Semantic-Matching First)】**:
-#     - 在遵循上一條鐵則的前提下，你的任務是判斷**角色職責**是否匹配，而不是進行簡單的字串比較。
+1.  **分析劇本需求**: 首先，從【使用者最新輸入】中理解場景需要什麼樣的**角色或職責**（例如：“一個賣魚的女人”、“幾個狂熱的信徒”）。
+2.  **審視演員名單**: 然後，你【必須】仔細閱讀下方提供的【現有角色JSON】，查看名單上是否有任何演員的**檔案（特別是`name`和`description`）**符合劇本所要求的**職責**。
 
 # === 決策規則 (絕對強制) ===
 
 ## A. 【必須不擴展 (should_expand = false)】的情況：
-   - **當指令是互動性的**：根據【互動感知鐵則】，對於“坐下”這類指令，應判定為 `false`，理由是“這是一個應由核心角色（如 {ai_name}）響應的互動指令，無需創造新角色。”
-   - **當已有合適的演員時**：如果指令描述了一個新實體，但【現有角色JSON】中已有角色的檔案符合該職責，也應判定為 `false`。
+   - **當已有合適的演員時**。如果【現有角色JSON】中，已經有角色的檔案表明他們可以扮演【使用者輸入】中要求的角色，你【必須】選擇他們，並決定【不擴展】。你的職責是優先利用現有資源。
+   - **理由必須這樣寫**: 你的理由應當清晰地指出哪個現有角色符合哪個被要求的職責。
 
 ## B. 【必須擴展 (should_expand = true)】的情況：
-   - **當明確描述新實體時**：只有當指令明確描述一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責時（例如：“一個吟遊詩人走進了酒館”），才判定為 `true`。
+   - **當缺乏合適的演員時**。如果【使用者輸入】明確要求一個在【現有角色JSON】中**完全沒有**的、全新的角色類型或職責，這意味著演員陣容存在空白，需要你來【僱用新人】。
+   - **理由必須這樣寫**: 你的理由應當清晰地指出場景中缺失了哪種角色職責。
 
+# === 關鍵對比範例 ===
+{examples}
 ---
 【使用者最新輸入 (劇本)】: 
 {user_input}
@@ -2616,12 +2646,12 @@ class AILover:
 【現有角色JSON (演員名單)】:
 {existing_characters_json}
 ---
-請嚴格遵循以上所有規則，特別是【互動感知鐵則】，做出你作為選角導演的專業判斷。"""
+請嚴格遵循以上所有規則，做出你作為選角導演的專業判斷。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.expansion_decision_chain = prompt | decision_llm
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.3 - 變數與轉義修正)
+    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
 
 
 
@@ -2847,19 +2877,12 @@ class AILover:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
-
-
-
-
-
-
-
-
-
-    # 函式：執行工具呼叫計畫 (v184.0 - 參數重建備援)
+    
+   # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
-    # v184.0 (2025-09-10): [災難性BUG修復] 徹底重構了錯誤處理邏輯。在現有的委婉化重試基礎上，新增了針對 `ValidationError` 的最終備援機制。當參數驗證失敗時，會觸發一個全新的「參數重建鏈」，該鏈會根據錯誤訊息和正確的Schema，嘗試智能地修復損壞的參數JSON，極大提升了背景LORE擴展任務在面對結構損壞的LLM輸出時的成功率。
-    # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。
+    # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。在執行任何工具調用前，此函式會強制檢查所有針對 NPC 的創建/更新操作，如果目標名稱與使用者角色或 AI 戀人匹配，則該操作將被立即攔截並移除。此修改旨在從工具執行層面徹底杜絕核心主角被錯誤地當作 NPC 寫入 LORE 的嚴重問題。
+    # v183.1 (2025-09-06): [健壯性] 增加了對工具執行失敗的委婉化重試備援機制。
+    # v183.0 (2025-09-03): [健壯性] 將串行任務之間的延遲增加到 4.0 秒。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -2871,6 +2894,7 @@ class AILover:
             if not self.profile:
                 return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
             
+            # [v183.2 核心修正] 計畫淨化步驟
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
@@ -2878,23 +2902,36 @@ class AILover:
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
                 is_illegal = False
+                # 檢查所有可能操作 NPC 的工具
                 if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "update_npc_profile"]:
-                    name_to_check = next((call.parameters.get(k) for k in ['name', 'standardized_name', 'original_name'] if k in call.parameters), "")
+                    # 檢查參數中是否有名稱字段
+                    name_to_check = ""
+                    if 'name' in call.parameters: name_to_check = call.parameters['name']
+                    elif 'standardized_name' in call.parameters: name_to_check = call.parameters['standardized_name']
+                    elif 'original_name' in call.parameters: name_to_check = call.parameters['original_name']
+                    
                     if name_to_check and name_to_check.lower() in protected_names:
                         is_illegal = True
                         logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
+                
                 if not is_illegal:
                     purified_plan.append(call)
 
             if not purified_plan:
+                logger.info(f"[{self.user_id}] 場景擴展計畫在淨化後為空，無需執行。")
                 return "場景擴展計畫在淨化後為空。"
 
             logger.info(f"--- [{self.user_id}] 開始串行執行已淨化的場景擴展計畫 (共 {len(purified_plan)} 個任務) ---")
             
             tool_name_to_category = {
-                "create_new_npc_profile": "npc_profile", "add_or_update_npc_profile": "npc_profile", "update_npc_profile": "npc_profile",
-                "add_or_update_location_info": "location_info", "add_or_update_item_info": "item_info",
-                "define_creature_type": "creature_info", "add_or_update_quest_lore": "quest", "add_or_update_world_lore": "world_lore",
+                "create_new_npc_profile": "npc_profile",
+                "add_or_update_npc_profile": "npc_profile",
+                "update_npc_profile": "npc_profile",
+                "add_or_update_location_info": "location_info",
+                "add_or_update_item_info": "item_info",
+                "define_creature_type": "creature_info",
+                "add_or_update_quest_lore": "quest",
+                "add_or_update_world_lore": "world_lore",
             }
 
             summaries = []
@@ -2903,69 +2940,84 @@ class AILover:
             for call in purified_plan:
                 await asyncio.sleep(4.0) 
 
+                category = tool_name_to_category.get(call.tool_name)
+                if category and call.tool_name != 'update_npc_profile':
+                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                    entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
+
+                    if entity_name:
+                        resolution_chain = self.get_single_entity_resolution_chain()
+                        existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
+                        existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
+                        
+                        resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
+                            "category": category,
+                            "new_entity_json": json.dumps({"name": entity_name, "location_path": call.parameters.get('location_path', current_location_path)}, ensure_ascii=False),
+                            "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                        })
+                        
+                        if resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution:
+                            res = resolution_plan.resolution
+                            std_name = res.standardized_name or res.original_name
+                            if res.decision == 'EXISTING' and res.matched_key:
+                                lore_key = res.matched_key
+                            else:
+                                path_prefix = " > ".join(call.parameters.get('location_path', current_location_path))
+                                safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
+                                lore_key = f"{path_prefix} > {safe_name}" if path_prefix and category in ["npc_profile", "location_info", "quest"] else safe_name
+                            
+                            call.parameters.update({
+                                "lore_key": lore_key,
+                                "standardized_name": std_name,
+                                "original_name": res.original_name
+                            })
+                            if name_key_found: call.parameters.pop(name_key_found, None)
+
+                if call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"] and 'location_path' not in call.parameters:
+                    call.parameters['location_path'] = current_location_path
+
                 tool_to_execute = available_tools.get(call.tool_name)
-                if not tool_to_execute:
-                    summaries.append(f"任務警告: 計畫中的工具 '{call.tool_name}' 不存在。")
-                    continue
+                if not tool_to_execute: continue
 
                 try:
-                    category = tool_name_to_category.get(call.tool_name)
-                    if category and call.tool_name != 'update_npc_profile':
-                        possible_name_keys = ['original_name', 'name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
-                        entity_name = next((call.parameters.get(k) for k in possible_name_keys if k in call.parameters), None)
-
-                        if entity_name:
-                            resolution_chain = self.get_single_entity_resolution_chain()
-                            existing_lores = await get_lores_by_category_and_filter(self.user_id, category)
-                            existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", lore.content.get("title", ""))} for lore in existing_lores]
-                            
-                            resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
-                                "category": category,
-                                "new_entity_json": json.dumps({"name": entity_name}, ensure_ascii=False),
-                                "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
-                            })
-                            
-                            if resolution_plan and hasattr(resolution_plan, 'resolution') and resolution_plan.resolution:
-                                res = resolution_plan.resolution
-                                std_name = res.standardized_name or res.original_name
-                                lore_key = res.matched_key if res.decision == 'EXISTING' and res.matched_key else f"{' > '.join(current_location_path)} > {std_name}"
-                                call.parameters.update({"lore_key": lore_key, "standardized_name": std_name})
-
-                    if 'location_path' not in call.parameters and call.tool_name in ["create_new_npc_profile", "add_or_update_quest_lore"]:
-                        call.parameters['location_path'] = current_location_path
-
                     validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
                     result = await tool_to_execute.ainvoke(validated_args.model_dump())
                     summary = f"任務成功: {result}"
                     logger.info(f"[{self.user_id}] {summary}")
                     summaries.append(summary)
-
-                except ValidationError as e:
-                    logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 參數驗證失敗，啟動【參數重建】備援... 錯誤: {e}")
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] 工具 '{call.tool_name}' 首次執行失敗: {e}。啟動【委婉化重試】策略...")
                     try:
-                        reconstruction_chain = self.get_param_reconstruction_chain()
-                        reconstructed_params = await self.ainvoke_with_rotation(reconstruction_chain, {
-                            "tool_name": call.tool_name,
-                            "original_params": json.dumps(call.parameters, ensure_ascii=False),
-                            "validation_error": str(e),
-                            "correct_schema": tool_to_execute.args_schema.schema_json()
-                        })
+                        euphemization_chain = self.get_euphemization_chain()
                         
-                        logger.info(f"[{self.user_id}] (重建備援) 已生成修復後的參數: {reconstructed_params}。正在用其重試...")
-                        validated_args = tool_to_execute.args_schema.model_validate(reconstructed_params)
-                        result = await tool_to_execute.ainvoke(validated_args.model_dump())
-                        summary = f"任務成功 (參數重建備援): {result}"
+                        text_params = {k: v for k, v in call.parameters.items() if isinstance(v, str)}
+                        if not text_params: raise ValueError("參數中無可委婉化的文本。")
+                        
+                        key_to_euphemize = max(text_params, key=lambda k: len(text_params[k]))
+                        text_to_euphemize = text_params[key_to_euphemize]
+                        
+                        entity_extraction_chain = self.get_entity_extraction_chain()
+                        entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
+                        keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
+
+                        safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
+                        if not safe_text: raise ValueError("委婉化鏈未能生成安全文本。")
+
+                        retry_params = call.parameters.copy()
+                        retry_params[key_to_euphemize] = safe_text
+                        
+                        logger.info(f"[{self.user_id}] (重試) 已生成安全參數 '{key_to_euphemize}': '{safe_text}'。正在用其重試工具 '{call.tool_name}'...")
+                        
+                        validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+                        result = await tool_to_execute.ainvoke(validated_retry_args.model_dump())
+                        
+                        summary = f"任務成功 (委婉化重試): {result}"
                         logger.info(f"[{self.user_id}] {summary}")
                         summaries.append(summary)
-                    except Exception as recon_e:
-                        summary = f"任務失敗 (重建後): for {call.tool_name}: {recon_e}"
+                    except Exception as retry_e:
+                        summary = f"任務失敗 (重試後): for {call.tool_name}: {retry_e}"
                         logger.error(f"[{self.user_id}] {summary}", exc_info=True)
                         summaries.append(summary)
-                
-                except Exception as e:
-                    summary = f"任務失敗: for {call.tool_name}: {e}"
-                    logger.error(f"[{self.user_id}] {summary}", exc_info=True)
-                    summaries.append(summary)
 
             logger.info(f"--- [{self.user_id}] 場景擴展計畫執行完畢 ---")
             return "\n".join(summaries) if summaries else "場景擴展已執行，但未返回有效結果。"
@@ -2973,7 +3025,8 @@ class AILover:
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
-    # 函式：執行工具呼叫計畫 (v184.0 - 參數重建備援)
+    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
+
 
 
     
@@ -3190,71 +3243,87 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
     # 更新紀錄:
-    # v208.1 (2025-09-22): [災難性BUG修復] 根據LOG分析，為委婉化流程增加了輸入長度保護機制。如果待處理的文本超過4000字符，將直接跳過重試，以防止因輸入過長導致的API錯誤和不必要的Token消耗。
-    # v208.0 (2025-09-06): [重大架構重構] 徹底重寫了此函式的核心邏輯，引入“解構-重構”策略。不再直接委婉化原始文本，而是先提取安全的關鍵詞，再用一個專門的鏈將關鍵詞重構成安全的句子，從根本上解決了備援鏈自身因輸入露骨內容而被審查的悖論。
+    # v209.0 (2025-09-08): [災難性BUG修復] 根據 LOG 中出現的無限重試風暴，徹底重構了此函式的核心邏輯。舊版本在備援時會回頭調用另一個同樣脆弱的鏈（entity_extraction_chain），導致了致命的遞歸失敗循環。新版本移除了所有脆弱的“解構-重構”步驟，改為直接調用專為處理露骨內容而設計的、更強大的“文學評論家”鏈，將失敗的輸入一次性地、安全地轉換為文學概述後再進行重試，從根本上解決了重試風暴問題。
+    # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
-        一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
-        它採用“解構-重構”策略，先提取關鍵詞，再將其重組為安全的句子後重試。
+        [v209.0 新架構] 一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
+        它通過強大的“文學評論家”鏈將失敗的輸入安全化後重試。
         """
-        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構委婉化】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...")
         
         try:
-            # 步驟 1: 從失敗的參數中提取出需要處理的原始文本
+            # --- 步驟 1: 提取需要處理的文本 ---
             text_to_euphemize = ""
             key_to_replace = None
             
+            # 處理字典類型的參數
             if isinstance(failed_params, dict):
-                string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
-                if string_values:
-                    key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
-                    text_to_euphemize = string_values[key_to_replace]
+                # 優先尋找類型為 list[Document] 的文檔列表
+                doc_list_values = {k: v for k, v in failed_params.items() if isinstance(v, list) and all(isinstance(i, Document) for i in v)}
+                if doc_list_values:
+                    # 如果找到文檔列表，將它們的內容合併為一個長文本進行清洗
+                    key_to_replace = list(doc_list_values.keys())[0]
+                    docs_to_process = doc_list_values[key_to_replace]
+                    text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
+                else:
+                    # 如果沒有文檔列表，則尋找最長的字符串
+                    string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
+                    if string_values:
+                        key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
+                        text_to_euphemize = string_values[key_to_replace]
+            # 處理字符串類型的參數
             elif isinstance(failed_params, str):
                 text_to_euphemize = failed_params
+            # 處理文檔列表類型的參數
+            elif isinstance(failed_params, list) and all(isinstance(i, Document) for i in failed_params):
+                 text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
 
             if not text_to_euphemize:
                 raise ValueError("無法從參數中提取可委婉化的文本。")
 
-            # [v208.1 新增] 長度保護
+            # 長度保護
             MAX_EUPHEMIZE_LENGTH = 4000
             if len(text_to_euphemize) > MAX_EUPHEMIZE_LENGTH:
                 logger.error(f"[{self.user_id}] (Euphemizer) 待處理文本長度 ({len(text_to_euphemize)}) 超過 {MAX_EUPHEMIZE_LENGTH} 字符上限，為避免效能問題已跳過委婉化重試。")
                 return None
 
-            # 步驟 2: 【解構】 - 提取安全的關鍵詞
-            logger.info(f"[{self.user_id}] (Euphemizer|解構) 正在從 '{text_to_euphemize[:50]}...' 中提取關鍵詞...")
-            entity_extraction_chain = self.get_entity_extraction_chain()
-            entity_result = await self.ainvoke_with_rotation(entity_extraction_chain, {"text_input": text_to_euphemize})
-            
-            keywords_for_euphemization = entity_result.names if entity_result and entity_result.names else text_to_euphemize.split()
-            if not keywords_for_euphemization:
-                raise ValueError("未能從文本中提取任何關鍵詞。")
-            logger.info(f"[{self.user_id}] (Euphemizer|解構) 提取到關鍵詞: {keywords_for_euphemization[:10]}")
-            
-            # 步驟 3: 【重構】 - 將關鍵詞重組為安全句子
-            logger.info(f"[{self.user_id}] (Euphemizer|重構) 正在將關鍵詞重構為安全句子...")
-            euphemization_chain = self.get_euphemization_chain()
-            safe_text = await self.ainvoke_with_rotation(euphemization_chain, {"keywords": keywords_for_euphemization})
+            # --- 步驟 2: 使用“文學評論家”鏈進行一次性、強大的清洗 ---
+            logger.info(f"[{self.user_id}] (Euphemizer) 正在將 '{text_to_euphemize[:50]}...' 清洗為安全的文學概述...")
+            literary_chain = self.get_literary_euphemization_chain()
+            safe_text = await self.ainvoke_with_rotation(
+                literary_chain,
+                {"dialogue_history": text_to_euphemize}
+            )
             
             if not safe_text:
-                raise ValueError("委婉化重構鏈未能生成安全文本。")
-            logger.info(f"[{self.user_id}] (Euphemizer|重構) 重構成功，安全文本: '{safe_text[:50]}...'")
+                raise ValueError("文學評論家鏈未能生成安全文本。")
+            logger.info(f"[{self.user_id}] (Euphemizer) 清洗成功，生成安全文本: '{safe_text[:50]}...'")
 
-            # 步驟 4: 使用重構後的安全文本進行重試
+            # --- 步驟 3: 準備重試參數並執行 ---
             retry_params = failed_params
+            
+            # 根據原始參數類型，構造重試參數
             if isinstance(retry_params, dict) and key_to_replace:
-                retry_params[key_to_replace] = safe_text
+                # 如果原始是文檔列表，則用清洗後的文本創建一個新的單一文檔
+                if isinstance(retry_params[key_to_replace], list) and all(isinstance(i, Document) for i in retry_params[key_to_replace]):
+                    retry_params[key_to_replace] = [Document(page_content=safe_text)]
+                else: # 否則，直接替換字符串
+                    retry_params[key_to_replace] = safe_text
             elif isinstance(retry_params, str):
                 retry_params = safe_text
+            elif isinstance(retry_params, list) and all(isinstance(i, Document) for i in retry_params):
+                retry_params = [Document(page_content=safe_text)]
+
 
             return await failed_chain.ainvoke(retry_params)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【解構-重構委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
+            logger.error(f"[{self.user_id}] 【文學評論家委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
-    # 函式：“安全備援”委婉化重試處理器 (v208.1 - 長度保護)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
 
 
 
@@ -3649,32 +3718,6 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
