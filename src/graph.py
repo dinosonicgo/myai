@@ -681,21 +681,22 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
 
 
 
-# 函式：直接 NSFW 生成節點 (v38.0 - 遠景數據隔離)
+# 函式：NSFW 突破節點 (v38.1 - 數據流修復)
 # 更新紀錄:
-# v38.0 (2025-09-10): [災難性BUG修復] 為了從根本上解決遠景模式下的上下文污染問題，注入了“數據隔離”邏輯。此節點現在會檢查 viewing_mode，如果是 'remote'，它會在程式碼層面主動從傳遞給世界快照的數據中，剔除所有與本地玩家和AI戀人相關的資訊，確保LLM在渲染遠景時沒有數據可以洩漏。
-# v37.0 (2025-09-09): [災難性BUG修復] 實現了“雙軌歷史管理”策略，以正確處理“繼續”指令，確保劇情連續性。
+# v38.1 (2025-09-10): [災難性BUG修復] 修正了因節點邏輯合併導致的數據流斷裂問題。此節點的輸出鍵被從錯誤的 `llm_response` 恢復為正確的 `narrative_outline`，以確保下游的 `nsfw_refinement_node` 能夠接收到它所期望的故事大綱輸入，從而解決了 `KeyError: 'narrative_outline'` 的問題。
+# v38.0 (2025-09-10): [災難性BUG修復] 注入了“數據隔離”邏輯以解決遠景模式下的上下文污染問題。
+# v37.0 (2025-09-09): [災難性BUG修復] 實現了“雙軌歷史管理”策略以正確處理“繼續”指令。
 async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any]:
     """
-    [NSFW Path] 執行單次指令轟炸，並採用雙軌歷史管理與遠景數據隔離策略。
+    [NSFW Path] 執行指令轟炸的第一步（情節架構師），並採用雙軌歷史管理與遠景數據隔離策略。
     """
     user_id = state['user_id']
     ai_core = state['ai_core']
     input_analysis = state.get('input_analysis')
-    logger.info(f"[{user_id}] (Graph|NSFW Chain) Node: nsfw_breakthrough_node -> 正在執行【指令轟炸】...")
+    logger.info(f"[{user_id}] (Graph|NSFW Chain Pt.1) Node: nsfw_breakthrough_node -> 正在生成NSFW故事大纲草稿...")
 
     if not ai_core.profile:
-        return {"llm_response": "（系統錯誤：AI profile 未加載，無法生成內容。）"}
+        return {"narrative_outline": "（系統錯誤：AI profile 未加載，無法生成內容。）", "world_snapshot": ""}
 
     planning_subjects_raw = state.get('planning_subjects')
     if planning_subjects_raw is None:
@@ -717,7 +718,6 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
         user_input_for_chain = state['messages'][-1].content
         chat_history_for_chain = await _get_summarized_chat_history(ai_core, user_id)
     
-    # [v38.0 核心修正] 遠景模式下的數據隔離
     full_context_dict = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
@@ -735,19 +735,15 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
         logger.warning(f"[{user_id}] (NSFW Node) 檢測到遠景模式，正在隔離本地上下文數據...")
         full_context_dict['player_location'] = "（遠程觀察模式，玩家不在場）"
         full_context_dict['possessions_context'] = "（遠程觀察模式）"
-        # 在遠景模式下，npc_context 只應包含遠景中的角色
         remote_dossiers = []
         for char_data in planning_subjects_raw:
             name = char_data.get('name', '未知名稱')
             remote_dossiers.append(f"--- 檔案: {name} ---\n- 描述: {char_data.get('description', '無')}")
         full_context_dict['npc_context'] = "\n".join(remote_dossiers) if remote_dossiers else "遠程場景中無已知的特定情報。"
     else:
-        # 本地模式下，正常填充數據
         full_context_dict['player_location'] = " > ".join(gs.location_path)
         full_context_dict['possessions_context'] = state.get('structured_context', {}).get('possessions_context', '')
-        # 本地模式下，npc_context 包含所有相關角色，包括玩家和AI
         local_dossiers = []
-        # 手動加入玩家和AI的檔案
         local_dossiers.append(f"--- 檔案: {ai_core.profile.user_profile.name} (使用者角色) ---\n- 描述: {ai_core.profile.user_profile.description}")
         local_dossiers.append(f"--- 檔案: {ai_core.profile.ai_profile.name} (AI 角色) ---\n- 描述: {ai_core.profile.ai_profile.description}")
         for char_data in planning_subjects_raw:
@@ -757,41 +753,41 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
 
     world_snapshot = ai_core.world_snapshot_template.format(**full_context_dict)
 
-    chain_input = {
-        "core_protocol_prompt": ai_core.modular_prompts.get("00_core_protocol", "警告：核心協議未加載。"),
-        "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告：性愛內容模組未加載。"),
-        "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-        "world_snapshot": world_snapshot,
-        "chat_history": chat_history_for_chain,
-        "planning_subjects_json": planning_subjects_json,
-        "user_input": user_input_for_chain,
-    }
-
-    # 由於我們已經將三步思維鏈的邏輯合併到一個更智能的Prompt中，這裡我們直接調用最終的渲染鏈
-    narrative_text = await ai_core.ainvoke_with_rotation(
-        ai_core.get_direct_nsfw_chain(),
-        chain_input,
-        retry_strategy='force'
+    outline_draft = await ai_core.ainvoke_with_rotation(
+        ai_core.get_nsfw_breakthrough_planning_chain(),
+        {
+            "system_prompt": ai_core.profile.one_instruction,
+            "action_sexual_content_prompt": ai_core.modular_prompts.get("action_sexual_content", "警告:性愛模組未加載"),
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "world_snapshot": world_snapshot,
+            "chat_history": chat_history_for_chain,
+            "planning_subjects_json": planning_subjects_json,
+            "user_input": user_input_for_chain,
+        },
+        retry_strategy='euphemize'
     )
-
-    if not narrative_text:
-        narrative_text = "（AI 在直接生成 NSFW 內容時遭遇了無法繞過的内容安全限制。）"
+    if not outline_draft:
+        outline_draft = "安全備援：NSFW大纲生成鏈最终失败。"
         
-    # 為了與圖的結構保持一致，我們將結果放入 llm_response
-    return {"llm_response": narrative_text}
-# 函式：直接 NSFW 生成節點 (v38.0 - 遠景數據隔離)
+    # [v38.1 核心修正] 確保將結果放入正確的鍵中
+    return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
+# 函式：NSFW 突破節點 (v38.1 - 數據流修復)
 
 
 
 
+# 函式：NSFW 潤色節點 (v2.0 - 數據流修復)
+# 更新紀錄:
+# v2.0 (2025-09-10): [災難性BUG修復] 修正了此節點的輸出邏輯。現在它會將潤色後的結果正確地放回 `narrative_outline` 鍵中，以確保數據流能夠順利傳遞到最終的渲染節點。同時增加了對潤色失敗的處理，確保流程的健壯性。
 async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
     """[數據偽裝-步驟2] 接收大綱草稿，並將其豐富為最終的、詳細的故事大綱。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     narrative_outline_draft = state['narrative_outline']
-    logger.info(f"[{user_id}] (Graph|NSFW Outline Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...")
+    logger.info(f"[{user_id}] (Graph|NSFW Chain Pt.2) Node: nsfw_refinement -> 正在润色NSFW故事大纲...")
 
     if not ai_core.profile or "安全備援" in narrative_outline_draft:
+        # 如果上一步失敗，直接將現有大綱傳遞下去，不進行任何操作
         return {} 
 
     chat_history_str = _get_raw_chat_history(ai_core, user_id)
@@ -808,11 +804,14 @@ async def nsfw_refinement_node(state: ConversationGraphState) -> Dict[str, str]:
         },
         retry_strategy='euphemize'
     )
-    if not final_outline:
-        logger.warning(f"[{user_id}] (Graph|NSFW Outline Pt.2) NSFW大纲润色链返回空值，将使用未经润色的原始大纲。")
+    if not final_outline or not final_outline.strip():
+        logger.warning(f"[{user_id}] (Graph|NSFW Chain Pt.2) NSFW大纲润色链返回空值，將使用未經潤色的原始大綱繼續流程。")
+        # 返回空字典，langgraph會自動沿用上一步的narrative_outline
         return {}
 
+    # [核心修正] 將潤色後的結果放回正確的鍵中
     return {"narrative_outline": final_outline}
+# 函式：NSFW 潤色節點 (v2.0 - 數據流修復)
 
 async def tool_execution_node(state: ConversationGraphState) -> Dict[str, str]:
     """[8] 統一的工具執行節點 (主要用於 SFW 路徑)。"""
@@ -1336,6 +1335,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
