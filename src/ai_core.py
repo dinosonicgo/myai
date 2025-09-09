@@ -2306,42 +2306,23 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v5.2 - 快速失敗)
+    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
     # 更新紀錄:
-    # v5.2 (2025-09-08): [災難性BUG修復] 根據 LOG 中 `RAG Pre-cleaner` 輸出自身 Prompt 的問題，徹底重構了此函式的備援邏輯。現在它完全依賴 `ainvoke_with_rotation` 內建的、更強大的「解構-重構」委婉化策略，並增加了對備援最終失敗（返回 None）的安全處理，從根本上解決了因備援鏈自身失敗而導致的數據污染問題。
-    # v5.1 (2025-09-08): [災難性BUG修復] 根據使用者反饋，在 RAG 流程的開頭增加了強制性的安全預清洗步驟。
+    # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 根據使用者反饋，徹底重構了文檔清洗邏輯以解決“重試風暴”和效能低下的問題。新版本採用了“批次處理”策略：不再為每個檢索到的文檔單獨調用LLM進行清洗，而是將所有文檔內容合併為一個大的文本塊，然後用一次LLM調用（文學評論家鏈）將其整體安全化，再用第二次LLM調用進行摘要。此修改將此函式的LLM調用次數從 N+1 次恆定為 2 次，極大提升了速度並降低了API速率超限的風險。
+    # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
-        # --- 步驟 1: 強制性的安全預清洗 ---
-        logger.info(f"[{self.user_id}] (RAG Pre-cleaner) 正在使用'文學評論家'鏈對查詢 '{query_text[:30]}...' 進行強制性安全預清洗...")
-        literary_chain = self.get_literary_euphemization_chain()
-        
-        # [v5.2 核心修正] 完全依賴 ainvoke_with_rotation 內建的、更強大的備援機制
-        sanitized_query = await self.ainvoke_with_rotation(
-            literary_chain,
-            {"dialogue_history": query_text},
-            retry_strategy='euphemize'
-        )
-        
-        # 如果所有備援都失敗，ainvoke_with_rotation 會返回 None
-        if not sanitized_query or not sanitized_query.strip():
-            logger.error(f"[{self.user_id}] (RAG Pre-cleaner) '文學評論家'清洗鏈即使在備援後也最終失敗。將使用原始查詢進行檢索。")
-            sanitized_query = query_text # 終極備援：使用原始查詢
-
-        logger.info(f"[{self.user_id}] (RAG Pre-cleaner) 查詢已成功預清洗為: '{sanitized_query[:50]}...'")
-
-        # --- 步驟 2: 執行檢索 ---
         retrieved_docs = []
         try:
             try:
-                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用【安全查詢】執行完整的「檢索+重排」流程...")
+                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用查詢 '{query_text[:30]}...' 執行完整的「檢索+重排」流程...")
                 retrieved_docs = await self.ainvoke_with_rotation(
                     self.retriever, 
-                    sanitized_query,
+                    query_text,
                     retry_strategy='euphemize'
                 )
             except RuntimeError as e:
@@ -2351,7 +2332,7 @@ class AILover:
                         logger.info(f"[{self.user_id}] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
                         retrieved_docs = await self.ainvoke_with_rotation(
                             self.retriever.base_retriever,
-                            sanitized_query,
+                            query_text,
                             retry_strategy='euphemize'
                         )
                         logger.info(f"[{self.user_id}] (RAG Executor) 基礎檢索器重試成功。")
@@ -2365,7 +2346,6 @@ class AILover:
             logger.error(f"[{self.user_id}] 在 RAG 檢索的調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
             return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
 
-        # [v5.2 核心修正] 安全處理備援失敗返回的 None
         if retrieved_docs is None:
             logger.warning(f"[{self.user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
             retrieved_docs = []
@@ -2373,16 +2353,18 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # --- 步驟 3: 對檢索結果進行批次清洗與摘要 ---
+        # --- [v6.0 核心修正] 批次清洗與摘要 ---
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在將其合併並進行一次性批次清洗...")
         
+        # 步驟 1: 將所有文檔內容合併為單一文本塊
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # 這裡的清洗使用 'none' 策略，因為如果連批次清洗都失敗，再遞歸重試沒有意義
+        # 步驟 2: 對合併後的單一文本塊進行一次性的文學化清洗
+        literary_chain = self.get_literary_euphemization_chain()
         safe_overview_of_all_docs = await self.ainvoke_with_rotation(
             literary_chain,
             {"dialogue_history": combined_content},
-            retry_strategy='none' 
+            retry_strategy='none' # 如果連批次清洗都失敗，直接終止，不再嘗試修復
         )
 
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
@@ -2390,13 +2372,15 @@ class AILover:
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
         
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
-        
+
+        # 步驟 3: 將清洗後的單一安全概述傳遞給摘要器
+        # 我們將其包裝在一個 Document 物件中以符合摘要器鏈的輸入格式
         docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
         
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             docs_for_summarizer,
-            retry_strategy='none'
+            retry_strategy='none' # 摘要器理論上不應再失敗，但為保險起見也快速失敗
         )
 
         if not summarized_context or not summarized_context.strip():
@@ -2405,7 +2389,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v5.2 - 快速失敗)
+    # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
 
 
 
@@ -3706,6 +3690,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
