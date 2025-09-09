@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-09T23:07:22.057684 ###
+### AI Lover Log - Last updated at 2025-09-09T23:12:49.060315 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 164, in query_lore_node
-    safe_query_text = state['sanitized_query_for_tools']
-KeyError: 'sanitized_query_for_tools'
 2025-09-09 23:06:50 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
 2025-09-09 23:06:51 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
 2025-09-09 23:06:52 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
     raise KeyError(
 KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name'}.  Expected: ['ai_name', 'existing_characters_json', 'user_input'] Received: ['user_input', 'existing_characters_json', 'examples']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-09 23:12:23 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
+2025-09-09 23:12:35 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-09 23:12:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-09 23:12:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-09 23:12:38 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
