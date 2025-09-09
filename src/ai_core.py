@@ -2878,7 +2878,7 @@ class AILover:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
     
-   # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
+    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
     # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。在執行任何工具調用前，此函式會強制檢查所有針對 NPC 的創建/更新操作，如果目標名稱與使用者角色或 AI 戀人匹配，則該操作將被立即攔截並移除。此修改旨在從工具執行層面徹底杜絕核心主角被錯誤地當作 NPC 寫入 LORE 的嚴重問題。
     # v183.1 (2025-09-06): [健壯性] 增加了對工具執行失敗的委婉化重試備援機制。
@@ -2942,7 +2942,7 @@ class AILover:
 
                 category = tool_name_to_category.get(call.tool_name)
                 if category and call.tool_name != 'update_npc_profile':
-                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name', 'original_name']
                     entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
 
                     if entity_name:
@@ -3026,7 +3026,6 @@ class AILover:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] 背景任務的工具上下文已清理。")
     # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
-
 
 
     
@@ -3718,6 +3717,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
