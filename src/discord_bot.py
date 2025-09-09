@@ -14,7 +14,7 @@ from pathlib import Path
 from sqlalchemy import select, delete, or_
 import math 
 import re
-from typing import Optional, Literal, List, Dict, Any
+from typing import Optional, Literal, List, Dict, Any, Tuple
 from collections import defaultdict
 import os
 import sys
@@ -811,6 +811,180 @@ class EditProfileRootView(discord.ui.View):
         await interaction.followup.send("請從下方選單中選擇您要編輯的 NPC：", view=view, ephemeral=True)
 # 類別：編輯角色檔案根視圖
 
+# --- [全新] 版本控制UI元件 ---
+
+# 類別：創建新Tag的彈出視窗
+class CreateTagModal(discord.ui.Modal, title="創建新版本 (Tag)"):
+    version = discord.ui.TextInput(
+        label="版本號",
+        placeholder="建議使用語意化版本，例如 v1.2.1",
+        required=True,
+    )
+    description = discord.ui.TextInput(
+        label="版本描述 (可選)",
+        style=discord.TextStyle.paragraph,
+        placeholder="簡短描述此版本的變更，例如：修復LOG推送BUG",
+        required=False,
+    )
+
+    def __init__(self, view: "VersionControlView"):
+        super().__init__()
+        self.view = view
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        success, message = await self.view.cog._git_create_tag(self.version.value, self.description.value)
+        if success:
+            await interaction.followup.send(f"✅ **版本創建成功！**\n已成功創建並推送Tag: `{self.version.value}`。", ephemeral=True)
+            await self.view.update_message(interaction)
+        else:
+            await interaction.followup.send(f"❌ **版本創建失敗！**\n```\n{message}\n```", ephemeral=True)
+
+# 類別：版本回退的下拉選單
+class RollbackSelect(discord.ui.Select):
+    def __init__(self, tags: List[str]):
+        options = [discord.SelectOption(label=tag, value=tag) for tag in tags]
+        if not options:
+            options.append(discord.SelectOption(label="沒有可用的版本", value="disabled"))
+        
+        super().__init__(
+            placeholder="從此處選擇要回退到的版本...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            disabled=not tags
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_version = self.values[0]
+        view: "VersionControlView" = self.view
+        
+        # 更新View以顯示最終確認按鈕
+        await view.show_rollback_confirmation(interaction, selected_version)
+
+# 類別：版本控制主面板
+class VersionControlView(discord.ui.View):
+    def __init__(self, cog: "BotCog", original_user_id: int):
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.original_user_id = original_user_id
+        self.selected_rollback_version = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.original_user_id:
+            await interaction.response.send_message("你無法操作此面板。", ephemeral=True)
+            return False
+        return True
+
+    async def update_message(self, interaction: discord.Interaction, show_select: bool = False):
+        """更新面板訊息和元件的統一函式"""
+        # 清除舊的元件
+        self.clear_items()
+        
+        # 重新加入基礎按鈕
+        self.add_item(self.refresh_button)
+        self.add_item(self.create_tag_button)
+        self.add_item(self.rollback_button)
+
+        if show_select:
+            success, tags_or_error = await self.cog._git_get_remote_tags()
+            if success:
+                self.add_item(RollbackSelect(tags_or_error))
+            else:
+                # 如果獲取tags失敗，也需要更新訊息
+                await interaction.edit_original_response(content=f"❌ 獲取版本列表失敗:\n```\n{tags_or_error}\n```", embed=None, view=self)
+                return
+
+        embed = await self._build_embed()
+        await interaction.edit_original_response(content=None, embed=embed, view=self)
+
+    async def _build_embed(self) -> discord.Embed:
+        """建立顯示當前狀態的Embed"""
+        success, version_or_error = await self.cog._git_get_current_version()
+        if success:
+            embed = discord.Embed(
+                title="⚙️ 版本控制面板",
+                description=f"伺服器當前運行的程式碼版本。",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="🏷️ 當前版本", value=f"```\n{version_or_error}\n```", inline=False)
+        else:
+            embed = discord.Embed(
+                title="⚙️ 版本控制面板",
+                description=f"❌ 無法獲取當前版本資訊。",
+                color=discord.Color.red()
+            )
+            embed.add_field(name="錯誤詳情", value=f"```\n{version_or_error}\n```", inline=False)
+        
+        embed.set_footer(text="請使用下方按鈕進行操作。")
+        return embed
+
+    @discord.ui.button(label="🔄 刷新", style=discord.ButtonStyle.success, custom_id="vc_refresh")
+    async def refresh_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.update_message(interaction)
+
+    @discord.ui.button(label="➕ 創建新版本", style=discord.ButtonStyle.primary, custom_id="vc_create_tag")
+    async def create_tag_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = CreateTagModal(self)
+        await interaction.response.send_modal(modal)
+
+    @discord.ui.button(label="⏪ 回退版本", style=discord.ButtonStyle.secondary, custom_id="vc_rollback")
+    async def rollback_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await self.update_message(interaction, show_select=True)
+
+    async def show_rollback_confirmation(self, interaction: discord.Interaction, version: str):
+        """顯示回退的最終確認步驟"""
+        self.selected_rollback_version = version
+        self.clear_items() # 清除所有舊按鈕和選單
+
+        confirm_button = discord.ui.Button(
+            label=f"【確認回退到 {version}】",
+            style=discord.ButtonStyle.danger,
+            custom_id="vc_confirm_rollback"
+        )
+        cancel_button = discord.ui.Button(
+            label="取消",
+            style=discord.ButtonStyle.secondary,
+            custom_id="vc_cancel_rollback"
+        )
+
+        async def confirm_callback(interaction: discord.Interaction):
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            await interaction.edit_original_response(content=f"⏳ **正在執行回滾到 `{self.selected_rollback_version}`...**\n請稍候，此過程包含程式碼檢查、依賴項安裝和服務重啟。", embed=None, view=None)
+            success, message = await self.cog._git_rollback_version(self.selected_rollback_version)
+            if success:
+                await interaction.followup.send("✅ **回滾指令已發送！**\n伺服器正在重啟以應用舊版本。您可能需要等待片刻才能重新連線。", ephemeral=True)
+            else:
+                await interaction.followup.send(f"❌ **回滾失敗！**\n```\n{message}\n```", ephemeral=True)
+                # 失敗後，讓使用者可以重新整理面板
+                await self.update_message(interaction)
+
+        async def cancel_callback(interaction: discord.Interaction):
+            await interaction.response.defer()
+            self.selected_rollback_version = None
+            await self.update_message(interaction)
+
+        confirm_button.callback = confirm_callback
+        cancel_button.callback = cancel_callback
+        
+        self.add_item(confirm_button)
+        self.add_item(cancel_button)
+
+        embed = await self._build_embed()
+        embed.color = discord.Color.red()
+        embed.add_field(
+            name="⚠️ 最終確認",
+            value=f"您確定要將伺服器程式碼回退到 **`{version}`** 嗎？\n"
+                  "此操作**不可逆**，且**不會**回退資料庫結構。\n"
+                  "請確保版本相容，否則可能導致啟動失敗。",
+            inline=False
+        )
+        await interaction.edit_original_response(embed=embed, view=self)
+
+# --- [結束] 版本控制UI元件 ---
+
 # 類別：機器人核心功能集 (Cog)
 class BotCog(commands.Cog):
     def __init__(self, bot: "AILoverBot"):
@@ -849,6 +1023,93 @@ class BotCog(commands.Cog):
         else:
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗（資料庫中可能無記錄）。")
             return None
+
+    # --- [全新] Git 操作輔助函式 ---
+    def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+        """在背景執行緒中安全地運行git指令。"""
+        try:
+            process = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                check=True,
+                cwd=PROJ_DIR
+            )
+            return True, process.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            error_message = e.stderr.strip() or e.stdout.strip()
+            logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
+            return False, error_message
+        except FileNotFoundError:
+            return False, "錯誤: 'git' 命令未找到。"
+        except Exception as e:
+            return False, f"執行Git時發生未知錯誤: {e}"
+
+    async def _git_get_current_version(self) -> Tuple[bool, str]:
+        """獲取當前運行的版本 (最新的tag或commit hash)。"""
+        return await asyncio.to_thread(self._run_git_command, ["git", "describe", "--tags", "--always"])
+
+    async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
+        """獲取所有遠端倉庫的tags。"""
+        fetch_success, fetch_message = await asyncio.to_thread(self._run_git_command, ["git", "fetch", "--tags", "--force"])
+        if not fetch_success:
+            return False, [f"獲取遠端Tags失敗: {fetch_message}"]
+        
+        list_success, list_message = await asyncio.to_thread(self._run_git_command, ["git", "tag", "-l", "--sort=-v:refname"])
+        if list_success:
+            return True, list_message.splitlines()
+        else:
+            return False, [f"列出本地Tags失敗: {list_message}"]
+
+    async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
+        """創建並推送一個新的tag。"""
+        # 檢查工作區是否乾淨
+        status_success, status_message = await asyncio.to_thread(self._run_git_command, ["git", "status", "--porcelain"])
+        if status_success and status_message:
+            return False, "錯誤：工作區尚有未提交的變更，請先提交或儲藏後再創建版本。"
+
+        # 創建帶有註解的tag
+        tag_command = ["git", "tag", "-a", version, "-m", description]
+        create_success, create_message = await asyncio.to_thread(self._run_git_command, tag_command)
+        if not create_success:
+            return False, f"創建Tag失敗: {create_message}"
+        
+        # 推送新創建的tag
+        push_success, push_message = await asyncio.to_thread(self._run_git_command, ["git", "push", "origin", version])
+        if not push_success:
+            # 如果推送失敗，刪除本地的tag以保持一致性
+            await asyncio.to_thread(self._run_git_command, ["git", "tag", "-d", version])
+            return False, f"推送Tag失敗: {push_message}"
+            
+        return True, f"成功創建並推送Tag {version}"
+
+    async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
+        """執行版本回退的完整流程。"""
+        logger.info(f"管理員觸發版本回退至: {version}")
+        
+        # 1. Checkout 到指定tag
+        checkout_success, checkout_message = await asyncio.to_thread(self._run_git_command, ["git", "checkout", f"tags/{version}"])
+        if not checkout_success:
+            return False, f"Checkout失敗: {checkout_message}"
+        
+        # 2. 同步依賴項
+        pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
+        try:
+            logger.info("正在同步Python依賴項...")
+            await asyncio.to_thread(subprocess.run, pip_command, check=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            error = e.stderr.decode('utf-8', errors='ignore')
+            logger.error(f"安裝依賴項失敗: {error}")
+            return False, f"安裝依賴項失敗: {error}"
+            
+        # 3. 觸發優雅重啟
+        logger.info("程式碼和依賴項已回退，正在觸發優雅重啟...")
+        if self.bot.shutdown_event:
+            self.bot.shutdown_event.set()
+        
+        return True, "回退指令已發送，伺服器正在重啟。"
+    # --- [結束] Git 操作輔助函式 ---
 
     @tasks.loop(seconds=240)
     async def connection_watcher(self):
@@ -1662,12 +1923,23 @@ class BotCog(commands.Cog):
         await self.push_log_to_github_repo(interaction)
     # 指令：[全新] 管理員手動推送LOG (v2.0 - 適配Git推送)
 
+    # 指令：[全新] 管理員版本控制 (v1.0 - 圖形化介面)
+    @app_commands.command(name="admin_version_control", description="[管理員] 打開圖形化版本控制面板。")
+    @app_commands.check(is_admin)
+    async def admin_version_control(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        view = VersionControlView(cog=self, original_user_id=interaction.user.id)
+        embed = await view._build_embed()
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+    # 指令：[全新] 管理員版本控制 (v1.0 - 圖形化介面)
+
     @admin_set_affinity.error
     @admin_reset.error
     @admin_check_status.error
     @admin_check_lore.error
     @admin_force_update.error
     @admin_push_log.error
+    @admin_version_control.error
     async def on_admin_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message("你沒有權限使用此指令。", ephemeral=True)
