@@ -4,11 +4,11 @@
 # v21.1 (2025-09-10): [災難性BUG修復] 恢复了所有被先前版本错误省略的 `SetupGraph` 相关节点。
 # v21.0 (2025-09-09): [重大架構重構] 对图的拓扑结构进行了精细化重构。
 import sys
-from pathlib import Path
 import asyncio
 import json
 import re
 from typing import Dict, List, Literal, Optional, Any
+from pathlib import Path
 
 from langchain_core.messages import HumanMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -25,6 +25,9 @@ from .schemas import (CharacterProfile, TurnPlan, ExpansionDecision,
 from .tool_context import tool_context
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
+
+# [NameError 修正] 導入 pathlib 並定義 PROJ_DIR
+PROJ_DIR = Path(__file__).resolve().parent.parent
 
 # --- 主對話圖 (Main Conversation Graph) 的節點 ---
 
@@ -295,8 +298,6 @@ async def perceive_and_set_view_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：感知并设定视角 (v31.0 - SFW路徑數據流修復)
 
-
-
 # 函式：组装上下文 (v30.2 - Pydantic 物件訪問修正)
 # 更新紀錄:
 # v30.2 (2025-09-09): [災難性BUG修復] 根據 AttributeError Traceback，徹底修正了上一版引入的語法錯誤。舊版本錯誤地對 Pydantic 物件使用了字典的 .get() 方法。新版本改為使用正確的、帶有 None 檢查的物件屬性點號表示法（`scene_analysis.viewing_mode if scene_analysis else False`），從根本上解決了因此引發的崩潰問題。
@@ -320,9 +321,6 @@ async def assemble_context_node(state: ConversationGraphState) -> Dict:
     
     return {"structured_context": structured_context}
 # 函式：组装上下文 (v30.2 - Pydantic 物件訪問修正)
-
-
-
 
 # 函式：LORE擴展決策 (v33.0 - 數據流修正)
 # 更新紀錄:
@@ -376,9 +374,6 @@ async def expansion_decision_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|5) LORE擴展決策: {decision.should_expand}。理由: {decision.reasoning}")
     return {"expansion_decision": decision}
 # 函式：LORE擴展決策 (v33.0 - 數據流修正)
-
-
-
 
 async def character_quantification_node(state: ConversationGraphState) -> Dict:
     """[6A.1] 將模糊的群體描述轉化為具體的角色列表。"""
@@ -524,8 +519,6 @@ async def sfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan
     return {"turn_plan": plan}
 # 函式：SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 
-
-
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-09-08): [重大架構升級] 創建此全新的輔助函式，專門用於在處理“继续”等延续性指令時，為生成節點提供未經摘要的、最原始、最完整的最近對話歷史。這能確保 AI 在續寫時擁有最精確的上下文，避免因摘要造成的信息損失而導致劇情偏離。
@@ -546,7 +539,6 @@ def _get_raw_chat_history(ai_core: AILover, user_id: str, num_messages: int = 4)
         
     return "\n".join(formatted_history)
 # 函式：獲取原始對話歷史 (v1.0 - 全新創建)
-
 
 # 函式：獲取摘要後的對話歷史 (v30.0 - 三層防禦)
 # 更新紀錄:
@@ -621,8 +613,6 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
                 logger.error(f"[{user_id}] (History Summarizer) [L3] 終極備援失敗：找不到任何歷史AI訊息。")
                 return "（歷史對話摘要因連續錯誤而完全失敗，上下文已丟失。）"
 # 函式：獲取摘要後的對話歷史 (v30.0 - 三層防禦)
-
-
 
 # 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 # 更新紀錄:
@@ -705,8 +695,6 @@ async def remote_sfw_planning_node(state: ConversationGraphState) -> Dict[str, T
     return {"turn_plan": plan}
 # 函式：遠程SFW規劃節點 (v3.0 - 源頭指令隔離修正)
 
-
-
 async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, TurnPlan]:
     """[NSFW Path] 遠程NSFW描述路徑專用規劃器，生成結構化的、露骨的行動計劃。"""
     user_id = state['user_id']
@@ -762,10 +750,6 @@ async def remote_nsfw_planning_node(state: ConversationGraphState) -> Dict[str, 
     if not plan:
         plan = TurnPlan(execution_rejection_reason="安全備援：遠程NSFW規劃鏈失敗。")
     return {"turn_plan": plan}
-
-
-
-
 
 # 函式：NSFW 突破節點 (v38.1 - 數據流修復)
 # 更新紀錄:
@@ -858,9 +842,6 @@ async def nsfw_breakthrough_node(state: ConversationGraphState) -> Dict[str, Any
     # [v38.1 核心修正] 確保將結果放入正確的鍵中
     return {"narrative_outline": outline_draft, "world_snapshot": world_snapshot}
 # 函式：NSFW 突破節點 (v38.1 - 數據流修復)
-
-
-
 
 # 函式：NSFW 潤色節點 (v3.0 - 適配統一指令)
 # 更新紀錄:
@@ -955,12 +936,6 @@ async def sfw_narrative_rendering_node(state: ConversationGraphState) -> Dict[st
         narrative_text = "（AI 在將 SFW 計劃轉化為故事時遭遇了內容安全限制。）"
     return {"llm_response": narrative_text}
 
-
-
-
-
-
-
 # 函式：最終渲染節點 (v3.0 - 適配統一指令)
 # 更新紀錄:
 # v3.0 (2025-09-10): [重大架構重構] 為了適應全新的統一指導原則，重寫了此節點的參數組裝邏輯。
@@ -1009,12 +984,6 @@ async def final_rendering_node(state: ConversationGraphState) -> Dict[str, str]:
         narrative_text = "（AI 在将NSFW計劃渲染为小说时遭遇了内容安全限制。）"
     return {"llm_response": narrative_text}
 # 函式：最終渲染節點 (v3.0 - 適配統一指令)
-
-
-
-
-
-
 
 # 函式：驗證並重寫節點 (v1.3 - 強力HTML註解淨化)
 # 更新紀錄:
@@ -1078,9 +1047,6 @@ async def validate_and_rewrite_node(state: ConversationGraphState) -> Dict:
         
     return {"final_output": final_response}
 # 函式：驗證並重寫節點 (v1.3 - 強力HTML註解淨化)
-
-
-
 
 # 函式：持久化狀態節點 (v13.0 - 觸發背景LORE擴展)
 # 更新紀錄:
@@ -1160,10 +1126,6 @@ def route_expansion_decision(state: ConversationGraphState) -> Literal["expand_l
         return "expand_lore"
     else:
         return "continue_to_planner"
-
-
-
-
 
 # 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
 # 更新紀錄:
@@ -1278,13 +1240,6 @@ def create_main_response_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建主回應圖 (v24.1 - 路由邏輯修正)
-
-        
-
-
-
-
-
 
 async def process_canon_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
@@ -1431,19 +1386,3 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
