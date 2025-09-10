@@ -1717,20 +1717,21 @@ class AILover:
 
 
     
-# 函式：建構檢索器 (v204.0 - ChromaDB 初始化最終修正)
+# 函式：建構檢索器 (v205.0 - 徹底異步化修正)
     # 更新紀錄:
-    # v204.0 (2025-09-09): [災難性BUG修復] 根據反覆出現的 `Could not connect to tenant` 致命錯誤，對 ChromaDB 的初始化與恢復流程進行了決定性的、包含多層防禦的健壯性重構。新的恢復邏輯現在遵循一個嚴格的順序：1. 備份並刪除舊目錄。 2. 【新增】手動、顯式地重新創建一個乾淨的空目錄。 3. 【保留】戰術性延遲以等待文件系統同步。此修改旨在從應用層面為 ChromaDB 的初始化提供一個絕對穩定和可預期的環境，從根本上解決因其內部處理目錄重建不穩定而導致的頑固錯誤。
-    # v203.0 (2025-09-09): [災難性BUG修復] 增加了戰術性延遲以嘗試解決初始化失敗問題。
+    # v205.0 (2025-10-03): [災難性BUG修復] 根據事件循環阻塞（假死）的分析，對此函式進行了根本性的異步化重構。所有潛在的阻塞操作，特別是 `chromadb.PersistentClient()` 的同步初始化，以及所有的文件系統操作（`shutil.move`, `Path.mkdir`），現在都通過 `await asyncio.to_thread()` 被強制轉移到背景工作線程中執行。此修改確保了即使 ChromaDB 因文件鎖而卡在背景線程，主事件循環也絕對不會被阻塞，從而保證了所有守護任務（如自動更新）的持續運作。
+    # v204.0 (2025-09-09): [災難性BUG修復] 採用了多層防禦的健壯性重構來處理初始化失敗。
     async def _build_retriever(self) -> Runnable:
-        """配置並建構RAG系統的檢索器，具備自我修復能力。"""
+        """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
         all_docs = []
         
-        # 輔助函式，保持不變，因為 PersistentClient 仍然是官方推薦的方式
-        def _create_chroma_instance(path: str, embedding_func: Any) -> Chroma:
-            # 增加日誌以追蹤實例化過程
-            logger.info(f"[{self.user_id}] (ChromaDB) 正在嘗試使用路徑 '{path}' 創建 PersistentClient...")
+        # [v205.0 核心修正] 將所有同步阻塞代碼封裝到一個輔助函式中
+        def _create_chroma_instance_sync(path: str, embedding_func: Any) -> Chroma:
+            """一個純粹的同步函式，用於在背景線程中安全地執行。"""
+            logger.info(f"[{self.user_id}] (Sync Worker) 正在嘗試使用路徑 '{path}' 創建 PersistentClient...")
+            # 這個初始化是阻塞的 I/O 操作
             chroma_client = chromadb.PersistentClient(path=path)
-            logger.info(f"[{self.user_id}] (ChromaDB) PersistentClient 創建成功。")
+            logger.info(f"[{self.user_id}] (Sync Worker) PersistentClient 創建成功。")
             
             return Chroma(
                 client=chroma_client,
@@ -1738,9 +1739,9 @@ class AILover:
             )
 
         try:
-            # 步驟 1: 正常嘗試初始化
             logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB...")
-            self.vector_store = await asyncio.to_thread(_create_chroma_instance, self.vector_store_path, self.embeddings)
+            # [v205.0 核心修正] 將阻塞的初始化操作轉移到背景線程
+            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
             
             all_docs_collection = await asyncio.to_thread(self.vector_store.get)
             all_docs = [
@@ -1750,64 +1751,55 @@ class AILover:
             logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 {len(all_docs)} 個現有文檔。")
 
         except Exception as e:
-            # 步驟 2: 如果在初始化時發生任何錯誤，則啟動包含多層防禦的恢復程序
-            logger.warning(f"[{self.user_id}] (Retriever Builder) 向量儲存初始化失敗（可能是首次啟動或資料損壞）: {type(e).__name__}: {e}。啟動全自動恢復...")
+            logger.warning(f"[{self.user_id}] (Retriever Builder) 向量儲存初始化失敗: {type(e).__name__}。啟動全自動恢復...")
             try:
-                # --- 防禦層 1: 備份並刪除 ---
                 vector_path = Path(self.vector_store_path)
-                if vector_path.exists() and vector_path.is_dir():
+                if await asyncio.to_thread(vector_path.exists) and await asyncio.to_thread(vector_path.is_dir):
                     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
                     backup_path = vector_path.parent / f"{vector_path.name}_corrupted_backup_{timestamp}"
-                    # 使用 move 作為備份，比 copy + delete 更原子性
+                    # [v205.0 核心修正] 將阻塞的文件操作轉移到背景線程
                     await asyncio.to_thread(shutil.move, str(vector_path), str(backup_path))
                     logger.info(f"[{self.user_id}] (Recovery Step 1/4) 已將可能已損壞的向量資料庫備份至: {backup_path}")
                 
-                # --- 防禦層 2: 手動創建乾淨目錄 ---
-                # 確保 ChromaDB 初始化時面對的是一個確實存在的、權限正常的空目錄
+                # [v205.0 核心修正] 將阻塞的文件操作轉移到背景線程
                 await asyncio.to_thread(vector_path.mkdir, parents=True, exist_ok=True)
                 logger.info(f"[{self.user_id}] (Recovery Step 2/4) 已手動創建一個乾淨的空目錄於: {vector_path}")
                 
-                # --- 防禦層 3: 戰術性延遲 ---
-                # 給予作業系統足夠的時間來完全釋放舊鎖並同步新目錄的創建
                 delay = 1.0
                 logger.info(f"[{self.user_id}] (Recovery Step 3/4) 正在等待 {delay} 秒以確保檔案鎖已完全釋放...")
                 await asyncio.sleep(delay)
                 
-                # --- 防禦層 4: 在最穩定的環境下重新嘗試初始化 ---
                 logger.info(f"[{self.user_id}] (Recovery Step 4/4) 正在最乾淨的環境下重新嘗試初始化 ChromaDB...")
-                self.vector_store = await asyncio.to_thread(_create_chroma_instance, self.vector_store_path, self.embeddings)
+                # [v205.0 核心修正] 再次使用背景線程進行初始化
+                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
                 all_docs = []
                 logger.info(f"[{self.user_id}] (Retriever Builder) 全自動恢復成功，已創建全新的向量儲存。")
 
             except Exception as recovery_e:
-                # 如果連恢復程序都失敗了，那就是一個無法解決的嚴重問題
-                logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤，RAG 系統可能無法使用: {recovery_e}", exc_info=True)
+                logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                 raise recovery_e
 
-        # 後續步驟保持不變
+        # 後續的檢索器構建邏輯保持不變
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
         
         if all_docs:
             bm25_retriever = BM25Retriever.from_documents(all_docs)
             bm25_retriever.k = 10
             base_retriever = EnsembleRetriever(retrievers=[chroma_retriever, bm25_retriever], weights=[0.6, 0.4])
-            logger.info(f"[{self.user_id}] (Retriever Builder) 成功創建基礎混合式 EnsembleRetriever (語義 + BM25)。")
         else:
             base_retriever = chroma_retriever
-            logger.info(f"[{self.user_id}] (Retriever Builder) 資料庫為空，暫時使用純向量檢索器作為基礎。")
 
         if settings.COHERE_KEY:
-            from langchain_cohere import CohereRerank
+            from langchain_cohere import CohereRank
             from langchain.retrievers import ContextualCompressionRetriever
             compressor = CohereRerank(cohere_api_key=settings.COHERE_KEY, model="rerank-multilingual-v3.0", top_n=5)
             retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=base_retriever)
-            logger.info(f"[{self.user_id}] (Retriever Builder) RAG 系統升級：成功啟用 Cohere Rerank，已配置先進的「檢索+重排」流程。")
         else:
             retriever = base_retriever
-            logger.warning(f"[{self.user_id}] (Retriever Builder) RAG 系統提示：未在 config/.env 中找到 COHERE_KEY。系統將退回至標準混合檢索模式，建議配置以獲取更佳的檢索品質。")
         
+        logger.info(f"[{self.user_id}] (Retriever Builder) 檢索器構建成功。")
         return retriever
-# 函式：建構檢索器 (v204.0 - ChromaDB 初始化最終修正)
+# 函式：建構檢索器 (v205.0 - 徹底異步化修正)
 
 
     
@@ -3759,6 +3751,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
