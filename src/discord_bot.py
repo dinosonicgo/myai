@@ -843,7 +843,33 @@ class BotCog(commands.Cog):
     
     
     
-    
+    # 函式：[全新] Git 操作輔助函式 (v2.0 - 徹底異步化)
+    # 更新紀錄:
+    # v2.0 (2025-10-03): [災難性BUG修復] 將核心的、同步的 `subprocess.run` 調用完全包裹在 `asyncio.to_thread` 中。此修改確保了任何 `git` 命令（即使因網路問題或需要用戶輸入而卡住）都只會阻塞背景工作線程，而不會阻塞主事件循環，從而保證了機器人 UI 和守護任務的持續響應。
+    # v1.0 (2025-10-02): 原始創建。
+    async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+        """在背景執行緒中安全地、非阻塞地運行git指令。"""
+        try:
+            # [v2.0 核心修正] 將同步的 subprocess.run 轉移到背景線程執行
+            process = await asyncio.to_thread(
+                subprocess.run,
+                command,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                check=True,
+                cwd=PROJ_DIR
+            )
+            return True, process.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            error_message = e.stderr.strip() or e.stdout.strip()
+            logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
+            return False, error_message
+        except FileNotFoundError:
+            return False, "錯誤: 'git' 命令未找到。"
+        except Exception as e:
+            return False, f"執行Git時發生未知錯誤: {e}"
+# 函式：[全新] Git 操作輔助函式 (v2.0 - 徹底異步化)
     
     
 # 函式：開始重置流程 (v46.0 - 適配持久化視圖)
