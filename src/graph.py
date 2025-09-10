@@ -1100,27 +1100,49 @@ def create_main_response_graph() -> StateGraph:
 
 
 
-# 函式：處理世界聖經節點 (v2.0 - 增加日誌)
+# 函式：處理世界聖經節點 (v3.0 - 增加日誌與延遲)
 # 更新紀錄:
-# v2.0 (2025-09-29): [健壯性] 在節點執行前後增加了詳細的日誌，以便於追蹤 `/start` 流程中世界聖經處理的狀態。
+# v3.0 (2025-09-30): [災難性BUG修復] 根據速率限制分析，在此節點執行完畢後增加了強制性的延遲，以平滑 /start 流程中的 API 請求速率，避免因請求過於集中而耗盡配額。同時增加了詳細的日誌記錄。
+# v2.0 (2025-09-29): [健壯性] 在節點執行前後增加了詳細的日誌。
 # v1.0 (2025-09-12): 原始創建
 async def process_canon_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     canon_text = state['canon_text']
-    logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 節點已啟動。")
-    if canon_text:
-        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
-        await ai_core.add_canon_to_vector_store(canon_text)
-        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 向量化儲存完成。")
-        await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
-        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) LORE 智能解析完成。")
-    else:
-        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 未提供世界聖經文本，跳過處理。")
     
-    logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 節點執行完畢。")
+    logger.info(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 節點已啟動。")
+    
+    try:
+        if canon_text:
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
+            
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 A: 正在向量化文本...")
+            await ai_core.add_canon_to_vector_store(canon_text)
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 A: 向量化儲存完成。")
+            
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 B: 正在進行 LORE 智能解析...")
+            await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 B: LORE 智能解析完成。")
+        else:
+            logger.info(f"[{user_id}] (Setup Graph|1/4) 未提供世界聖經文本，跳過處理。")
+        
+        logger.info(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 節點執行成功。")
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 執行時發生嚴重錯誤: {e}", exc_info=True)
+        # 即使失敗也繼續流程，避免完全卡死
+    
+    finally:
+        # [v3.0 核心修正] 無論成功與否，都引入延遲
+        delay_seconds = 5.0
+        logger.info(f"[{user_id}] (Setup Graph|1/4|Flow Control) 為平滑 API 請求，將強制等待 {delay_seconds} 秒後進入下一節點...")
+        await asyncio.sleep(delay_seconds)
+        
     return {}
-# 函式：處理世界聖經節點 (v2.0 - 增加日誌)
+# 函式：處理世界聖經節點 (v3.0 - 增加日誌與延遲)
+
+
+
 
 # 函式：補完角色檔案節點 (v2.0 - 數據安全預處理)
 # 更新紀錄:
@@ -1259,4 +1281,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
