@@ -1100,13 +1100,27 @@ def create_main_response_graph() -> StateGraph:
 
 
 
+# 函式：處理世界聖經節點 (v2.0 - 增加日誌)
+# 更新紀錄:
+# v2.0 (2025-09-29): [健壯性] 在節點執行前後增加了詳細的日誌，以便於追蹤 `/start` 流程中世界聖經處理的狀態。
+# v1.0 (2025-09-12): 原始創建
 async def process_canon_node(state: SetupGraphState) -> Dict:
+    user_id = state['user_id']
     ai_core = state['ai_core']
     canon_text = state['canon_text']
+    logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 節點已啟動。")
     if canon_text:
+        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
         await ai_core.add_canon_to_vector_store(canon_text)
+        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 向量化儲存完成。")
         await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
+        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) LORE 智能解析完成。")
+    else:
+        logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 未提供世界聖經文本，跳過處理。")
+    
+    logger.info(f"[{user_id}] (Setup Graph|Node: process_canon) 節點執行完畢。")
     return {}
+# 函式：處理世界聖經節點 (v2.0 - 增加日誌)
 
 # 函式：補完角色檔案節點 (v2.0 - 數據安全預處理)
 # 更新紀錄:
@@ -1245,3 +1259,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
