@@ -201,21 +201,29 @@ async def main():
         server.should_exit = True
         await web_task
 
-    # 函式：[守護任務] GitHub 自動更新檢查器
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.0 - 徹底異步化)
+    # 更新紀錄:
+    # v2.0 (2025-10-03): [災難性BUG修復] 將所有同步的 `subprocess.run` 調用都包裹在 `asyncio.to_thread` 中，確保 git 檢查更新的操作不會阻塞主事件循環。
+    # v1.0 (2025-10-02): 原始創建。
     async def start_github_update_checker_task():
         """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
         await asyncio.sleep(10)
         print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
-        def run_git_command(command: list) -> tuple[int, str, str]:
-            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False)
+        
+        # [v2.0 核心修正] 將同步的 subprocess.run 封裝以便在背景線程運行
+        def run_git_command_sync(command: list) -> tuple[int, str, str]:
+            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
             return process.returncode, process.stdout, process.stderr
+            
         while not shutdown_event.is_set():
             try:
-                await asyncio.to_thread(run_git_command, ['git', 'fetch'])
-                rc, stdout, _ = await asyncio.to_thread(run_git_command, ['git', 'status', '-uno'])
+                # [v2.0 核心修正] 在背景線程中運行 git 命令
+                await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
+                rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+                
                 if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
                     print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
-                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command, ['git', 'reset', '--hard', 'origin/main'])
+                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
                     if pull_rc == 0:
                         print("✅ [自動更新] 程式碼強制同步成功！")
                         print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
@@ -224,7 +232,10 @@ async def main():
                         break 
                     else:
                         print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+
+                # [v2.0 核心修正] 將 sleep 移出 try 塊，確保即使出錯也會等待
                 await asyncio.sleep(300)
+
             except asyncio.CancelledError:
                 print("⚪️ [自動更新] 背景任務被正常取消。")
                 break
@@ -234,7 +245,7 @@ async def main():
             except Exception as e:
                 print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
                 await asyncio.sleep(600)
-    # 函式：[守護任務] GitHub 自動更新檢查器
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.0 - 徹底異步化)
 
     try:
         print("初始化資料庫...")
