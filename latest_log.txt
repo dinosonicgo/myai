@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-10T08:01:17.756824 ###
+### AI Lover Log - Last updated at 2025-09-10T08:03:11.698985 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 606, in add_texts
-    embeddings = self._embedding_function.embed_documents(texts)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2825, in add_canon_to_vector_store
     raise Exception(final_error_msg)
 Exception: 在嘗試了 3 整輪金鑰輪換和延遲後，處理批次 1 最終失敗。請檢查您的 API 金鑰配額。
+2025-09-10 08:02:57 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-10 08:03:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-10 08:03:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-10 08:03:01 - [INFO] - 已成功發送啟動成功通知給管理員 (ID: 512280345618546699)。
+2025-09-10 08:03:08 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-10 08:03:08 - [INFO] - [512280345618546699] 已從 SQL 資料庫安全地清除了所有相關記錄。
+2025-09-10 08:03:08 - [INFO] - [512280345618546699] (第 1 次嘗試) 已成功刪除向量數據庫目錄。
