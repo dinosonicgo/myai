@@ -1289,14 +1289,35 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
 
 
   
+# 函式：生成開場白節點 (v2.0 - 增加日誌)
+# 更新紀錄:
+# v2.0 (2025-09-30): [健壯性] 增加了詳細的日誌記錄。
+# v1.0 (2025-09-12): 原始創建
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
+    user_id = state['user_id']
     ai_core = state['ai_core']
-    opening_scene = await ai_core.generate_opening_scene()
+    opening_scene = ""
     
-    if not opening_scene or not opening_scene.strip():
+    logger.info(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 節點已啟動，準備生成開場白...")
+    
+    try:
+        opening_scene = await ai_core.generate_opening_scene()
+        
+        if not opening_scene or not opening_scene.strip():
+            logger.warning(f"[{user_id}] (Setup Graph|4/4) 'generate_opening_scene' 返回了空內容，將使用安全備援。")
+            opening_scene = (f"在一片柔和的光芒中，你和 {ai_core.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡...")
+        
+        logger.info(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 節點執行成功。")
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 執行時發生嚴重錯誤: {e}", exc_info=True)
         opening_scene = (f"在一片柔和的光芒中，你和 {ai_core.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡...")
         
     return {"opening_scene": opening_scene}
+# 函式：生成開場白節點 (v2.0 - 增加日誌)
+
+
+
 
 def create_setup_graph() -> StateGraph:
     """創建設定圖"""
@@ -1311,6 +1332,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
