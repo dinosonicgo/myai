@@ -1319,6 +1319,7 @@ async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
 
 
 
+# 函式：創建設定圖 (v1.0 - 無變更)
 def create_setup_graph() -> StateGraph:
     """創建設定圖"""
     graph = StateGraph(SetupGraphState)
@@ -1332,6 +1333,8 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+# 函式：創建設定圖 (v1.0 - 無變更)
+
 
 
 
