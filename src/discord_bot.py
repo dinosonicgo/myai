@@ -1237,9 +1237,13 @@ class BotCog(commands.Cog):
                 await message.channel.send(user_feedback)
     # 函式：處理訊息 (v42.0 - 响应逻辑与日志增强)
 
-    # finalize_setup (v42.2 - 延遲加載重構)
+# finalize_setup (v42.3 - 增加日誌)
+    # 更新紀錄:
+    # v42.3 (2025-09-29): [健壯性] 根據使用者請求，在 LangGraph 圖調用前後增加了詳細的日誌記錄，以便於追蹤 `/start` 流程的執行狀態和定位潛在問題。
+    # v42.2 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名。
+    # v42.1 (2025-09-05): [災難性BUG修復] 修正了多個UI類別的重複定義問題並統一了架構。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
-        user_id = str(interaction.user.id)
+        user_id = str(interaction.user_id)
         
         initial_message = "✅ 設定流程已進入最後階段！\n🚀 **正在為您執行最終創世...**"
         if canon_text:
@@ -1247,7 +1251,6 @@ class BotCog(commands.Cog):
         
         await interaction.followup.send(initial_message, ephemeral=True)
         
-        # is_setup_flow=True 確保即使資料庫中沒有記錄，也能創建一個臨時的記憶體實例
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
             logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
@@ -1256,8 +1259,7 @@ class BotCog(commands.Cog):
             return
 
         try:
-            logger.info(f"[{user_id}] /start 流程：正在強制初始化 AI 核心組件...")
-            # [v42.2 核心修正] 呼叫新的配置方法，該方法只準備前置資源而不構建鏈
+            logger.info(f"[{user_id}] (/start) 步驟 1/3: 強制初始化 AI 核心組件...")
             await ai_instance._configure_pre_requisites()
             
             initial_state = SetupGraphState(
@@ -1268,10 +1270,14 @@ class BotCog(commands.Cog):
                 opening_scene=""
             )
 
+            logger.info(f"[{user_id}] (/start) 步驟 2/3: 準備調用 LangGraph 設定圖 (setup_graph)...")
             final_state = await self.setup_graph.ainvoke(initial_state)
+            logger.info(f"[{user_id}] (/start) LangGraph 設定圖執行完畢。")
+
             opening_scene = final_state.get('opening_scene')
             
             if not opening_scene:
+                 logger.warning(f"[{user_id}] (/start) LangGraph 返回了空的開場白，將使用安全備援內容。")
                  opening_scene = (f"在一片柔和的光芒中，你和 {ai_instance.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡，故事即將從這裡開始。"
                                   "\n\n（系統提示：由於您的設定，AI無法生成更詳細的開場白，但您現在可以開始互動了。）")
 
@@ -1280,18 +1286,20 @@ class BotCog(commands.Cog):
             dm_channel = await interaction.user.create_dm()
             
             DISCORD_MSG_LIMIT = 2000
+            logger.info(f"[{user_id}] (/start) 步驟 3/3: 正在向使用者私訊發送開場白...")
             if len(opening_scene) > DISCORD_MSG_LIMIT:
                 for i in range(0, len(opening_scene), DISCORD_MSG_LIMIT):
                     await dm_channel.send(opening_scene[i:i+DISCORD_MSG_LIMIT])
             else:
                 await dm_channel.send(opening_scene)
+            logger.info(f"[{user_id}] (/start) 開場白發送完畢。設定流程成功結束。")
 
         except Exception as e:
             logger.error(f"[{user_id}] 在 LangGraph 設定流程中發生無法恢復的嚴重錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
-    # finalize_setup (v42.2 - 延遲加載重構)
+# finalize_setup (v42.3 - 增加日誌)
 
     async def parse_and_create_lore_from_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool = False):
         user_id = str(interaction.user.id)
@@ -1984,4 +1992,5 @@ class AILoverBot(commands.Bot):
                     logger.error(f"無法發送私訊給管理員 (ID: {settings.ADMIN_USER_ID})。請確認機器人與該用戶之間沒有被封鎖，且用戶允許接收來自伺服器成員的私訊。")
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
+
 # 類別：AI 戀人機器人主體 (v1.2 - 新增啟動通知)
