@@ -839,39 +839,76 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`")
     
-    # 函式：開始重置流程 (v46.0 - 適配持久化視圖)
+
+    
+    
+    
+    
+    
+    
+# 函式：開始重置流程 (v46.0 - 適配持久化視圖)
+    # 更新紀錄:
+    # v46.0 (2025-10-02): [災難性BUG修復] 徹底修正了此函式的邏輯，以使其與全新的“持久化視圖”架構保持一致。移除了錯誤的 interaction.channel.send_modal 調用。現在，在成功清理所有數據後，此函式會正確地向使用者發送帶有“開始設定”按鈕的 StartSetupView，作為整個健壯流程的入口點。
+    # v45.0 (2025-10-01): 嘗試實現鏈式 Modal。
+    # v41.1 (2025-09-05): 增加了檔案鎖定的處理。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
+            
+            # 步驟 1: 關閉並移除記憶體中的 AI 實例
             if user_id in self.ai_instances:
+                logger.info(f"[{user_id}] 正在關閉活躍的 AI 實例...")
                 await self.ai_instances.pop(user_id).shutdown()
                 gc.collect()
                 await asyncio.sleep(1.5)
+                logger.info(f"[{user_id}] AI 實例已關閉並清理。")
+
+            # 步驟 2: 從 SQL 資料庫中刪除所有相關數據
             async with AsyncSessionLocal() as session:
+                logger.info(f"[{user_id}] 正在從 SQL 資料庫清除記錄...")
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
+                logger.info(f"[{user_id}] SQL 資料庫記錄已清除。")
+            
+            # 步驟 3: 刪除向量數據庫目錄
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
+                logger.info(f"[{user_id}] 正在刪除向量數據庫目錄...")
                 await asyncio.to_thread(shutil.rmtree, vector_store_path)
+                logger.info(f"[{user_id}] 向量數據庫目錄已刪除。")
             
-            # [v46.0 核心修正] 發送持久化視圖
+            # [v46.0 核心修正] 發送持久化視圖作為流程的起點
+            logger.info(f"[{user_id}] 重置完成，正在向使用者發送 StartSetupView...")
             view = StartSetupView(cog=self)
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
                 view=view, 
                 ephemeral=True
             )
+            logger.info(f"[{user_id}] StartSetupView 發送成功。")
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
-            await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+            # 確保即使出錯也能發送回應
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
+            # 無論成功或失敗，都應該釋放鎖
             self.setup_locks.discard(user_id)
-    # 函式：開始重置流程 (v46.0 - 適配持久化視圖)
+            logger.info(f"[{user_id}] 設定鎖已釋放。")
+# 函式：開始重置流程 (v46.0 - 適配持久化視圖)
 
+
+
+
+
+
+    
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
