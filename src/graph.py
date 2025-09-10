@@ -1242,31 +1242,53 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
 
 
 
+# 函式：世界創世節點 (v2.0 - 增加日誌與延遲)
+# 更新紀錄:
+# v2.0 (2025-09-30): [災難性BUG修復] 在節點執行完畢後增加了強制性的延遲，以平滑 API 請求速率。同時增加了詳細的日誌記錄。
+# v1.0 (2025-09-12): 原始創建
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
     
-    if not ai_core.profile:
-        raise Exception("AI Profile is not loaded for world genesis.")
+    logger.info(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 節點已啟動，準備執行世界創世...")
+    genesis_result = None
+    try:
+        if not ai_core.profile:
+            raise Exception("AI Profile is not loaded for world genesis.")
 
-    genesis_chain = ai_core.get_world_genesis_chain()
-    genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"world_settings": ai_core.profile.world_settings, "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
-    
-    if not genesis_result:
-        raise Exception("世界創世鏈返回了空結果，可能是內容審查。")
+        genesis_chain = ai_core.get_world_genesis_chain()
+        genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"world_settings": ai_core.profile.world_settings, "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
         
-    gs = ai_core.profile.game_state
-    gs.location_path = genesis_result.location_path
-    await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-    
-    await lore_book.add_or_update_lore(user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
-    
-    for npc in genesis_result.initial_npcs:
-        npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
-        await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
+        if not genesis_result:
+            raise Exception("世界創世鏈返回了空結果，可能是內容審查。")
+            
+        gs = ai_core.profile.game_state
+        gs.location_path = genesis_result.location_path
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
         
+        await lore_book.add_or_update_lore(user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
+        
+        for npc in genesis_result.initial_npcs:
+            npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
+            await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
+        
+        logger.info(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 節點執行成功。")
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 執行時發生嚴重錯誤: {e}", exc_info=True)
+    
+    finally:
+        delay_seconds = 5.0
+        logger.info(f"[{user_id}] (Setup Graph|3/4|Flow Control) 為平滑 API 請求，將強制等待 {delay_seconds} 秒後進入下一節點...")
+        await asyncio.sleep(delay_seconds)
+
     return {"genesis_result": genesis_result}
+# 函式：世界創世節點 (v2.0 - 增加日誌與延遲)
 
+
+
+
+  
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
     opening_scene = await ai_core.generate_opening_scene()
@@ -1289,6 +1311,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
