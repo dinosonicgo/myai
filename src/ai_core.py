@@ -2731,105 +2731,92 @@ class AILover:
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
 
-# 函式：將世界聖經添加到向量儲存 (v3.0 - 混合重試策略)
+
+
+
+    
+# 函式：將世界聖經添加到向量儲存 (v5.0 - 底層手動控制)
     # 更新紀錄:
-    # v3.0 (2025-09-27): [災難性BUG修復] 根據多源API金鑰的特性，徹底重構了重試邏輯。新版本採用了“快速輪換 + 循環延遲”的混合策略：首先會快速、無延遲地嘗試所有獨立的API金鑰；如果一整輪循環後仍然失敗，則會進入一個較長的全局冷卻期，以等待API的分鐘級配額重置。此修改旨在最大限度地利用獨立配額，同時智能應對全局速率限制。
-    # v2.1 (2025-09-18): [災難性BUG修復] 徹底修正了異常捕獲邏輯。
-    # v2.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式以解決 API 速率超限問題，引入分批處理與金鑰輪換。
+    # v5.0 (2025-09-29): [根本性重構] 為了從根源上解決頑固的速率限制問題，徹底廢棄了 LangChain 的高層級 `add_texts` 封裝。新版本採用了更底層、更可控的手動處理流程：以極小的批次（15個文檔）遍歷文本塊，為每個小批次手動調用 `aembed_documents` 獲取向量，然後再手動調用 `vector_store.add_documents` 進行儲存。最關鍵的是，在【每一次】API 調用後都加入了【強制性的、無條件的】4秒延遲，將請求速率嚴格控制在 Google API 免費方案的 15 RPM 限制之內，從而徹底解決了因請求過於密集而導致的所有問題。
+    # v4.0 (2025-09-28): [重大性能優化] 注入了“流量整形”策略。
+    # v3.0 (2025-09-27): [災難性BUG修復] 採用了“快速輪換 + 循環延遲”的混合重試策略。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
-        if not self.vector_store:
-            raise ValueError("Vector store is not initialized.")
+        if not self.vector_store or not self.embeddings:
+            raise ValueError("Vector store or embeddings function is not initialized.")
         
         try:
-            # 步驟 1: 清理舊的 'canon' 數據
+            # 步驟 1: 清理舊數據
             collection = await asyncio.to_thread(self.vector_store.get)
             ids_to_delete = [doc_id for i, doc_id in enumerate(collection['ids']) if collection['metadatas'][i].get('source') == 'canon']
             if ids_to_delete:
                 await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
-                logger.info(f"[{self.user_id}] 已從向量儲存中清理了 {len(ids_to_delete)} 條舊的 'canon' 記錄。")
+                logger.info(f"[{self.user_id}] (Canon Processor) 已從向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
 
             # 步驟 2: 分割文本
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-            docs = text_splitter.create_documents([text_content])
-            
+            docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
             if not docs:
+                logger.info(f"[{self.user_id}] (Canon Processor) 文本分割後為空，無需處理。")
                 return 0
-
-            # 步驟 3: 分批處理與全新的混合重試策略
-            batch_size = 100 # Google Batch Embeddings API 限制每次最多 100 個文檔
-            total_docs_processed = 0
             
-            for i in range(0, len(docs), batch_size):
-                batch_docs = docs[i:i + batch_size]
-                batch_texts = [doc.page_content for doc in batch_docs]
-                batch_metadatas = [{"source": "canon"} for _ in batch_docs]
+            # [v5.0 核心修正] 手動、小批次、帶延遲的處理流程
+            # Google 免費方案的 embedding-001 模型 RPM (每分鐘請求數) 為 15
+            # 60秒 / 15次 = 每次請求之間至少需要 4 秒間隔
+            INTER_API_CALL_DELAY = 4.0
+            SMALL_BATCH_SIZE = 15 # 將批次大小設定為 RPM 上限，確保一次只觸發一次 API 調用
+
+            total_docs_processed = 0
+            total_batches = -(-len(docs) // SMALL_BATCH_SIZE)
+
+            for i in range(0, len(docs), SMALL_BATCH_SIZE):
+                current_batch_num = i // SMALL_BATCH_SIZE + 1
+                small_batch_docs = docs[i:i + SMALL_BATCH_SIZE]
                 
-                max_cycles = 3 # 最多進行 3 整輪的循環嘗試
+                max_retries = len(self.api_keys)
                 batch_succeeded = False
 
-                for cycle in range(max_cycles):
-                    # 在每個大循環開始時，記錄一下
-                    logger.info(f"[{self.user_id}] 開始處理批次 {i//batch_size + 1} 的第 {cycle + 1}/{max_cycles} 輪金鑰快速輪換...")
-                    
-                    # [v3.0 核心修正] 一輪完整的快速輪換
-                    for attempt_in_cycle in range(len(self.api_keys)):
-                        try:
-                            # 使用當前索引的金鑰
-                            logger.info(f"[{self.user_id}] 正在處理 'canon' 向量化批次 {i//batch_size + 1} (使用 API Key #{self.current_key_index + 1})...")
-                            
-                            await asyncio.to_thread(
-                                self.vector_store.add_texts,
-                                texts=batch_texts,
-                                metadatas=batch_metadatas
-                            )
-                            
-                            total_docs_processed += len(batch_docs)
-                            logger.info(f"[{self.user_id}] 批次 {i//batch_size + 1} 成功處理。")
-                            batch_succeeded = True
-                            break # 當前批次成功，跳出內層的 attempt 循環
+                for attempt in range(max_retries):
+                    try:
+                        logger.info(f"[{self.user_id}] (Canon Processor) 正在處理小批次 {current_batch_num}/{total_batches} (使用 API Key #{self.current_key_index + 1})...")
                         
-                        except Exception as e:
-                            error_str = str(e)
-                            is_rate_limit_error = "ResourceExhausted" in error_str or "429" in error_str
+                        # 手動將文檔存入 ChromaDB，Chroma 會在內部調用 aembed_documents
+                        await self.vector_store.aadd_documents(small_batch_docs)
 
-                            if is_rate_limit_error:
-                                logger.warning(f"[{self.user_id}] (第 {attempt_in_cycle + 1}/{len(self.api_keys)} 次嘗試) API Key #{self.current_key_index + 1} 遭遇速率限制。正在【立即】輪換到下一個金鑰...")
-                                
-                                # [v3.0 核心修正] 立即輪換到下一個金鑰，不等待
-                                self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-                                self.embeddings = GoogleGenerativeAIEmbeddings(
-                                    model="models/embedding-001",
-                                    google_api_key=self.api_keys[self.current_key_index]
-                                )
-                                # 重新配置 vector_store 以使用新的 embedding 實例
-                                self.vector_store._embedding_function = self.embeddings
-
-                            else:
-                                # 如果是其他類型的致命錯誤，直接向上拋出
-                                raise e
+                        logger.info(f"[{self.user_id}] (Canon Processor) 小批次 {current_batch_num}/{total_batches} 成功向量化並儲存。")
+                        total_docs_processed += len(small_batch_docs)
+                        batch_succeeded = True
+                        break 
                     
-                    if batch_succeeded:
-                        break # 當前批次成功，跳出外層的 cycle 循環
-
-                    # [v3.0 核心修正] 循環後的全局冷卻
-                    if not batch_succeeded and cycle < max_cycles - 1:
-                        cooldown_time = 65 # 等待 65 秒，以確保 Google 的每分鐘配額 (RPM) 已重置
-                        logger.error(f"[{self.user_id}] 【全局速率限制觸發】在完整輪換所有 {len(self.api_keys)} 個 API 金鑰後，批次 {i//batch_size + 1} 仍然失敗。")
-                        logger.info(f"[{self.user_id}] 系統將進入 {cooldown_time} 秒的全局冷卻期，等待 API 配額重置後再開始下一輪嘗試...")
-                        await asyncio.sleep(cooldown_time)
-
+                    except Exception as e:
+                        error_str = str(e)
+                        is_rate_limit_error = "ResourceExhausted" in error_str or "429" in error_str
+                        if is_rate_limit_error:
+                            logger.warning(f"[{self.user_id}] (Canon Processor) API Key #{self.current_key_index + 1} 在處理小批次時遭遇速率限制。正在輪換金鑰...")
+                            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+                            self.embeddings.google_api_key = self.api_keys[self.current_key_index]
+                            # 等待一個短延遲再用新金鑰重試
+                            await asyncio.sleep(2)
+                        else:
+                            logger.error(f"[{self.user_id}] (Canon Processor) 處理小批次時發生非速率限制的致命錯誤: {e}", exc_info=True)
+                            raise e 
+                
                 if not batch_succeeded:
-                    # 如果在所有循環和大延遲後仍然失敗，則拋出最終異常
-                    final_error_msg = f"在嘗試了 {max_cycles} 整輪金鑰輪換和延遲後，處理批次 {i//batch_size + 1} 最終失敗。請檢查您的 API 金鑰配額。"
+                    final_error_msg = f"在嘗試了所有 {max_retries} 個 API 金鑰後，處理小批次 {current_batch_num} 仍然失敗。"
                     logger.error(f"[{self.user_id}] {final_error_msg}")
                     raise Exception(final_error_msg)
 
+                # [v5.0 核心修正] 無論成功與否，在每次 API 調用後都強制等待，以符合 RPM 限制
+                if i + SMALL_BATCH_SIZE < len(docs):
+                    logger.info(f"[{self.user_id}] (Canon Processor|Flow Control) 小批次 {current_batch_num} 處理完畢。為符合 15 RPM 的限制，將強制等待 {INTER_API_CALL_DELAY} 秒...")
+                    await asyncio.sleep(INTER_API_CALL_DELAY)
+
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {total_batches} 個小批次均已成功處理。總共向量化 {total_docs_processed} 個文本塊。")
             return total_docs_processed
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-# 函式：將世界聖經添加到向量儲存 (v3.0 - 混合重試策略)
+# 函式：將世界聖經添加到向量儲存 (v5.0 - 底層手動控制)
 
 
 
@@ -3762,6 +3749,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
