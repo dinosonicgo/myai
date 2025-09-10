@@ -92,7 +92,14 @@ def _check_and_install_dependencies():
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v2.0 - 獨立化)
+
+
+
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v3.0 - 靜默模式)
+# 更新紀錄:
+# v3.0 (2025-09-30): [健壯性] 根據使用者請求，移除了在正常運行（成功推送或無變更跳過）時的所有 print() 輸出。現在此任務將在背景中「靜默」運行，只在發生錯誤時才向日誌系統報告異常，以避免日誌被不重要的常規信息淹沒。
+# v2.0 (2025-09-29): [健壯性] 將此任務從 discord_bot.py 遷移並獨立化，確保其運行不依賴於 Bot 的狀態。
+# v1.0 (2025-09-29): 原始創建
 async def start_git_log_pusher_task():
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15) # 初始延遲，等待其他服務啟動
@@ -106,7 +113,7 @@ async def start_git_log_pusher_task():
         """同步執行Git指令的輔助函式。"""
         try:
             if not log_file_path.is_file():
-                print(f"🟡 [LOG Pusher] 等待日誌檔案創建...")
+                # 首次運行時日誌可能還未創建，這不是一個錯誤
                 return True
 
             with open(log_file_path, 'r', encoding='utf-8') as f:
@@ -133,13 +140,16 @@ async def start_git_log_pusher_task():
 
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=project_root, capture_output=True)
             
-            print(f"✅ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - 最新LOG已成功推送到GitHub。")
+            # [v3.0 核心修正] 移除了成功時的 print 語句
+            # print(f"✅ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - 最新LOG已成功推送到GitHub。")
             return True
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
-            if "nothing to commit" in error_output:
-                print(f"⚪️ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - LOG無變更，跳過推送。")
+            # [v3.0 核心修正] 如果錯誤是 "nothing to commit"，則靜默處理
+            if "nothing to commit" in str(error_output):
+                # print(f"⚪️ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - LOG無變更，跳過推送。")
                 return True
+            # 對於其他 Git 錯誤，則打印日誌
             print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
             return False
         except Exception as e:
@@ -156,7 +166,13 @@ async def start_git_log_pusher_task():
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v2.0 - 獨立化)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v3.0 - 靜默模式)
+
+
+
+
+
+
 
 async def main():
     MAIN_PY_VERSION = "v6.0"
