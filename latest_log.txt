@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-10T10:18:31.181660 ###
+### AI Lover Log - Last updated at 2025-09-10T10:23:33.379743 ###
 
-2025-09-10 08:09:45 - [INFO] - [512280345618546699] (第 1 次嘗試) 已成功刪除向量數據庫目錄。
-2025-09-10 08:09:51 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-10 08:09:51 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-10 08:09:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-10 08:09:51 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-10 08:09:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-10 08:09:59 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
 2025-09-10 08:09:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-10 08:10:10 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
 2025-09-10 08:10:10 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
@@ -100,3 +93,10 @@ Exception: 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失�
 2025-09-10 10:18:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-10 10:18:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-10 10:18:21 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-10 10:20:39 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-10 10:20:39 - [INFO] - [512280345618546699] 重置完成，準備彈出 WorldSettingsModal。
+2025-09-10 10:20:40 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'DMChannel' object has no attribute 'send_modal'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1010, in start_reset_flow
+    await interaction.channel.send_modal(world_modal)
+AttributeError: 'DMChannel' object has no attribute 'send_modal'
