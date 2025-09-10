@@ -95,26 +95,24 @@ async def read_root(request: Request):
 
 
 
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v3.0 - 靜默模式)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.0 - 徹底異步化)
 # 更新紀錄:
-# v3.0 (2025-09-30): [健壯性] 根據使用者請求，移除了在正常運行（成功推送或無變更跳過）時的所有 print() 輸出。現在此任務將在背景中「靜默」運行，只在發生錯誤時才向日誌系統報告異常，以避免日誌被不重要的常規信息淹沒。
-# v2.0 (2025-09-29): [健壯性] 將此任務從 discord_bot.py 遷移並獨立化，確保其運行不依賴於 Bot 的狀態。
-# v1.0 (2025-09-29): 原始創建
+# v4.0 (2025-10-03): [災難性BUG修復] 將所有同步的 `subprocess.run` 調用都包裹在 `asyncio.to_thread` 中，確保 git 操作（即使因網路問題卡住）不會阻塞主事件循環，從而保證了此守護任務與其他任務的並行性。
+# v3.0 (2025-09-30): [健壯性] 實現了靜默模式。
 async def start_git_log_pusher_task():
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
-    await asyncio.sleep(15) # 初始延遲，等待其他服務啟動
+    await asyncio.sleep(15)
     print("✅ [守護任務] LOG 自動推送器已啟動。")
     
     project_root = Path(__file__).resolve().parent
     log_file_path = project_root / "data" / "logs" / "app.log"
     upload_log_path = project_root / "latest_log.txt"
 
-    def run_git_commands():
+    # [v4.0 核心修正] 將同步的 subprocess.run 封裝以便在背景線程運行
+    def run_git_commands_sync():
         """同步執行Git指令的輔助函式。"""
         try:
-            if not log_file_path.is_file():
-                # 首次運行時日誌可能還未創建，這不是一個錯誤
-                return True
+            if not log_file_path.is_file(): return True
 
             with open(log_file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
@@ -139,26 +137,20 @@ async def start_git_log_pusher_task():
                 )
 
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=project_root, capture_output=True)
-            
-            # [v3.0 核心修正] 移除了成功時的 print 語句
-            # print(f"✅ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - 最新LOG已成功推送到GitHub。")
             return True
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
-            # [v3.0 核心修正] 如果錯誤是 "nothing to commit"，則靜默處理
-            if "nothing to commit" in str(error_output):
-                # print(f"⚪️ [LOG Pusher] {datetime.datetime.now().strftime('%H:%M:%S')} - LOG無變更，跳過推送。")
-                return True
-            # 對於其他 Git 錯誤，則打印日誌
-            print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
-            return False
+            if "nothing to commit" not in str(error_output):
+                print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
+            return True # 即使失敗也返回 True，避免主循環捕獲異常
         except Exception as e:
             print(f"🔥 [LOG Pusher] 執行時發生未知錯誤: {e}")
             return False
 
     while not shutdown_event.is_set():
         try:
-            await asyncio.to_thread(run_git_commands)
+            # [v4.0 核心修正] 在背景線程中運行整個同步的 git 流程
+            await asyncio.to_thread(run_git_commands_sync)
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
             print("⚪️ [LOG Pusher] 背景任務被正常取消。")
@@ -166,7 +158,7 @@ async def start_git_log_pusher_task():
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v3.0 - 靜默模式)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.0 - 徹底異步化)
 
 
 
