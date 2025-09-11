@@ -100,6 +100,7 @@ async def read_root(request: Request):
 
 # 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
 # v5.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與自動更新任務發生 Git 競態條件。
+# v6.0 (2025-10-15): [健壯性] 增加了「靜默模式」，只有在檢測到新的日誌內容時，才會打印詳細的 Git 操作日誌。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -108,10 +109,13 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
     log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
     upload_log_path = PROJ_DIR / "latest_log.txt"
 
-    def run_git_commands_sync():
-        """同步執行Git指令的輔助函式，設計為在背景線程中運行。"""
+    def run_git_commands_sync() -> bool:
+        """
+        同步執行Git指令的輔助函式，設計為在背景線程中運行。
+        返回 True 表示有新的 commit 被推送，返回 False 表示沒有變化。
+        """
         try:
-            if not log_file_path.is_file(): return True
+            if not log_file_path.is_file(): return False
             with open(log_file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             latest_lines = lines[-100:]
@@ -125,28 +129,36 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 ["git", "commit", "-m", commit_message], 
                 capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
             )
-            if commit_process.returncode != 0 and "nothing to commit" not in commit_process.stdout:
-                raise subprocess.CalledProcessError(
-                    commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
-                )
+            # 檢查 commit 是否成功創建
+            if commit_process.returncode != 0:
+                if "nothing to commit" in commit_process.stdout:
+                    return False # 沒有新的 commit，返回 False
+                else:
+                    raise subprocess.CalledProcessError(
+                        commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
+                    )
+            
+            # 如果 commit 成功，則推送
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
-            return True
+            return True # 有新的 commit 被推送，返回 True
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
             if "nothing to commit" not in str(error_output):
                 print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
-            return True
+            return False
         except Exception as e:
             print(f"🔥 [LOG Pusher] 執行時發生未知錯誤: {e}")
             return False
 
     while not shutdown_event.is_set():
         try:
-            # [v5.0 核心修正] 在執行 Git 操作前獲取鎖
+            pushed_new_log = False
             async with lock:
-                print("🔵 [LOG Pusher] 已獲取 Git 鎖，準備推送日誌...")
-                await asyncio.to_thread(run_git_commands_sync)
-                print("🟢 [LOG Pusher] 日誌推送完成，已釋放 Git 鎖。")
+                # [v6.0 核心修正] 先執行，再根據結果判斷是否打印日誌
+                pushed_new_log = await asyncio.to_thread(run_git_commands_sync)
+                if pushed_new_log:
+                    print("🔵 [LOG Pusher] 已獲取 Git 鎖，準備推送日誌...")
+                    print("🟢 [LOG Pusher] 新的日誌已成功推送，已釋放 Git 鎖。")
             
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
@@ -168,6 +180,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
 # v2.2 (2025-10-10): [災難性BUG修復] 修正了此函式定義的全局作用域缩排錯誤，解決了導致 NameError 的問題。
 # v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 變數而導致的 NameError。
 # v3.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與日誌推送任務發生 Git 競態條件。
+# v4.0 (2025-10-15): [健壯性] 增加了「靜默模式」，只有在檢測到新版本時，才會打印詳細的 Git 操作日誌。
 async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
     await asyncio.sleep(10)
@@ -180,13 +193,13 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
         
     while not shutdown_event.is_set():
         try:
-            # [v3.0 核心修正] 在執行 Git 操作前獲取鎖
             async with lock:
-                print("🔵 [Auto Update] 已獲取 Git 鎖，準備檢查更新...")
+                # [v4.0 核心修正] 先檢查，再根據結果決定是否打印日誌
                 await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
                 rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
                 
                 if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
+                    print("🔵 [Auto Update] 已獲取 Git 鎖，檢測到新版本，準備更新...")
                     print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
                     pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
                     if pull_rc == 0:
@@ -198,8 +211,8 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
                         break 
                     else:
                         print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
-                else:
-                     print("🟢 [Auto Update] 未檢測到更新，已釋放 Git 鎖。")
+                # else: # 在靜默模式下，如果沒有更新，則不打印任何日誌
+                #     print("🟢 [Auto Update] 未檢測到更新，已釋放 Git 鎖。")
             
             await asyncio.sleep(300)
 
@@ -210,6 +223,9 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
             print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
             await asyncio.sleep(600)
 # 函式：[守護任務] GitHub 自動更新檢查器 (v2.2 - 縮排修正)
+
+
+
 
 # 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
 async def start_discord_bot_task():
