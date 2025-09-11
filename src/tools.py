@@ -227,7 +227,6 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
 
 
 
-
 # 類別：更新角色檔案參數
 class UpdateCharacterProfileArgs(BaseToolArgs):
     character_name: str = Field(
@@ -490,6 +489,7 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
 
 
