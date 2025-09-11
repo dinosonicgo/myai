@@ -381,6 +381,7 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 # v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
 # v2.1 (2025-10-14): [災難性BUG修復] 確保 `llm_response` 在調用 `.strip()` 之前，先獲取其 `.content` 屬性，解決 `AttributeError: 'AIMessage' object has no attribute 'strip'`。
 # v2.2 (2025-10-15): [災難性BUG修復] 恢復了對 `ai_core._save_interaction_to_dbs` 的調用，以確保對話歷史被正確持久化。
+# v2.3 (2025-10-15): [災難性BUG修復] 在調用 `lore_extraction_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數，解決了 `KeyError`。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     """[7] 清理文本、事後 LORE 提取、保存對話歷史。"""
     user_id = state['user_id']
@@ -390,7 +391,6 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
 
     # 1. 驗證與清理
-    # [v2.1 核心修正] 確保獲取 content 屬性
     if hasattr(llm_response_raw, 'content'):
         llm_response = llm_response_raw.content
     else:
@@ -403,14 +403,18 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     try:
         logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
-        if lore_extraction_chain:
+        if lore_extraction_chain and ai_core.profile:
+            # [v2.3 核心修正] 準備調用 `lore_extraction_chain` 所需的所有參數
+            lore_extraction_params = {
+                "username": ai_core.profile.user_profile.name,
+                "ai_name": ai_core.profile.ai_profile.name,
+                "existing_lore_summary": "", # 簡化
+                "user_input": user_input,
+                "final_response_text": clean_response
+            }
             extraction_plan = await ai_core.ainvoke_with_rotation(
                 lore_extraction_chain,
-                {
-                    "existing_lore_summary": "", # 簡化
-                    "user_input": user_input,
-                    "final_response_text": clean_response
-                },
+                lore_extraction_params,
                 retry_strategy='euphemize' # 確保 LORE 提取也有備援
             )
             if extraction_plan and extraction_plan.plan:
@@ -426,7 +430,6 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         chat_history_manager.add_ai_message(clean_response)
         
         last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-        # [v2.2 核心修正] 恢復對持久化函式的調用
         asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
         
         logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
@@ -641,6 +644,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
