@@ -265,36 +265,40 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     return {"tool_results": results_summary}
 # 函式：[新] 前置工具调用节点
 
-# 函式：[新] 世界快照组装节点 (v2.0 - 职责简化)
-# 更新纪录:
+# 函式：[新] 世界快照組裝節點 (v2.0 - 職責簡化)
+# 更新紀錄:
 # v2.0 (2025-10-07): [架構重構] 根据新的信息顺序要求，此节点的职责被简化。它现在只负责将【当前场景】的所有事实（LORE、游戏状态、工具结果）格式化为 world_snapshot 字符串，不再处理历史上下文。
+# v2.1 (2025-10-14): [災難性BUG修復] 增加了 `username` 和 `ai_name` 到 `context_vars`，解決 `KeyError`。
 async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
-    """[5] (核心) 汇集所有【当前场景】的信息，使用模板格式化成 world_snapshot 字符串。"""
+    """[5] (核心) 匯集所有【當前場景】的信息，使用模板格式化成 world_snapshot 字符串。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在组装【当前场景事实】...")
+    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...")
     
     planning_subjects = state.get("planning_subjects", [])
     tool_results = state.get("tool_results", "")
     
-    npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '无描述')}" for npc in planning_subjects])
-    if not npc_context_str: npc_context_str = "当前场景没有已知的特定角色。"
+    npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '無描述')}" for npc in planning_subjects])
+    if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
 
-    # 将工具结果也加入到场景事实中
+    # 將工具結果也加入到場景事實中
     if tool_results and "無前置工具被調用" not in tool_results:
         npc_context_str += f"\n\n--- 本回合即時事件 ---\n{tool_results}"
 
     gs = ai_core.profile.game_state
     
+    # [v2.1 核心修正] 增加 username 和 ai_name
     context_vars = {
+        'username': ai_core.profile.user_profile.name, # 新增
+        'ai_name': ai_core.profile.ai_profile.name,     # 新增
         'world_settings': ai_core.profile.world_settings or "未設定",
         'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': "（此部分已移至历史上下文中单独处理）",
-        'possessions_context': f"团队库存: {', '.join(gs.inventory) or '空的'}",
-        'quests_context': "当前无任务。",
-        'location_context': f"当前地点: {' > '.join(gs.location_path)}",
+        'retrieved_context': "（此部分已移至歷史上下文中單獨處理）",
+        'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
+        'quests_context': "當前無任務。",
+        'location_context': f"當前地點: {' > '.join(gs.location_path)}",
         'npc_context': npc_context_str,
-        'relevant_npc_context': "请参考上方在场角色列表。",
+        'relevant_npc_context': "請參考上方在場角色列表。",
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
@@ -302,9 +306,9 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
     
-    logger.info(f"[{user_id}] (Graph|5) 【当前场景事实】组装完毕。")
+    logger.info(f"[{user_id}] (Graph|5) 【當前場景事實】組裝完畢。")
     return {"world_snapshot": final_world_snapshot}
-# 函式：[新] 世界快照组装节点 (v2.0 - 职责简化)
+# 函式：[新] 世界快照組裝節點 (v2.0 - 職責簡化)
 
 
 
@@ -609,4 +613,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
