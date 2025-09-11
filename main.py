@@ -3,6 +3,7 @@
 # v7.0 (2025-10-04): [重大架構重構] 為了實現“守護任務的絕對獨立性”，徹底重構了主任務的啟動和管理邏輯。現在，核心服務（如 Discord Bot）和守護任務（如自動更新）被分離到不同的邏輯組中。核心服務的啟動器（start_discord_bot_task）被一個巨大的 try...except 塊包裹，以確保其自身的任何崩潰都不會影響到主事件循環。主函式現在使用 asyncio.gather 來並行運行所有任務，即使核心服務失敗退出，守護任務也會繼續在後台運行，從而確保了遠程修復通道的絕對可用性。
 # v6.0 (2025-09-06): [災難性BUG修復] 引入了全局的 asyncio.Event 作為優雅關閉信號。
 # v5.2 (2025-09-02): [根本性BUG修復] 增加了自動清理 __pycache__ 的功能。
+# v8.0 (2025-10-14): [災難性BUG修復] 確保 `main.py` 進程在收到重啟信號後能明確退出，以觸發 `launcher.py` 的重啟機制。
 
 import os
 import sys
@@ -154,9 +155,9 @@ async def start_git_log_pusher_task():
 
     
 # 函式：[守護任務] GitHub 自動更新檢查器 (v2.2 - 縮排修正)
-# 更新纪录:
-# v2.2 (2025-10-10): [災難性BUG修復] 修正了此函式定義的全局作用域缩排错误，解决了导致 NameError 的问题。
-# v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 变量而导致的 NameError。
+# 更新紀錄:
+# v2.2 (2025-10-10): [災難性BUG修復] 修正了此函式定義的全局作用域缩排錯誤，解決了導致 NameError 的問題。
+# v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因無法訪問 PROJ_DIR 變數而導致的 NameError。
 async def start_github_update_checker_task():
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
     await asyncio.sleep(10)
@@ -289,11 +290,13 @@ async def main():
         print(f"\n啟動 AI戀人系統 (模式: {mode})...")
         
         # [v7.0 核心修正] 使用 asyncio.gather 並行運行所有任務
-        # gather 會運行直到所有傳入的協程都完成。
-        # 因為守護任務是無限循環，所以 gather 會一直運行，直到它們被 shutdown_event 取消。
-        # 即使 core_services 中的任務因錯誤而提前結束，gather 仍然會等待 guardian_tasks。
         all_tasks = core_services + guardian_tasks
         await asyncio.gather(*all_tasks)
+
+        # [v8.0 核心修正] 在所有任務結束後，如果收到重啟信號，則強制退出
+        if shutdown_event.is_set():
+            print("🔄 [Main Process] 收到重啟信號，主程式即將退出以觸發 Launcher 重啟。")
+            sys.exit(0) # 正常退出，讓 Launcher 重啟
 
     except asyncio.CancelledError:
         print("主任務被取消，程式正在關閉。")
@@ -301,6 +304,8 @@ async def main():
         print(f"\n主程式運行時發生未處理的頂層錯誤: {str(e)}")
         traceback.print_exc()
     finally:
+        # 如果程式非正常退出，Launcher 會偵測到非零返回碼並進入冷卻模式
+        # 如果是正常退出（sys.exit(0)），Launcher 會正常重啟
         print("主程式 main() 函式已結束。 launcher.py 將在 5 秒後嘗試重啟。")
 # 函式：主函式 (v7.0 - 錯誤隔離架構)
 
