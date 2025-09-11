@@ -210,14 +210,14 @@ GENERATION_MODEL_PRIORITY = [
 # 固定使用此模型以保证稳定性和速度
 FUNCTIONAL_MODEL = "gemini-2.5-flash-lite"
 
-# 全局常量：Gemini 安全阀值设定 (v2.0 - 完整版)
-# [v2.0] 更新至所有 5 个安全类别
+# 全局常量：Gemini 安全阀值设定 (v2.1 - 拼写修正)
 SAFETY_SETTINGS = {
     HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_CIVIL_INTEGRITY: HarmBlockThreshold.BLOCK_NONE,
+    # [v2.1 核心修正] 修正拼写错误: Civil -> Civic
+    HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY: HarmBlockThreshold.BLOCK_NONE,
 }
 
 PROJ_DIR = Path(__file__).resolve().parent.parent
@@ -3427,6 +3427,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
