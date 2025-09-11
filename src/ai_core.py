@@ -1193,6 +1193,9 @@ class AILover:
     # ==============================================================================
 
     # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
+    # 更新紀錄:
+    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
+    # v204.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色排除原則】，防止創世鏈將主角錯誤地創建為初始 NPC。
     def get_world_genesis_chain(self) -> Runnable:
         if not hasattr(self, 'world_genesis_chain') or self.world_genesis_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.8)
@@ -1200,6 +1203,10 @@ class AILover:
             
             genesis_prompt_str = """你现在扮演一位富有想像力的世界构建师和开场导演。
 你的任务是根据使用者提供的【核心世界觀】，为他和他的AI角色创造一个独一-无二的、充满细节和故事潜力的【初始出生点】。
+
+# === 【【【🚫 核心角色排除原則 (Protagonist Exclusion Principle) - 最高禁令】】】 ===
+# 1.  **【主角身份】**: 下方【主角資訊】中列出的「{username}」和「{ai_name}」是這個世界【绝对的主角】。
+# 2.  **【嚴禁重複創建】**: 你在 `initial_npcs` 列表中創建的任何 NPC，其名字【绝对禁止】与「{username}」或「{ai_name}」相同。主角不是 NPC，他們已經存在了。你的任務是為他們創造**互動的對象**，而不是重複創造他們自己。
 
 【核心规则】
 1.  **【‼️ 場景氛圍 (v55.7) ‼️】**: 这是一个为一对伙伴准备的故事开端。你所创造的初始地点【必须】是一个**安静、私密、适合两人独处**的场所。
@@ -1222,12 +1229,16 @@ class AILover:
 *   使用者: {username}
 *   AI角色: {ai_name}
 ---
-请开始你的创世。"""
+请严格遵循【核心角色排除原則】，开始你的创世。"""
 
             genesis_prompt = ChatPromptTemplate.from_template(genesis_prompt_str)
             self.world_genesis_chain = genesis_prompt | genesis_llm
         return self.world_genesis_chain
     # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
+
+
+
+    
 
 
     # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
@@ -3664,6 +3675,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
