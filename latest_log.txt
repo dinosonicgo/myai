@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T19:37:11.397439 ###
+### AI Lover Log - Last updated at 2025-09-11T19:38:55.472043 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3160, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
     input_ = await coro_with_context(part(), context, create_task=True)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 418, in ainvoke
     [self._convert_input(input)],
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2464, in add_canon_to_vector_store
     raise Exception("手动生成向量失败或返回了不匹配的数量。")
 Exception: 手动生成向量失败或返回了不匹配的数量。
+2025-09-11 19:38:41 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 19:38:41 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 19:38:44 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 19:38:44 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 19:38:45 - [INFO] - 已成功發送啟動成功通知給管理員。
