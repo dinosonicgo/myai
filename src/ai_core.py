@@ -193,17 +193,22 @@ class AILover:
     
 
 
-# 函式：创建 LLM 实例 (v3.0 - 模型思考与分级支持)
-    # 更新纪录:
+    # 函式：创建 LLM 实例 (v3.0 - 模型思考与分级支持)
+    # 更新紀錄:
     # v3.0 (2025-10-06): [重大功能擴展] 重构了此模型工厂。现在它接受一个 model_name 参数，并能为 gemini-2.5-flash-lite 模型自动添加 thinking_config（启用动态思考）。同时增加了详细的日志，以清晰地记录每个实例的创建配置。
     # v2.0 (2025-09-03): [重大性能優化] 实现了循环负荷均衡。
     # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。API 金鑰輪換邏輯已移至 `_create_llm_instance` 和 `_create_embeddings_instance` 共同管理的 `_get_next_api_key_and_index` 輔助函式。
-    def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> ChatGoogleGenerativeAI:
+    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名 `_get_next_api_key_and_index` 為 `_get_next_available_key` 後，此處未更新調用導致的 AttributeError。
+    def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> Optional[ChatGoogleGenerativeAI]:
         """
         創建並返回一個 ChatGoogleGenerativeAI 實例。
-        此函式會從 `_get_next_api_key_and_index` 獲取當前輪換的 API 金鑰。
+        此函式會從 `_get_next_available_key` 獲取當前輪換的 API 金鑰。
         """
-        key_to_use, _ = self._get_next_api_key_and_index() # 獲取金鑰但不更新索引，索引由 _get_next_api_key_and_index 內部管理
+        # [v3.2 核心修正] 調用重命名後的函式
+        key_info = self._get_next_available_key()
+        if not key_info:
+            return None
+        key_to_use, key_index = key_info
         
         generation_config = {
             "temperature": temperature,
@@ -215,7 +220,7 @@ class AILover:
             }
 
         safety_settings_log = {k.name: v.name for k, v in SAFETY_SETTINGS.items()}
-        logger.info(f"[{self.user_id}] 正在創建模型 '{model_name}' 實例 (API Key index: {self.current_key_index})")
+        logger.info(f"[{self.user_id}] 正在創建模型 '{model_name}' 實例 (API Key index: {key_index})")
         logger.info(f"[{self.user_id}] 應用安全設定: {safety_settings_log}")
         if "thinking_config" in generation_config:
             logger.info(f"[{self.user_id}] 已為模型 '{model_name}' 啟用【動態思考】功能。")
@@ -228,7 +233,7 @@ class AILover:
         )
         
         return llm
-# 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
+    # 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
 
 
     # 函式：獲取下一個可用的 API 金鑰 (v1.0 - 全新創建)
@@ -286,7 +291,16 @@ class AILover:
             generation_config=generation_config
         )
 
+    # 函式：創建 Embeddings 實例 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於在需要時創建 GoogleGenerativeAIEmbeddings 實例，並使用當前輪換的金鑰。
+    # v1.1 (2025-10-15): [災難性BUG修復] 修正了因重命名 `_get_next_api_key_and_index` 為 `_get_next_available_key` 後，此處未更新調用導致的 AttributeError。
     def _create_embeddings_instance(self) -> Optional[GoogleGenerativeAIEmbeddings]:
+        """
+        創建並返回一個 GoogleGenerativeAIEmbeddings 實例。
+        此函式會從 `_get_next_available_key` 獲取當前輪換的 API 金鑰。
+        """
+        # [v1.1 核心修正] 調用重命名後的函式
         key_info = self._get_next_available_key()
         if not key_info:
             return None
@@ -294,18 +308,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] 正在創建 Embedding 模型實例 (API Key index: {key_index})")
         return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
-
     # 函式：創建 Embeddings 實例 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於在需要時創建 GoogleGenerativeAIEmbeddings 實例，並使用當前輪換的金鑰。
-    def _create_embeddings_instance(self) -> GoogleGenerativeAIEmbeddings:
-        """
-        創建並返回一個 GoogleGenerativeAIEmbeddings 實例。
-        此函式會從 `_get_next_api_key_and_index` 獲取當前輪換的 API 金鑰。
-        """
-        key_to_use, current_index = self._get_next_api_key_and_index()
-        logger.info(f"[{self.user_id}] 正在創建 Embedding 模型實例 (API Key index: {current_index})")
-        return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
     
 
     
@@ -3572,6 +3575,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
