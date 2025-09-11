@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T23:11:51.018812 ###
+### AI Lover Log - Last updated at 2025-09-11T23:17:16.523508 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2461, in add_canon_to_vector_store
-    embeddings = await self.embeddings.aembed_documents(texts_to_embed)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 67, in aembed_documents
-    return await run_in_executor(None, self.embed_documents, texts)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
     return await asyncio.get_running_loop().run_in_executor(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
@@ -100,3 +95,8 @@ violations {
 2025-09-11 23:06:37 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-11 23:06:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-11 23:06:38 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 23:17:02 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 23:17:02 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 23:17:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 23:17:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 23:17:06 - [INFO] - 已成功發送啟動成功通知給管理員。
