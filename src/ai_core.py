@@ -2007,6 +2007,7 @@ class AILover:
     # v7.0 (2025-10-15): [架構重構] 實現了 Embedding API 失敗時，自動降級到 BM25 備援的混合策略。
     # v8.0 (2025-10-15): [災難性BUG修復] 修正了 `except` 塊，使其能夠正確捕獲 `GoogleGenerativeAIError`，確保備援方案能被觸發。
     # v9.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，如果沒有可用的 Embedding Key，則直接使用 BM25 備援。
+    # v10.0 (2025-10-15): [健壯性] 優化了備援流程的日誌敘事，使其更清晰地反映問題 -> 應對的過程。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Embedding API 失敗的優雅降級能力。"""
         from langchain_google_genai._common import GoogleGenerativeAIError
@@ -2017,32 +2018,32 @@ class AILover:
         
         retrieved_docs = []
         
-        # [v9.0 核心修正] 檢查是否有可用的 Embedding Key
         has_available_keys = any(
             time.time() >= self.key_cooldowns.get(i, 0) for i in range(len(self.api_keys))
         )
 
         if not has_available_keys:
-            logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 所有 Embedding API 金鑰都在冷卻期。直接使用純 BM25 備援方案。")
+            logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
+            logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
             if self.bm25_retriever:
                 retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
         else:
             try:
-                logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用混合檢索器 (Embedding + BM25) 進行檢索...")
+                logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding + BM25) 進行檢索...")
                 retrieved_docs = await self.retriever.ainvoke(query_text)
             except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                if "embed_content" in str(e) or "429" in str(e):
-                    logger.warning(f"[{self.user_id}] (RAG Executor) [備援觸發] Embedding API 遭遇速率限制或錯誤。正在啟動純 BM25 備援方案...")
-                    if self.bm25_retriever:
-                        try:
-                            retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
-                            logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 純 BM25 檢索成功。")
-                        except Exception as bm25_e:
-                            logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] BM25 備援檢索時發生錯誤: {bm25_e}", exc_info=True)
-                    else:
-                        logger.warning(f"[{self.user_id}] (RAG Executor) [備援失敗] BM25 備援檢索器未初始化。")
+                # [v10.0 核心修正] 優化日誌敘事
+                logger.warning(f"[{self.user_id}] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 因達到 API 配額限制而失敗。錯誤: {type(e).__name__}")
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
+                if self.bm25_retriever:
+                    try:
+                        retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                        logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
+                    except Exception as bm25_e:
+                        logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 在檢索時發生錯誤: {bm25_e}", exc_info=True)
                 else:
-                    logger.error(f"[{self.user_id}] 在 RAG 檢索期間發生非 Embedding 相關的 API 錯誤: {e}", exc_info=True)
+                    logger.warning(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 未初始化。")
             except Exception as e:
                 logger.error(f"[{self.user_id}] 在 RAG 檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
                 return "檢索長期記憶時發生未知錯誤，部分上下文可能缺失。"
@@ -3601,6 +3602,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
