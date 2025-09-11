@@ -1,47 +1,86 @@
-### AI Lover Log - Last updated at 2025-09-11T22:13:19.733867 ###
+### AI Lover Log - Last updated at 2025-09-11T22:19:21.446486 ###
 
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 2 条相关LORE。
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在决策是否扩展LORE...
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:15:23 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] (Graph|3) 决策结果：无需扩展。理由: 角色"碧"已在演員名單中，並且她的描述與劇本中要求的角色職責相符。
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:15:24 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Graph|4) 解析到 1 個工具調用，準備執行...
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Executor) 準備執行工具 'update_character_profile'，參數: {'character_name': '碧', 'updates': {'current_action': '坐著'}}
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] 已成功更新角色 '碧' 的檔案，欄位: current_action。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile', 'game_state']
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Executor) 工具 'update_character_profile' 執行成功，結果: 已成功更新角色 '碧' 的檔案，欄位: current_action。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Graph|4) 前置工具執行完畢。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 5)
+2025-09-11 22:15:25 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:15:54 - [WARNING] - [512280345618546699] API Key index: 5 遭遇速率限制。正在輪換到下一個金鑰...
+2025-09-11 22:15:57 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-11 22:15:57 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 1)
+2025-09-11 22:15:57 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-pro' 成功返回結果 ---
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 22:16:47 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 22:16:47 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
 Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
-    result = self.client.batch_embed_contents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
-    response = rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
-    result = target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3226, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-11 22:16:50 - [ERROR] - [512280345618546699] 所有模型 (gemini-2.5-flash-lite) 和所有 API 金鑰均嘗試失敗。啟動最終備援策略: 'euphemize'
+2025-09-11 22:16:50 - [WARNING] - [512280345618546699] (Graph|7) 事後 LORE 學習失敗，已跳過。核心對話保存不受影響。錯誤: AILover._euphemize_and_retry() missing 1 required positional argument: 'original_exception'
+2025-09-11 22:16:50 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
+2025-09-11 22:16:50 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-09-11 22:16:50 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-11 22:16:51 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -49,54 +88,15 @@ violations {
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 890, in _background_process_canon
-    chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2384, in add_canon_to_vector_store
-    embeddings = await self.embeddings.aembed_documents(texts_to_embed)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 67, in aembed_documents
-    return await run_in_executor(None, self.embed_documents, texts)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
 , links {
   description: "Learn more about Gemini API quotas"
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
-]
-2025-09-11 22:13:05 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 22:13:06 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 22:13:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 22:13:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 22:13:10 - [INFO] - 已成功發送啟動成功通知給管理員。
+]。將跳過向量化，但 SQL 備援數據已保存。
+2025-09-11 22:19:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 22:19:07 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 22:19:10 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 22:19:10 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 22:19:11 - [INFO] - 已成功發送啟動成功通知給管理員。
