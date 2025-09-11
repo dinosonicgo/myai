@@ -199,12 +199,12 @@ class AILover:
     # v2.0 (2025-09-03): [重大性能優化] 实现了循环负荷均衡。
     # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。API 金鑰輪換邏輯已移至 `_create_llm_instance` 和 `_create_embeddings_instance` 共同管理的 `_get_next_api_key_and_index` 輔助函式。
     # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名 `_get_next_api_key_and_index` 為 `_get_next_available_key` 後，此處未更新調用導致的 AttributeError。
+    # v3.3 (2025-10-15): [健壯性] 設置 `max_retries=1` 來禁用 LangChain 的內部自動重試，由我們自己的 `ainvoke_with_rotation` 統一管理。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> Optional[ChatGoogleGenerativeAI]:
         """
         創建並返回一個 ChatGoogleGenerativeAI 實例。
         此函式會從 `_get_next_available_key` 獲取當前輪換的 API 金鑰。
         """
-        # [v3.2 核心修正] 調用重命名後的函式
         key_info = self._get_next_available_key()
         if not key_info:
             return None
@@ -229,7 +229,8 @@ class AILover:
             model=model_name,
             google_api_key=key_to_use,
             safety_settings=SAFETY_SETTINGS,
-            generation_config=generation_config
+            generation_config=generation_config,
+            max_retries=1 # [v3.3 核心修正] 禁用 LangChain 的內部重試，交由 ainvoke_with_rotation 全權管理
         )
         
         return llm
@@ -3602,6 +3603,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
