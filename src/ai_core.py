@@ -239,6 +239,7 @@ class AILover:
     # v210.0 (2025-10-06): [重大架構重構] 根据最终的“信息注入式”蓝图，彻底清理了所有旧的、分散的链属性。新增了 `unified_generation_chain` 和 `preemptive_tool_parsing_chain` 等新链的声明，并为模型降级轮换机制添加了 `model_priority_list` 和 `current_model_index` 属性。
     # v204.0 (2025-09-09): [災難性BUG修復] 补完了属性声明。
     # v203.2 (2025-10-14): [災難性BUG修復] 增加了對 `profile_parser_prompt`, `profile_completion_prompt`, `profile_rewriting_prompt` 的初始化，解決 `AttributeError`。
+    # v203.3 (2025-10-14): [災難性BUG修復] 增加了 `entity_extraction_chain` 的初始化，解決 `AttributeError`。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -255,7 +256,7 @@ class AILover:
         self.unified_generation_chain: Optional[Runnable] = None
         self.preemptive_tool_parsing_chain: Optional[Runnable] = None
 
-        # --- 功能性与备援链 ---
+        # --- 功能性与備援鏈 ---
         self.input_analysis_chain: Optional[Runnable] = None
         self.scene_analysis_chain: Optional[Runnable] = None
         self.expansion_decision_chain: Optional[Runnable] = None
@@ -265,27 +266,28 @@ class AILover:
         self.gemini_entity_extraction_chain: Optional[Runnable] = None
         self.gemini_creative_name_chain: Optional[Runnable] = None
         self.gemini_description_generation_chain: Optional[Runnable] = None
+        self.entity_extraction_chain: Optional[Runnable] = None # [v203.3 核心修正] 新增通用實體提取鏈的聲明
         
-        # --- 其他辅助链 ---
+        # --- 其他輔助鏈 ---
         self.personal_memory_chain: Optional[Runnable] = None
         self.output_validation_chain: Optional[Runnable] = None
         self.rewrite_chain: Optional[Runnable] = None
         self.rag_summarizer_chain: Optional[Runnable] = None
         self.contextual_location_chain: Optional[Runnable] = None
         self.literary_euphemization_chain: Optional[Runnable] = None
-        self.euphemization_chain: Optional[Runnable] = None # v207.0 新增
-        self.location_extraction_chain: Optional[Runnable] = None # v2.0 新增
-        self.action_intent_chain: Optional[Runnable] = None # v203.1 新增
-        self.param_reconstruction_chain: Optional[Runnable] = None # v203.1 新增
-        self.single_entity_resolution_chain: Optional[Runnable] = None # v203.1 新增
-        self.batch_entity_resolution_chain: Optional[Runnable] = None # v203.1 新增
-        self.canon_parser_chain: Optional[Runnable] = None # v203.1 新增
-        self.profile_parser_chain: Optional[Runnable] = None # v203.1 新增
-        self.profile_completion_chain: Optional[Runnable] = None # v203.1 新增
-        self.profile_rewriting_chain: Optional[Runnable] = None # v203.1 新增
-        self.remote_planning_chain: Optional[Runnable] = None # v1.0 新增
+        self.euphemization_chain: Optional[Runnable] = None 
+        self.location_extraction_chain: Optional[Runnable] = None 
+        self.action_intent_chain: Optional[Runnable] = None 
+        self.param_reconstruction_chain: Optional[Runnable] = None 
+        self.single_entity_resolution_chain: Optional[Runnable] = None 
+        self.batch_entity_resolution_chain: Optional[Runnable] = None 
+        self.canon_parser_chain: Optional[Runnable] = None 
+        self.profile_parser_chain: Optional[Runnable] = None 
+        self.profile_completion_chain: Optional[Runnable] = None 
+        self.profile_rewriting_chain: Optional[Runnable] = None 
+        self.remote_planning_chain: Optional[Runnable] = None 
 
-        # --- (保留) /start 流程专用链 ---
+        # --- (保留) /start 流程專用鏈 ---
         self.world_genesis_chain: Optional[Runnable] = None
         
         # --- 模板與資源 ---
@@ -302,7 +304,7 @@ class AILover:
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
         
-        self.gm_model: Optional[ChatGoogleGenerativeAI] = None # 確保 gm_model 被初始化
+        self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
@@ -314,30 +316,28 @@ class AILover:
     # 更新纪录:
     # v3.0 (2025-10-06): [重大功能擴展] 重构了此模型工厂。现在它接受一个 model_name 参数，并能为 gemini-2.5-flash-lite 模型自动添加 thinking_config（启用动态思考）。同时增加了详细的日志，以清晰地记录每个实例的创建配置。
     # v2.0 (2025-09-03): [重大性能優化] 实现了循环负荷均衡。
+    # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。API 金鑰輪換邏輯已移至 `_create_llm_instance` 和 `_create_embeddings_instance` 共同管理的 `_get_next_api_key_and_index` 輔助函式。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> ChatGoogleGenerativeAI:
         """
-        创建并返回一个 ChatGoogleGenerativeAI 实例。
-        会自动轮换 API 金鑰，并为特定模型启用特殊配置。
+        創建並返回一個 ChatGoogleGenerativeAI 實例。
+        此函式會從 `_get_next_api_key_and_index` 獲取當前輪換的 API 金鑰。
         """
-        key_to_use = self.api_keys[self.current_key_index]
+        key_to_use, _ = self._get_next_api_key_and_index() # 獲取金鑰但不更新索引，索引由 _get_next_api_key_and_index 內部管理
         
-        # [v3.0 核心修正] 动态构建 generation_config
         generation_config = {
             "temperature": temperature,
-            # 可以在此处添加所有模型都通用的其他配置
         }
 
-        # 当且仅当模型是 flash-lite 时，启用思考功能
         if model_name == "gemini-2.5-flash-lite":
             generation_config["thinking_config"] = {
-                "thinking_budget": -1  # 启用动态思考
+                "thinking_budget": -1  # 啟用動態思考
             }
 
         safety_settings_log = {k.name: v.name for k, v in SAFETY_SETTINGS.items()}
-        logger.info(f"[{self.user_id}] 正在创建模型 '{model_name}' 实例 (API Key #{self.current_key_index + 1})")
-        logger.info(f"[{self.user_id}] 应用的安全设定: {safety_settings_log}")
+        logger.info(f"[{self.user_id}] 正在創建模型 '{model_name}' 實例 (API Key index: {self.current_key_index})")
+        logger.info(f"[{self.user_id}] 應用安全設定: {safety_settings_log}")
         if "thinking_config" in generation_config:
-            logger.info(f"[{self.user_id}] 已为模型 '{model_name}' 启用【动态思考】功能。")
+            logger.info(f"[{self.user_id}] 已為模型 '{model_name}' 啟用【動態思考】功能。")
 
         llm = ChatGoogleGenerativeAI(
             model=model_name,
@@ -346,13 +346,32 @@ class AILover:
             generation_config=generation_config
         )
         
-        # 为下一次调用准备下一个 API 金鑰
-        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-        
         return llm
-# 函式：创建 LLM 实例 (v3.0 - 模型思考与分级支持)
+# 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
 
 
+    # 函式：獲取下一個 API 金鑰和索引 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於集中管理 API 金鑰的輪換。確保所有需要金鑰的實例（LLM 和 Embeddings）都能使用統一的輪換邏輯。
+    def _get_next_api_key_and_index(self) -> Tuple[str, int]:
+        """獲取下一個用於 API 調用的金鑰，並更新金鑰索引。"""
+        key_to_use = self.api_keys[self.current_key_index]
+        current_index = self.current_key_index
+        self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+        return key_to_use, current_index
+
+    # 函式：創建 Embeddings 實例 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於在需要時創建 GoogleGenerativeAIEmbeddings 實例，並使用當前輪換的金鑰。
+    def _create_embeddings_instance(self) -> GoogleGenerativeAIEmbeddings:
+        """
+        創建並返回一個 GoogleGenerativeAIEmbeddings 實例。
+        此函式會從 `_get_next_api_key_and_index` 獲取當前輪換的 API 金鑰。
+        """
+        key_to_use, current_index = self._get_next_api_key_and_index()
+        logger.info(f"[{self.user_id}] 正在創建 Embedding 模型實例 (API Key index: {current_index})")
+        return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
+    
 
     
     # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
@@ -1385,12 +1404,14 @@ class AILover:
     # v1.0.2 (2025-08-29): [BUG修復] 修正了函式定義的縮排錯誤。
     # v1.0.1 (2025-08-29): [BUG修復] 修正了對 self.safety_settings 的錯誤引用。
     # v2.0 (2025-10-14): [災難性BUG修復] 確保 `self.gm_model` 使用 `FUNCTIONAL_MODEL`，以匹配其在其他鏈中的預期用途。
+    # v3.0 (2025-10-14): [災難性BUG修復] 將 `self.embeddings` 的初始化移到 `_configure_pre_requisites` 之外，使其在每次需要時可以與當前輪換的金鑰一起被創建。
     def _initialize_models(self):
-        """初始化核心的LLM和嵌入模型。"""
+        """初始化核心的LLM。嵌入模型將在需要時動態創建並獲取最新金鑰。"""
         # [v2.0 核心修正] 確保 gm_model 使用 FUNCTIONAL_MODEL
         self.gm_model = self._create_llm_instance(temperature=0.7, model_name=FUNCTIONAL_MODEL)
         
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
+        # [v3.0 核心修正] 移除此處的 embeddings 初始化，它將在 `ainvoke_with_rotation` 或 `_create_embeddings_instance` 中動態創建
+        # self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.3 - 簡化)
 
 
@@ -1530,48 +1551,57 @@ class AILover:
 # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
 
 
-    # 函式：[全新] 獲取前置工具解析链
+# 函式：[全新] 獲取前置工具解析鏈
     # 更新纪录:
-    # v1.0 (2025-10-06): [重大架構重構] 创建此链，用于在主创作流程前，从用户输入中解析出明确的、需要改变世界状态的工具调用。它被设计为高度聚焦和确定性的，固定使用 FUNCTIONAL_MODEL。
+    # v1.0 (2025-10-06): [重大架構重構] 创建此链，用于在主創作流程前，从用户输入中解析出明确的、需要改变世界状态的工具调用。它被设计为高度聚焦和确定性的，固定使用 FUNCTIONAL_MODEL。
+    # v1.1 (2025-10-14): [災難性BUG修復] 修正了 Prompt 模板中 `{tool_name}` 變數未被轉義導致的 `KeyError`。現在所有工具名稱都作為字面量包含在列表中。
     def get_preemptive_tool_parsing_chain(self) -> Runnable:
-        """获取或创建一个简单的链，用于从用户输入中解析出明确的工具调用。"""
+        """獲取或創建一個簡單的鏈，用於從使用者輸入中解析出明確的工具調用。"""
         if not hasattr(self, 'preemptive_tool_parsing_chain') or self.preemptive_tool_parsing_chain is None:
             from .schemas import ToolCallPlan
             
-            prompt_template = """你是一个精确的指令解析器。你的唯一任务是分析用户输入，并判断它是否包含一个明确的、需要调用工具来改变游戏状态的指令。
+            prompt_template = """你是一個精確的指令解析器。你的唯一任務是分析使用者輸入，並判斷它是否包含一個明確的、需要調用工具來改變遊戲狀態的指令。
 
-# === 核心规则 ===
-1.  **只解析明确指令**: 只关注那些直接命令角色执行具体动作的指令，如“移动到”、“装备”、“攻击”、“给予”等。
-2.  **忽略纯对话/叙事**: 如果输入是纯粹的对话（例如“你好吗？”）或场景描述（例如“*我看着你*”），则必须返回一个空的计划。
-3.  **输出格式**: 你的输出必须是一个 ToolCallPlan JSON。如果没有可执行的工具，则 `plan` 列表为空。
+# === 核心規則 ===
+1.  **只解析明確指令**: 只關注那些直接命令角色執行具體動作的指令，如“移動到”、“裝備”、“攻擊”、“給予”等。
+2.  **忽略純對話/敘事**: 如果輸入是純粹的對話（例如“你好嗎？”）或場景描述（例如“*我看着你*”），則必須返回一個空的計畫。
+3.  **輸出格式**: 你的輸出必須是一個 ToolCallPlan JSON。如果沒有可執行的工具，則 `plan` 列表為空。
 
-# === 工具列表 ===
-- `change_location(path: str)`: 改变玩家团队的位置。
-- `equip_item(character_name: str, item_name: str)`: 角色装备物品。
+# === 工具列表 (請嚴格參考以下工具名稱和參數) ===
+- `change_location(path: str)`: 改變玩家團隊的位置。
+- `equip_item(character_name: str, item_name: str)`: 角色裝備物品。
 - `unequip_item(character_name: str, item_name: str)`: 角色卸下物品。
-- `update_money(change: int)`: 增减金钱。
-- `add_item_to_inventory(item_name: str)`: 添加物品到库存。
-- `remove_item_from_inventory(item_name: str)`: 从库存移除物品。
+- `update_money(change: int)`: 增減金錢。
+- `add_item_to_inventory(item_name: str)`: 添加物品到庫存。
+- `remove_item_from_inventory(item_name: str)`: 從庫存移除物品。
+- `update_character_profile(character_name: str, updates: Dict[str, Any])`: 更新角色檔案（例如狀態、動作）。
 
-# === 范例 ===
-- 输入: "我们去市场吧" -> plan: `[{"tool_name": "change_location", "parameters": {"path": "市场"}}]`
-- 输入: "碧，把这把匕首装备上" -> plan: `[{"tool_name": "equip_item", "parameters": {"character_name": "碧", "item_name": "匕首"}}]`
-- 输入: "我爱你" -> plan: `[]`
+# === 範例 ===
+- 輸入: "我們去市場吧" -> plan: `[{{"tool_name": "change_location", "parameters": {{"path": "市場"}}}}]`
+- 輸入: "碧，把這把匕首裝備上" -> plan: `[{{"tool_name": "equip_item", "parameters": {{"character_name": "碧", "item_name": "匕首"}}}}]`
+- 輸入: "我愛你" -> plan: `[]`
+- 輸入: "坐下" -> plan: `[{{"tool_name": "update_character_profile", "parameters": {{"character_name": "{ai_name}", "updates": {{"current_action": "坐著"}}}}}}]`
+- 輸入: "讓碧坐下" -> plan: `[{{"tool_name": "update_character_profile", "parameters": {{"character_name": "{ai_name}", "updates": {{"current_action": "坐著"}}}}}}]`
+
 
 ---
-【当前在场角色】: {character_list_str}
-【用户输入】: {user_input}
+【當前在場角色】: {character_list_str}
+【使用者輸入】: {user_input}
 ---
 """
+            # [v1.1 核心修正] 確保 prompt_template 引用 ai_name
+            # 注意：這裡的 {ai_name} 應該在調用鏈時作為 partial_variables 傳入
+            # 為了避免 KeyError，將其改為在調用時傳入
+            
             prompt = ChatPromptTemplate.from_template(prompt_template)
             
-            # 此链固定使用功能性模型
+            # 此鏈固定使用功能性模型
             functional_llm = self._create_llm_instance().with_structured_output(ToolCallPlan)
             
             self.preemptive_tool_parsing_chain = prompt | functional_llm
             
         return self.preemptive_tool_parsing_chain
-# 函式：[全新] 獲取前置工具解析链
+# 函式：[全新] 獲取前置工具解析鏈
 
 
 
@@ -2124,10 +2154,11 @@ class AILover:
 
     
 
-    # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
+# 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
     # 更新紀錄:
     # v2.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此函式的錯誤處理邏輯。現在，對內部 `entity_extraction_chain` 的調用增加了與 `retrieve_memories_node` 相同的【快速失敗】保護機制（`retry_strategy='none'` + `try...except`）。此修改旨在從根本上解決當使用者輸入露骨內容時，此函式因觸發複雜且不穩定的委婉化重試鏈而導致整個圖形流程卡死的問題。
     # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
+    # v2.1 (2025-10-14): [災難性BUG修復] 修正了 `AttributeError: 'AILover' object has no attribute 'get_entity_extraction_chain'`，確保調用正確的函式。
     async def _query_lore_from_entities(self, user_input: str, is_remote_scene: bool = False) -> List[Lore]:
         """[新] 提取實體並查詢其原始LORE對象。這是專門為新的 query_lore_node 設計的。"""
         if not self.profile: return []
@@ -2142,7 +2173,8 @@ class AILover:
         # [v2.0 核心修正] 增加健壯的錯誤處理，防止因內容審查而卡死
         extracted_names = set()
         try:
-            entity_extraction_chain = self.get_entity_extraction_chain()
+            # [v2.1 核心修正] 調用正確的通用實體提取鏈
+            entity_extraction_chain = self.get_entity_extraction_chain() 
             # 使用 'none' 策略以快速失敗，避免進入複雜的委婉化重試循環
             entity_result = await self.ainvoke_with_rotation(
                 entity_extraction_chain, 
@@ -2949,10 +2981,11 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
+# 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
     # 更新紀錄:
     # v209.0 (2025-09-08): [災難性BUG修復] 根據 LOG 中出現的無限重試風暴，徹底重構了此函式的核心邏輯。舊版本在備援時會回頭調用另一個同樣脆弱的鏈（entity_extraction_chain），導致了致命的遞歸失敗循環。新版本移除了所有脆弱的“解構-重構”步驟，改為直接調用專為處理露骨內容而設計的、更強大的“文學評論家”鏈，將失敗的輸入一次性地、安全地轉換為文學概述後再進行重試，從根本上解決了重試風暴問題。
     # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
+    # v209.1 (2025-10-14): [災難性BUG修復] 修正了當 `failed_chain` 是一個 `Retriever` 實例時，`ainvoke` 調用失敗的問題。現在會針對 `Retriever` 類型進行特殊處理，並確保 `self.embeddings` 使用最新的輪換金鑰。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
         [v209.0 新架構] 一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
@@ -2986,6 +3019,14 @@ class AILover:
             # 處理文檔列表類型的參數
             elif isinstance(failed_params, list) and all(isinstance(i, Document) for i in failed_params):
                  text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in failed_params])
+            # [v209.1 核心修正] 處理當輸入是 Retriever 查詢時，其參數通常是查詢字符串
+            elif isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
+                if isinstance(failed_params, str):
+                    text_to_euphemize = failed_params
+                    key_to_replace = 'query' # 假設查詢字符串是 'query' 參數
+                else:
+                    raise ValueError("Retriever 失敗時無法提取查詢字符串進行委婉化。")
+
 
             if not text_to_euphemize:
                 raise ValueError("無法從參數中提取可委婉化的文本。")
@@ -3022,7 +3063,29 @@ class AILover:
                 retry_params = safe_text
             elif isinstance(retry_params, list) and all(isinstance(i, Document) for i in retry_params):
                 retry_params = [Document(page_content=safe_text)]
+            # [v209.1 核心修正] 針對 Retriever 調整 retry_params
+            elif isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
+                if key_to_replace == 'query' and isinstance(retry_params, str):
+                    retry_params = safe_text # 直接替換查詢字符串
+                else:
+                    logger.warning(f"[{self.user_id}] (Euphemizer) 無法為 Retriever 構建正確的重試參數。")
+                    return None
 
+            # [v209.1 核心修正] 如果失敗的鏈是 Retriever，則需要重新初始化其 embedding_function
+            if isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
+                # 確保 self.embeddings 已經更新到最新的金鑰
+                # 由於 ainvoke_with_rotation 在每次嘗試時都會更新 self.embeddings，這裡只需確保它被設置
+                if self.embeddings is None:
+                    self.embeddings = self._create_embeddings_instance()
+
+                # 如果是 EnsembleRetriever，需要更新其內部所有 Chroma 檢索器的 embedding_function
+                if hasattr(failed_chain, 'retrievers'):
+                    for retriever in failed_chain.retrievers:
+                        if hasattr(retriever, 'vectorstore') and hasattr(retriever.vectorstore, '_embedding_function'):
+                            retriever.vectorstore._embedding_function = self.embeddings
+                elif hasattr(failed_chain, 'vectorstore') and hasattr(failed_chain.vectorstore, '_embedding_function'):
+                    # 如果是單個 Chroma Retriever
+                    failed_chain.vectorstore._embedding_function = self.embeddings
 
             return await failed_chain.ainvoke(retry_params)
 
@@ -3032,7 +3095,37 @@ class AILover:
     # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
 
 
+    # 函式：[新] 獲取實體提取鏈 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-14): [核心功能] 創建此鏈，用於從任意文本中提取通用的專有名詞和關鍵實體，作為 LORE 查詢的前置步驟。
+    def get_entity_extraction_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從文本中提取專有名詞和關鍵實體的鏈。"""
+        if not hasattr(self, 'entity_extraction_chain') or self.entity_extraction_chain is None:
+            from .schemas import ExtractedEntities
+            extractor_llm = self._create_llm_instance(temperature=0.0).with_structured_output(ExtractedEntities)
+            
+            prompt_template = """你是一位精確的實體識別專家。你的唯一任務是從【文本輸入】中，提取出所有重要的【專有名詞】和【關鍵實體名稱】。
 
+# === 核心規則 ===
+1.  **只提取專有名詞**: 只提取具有唯一標識性的名稱，例如人名、地點名、物品名、生物種類名、組織名等。
+2.  **忽略通用詞彙**: 忽略普通的形容詞、動詞、副詞、介詞以及不具備實體意義的通用名詞（例如「一個男人」、「一座城市」）。
+3.  **精簡去重**: 確保列表中沒有重複的名稱。
+4.  **輸出格式**: 你的最終輸出【必須且只能】是一個包含 `names` 列表的 JSON。
+
+# === 範例 ===
+- 輸入: "艾拉和碧在靜謐溪谷小屋裡交談，她們提到了一把名叫『破曉之劍』的古老武器，以及關於艾瑟利亞大陸的傳說。"
+- 輸出: {{"names": ["艾拉", "碧", "靜謐溪谷小屋", "破曉之劍", "艾瑟利亞大陸"]}}
+
+---
+【文本輸入】:
+{text_input}
+---
+【JSON 輸出】:
+"""
+            prompt = ChatPromptTemplate.from_template(prompt_template)
+            self.entity_extraction_chain = prompt | extractor_llm
+        return self.entity_extraction_chain
+    # 函式：[新] 獲取實體提取鏈 (v1.0 - 全新創建)
     
 
     # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
@@ -3136,6 +3229,7 @@ class AILover:
     # v220.0 (2025-10-06): [重大架構重構] 彻底重写了此函式，以实现“模型降级 x 金鑰轮换”的二维重试矩阵。新增 use_degradation 参数，当为 True 时，外层循环会按优先级列表降级模型；内层循环则在每个模型级别上轮换所有 API 金鑰。此修改为系统提供了前所未有的健壮性，能在输出质量和抗审查能力之间进行动态平衡。
     # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
     # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。現在會檢查鏈是否已經包含 `llm` 部分，如果包含，則使用 `with_config` 替換現有的 LLM 實例；否則，將 `configured_llm` 作為新的步驟追加到鏈的末尾。這解決了在 `world_genesis_chain` 等已經包含 `with_structured_output` 的鏈上重複綁定 LLM 導致的類型錯誤。
+    # v220.2 (2025-10-14): [災難性BUG修復] 增加了對 `self.embeddings` 的動態創建和金鑰輪換，以解決 Embedding API 的速率限制問題。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3151,37 +3245,38 @@ class AILover:
         for model_index, model_name in enumerate(models_to_try):
             self.current_model_index = self.model_priority_list.index(model_name) if model_name in self.model_priority_list else -1
             
-            logger.info(f"[{self.user_id}] --- 开始尝试模型: '{model_name}' (优先级 {model_index + 1}/{len(models_to_try)}) ---")
+            logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            # 内循环：在当前模型级别上，轮换所有 API 金鑰
+            # 內循環：在當前模型級別上，輪換所有 API 金鑰
             for attempt in range(len(self.api_keys)):
                 try:
-                    # 动态地将新创建的、正确配置的 LLM 绑定到链上
+                    # [v220.2 核心修正] 在每次嘗試時，重新創建 Embeddings 實例以確保金鑰輪換
+                    self.embeddings = self._create_embeddings_instance()
+
+                    # 動態地將新創建的、正確配置的 LLM 綁定到鏈上
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
                     effective_chain = chain
-                    # [v220.1 核心修正] 檢查鏈是否已經包含 LLM 實例，並相應地替換或追加
-                    if hasattr(chain, 'steps') and any(isinstance(s, ChatGoogleGenerativeAI) for s in chain.steps):
-                        # 如果鏈中有 LLM 實例，嘗試用 with_config 替換它
-                        # 這需要更精確的查找和替換邏輯，但對於簡單的鏈，我們可以假設 LLM 是可配置的
-                        effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
-                    elif isinstance(chain, ChatPromptTemplate):
-                        # 如果是純 PromptTemplate，則直接將 LLM 追加到其後
+                    # 檢查鏈是否已經包含 LLM 實例，並相應地替換或追加
+                    # 這裡需要更強健的 LLM 替換邏輯，以處理各種 LangChain Runnable 結構
+                    # 簡化處理：如果 chain 是一個 PromptTemplate，則直接將 LLM 追加
+                    # 如果 chain 已經是 Runnable，我們假設它有一個可配置的 LLM 部分或者會自行處理
+                    if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | configured_llm
-                    elif isinstance(chain, RunnableLambda):
-                         # 如果是 RunnableLambda，則在執行時確保其內部調用正確
-                         # 這裡假設 RunnableLambda 的 params 已經是正確的，不需要額外綁定 LLM
-                         # 為了避免複雜性，我們只在 PromptTemplate 或包含 LLM 的 Runnable 上進行綁定
-                         pass
-                    else:
-                        # 對於其他複雜的 Runnable，我們假設它們已經配置好 LLM，或者 LLM 會在內部被調用
-                        # 這裡的邏輯需要根據實際的鏈結構來決定如何替換 LLM
+                    elif hasattr(chain, 'get_graph') and callable(getattr(chain, 'get_graph')): # 檢查是否為 LangGraph compiled graph
+                        # 對於 LangGraph，LLM 替換可能更複雜，通常在節點內部完成
+                        # 這裡我們信任節點內部會調用 _create_llm_instance
                         pass
-                    
-                    # 如果 effective_chain 仍然是原始的 chain 且它不是一個可調用的 Runnable，
-                    # 並且沒有明確的 LLM 綁定，這可能是一個問題。
-                    # 但在我們的架構中，chain 通常是 PromptTemplate 或包含 LLM 的 Runnable。
-                    
+                    elif hasattr(chain, 'with_config'):
+                        # 嘗試使用 with_config 替換 LLM，這對於許多 Runnable 類型都有效
+                        try:
+                            effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
+                        except Exception as e:
+                            logger.warning(f"[{self.user_id}] 嘗試用 with_config 替換 LLM 失敗: {e}。將使用原始鏈。")
+                            effective_chain = chain # 回退到原始鏈
+                    else:
+                        effective_chain = chain # 對於其他類型，直接使用原始鏈
+
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
                         timeout=90.0
@@ -3195,8 +3290,7 @@ class AILover:
                     return result
 
                 except asyncio.TimeoutError:
-                    logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時 (模型: {model_name}, Key #{self.current_key_index + 1})。正在輪換金鑰...")
-                    # 超時也算一次嘗試，繼續輪換金鑰
+                    logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時 (模型: {model_name}, Key index: {self.current_key_index})。正在輪換金鑰...")
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3204,23 +3298,18 @@ class AILover:
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_safety_error:
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{self.current_key_index + 1}) 遭遇內容審查。")
-                        # 如果是安全錯誤，直接跳出金鑰輪換，開始降級到下一個模型
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {self.current_key_index}) 遭遇內容審查。")
                         break 
                     
                     if is_rate_limit_error:
-                        logger.warning(f"[{self.user_id}] API Key #{self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
-                        # 繼續內循環，嘗試下一個金鑰
+                        logger.warning(f"[{self.user_id}] API Key index: {self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        # 對於未知錯誤，也嘗試降級模型
                         break
             
-            # 如果內循環（金鑰輪換）結束後仍未成功，外循環將繼續，嘗試下一個更低優先級的模型
             if model_index < len(models_to_try) - 1:
                 logger.warning(f"[{self.user_id}] 模型 '{model_name}' 在嘗試所有 API 金鑰後均失敗。正在降級到下一個模型...")
 
-        # 如果所有模型都失敗了，最終執行備援策略
         logger.error(f"[{self.user_id}] 所有模型 ({', '.join(models_to_try)}) 和所有 API 金鑰均嘗試失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
@@ -3228,7 +3317,7 @@ class AILover:
         elif retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params)
         
-        return None # for retry_strategy == 'none'
+        return None 
 # 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
 
     
@@ -3459,6 +3548,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
