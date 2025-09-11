@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T22:44:28.943849 ###
+### AI Lover Log - Last updated at 2025-09-11T22:46:10.228086 ###
 
-2025-09-11 22:39:35 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 1 条相关LORE。
-2025-09-11 22:39:35 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在决策是否扩展LORE...
-2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-11 22:39:35 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
 2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
 2025-09-11 22:39:36 - [INFO] - [512280345618546699] (Graph|3) 决策结果：无需扩展。理由: 角色碧在现有演员名单中已存在，并且其描述与剧本中描述的动作和暗示的意图（强调性、仪式感的拍手动作，暗示结论、确认或宣告）是相符的。
 2025-09-11 22:39:36 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
@@ -100,3 +95,8 @@ violations {
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
 ]。將跳過向量化，但 SQL 備援數據已保存。
+2025-09-11 22:45:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 22:45:56 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 22:45:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 22:45:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 22:46:00 - [INFO] - 已成功發送啟動成功通知給管理員。
