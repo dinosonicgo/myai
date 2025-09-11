@@ -100,51 +100,53 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[新] 场景感知节点
 
-# 函式：[新] 记忆与 LORE 查询节点
+# 函式：[新] 記憶與 LORE 查詢節點
+# 更新紀錄:
+# v2.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
+# v2.1 (2025-10-15): [性能優化] 新增了對短指令的判斷，避免對 "坐下" 等簡單指令執行不必要的 RAG 檢索，以節省 Embedding API 配額。
+# v3.0 (2025-10-15): [功能優化] 此函式現在調用具有場景感知能力的 `_query_lore_from_entities`，查詢結果更精準。
 async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
-    """[2] 清洗用户输入，检索 RAG 记忆，并查询所有相关的 LORE。"""
+    """[2] 清洗使用者輸入，檢索 RAG 記憶，並查詢所有相關的 LORE。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     scene_analysis = state['scene_analysis']
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在检索记忆与查询LORE...")
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...")
 
-    # 源头清洗
+    # 源頭清洗
     sanitized_query = user_input
     try:
         literary_chain = ai_core.get_literary_euphemization_chain()
         result = await ai_core.ainvoke_with_rotation(literary_chain, {"dialogue_history": user_input}, retry_strategy='euphemize')
         if result:
-            sanitized_query = result
+            sanitized_query = result.content if hasattr(result, 'content') else str(result)
     except Exception:
-        logger.warning(f"[{user_id}] (Graph|2) 源头清洗失败，将使用原始输入进行查询。")
+        logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。")
 
-    # RAG 检索
-    rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
+    # [v2.1 核心修正] RAG 檢索優化
+    rag_context_str = "沒有檢索到相關的長期記憶。"
+    if len(user_input) > 10 or any(kw in user_input for kw in ["誰", "什麼", "回憶", "記得"]):
+        logger.info(f"[{user_id}] (Graph|2) 輸入較複雜，執行 RAG 檢索...")
+        rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
+    else:
+        logger.info(f"[{user_id}] (Graph|2) 輸入為簡單指令，跳過 RAG 檢索以節省配額。")
 
-    # LORE 查询
+
+    # [v3.0 核心修正] LORE 查詢現在具有場景感知能力
     is_remote = scene_analysis.viewing_mode == 'remote'
-    lores_from_input = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
-    
-    # 查询当前场景的所有 LORE
-    effective_location_path = scene_analysis.target_location_path if is_remote else ai_core.profile.game_state.location_path
-    lores_in_scene = await lore_book.get_lores_by_category_and_filter(
-        user_id, 'npc_profile', lambda c: c.get('location_path') == effective_location_path
-    )
-    
-    # 合并并去重
-    final_lores_map = {lore.key: lore for lore in lores_in_scene}
-    for lore in lores_from_input:
-        final_lores_map.setdefault(lore.key, lore)
+    final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
         
-    logger.info(f"[{user_id}] (Graph|2) 查询完成。检索到 {len(final_lores_map)} 条相关LORE。")
+    logger.info(f"[{user_id}] (Graph|2) 查詢完成。檢索到 {len(final_lores)} 條相關LORE。")
     
     return {
         "rag_context": rag_context_str,
-        "raw_lore_objects": list(final_lores_map.values()),
+        "raw_lore_objects": final_lores,
         "sanitized_query_for_tools": sanitized_query
     }
-# 函式：[新] 记忆与 LORE 查询节点
+# 函式：[新] 記憶與 LORE 查詢節點
+
+
+
 
 # 函式：[新] LORE 扩展决策与执行节点
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
@@ -661,6 +663,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
