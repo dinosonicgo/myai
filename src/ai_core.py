@@ -110,11 +110,13 @@ class AILover:
 
 
     # 函式：初始化AI核心 (v210.0 - 统一流程重构)
-    # 更新纪录:
+    # 更新紀錄:
     # v210.0 (2025-10-06): [重大架構重構] 根据最终的“信息注入式”蓝图，彻底清理了所有旧的、分散的链属性。新增了 `unified_generation_chain` 和 `preemptive_tool_parsing_chain` 等新链的声明，并为模型降级轮换机制添加了 `model_priority_list` 和 `current_model_index` 属性。
     # v204.0 (2025-09-09): [災難性BUG修復] 补完了属性声明。
     # v203.2 (2025-10-14): [災難性BUG修復] 增加了對 `profile_parser_prompt`, `profile_completion_prompt`, `profile_rewriting_prompt` 的初始化，解決 `AttributeError`。
     # v203.3 (2025-10-14): [災難性BUG修復] 增加了 `entity_extraction_chain` 的初始化，解決 `AttributeError`。
+    # v211.0 (2025-10-15): [架構重構] 移除了对 ChromaDB 和 EnsembleRetriever 的依赖，改用纯 BM25Retriever 以避免 Embedding API 配额问题。
+    # v212.0 (2025-10-15): [架構重構] 恢復了 ChromaDB 和 EnsembleRetriever，實現了 Embedding 作為主方案、BM25 作為備援的混合策略。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -141,7 +143,7 @@ class AILover:
         self.gemini_entity_extraction_chain: Optional[Runnable] = None
         self.gemini_creative_name_chain: Optional[Runnable] = None
         self.gemini_description_generation_chain: Optional[Runnable] = None
-        self.entity_extraction_chain: Optional[Runnable] = None # [v203.3 核心修正] 新增通用實體提取鏈的聲明
+        self.entity_extraction_chain: Optional[Runnable] = None 
         
         # --- 其他輔助鏈 ---
         self.personal_memory_chain: Optional[Runnable] = None
@@ -169,18 +171,21 @@ class AILover:
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
+        
+        # [v212.0 核心修正] 恢復向量庫相關屬性，並新增 bm25_retriever 用於備援
         self.vector_store: Optional[Chroma] = None
         self.retriever: Optional[EnsembleRetriever] = None
+        self.bm25_retriever: Optional[BM25Retriever] = None # BM25 備援檢索器
         self.embeddings: Optional[GoogleGenerativeAIEmbeddings] = None
         self.available_tools: Dict[str, Runnable] = {}
         
-        # [v203.2 核心修正] 初始化這些 prompt 屬性
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
         
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
         
+        # [v212.0 核心修正] 恢復向量儲存路徑
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
     # 函式：初始化AI核心 (v210.0 - 统一流程重构)
@@ -1312,78 +1317,61 @@ class AILover:
     # v206.0 (2025-10-13): [災難性BUG修復] 采用“延迟 Embedding 提供”策略，以彻底解决初始化时的速率限制问题。
     # v207.1 (2025-10-14): [災難性BUG修復] 確保 `self.embeddings` 在 `Chroma` 初始化後立即被設置為其 `_embedding_function`。
     # v207.2 (2025-10-15): [災難性BUG修復] 修正了 `Chroma` 實例初始化時缺少 `embedding_function` 導致的 `ValueError`。現在直接在 `Chroma` 構造函數中提供。
+    # v208.0 (2025-10-15): [架構重構] 徹底移除了对 ChromaDB 和 Embedding 模型的依赖，改用纯 BM25Retriever。
+    # v209.0 (2025-10-15): [架構重構] 實現了 Embedding + BM25 的混合備援策略。
     async def _build_retriever(self) -> Runnable:
-        """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
-        all_docs = []
+        """配置並建構 RAG 系統的檢索器，採用 Embedding 作為主方案，BM25 作為備援。"""
+        # --- 步驟 1: 從 SQL 加載所有記憶，為 BM25 做準備 ---
+        all_sql_docs = []
+        async with AsyncSessionLocal() as session:
+            stmt = select(MemoryData).where(MemoryData.user_id == self.user_id)
+            result = await session.execute(stmt)
+            all_memories = result.scalars().all()
+            for memory in all_memories:
+                all_sql_docs.append(Document(page_content=memory.content, metadata={"source": "history", "timestamp": memory.timestamp}))
         
-        # 確保 self.embeddings 已經被創建 (在 ainvoke_with_rotation 中會被更新)
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載 {len(all_sql_docs)} 條記憶。")
+
+        # --- 步驟 2: 構建 BM25 備援檢索器 ---
+        if all_sql_docs:
+            self.bm25_retriever = BM25Retriever.from_documents(all_sql_docs)
+            self.bm25_retriever.k = 10
+            logger.info(f"[{self.user_id}] (Retriever Builder) BM25 備援檢索器構建成功。")
+        else:
+            self.bm25_retriever = RunnableLambda(lambda x: []) # 如果沒有文檔，創建一個空的備援
+            logger.info(f"[{self.user_id}] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。")
+
+        # --- 步驟 3: 構建 ChromaDB 主要檢索器 ---
         if self.embeddings is None:
-            self.embeddings = self._create_embeddings_instance() # 確保 embeddings 實例存在
+            self.embeddings = self._create_embeddings_instance()
 
         def _create_chroma_instance_sync(path: str, embeddings_func: GoogleGenerativeAIEmbeddings) -> Chroma:
-            """一個純粹的同步函式，用於在背景線程中安全地執行。"""
-            logger.info(f"[{self.user_id}] (Sync Worker) 正在嘗試使用路徑 '{path}' 創建 PersistentClient...")
-            chroma_client = chromadb.PersistentClient(path=path)
-            logger.info(f"[{self.user_id}] (Sync Worker) PersistentClient 創建成功。")
-            
-            # [v207.2 核心修正] 在初始化時直接提供 embedding_function
-            return Chroma(
-                client=chroma_client,
-                embedding_function=embeddings_func # 直接傳入 embedding 函數
-            )
+            client = chromadb.PersistentClient(path=path)
+            return Chroma(client=client, embedding_function=embeddings_func)
 
         try:
-            logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (帶 Embedding 函数)...")
-            # [v207.2 核心修正] 傳遞 self.embeddings 實例給同步創建函數
             self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
-            
-            all_docs_collection = await asyncio.to_thread(self.vector_store.get)
-            all_docs = [Document(page_content=doc, metadata=meta) for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])]
-            logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 {len(all_docs)} 個現有文檔。")
-
+            chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
+            logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 主要檢索器構建成功。")
         except Exception as e:
-            logger.warning(f"[{self.user_id}] (Retriever Builder) 向量儲存初始化失敗: {type(e).__name__}。啟動全自動恢復...")
-            try:
-                vector_path = Path(self.vector_store_path)
-                if await asyncio.to_thread(vector_path.exists) and await asyncio.to_thread(vector_path.is_dir):
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                    backup_path = vector_path.parent / f"{vector_path.name}_corrupted_backup_{timestamp}"
-                    await asyncio.to_thread(shutil.move, str(vector_path), str(backup_path))
-                    logger.info(f"[{self.user_id}] (Recovery Step 1/4) 已將可能已損壞的向量資料庫備份至: {backup_path}")
-                await asyncio.to_thread(vector_path.mkdir, parents=True, exist_ok=True)
-                logger.info(f"[{self.user_id}] (Recovery Step 2/4) 已手動創建一個乾淨的空目錄於: {vector_path}")
-                await asyncio.sleep(1.0)
-                logger.info(f"[{self.user_id}] (Recovery Step 4/4) 正在最乾淨的環境下重新嘗試初始化 ChromaDB...")
-                # [v207.2 核心修正] 恢復時也傳遞 embedding_function
-                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
-                all_docs = []
-                logger.info(f"[{self.user_id}] (Retriever Builder) 全自動恢復成功，已創建全新的向量儲存。")
-            except Exception as recovery_e:
-                logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
-                raise recovery_e
+            logger.warning(f"[{self.user_id}] (Retriever Builder) ChromaDB 初始化失敗: {type(e).__name__}。主檢索器將不可用。")
+            # 如果 Chroma 失敗，主檢索器將直接是 BM25 備援
+            self.retriever = self.bm25_retriever
+            return self.retriever
 
-        # [v207.1 核心修正] 不再需要手動賦值，因為已經在 Chroma 構造函數中完成
-        # self.vector_store._embedding_function = self.embeddings 
+        # --- 步驟 4: 組合為主/備援檢索器 ---
+        # EnsembleRetriever 將同時運行兩者
+        self.retriever = EnsembleRetriever(retrievers=[chroma_retriever, self.bm25_retriever], weights=[0.7, 0.3])
         
-        chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
-        
-        if all_docs:
-            bm25_retriever = BM25Retriever.from_documents(all_docs)
-            bm25_retriever.k = 10
-            base_retriever = EnsembleRetriever(retrievers=[chroma_retriever, bm25_retriever], weights=[0.6, 0.4])
-        else:
-            base_retriever = chroma_retriever
-
+        # Cohere Rerank 作為可選的增強層
         if settings.COHERE_KEY:
             from langchain_cohere import CohereRerank
             from langchain.retrievers import ContextualCompressionRetriever
             compressor = CohereRerank(cohere_api_key=settings.COHERE_KEY, model="rerank-multilingual-v3.0", top_n=5)
-            retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=base_retriever)
-        else:
-            retriever = base_retriever
+            self.retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=self.retriever)
         
-        logger.info(f"[{self.user_id}] (Retriever Builder) 檢索器構建成功。")
-        return retriever
+        logger.info(f"[{self.user_id}] (Retriever Builder) 混合檢索器構建成功。")
+        return self.retriever
 # 函式：建構檢索器 (v207.0 - Embedding 注入時機修正)
 
 
@@ -1970,61 +1958,49 @@ class AILover:
     # 更新紀錄:
     # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 根據使用者反饋，徹底重構了文檔清洗邏輯以解決“重試風暴”和效能低下的問題。新版本採用了“批次處理”策略：不再為每個檢索到的文檔單獨調用LLM進行清洗，而是將所有文檔內容合併為一個大的文本塊，然後用一次LLM調用（文學評論家鏈）將其整體安全化，再用第二次LLM調用進行摘要。此修改將此函式的LLM調用次數從 N+1 次恆定為 2 次，極大提升了速度並降低了API速率超限的風險。
     # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
+    # v7.0 (2025-10-15): [架構重構] 實現了 Embedding API 失敗時，自動降級到 BM25 備援的混合策略。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """[新] 執行RAG檢索並將結果總結為摘要。具備對 Reranker 失敗的優雅降級能力。"""
+        """[新] 執行RAG檢索並將結果總結為摘要。具備對 Embedding API 失敗的優雅降級能力。"""
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
         retrieved_docs = []
         try:
-            try:
-                logger.info(f"[{self.user_id}] (RAG Executor) 正在使用查詢 '{query_text[:30]}...' 執行完整的「檢索+重排」流程...")
-                retrieved_docs = await self.ainvoke_with_rotation(
-                    self.retriever, 
-                    query_text,
-                    retry_strategy='euphemize'
-                )
-            except RuntimeError as e:
-                if "COHERE_RATE_LIMIT_EXCEEDED" in str(e):
-                    logger.warning(f"[{self.user_id}] (RAG Executor) Cohere Reranker 速率超限，啟動【優雅降級】策略...")
-                    if hasattr(self.retriever, 'base_retriever'):
-                        logger.info(f"[{self.user_id}] (RAG Executor) 正在僅使用基礎混合檢索器 (Ensemble) 重試...")
-                        retrieved_docs = await self.ainvoke_with_rotation(
-                            self.retriever.base_retriever,
-                            query_text,
-                            retry_strategy='euphemize'
-                        )
-                        logger.info(f"[{self.user_id}] (RAG Executor) 基礎檢索器重試成功。")
-                    else:
-                        logger.error(f"[{self.user_id}] (RAG Executor) 優雅降級失敗：找不到 base_retriever。")
-                        raise e
+            logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用混合檢索器 (Embedding + BM25) 進行檢索...")
+            retrieved_docs = await self.retriever.ainvoke(query_text)
+
+        except (ResourceExhausted, GoogleAPICallError) as e:
+            if "embed_content" in str(e):
+                logger.warning(f"[{self.user_id}] (RAG Executor) [備援觸發] Embedding API 遭遇速率限制或錯誤。正在啟動純 BM25 備援方案...")
+                if self.bm25_retriever:
+                    try:
+                        retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                        logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 純 BM25 檢索成功。")
+                    except Exception as bm25_e:
+                        logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] BM25 備援檢索時發生錯誤: {bm25_e}", exc_info=True)
                 else:
-                    raise e
-
+                    logger.warning(f"[{self.user_id}] (RAG Executor) [備援失敗] BM25 備援檢索器未初始化。")
+            else:
+                # 如果是其他 API 錯誤，則按常規流程處理
+                logger.error(f"[{self.user_id}] 在 RAG 檢索期間發生非 Embedding 相關的 API 錯誤: {e}", exc_info=True)
         except Exception as e:
-            logger.error(f"[{self.user_id}] 在 RAG 檢索的調用階段發生嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
-            return "檢索長期記憶時發生外部服務錯誤，部分上下文可能缺失。"
+            logger.error(f"[{self.user_id}] 在 RAG 檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
+            return "檢索長期記憶時發生未知錯誤，部分上下文可能缺失。"
 
-        if retrieved_docs is None:
-            logger.warning(f"[{self.user_id}] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。")
-            retrieved_docs = []
-            
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # --- [v6.0 核心修正] 批次清洗與摘要 ---
-        logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在將其合併並進行一次性批次清洗...")
+        # --- 後續的批次清洗與摘要邏輯保持不變 ---
+        logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
         
-        # 步驟 1: 將所有文檔內容合併為單一文本塊
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # 步驟 2: 對合併後的單一文本塊進行一次性的文學化清洗
         literary_chain = self.get_literary_euphemization_chain()
         safe_overview_of_all_docs = await self.ainvoke_with_rotation(
             literary_chain,
             {"dialogue_history": combined_content},
-            retry_strategy='none' # 如果連批次清洗都失敗，直接終止，不再嘗試修復
+            retry_strategy='none' 
         )
 
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
@@ -2033,19 +2009,17 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
 
-        # 步驟 3: 將清洗後的單一安全概述傳遞給摘要器
-        # 我們將其包裝在一個 Document 物件中以符合摘要器鏈的輸入格式
         docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
         
         summarized_context = await self.ainvoke_with_rotation(
             self.get_rag_summarizer_chain(), 
             docs_for_summarizer,
-            retry_strategy='none' # 摘要器理論上不應再失敗，但為保險起見也快速失敗
+            retry_strategy='none' 
         )
 
         if not summarized_context or not summarized_context.strip():
              logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
-             summarized_context = "从記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
+             summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
@@ -2363,69 +2337,73 @@ class AILover:
 
 
     
-    # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
-    # 更新紀錄:
+# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
+    # 更新纪录:
     # v6.0 (2025-10-13): [災難性BUG修復] 配合 _build_retriever 的修改，此函式现在负责完全手动的 Embedding 流程。它接收一个没有 embedding 功能的 vector_store 实例，自己调用 self.embeddings.aembed_documents 将文本转换为向量，然后再将文本和生成的向量一起提交给 vector_store。这确保了 API 调用只在我们需要时、以我们可控的方式发生，彻底解决了初始化时隐藏的 API 调用问题。
     # v5.0 (2025-09-29): [根本性重構] 采用更底层的、小批次、带强制延迟的手动控制流程。
-    # v6.1 (2025-10-14): [災難性BUG修復] 修正了 `ainvoke_with_rotation` 調用 `embedding_chain` 時，因 `embedding_task` 返回協程導致的 `ValueError`。現在直接 `await self.embeddings.aembed_documents`。
+    # v7.0 (2025-10-15): [架構重構] 移除了所有与向量化相关的逻辑。此函式现在负责将世界圣经分割成块，并将其作为普通记忆存入 SQL 数据库，以供 BM25 检索器使用。
+    # v8.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL (為 BM25) 和 ChromaDB (為主方案)。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
-        if not self.vector_store or not self.embeddings:
-            raise ValueError("Vector store or embeddings function is not initialized.")
+        """將世界聖經文本處理並同時保存到 SQL 記憶庫和 Chroma 向量庫。"""
+        if not self.profile:
+            raise ValueError("User profile is not initialized.")
         
         try:
-            # 步驟 1: 清理舊數據
-            ids_to_delete = []
-            if self.vector_store._collection.count() > 0:
-                collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
-                if collection and collection['ids']:
-                    ids_to_delete = collection['ids']
-            
-            if ids_to_delete:
-                await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
-                logger.info(f"[{self.user_id}] (Canon Processor) 已從向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
-
-            # 步驟 2: 分割文本
+            # --- 步驟 1: 分割文本 ---
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
             docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
             if not docs:
                 return 0
-            
-            texts_to_embed = [doc.page_content for doc in docs]
-            metadatas = [doc.metadata for doc in docs]
-            
-            # [v6.1 核心修正] 步驟 3: 手動調用 Embedding API
-            # 我們在這裡進行一次性的、集中的 API 調用，並應用完整的重試邏輯
-            logger.info(f"[{self.user_id}] (Canon Processor) 準備為 {len(texts_to_embed)} 個文本塊手動生成向量...")
-            
-            try:
-                # 直接調用 embedding 模型的異步方法，它不屬於 LLM 鏈，不需要 ainvoke_with_rotation
-                embeddings = await self.embeddings.aembed_documents(texts_to_embed)
-            except Exception as e:
-                logger.error(f"[{self.user_id}] (Canon Processor) 調用 embedding 模型失敗: {e}", exc_info=True)
-                raise Exception("手動生成向量失敗或返回了不匹配的數量。") from e
 
-            if not embeddings or len(embeddings) != len(texts_to_embed):
-                raise Exception("手動生成向量失敗或返回了不匹配的數量。")
+            # --- 步驟 2: 保存到 SQL (為 BM25) ---
+            async with AsyncSessionLocal() as session:
+                stmt = delete(MemoryData).where(
+                    MemoryData.user_id == self.user_id,
+                    MemoryData.importance == -1
+                )
+                await session.execute(stmt)
+                
+                new_memories = [
+                    MemoryData(
+                        user_id=self.user_id,
+                        content=doc.page_content,
+                        timestamp=time.time(),
+                        importance=-1
+                    ) for doc in docs
+                ]
+                session.add_all(new_memories)
+                await session.commit()
+            logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已存入 SQL 記憶庫。")
 
-            logger.info(f"[{self.user_id}] (Canon Processor) 成功生成 {len(embeddings)} 組向量。")
-
-            # [v6.0 核心修正] 步驟 4: 將文本和已生成的向量一起添加到 ChromaDB
-            # 這個操作是純本地的，不會再觸發任何網絡調用
-            logger.info(f"[{self.user_id}] (Canon Processor) 正在將文本和向量添加到本地 ChromaDB...")
-            await asyncio.to_thread(
-                self.vector_store.add_texts,
-                texts=texts_to_embed,
-                metadatas=metadatas,
-                embeddings=embeddings
-            )
+            # --- 步驟 3: 保存到 ChromaDB (為主方案) ---
+            if self.vector_store:
+                ids_to_delete = []
+                if self.vector_store._collection.count() > 0:
+                    collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
+                    if collection and collection['ids']:
+                        ids_to_delete = collection['ids']
+                if ids_to_delete:
+                    await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
+                
+                # 手動 Embedding 並添加
+                texts_to_embed = [doc.page_content for doc in docs]
+                metadatas = [doc.metadata for doc in docs]
+                if self.embeddings:
+                    embeddings = await self.embeddings.aembed_documents(texts_to_embed)
+                    await asyncio.to_thread(
+                        self.vector_store.add_texts,
+                        texts=texts_to_embed,
+                        metadatas=metadatas,
+                        embeddings=embeddings
+                    )
+                    logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已存入 Chroma 向量庫。")
             
-            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 個文本塊均已成功處理並存入向量庫。")
             return len(docs)
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-    # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
+# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
 
 
 
@@ -3004,8 +2982,10 @@ class AILover:
     # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-10-15): [核心功能] 創建此函式，用於將對話歷史保存到 SQL 資料庫和 Chroma 向量庫，以供長期記憶和 RAG 檢索使用。
+    # v2.0 (2025-10-15): [架構重構] 移除了向向量库添加文本的步骤，现在只保存到 SQL 数据库。
+    # v3.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL 和 ChromaDB。
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """將單次互動的文本保存到 SQL 資料庫和 Chroma 向量庫。"""
+        """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (为主方案)。"""
         if not interaction_text or not self.profile:
             return
 
@@ -3023,19 +3003,23 @@ class AILover:
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{user_id}] 對話記錄已成功保存到 SQL 資料庫。")
+            logger.info(f"[{self.user_id}] 對話記錄已成功保存到 SQL 資料庫。")
 
             # 步驟 2: 保存到 Chroma 向量庫
             if self.vector_store:
-                await asyncio.to_thread(
-                    self.vector_store.add_texts,
-                    [interaction_text],
-                    metadatas=[{"source": "history", "timestamp": current_time}]
-                )
-                logger.info(f"[{user_id}] 對話記錄已成功保存到 Chroma 向量庫。")
+                try:
+                    await asyncio.to_thread(
+                        self.vector_store.add_texts,
+                        [interaction_text],
+                        metadatas=[{"source": "history", "timestamp": current_time}]
+                    )
+                    logger.info(f"[{self.user_id}] 對話記錄已成功保存到 Chroma 向量庫。")
+                except Exception as chroma_e:
+                    logger.warning(f"[{self.user_id}] 保存到 Chroma 向量庫時失敗 (可能是 Embedding 配額耗盡): {chroma_e}")
+
 
         except Exception as e:
-            logger.error(f"[{user_id}] 將互動保存到資料庫時發生錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 將互動保存到資料庫時發生錯誤: {e}", exc_info=True)
     # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
 
 
@@ -3502,6 +3486,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
