@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-12T00:54:56.118513 ###
+### AI Lover Log - Last updated at 2025-09-12T00:56:47.012953 ###
 
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding + BM25) 進行檢索...
-2025-09-12 00:52:00 - [WARNING] - [512280345618546699] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 因達到 API 配額限制而失敗。錯誤: GoogleGenerativeAIError
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 2 份文檔，正在進行批次清洗與摘要...
 2025-09-12 00:52:00 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
 2025-09-12 00:52:00 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
 2025-09-12 00:52:00 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
@@ -100,3 +95,8 @@ original_name
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 2025-09-12 00:52:54 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
 2025-09-12 00:52:54 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-12 00:56:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 00:56:33 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-12 00:56:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-12 00:56:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-12 00:56:36 - [INFO] - 已成功發送啟動成功通知給管理員。
