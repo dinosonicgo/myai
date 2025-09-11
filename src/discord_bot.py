@@ -112,7 +112,6 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
 # 函式：Lore Key 自動完成
 
 # --- [v46.0 新增] 持久化視圖 (Persistent Views) ---
-# 這些視圖的 timeout=None，並且按鈕有 custom_id，確保機器人重啟後依然能響應
 
 # 類別：開始設定視圖 (v46.0 - 持久化)
 class StartSetupView(discord.ui.View):
@@ -124,12 +123,20 @@ class StartSetupView(discord.ui.View):
     async def start_setup_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'StartSetupView' button clicked.")
-        # 禁用按鈕防止重複點擊
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
+        
+        # 使用 followup.send_modal
+        await interaction.response.defer(ephemeral=True, thinking=False) # 先 defer
         
         world_modal = WorldSettingsModal(self.cog, current_world="這是一個魔法與科技交織的幻想世界。", is_setup_flow=True)
         await interaction.followup.send_modal(world_modal)
+        
+        # 禁用按鈕並更新原始消息
+        button.disabled = True
+        try:
+            await interaction.edit_original_response(view=self)
+        except discord.errors.NotFound:
+            # 如果原始消息被刪除或無法訪問，則忽略
+            pass
 # 類別：開始設定視圖 (v46.0 - 持久化)
 
 # 類別：繼續使用者設定視圖 (v46.0 - 持久化)
@@ -142,13 +149,18 @@ class ContinueToUserSetupView(discord.ui.View):
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.")
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
+        await interaction.response.defer(ephemeral=True, thinking=False)
 
         ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=True)
         profile_data = ai_instance.profile.user_profile.model_dump() if ai_instance and ai_instance.profile else {}
         modal = CharacterSettingsModal(self.cog, title="步驟 2/3: 您的角色設定", profile_data=profile_data, profile_type='user', is_setup_flow=True)
         await interaction.followup.send_modal(modal)
+
+        button.disabled = True
+        try:
+            await interaction.edit_original_response(view=self)
+        except discord.errors.NotFound:
+            pass
 # 類別：繼續使用者設定視圖 (v46.0 - 持久化)
 
 # 類別：繼續 AI 設定視圖 (v46.0 - 持久化)
@@ -161,13 +173,18 @@ class ContinueToAiSetupView(discord.ui.View):
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.")
-        button.disabled = True
-        await interaction.response.edit_message(view=self)
+        await interaction.response.defer(ephemeral=True, thinking=False)
         
         ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id), is_setup_flow=True)
         profile_data = ai_instance.profile.ai_profile.model_dump() if ai_instance and ai_instance.profile else {}
         modal = CharacterSettingsModal(self.cog, title="步驟 3/3: AI 戀人設定", profile_data=profile_data, profile_type='ai', is_setup_flow=True)
         await interaction.followup.send_modal(modal)
+
+        button.disabled = True
+        try:
+            await interaction.edit_original_response(view=self)
+        except discord.errors.NotFound:
+            pass
 # 類別：繼續 AI 設定視圖 (v46.0 - 持久化)
 
 # 類別：繼續世界聖經設定視圖 (v46.0 - 持久化)
@@ -180,14 +197,17 @@ class ContinueToCanonSetupView(discord.ui.View):
     async def paste_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.")
+        await interaction.response.defer(ephemeral=True, thinking=False)
         
-        # 禁用所有按鈕
-        for item in self.children:
-            item.disabled = True
-        await interaction.response.edit_message(content="請在彈出的視窗中貼上您的世界聖經...", view=self)
-
         modal = WorldCanonPasteModal(self.cog, is_setup_flow=True)
         await interaction.followup.send_modal(modal)
+
+        for item in self.children:
+            item.disabled = True
+        try:
+            await interaction.edit_original_response(content="請在彈出的視窗中貼上您的世界聖經...", view=self)
+        except discord.errors.NotFound:
+            pass
 
     @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -198,7 +218,6 @@ class ContinueToCanonSetupView(discord.ui.View):
             item.disabled = True
         await interaction.response.edit_message(content="✅ 基礎設定完成！正在為您啟動創世...", view=self)
 
-        # 在後台啟動創世，避免阻塞
         asyncio.create_task(self.cog.finalize_setup(interaction, canon_text=None))
 # 類別：繼續世界聖經設定視圖 (v46.0 - 持久化)
 
@@ -306,15 +325,14 @@ class WorldSettingsModal(discord.ui.Modal):
             await interaction.followup.send("✅ 世界觀設定已成功更新！", ephemeral=True)
 # 類別：世界觀設定彈出視窗 (v46.0 - 適配持久化視圖)
 
-# 類別：回覆風格設定彈出視窗
+# ... (其他未變更的 UI 類別，如 ResponseStyleModal, ForceRestartView 等，應完整保留在此處)
+# ... (為遵守“嚴禁省略”規則，此處貼上所有未變更的UI類)
 class ResponseStyleModal(discord.ui.Modal, title="自訂 AI 回覆風格"):
     response_style = discord.ui.TextInput(label="回覆風格指令", style=discord.TextStyle.paragraph, placeholder="在此處定義 AI 的敘事和對話風格...", required=True, max_length=4000)
-
     def __init__(self, cog: "BotCog", current_style: str):
         super().__init__()
         self.cog = cog
         self.response_style.default = current_style
-
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
@@ -326,11 +344,7 @@ class ResponseStyleModal(discord.ui.Modal, title="自訂 AI 回覆風格"):
             await interaction.followup.send("✅ AI 回覆風格已成功更新！", ephemeral=True)
         else:
             await interaction.followup.send("錯誤：更新 AI 回覆風格失敗。", ephemeral=True)
-# 類別：回覆風格設定彈出視窗
 
-# 其他 UI 類別 (ForceRestartView, ConfirmStartView, SettingsChoiceView, 等) 保持不變，此處省略以保持簡潔
-# ... (此處應包含 ForceRestartView, ConfirmStartView, SettingsChoiceView, ConfirmEditView, ProfileEditModal, 等的完整代碼)
-# ... (為遵守“嚴禁省略”規則，此處貼上所有未變更的UI類)
 class ForceRestartView(discord.ui.View):
     def __init__(self, *, cog: "BotCog"):
         super().__init__(timeout=180.0)
@@ -475,6 +489,17 @@ class ProfileEditModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"[{user_id}] 在編輯角色 '{self.display_name}' 時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"生成角色預覽時發生嚴重錯誤: {e}", ephemeral=True)
+
+def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed:
+    embed = Embed(title=f"{title_prefix}：{profile.name}", color=discord.Color.blue())
+    base_info = [f"**性別:** {profile.gender or '未設定'}", f"**年齡:** {profile.age or '未知'}", f"**種族:** {profile.race or '未知'}"]
+    embed.add_field(name="基礎資訊", value="\n".join(base_info), inline=False)
+    if profile.description: embed.add_field(name="📜 核心描述", value=f"```{profile.description[:1000]}```", inline=False)
+    if profile.appearance: embed.add_field(name="🎨 外觀總覽", value=f"```{profile.appearance[:1000]}```", inline=False)
+    if profile.appearance_details: embed.add_field(name="✨ 外觀細節", value="\n".join([f"- {k}: {v}" for k, v in profile.appearance_details.items()]), inline=True)
+    if profile.equipment: embed.add_field(name="⚔️ 當前裝備", value="、".join(profile.equipment), inline=True)
+    if profile.skills: embed.add_field(name="🌟 掌握技能", value="、".join(profile.skills), inline=True)
+    return embed
 
 class ConfirmAndEditView(discord.ui.View):
     def __init__(self, *, cog: "BotCog", target_type: Literal['user', 'ai', 'npc'], target_key: str, display_name: str, original_description: str):
@@ -690,30 +715,34 @@ class BotCog(commands.Cog):
             return None
 
     # Git 操作輔助函式 (略)
-    def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+    async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
         try:
-            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=True, cwd=PROJ_DIR)
+            process = await asyncio.to_thread(subprocess.run, command, capture_output=True, text=True, encoding='utf-8', check=True, cwd=PROJ_DIR)
             return True, process.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            error_message = e.stderr.strip() or e.stdout.strip()
+            logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
+            return False, error_message
         except Exception as e: return False, str(e)
     async def _git_get_current_version(self) -> Tuple[bool, str]:
-        return await asyncio.to_thread(self._run_git_command, ["git", "describe", "--tags", "--always"])
+        return await self._run_git_command(["git", "describe", "--tags", "--always"])
     async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
-        await asyncio.to_thread(self._run_git_command, ["git", "fetch", "--tags", "--force"])
-        success, msg = await asyncio.to_thread(self._run_git_command, ["git", "tag", "-l", "--sort=-v:refname"])
+        await self._run_git_command(["git", "fetch", "--tags", "--force"])
+        success, msg = await self._run_git_command(["git", "tag", "-l", "--sort=-v:refname"])
         return (True, msg.splitlines()) if success else (False, [msg])
     async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
-        success, msg = await asyncio.to_thread(self._run_git_command, ["git", "status", "--porcelain"])
+        success, msg = await self._run_git_command(["git", "status", "--porcelain"])
         if success and msg: return False, "錯誤：工作區尚有未提交的變更。"
-        success, msg = await asyncio.to_thread(self._run_git_command, ["git", "tag", "-a", version, "-m", description])
+        success, msg = await self._run_git_command(["git", "tag", "-a", version, "-m", description])
         if not success: return False, f"創建Tag失敗: {msg}"
-        success, msg = await asyncio.to_thread(self._run_git_command, ["git", "push", "origin", version])
+        success, msg = await self._run_git_command(["git", "push", "origin", version])
         if not success:
-            await asyncio.to_thread(self._run_git_command, ["git", "tag", "-d", version])
+            await self._run_git_command(["git", "tag", "-d", version])
             return False, f"推送Tag失敗: {msg}"
         return True, f"成功創建並推送Tag {version}"
     async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
         logger.info(f"管理員觸發版本回退至: {version}")
-        success, msg = await asyncio.to_thread(self._run_git_command, ["git", "checkout", f"tags/{version}"])
+        success, msg = await self._run_git_command(["git", "checkout", f"tags/{version}"])
         if not success: return False, f"Checkout失敗: {msg}"
         pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
         try:
@@ -797,7 +826,6 @@ class BotCog(commands.Cog):
             if not opening_scene:
                  opening_scene = (f"在一片柔和的光芒中，你和 {ai_instance.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡...")
 
-            await interaction.followup.send("🎉 您的專屬世界已誕生！正在為您揭開故事的序幕...", ephemeral=True)
             dm_channel = await interaction.user.create_dm()
             
             logger.info(f"[{user_id}] /start 流程：正在向使用者私訊發送開場白...")
@@ -807,7 +835,10 @@ class BotCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"[{user_id}] 在 LangGraph 設定流程中發生嚴重錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
+            try:
+                await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
+            except discord.errors.NotFound:
+                await interaction.user.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}")
         finally:
             self.setup_locks.discard(user_id)
     # finalize_setup (v46.0 - 適配持久化視圖)
@@ -826,7 +857,6 @@ class BotCog(commands.Cog):
                 await ai_instance._configure_pre_requisites()
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
             
-            # [v46.0] 如果是設定流程，後續由 finalize_setup 處理
             if is_setup_flow:
                 await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
                 asyncio.create_task(self.finalize_setup(interaction, content_text))
@@ -839,43 +869,7 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`")
     
-
-    
-    
-    
-    # 函式：[全新] Git 操作輔助函式 (v2.0 - 徹底異步化)
-    # 更新紀錄:
-    # v2.0 (2025-10-03): [災難性BUG修復] 將核心的、同步的 `subprocess.run` 調用完全包裹在 `asyncio.to_thread` 中。此修改確保了任何 `git` 命令（即使因網路問題或需要用戶輸入而卡住）都只會阻塞背景工作線程，而不會阻塞主事件循環，從而保證了機器人 UI 和守護任務的持續響應。
-    # v1.0 (2025-10-02): 原始創建。
-    async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
-        """在背景執行緒中安全地、非阻塞地運行git指令。"""
-        try:
-            # [v2.0 核心修正] 將同步的 subprocess.run 轉移到背景線程執行
-            process = await asyncio.to_thread(
-                subprocess.run,
-                command,
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                check=True,
-                cwd=PROJ_DIR
-            )
-            return True, process.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            error_message = e.stderr.strip() or e.stdout.strip()
-            logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
-            return False, error_message
-        except FileNotFoundError:
-            return False, "錯誤: 'git' 命令未找到。"
-        except Exception as e:
-            return False, f"執行Git時發生未知錯誤: {e}"
-# 函式：[全新] Git 操作輔助函式 (v2.0 - 徹底異步化)
-    
-    
-# 函式：開始重置流程 (v47.0 - 徹底異步化)
-    # 更新紀錄:
-    # v47.0 (2025-10-03): [災難性BUG修復] 將同步的、阻塞的文件系統操作 `shutil.rmtree` 調用包裹在 `asyncio.to_thread` 中，確保在刪除大量文件時不會阻塞主事件循環。
-    # v46.0 (2025-10-02): [災難性BUG修復] 徹底修正了此函式的邏輯，使其與全新的“持久化視圖”架構保持一致。
+    # 函式：開始重置流程 (v47.0 - 徹底異步化)
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
@@ -892,7 +886,6 @@ class BotCog(commands.Cog):
             
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
-                # [v47.0 核心修正] 將阻塞的文件 I/O 操作轉移到背景線程
                 await asyncio.to_thread(shutil.rmtree, vector_store_path)
             
             view = StartSetupView(cog=self)
@@ -906,14 +899,8 @@ class BotCog(commands.Cog):
             await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
-# 函式：開始重置流程 (v47.0 - 徹底異步化)
+    # 函式：開始重置流程 (v47.0 - 徹底異步化)
 
-
-
-
-
-
-    
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -1089,9 +1076,9 @@ class BotCog(commands.Cog):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message("你沒有權限使用此指令。", ephemeral=True)
         else:
-logger.error(f"一個應用程式指令發生錯誤: {error}", exc_info=True)
-if not interaction.response.is_done():
-await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
+            logger.error(f"一個應用程式指令發生錯誤: {error}", exc_info=True)
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 
 # 類別：AI 戀人機器人主體 (v46.0 - 持久化視圖註冊)
 class AILoverBot(commands.Bot):
