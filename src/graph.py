@@ -380,6 +380,7 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 # v7.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
 # v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
 # v2.1 (2025-10-14): [災難性BUG修復] 確保 `llm_response` 在調用 `.strip()` 之前，先獲取其 `.content` 屬性，解決 `AttributeError: 'AIMessage' object has no attribute 'strip'`。
+# v2.2 (2025-10-15): [災難性BUG修復] 恢復了對 `ai_core._save_interaction_to_dbs` 的調用，以確保對話歷史被正確持久化。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     """[7] 清理文本、事後 LORE 提取、保存對話歷史。"""
     user_id = state['user_id']
@@ -403,9 +404,6 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
         if lore_extraction_chain:
-            # 使用 ainvoke 而不是 ainvoke_with_rotation 來避免循環依賴
-            # 但考慮到也可能會有速率限制，這裡應該使用 ainvoke_with_rotation
-            # 並且 retry_strategy 應該是 'euphemize'
             extraction_plan = await ai_core.ainvoke_with_rotation(
                 lore_extraction_chain,
                 {
@@ -428,13 +426,9 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         chat_history_manager.add_ai_message(clean_response)
         
         last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-        # 异步保存到数据库和向量庫
-        # ai_core._save_interaction_to_dbs 函式尚未定義，需要添加或確認其存在
-        # 暫時假設這裡調用的是一個已存在的、用於保存到 DB 的方法
-        # 如果不存在，這裡會是另一個錯誤點
-        # asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
+        # [v2.2 核心修正] 恢復對持久化函式的調用
+        asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
         
-        # 為了避免未定義的函式導致問題，這裡先註釋掉或使用一個簡單的日誌
         logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
 
 
@@ -443,9 +437,8 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
 # 函式：驗證、學習與持久化節點
 
 
-
 # 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
-# ... (此函式保持不变，但需确保其存在于 graph.py 中)
+
 async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
     """
     提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
@@ -648,6 +641,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
