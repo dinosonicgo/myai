@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-12T01:08:04.967432 ###
+### AI Lover Log - Last updated at 2025-09-12T01:12:08.641706 ###
 
-2025-09-12 01:02:39 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。
-2025-09-12 01:02:39 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 01:02:39 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-12 01:02:39 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-12 01:02:41 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 4 validation errors for ToolCallPlan
-plan.0.parameters
-  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '性...徒的原始衝動。'}", input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
-plan.1.parameters
   Input should be a valid dictionary [type=dict_type, input_value="{'original_name': 'DINO ...烈的生理反應。'}", input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/dict_type
 plan.2.parameters
@@ -100,3 +91,12 @@ violations {
 2025-09-12 01:07:07 - [INFO] - 已成功發送啟動成功通知給管理員。
 2025-09-12 01:07:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-12 01:07:50 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 01:08:33 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-12 01:08:36 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-12 01:08:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-12 01:08:37 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-12 01:11:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 01:11:54 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-12 01:11:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-12 01:11:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-12 01:11:58 - [INFO] - 已成功發送啟動成功通知給管理員。
