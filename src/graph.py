@@ -223,47 +223,61 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
              logger.error(f"[{user_id}] (Graph|3) 子任务链备援最终失败。")
              return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
 
-# 函式：[新] 前置工具调用节点
+# 函式：[新] 前置工具調用節點
+# 更新紀錄:
+# v4.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
+# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
+# v2.1 (2025-10-14): [災難性BUG修復] 修正了 `CharacterAction` 驗證錯誤，為系統角色添加了默認的 `action_description`。
 async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
-    """[4] (全新) 判断并执行用户指令中明确的、需要改变世界状态的动作。"""
+    """[4] (全新) 判斷並執行使用者指令中明確的、需要改變世界狀態的動作。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具调用...")
+    logger.info(f"[{user_id}] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...")
 
-    # Plan A: 尝试使用 LLM 解析工具调用
+    # Plan A: 嘗試使用 LLM 解析工具調用
     tool_parsing_chain = ai_core.get_preemptive_tool_parsing_chain()
+    # 確保 ai_name 作為 partial_variables 傳入
     tool_call_plan = await ai_core.ainvoke_with_rotation(
         tool_parsing_chain,
         {"user_input": user_input, "character_list_str": ", ".join([ps.get("name", "") for ps in state.get("planning_subjects", [])])},
         retry_strategy='euphemize'
     )
     
-    # 简单的备援：如果 LLM 无法解析，就认为没有工具调用
+    # 簡單的備援：如果 LLM 無法解析，就認為沒有工具調用
     if not tool_call_plan or not tool_call_plan.plan:
-        logger.info(f"[{user_id}] (Graph|4) 未解析到明确的工具调用。")
+        logger.info(f"[{user_id}] (Graph|4) 未解析到明確的工具調用。")
         return {"tool_results": "系統事件：無前置工具被調用。"}
 
-    logger.info(f"[{user_id}] (Graph|4) 解析到 {len(tool_call_plan.plan)} 个工具调用，准备执行...")
+    logger.info(f"[{user_id}] (Graph|4) 解析到 {len(tool_call_plan.plan)} 個工具調用，準備執行...")
     
-    # 执行工具
+    # 執行工具
     tool_context.set_context(user_id, ai_core)
     try:
-        # 这是一个简化的 TurnPlan，只用于工具执行
+        # 這是一個簡化的 TurnPlan，只用於工具執行
         from .schemas import TurnPlan, CharacterAction
+        # [v2.1 核心修正] 為 CharacterAction 添加一個默認的 action_description
         simple_turn_plan = TurnPlan(
-            character_actions=[CharacterAction(character_name="system", reasoning="preemptive", tool_call=call) for call in tool_call_plan.plan]
+            character_actions=[
+                CharacterAction(
+                    character_name="system", 
+                    reasoning="preemptive tool execution", 
+                    tool_call=call,
+                    action_description=f"執行工具 {call.tool_name}." # 提供一個默認描述
+                ) 
+                for call in tool_call_plan.plan
+            ]
         )
         results_summary = await ai_core._execute_planned_actions(simple_turn_plan)
     except Exception as e:
-        logger.error(f"[{user_id}] (Graph|4) 前置工具执行时发生错误: {e}", exc_info=True)
+        logger.error(f"[{user_id}] (Graph|4) 前置工具執行時發生錯誤: {e}", exc_info=True)
         results_summary = f"系統事件：工具執行時發生嚴重錯誤: {e}"
     finally:
         tool_context.set_context(None, None)
     
-    logger.info(f"[{user_id}] (Graph|4) 前置工具执行完毕。")
+    logger.info(f"[{user_id}] (Graph|4) 前置工具執行完畢。")
     return {"tool_results": results_summary}
-# 函式：[新] 前置工具调用节点
+# 函式：[新] 前置工具調用節點
 
 # 函式：[新] 世界快照組裝節點 (v2.0 - 職責簡化)
 # 更新紀錄:
@@ -634,6 +648,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
