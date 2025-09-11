@@ -880,6 +880,7 @@ class AILover:
     # 更新紀錄:
     # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE），以實現世界觀的動態成長。
     # v1.1 (2025-10-15): [災難性BUG修復] 修正了 `add_or_update_world_lore` 工具調用缺少 `lore_key` 和 `standardized_name` 參數的問題，修改提示詞使其強制生成這些字段。
+    # v1.2 (2025-10-15): [災難性BUG修復] 增加了【核心角色保護鐵则】和【抽象與泛化原则】，防止 AI 將主角當作 LORE 創建。
     def get_lore_extraction_chain(self) -> Runnable:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的鏈。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
@@ -890,62 +891,48 @@ class AILover:
             
             prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的、以前未被記錄的】世界設定、背景知識或角色特性，並為其生成一個結構化的【LORE擴展計畫JSON】。
 
-# === 【【【核心分析原則】】】 ===
+# === 【【【v1.2 新增：最高指導原則】】】 ===
+# 1.  **【👑 核心角色保護鐵则 (Protagonist Protection Mandate) - 絕對優先級】**:
+#     - 故事中有兩位【绝对的主角】：「{username}」(使用者) 和「{ai_name}」(AI角色)。
+#     - 你的所有 LORE 提取計畫【绝对禁止】以這兩位主角的名字作为创建新 LORE 的目标。他们的信息应通过其他方式更新，而不是在这里被当作普通的世界知识来创建。
+
+# 2.  **【🔬 抽象與泛化原则 (Abstraction & Generalization Principle)】**:
+#     - 当小說文本描述了关于主角的特性时，你的任务是从中【提炼出可复用的、普遍性的概念】来创建 LORE，而不是为主角本身创建 LORE。
+
+# === 【【【核心分析原则】】】 ===
 1.  **【新穎性優先 (Novelty First)】**: 你的首要職責是【過濾】。你【絕對禁止】提取那些在【現有LORE摘要】中已經存在的資訊。你只對【全新的知識】感興趣。
-2.  **【具體化與泛化】**: 你需要將文本中的具體描述，提煉成具有普適性的規則或設定。
-3.  **【工具選擇】**:
-    *   對於描述**群體、組織或概念**的知識（例如“性神教徒的信仰”），使用 `add_or_update_world_lore` 工具。
-    *   對於描述**特定生物或物種**的知識（例如“水晶雞的習性”），使用 `define_creature_type` 工具。
-4.  **【強制鍵值生成】**: 無論選擇哪個工具，你【必須】為其生成 `lore_key` 和 `standardized_name` 參數。`lore_key` 可以是 `standardized_name` 的安全版本，或者結合地點信息。
+2.  **【强制键值生成】**: 無論選擇哪個工具，你【必須】為其生成 `lore_key` 和 `standardized_name` 參數。
 
 # === 【【【行為模型範例 (最重要！)】】】 ===
 #
-#   --- 範例 1：提取群體特性 ---
-#   - **現有LORE摘要**: (空的)
-#   - **小說文本**: "莉莉絲是一名虔誠的性神教徒，對她而言，每一次性愛都是對神祇的崇高獻祭。"
-#   - **【✅ 你的擴展計畫】**:
-#     ```json
-#     {{
-#       "plan": [
-#         {{
-#           "tool_name": "add_or_update_world_lore",
-#           "parameters": {{
-#             "original_name": "性神教徒的信仰",
-#             "standardized_name": "性神教徒的信仰",
-#             "lore_key": "性神教徒的信仰",
-#             "content": "性神教徒將性愛視為對其神祇的崇高獻祭。"
-#           }}
-#         }}
-#       ]
-#     }}
-#     ```
-#
-#   --- 範例 2：過濾已有資訊 ---
-#   - **現有LORE摘要**: `- [world_lore] 性神教徒的信仰`
-#   - **小說文本**: "另一位性神教徒也同樣認為，性愛是神聖的儀式。"
-#   - **【✅ 你的擴展計畫】**:
-#     ```json
-#     {{
-#       "plan": []
-#     }}
-#     ```
-#     (**成功原因**: AI 識別出這個概念已經存在，因此返回了空的計畫。)
-#
-#   --- 範例 3：提取生物習性 ---
-#   - **現有LORE摘要**: (空的)
-#   - **小說文本**: "遠處傳來水晶雞的鳴叫，牠們只在月光下才會產下發光的蛋。"
-#   - **【✅ 你的擴展計畫】**:
+#   --- 範例 1：抽象與泛化 (正确行为) ---
+#   - **小說文本**: "碧是一位美麗的蛇人，她有著迷人的金色豎瞳。"
+#   - **【✅ 你的擴展計畫】**: (成功原因：AI 识别出「碧」是主角，因此转而为她所属的【种族】「蛇人」创建 LORE)
 #     ```json
 #     {{
 #       "plan": [
 #         {{
 #           "tool_name": "define_creature_type",
 #           "parameters": {{
-#             "original_name": "水晶雞",
-#             "standardized_name": "水晶雞",
-#             "lore_key": "水晶雞",
-#             "description": "一種只在月光下產下發光蛋的生物。"
+#             "original_name": "蛇人",
+#             "standardized_name": "蛇人",
+#             "lore_key": "蛇人",
+#             "description": "一个拥有迷人金色竖瞳的人形种族。"
 #           }}
+#         }}
+#       ]
+#     }}
+#     ```
+#
+#   --- 範例 2：核心角色保護 (错误行为演示) ---
+#   - **小說文本**: "碧是一位美麗的蛇人..."
+#   - **【❌ 绝对禁止的输出】**: (失败原因：AI 错误地试图为主角「碧」创建一个物种 LORE)
+#     ```json
+#     {{
+#       "plan": [
+#         {{
+#           "tool_name": "define_creature_type",
+#           "parameters": {{ "original_name": "碧", ... }}
 #         }}
 #       ]
 #     }}
@@ -961,8 +948,9 @@ class AILover:
 【小說文本 (你的主要分析對象)】:
 {final_response_text}
 ---
-請嚴格遵循以上所有規則，開始你的分析並生成 LORE 擴展計畫 JSON。
+請嚴格遵循以上所有規則，特別是【核心角色保護鐵则】，开始你的分析并生成 LORE 擴展計畫 JSON。
 """
+            # 在調用時，需要將 username 和 ai_name 傳入
             prompt = ChatPromptTemplate.from_template(prompt_template)
             self.lore_extraction_chain = prompt | extractor_llm
         return self.lore_extraction_chain
@@ -2500,6 +2488,7 @@ class AILover:
     # v183.2 (2025-09-06): [災難性BUG修復] 新增了“計畫淨化 (Plan Purification)”步驟。在執行任何工具調用前，此函式會強制檢查所有針對 NPC 的創建/更新操作，如果目標名稱與使用者角色或 AI 戀人匹配，則該操作將被立即攔截並移除。此修改旨在從工具執行層面徹底杜絕核心主角被錯誤地當作 NPC 寫入 LORE 的嚴重問題。
     # v183.1 (2025-09-06): [健壯性] 增加了對工具執行失敗的委婉化重試備援機制。
     # v183.0 (2025-09-03): [健壯性] 將串行任務之間的延遲增加到 4.0 秒。
+    # v183.3 (2025-10-15): [健壯性] 強化了淨化步驟，使其能覆蓋所有 LORE 創建工具。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] 場景擴展計畫為空，AI 判斷本輪無需擴展。")
@@ -2511,7 +2500,7 @@ class AILover:
             if not self.profile:
                 return "錯誤：無法執行工具計畫，因為使用者 Profile 未加載。"
             
-            # [v183.2 核心修正] 計畫淨化步驟
+            # [v183.3 核心修正] 計畫淨化步驟
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
@@ -2519,18 +2508,25 @@ class AILover:
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
                 is_illegal = False
-                # 檢查所有可能操作 NPC 的工具
-                if call.tool_name in ["add_or_update_npc_profile", "create_new_npc_profile", "update_npc_profile"]:
-                    # 檢查參數中是否有名稱字段
+                # 检查所有可能创建新 LORE 的工具
+                lore_creation_tools = [
+                    "create_new_npc_profile", "add_or_update_npc_profile",
+                    "add_or_update_location_info", "add_or_update_item_info",
+                    "define_creature_type", "add_or_update_quest_lore",
+                    "add_or_update_world_lore"
+                ]
+                if call.tool_name in lore_creation_tools:
+                    # 检查参数中所有可能包含名称的字段
+                    name_keys_to_check = ['name', 'standardized_name', 'original_name', 'creature_name', 'item_name', 'location_name', 'quest_name', 'title']
                     name_to_check = ""
-                    if 'name' in call.parameters: name_to_check = call.parameters['name']
-                    elif 'standardized_name' in call.parameters: name_to_check = call.parameters['standardized_name']
-                    elif 'original_name' in call.parameters: name_to_check = call.parameters['original_name']
+                    for key in name_keys_to_check:
+                        if key in call.parameters and isinstance(call.parameters[key], str):
+                            name_to_check = call.parameters[key]
+                            if name_to_check.lower() in protected_names:
+                                is_illegal = True
+                                logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 創建操作 ({call.tool_name})。")
+                                break # 找到一个匹配就足够了
                     
-                    if name_to_check and name_to_check.lower() in protected_names:
-                        is_illegal = True
-                        logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 NPC 操作 ({call.tool_name})。")
-                
                 if not is_illegal:
                     purified_plan.append(call)
 
@@ -2559,7 +2555,7 @@ class AILover:
 
                 category = tool_name_to_category.get(call.tool_name)
                 if category and call.tool_name != 'update_npc_profile':
-                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name']
+                    possible_name_keys = ['name', 'creature_name', 'npc_name', 'item_name', 'location_name', 'quest_name', 'title', 'lore_name', 'original_name']
                     entity_name, name_key_found = next(((call.parameters[k], k) for k in possible_name_keys if k in call.parameters), (None, None))
 
                     if entity_name:
@@ -3486,6 +3482,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
