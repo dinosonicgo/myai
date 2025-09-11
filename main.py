@@ -90,16 +90,16 @@ def _check_and_install_dependencies():
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+
+
+
+
 # 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
-# 更新纪录:
-# v4.1 (2025-10-09): [災難性BUG修復] 移除了此函式内部对 PROJ_DIR 的局部定义，改为引用在文件顶部定义的全局常量，以解决变量作用域问题并保持代码一致性。
 async def start_git_log_pusher_task():
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
     print("✅ [守護任務] LOG 自動推送器已啟動。")
     
-    # [v4.1 核心修正] 移除局部定义，因为 PROJ_DIR 现在是全局的
-    # project_root = Path(__file__).resolve().parent 
     log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
     upload_log_path = PROJ_DIR / "latest_log.txt"
 
@@ -147,51 +147,54 @@ async def start_git_log_pusher_task():
             await asyncio.sleep(60)
 # 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
 
-# 函式：[守護任務] GitHub 自動更新檢查器 (v2.1 - 作用域修正)
-    # 更新纪录:
-    # v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 变量而导致的 NameError。现在它能正确引用在文件顶部定义的全局常量。
-    async def start_github_update_checker_task():
-        """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
-        await asyncio.sleep(10)
-        print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
-        
-        def run_git_command_sync(command: list) -> tuple[int, str, str]:
-            """在背景線程中安全地執行同步的 git 命令。"""
-            # [v2.1 核心修正] PROJ_DIR 现在可以从全局作用域访问
-            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
-            return process.returncode, process.stdout, process.stderr
-            
-        while not shutdown_event.is_set():
-            try:
-                await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
-                rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
-                
-                if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
-                    print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
-                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
-                    if pull_rc == 0:
-                        print("✅ [自動更新] 程式碼強制同步成功！")
-                        print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
-                        await asyncio.sleep(3)
-                        shutdown_event.set()
-                        break 
-                    else:
-                        print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
-                
-                await asyncio.sleep(300)
 
-            except asyncio.CancelledError:
-                print("⚪️ [自動更新] 背景任務被正常取消。")
-                break
-            except Exception as e:
-                print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
-                await asyncio.sleep(600)
-# 函式：[守護任務] GitHub 自動更新檢查器 (v2.1 - 作用域修正)
+
+
+
+
+    
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.2 - 縮排修正)
+# 更新纪录:
+# v2.2 (2025-10-10): [災難性BUG修復] 修正了此函式定義的全局作用域缩排错误，解决了导致 NameError 的问题。
+# v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 变量而导致的 NameError。
+async def start_github_update_checker_task():
+    """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
+    await asyncio.sleep(10)
+    print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
+    
+    def run_git_command_sync(command: list) -> tuple[int, str, str]:
+        """在背景線程中安全地執行同步的 git 命令。"""
+        process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
+        return process.returncode, process.stdout, process.stderr
+        
+    while not shutdown_event.is_set():
+        try:
+            await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
+            rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+            
+            if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
+                print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
+                if pull_rc == 0:
+                    print("✅ [自動更新] 程式碼強制同步成功！")
+                    print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
+                    await asyncio.sleep(3)
+                    shutdown_event.set()
+                    break 
+                else:
+                    print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+            
+            await asyncio.sleep(300)
+
+        except asyncio.CancelledError:
+            print("⚪️ [自動更新] 背景任務被正常取消。")
+            break
+        except Exception as e:
+            print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
+            await asyncio.sleep(600)
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.2 - 縮排修正)
 
 # 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
-# 更新紀錄:
-# v3.0 (2025-10-04): [災難性BUG修復] 為了實現“錯誤隔離”，用一個巨大的 try...except Exception 塊包裹了整個 Bot 的生命週期。這確保了即使 Discord Bot 因任何原因（如無效Token、API錯誤、內部BUG）而崩潰，它也只會終止自身的任務，而不會導致主事件循環崩潰，從而保證了所有守護任務的持續運行。
-# v2.0 (2025-09-29): 根據架構重構調整。
 async def start_discord_bot_task():
     """啟動Discord Bot的核心服務。內建錯誤處理以防止其崩潰影響其他任務。"""
     try:
@@ -202,12 +205,9 @@ async def start_discord_bot_task():
         print("🚀 [Discord Bot] 正在嘗試啟動核心服務...")
         bot = AILoverBot(shutdown_event=shutdown_event)
         
-        # bot.start() 是一個阻塞操作，直到機器人斷線才會返回。
-        # 我們將它包裹在一個異步任務中，以便與 shutdown_event 一起監控。
         bot_task = asyncio.create_task(bot.start(settings.DISCORD_BOT_TOKEN))
         shutdown_waiter = asyncio.create_task(shutdown_event.wait())
 
-        # 等待 bot_task 或 shutdown_waiter 其中一個先完成
         done, pending = await asyncio.wait(
             {bot_task, shutdown_waiter}, 
             return_when=asyncio.FIRST_COMPLETED
@@ -217,7 +217,6 @@ async def start_discord_bot_task():
             print("🔵 [Discord Bot] 收到外部關閉信號，正在優雅關閉...")
             await bot.close()
         
-        # 取消另一個未完成的任務
         for task in pending:
             task.cancel()
 
@@ -225,16 +224,16 @@ async def start_discord_bot_task():
         print(f"🔥 [Discord Bot] 核心服務在啟動或運行時發生致命錯誤: {e}")
         traceback.print_exc()
     finally:
-        print("🔴 [Discord Bot] 核心服務任務已結束。守護任務將繼續運行。")
+        print("🔴 [Discord Bot] 核心服務任務已結束。守護任務將繼續獨立運行。")
 # 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
 
+# 函式：[核心服務] Web 伺服器啟動器 (v2.0 - 錯誤隔離)
 async def start_web_server_task():
-    """啟動 FastAPI Web 伺服器並監聽關閉信號。"""
+    """啟動 FastAPI Web 伺服器並監聽關閉信號，內建錯誤隔離。"""
     try:
         config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
         server = uvicorn.Server(config)
         
-        # uvicorn.Server.serve() 是異步的，可以直接 await
         web_task = asyncio.create_task(server.serve())
         shutdown_waiter = asyncio.create_task(shutdown_event.wait())
 
@@ -254,7 +253,8 @@ async def start_web_server_task():
         print(f"🔥 [Web Server] 核心服務在啟動或運行時發生致命錯誤: {e}")
         traceback.print_exc()
     finally:
-        print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續運行。")
+        print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
+# 函式：[核心服務] Web 伺服器啟動器 (v2.0 - 錯誤隔離)
 
 
 # 函式：主函式 (v7.0 - 錯誤隔離架構)
