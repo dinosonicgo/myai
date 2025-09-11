@@ -29,76 +29,102 @@ from langchain_core.output_parsers import StrOutputParser
 # --- [v30.0 新架构] 主對話圖 (Main Conversation Graph) 的節點 ---
 
 # 函式：[新] 场景感知节点
+# 更新紀錄:
+# v1.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
+# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略，以解決在連續性指令（如“继续”）下，場景視角被錯誤重置的問題。
 async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     """[1] 分析用户输入，推断目标地点和视角模式（近景/远景）。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content
+    user_input = state['messages'][-1].content.strip()
     logger.info(f"[{user_id}] (Graph|1) Node: perceive_scene -> 正在感知场景...")
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|1) ai_core.profile 未加载，无法感知场景。")
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：AI profile 未加载。', action_summary=user_input)}
 
-    # Plan A: 尝试使用 LLM 进行智能推断
+    gs = ai_core.profile.game_state
+    
+    # [v2.0 核心修正] 步驟 1: 處理連續性指令
+    continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+    if any(user_input.lower().startswith(kw) for kw in continuation_keywords):
+        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態。")
+        # 直接繼承上一輪的狀態，無需任何分析
+        scene_analysis = SceneAnalysisResult(
+            viewing_mode=gs.viewing_mode,
+            reasoning="繼承上一輪的場景狀態。",
+            target_location_path=gs.remote_target_path,
+            action_summary=user_input
+        )
+        return {"scene_analysis": scene_analysis}
+
+    # [v2.0 核心修正] 步驟 2: 處理模式切換和目標更新
+    new_viewing_mode = 'local'
+    new_target_path = None
+
+    # 嘗試使用 LLM 進行智能推斷
     location_chain = ai_core.get_contextual_location_chain()
-    # 为了地点推断，我们需要一个临时的、轻量级的上下文
     scene_context_lores = [lore.content for lore in state.get('raw_lore_objects_for_view_decision', []) if lore.category == 'npc_profile']
     scene_context_json_str = json.dumps(scene_context_lores, ensure_ascii=False, indent=2)
 
     location_result = await ai_core.ainvoke_with_rotation(
         location_chain, 
-        {
-            "user_input": user_input,
-            "world_settings": ai_core.profile.world_settings or "未设定",
-            "scene_context_json": scene_context_json_str
-        },
+        {"user_input": user_input, "world_settings": ai_core.profile.world_settings or "未设定", "scene_context_json": scene_context_json_str},
         retry_strategy='euphemize'
     )
 
     if location_result and location_result.location_path:
-        logger.info(f"[{user_id}] (Graph|1) LLM 感知成功。推断出的目标地点: {location_result.location_path}")
-        target_location = location_result.location_path
-        # 如果 LLM 推断出了一个不同于玩家当前位置的地点，则自动设为远景
-        viewing_mode = 'remote' if target_location != ai_core.profile.game_state.location_path else 'local'
-    else:
-        # Plan B (备援): LLM 失败，启动基于规则的备援推断
-        logger.warning(f"[{user_id}] (Graph|1) 场景感知链失败，启动【基于规则的备援推断】。")
-        viewing_mode = 'local' # 默认为本地
-        target_location = ai_core.profile.game_state.location_path
+        logger.info(f"[{user_id}] (Graph|1) LLM 感知成功。推斷出的目標地點: {location_result.location_path}")
+        new_target_path = location_result.location_path
+        new_viewing_mode = 'remote'
+    
+    # [v2.0 核心修正] 步驟 3: 應用「遠程優先」的狀態保持邏輯
+    final_viewing_mode = gs.viewing_mode
+    final_target_path = gs.remote_target_path
+
+    if gs.viewing_mode == 'remote':
+        # 當前處於遠程模式
+        # 檢查是否存在明確的返回本地的信號
+        is_explicit_local_move = any(user_input.startswith(kw) for kw in ["去", "前往", "移動到", "旅行到"])
+        is_direct_ai_interaction = ai_core.profile.ai_profile.name in user_input
         
-        # 规则 1: 检查远景关键词
-        remote_keywords = ["观察", "看看", "描述", "什么样"]
-        if any(keyword in user_input for keyword in remote_keywords):
-            # 规则 2: 尝试用非 LLM 方式提取地点
-            # (这是一个简化的实现，未来可以集成 jieba 等本地库)
-            all_locations = await lore_book.get_lores_by_category_and_filter(user_id, 'location_info')
-            for loc_lore in all_locations:
-                loc_name = loc_lore.content.get('name')
-                if loc_name and loc_name in user_input:
-                    logger.info(f"[{user_id}] (Graph|1) 备援规则匹配成功: 找到远景关键词和地点 '{loc_name}'。")
-                    viewing_mode = 'remote'
-                    target_location = loc_lore.key.split(' > ')
-                    break
+        if is_explicit_local_move or is_direct_ai_interaction:
+            # 信號明確：切換回本地
+            final_viewing_mode = 'local'
+            final_target_path = None
+            logger.info(f"[{user_id}] (Graph|1) 檢測到明確的本地指令，導演視角從 'remote' 切換回 'local'。")
+        elif new_viewing_mode == 'remote' and new_target_path and new_target_path != gs.remote_target_path:
+            # 信號不明確，但探測到新的遠程目標：更新目標
+            final_target_path = new_target_path
+            logger.info(f"[{user_id}] (Graph|1) 在遠程模式下，更新了觀察目標地點為: {final_target_path}")
+        else:
+            # 保持遠程模式和當前目標不變
+            logger.info(f"[{user_id}] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。")
+    else: # gs.viewing_mode == 'local'
+        # 當前處於本地模式，檢查是否需要切換到遠程
+        if new_viewing_mode == 'remote' and new_target_path:
+            final_viewing_mode = 'remote'
+            final_target_path = new_target_path
+            logger.info(f"[{user_id}] (Graph|1) 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {final_target_path}")
+
+    # 更新並持久化遊戲狀態
+    if gs.viewing_mode != final_viewing_mode or gs.remote_target_path != final_target_path:
+        gs.viewing_mode = final_viewing_mode
+        gs.remote_target_path = final_target_path
+        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
     
-    # 更新并持久化游戏状态
-    gs = ai_core.profile.game_state
-    gs.viewing_mode = viewing_mode
-    # 在远景模式下，我们将 remote_target_path 设为我们推断出的目标
-    gs.remote_target_path = target_location if viewing_mode == 'remote' else None
-    await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-    
-    logger.info(f"[{user_id}] (Graph|1) 场景感知完成。最终视角: '{viewing_mode}', 目标地点: {target_location}")
-    
-    # SceneAnalysisResult 仍然有用，因为它为下游节点提供了一个统一的场景信息接口
     scene_analysis = SceneAnalysisResult(
         viewing_mode=gs.viewing_mode,
-        reasoning=f"场景感知完成。",
+        reasoning=f"場景感知完成。",
         target_location_path=gs.remote_target_path,
         action_summary=user_input
     )
     return {"scene_analysis": scene_analysis}
 # 函式：[新] 场景感知节点
+
+
+
+
 
 # 函式：[新] 記憶與 LORE 查詢節點
 # 更新紀錄:
@@ -678,6 +704,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
