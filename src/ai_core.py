@@ -2332,11 +2332,14 @@ class AILover:
     # v7.0 (2025-10-15): [架構重構] 移除了所有与向量化相关的逻辑。此函式现在负责将世界圣经分割成块，并将其作为普通记忆存入 SQL 数据库，以供 BM25 检索器使用。
     # v8.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL (為 BM25) 和 ChromaDB (為主方案)。
     # v9.0 (2025-10-15): [健壯性] 增加了對 Embedding API 失敗的優雅降級處理，確保即使 Embedding 失敗，聖經內容也能成功保存到 SQL 以供 BM25 備援使用。
+    # v10.0 (2025-10-15): [災難性BUG修復] 修正了錯誤處理邏輯，確保在 Embedding 失敗時，函式能夠正常返回而不是向上拋出異常。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """將世界聖經文本處理並同時保存到 SQL 記憶庫和 Chroma 向量庫。"""
         if not self.profile:
-            raise ValueError("User profile is not initialized.")
+            logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下處理世界聖經。")
+            return 0
         
+        docs = []
         try:
             # --- 步驟 1: 分割文本 ---
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
@@ -2344,7 +2347,7 @@ class AILover:
             if not docs:
                 return 0
 
-            # --- 步驟 2: 保存到 SQL (為 BM25 備援方案) ---
+            # --- 步驟 2: 保存到 SQL (為 BM25 備援方案，此步驟必須成功) ---
             async with AsyncSessionLocal() as session:
                 stmt = delete(MemoryData).where(
                     MemoryData.user_id == self.user_id,
@@ -2366,38 +2369,43 @@ class AILover:
                 await session.commit()
             logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库。")
 
-            # --- 步驟 3: 嘗試保存到 ChromaDB (為主方案) ---
-            if self.vector_store:
-                try:
-                    ids_to_delete = []
-                    if self.vector_store._collection.count() > 0:
-                        collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
-                        if collection and collection['ids']:
-                            ids_to_delete = collection['ids']
-                    if ids_to_delete:
-                        await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
-                    
-                    # 手動 Embedding 並添加
-                    texts_to_embed = [doc.page_content for doc in docs]
-                    metadatas = [doc.metadata for doc in docs]
-                    if self.embeddings:
-                        embeddings = await self.embeddings.aembed_documents(texts_to_embed)
-                        await asyncio.to_thread(
-                            self.vector_store.add_texts,
-                            texts=texts_to_embed,
-                            metadatas=metadatas,
-                            embeddings=embeddings
-                        )
-                        logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已成功存入 Chroma 向量庫。")
-                except (ResourceExhausted, GoogleAPICallError) as e:
-                    # [v9.0 核心修正] 優雅降級：如果 Embedding 失敗，只記錄警告，不中斷流程
-                    logger.warning(f"[{self.user_id}] (Canon Processor) [優雅降級] 在保存世界聖經到 ChromaDB 時遭遇 Embedding API 錯誤: {e}。將跳過向量化，但 SQL 備援數據已保存。")
-            
-            return len(docs)
-
         except Exception as e:
-            logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
+            # 如果連最基礎的 SQL 保存都失敗，則向上拋出異常
+            logger.error(f"[{self.user_id}] 處理核心設定並保存到 SQL 時發生嚴重錯誤: {e}", exc_info=True)
             raise
+
+        # --- 步驟 3: 嘗試保存到 ChromaDB (為主方案，此步驟允許失敗) ---
+        try:
+            if self.vector_store:
+                ids_to_delete = []
+                if self.vector_store._collection.count() > 0:
+                    collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
+                    if collection and collection['ids']:
+                        ids_to_delete = collection['ids']
+                if ids_to_delete:
+                    await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
+                
+                # 手動 Embedding 並添加
+                texts_to_embed = [doc.page_content for doc in docs]
+                metadatas = [doc.metadata for doc in docs]
+                if self.embeddings:
+                    embeddings = await self.embeddings.aembed_documents(texts_to_embed)
+                    await asyncio.to_thread(
+                        self.vector_store.add_texts,
+                        texts=texts_to_embed,
+                        metadatas=metadatas,
+                        embeddings=embeddings
+                    )
+                    logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已成功存入 Chroma 向量庫。")
+        except (ResourceExhausted, GoogleAPICallError) as e:
+            # [v10.0 核心修正] 優雅降級：如果 Embedding 失敗，只記錄警告，不中斷流程
+            logger.warning(f"[{self.user_id}] (Canon Processor) [優雅降級] 在保存世界聖經到 ChromaDB 時遭遇 Embedding API 錯誤: {e}。將跳過向量化，但 SQL 備援數據已保存。")
+        except Exception as e:
+            # 其他 ChromaDB 相關的錯誤
+            logger.error(f"[{self.user_id}] (Canon Processor) 保存到 ChromaDB 時發生未知錯誤: {e}", exc_info=True)
+
+        # 無論 Embedding 是否成功，只要 SQL 保存成功，就返回已處理的文檔數量
+        return len(docs)
 # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
 
 
@@ -3494,6 +3502,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
