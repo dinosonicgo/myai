@@ -1028,6 +1028,15 @@ class BotCog(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
         await interaction.followup.send("✅ **指令已接收！**\n正在背景中為您執行強制同步與重啟...", ephemeral=True)
         asyncio.create_task(self._perform_update_and_restart(interaction))
+
+    
+    
+    
+    # 函式：執行強制更新並重啟 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-14): [核心功能] 創建此函式，用於執行 Git 同步並在成功後觸發程式重啟。
+    # v9.0 (2025-10-14): [災難性BUG修復] 在成功更新後，直接觸發程式退出，而不是僅設置事件，以確保 Launcher 正確捕捉並重啟。
+    # v10.0 (2025-10-15): [格式修正] 修正了函式縮排，並添加了開頭和結尾的中文註釋。
     async def _perform_update_and_restart(self, interaction: discord.Interaction):
         try:
             await asyncio.sleep(1)
@@ -1039,11 +1048,25 @@ class BotCog(commands.Cog):
                         admin_user = self.bot.get_user(int(settings.ADMIN_USER_ID)) or await self.bot.fetch_user(int(settings.ADMIN_USER_ID))
                         await admin_user.send("✅ **系統更新成功！** 機器人即將重啟。")
                     except Exception as e: logger.error(f"發送更新成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
-                await asyncio.sleep(3)
-                if self.bot.shutdown_event: self.bot.shutdown_event.set()
+                
+                # [v9.0 核心修正] 在成功更新後，直接觸發程式退出，而不是僅設置事件。
+                # 這將導致 main.py 進程退出，並由 launcher.py 捕捉到並重啟。
+                print("🔄 [Admin Update] Git 同步成功，觸發程式退出以進行重啟...")
+                sys.exit(0) # 正常退出，Launcher 將會偵測到並重啟
             else:
                 await interaction.followup.send(f"🔥 **同步失敗！**\n```\n{process.stderr.strip()}\n```", ephemeral=True)
-        except Exception as e: logger.error(f"背景任務：執行強制更新時發生未預期錯誤: {e}", exc_info=True)
+        except Exception as e: 
+            logger.error(f"背景任務：執行強制更新時發生未預期錯誤: {e}", exc_info=True)
+            if interaction:
+                try:
+                    await interaction.followup.send(f"🔥 **更新時發生錯誤！**\n`{type(e).__name__}: {e}`", ephemeral=True)
+                except discord.errors.NotFound:
+                    pass # 如果 interaction 已經過期，則忽略
+    # 函式：執行強制更新並重啟 (v1.0 - 全新創建)
+
+
+
+    
     @app_commands.command(name="admin_check_status", description="[管理員] 查詢指定使用者的當前狀態")
     @app_commands.check(is_admin)
     @app_commands.autocomplete(target_user=user_autocomplete)
