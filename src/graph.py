@@ -265,29 +265,33 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     return {"tool_results": results_summary}
 # 函式：[新] 前置工具调用节点
 
-# 函式：[新] 世界快照组装节点
+# 函式：[新] 世界快照组装节点 (v2.0 - 职责简化)
+# 更新纪录:
+# v2.0 (2025-10-07): [架構重構] 根据新的信息顺序要求，此节点的职责被简化。它现在只负责将【当前场景】的所有事实（LORE、游戏状态、工具结果）格式化为 world_snapshot 字符串，不再处理历史上下文。
 async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
-    """[5] (核心) 汇集所有信息，使用模板格式化成最终的 world_snapshot 字符串。"""
+    """[5] (核心) 汇集所有【当前场景】的信息，使用模板格式化成 world_snapshot 字符串。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在组装最终上下文...")
+    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在组装【当前场景事实】...")
     
-    # 确保我们有最新的 LORE 列表（可能已在扩展节点中更新）
     planning_subjects = state.get("planning_subjects", [])
+    tool_results = state.get("tool_results", "")
     
-    # 格式化 LORE 供模板使用
     npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '无描述')}" for npc in planning_subjects])
     if not npc_context_str: npc_context_str = "当前场景没有已知的特定角色。"
 
+    # 将工具结果也加入到场景事实中
+    if tool_results and "無前置工具被調用" not in tool_results:
+        npc_context_str += f"\n\n--- 本回合即時事件 ---\n{tool_results}"
+
     gs = ai_core.profile.game_state
     
-    # 构建填充模板所需的所有变量
     context_vars = {
         'world_settings': ai_core.profile.world_settings or "未設定",
         'ai_settings': ai_core.profile.ai_profile.description or "未設定",
-        'retrieved_context': state.get('rag_context', '无'),
+        'retrieved_context': "（此部分已移至历史上下文中单独处理）",
         'possessions_context': f"团队库存: {', '.join(gs.inventory) or '空的'}",
-        'quests_context': "当前无任务。", # 简化
+        'quests_context': "当前无任务。",
         'location_context': f"当前地点: {' > '.join(gs.location_path)}",
         'npc_context': npc_context_str,
         'relevant_npc_context': "请参考上方在场角色列表。",
@@ -298,44 +302,60 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
     
-    logger.info(f"[{user_id}] (Graph|5) 最终上下文组装完毕。")
+    logger.info(f"[{user_id}] (Graph|5) 【当前场景事实】组装完毕。")
     return {"world_snapshot": final_world_snapshot}
-# 函式：[新] 世界快照组装节点
+# 函式：[新] 世界快照组装节点 (v2.0 - 职责简化)
 
-# 函式：[新] 最终生成节点
+
+
+
+
+# 函式：[新] 最终生成节点 (v2.0 - 优化信息顺序)
+# 更新纪录:
+# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
-    """[6] (全新) 单一的最终生成节点，一步到位创作小说。"""
+    """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     world_snapshot = state['world_snapshot']
     user_input = state['messages'][-1].content
-    tool_results = state['tool_results']
+    rag_context = state.get('rag_context', '无相关长期记忆。')
     logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动最终生成流程...")
 
-    # 将工具执行结果附加到 world_snapshot 中，作为最新的“事实”
-    full_context_for_generation = f"{world_snapshot}\n\n--- 【本回合即時事件】 ---\n{tool_results}\n---"
+    # [v2.0 核心修正] 组装历史上下文
+    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
+    historical_context = f"{rag_context}\n\n{chat_history_str}"
 
-    generation_chain = ai_core.get_unified_generation_chain()
+    # 获取已包含所有规则和风格的提示词模板
+    prompt_template = ai_core.get_unified_generation_chain()
+    
+    # 动态绑定 LLM，这将触发模型降级和金鑰轮换逻辑
+    # 我们在这里不直接创建 LLM，而是让 ainvoke_with_rotation 来处理
+    # 为了简化，我们直接在 ainvoke_with_rotation 内部处理绑定
     
     final_response = await ai_core.ainvoke_with_rotation(
-        generation_chain,
+        prompt_template, # 传递 PromptTemplate 而不是完整的链
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
-            "final_world_snapshot": full_context_for_generation,
+            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
+            "historical_context": historical_context,
+            "world_snapshot": world_snapshot,
             "latest_user_input": user_input,
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格"
         },
-        retry_strategy='force' # 这是唯一使用 force 的地方
+        retry_strategy='force',
+        use_degradation=True # 明确指示此调用使用模型降级
     )
 
     if not final_response:
-        # 备援：返回固定的中文错误消息
-        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在指令轰炸后最终失败！")
+        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在指令轰炸和模型降级后最终失败！")
         final_response = "（抱歉，我好像突然断线了，脑海中一片空白... 这很可能是因为您的指令触发了无法绕过的核心内容安全限制，或者是一个暂时的、严重的 API 服务问题。请尝试用完全不同的方式表达您的意图，或稍后再试。）"
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
-# 函式：[新] 最终生成节点
+# 函式：[新] 最终生成节点 (v2.0 - 优化信息顺序)
+
+
+
 
 # 函式：验证、学习与持久化节点
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
@@ -382,6 +402,52 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|7) 状态持久化完成。")
     return {"final_output": clean_response}
 # 函式：验证、学习与持久化节点
+
+
+
+# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
+# ... (此函式保持不变，但需确保其存在于 graph.py 中)
+async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
+    """
+    提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。
+    """
+    if not ai_core.profile: return "（沒有最近的對話歷史）"
+    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    if not chat_history_manager.messages:
+        return "（沒有最近的對話歷史）"
+        
+    recent_messages = chat_history_manager.messages[-num_messages:]
+    if not recent_messages:
+        return "（沒有最近的對話歷史）"
+
+    raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
+
+    try:
+        # 尝试直接摘要
+        literary_chain = ai_core.get_literary_euphemization_chain() # 使用这个更强大的链进行摘要
+        summary = await ai_core.ainvoke_with_rotation(literary_chain, {"dialogue_history": raw_history_text}, retry_strategy='euphemize')
+
+        if not summary or not summary.strip():
+            raise Exception("Summarization returned empty content.")
+            
+        return f"【最近對話摘要】:\n{summary}"
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生錯誤: {e}。返回中性提示。")
+        return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
+# 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
+
+
+
+
+
+
+
+
+
+
+
+
 
 # --- [v30.0 新架构] 图的构建 ---
 def create_main_response_graph() -> StateGraph:
@@ -543,3 +609,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
