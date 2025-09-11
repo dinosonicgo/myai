@@ -1284,6 +1284,7 @@ class AILover:
     # 更新紀錄:
     # v207.0 (2025-10-14): [災難性BUG修復] 修正了因錯誤的 API 使用而導致的 TypeError。根据 LangChain 的工作机制，embedding_function 必须在调用 as_retriever() 之前，被设置回 vector_store 实例上。新的逻辑确保了 ChromaDB 在初始化时保持“无知”以防止意外 API 调用，但在创建检索器前，正确地将 embedding 能力“注入”回 vector_store，从而使检索器能够正常工作。
     # v206.0 (2025-10-13): [災難性BUG修復] 采用“延迟 Embedding 提供”策略，以彻底解决初始化时的速率限制问题。
+    # v207.1 (2025-10-14): [災難性BUG修復] 確保 `self.embeddings` 在 `Chroma` 初始化後立即被設置為其 `_embedding_function`。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
         all_docs = []
@@ -1327,8 +1328,11 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                 raise recovery_e
 
-        # [v207.0 核心修正] 在创建检索器之前，将 embedding 函数注入回 vector_store 实例
-        # 这是让 as_retriever() 能够正常工作的关键步骤
+        # [v207.1 核心修正] 在創建檢索器之前，將 embedding 函數注入回 vector_store 實例
+        # 確保 self.embeddings 已經被創建 (在 ainvoke_with_rotation 中會被更新)
+        # 這裡只需要確保它有值，並將其賦值給 vector_store
+        if self.embeddings is None:
+            self.embeddings = self._create_embeddings_instance() # 確保 embeddings 實例存在
         self.vector_store._embedding_function = self.embeddings
         
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
@@ -2938,9 +2942,8 @@ class AILover:
             # [v209.2 核心修正] 如果失敗的鏈是 Retriever，則需要強制更新其 embedding_function
             if isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
                 # 確保 self.embeddings 已經更新到最新的金鑰 (由 ainvoke_with_rotation 管理)
-                if self.embeddings is None:
-                    # 如果因為某種原因 self.embeddings 還是 None，則嘗試創建一個
-                    self.embeddings = self._create_embeddings_instance()
+                # 這裡需要重新創建 self.embeddings 以獲取最新的輪換金鑰
+                self.embeddings = self._create_embeddings_instance()
 
                 # 遞歸查找並更新所有內部 Chroma 檢索器的 _embedding_function
                 def _update_embedding_in_retriever(retriever_instance: Any, new_embeddings: GoogleGenerativeAIEmbeddings):
@@ -3419,6 +3422,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
