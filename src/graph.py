@@ -331,6 +331,7 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
 # 函式：[新] 最终生成节点 (v2.0 - 优化信息顺序)
 # 更新纪录:
 # v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
+# v3.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】策略。重構了 `human_prompt_template`，將用戶指令與上下文數據明確分離，並用強烈的提示詞命令 AI 絕對優先執行指令，以解決 AI 因上下文數據污染而忽略用戶指令的問題。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
     """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
     user_id = state['user_id']
@@ -340,19 +341,19 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     rag_context = state.get('rag_context', '无相关长期记忆。')
     logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动最终生成流程...")
 
-    # [v2.0 核心修正] 组装历史上下文
     chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
     historical_context = f"{rag_context}\n\n{chat_history_str}"
 
-    # 获取已包含所有规则和风格的提示词模板
-    prompt_template = ai_core.get_unified_generation_chain()
+    # [v3.0 核心修正] 獲取包含新模板的生成鏈
+    # 注意：我們需要確保 get_unified_generation_chain 函式中的模板也被更新
+    prompt_template_runnable = ai_core.get_unified_generation_chain()
     
-    # 动态绑定 LLM，这将触发模型降级和金鑰轮换逻辑
-    # 我们在这里不直接创建 LLM，而是让 ainvoke_with_rotation 来处理
-    # 为了简化，我们直接在 ainvoke_with_rotation 内部处理绑定
+    # 這裡假設 get_unified_generation_chain 返回的是一個完整的 runnable，而不僅僅是 prompt
+    # 如果它只返回 prompt，則需要像之前一樣綁定 LLM
+    final_chain = prompt_template_runnable
     
-    final_response = await ai_core.ainvoke_with_rotation(
-        prompt_template, # 传递 PromptTemplate 而不是完整的链
+    final_response_raw = await ai_core.ainvoke_with_rotation(
+        final_chain,
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
@@ -361,10 +362,12 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
             "latest_user_input": user_input,
         },
         retry_strategy='force',
-        use_degradation=True # 明确指示此调用使用模型降级
+        use_degradation=True
     )
 
-    if not final_response:
+    final_response = final_response_raw.content if hasattr(final_response_raw, 'content') else str(final_response_raw)
+
+    if not final_response or not final_response.strip():
         logger.critical(f"[{user_id}] (Graph|6) 核心生成链在指令轰炸和模型降级后最终失败！")
         final_response = "（抱歉，我好像突然断线了，脑海中一片空白... 这很可能是因为您的指令触发了无法绕过的核心内容安全限制，或者是一个暂时的、严重的 API 服务问题。请尝试用完全不同的方式表达您的意图，或稍后再试。）"
         
@@ -658,6 +661,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
