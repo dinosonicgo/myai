@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-11T19:47:13.759601 ###
+### AI Lover Log - Last updated at 2025-09-11T19:52:15.917335 ###
 
-2025-09-11 19:39:42 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-11 19:39:58 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-11 19:39:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-11 19:39:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 19:40:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-11 19:40:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-11 19:40:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-11 19:40:21 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 19:40:23 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (UI Event) finalize_setup 被觸發。Canon provided: False
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] /start 流程：正在強制初始化 AI 核心組件...
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #2)
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] /start 流程：準備調用 LangGraph 設定圖...
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Setup Graph|1/4) Node: process_canon -> 節點已啟動。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Setup Graph|1/4) 未提供世界聖經文本，跳過處理。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Setup Graph|1/4) Node: process_canon -> 節點執行成功。
-2025-09-11 19:40:24 - [INFO] - [512280345618546699] (Setup Graph|1/4|Flow Control) 為平滑 API 請求，將強制等待 5.0 秒後進入下一節點...
-2025-09-11 19:40:29 - [INFO] - [512280345618546699] (Setup Graph|2/4) Node: complete_profiles_node -> 節點已啟動，準備補完角色檔案...
-2025-09-11 19:40:29 - [ERROR] - [512280345618546699] (Setup Graph|2/4) Node: complete_profiles_node -> 執行時發生嚴重錯誤: 'AILover' object has no attribute 'profile_completion_prompt'
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-09-11 19:51:50 - [WARNING] - [512280345618546699] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。
+2025-09-11 19:51:50 - [ERROR] - [512280345618546699] (LORE Querier) 在從使用者輸入中提取實體時發生錯誤: 'AILover' object has no attribute 'get_entity_extraction_chain'。將跳過此步驟。
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['DINO', '碧', '靜謐溪谷小屋', '晨風鎮', '艾瑟利亞大陸']
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 2 條唯一的LORE記錄。
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 4 条相关LORE。
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具调用...
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #4)
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] --- 开始尝试模型: 'gemini-2.5-flash-lite' (优先级 1/1) ---
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #5)
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:51:50 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 'Input to ChatPromptTemplate is missing variables {\'"tool_name"\'}.  Expected: [\'"tool_name"\', \'character_list_str\', \'user_input\'] Received: [\'user_input\', \'character_list_str\']\nNote: if you intended {"tool_name"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{"tool_name"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 516, in complete_profiles_node
-    completion_chain = ai_core.get_profile_completion_chain()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1339, in get_profile_completion_chain
-    prompt = self.get_profile_completion_prompt()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 868, in get_profile_completion_prompt
-    if self.profile_completion_prompt is None:
-AttributeError: 'AILover' object has no attribute 'profile_completion_prompt'. Did you mean: 'get_profile_completion_prompt'?
-2025-09-11 19:40:29 - [INFO] - [512280345618546699] (Setup Graph|2/4|Flow Control) 為平滑 API 請求，將強制等待 5.0 秒後進入下一節點...
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] (Setup Graph|3/4) Node: world_genesis -> 節點已啟動...
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #3)
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] --- 开始尝试模型: 'gemini-2.5-flash-lite' (优先级 1/1) ---
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #4)
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 19:40:34 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 19:40:39 - [ERROR] - [512280345618546699] 在 ainvoke 期间发生未知错误 (模型: gemini-2.5-flash-lite): Invalid input type <class 'src.schemas.WorldGenesisResult'>. Must be a PromptValue, str, or list of BaseMessages.
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3151, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3185, in ainvoke_with_rotation
     result = await asyncio.wait_for(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
     return fut.result()
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
     input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 418, in ainvoke
-    [self._convert_input(input)],
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 381, in _convert_input
-    raise ValueError(msg)
-ValueError: Invalid input type <class 'src.schemas.WorldGenesisResult'>. Must be a PromptValue, str, or list of BaseMessages.
-2025-09-11 19:40:39 - [ERROR] - [512280345618546699] 所有模型 (gemini-2.5-flash-lite) 和所有 API 金鑰均尝试失败。启动最终备援策略: 'force'
-2025-09-11 19:40:39 - [WARNING] - [512280345618546699] 鏈遭遇審查。啟動【地毯式指令強化重試】策略...
-2025-09-11 19:40:39 - [INFO] - [512280345618546699] 已對參數中的所有字符串欄位附加強制指令，正在進行強化重試...
-2025-09-11 19:40:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-11 19:40:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 19:40:42 - [INFO] - [512280345618546699] (Setup Graph|3/4) Node: world_genesis -> 節點執行成功。
-2025-09-11 19:40:42 - [INFO] - [512280345618546699] (Setup Graph|3/4|Flow Control) 為平滑 API 請求，將強制等待 5.0 秒後進入下一節點...
-2025-09-11 19:40:47 - [INFO] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 節點已啟動...
-2025-09-11 19:40:47 - [INFO] - [512280345618546699] --- 开始尝试模型: 'gemini-2.5-flash-lite' (优先级 1/1) ---
-2025-09-11 19:40:47 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #5)
-2025-09-11 19:40:47 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 19:40:47 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 19:40:54 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回结果 ---
-2025-09-11 19:40:54 - [WARNING] - [512280345618546699] 開場白生成遭遇無法恢復的錯誤(很可能是內容審查): 'AIMessage' object has no attribute 'strip'。啟動【安全備用開場白】。
-2025-09-11 19:40:54 - [INFO] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 節點執行成功。
-2025-09-11 19:40:54 - [INFO] - [512280345618546699] /start 流程：LangGraph 設定圖執行完畢。
-2025-09-11 19:40:54 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
-2025-09-11 19:40:54 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
-2025-09-11 19:46:59 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 19:46:59 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 19:47:02 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 19:47:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 19:47:02 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 19:47:08 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-11 19:47:10 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-11 19:47:11 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-11 19:47:12 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #1)
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
-2025-09-11 19:47:12 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
-2025-09-11 19:47:13 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
-2025-09-11 19:47:13 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
-2025-09-11 19:47:13 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-11 19:47:13 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-11 19:47:13 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: 'Input to ChatPromptTemplate is missing variables {\'"tool_name"\'}.  Expected: [\'"tool_name"\', \'character_list_str\', \'user_input\'] Received: [\'user_input\', \'character_list_str\']\nNote: if you intended {"tool_name"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{"tool_name"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+2025-09-11 19:51:50 - [ERROR] - [512280345618546699] 所有模型 (gemini-2.5-flash-lite) 和所有 API 金鑰均嘗試失敗。啟動最終備援策略: 'euphemize'
+2025-09-11 19:51:50 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '碧, 亞倫, 艾拉, 靜謐溪谷小屋...' 清洗為安全的文學概述...
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] --- 开始尝试模型: 'gemini-2.5-flash-lite' (优先级 1/1) ---
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #6)
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:51:50 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:51:52 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 19:51:52 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '【情節概述】:
+
+此手稿片段設定了一個靜謐的場景，暗示著角色碧、亞倫與艾拉即將在一個名為「靜謐溪谷小...'
+2025-09-11 19:51:52 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 'Input to ChatPromptTemplate is missing variables {\'"tool_name"\'}.  Expected: [\'"tool_name"\', \'character_list_str\', \'user_input\'] Received: [\'user_input\', \'character_list_str\']\nNote: if you intended {"tool_name"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{"tool_name"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '。將觸發安全備援。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3027, in _euphemize_and_retry
+    return await failed_chain.ainvoke(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: 'Input to ChatPromptTemplate is missing variables {\'"tool_name"\'}.  Expected: [\'"tool_name"\', \'character_list_str\', \'user_input\'] Received: [\'user_input\', \'character_list_str\']\nNote: if you intended {"tool_name"} to be part of the string and not a variable, please escape it with double curly braces like: \'{{"tool_name"}}\'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT '
+2025-09-11 19:51:52 - [INFO] - [512280345618546699] (Graph|4) 未解析到明确的工具调用。
+2025-09-11 19:51:52 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在组装【当前场景事实】...
+2025-09-11 19:51:52 - [ERROR] - 處理使用者 512280345618546699 的 LangGraph 聊天流程時發生異常: 'username'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 822, in on_message
+    final_state = await self.main_response_graph.ainvoke(initial_state)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
+    async for _ in runner.atick(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
+    await arun_with_retry(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
+    input = await step.ainvoke(input, config, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 303, in assemble_world_snapshot_node
+    final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
+KeyError: 'username'
