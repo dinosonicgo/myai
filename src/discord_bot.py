@@ -960,6 +960,9 @@ class BotCog(commands.Cog):
             await interaction.response.send_message("請先使用 `/start` 指令進行初始設定。", ephemeral=True)
 
     @app_commands.command(name="response_style", description="客製化 AI 的回覆風格")
+    # 更新紀錄:
+    # v1.0 (2025-08-09): [核心功能] 創建此指令。
+    # v2.0 (2025-10-15): [功能優化] 修改了預設的風格指令，使其更具指導性。
     async def response_style(self, interaction: discord.Interaction):
         if not isinstance(interaction.channel, discord.DMChannel):
             await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
@@ -968,7 +971,12 @@ class BotCog(commands.Cog):
         if not ai_instance or not ai_instance.profile:
             await interaction.response.send_message("請先使用 `/start` 指令進行初始設定。", ephemeral=True)
             return
-        current_style = ai_instance.profile.response_style_prompt or "..."
+        
+        # [v2.0 核心修正] 檢查當前風格是否為空，如果為空，則提供新的預設值
+        current_style = ai_instance.profile.response_style_prompt
+        if not current_style or not current_style.strip():
+            current_style = "角色要有非常豐富的對話和互動"
+            
         await interaction.response.send_modal(ResponseStyleModal(self, current_style))
 
     @app_commands.command(name="edit_profile", description="編輯您或任何角色的個人檔案。")
