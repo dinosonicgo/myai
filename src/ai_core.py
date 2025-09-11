@@ -1379,26 +1379,34 @@ class AILover:
 
 
     
-# 函式：建構檢索器 (v205.0 - 徹底異步化修正)
-    # 更新纪录:
-    # v205.0 (2025-10-03): [災難性BUG修復] 根據事件循環阻塞（假死）的分析，對此函式進行了根本性的異步化重構。所有潛在的阻塞操作，特別是 `chromadb.PersistentClient()` 的同步初始化，以及所有的文件系統操作（`shutil.move`, `Path.mkdir`），現在都通過 `await asyncio.to_thread()` 被強制轉移到背景工作線程中執行。
+# 函式：建構檢索器 (v206.0 - 延迟 Embedding 提供)
+    # 更新紀錄:
+    # v206.0 (2025-10-13): [災難性BUG修復] 根据对顽固速率限制问题的最终诊断，彻底重构了 ChromaDB 的初始化逻辑。现在，在创建 Chroma 实例时，不再向其构造函数提供 embedding_function。这可以 100% 保证 ChromaDB 在初始化、get() 或其他内部操作中，绝对不会进行任何我们未预期的、隐藏的 API 调用。Embedding 的责任被完全转移到了需要它的下游函式（如 add_canon_to_vector_store）中，实现了对 API 调用的完全手动控制。
+    # v205.0 (2025-10-03): [災難性BUG修復] 对此函式进行了根本性的异步化重构。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
         all_docs = []
         
-        def _create_chroma_instance_sync(path: str, embedding_func: Any) -> Chroma:
+        def _create_chroma_instance_sync(path: str) -> Chroma:
             """一個純粹的同步函式，用於在背景線程中安全地執行。"""
             logger.info(f"[{self.user_id}] (Sync Worker) 正在嘗試使用路徑 '{path}' 創建 PersistentClient...")
             chroma_client = chromadb.PersistentClient(path=path)
             logger.info(f"[{self.user_id}] (Sync Worker) PersistentClient 創建成功。")
-            return Chroma(client=chroma_client, embedding_function=embedding_func)
+            
+            # [v206.0 核心修正] 在初始化时不提供 embedding_function
+            return Chroma(
+                client=chroma_client,
+                # embedding_function=None # 明确设为 None 或不传
+            )
 
         try:
-            logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB...")
-            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
+            logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...")
+            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path)
+            
             all_docs_collection = await asyncio.to_thread(self.vector_store.get)
             all_docs = [Document(page_content=doc, metadata=meta) for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])]
             logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 {len(all_docs)} 個現有文檔。")
+
         except Exception as e:
             logger.warning(f"[{self.user_id}] (Retriever Builder) 向量儲存初始化失敗: {type(e).__name__}。啟動全自動恢復...")
             try:
@@ -1412,14 +1420,19 @@ class AILover:
                 logger.info(f"[{self.user_id}] (Recovery Step 2/4) 已手動創建一個乾淨的空目錄於: {vector_path}")
                 await asyncio.sleep(1.0)
                 logger.info(f"[{self.user_id}] (Recovery Step 4/4) 正在最乾淨的環境下重新嘗試初始化 ChromaDB...")
-                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
+                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path)
                 all_docs = []
                 logger.info(f"[{self.user_id}] (Retriever Builder) 全自動恢復成功，已創建全新的向量儲存。")
             except Exception as recovery_e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                 raise recovery_e
 
+        # [v206.0 核心修正] 为检索器（Retriever）单独设置 embedding_function
+        # Retriever 在进行“查询”时，需要将用户的查询文本转换为向量，所以它必须有关联的 embedding 函数。
+        # 而 vector_store 本身则保持“无知”状态。
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
+        chroma_retriever.embedding_function = self.embeddings
+        
         if all_docs:
             bm25_retriever = BM25Retriever.from_documents(all_docs)
             bm25_retriever.k = 10
@@ -1437,7 +1450,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (Retriever Builder) 檢索器構建成功。")
         return retriever
-# 函式：建構檢索器 (v205.0 - 徹底異步化修正)
+# 函式：建構檢索器 (v206.0 - 延迟 Embedding 提供)
 
 
 
@@ -2400,88 +2413,76 @@ class AILover:
 
 
     
-# 函式：將世界聖經添加到向量儲存 (v5.0 - 底層手動控制)
+# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
     # 更新紀錄:
-    # v5.0 (2025-09-29): [根本性重構] 為了從根源上解決頑固的速率限制問題，徹底廢棄了 LangChain 的高層級 `add_texts` 封裝。新版本採用了更底層、更可控的手動處理流程：以極小的批次（15個文檔）遍歷文本塊，為每個小批次手動調用 `aembed_documents` 獲取向量，然後再手動調用 `vector_store.add_documents` 進行儲存。最關鍵的是，在【每一次】API 調用後都加入了【強制性的、無條件的】4秒延遲，將請求速率嚴格控制在 Google API 免費方案的 15 RPM 限制之內，從而徹底解決了因請求過於密集而導致的所有問題。
-    # v4.0 (2025-09-28): [重大性能優化] 注入了“流量整形”策略。
-    # v3.0 (2025-09-27): [災難性BUG修復] 採用了“快速輪換 + 循環延遲”的混合重試策略。
+    # v6.0 (2025-10-13): [災難性BUG修復] 配合 _build_retriever 的修改，此函式现在负责完全手动的 Embedding 流程。它接收一个没有 embedding 功能的 vector_store 实例，自己调用 self.embeddings.aembed_documents 将文本转换为向量，然后再将文本和生成的向量一起提交给 vector_store。这确保了 API 调用只在我们需要时、以我们可控的方式发生，彻底解决了初始化时隐藏的 API 调用问题。
+    # v5.0 (2025-09-29): [根本性重構] 采用更底层的、小批次、带强制延迟的手动控制流程。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         if not self.vector_store or not self.embeddings:
             raise ValueError("Vector store or embeddings function is not initialized.")
         
         try:
-            # 步驟 1: 清理舊數據
-            collection = await asyncio.to_thread(self.vector_store.get)
-            ids_to_delete = [doc_id for i, doc_id in enumerate(collection['ids']) if collection['metadatas'][i].get('source') == 'canon']
+            # 步骤 1: 清理旧数据
+            ids_to_delete = []
+            if self.vector_store._collection.count() > 0:
+                collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
+                if collection and collection['ids']:
+                    ids_to_delete = collection['ids']
+            
             if ids_to_delete:
                 await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
-                logger.info(f"[{self.user_id}] (Canon Processor) 已從向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
+                logger.info(f"[{self.user_id}] (Canon Processor) 已从向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
 
-            # 步驟 2: 分割文本
+            # 步骤 2: 分割文本
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
             docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
             if not docs:
-                logger.info(f"[{self.user_id}] (Canon Processor) 文本分割後為空，無需處理。")
                 return 0
             
-            # [v5.0 核心修正] 手動、小批次、帶延遲的處理流程
-            # Google 免費方案的 embedding-001 模型 RPM (每分鐘請求數) 為 15
-            # 60秒 / 15次 = 每次請求之間至少需要 4 秒間隔
-            INTER_API_CALL_DELAY = 4.0
-            SMALL_BATCH_SIZE = 15 # 將批次大小設定為 RPM 上限，確保一次只觸發一次 API 調用
+            texts_to_embed = [doc.page_content for doc in docs]
+            metadatas = [doc.metadata for doc in docs]
+            
+            # [v6.0 核心修正] 步骤 3: 手动调用 Embedding API
+            # 我们在这里进行一次性的、集中的 API 调用，并应用完整的重试逻辑
+            logger.info(f"[{self.user_id}] (Canon Processor) 准备为 {len(texts_to_embed)} 个文本块手动生成向量...")
+            
+            # aembed_documents 自身没有模型降级，所以我们用 ainvoke_with_rotation 包装一个 lambda
+            embedding_task = lambda params: self.embeddings.aembed_documents(params['texts'])
+            
+            # 使用一个简单的 RunnableLambda 来包装
+            from langchain_core.runnables import RunnableLambda
+            embedding_chain = RunnableLambda(embedding_task)
 
-            total_docs_processed = 0
-            total_batches = -(-len(docs) // SMALL_BATCH_SIZE)
+            # 注意：此处不使用模型降级(use_degradation=False)，因为 embedding 模型是固定的
+            embeddings = await self.ainvoke_with_rotation(
+                embedding_chain,
+                {'texts': texts_to_embed},
+                retry_strategy='euphemize',
+                use_degradation=False
+            )
 
-            for i in range(0, len(docs), SMALL_BATCH_SIZE):
-                current_batch_num = i // SMALL_BATCH_SIZE + 1
-                small_batch_docs = docs[i:i + SMALL_BATCH_SIZE]
-                
-                max_retries = len(self.api_keys)
-                batch_succeeded = False
+            if not embeddings or len(embeddings) != len(texts_to_embed):
+                raise Exception("手动生成向量失败或返回了不匹配的数量。")
 
-                for attempt in range(max_retries):
-                    try:
-                        logger.info(f"[{self.user_id}] (Canon Processor) 正在處理小批次 {current_batch_num}/{total_batches} (使用 API Key #{self.current_key_index + 1})...")
-                        
-                        # 手動將文檔存入 ChromaDB，Chroma 會在內部調用 aembed_documents
-                        await self.vector_store.aadd_documents(small_batch_docs)
+            logger.info(f"[{self.user_id}] (Canon Processor) 成功生成 {len(embeddings)} 组向量。")
 
-                        logger.info(f"[{self.user_id}] (Canon Processor) 小批次 {current_batch_num}/{total_batches} 成功向量化並儲存。")
-                        total_docs_processed += len(small_batch_docs)
-                        batch_succeeded = True
-                        break 
-                    
-                    except Exception as e:
-                        error_str = str(e)
-                        is_rate_limit_error = "ResourceExhausted" in error_str or "429" in error_str
-                        if is_rate_limit_error:
-                            logger.warning(f"[{self.user_id}] (Canon Processor) API Key #{self.current_key_index + 1} 在處理小批次時遭遇速率限制。正在輪換金鑰...")
-                            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
-                            self.embeddings.google_api_key = self.api_keys[self.current_key_index]
-                            # 等待一個短延遲再用新金鑰重試
-                            await asyncio.sleep(2)
-                        else:
-                            logger.error(f"[{self.user_id}] (Canon Processor) 處理小批次時發生非速率限制的致命錯誤: {e}", exc_info=True)
-                            raise e 
-                
-                if not batch_succeeded:
-                    final_error_msg = f"在嘗試了所有 {max_retries} 個 API 金鑰後，處理小批次 {current_batch_num} 仍然失敗。"
-                    logger.error(f"[{self.user_id}] {final_error_msg}")
-                    raise Exception(final_error_msg)
-
-                # [v5.0 核心修正] 無論成功與否，在每次 API 調用後都強制等待，以符合 RPM 限制
-                if i + SMALL_BATCH_SIZE < len(docs):
-                    logger.info(f"[{self.user_id}] (Canon Processor|Flow Control) 小批次 {current_batch_num} 處理完畢。為符合 15 RPM 的限制，將強制等待 {INTER_API_CALL_DELAY} 秒...")
-                    await asyncio.sleep(INTER_API_CALL_DELAY)
-
-            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {total_batches} 個小批次均已成功處理。總共向量化 {total_docs_processed} 個文本塊。")
-            return total_docs_processed
+            # [v6.0 核心修正] 步骤 4: 将文本和已生成的向量一起添加到 ChromaDB
+            # 这个操作是纯本地的，不会再触发任何网络调用
+            logger.info(f"[{self.user_id}] (Canon Processor) 正在将文本和向量添加到本地 ChromaDB...")
+            await asyncio.to_thread(
+                self.vector_store.add_texts,
+                texts=texts_to_embed,
+                metadatas=metadatas,
+                embeddings=embeddings
+            )
+            
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个文本块均已成功处理并存入向量库。")
+            return len(docs)
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-# 函式：將世界聖經添加到向量儲存 (v5.0 - 底層手動控制)
+# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
 
 
 
@@ -3427,6 +3428,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
