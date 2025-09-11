@@ -23,6 +23,10 @@ import traceback
 # 全局的關閉事件，用於協調所有任務的優雅退出
 shutdown_event = asyncio.Event()
 
+
+# [核心修正] 将 PROJ_DIR 定义提升到全局作用域
+PROJ_DIR = Path(__file__).resolve().parent
+
 def _clear_pycache():
     """遞歸地查找並刪除 __pycache__ 資料夾。"""
     root_dir = Path(__file__).resolve().parent
