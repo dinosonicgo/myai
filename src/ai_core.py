@@ -1379,10 +1379,10 @@ class AILover:
 
 
     
-# 函式：建構檢索器 (v206.0 - 延迟 Embedding 提供)
+# 函式：建構檢索器 (v207.0 - Embedding 注入時機修正)
     # 更新紀錄:
-    # v206.0 (2025-10-13): [災難性BUG修復] 根据对顽固速率限制问题的最终诊断，彻底重构了 ChromaDB 的初始化逻辑。现在，在创建 Chroma 实例时，不再向其构造函数提供 embedding_function。这可以 100% 保证 ChromaDB 在初始化、get() 或其他内部操作中，绝对不会进行任何我们未预期的、隐藏的 API 调用。Embedding 的责任被完全转移到了需要它的下游函式（如 add_canon_to_vector_store）中，实现了对 API 调用的完全手动控制。
-    # v205.0 (2025-10-03): [災難性BUG修復] 对此函式进行了根本性的异步化重构。
+    # v207.0 (2025-10-14): [災難性BUG修復] 修正了因錯誤的 API 使用而導致的 TypeError。根据 LangChain 的工作机制，embedding_function 必须在调用 as_retriever() 之前，被设置回 vector_store 实例上。新的逻辑确保了 ChromaDB 在初始化时保持“无知”以防止意外 API 调用，但在创建检索器前，正确地将 embedding 能力“注入”回 vector_store，从而使检索器能够正常工作。
+    # v206.0 (2025-10-13): [災難性BUG修復] 采用“延迟 Embedding 提供”策略，以彻底解决初始化时的速率限制问题。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
         all_docs = []
@@ -1393,10 +1393,9 @@ class AILover:
             chroma_client = chromadb.PersistentClient(path=path)
             logger.info(f"[{self.user_id}] (Sync Worker) PersistentClient 創建成功。")
             
-            # [v206.0 核心修正] 在初始化时不提供 embedding_function
+            # 在初始化时不提供 embedding_function，防止意外 API 调用
             return Chroma(
                 client=chroma_client,
-                # embedding_function=None # 明确设为 None 或不传
             )
 
         try:
@@ -1427,11 +1426,11 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                 raise recovery_e
 
-        # [v206.0 核心修正] 为检索器（Retriever）单独设置 embedding_function
-        # Retriever 在进行“查询”时，需要将用户的查询文本转换为向量，所以它必须有关联的 embedding 函数。
-        # 而 vector_store 本身则保持“无知”状态。
+        # [v207.0 核心修正] 在创建检索器之前，将 embedding 函数注入回 vector_store 实例
+        # 这是让 as_retriever() 能够正常工作的关键步骤
+        self.vector_store._embedding_function = self.embeddings
+        
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
-        chroma_retriever.embedding_function = self.embeddings
         
         if all_docs:
             bm25_retriever = BM25Retriever.from_documents(all_docs)
@@ -1450,7 +1449,7 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (Retriever Builder) 檢索器構建成功。")
         return retriever
-# 函式：建構檢索器 (v206.0 - 延迟 Embedding 提供)
+# 函式：建構檢索器 (v207.0 - Embedding 注入時機修正)
 
 
 
@@ -3428,6 +3427,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
