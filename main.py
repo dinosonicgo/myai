@@ -90,17 +90,21 @@ def _check_and_install_dependencies():
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.0 - 徹底異步化)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
+# 更新纪录:
+# v4.1 (2025-10-09): [災難性BUG修復] 移除了此函式内部对 PROJ_DIR 的局部定义，改为引用在文件顶部定义的全局常量，以解决变量作用域问题并保持代码一致性。
 async def start_git_log_pusher_task():
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
     print("✅ [守護任務] LOG 自動推送器已啟動。")
     
-    project_root = Path(__file__).resolve().parent
-    log_file_path = project_root / "data" / "logs" / "app.log"
-    upload_log_path = project_root / "latest_log.txt"
+    # [v4.1 核心修正] 移除局部定义，因为 PROJ_DIR 现在是全局的
+    # project_root = Path(__file__).resolve().parent 
+    log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
+    upload_log_path = PROJ_DIR / "latest_log.txt"
 
     def run_git_commands_sync():
+        """同步執行Git指令的輔助函式，設計為在背景線程中運行。"""
         try:
             if not log_file_path.is_file(): return True
             with open(log_file_path, 'r', encoding='utf-8') as f:
@@ -110,12 +114,17 @@ async def start_git_log_pusher_task():
             with open(upload_log_path, 'w', encoding='utf-8') as f:
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
-            subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=project_root, capture_output=True)
+            subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
             commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            commit_process = subprocess.run(["git", "commit", "-m", commit_message], capture_output=True, text=True, encoding='utf-8', cwd=project_root)
+            commit_process = subprocess.run(
+                ["git", "commit", "-m", commit_message], 
+                capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
+            )
             if commit_process.returncode != 0 and "nothing to commit" not in commit_process.stdout:
-                raise subprocess.CalledProcessError(commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr)
-            subprocess.run(["git", "push", "origin", "main"], check=True, cwd=project_root, capture_output=True)
+                raise subprocess.CalledProcessError(
+                    commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
+                )
+            subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
             return True
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
@@ -136,47 +145,48 @@ async def start_git_log_pusher_task():
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.0 - 徹底異步化)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
 
-# 函式：[守護任務] GitHub 自動更新檢查器 (v2.0 - 徹底異步化)
-async def start_github_update_checker_task():
-    """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
-    await asyncio.sleep(10)
-    print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
-    
-    def run_git_command_sync(command: list) -> tuple[int, str, str]:
-        process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
-        return process.returncode, process.stdout, process.stderr
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.1 - 作用域修正)
+    # 更新纪录:
+    # v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 变量而导致的 NameError。现在它能正确引用在文件顶部定义的全局常量。
+    async def start_github_update_checker_task():
+        """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
+        await asyncio.sleep(10)
+        print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
         
-    while not shutdown_event.is_set():
-        try:
-            await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
-            rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+        def run_git_command_sync(command: list) -> tuple[int, str, str]:
+            """在背景線程中安全地執行同步的 git 命令。"""
+            # [v2.1 核心修正] PROJ_DIR 现在可以从全局作用域访问
+            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
+            return process.returncode, process.stdout, process.stderr
             
-            if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
-                print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
-                pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
-                if pull_rc == 0:
-                    print("✅ [自動更新] 程式碼強制同步成功！")
-                    print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
-                    await asyncio.sleep(3)
-                    shutdown_event.set()
-                    break 
-                else:
-                    print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
-            
-            await asyncio.sleep(300)
+        while not shutdown_event.is_set():
+            try:
+                await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
+                rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+                
+                if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
+                    print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
+                    if pull_rc == 0:
+                        print("✅ [自動更新] 程式碼強制同步成功！")
+                        print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
+                        await asyncio.sleep(3)
+                        shutdown_event.set()
+                        break 
+                    else:
+                        print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+                
+                await asyncio.sleep(300)
 
-        except asyncio.CancelledError:
-            print("⚪️ [自動更新] 背景任務被正常取消。")
-            break
-        except FileNotFoundError:
-            print("🔥 [自動更新] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
-            break
-        except Exception as e:
-            print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
-            await asyncio.sleep(600)
-# 函式：[守護任務] GitHub 自動更新檢查器 (v2.0 - 徹底異步化)
+            except asyncio.CancelledError:
+                print("⚪️ [自動更新] 背景任務被正常取消。")
+                break
+            except Exception as e:
+                print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
+                await asyncio.sleep(600)
+# 函式：[守護任務] GitHub 自動更新檢查器 (v2.1 - 作用域修正)
 
 # 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
 # 更新紀錄:
