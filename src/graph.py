@@ -375,6 +375,7 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
 # 更新纪录:
 # v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
 # v3.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】策略。重構了 `human_prompt_template`，將用戶指令與上下文數據明確分離，並用強烈的提示詞命令 AI 絕對優先執行指令，以解決 AI 因上下文數據污染而忽略用戶指令的問題。
+# v4.0 (2025-10-15): [健壯性] 引入了【無損上下文通道】，在處理連續性指令時，將上一輪的原文注入提示詞，確保劇情連貫。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
     """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
     user_id = state['user_id']
@@ -384,15 +385,30 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     rag_context = state.get('rag_context', '无相关长期记忆。')
     logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动最终生成流程...")
 
+    # [v4.0 核心修正] 準備上下文
     chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
     historical_context = f"{rag_context}\n\n{chat_history_str}"
+    
+    # [v4.0 核心修正] 檢查是否為連續性指令，並注入無損上下文
+    continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+    if any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords):
+        last_response = state.get('last_response_text')
+        if last_response:
+            uncompressed_context = (
+                f"\n# ==============================================================================\n"
+                f"# == 📝 上一幕場景原文 (絕對參考) 📝 ==\n"
+                f"# ==============================================================================\n"
+                f"# 說明：這是上一回合的完整場景描述，你的任務是基於此原文繼續創作。\n"
+                f"# ------------------------------------------------------------------------------\n"
+                f"{last_response}\n"
+                f"# =============================================================================="
+            )
+            # 將無損上下文放在最前面，以獲得最高注意力權重
+            historical_context = uncompressed_context + "\n\n" + historical_context
+            logger.info(f"[{user_id}] (Graph|6) 已成功為連續性指令注入上一輪的無損上下文。")
 
-    # [v3.0 核心修正] 獲取包含新模板的生成鏈
-    # 注意：我們需要確保 get_unified_generation_chain 函式中的模板也被更新
     prompt_template_runnable = ai_core.get_unified_generation_chain()
     
-    # 這裡假設 get_unified_generation_chain 返回的是一個完整的 runnable，而不僅僅是 prompt
-    # 如果它只返回 prompt，則需要像之前一樣綁定 LLM
     final_chain = prompt_template_runnable
     
     final_response_raw = await ai_core.ainvoke_with_rotation(
@@ -704,6 +720,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
