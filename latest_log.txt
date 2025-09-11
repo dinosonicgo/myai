@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T21:02:33.465873 ###
+### AI Lover Log - Last updated at 2025-09-11T21:05:05.853926 ###
 
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 681, in similarity_search
-    docs_and_scores = self.similarity_search_with_score(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 781, in similarity_search_with_score
     query_embedding = self._embedding_function.embed_query(query)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 256, in embed_query
@@ -100,3 +95,8 @@ violations {
 2025-09-11 21:02:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-11 21:02:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-11 21:02:23 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 21:04:51 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 21:04:53 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 21:04:56 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 21:04:56 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 21:04:56 - [INFO] - 已成功發送啟動成功通知給管理員。
