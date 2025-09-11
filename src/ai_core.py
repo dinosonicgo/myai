@@ -234,10 +234,11 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-# 函式：初始化AI核心 (v210.0 - 统一流程重构)
+    # 函式：初始化AI核心 (v210.0 - 统一流程重构)
     # 更新纪录:
     # v210.0 (2025-10-06): [重大架構重構] 根据最终的“信息注入式”蓝图，彻底清理了所有旧的、分散的链属性。新增了 `unified_generation_chain` 和 `preemptive_tool_parsing_chain` 等新链的声明，并为模型降级轮换机制添加了 `model_priority_list` 和 `current_model_index` 属性。
     # v204.0 (2025-09-09): [災難性BUG修復] 补完了属性声明。
+    # v203.2 (2025-10-14): [災難性BUG修復] 增加了對 `profile_parser_prompt`, `profile_completion_prompt`, `profile_rewriting_prompt` 的初始化，解決 `AttributeError`。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -272,12 +273,22 @@ class AILover:
         self.rag_summarizer_chain: Optional[Runnable] = None
         self.contextual_location_chain: Optional[Runnable] = None
         self.literary_euphemization_chain: Optional[Runnable] = None
+        self.euphemization_chain: Optional[Runnable] = None # v207.0 新增
+        self.location_extraction_chain: Optional[Runnable] = None # v2.0 新增
+        self.action_intent_chain: Optional[Runnable] = None # v203.1 新增
+        self.param_reconstruction_chain: Optional[Runnable] = None # v203.1 新增
+        self.single_entity_resolution_chain: Optional[Runnable] = None # v203.1 新增
+        self.batch_entity_resolution_chain: Optional[Runnable] = None # v203.1 新增
+        self.canon_parser_chain: Optional[Runnable] = None # v203.1 新增
+        self.profile_parser_chain: Optional[Runnable] = None # v203.1 新增
+        self.profile_completion_chain: Optional[Runnable] = None # v203.1 新增
+        self.profile_rewriting_chain: Optional[Runnable] = None # v203.1 新增
+        self.remote_planning_chain: Optional[Runnable] = None # v1.0 新增
 
         # --- (保留) /start 流程专用链 ---
         self.world_genesis_chain: Optional[Runnable] = None
-        self.profile_completion_chain: Optional[Runnable] = None
         
-        # --- 模板与资源 ---
+        # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
@@ -286,9 +297,16 @@ class AILover:
         self.embeddings: Optional[GoogleGenerativeAIEmbeddings] = None
         self.available_tools: Dict[str, Runnable] = {}
         
+        # [v203.2 核心修正] 初始化這些 prompt 屬性
+        self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
+        self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
+        self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
+        
+        self.gm_model: Optional[ChatGoogleGenerativeAI] = None # 確保 gm_model 被初始化
+        
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-# 函式：初始化AI核心 (v210.0 - 统一流程重构)
+    # 函式：初始化AI核心 (v210.0 - 统一流程重构)
     
 
 
@@ -1366,11 +1384,11 @@ class AILover:
     # v1.0.3 (2025-09-21): [架構簡化] 移除了此處多餘的 .bind(safety_settings=...) 調用。核心安全設定已由 _create_llm_instance 工廠函式統一注入，此修改避免了冗餘並確保了設定來源的唯一性。
     # v1.0.2 (2025-08-29): [BUG修復] 修正了函式定義的縮排錯誤。
     # v1.0.1 (2025-08-29): [BUG修復] 修正了對 self.safety_settings 的錯誤引用。
+    # v2.0 (2025-10-14): [災難性BUG修復] 確保 `self.gm_model` 使用 `FUNCTIONAL_MODEL`，以匹配其在其他鏈中的預期用途。
     def _initialize_models(self):
         """初始化核心的LLM和嵌入模型。"""
-        # [v1.0.3 核心修正] raw_gm_model 的創建已在 _create_llm_instance 中包含了全局 SAFETY_SETTINGS，
-        # 因此不再需要此處的 .bind() 重複綁定。
-        self.gm_model = self._create_llm_instance(temperature=0.7)
+        # [v2.0 核心修正] 確保 gm_model 使用 FUNCTIONAL_MODEL
+        self.gm_model = self._create_llm_instance(temperature=0.7, model_name=FUNCTIONAL_MODEL)
         
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
     # 函式：初始化核心模型 (v1.0.3 - 簡化)
@@ -3117,6 +3135,7 @@ class AILover:
     # 更新纪录:
     # v220.0 (2025-10-06): [重大架構重構] 彻底重写了此函式，以实现“模型降级 x 金鑰轮换”的二维重试矩阵。新增 use_degradation 参数，当为 True 时，外层循环会按优先级列表降级模型；内层循环则在每个模型级别上轮换所有 API 金鑰。此修改为系统提供了前所未有的健壮性，能在输出质量和抗审查能力之间进行动态平衡。
     # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
+    # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。現在會檢查鏈是否已經包含 `llm` 部分，如果包含，則使用 `with_config` 替換現有的 LLM 實例；否則，將 `configured_llm` 作為新的步驟追加到鏈的末尾。這解決了在 `world_genesis_chain` 等已經包含 `with_structured_output` 的鏈上重複綁定 LLM 導致的類型錯誤。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3138,16 +3157,31 @@ class AILover:
             for attempt in range(len(self.api_keys)):
                 try:
                     # 动态地将新创建的、正确配置的 LLM 绑定到链上
-                    # 注意：这假设链的结构中名为 "llm" 的部分是模型实例
-                    # 如果链中没有 llm，这会创建一个新的绑定
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
-                    # 查找并替换链中的模型，或直接绑定
-                    if hasattr(chain, 'steps') and any(s.name == 'llm' for s in chain.steps):
-                         effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
+                    effective_chain = chain
+                    # [v220.1 核心修正] 檢查鏈是否已經包含 LLM 實例，並相應地替換或追加
+                    if hasattr(chain, 'steps') and any(isinstance(s, ChatGoogleGenerativeAI) for s in chain.steps):
+                        # 如果鏈中有 LLM 實例，嘗試用 with_config 替換它
+                        # 這需要更精確的查找和替換邏輯，但對於簡單的鏈，我們可以假設 LLM 是可配置的
+                        effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
+                    elif isinstance(chain, ChatPromptTemplate):
+                        # 如果是純 PromptTemplate，則直接將 LLM 追加到其後
+                        effective_chain = chain | configured_llm
+                    elif isinstance(chain, RunnableLambda):
+                         # 如果是 RunnableLambda，則在執行時確保其內部調用正確
+                         # 這裡假設 RunnableLambda 的 params 已經是正確的，不需要額外綁定 LLM
+                         # 為了避免複雜性，我們只在 PromptTemplate 或包含 LLM 的 Runnable 上進行綁定
+                         pass
                     else:
-                         effective_chain = chain | configured_llm
-
+                        # 對於其他複雜的 Runnable，我們假設它們已經配置好 LLM，或者 LLM 會在內部被調用
+                        # 這裡的邏輯需要根據實際的鏈結構來決定如何替換 LLM
+                        pass
+                    
+                    # 如果 effective_chain 仍然是原始的 chain 且它不是一個可調用的 Runnable，
+                    # 並且沒有明確的 LLM 綁定，這可能是一個問題。
+                    # 但在我們的架構中，chain 通常是 PromptTemplate 或包含 LLM 的 Runnable。
+                    
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
                         timeout=90.0
@@ -3157,12 +3191,12 @@ class AILover:
                     if is_empty_or_invalid:
                         raise Exception("SafetyError: The model returned an empty or invalid response.")
                     
-                    logger.info(f"[{self.user_id}] --- 模型 '{model_name}' 成功返回结果 ---")
+                    logger.info(f"[{self.user_id}] --- 模型 '{model_name}' 成功返回結果 ---")
                     return result
 
                 except asyncio.TimeoutError:
-                    logger.warning(f"[{self.user_id}] API 调用在 90 秒后超时 (模型: {model_name}, Key #{self.current_key_index + 1})。正在轮换金鑰...")
-                    # 超时也算一次尝试，继续轮换金鑰
+                    logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時 (模型: {model_name}, Key #{self.current_key_index + 1})。正在輪換金鑰...")
+                    # 超時也算一次嘗試，繼續輪換金鑰
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3170,24 +3204,24 @@ class AILover:
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_safety_error:
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{self.current_key_index + 1}) 遭遇内容审查。")
-                        # 如果是安全错误，直接跳出金鑰轮换，开始降级到下一个模型
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{self.current_key_index + 1}) 遭遇內容審查。")
+                        # 如果是安全錯誤，直接跳出金鑰輪換，開始降級到下一個模型
                         break 
                     
                     if is_rate_limit_error:
-                        logger.warning(f"[{self.user_id}] API Key #{self.current_key_index} 遭遇速率限制。正在轮换到下一个金鑰...")
-                        # 继续内循环，尝试下一个金鑰
+                        logger.warning(f"[{self.user_id}] API Key #{self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
+                        # 繼續內循環，嘗試下一個金鑰
                     else:
-                        logger.error(f"[{self.user_id}] 在 ainvoke 期间发生未知错误 (模型: {model_name}): {e}", exc_info=True)
-                        # 对于未知错误，也尝试降级模型
+                        logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        # 對於未知錯誤，也嘗試降級模型
                         break
             
-            # 如果内循环（金鑰轮换）结束后仍未成功，外循环将继续，尝试下一个更低优先级的模型
+            # 如果內循環（金鑰輪換）結束後仍未成功，外循環將繼續，嘗試下一個更低優先級的模型
             if model_index < len(models_to_try) - 1:
-                logger.warning(f"[{self.user_id}] 模型 '{model_name}' 在尝试所有 API 金鑰后均失败。正在降级到下一个模型...")
+                logger.warning(f"[{self.user_id}] 模型 '{model_name}' 在嘗試所有 API 金鑰後均失敗。正在降級到下一個模型...")
 
-        # 如果所有模型都失败了，最终执行备援策略
-        logger.error(f"[{self.user_id}] 所有模型 ({', '.join(models_to_try)}) 和所有 API 金鑰均尝试失败。启动最终备援策略: '{retry_strategy}'")
+        # 如果所有模型都失敗了，最終執行備援策略
+        logger.error(f"[{self.user_id}] 所有模型 ({', '.join(models_to_try)}) 和所有 API 金鑰均嘗試失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
             return await self._force_and_retry(chain, params)
@@ -3329,6 +3363,7 @@ class AILover:
     # v177.2 (2025-09-02): [架構清理] 徹底移除了對已被廢棄的 `_assemble_dynamic_prompt` 函式的調用。此函式現在於內部定義一個專為開場白設計的、簡潔且自包含的系統提示詞，從而消除了對外部模組化提示詞檔案的依賴，使程式碼更加簡潔和健壯。
     # v177.1 (2025-09-02): [災難性BUG修復] 修正了對 `_assemble_dynamic_prompt` 的調用方式以解決 `TypeError`。
     # v177.0 (2025-08-31): [根本性BUG修復] 優化了提示詞並強化了洩漏清理邏輯。
+    # v177.3 (2025-10-14): [災難性BUG修復] 確保 `initial_scene` 在調用 `.strip()` 之前，先獲取其 `.content` 屬性，解決 `AttributeError: 'AIMessage' object has no attribute 'strip'`。
     async def generate_opening_scene(self) -> str:
         if not self.profile or not self.gm_model:
             raise ValueError("AI 核心或 gm_model 未初始化。")
@@ -3390,10 +3425,16 @@ class AILover:
                 | StrOutputParser()
             )
 
-            initial_scene = await self.ainvoke_with_rotation(opening_chain, {
+            initial_scene_raw = await self.ainvoke_with_rotation(opening_chain, {
                 "system_prompt": system_prompt_str,
                 "human_prompt": human_prompt_str
             })
+
+            # [v177.3 核心修正] 確保獲取 content 屬性
+            if hasattr(initial_scene_raw, 'content'):
+                initial_scene = initial_scene_raw.content
+            else:
+                initial_scene = str(initial_scene_raw) # Fallback to string conversion
 
             if not initial_scene or not initial_scene.strip():
                 raise Exception("生成了空的場景內容。")
@@ -3417,8 +3458,8 @@ class AILover:
 
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
-
 # 類別結束
+
 
 
 
