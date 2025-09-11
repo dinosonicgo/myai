@@ -1,15 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T23:17:16.523508 ###
+### AI Lover Log - Last updated at 2025-09-11T23:20:33.205828 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
@@ -100,3 +90,13 @@ violations {
 2025-09-11 23:17:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-11 23:17:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-11 23:17:06 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 23:20:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 23:20:19 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 23:20:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 23:20:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 23:20:22 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 23:20:33 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-11 23:20:33 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-11 23:20:33 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-11 23:20:33 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-11 23:20:33 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
