@@ -160,6 +160,7 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
 # v1.0 (2025-08-27): [核心功能] 創建此工具。
 # v2.0 (2025-10-15): [健壯性] 實現了對 Embedding API 失敗的優雅降級，在主檢索器失敗時會自動切換到 BM25 備援方案。
 # v3.0 (2025-10-15): [災難性BUG修復] 修正了 `except` 塊，使其能夠正確捕獲 `GoogleGenerativeAIError`，確保備援方案能被觸發。
+# v4.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，如果沒有可用的 Embedding Key，則直接使用 BM25 備援。
 @tool(args_schema=SearchKnowledgeBaseArgs)
 async def search_knowledge_base(query: str, category: Optional[str] = None) -> str:
     """在你行動或回應之前，用來查詢關於任何事物（如 NPC、地點、物品、生物、任務或傳說）的已知資訊。這是你獲取背景知識的主要方式。"""
@@ -168,27 +169,35 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     
     rag_results: Optional[List[Document]] = None
     
-    # --- 步驟 1: 嘗試使用主檢索器 (Embedding + BM25) ---
-    if ai_core.retriever:
-        try:
-            logger.info(f"[{user_id}] (Tool) [主方案] 正在使用混合檢索器查詢 '{query}'...")
-            rag_results = await ai_core.retriever.ainvoke(query)
-        # [v3.0 核心修正] 擴大異常捕獲範圍
-        except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-            if "embed_content" in str(e) or "429" in str(e):
-                logger.warning(f"[{user_id}] (Tool) [備援觸發] 混合檢索器因 Embedding 錯誤失敗。正在啟動純 BM25 備援...")
-                if ai_core.bm25_retriever:
-                    try:
-                        rag_results = await ai_core.bm25_retriever.ainvoke(query)
-                        logger.info(f"[{user_id}] (Tool) [備援成功] 純 BM25 檢索成功。")
-                    except Exception as bm25_e:
-                        logger.error(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索時發生錯誤: {bm25_e}", exc_info=True)
+    # [v4.0 核心修正] 檢查是否有可用的 Embedding Key
+    has_available_keys = any(
+        time.time() >= ai_core.key_cooldowns.get(i, 0) for i in range(len(ai_core.api_keys))
+    )
+
+    if not has_available_keys:
+        logger.warning(f"[{user_id}] (Tool) [備援直達] 所有 Embedding API 金鑰都在冷卻期。直接使用純 BM25 備援方案。")
+        if ai_core.bm25_retriever:
+            rag_results = await ai_core.bm25_retriever.ainvoke(query)
+    else:
+        if ai_core.retriever:
+            try:
+                logger.info(f"[{user_id}] (Tool) [主方案] 正在使用混合檢索器查詢 '{query}'...")
+                rag_results = await ai_core.retriever.ainvoke(query)
+            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                if "embed_content" in str(e) or "429" in str(e):
+                    logger.warning(f"[{user_id}] (Tool) [備援觸發] 混合檢索器因 Embedding 錯誤失敗。正在啟動純 BM25 備援...")
+                    if ai_core.bm25_retriever:
+                        try:
+                            rag_results = await ai_core.bm25_retriever.ainvoke(query)
+                            logger.info(f"[{user_id}] (Tool) [備援成功] 純 BM25 檢索成功。")
+                        except Exception as bm25_e:
+                            logger.error(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索時發生錯誤: {bm25_e}", exc_info=True)
+                    else:
+                        logger.warning(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索器未初始化。")
                 else:
-                    logger.warning(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索器未初始化。")
-            else:
-                logger.error(f"[{user_id}] (Tool) 檢索時發生非 Embedding 相關的 API 錯誤: {e}", exc_info=True)
-        except Exception as e:
-            logger.error(f"[{user_id}] (Tool) 檢索時發生未知錯誤: {e}", exc_info=True)
+                    logger.error(f"[{user_id}] (Tool) 檢索時發生非 Embedding 相關的 API 錯誤: {e}", exc_info=True)
+            except Exception as e:
+                logger.error(f"[{user_id}] (Tool) 檢索時發生未知錯誤: {e}", exc_info=True)
 
     # --- 步驟 2: 查詢結構化 LORE (如果提供了 category) ---
     lore_result: Optional[lore_book.Lore] = None
@@ -481,5 +490,6 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
 
