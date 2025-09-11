@@ -3149,6 +3149,7 @@ class AILover:
     # v2.0 (2025-10-15): [架構重構] 移除了向向量库添加文本的步骤，现在只保存到 SQL 数据库。
     # v3.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL 和 ChromaDB。
     # v4.0 (2025-10-15): [健壯性] 增加了對 ChromaDB 保存失敗的錯誤處理，確保 Embedding API 失敗不會中斷記憶保存流程。
+    # v5.0 (2025-10-15): [健壯性] 統一了日誌格式，確保在 Embedding 失敗時，只打印簡潔的優雅降級訊息。
     async def _save_interaction_to_dbs(self, interaction_text: str):
         """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (为主方案)。"""
         if not interaction_text or not self.profile:
@@ -3177,15 +3178,24 @@ class AILover:
                     if self.embeddings is None:
                         self.embeddings = self._create_embeddings_instance()
                     
+                    # 如果沒有可用的金鑰，則直接跳過
+                    if self.embeddings is None:
+                         raise Exception("所有 Embedding API 金鑰都在冷卻期，跳過向量化保存。")
+
                     await asyncio.to_thread(
                         self.vector_store.add_texts,
                         [interaction_text],
                         metadatas=[{"source": "history", "timestamp": current_time}]
                     )
                     logger.info(f"[{user_id}] 對話記錄已成功保存到 Chroma 向量庫。")
-                except (ResourceExhausted, GoogleAPICallError, Exception) as chroma_e:
-                    # [v4.0 核心修正] 優雅降級：如果 Embedding 失敗，只記錄警告，不中斷流程
-                    logger.warning(f"[{user_id}] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: {chroma_e}。將跳過向量化，但 SQL 備援數據已保存。")
+                except Exception as chroma_e:
+                    # [v5.0 核心修正] 統一所有 ChromaDB 相關錯誤的日誌記錄
+                    error_type = type(chroma_e).__name__
+                    logger.warning(
+                        f"[{user_id}] [優雅降級] "
+                        f"在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。"
+                        f"錯誤類型: {error_type}"
+                    )
 
         except Exception as e:
             logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
@@ -3671,6 +3681,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
