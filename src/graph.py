@@ -148,46 +148,58 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] LORE 扩展决策与执行节点
+# 函式：[新] LORE 擴展決策與執行節點
+# 更新紀錄:
+# v3.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
+# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
+# v3.1 (2025-10-15): [災難性BUG修復] 在調用 `expansion_decision_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數，解決了 `KeyError`。
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
-    """[3] 决策是否需要扩展 LORE，如果需要，则立即执行扩展。"""
+    """[3] 決策是否需要擴展 LORE，如果需要，則立即執行擴展。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     safe_query_text = state['sanitized_query_for_tools']
     raw_lore_objects = state.get('raw_lore_objects', [])
-    logger.info(f"[{user_id}] (Graph|3) Node: expansion_decision_and_execution -> 正在决策是否扩展LORE...")
+    logger.info(f"[{user_id}] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...")
 
-    # Plan A: 尝试使用 LLM 进行决策
+    # Plan A: 嘗試使用 LLM 進行決策
     lightweight_lore_json = json.dumps(
         [{"name": lore.content.get("name"), "description": lore.content.get("description")} for lore in raw_lore_objects if lore.category == 'npc_profile'],
         ensure_ascii=False
     )
     decision_chain = ai_core.get_expansion_decision_chain()
+    
+    # [v3.1 核心修正] 準備調用 `expansion_decision_chain` 所需的所有參數
+    decision_params = {
+        "user_input": safe_query_text, 
+        "existing_characters_json": lightweight_lore_json, 
+        "examples": "", # 範例目前在提示詞中硬編碼，未來可以動態注入
+        "username": ai_core.profile.user_profile.name,
+        "ai_name": ai_core.profile.ai_profile.name
+    }
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
-        {"user_input": safe_query_text, "existing_characters_json": lightweight_lore_json, "examples": ""},
+        decision_params,
         retry_strategy='euphemize'
     )
 
     if not decision:
-        # Plan B (备援): LLM 失败，启动基于 LORE 覆盖率的备援决策
-        logger.warning(f"[{user_id}] (Graph|3) LORE扩展决策链失败，启动【基于LORE覆盖率的备援决策】。")
-        # (这是一个简化的备援实现)
+        # Plan B (備援): LLM 失敗，啟動基於 LORE 覆蓋率的備援決策
+        logger.warning(f"[{user_id}] (Graph|3) LORE擴展決策鏈失敗，啟動【基於LORE覆蓋率的備援決策】。")
         if len(raw_lore_objects) < 3 and len(safe_query_text) > 15:
-            decision = ExpansionDecision(should_expand=True, reasoning="备援：场景中角色较少且用户输入较长，可能需要新角色。")
+            decision = ExpansionDecision(should_expand=True, reasoning="備援：場景中角色較少且使用者輸入較長，可能需要新角色。")
         else:
-            decision = ExpansionDecision(should_expand=False, reasoning="备援：决策链失败，默认不扩展。")
+            decision = ExpansionDecision(should_expand=False, reasoning="備援：決策鏈失敗，預設不擴展。")
 
     if not decision.should_expand:
-        logger.info(f"[{user_id}] (Graph|3) 决策结果：无需扩展。理由: {decision.reasoning}")
+        logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {decision.reasoning}")
         return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
 
-    # --- 如果需要扩展，则执行扩展 ---
-    logger.info(f"[{user_id}] (Graph|3) 决策结果：需要扩展。理由: {decision.reasoning}。正在执行LORE扩展...")
+    # --- 如果需要擴展，則執行擴展 ---
+    logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
-    # Plan A: 尝试使用主 casting_chain
+    # Plan A: 嘗試使用主 casting_chain
     try:
-        logger.info(f"[{user_id}] (Graph|3) 扩展 Plan A: 尝试使用主选角链...")
+        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用主選角鏈...")
         quantification_chain = ai_core.get_character_quantification_chain()
         quant_result = await ai_core.ainvoke_with_rotation(quantification_chain, {"user_input": safe_query_text}, retry_strategy='euphemize')
         
@@ -202,28 +214,31 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
                 retry_strategy='euphemize'
             )
             
-            if not cast_result: raise Exception("主选角链返回空值")
+            if not cast_result: raise Exception("主選角鏈返回空值")
 
             created_names = await ai_core._add_cast_to_scene(cast_result)
-            logger.info(f"[{user_id}] (Graph|3) 扩展 Plan A 成功，创建了 {len(created_names)} 位新角色。")
+            logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
             
-            # 获取更新后的所有 LORE
-            all_lores_after_expansion = await retrieve_and_query_node(state)
-            return {"planning_subjects": [lore.content for lore in all_lores_after_expansion.get("raw_lore_objects", [])]}
+            # 獲取更新後的所有 LORE
+            all_lores_after_expansion_state = await retrieve_and_query_node(state)
+            return {"planning_subjects": [lore.content for lore in all_lores_after_expansion_state.get("raw_lore_objects", [])]}
 
     except Exception as e:
-        # Plan B (备援): 主链失败，启动 Gemini 子任务链备援
-        logger.warning(f"[{user_id}] (Graph|3) 扩展 Plan A 失败: {e}。启动【Gemini子任务链备援】...")
-        # (这是一个简化的接口，实际逻辑在 ai_core 中)
+        # Plan B (備援): 主鏈失敗，啟動 Gemini 子任務鏈備援
+        logger.warning(f"[{user_id}] (Graph|3) 擴展 Plan A 失敗: {e}。啟動【Gemini子任務鏈備援】...")
         newly_created_lores = await ai_core.gemini_subtask_expansion_fallback(safe_query_text)
         if newly_created_lores:
-             logger.info(f"[{user_id}] (Graph|3) 子任务链备援成功，创建了 {len(newly_created_lores)} 位新角色。")
+             logger.info(f"[{user_id}] (Graph|3) 子任務鏈備援成功，創建了 {len(newly_created_lores)} 位新角色。")
              all_current_lores = state.get('raw_lore_objects', [])
              all_current_lores.extend(newly_created_lores)
              return {"planning_subjects": [lore.content for lore in all_current_lores]}
         else:
-             logger.error(f"[{user_id}] (Graph|3) 子任务链备援最终失败。")
+             logger.error(f"[{user_id}] (Graph|3) 子任務鏈備援最終失敗。")
              return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
+# 函式：[新] LORE 擴展決策與執行節點
+
+
+
 
 # 函式：[新] 前置工具調用節點
 # 更新紀錄:
@@ -663,6 +678,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
