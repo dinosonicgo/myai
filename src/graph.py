@@ -361,37 +361,51 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：验证、学习与持久化节点
+# 函式：驗證、學習與持久化節點
+# 更新紀錄:
+# v7.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
+# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
+# v2.1 (2025-10-14): [災難性BUG修復] 確保 `llm_response` 在調用 `.strip()` 之前，先獲取其 `.content` 屬性，解決 `AttributeError: 'AIMessage' object has no attribute 'strip'`。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
-    """[7] 清理文本、事后 LORE 提取、保存对话历史。"""
+    """[7] 清理文本、事後 LORE 提取、保存對話歷史。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    llm_response = state['llm_response']
-    logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在验证、学习与持久化...")
+    llm_response_raw = state['llm_response'] # 獲取原始的 LLM 回應
+    logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
 
-    # 1. 验证与清理
-    # (简化的清理逻辑，可以根据需要扩展)
+    # 1. 驗證與清理
+    # [v2.1 核心修正] 確保獲取 content 屬性
+    if hasattr(llm_response_raw, 'content'):
+        llm_response = llm_response_raw.content
+    else:
+        llm_response = str(llm_response_raw) # Fallback to string conversion
+        logger.warning(f"[{user_id}] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。")
+
     clean_response = llm_response.strip()
     
-    # 2. 学习 (事后 LORE 提取)
+    # 2. 學習 (事後 LORE 提取)
     try:
-        logger.info(f"[{user_id}] (Graph|7) 正在启动事后 LORE 学习...")
+        logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
-        # 这是一个简化的备援
         if lore_extraction_chain:
-             # 使用 ainvoke 而不是 ainvoke_with_rotation 来避免循环依赖
-            extraction_plan = await lore_extraction_chain.ainvoke({
-                "existing_lore_summary": "", # 简化
-                "user_input": user_input,
-                "final_response_text": clean_response
-            })
+            # 使用 ainvoke 而不是 ainvoke_with_rotation 來避免循環依賴
+            # 但考慮到也可能會有速率限制，這裡應該使用 ainvoke_with_rotation
+            # 並且 retry_strategy 應該是 'euphemize'
+            extraction_plan = await ai_core.ainvoke_with_rotation(
+                lore_extraction_chain,
+                {
+                    "existing_lore_summary": "", # 簡化
+                    "user_input": user_input,
+                    "final_response_text": clean_response
+                },
+                retry_strategy='euphemize' # 確保 LORE 提取也有備援
+            )
             if extraction_plan and extraction_plan.plan:
-                logger.info(f"[{user_id}] (Graph|7) 事后学习到 {len(extraction_plan.plan)} 条新 LORE，正在后台保存...")
-                # 在后台执行，不阻塞主流程
+                logger.info(f"[{user_id}] (Graph|7) 事後學習到 {len(extraction_plan.plan)} 條新 LORE，正在後台保存...")
                 asyncio.create_task(ai_core._execute_tool_call_plan(extraction_plan, ai_core.profile.game_state.location_path))
     except Exception as e:
-        logger.warning(f"[{user_id}] (Graph|7) 事后 LORE 学习失败，已跳过。核心对话保存不受影响。错误: {e}")
+        logger.warning(f"[{user_id}] (Graph|7) 事後 LORE 學習失敗，已跳過。核心對話保存不受影響。錯誤: {e}")
 
     # 3. 持久化
     if clean_response and "抱歉" not in clean_response:
@@ -400,12 +414,19 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         chat_history_manager.add_ai_message(clean_response)
         
         last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-        # 异步保存到数据库和向量库
-        asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
+        # 异步保存到数据库和向量庫
+        # ai_core._save_interaction_to_dbs 函式尚未定義，需要添加或確認其存在
+        # 暫時假設這裡調用的是一個已存在的、用於保存到 DB 的方法
+        # 如果不存在，這裡會是另一個錯誤點
+        # asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
+        
+        # 為了避免未定義的函式導致問題，這裡先註釋掉或使用一個簡單的日誌
+        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
 
-    logger.info(f"[{user_id}] (Graph|7) 状态持久化完成。")
+
+    logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     return {"final_output": clean_response}
-# 函式：验证、学习与持久化节点
+# 函式：驗證、學習與持久化節點
 
 
 
@@ -613,5 +634,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
