@@ -1413,10 +1413,11 @@ class AILover:
 # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
 
 
-# 函式：[全新] 獲取前置工具解析鏈
+    # 函式：[全新] 獲取前置工具解析鏈
     # 更新纪录:
     # v1.0 (2025-10-06): [重大架構重構] 创建此链，用于在主創作流程前，从用户输入中解析出明确的、需要改变世界状态的工具调用。它被设计为高度聚焦和确定性的，固定使用 FUNCTIONAL_MODEL。
     # v1.1 (2025-10-14): [災難性BUG修復] 修正了 Prompt 模板中 `{tool_name}` 變數未被轉義導致的 `KeyError`。現在所有工具名稱都作為字面量包含在列表中。
+    # v1.2 (2025-10-14): [災難性BUG修復] 修正了 Prompt 模板中缺少 `ai_name` 變數導致的 `KeyError`，現在通過 `partial` 注入。
     def get_preemptive_tool_parsing_chain(self) -> Runnable:
         """獲取或創建一個簡單的鏈，用於從使用者輸入中解析出明確的工具調用。"""
         if not hasattr(self, 'preemptive_tool_parsing_chain') or self.preemptive_tool_parsing_chain is None:
@@ -1451,11 +1452,15 @@ class AILover:
 【使用者輸入】: {user_input}
 ---
 """
-            # [v1.1 核心修正] 確保 prompt_template 引用 ai_name
-            # 注意：這裡的 {ai_name} 應該在調用鏈時作為 partial_variables 傳入
-            # 為了避免 KeyError，將其改為在調用時傳入
-            
-            prompt = ChatPromptTemplate.from_template(prompt_template)
+            # [v1.2 核心修正] 將 ai_name 作為 partial_variables 注入
+            # 確保 self.profile 已經被加載
+            if self.profile and self.profile.ai_profile:
+                partial_vars = {"ai_name": self.profile.ai_profile.name}
+                prompt = ChatPromptTemplate.from_template(prompt_template).partial(**partial_vars)
+            else:
+                # 如果 profile 未加載，則使用一個佔位符，但這不應該發生在主對話流程中
+                prompt = ChatPromptTemplate.from_template(prompt_template)
+                logger.warning(f"[{self.user_id}] 警告：在 `get_preemptive_tool_parsing_chain` 中訪問 `ai_name` 時 profile 未加載。")
             
             # 此鏈固定使用功能性模型
             functional_llm = self._create_llm_instance().with_structured_output(ToolCallPlan)
@@ -2843,11 +2848,12 @@ class AILover:
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
 
 
-# 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
+    # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
     # 更新紀錄:
     # v209.0 (2025-09-08): [災難性BUG修復] 根據 LOG 中出現的無限重試風暴，徹底重構了此函式的核心邏輯。舊版本在備援時會回頭調用另一個同樣脆弱的鏈（entity_extraction_chain），導致了致命的遞歸失敗循環。新版本移除了所有脆弱的“解構-重構”步驟，改為直接調用專為處理露骨內容而設計的、更強大的“文學評論家”鏈，將失敗的輸入一次性地、安全地轉換為文學概述後再進行重試，從根本上解決了重試風暴問題。
     # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
     # v209.1 (2025-10-14): [災難性BUG修復] 修正了當 `failed_chain` 是一個 `Retriever` 實例時，`ainvoke` 調用失敗的問題。現在會針對 `Retriever` 類型進行特殊處理，並確保 `self.embeddings` 使用最新的輪換金鑰。
+    # v209.2 (2025-10-14): [健壯性] 確保在 Retriever 失敗時，強制更新其 `_embedding_function` 為當前 `self.embeddings`。
     async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
         """
         [v209.0 新架構] 一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
@@ -2862,15 +2868,12 @@ class AILover:
             
             # 處理字典類型的參數
             if isinstance(failed_params, dict):
-                # 優先尋找類型為 list[Document] 的文檔列表
                 doc_list_values = {k: v for k, v in failed_params.items() if isinstance(v, list) and all(isinstance(i, Document) for i in v)}
                 if doc_list_values:
-                    # 如果找到文檔列表，將它們的內容合併為一個長文本進行清洗
                     key_to_replace = list(doc_list_values.keys())[0]
                     docs_to_process = doc_list_values[key_to_replace]
                     text_to_euphemize = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
                 else:
-                    # 如果沒有文檔列表，則尋找最長的字符串
                     string_values = {k: v for k, v in failed_params.items() if isinstance(v, str)}
                     if string_values:
                         key_to_replace = max(string_values, key=lambda k: len(string_values[k]))
@@ -2916,10 +2919,9 @@ class AILover:
             
             # 根據原始參數類型，構造重試參數
             if isinstance(retry_params, dict) and key_to_replace:
-                # 如果原始是文檔列表，則用清洗後的文本創建一個新的單一文檔
                 if isinstance(retry_params[key_to_replace], list) and all(isinstance(i, Document) for i in retry_params[key_to_replace]):
                     retry_params[key_to_replace] = [Document(page_content=safe_text)]
-                else: # 否則，直接替換字符串
+                else:
                     retry_params[key_to_replace] = safe_text
             elif isinstance(retry_params, str):
                 retry_params = safe_text
@@ -2928,26 +2930,28 @@ class AILover:
             # [v209.1 核心修正] 針對 Retriever 調整 retry_params
             elif isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
                 if key_to_replace == 'query' and isinstance(retry_params, str):
-                    retry_params = safe_text # 直接替換查詢字符串
+                    retry_params = safe_text 
                 else:
                     logger.warning(f"[{self.user_id}] (Euphemizer) 無法為 Retriever 構建正確的重試參數。")
                     return None
 
-            # [v209.1 核心修正] 如果失敗的鏈是 Retriever，則需要重新初始化其 embedding_function
+            # [v209.2 核心修正] 如果失敗的鏈是 Retriever，則需要強制更新其 embedding_function
             if isinstance(failed_chain, EnsembleRetriever) or (hasattr(failed_chain, 'base_retriever') and isinstance(failed_chain.base_retriever, EnsembleRetriever)):
-                # 確保 self.embeddings 已經更新到最新的金鑰
-                # 由於 ainvoke_with_rotation 在每次嘗試時都會更新 self.embeddings，這裡只需確保它被設置
+                # 確保 self.embeddings 已經更新到最新的金鑰 (由 ainvoke_with_rotation 管理)
                 if self.embeddings is None:
+                    # 如果因為某種原因 self.embeddings 還是 None，則嘗試創建一個
                     self.embeddings = self._create_embeddings_instance()
 
-                # 如果是 EnsembleRetriever，需要更新其內部所有 Chroma 檢索器的 embedding_function
-                if hasattr(failed_chain, 'retrievers'):
-                    for retriever in failed_chain.retrievers:
-                        if hasattr(retriever, 'vectorstore') and hasattr(retriever.vectorstore, '_embedding_function'):
-                            retriever.vectorstore._embedding_function = self.embeddings
-                elif hasattr(failed_chain, 'vectorstore') and hasattr(failed_chain.vectorstore, '_embedding_function'):
-                    # 如果是單個 Chroma Retriever
-                    failed_chain.vectorstore._embedding_function = self.embeddings
+                # 遞歸查找並更新所有內部 Chroma 檢索器的 _embedding_function
+                def _update_embedding_in_retriever(retriever_instance: Any, new_embeddings: GoogleGenerativeAIEmbeddings):
+                    if hasattr(retriever_instance, 'vectorstore') and hasattr(retriever_instance.vectorstore, '_embedding_function'):
+                        retriever_instance.vectorstore._embedding_function = new_embeddings
+                    if hasattr(retriever_instance, 'retrievers'): # 針對 EnsembleRetriever
+                        for r in retriever_instance.retrievers:
+                            _update_embedding_in_retriever(r, new_embeddings)
+                
+                _update_embedding_in_retriever(failed_chain, self.embeddings)
+                logger.info(f"[{self.user_id}] (Euphemizer) 已強制更新 Retriever 的 Embedding 函數。")
 
             return await failed_chain.ainvoke(retry_params)
 
@@ -3092,6 +3096,7 @@ class AILover:
     # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
     # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。現在會檢查鏈是否已經包含 `llm` 部分，如果包含，則使用 `with_config` 替換現有的 LLM 實例；否則，將 `configured_llm` 作為新的步驟追加到鏈的末尾。這解決了在 `world_genesis_chain` 等已經包含 `with_structured_output` 的鏈上重複綁定 LLM 導致的類型錯誤。
     # v220.2 (2025-10-14): [災難性BUG修復] 增加了對 `self.embeddings` 的動態創建和金鑰輪換，以解決 Embedding API 的速率限制問題。
+    # v220.3 (2025-10-14): [健壯性] 在每次 API 調用失敗後，增加一個短暫的延遲，以緩解連續的速率限制問題。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3119,26 +3124,22 @@ class AILover:
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
                     effective_chain = chain
+                    
                     # 檢查鏈是否已經包含 LLM 實例，並相應地替換或追加
-                    # 這裡需要更強健的 LLM 替換邏輯，以處理各種 LangChain Runnable 結構
-                    # 簡化處理：如果 chain 是一個 PromptTemplate，則直接將 LLM 追加
-                    # 如果 chain 已經是 Runnable，我們假設它有一個可配置的 LLM 部分或者會自行處理
                     if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | configured_llm
-                    elif hasattr(chain, 'get_graph') and callable(getattr(chain, 'get_graph')): # 檢查是否為 LangGraph compiled graph
+                    elif hasattr(chain, 'get_graph') and callable(getattr(chain, 'get_graph')):
                         # 對於 LangGraph，LLM 替換可能更複雜，通常在節點內部完成
-                        # 這裡我們信任節點內部會調用 _create_llm_instance
                         pass
                     elif hasattr(chain, 'with_config'):
-                        # 嘗試使用 with_config 替換 LLM，這對於許多 Runnable 類型都有效
                         try:
                             effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
                         except Exception as e:
                             logger.warning(f"[{self.user_id}] 嘗試用 with_config 替換 LLM 失敗: {e}。將使用原始鏈。")
-                            effective_chain = chain # 回退到原始鏈
+                            effective_chain = chain 
                     else:
-                        effective_chain = chain # 對於其他類型，直接使用原始鏈
-
+                        effective_chain = chain 
+                    
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
                         timeout=90.0
@@ -3153,6 +3154,8 @@ class AILover:
 
                 except asyncio.TimeoutError:
                     logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時 (模型: {model_name}, Key index: {self.current_key_index})。正在輪換金鑰...")
+                    # [v220.3 核心修正] 超時後增加短暫延遲
+                    await asyncio.sleep(1.0)
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3161,12 +3164,18 @@ class AILover:
 
                     if is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {self.current_key_index}) 遭遇內容審查。")
+                        # [v220.3 核心修正] 內容審查後也增加短暫延遲，再嘗試降級
+                        await asyncio.sleep(1.0)
                         break 
                     
                     if is_rate_limit_error:
                         logger.warning(f"[{self.user_id}] API Key index: {self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
+                        # [v220.3 核心修正] 速率限制後增加短暫延遲
+                        await asyncio.sleep(1.0)
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        # [v220.3 核心修正] 未知錯誤後也增加短暫延遲，再嘗試降級
+                        await asyncio.sleep(1.0)
                         break
             
             if model_index < len(models_to_try) - 1:
@@ -3410,6 +3419,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
