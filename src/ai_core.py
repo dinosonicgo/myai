@@ -25,7 +25,7 @@ from typing import List, Dict, Optional, Any, Literal, Callable, Tuple
 import asyncio
 import gc
 from pathlib import Path
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, delete # [v15.0 核心修正] 導入 delete 函式
 from collections import defaultdict
 import functools
 
@@ -65,7 +65,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, SingleResolutionPlan)
-from .database import AsyncSessionLocal, UserData, MemoryData # [v5.0 核心修正] 導入 MemoryData
+from .database import AsyncSessionLocal, UserData, MemoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
@@ -2326,7 +2326,7 @@ class AILover:
 
     
 # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
-    # 更新纪录:
+    # 更新紀錄:
     # v6.0 (2025-10-13): [災難性BUG修復] 配合 _build_retriever 的修改，此函式现在负责完全手动的 Embedding 流程。它接收一个没有 embedding 功能的 vector_store 实例，自己调用 self.embeddings.aembed_documents 将文本转换为向量，然后再将文本和生成的向量一起提交给 vector_store。这确保了 API 调用只在我们需要时、以我们可控的方式发生，彻底解决了初始化时隐藏的 API 调用问题。
     # v5.0 (2025-09-29): [根本性重構] 采用更底层的、小批次、带强制延迟的手动控制流程。
     # v7.0 (2025-10-15): [架構重構] 移除了所有与向量化相关的逻辑。此函式现在负责将世界圣经分割成块，并将其作为普通记忆存入 SQL 数据库，以供 BM25 检索器使用。
@@ -2345,23 +2345,30 @@ class AILover:
 
             # --- 步驟 2: 保存到 SQL (為 BM25) ---
             async with AsyncSessionLocal() as session:
+                # 步驟 1: 清理舊的 'canon' 数据
                 stmt = delete(MemoryData).where(
                     MemoryData.user_id == self.user_id,
-                    MemoryData.importance == -1
+                    MemoryData.importance == -1 # 使用一个特殊的重要性值来标记 canon 数据
                 )
-                await session.execute(stmt)
+                result = await session.execute(stmt)
+                if result.rowcount > 0:
+                    logger.info(f"[{self.user_id}] (Canon Processor) 已从 SQL 记忆库中清理了 {result.rowcount} 条旧 'canon' 记录。")
+
+                # 步骤 3: 将分割后的文本块作为特殊记忆存入 SQL 数据库
+                new_memories = []
+                for doc in docs:
+                    new_memories.append(
+                        MemoryData(
+                            user_id=self.user_id,
+                            content=doc.page_content,
+                            timestamp=time.time(),
+                            importance=-1 # 使用 -1 表示这是来自世界圣经的静态知识
+                        )
+                    )
                 
-                new_memories = [
-                    MemoryData(
-                        user_id=self.user_id,
-                        content=doc.page_content,
-                        timestamp=time.time(),
-                        importance=-1
-                    ) for doc in docs
-                ]
                 session.add_all(new_memories)
                 await session.commit()
-            logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已存入 SQL 記憶庫。")
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库。")
 
             # --- 步驟 3: 保存到 ChromaDB (為主方案) ---
             if self.vector_store:
@@ -3482,6 +3489,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
