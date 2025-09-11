@@ -819,6 +819,7 @@ class AILover:
     # 更新紀錄:
     # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
     # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
+    # v173.1 (2025-10-14): [功能精簡] 根據需求，僅加載 `world_snapshot_template.txt` 和 `00_supreme_directive.txt`。並將 `00_supreme_directive.txt` 的內容賦值給 `self.core_protocol_prompt`。
     def _load_templates(self):
         """從 prompts/ 目錄加載所有需要的核心及模組化模板檔案。"""
         # 1. 加載核心數據快照模板
@@ -831,33 +832,19 @@ class AILover:
             logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！")
             self.world_snapshot_template = "錯誤：世界快照數據模板未找到。"
 
-        # 2. 加載所有模組化戰術指令
-        self.modular_prompts = {}
+        # [v173.1 核心修正] 僅加載 00_supreme_directive.txt 並設置為 core_protocol_prompt
         try:
-            modular_prompts_dir = PROJ_DIR / "prompts" / "modular"
-            if not modular_prompts_dir.is_dir():
-                logger.warning(f"[{self.user_id}] 未找到模組化提示詞目錄: {modular_prompts_dir}，將跳過加載。")
-                return
+            core_protocol_path = PROJ_DIR / "prompts" / "00_supreme_directive.txt"
+            with open(core_protocol_path, "r", encoding="utf-8") as f:
+                self.core_protocol_prompt = f.read()
+            logger.info(f"[{self.user_id}] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。")
+        except FileNotFoundError:
+            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！")
+            self.core_protocol_prompt = "錯誤：核心協議模板未找到。"
 
-            loaded_modules = []
-            for prompt_file in modular_prompts_dir.glob("*.txt"):
-                module_name = prompt_file.stem
-                # [v173.0 核心修正] 移除對核心協議的跳過，確保所有協議都被加載
-                # if module_name == '00_core_protocol':
-                #     logger.info(f"[{self.user_id}] 已跳過已棄用的模組 '00_core_protocol.txt'。")
-                #     continue
-                
-                with open(prompt_file, "r", encoding="utf-8") as f:
-                    self.modular_prompts[module_name] = f.read()
-                loaded_modules.append(module_name)
-
-            if loaded_modules:
-                logger.info(f"[{self.user_id}] 已成功加載 {len(loaded_modules)} 個戰術指令模組: {', '.join(loaded_modules)}")
-            else:
-                logger.info(f"[{self.user_id}] 在模組化目錄中未找到可加載的戰術指令。")
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 加載模組化戰術指令時發生未預期錯誤: {e}", exc_info=True)
+        # 移除對 modular_prompts 的加載和處理，因為現在只使用兩個特定文件
+        self.modular_prompts = {} # 確保此屬性存在，但為空
+        logger.info(f"[{self.user_id}] 已精簡模組化提示詞加載，只保留核心協議。")
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
 
 
@@ -3423,6 +3410,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
