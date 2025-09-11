@@ -429,19 +429,20 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 # v2.2 (2025-10-15): [災難性BUG修復] 恢復了對 `ai_core._save_interaction_to_dbs` 的調用，以確保對話歷史被正確持久化。
 # v2.3 (2025-10-15): [災難性BUG修復] 在調用 `lore_extraction_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數，解決了 `KeyError`。
 # v2.4 (2025-10-15): [健壯性] 在調用 `lore_extraction_chain` 之前，先對可能包含 NSFW 內容的 `clean_response` 進行清洗，以避免內容審查。
+# v2.5 (2025-10-15): [健壯性] 將本回合的最終回應存入 state，為下一輪的連續性指令提供無損上下文。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
-    """[7] 清理文本、事後 LORE 提取、保存對話歷史。"""
+    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪準備無損上下文。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    llm_response_raw = state['llm_response'] # 獲取原始的 LLM 回應
+    llm_response_raw = state['llm_response']
     logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
 
     # 1. 驗證與清理
     if hasattr(llm_response_raw, 'content'):
         llm_response = llm_response_raw.content
     else:
-        llm_response = str(llm_response_raw) # Fallback to string conversion
+        llm_response = str(llm_response_raw)
         logger.warning(f"[{user_id}] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。")
 
     clean_response = llm_response.strip()
@@ -451,14 +452,12 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
         if lore_extraction_chain and ai_core.profile:
-            
-            # [v2.4 核心修正] 對可能包含 NSFW 內容的 `clean_response` 進行預清洗
             logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...")
             literary_chain = ai_core.get_literary_euphemization_chain()
             safe_response_for_lore = await ai_core.ainvoke_with_rotation(
                 literary_chain,
                 {"dialogue_history": clean_response},
-                retry_strategy='none' # 如果連清洗都失敗，直接跳過 LORE 提取
+                retry_strategy='none'
             )
 
             if not safe_response_for_lore:
@@ -468,9 +467,9 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
                 lore_extraction_params = {
                     "username": ai_core.profile.user_profile.name,
                     "ai_name": ai_core.profile.ai_profile.name,
-                    "existing_lore_summary": "", # 簡化
+                    "existing_lore_summary": "",
                     "user_input": user_input,
-                    "final_response_text": safe_response_for_lore # 使用清洗後的安全文本
+                    "final_response_text": safe_response_for_lore
                 }
                 extraction_plan = await ai_core.ainvoke_with_rotation(
                     lore_extraction_chain,
@@ -494,9 +493,10 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         
         logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
 
-
     logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
-    return {"final_output": clean_response}
+    
+    # [v2.5 核心修正] 將本回合的最終回應存入 state，為下一輪提供無損上下文
+    return {"final_output": clean_response, "last_response_text": clean_response}
 # 函式：驗證、學習與持久化節點
 
 
@@ -704,6 +704,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
