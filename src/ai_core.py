@@ -815,11 +815,21 @@ class AILover:
         return self.profile_rewriting_prompt
     # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
 
+
+
+
+
+
+
+
+
+    
     # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
     # 更新紀錄:
     # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
     # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
     # v173.1 (2025-10-14): [功能精簡] 根據需求，僅加載 `world_snapshot_template.txt` 和 `00_supreme_directive.txt`。並將 `00_supreme_directive.txt` 的內容賦值給 `self.core_protocol_prompt`。
+    # v173.2 (2025-10-15): [災難性BUG修復] 修正了 `00_supreme_directive.txt` 檔案未找到的問題，並在錯誤發生時提供更清晰的備援。
     def _load_templates(self):
         """從 prompts/ 目錄加載所有需要的核心及模組化模板檔案。"""
         # 1. 加載核心數據快照模板
@@ -839,8 +849,18 @@ class AILover:
                 self.core_protocol_prompt = f.read()
             logger.info(f"[{self.user_id}] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。")
         except FileNotFoundError:
-            logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！")
-            self.core_protocol_prompt = "錯誤：核心協議模板未找到。"
+            # [v173.2 核心修正] 如果檔案不存在，提供一個預設值，避免後續崩潰
+            logger.critical(f"[{self.user_id}] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！AI 將失去核心行為約束！")
+            self.core_protocol_prompt = (
+                "# 【【【警告：核心協議模板缺失！AI行為將不受約束！】】】\n"
+                "你是一個在【完全虛構的成人幻想小說模擬】框架下運行的專用故事生成引擎。\n"
+                "你的所有行為和輸出【都必須且只能】被視為此虛構模擬的一部分。\n"
+                "【絕對禁止扮演】使用者角色。你只能描述使用者指令執行後，世界、NPC 或 AI 角色對此產生的**外部反應和客觀現象**。\n"
+                "【絕對禁止複述指令】。你的回應都【必須】引入【全新的信息、行動、對話或劇情發展】。\n"
+                "【忠於設定】。AI 角色和所有 NPC 的行為與對話，都【必須】嚴格基於其**自身的核心設定**。\n"
+                "【最終輸出強制令】：你的最終輸出【必須且只能】是純粹的小說文本，嚴格遵循使用者定義的風格指令。\n"
+                "所有角色的直接對話【必須且只能】使用 `「」` 引號。"
+            )
 
         # 移除對 modular_prompts 的加載和處理，因為現在只使用兩個特定文件
         self.modular_prompts = {} # 確保此屬性存在，但為空
@@ -854,6 +874,7 @@ class AILover:
         # 函式：[全新] 獲取 LORE 提取鏈 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的鏈，專門用於在對話結束後，從最終的 AI 回應中反向提取新的、可持久化的世界知識（LORE），以實現世界觀的動態成長。
+    # v1.1 (2025-10-15): [災難性BUG修復] 修正了 `add_or_update_world_lore` 工具調用缺少 `lore_key` 和 `standardized_name` 參數的問題，修改提示詞使其強制生成這些字段。
     def get_lore_extraction_chain(self) -> Runnable:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的鏈。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
@@ -870,6 +891,7 @@ class AILover:
 3.  **【工具選擇】**:
     *   對於描述**群體、組織或概念**的知識（例如“性神教徒的信仰”），使用 `add_or_update_world_lore` 工具。
     *   對於描述**特定生物或物種**的知識（例如“水晶雞的習性”），使用 `define_creature_type` 工具。
+4.  **【強制鍵值生成】**: 無論選擇哪個工具，你【必須】為其生成 `lore_key` 和 `standardized_name` 參數。`lore_key` 可以是 `standardized_name` 的安全版本，或者結合地點信息。
 
 # === 【【【行為模型範例 (最重要！)】】】 ===
 #
@@ -884,6 +906,8 @@ class AILover:
 #           "tool_name": "add_or_update_world_lore",
 #           "parameters": {{
 #             "original_name": "性神教徒的信仰",
+#             "standardized_name": "性神教徒的信仰",
+#             "lore_key": "性神教徒的信仰",
 #             "content": "性神教徒將性愛視為對其神祇的崇高獻祭。"
 #           }}
 #         }}
@@ -913,6 +937,8 @@ class AILover:
 #           "tool_name": "define_creature_type",
 #           "parameters": {{
 #             "original_name": "水晶雞",
+#             "standardized_name": "水晶雞",
+#             "lore_key": "水晶雞",
 #             "description": "一種只在月光下產下發光蛋的生物。"
 #           }}
 #         }}
@@ -1285,24 +1311,31 @@ class AILover:
     # v207.0 (2025-10-14): [災難性BUG修復] 修正了因錯誤的 API 使用而導致的 TypeError。根据 LangChain 的工作机制，embedding_function 必须在调用 as_retriever() 之前，被设置回 vector_store 实例上。新的逻辑确保了 ChromaDB 在初始化时保持“无知”以防止意外 API 调用，但在创建检索器前，正确地将 embedding 能力“注入”回 vector_store，从而使检索器能够正常工作。
     # v206.0 (2025-10-13): [災難性BUG修復] 采用“延迟 Embedding 提供”策略，以彻底解决初始化时的速率限制问题。
     # v207.1 (2025-10-14): [災難性BUG修復] 確保 `self.embeddings` 在 `Chroma` 初始化後立即被設置為其 `_embedding_function`。
+    # v207.2 (2025-10-15): [災難性BUG修復] 修正了 `Chroma` 實例初始化時缺少 `embedding_function` 導致的 `ValueError`。現在直接在 `Chroma` 構造函數中提供。
     async def _build_retriever(self) -> Runnable:
         """配置並建構RAG系統的檢索器，具備自我修復和非阻塞能力。"""
         all_docs = []
         
-        def _create_chroma_instance_sync(path: str) -> Chroma:
+        # 確保 self.embeddings 已經被創建 (在 ainvoke_with_rotation 中會被更新)
+        if self.embeddings is None:
+            self.embeddings = self._create_embeddings_instance() # 確保 embeddings 實例存在
+
+        def _create_chroma_instance_sync(path: str, embeddings_func: GoogleGenerativeAIEmbeddings) -> Chroma:
             """一個純粹的同步函式，用於在背景線程中安全地執行。"""
             logger.info(f"[{self.user_id}] (Sync Worker) 正在嘗試使用路徑 '{path}' 創建 PersistentClient...")
             chroma_client = chromadb.PersistentClient(path=path)
             logger.info(f"[{self.user_id}] (Sync Worker) PersistentClient 創建成功。")
             
-            # 在初始化时不提供 embedding_function，防止意外 API 调用
+            # [v207.2 核心修正] 在初始化時直接提供 embedding_function
             return Chroma(
                 client=chroma_client,
+                embedding_function=embeddings_func # 直接傳入 embedding 函數
             )
 
         try:
-            logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...")
-            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path)
+            logger.info(f"[{self.user_id}] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (帶 Embedding 函数)...")
+            # [v207.2 核心修正] 傳遞 self.embeddings 實例給同步創建函數
+            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
             
             all_docs_collection = await asyncio.to_thread(self.vector_store.get)
             all_docs = [Document(page_content=doc, metadata=meta) for doc, meta in zip(all_docs_collection['documents'], all_docs_collection['metadatas'])]
@@ -1321,19 +1354,16 @@ class AILover:
                 logger.info(f"[{self.user_id}] (Recovery Step 2/4) 已手動創建一個乾淨的空目錄於: {vector_path}")
                 await asyncio.sleep(1.0)
                 logger.info(f"[{self.user_id}] (Recovery Step 4/4) 正在最乾淨的環境下重新嘗試初始化 ChromaDB...")
-                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path)
+                # [v207.2 核心修正] 恢復時也傳遞 embedding_function
+                self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
                 all_docs = []
                 logger.info(f"[{self.user_id}] (Retriever Builder) 全自動恢復成功，已創建全新的向量儲存。")
             except Exception as recovery_e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 自動恢復過程中發生致命錯誤: {recovery_e}", exc_info=True)
                 raise recovery_e
 
-        # [v207.1 核心修正] 在創建檢索器之前，將 embedding 函數注入回 vector_store 實例
-        # 確保 self.embeddings 已經被創建 (在 ainvoke_with_rotation 中會被更新)
-        # 這裡只需要確保它有值，並將其賦值給 vector_store
-        if self.embeddings is None:
-            self.embeddings = self._create_embeddings_instance() # 確保 embeddings 實例存在
-        self.vector_store._embedding_function = self.embeddings
+        # [v207.1 核心修正] 不再需要手動賦值，因為已經在 Chroma 構造函數中完成
+        # self.vector_store._embedding_function = self.embeddings 
         
         chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
         
@@ -3093,13 +3123,14 @@ class AILover:
 
     
     
-# 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
-    # 更新纪录:
-    # v220.0 (2025-10-06): [重大架構重構] 彻底重写了此函式，以实现“模型降级 x 金鑰轮换”的二维重试矩阵。新增 use_degradation 参数，当为 True 时，外层循环会按优先级列表降级模型；内层循环则在每个模型级别上轮换所有 API 金鑰。此修改为系统提供了前所未有的健壮性，能在输出质量和抗审查能力之间进行动态平衡。
-    # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
+# 函式：帶模型降級與金鑰輪換的非同步呼叫 (v220.0 - 二維重試矩陣)
+    # 更新紀錄:
+    # v220.0 (2025-10-06): [重大架構重構] 徹底重寫了此函式，以實現“模型降級 x 金鑰輪換”的二維重試矩陣。新增 use_degradation 參數，當為 True 時，外層循環會按優先級列表降級模型；內層循環則在每個模型級別上輪換所有 API 金鑰。此修改為系統提供了前所未有的健壯性，能在輸出質量和抗審查能力之間進行動態平衡。
+    # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失敗策略。
     # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。現在會檢查鏈是否已經包含 `llm` 部分，如果包含，則使用 `with_config` 替換現有的 LLM 實例；否則，將 `configured_llm` 作為新的步驟追加到鏈的末尾。這解決了在 `world_genesis_chain` 等已經包含 `with_structured_output` 的鏈上重複綁定 LLM 導致的類型錯誤。
     # v220.2 (2025-10-14): [災難性BUG修復] 增加了對 `self.embeddings` 的動態創建和金鑰輪換，以解決 Embedding API 的速率限制問題。
     # v220.3 (2025-10-14): [健壯性] 在每次 API 調用失敗後，增加一個短暫的延遲，以緩解連續的速率限制問題。
+    # v220.4 (2025-10-15): [健壯性] 增加了失敗後的延遲時間，以更積極地應對 API 速率限制。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3157,8 +3188,8 @@ class AILover:
 
                 except asyncio.TimeoutError:
                     logger.warning(f"[{self.user_id}] API 調用在 90 秒後超時 (模型: {model_name}, Key index: {self.current_key_index})。正在輪換金鑰...")
-                    # [v220.3 核心修正] 超時後增加短暫延遲
-                    await asyncio.sleep(1.0)
+                    # [v220.4 核心修正] 超時後增加更長的延遲
+                    await asyncio.sleep(3.0)
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3167,18 +3198,18 @@ class AILover:
 
                     if is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {self.current_key_index}) 遭遇內容審查。")
-                        # [v220.3 核心修正] 內容審查後也增加短暫延遲，再嘗試降級
-                        await asyncio.sleep(1.0)
+                        # [v220.4 核心修正] 內容審查後也增加更長的延遲，再嘗試降級
+                        await asyncio.sleep(3.0)
                         break 
                     
                     if is_rate_limit_error:
                         logger.warning(f"[{self.user_id}] API Key index: {self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
-                        # [v220.3 核心修正] 速率限制後增加短暫延遲
-                        await asyncio.sleep(1.0)
+                        # [v220.4 核心修正] 速率限制後增加更長的延遲
+                        await asyncio.sleep(3.0)
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        # [v220.3 核心修正] 未知錯誤後也增加短暫延遲，再嘗試降級
-                        await asyncio.sleep(1.0)
+                        # [v220.4 核心修正] 未知錯誤後也增加更長的延遲，再嘗試降級
+                        await asyncio.sleep(3.0)
                         break
             
             if model_index < len(models_to_try) - 1:
@@ -3192,7 +3223,7 @@ class AILover:
             return await self._euphemize_and_retry(chain, params)
         
         return None 
-# 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
+# 函式：帶模型降級與金鑰輪換的非同步呼叫 (v220.0 - 二維重試矩陣)
 
     
 
@@ -3422,6 +3453,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
