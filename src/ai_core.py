@@ -2410,6 +2410,7 @@ class AILover:
     # v9.0 (2025-10-15): [健壯性] 增加了對 Embedding API 失敗的優雅降級處理，確保即使 Embedding 失敗，聖經內容也能成功保存到 SQL 以供 BM25 備援使用。
     # v10.0 (2025-10-15): [災難性BUG修復] 修正了錯誤處理邏輯，確保在 Embedding 失敗時，函式能夠正常返回而不是向上拋出異常。
     # v11.0 (2025-10-15): [健壯性] 將 Embedding 失敗的日誌級別從 ERROR 降級為 WARNING，並提供更清晰的說明。
+    # v12.0 (2025-10-15): [健壯性] 統一了所有 ChromaDB 相關錯誤的日誌記錄為 WARNING 級別。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """將世界聖經文本處理並同時保存到 SQL 記憶庫和 Chroma 向量庫。"""
         if not self.profile:
@@ -2474,16 +2475,13 @@ class AILover:
                         embeddings=embeddings
                     )
                     logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已成功存入 Chroma 向量庫 (主方案)。")
-        except (ResourceExhausted, GoogleAPICallError) as e:
-            # [v11.0 核心修正] 將日誌級別降級為 WARNING，並提供清晰的說明
+        except (ResourceExhausted, GoogleAPICallError, Exception) as e:
+            # [v12.0 核心修正] 統一將所有 ChromaDB 相關錯誤視為可降級的警告
             logger.warning(
                 f"[{self.user_id}] (Canon Processor) [優雅降級] "
-                f"主記憶系統 (Embedding) 因達到 API 配額限制而保存失敗。程式將自動使用備援記憶系統 (BM25)。"
-                f"錯誤詳情: {e}"
+                f"主記憶系統 (Embedding) 在處理世界聖經時失敗。程式將自動使用備援記憶系統 (BM25)。"
+                f"錯誤詳情: {type(e).__name__}: {e}"
             )
-        except Exception as e:
-            # 其他 ChromaDB 相關的錯誤
-            logger.error(f"[{self.user_id}] (Canon Processor) 保存到 ChromaDB 時發生未知錯誤: {e}", exc_info=True)
 
         # 無論 Embedding 是否成功，只要 SQL 保存成功，就返回已處理的文檔數量
         return len(docs)
@@ -2498,6 +2496,7 @@ class AILover:
     #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
     #    2. [速率限制] 在處理每個實體類別之間加入了 4 秒的強制延遲，以嚴格遵守 API 的速率限制，確保在處理大型設定檔時的穩定性。
     # v2.0 (2025-10-15): [災難性BUG修復] 新增了【核心角色保護機制】，防止在解析世界聖經時，將用戶或 AI 角色錯誤地創建為 LORE。
+    # v3.0 (2025-10-15): [災難性BUG修復] 將核心角色保護機制移至 `_resolve_and_save` 內部，確保對所有 LORE 類別都生效。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -2517,20 +2516,10 @@ class AILover:
                 logger.warning(f"[{self.user_id}] 世界聖經解析鏈返回空結果，可能觸發了內容審查。")
                 return
             
-            # [v2.0 核心修正] 核心角色保護機制
+            # [v3.0 核心修正] 將保護名單移至輔助函式內部使用
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
-
-            # 淨化解析結果，移除與核心角色同名的 NPC
-            original_npc_count = len(parsing_result.npc_profiles)
-            parsing_result.npc_profiles = [
-                npc for npc in parsing_result.npc_profiles 
-                if npc.name.lower() not in protected_names
-            ]
-            if len(parsing_result.npc_profiles) < original_npc_count:
-                logger.info(f"[{self.user_id}] [核心角色保護] 已從世界聖經解析結果中過濾掉 {original_npc_count - len(parsing_result.npc_profiles)} 個與主角同名的 NPC。")
-
 
             # 步驟 2: 定義一個可重用的輔助函式來處理實體解析和儲存
             async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
@@ -2538,6 +2527,20 @@ class AILover:
                     return
 
                 logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
+                
+                # [v3.0 核心修正] 在處理每個實體前進行保護檢查
+                purified_entities = []
+                for entity in entities:
+                    entity_name = entity.get(name_key) or entity.get(title_key, "")
+                    if entity_name.lower() in protected_names:
+                        logger.warning(f"[{self.user_id}] [核心角色保護] 已從世界聖經解析結果中過濾掉一個與主角同名的 LORE 條目 (類別: {category}, 名稱: {entity_name})。")
+                    else:
+                        purified_entities.append(entity)
+                
+                if not purified_entities:
+                    logger.info(f"[{self.user_id}] 在類別 '{category}' 中，所有實體均因與主角同名而被過濾。")
+                    return
+
                 existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
                 existing_entities_for_prompt = [
                     {"key": lore.key, "name": lore.content.get(name_key) or lore.content.get(title_key)}
@@ -2546,12 +2549,11 @@ class AILover:
                 
                 resolution_chain = self.get_single_entity_resolution_chain()
 
-                for entity_data in entities:
+                for entity_data in purified_entities:
                     original_name = entity_data.get(name_key) or entity_data.get(title_key)
                     if not original_name:
                         continue
                     
-                    # [速率限制] 在每次 API 調用前等待
                     await asyncio.sleep(4.0)
 
                     resolution_plan = await self.ainvoke_with_rotation(resolution_chain, {
@@ -2569,13 +2571,11 @@ class AILover:
                     
                     if res.decision == 'EXISTING' and res.matched_key:
                         lore_key = res.matched_key
-                        # 使用合併模式更新現有條目
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon', merge=True)
                         logger.info(f"[{self.user_id}] 已將 '{original_name}' 解析為現有實體 '{lore_key}' 並合併了資訊。")
                     else:
-                        # 創建一個新的 LORE 條目
                         safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
-                        lore_key = safe_name # 對於來自聖經的頂層 LORE，使用其自身作為主鍵
+                        lore_key = safe_name
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
                         logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
 
@@ -3620,6 +3620,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
