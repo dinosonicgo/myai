@@ -1,19 +1,45 @@
-### AI Lover Log - Last updated at 2025-09-11T22:39:26.698856 ###
+### AI Lover Log - Last updated at 2025-09-11T22:44:28.943849 ###
 
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 22:22:24 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 22:22:24 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): "Input to ChatPromptTemplate is missing variables {'ai_name', 'username'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 1 条相关LORE。
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在决策是否扩展LORE...
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-11 22:39:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] (Graph|3) 决策结果：无需扩展。理由: 角色碧在现有演员名单中已存在，并且其描述与剧本中描述的动作和暗示的意图（强调性、仪式感的拍手动作，暗示结论、确认或宣告）是相符的。
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-11 22:39:36 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Graph|4) 解析到 1 個工具調用，準備執行...
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Executor) 準備執行工具 'update_character_profile'，參數: {'character_name': '碧', 'updates': {'current_action': '拍手'}}
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] 已成功更新角色 '碧' 的檔案，欄位: current_action。
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile', 'game_state']
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Executor) 工具 'update_character_profile' 執行成功，結果: 已成功更新角色 '碧' 的檔案，欄位: current_action。
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Graph|4) 前置工具執行完畢。
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-11 22:39:37 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 1)
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-11 22:40:08 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-11 22:40:08 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3230, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3296, in ainvoke_with_rotation
     result = await asyncio.wait_for(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
     return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
+    return await self.bound.ainvoke(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
     input_ = await coro_with_context(part(), context, create_task=True)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
@@ -24,13 +50,36 @@ Traceback (most recent call last):
     inner_input_ = self._validate_input(inner_input)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
     raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'ai_name', 'username'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {ai_name} to be part of the string and not a variable, please escape it with double curly braces like: '{{ai_name}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-11 22:22:27 - [ERROR] - [512280345618546699] 所有模型 (gemini-2.5-flash-lite) 和所有 API 金鑰均嘗試失敗。啟動最終備援策略: 'euphemize'
-2025-09-11 22:22:28 - [WARNING] - [512280345618546699] (Graph|7) 事後 LORE 學習失敗，已跳過。核心對話保存不受影響。錯誤: AILover._euphemize_and_retry() missing 1 required positional argument: 'original_exception'
-2025-09-11 22:22:28 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
-2025-09-11 22:22:28 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
-2025-09-11 22:22:28 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
-2025-09-11 22:22:29 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+KeyError: "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-11 22:40:12 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-11 22:40:12 - [ERROR] - [512280345618546699] 啟動最終備援策略: 'euphemize'
+2025-09-11 22:40:12 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-11 22:40:12 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '在迷霧繚繞的靜謐森林中，碧那雙空靈的眼眸微微一動。她緩緩抬起纖細而白皙的雙手，動作流暢而優雅，彷彿不...' 清洗為安全的文學概述...
+2025-09-11 22:40:12 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 22:40:12 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-11 22:40:12 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-11 22:40:13 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '【情節概述】:
+
+本片段描繪了一名角色（碧）在幽靜的林間環境中，執行了一個具象化的、帶有儀式感的肢體...'
+2025-09-11 22:40:13 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "。將觸發安全備援。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3053, in _euphemize_and_retry
+    return await failed_chain.ainvoke(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
+    inner_input_ = self._validate_input(inner_input)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
+    raise KeyError(
+KeyError: "Input to ChatPromptTemplate is missing variables {'username', 'ai_name'}.  Expected: ['ai_name', 'existing_lore_summary', 'final_response_text', 'user_input', 'username'] Received: ['existing_lore_summary', 'user_input', 'final_response_text']\nNote: if you intended {username} to be part of the string and not a variable, please escape it with double curly braces like: '{{username}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
+2025-09-11 22:40:13 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
+2025-09-11 22:40:13 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-09-11 22:40:13 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-11 22:40:14 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
@@ -51,52 +100,3 @@ violations {
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
 ]。將跳過向量化，但 SQL 備援數據已保存。
-2025-09-11 22:30:24 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 22:30:25 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 22:30:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 22:30:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 22:30:28 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 22:35:35 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 22:35:35 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 22:35:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 22:35:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 22:35:39 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 22:35:50 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-11 22:35:50 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 22:35:50 - [CRITICAL] - [512280345618546699] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！AI 將失去核心行為約束！
-2025-09-11 22:35:50 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-11 22:35:50 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 22:35:50 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 3 條記憶。
-2025-09-11 22:35:50 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
-2025-09-11 22:35:50 - [ERROR] - [512280345618546699] 配置前置資源或恢復記憶時發生致命錯誤: 'AILover' object has no attribute '_get_next_api_key_and_index'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in initialize
-    await self._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2385, in _configure_pre_requisites
-    self.retriever = await self._build_retriever()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1389, in _build_retriever
-    self.embeddings = self._create_embeddings_instance()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 306, in _create_embeddings_instance
-    key_to_use, current_index = self._get_next_api_key_and_index()
-AttributeError: 'AILover' object has no attribute '_get_next_api_key_and_index'
-2025-09-11 22:35:50 - [WARNING] - 為使用者 512280345618546699 初始化 AI 實例失敗。
-2025-09-11 22:39:12 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 22:39:12 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 22:39:15 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 22:39:15 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 22:39:16 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 22:39:25 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 3 條記憶。
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-11 22:39:25 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-11 22:39:26 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-11 22:39:26 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-11 22:39:26 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
-2025-09-11 22:39:26 - [INFO] - [512280345618546699] 成功恢復了 3 條對話記錄到短期記憶中。
-2025-09-11 22:39:26 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-11 22:39:26 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
