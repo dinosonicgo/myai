@@ -11,6 +11,9 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator, AliasChoices
 from langchain_core.tools import tool, Tool
 from langchain_core.documents import Document
 from sqlalchemy.exc import SQLAlchemyError
+# [v19.0 核心修正] 導入 Google API 相關的異常類型
+from google.api_core.exceptions import ResourceExhausted, GoogleAPICallError
+from langchain_google_genai._common import GoogleGenerativeAIError
 
 from .logger import logger
 from . import lore_book
@@ -18,7 +21,6 @@ from . import lore_tools
 from .models import CharacterProfile
 from .database import AsyncSessionLocal, UserData
 from .models import GameState
-# [v17.0 新增] 導入共享的工具上下文
 from .tool_context import tool_context
 
 # --- Pydantic 模型與配置 ---
@@ -150,10 +152,14 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
     category: Optional[str] = Field(default=None, description="一個可選的精確分類。可選值: 'npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore'。")
 # 類別：搜尋知識庫參數
 
+
+
+
 # 工具：搜尋知識庫
 # 更新紀錄:
 # v1.0 (2025-08-27): [核心功能] 創建此工具。
 # v2.0 (2025-10-15): [健壯性] 實現了對 Embedding API 失敗的優雅降級，在主檢索器失敗時會自動切換到 BM25 備援方案。
+# v3.0 (2025-10-15): [災難性BUG修復] 修正了 `except` 塊，使其能夠正確捕獲 `GoogleGenerativeAIError`，確保備援方案能被觸發。
 @tool(args_schema=SearchKnowledgeBaseArgs)
 async def search_knowledge_base(query: str, category: Optional[str] = None) -> str:
     """在你行動或回應之前，用來查詢關於任何事物（如 NPC、地點、物品、生物、任務或傳說）的已知資訊。這是你獲取背景知識的主要方式。"""
@@ -167,8 +173,9 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
         try:
             logger.info(f"[{user_id}] (Tool) [主方案] 正在使用混合檢索器查詢 '{query}'...")
             rag_results = await ai_core.retriever.ainvoke(query)
-        except (ResourceExhausted, GoogleAPICallError) as e:
-            if "embed_content" in str(e):
+        # [v3.0 核心修正] 擴大異常捕獲範圍
+        except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+            if "embed_content" in str(e) or "429" in str(e):
                 logger.warning(f"[{user_id}] (Tool) [備援觸發] 混合檢索器因 Embedding 錯誤失敗。正在啟動純 BM25 備援...")
                 if ai_core.bm25_retriever:
                     try:
@@ -208,6 +215,9 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     logger.info(f"[{user_id}] 執行了統一知識庫查詢 for '{query}', Category: {category}。結果長度: {len(final_output)}")
     return final_output
 # 工具：搜尋知識庫
+
+
+
 
 # 類別：更新角色檔案參數
 class UpdateCharacterProfileArgs(BaseToolArgs):
@@ -471,4 +481,5 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
