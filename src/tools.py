@@ -151,38 +151,58 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
 # 類別：搜尋知識庫參數
 
 # 工具：搜尋知識庫
+# 更新紀錄:
+# v1.0 (2025-08-27): [核心功能] 創建此工具。
+# v2.0 (2025-10-15): [健壯性] 實現了對 Embedding API 失敗的優雅降級，在主檢索器失敗時會自動切換到 BM25 備援方案。
 @tool(args_schema=SearchKnowledgeBaseArgs)
 async def search_knowledge_base(query: str, category: Optional[str] = None) -> str:
     """在你行動或回應之前，用來查詢關於任何事物（如 NPC、地點、物品、生物、任務或傳說）的已知資訊。這是你獲取背景知識的主要方式。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
     
-    tasks = []
+    rag_results: Optional[List[Document]] = None
+    
+    # --- 步驟 1: 嘗試使用主檢索器 (Embedding + BM25) ---
     if ai_core.retriever:
-        tasks.append(ai_core.retriever.ainvoke(query))
-    else:
-        tasks.append(asyncio.sleep(0, result=None))
-        
+        try:
+            logger.info(f"[{user_id}] (Tool) [主方案] 正在使用混合檢索器查詢 '{query}'...")
+            rag_results = await ai_core.retriever.ainvoke(query)
+        except (ResourceExhausted, GoogleAPICallError) as e:
+            if "embed_content" in str(e):
+                logger.warning(f"[{user_id}] (Tool) [備援觸發] 混合檢索器因 Embedding 錯誤失敗。正在啟動純 BM25 備援...")
+                if ai_core.bm25_retriever:
+                    try:
+                        rag_results = await ai_core.bm25_retriever.ainvoke(query)
+                        logger.info(f"[{user_id}] (Tool) [備援成功] 純 BM25 檢索成功。")
+                    except Exception as bm25_e:
+                        logger.error(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索時發生錯誤: {bm25_e}", exc_info=True)
+                else:
+                    logger.warning(f"[{user_id}] (Tool) [備援失敗] BM25 備援檢索器未初始化。")
+            else:
+                logger.error(f"[{user_id}] (Tool) 檢索時發生非 Embedding 相關的 API 錯誤: {e}", exc_info=True)
+        except Exception as e:
+            logger.error(f"[{user_id}] (Tool) 檢索時發生未知錯誤: {e}", exc_info=True)
+
+    # --- 步驟 2: 查詢結構化 LORE (如果提供了 category) ---
+    lore_result: Optional[lore_book.Lore] = None
     if category:
-        tasks.append(lore_book.get_lore(user_id, category, query))
-    else:
-        tasks.append(asyncio.sleep(0, result=None))
-        
-    results = await asyncio.gather(*tasks, return_exceptions=True)
-    
-    rag_results: Optional[List[Document]] = results[0] if not isinstance(results[0], Exception) else None
-    lore_result: Optional[lore_book.Lore] = results[1] if not isinstance(results[1], Exception) else None
-    
+        try:
+            lore_result = await lore_book.get_lore(user_id, category, query)
+        except Exception as e:
+            logger.error(f"[{user_id}] (Tool) 查詢結構化 LORE 時發生錯誤: {e}", exc_info=True)
+
+    # --- 步驟 3: 組合結果 ---
     output_parts = []
     if lore_result:
         output_parts.append(f"【結構化資料庫 (Lore) 查詢結果 for '{query}' in '{category}'】:\n" + json.dumps(lore_result.content, ensure_ascii=False, indent=2))
     elif category:
         output_parts.append(f"【結構化資料庫 (Lore) 查詢結果】: 在類別 '{category}' 中找不到關於 '{query}' 的精確條目。")
+    
     if rag_results:
         rag_content = "\n\n---\n\n".join([doc.page_content for doc in rag_results])
-        output_parts.append(f"【背景知識庫 (世界聖經/記憶) 相關資訊 for '{query}'】:\n{rag_content}")
+        output_parts.append(f"【背景知識庫 (記憶/聖經) 相關資訊 for '{query}'】:\n{rag_content}")
     else:
-        output_parts.append(f"【背景知識庫 (世界聖經/記憶) 相關資訊】: 未找到與 '{query}' 相關的背景資訊。")
+        output_parts.append(f"【背景知識庫 (記憶/聖經) 相關資訊】: 未找到與 '{query}' 相關的背景資訊。")
         
     final_output = "\n\n".join(output_parts)
     logger.info(f"[{user_id}] 執行了統一知識庫查詢 for '{query}', Category: {category}。結果長度: {len(final_output)}")
@@ -451,3 +471,4 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
