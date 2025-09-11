@@ -2888,11 +2888,17 @@ class AILover:
     # v208.1 (2025-09-22): [災難性BUG修復] 增加了輸入長度保護機制。
     # v209.1 (2025-10-14): [災難性BUG修復] 修正了當 `failed_chain` 是一個 `Retriever` 實例時，`ainvoke` 調用失敗的問題。現在會針對 `Retriever` 類型進行特殊處理，並確保 `self.embeddings` 使用最新的輪換金鑰。
     # v209.2 (2025-10-14): [健壯性] 確保在 Retriever 失敗時，強制更新其 `_embedding_function` 為當前 `self.embeddings`。
-    async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any) -> Any:
+    # v209.3 (2025-10-15): [災難性BUG修復] 在處理 Embedding 相關的 `ResourceExhausted` 錯誤時，立即返回 `None` 以避免重試循環。
+    async def _euphemize_and_retry(self, failed_chain: Runnable, failed_params: Any, original_exception: Exception) -> Any:
         """
         [v209.0 新架構] 一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
         它通過強大的“文學評論家”鏈將失敗的輸入安全化後重試。
         """
+        # [v209.3 核心修正] 檢查是否為 Embedding 速率限制錯誤
+        if isinstance(original_exception, GoogleAPICallError) and "embed_content" in str(original_exception):
+            logger.error(f"[{self.user_id}] 【Embedding 速率限制】: 檢測到 Embedding API 速率限制，將立即觸發安全備援，跳過重試。")
+            return None
+
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...")
         
         try:
@@ -2992,6 +2998,49 @@ class AILover:
             logger.error(f"[{self.user_id}] 【文學評論家委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
     # 函式：“安全備援”委婉化重試處理器 (v209.0 - 重試風暴修復)
+
+
+
+    # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-10-15): [核心功能] 創建此函式，用於將對話歷史保存到 SQL 資料庫和 Chroma 向量庫，以供長期記憶和 RAG 檢索使用。
+    async def _save_interaction_to_dbs(self, interaction_text: str):
+        """將單次互動的文本保存到 SQL 資料庫和 Chroma 向量庫。"""
+        if not interaction_text or not self.profile:
+            return
+
+        user_id = self.user_id
+        current_time = time.time()
+        
+        try:
+            # 步驟 1: 保存到 SQL 資料庫
+            async with AsyncSessionLocal() as session:
+                new_memory = MemoryData(
+                    user_id=user_id,
+                    content=interaction_text,
+                    timestamp=current_time,
+                    importance=5 # 預設重要性
+                )
+                session.add(new_memory)
+                await session.commit()
+            logger.info(f"[{user_id}] 對話記錄已成功保存到 SQL 資料庫。")
+
+            # 步驟 2: 保存到 Chroma 向量庫
+            if self.vector_store:
+                await asyncio.to_thread(
+                    self.vector_store.add_texts,
+                    [interaction_text],
+                    metadatas=[{"source": "history", "timestamp": current_time}]
+                )
+                logger.info(f"[{user_id}] 對話記錄已成功保存到 Chroma 向量庫。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 將互動保存到資料庫時發生錯誤: {e}", exc_info=True)
+    # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
+
+
+    
+
 
 
     # 函式：[新] 獲取實體提取鏈 (v1.0 - 全新創建)
@@ -3453,6 +3502,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
