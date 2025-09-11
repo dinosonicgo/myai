@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-11T19:28:34.629543 ###
+### AI Lover Log - Last updated at 2025-09-11T19:32:09.255826 ###
 
-2025-09-10 09:41:09 - [INFO] - (Git Log Pusher) 最新LOG已成功推送到GitHub倉庫。
-2025-09-10 10:18:01 - [INFO] - 管理員 512280345618546699 觸發了強制更新。指令已確認，正在將實際操作轉移到背景任務。
-2025-09-10 10:18:02 - [INFO] - 背景任務：強制同步成功，準備發送優雅關閉信號...
-2025-09-10 10:18:03 - [INFO] - 已成功發送更新成功通知給管理員 (ID: 512280345618546699)。
-2025-09-10 10:18:06 - [INFO] - 背景任務：已設置全局關閉事件，主程式將優雅退出。
-2025-09-10 10:18:06 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已正常停止。
-2025-09-10 10:18:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-10 10:18:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-10 10:18:21 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-10 10:20:39 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-10 10:20:39 - [INFO] - [512280345618546699] 重置完成，準備彈出 WorldSettingsModal。
-2025-09-10 10:20:40 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'DMChannel' object has no attribute 'send_modal'
+2025-09-11 19:28:24 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 19:28:33 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-11 19:28:35 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-11 19:28:40 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-11 19:28:41 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #1)
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
+2025-09-11 19:28:41 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
+2025-09-11 19:28:42 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
+2025-09-11 19:28:42 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
+2025-09-11 19:28:42 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: "VectorStoreRetriever" object has no field "embedding_function"
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1010, in start_reset_flow
-    await interaction.channel.send_modal(world_modal)
-AttributeError: 'DMChannel' object has no attribute 'send_modal'
-2025-09-11 17:47:50 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 17:47:51 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 17:47:54 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 17:47:54 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 17:47:55 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 18:35:23 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 18:35:23 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 18:35:26 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 18:35:26 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 18:35:26 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 18:35:51 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-11 18:35:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-11 18:35:59 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-11 18:41:30 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 18:41:30 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 18:41:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 18:41:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 18:41:34 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 18:41:47 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-11 18:41:49 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-11 18:44:51 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 18:44:52 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 18:44:54 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 18:44:54 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 18:44:55 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 18:45:04 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-11 18:45:07 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-11 18:45:11 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-11 18:45:12 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #1)
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB...
-2025-09-11 18:45:12 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
-2025-09-11 18:45:14 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
-2025-09-11 18:45:14 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
-2025-09-11 18:45:15 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
-2025-09-11 18:45:15 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-11 18:45:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-11 18:45:15 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-11 18:45:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 18:45:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-11 18:45:26 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-11 18:45:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-11 18:45:27 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 18:45:28 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-11 18:46:07 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-11 18:46:08 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-11 18:46:10 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 18:46:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.
-2025-09-11 18:46:17 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #2)...
-2025-09-11 18:46:17 - [WARNING] - [512280345618546699] (Canon Processor) API Key #2 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:19 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #3)...
-2025-09-11 18:46:19 - [WARNING] - [512280345618546699] (Canon Processor) API Key #3 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:21 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #4)...
-2025-09-11 18:46:21 - [WARNING] - [512280345618546699] (Canon Processor) API Key #4 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:23 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #5)...
-2025-09-11 18:46:24 - [WARNING] - [512280345618546699] (Canon Processor) API Key #5 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:26 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #6)...
-2025-09-11 18:46:26 - [WARNING] - [512280345618546699] (Canon Processor) API Key #6 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:28 - [INFO] - [512280345618546699] (Canon Processor) 正在處理小批次 1/1 (使用 API Key #1)...
-2025-09-11 18:46:28 - [WARNING] - [512280345618546699] (Canon Processor) API Key #1 在處理小批次時遭遇速率限制。正在輪換金鑰...
-2025-09-11 18:46:30 - [ERROR] - [512280345618546699] 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失敗。
-2025-09-11 18:46:30 - [ERROR] - [512280345618546699] 處理核心設定時發生嚴重錯誤: 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失敗。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 740, in get_or_create_ai_instance
+    await ai_instance._configure_pre_requisites()
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2407, in _configure_pre_requisites
+    self.retriever = await self._build_retriever()
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1434, in _build_retriever
+    chroma_retriever.embedding_function = self.embeddings
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 997, in __setattr__
+    elif (setattr_handler := self._setattr_handler(name, value)) is not None:
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 1044, in _setattr_handler
+    raise ValueError(f'"{cls.__name__}" object has no field "{name}"')
+ValueError: "VectorStoreRetriever" object has no field "embedding_function"
+2025-09-11 19:28:42 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-11 19:28:42 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-11 19:28:42 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 19:28:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-11 19:28:51 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-11 19:28:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-11 19:28:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 19:28:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-11 19:29:04 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-11 19:29:04 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-11 19:29:04 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 19:29:06 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.
+2025-09-11 19:29:10 - [INFO] - [512280345618546699] (Canon Processor) 准备为 1 个文本块手动生成向量...
+2025-09-11 19:29:10 - [INFO] - [512280345618546699] --- 开始尝试模型: 'gemini-2.5-flash-lite' (优先级 1/1) ---
+2025-09-11 19:29:10 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #2)
+2025-09-11 19:29:10 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:29:10 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:29:10 - [ERROR] - [512280345618546699] 在 ainvoke 期间发生未知错误 (模型: gemini-2.5-flash-lite): Invalid input type <class 'coroutine'>. Must be a PromptValue, str, or list of BaseMessages.
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2471, in add_canon_to_vector_store
-    raise Exception(final_error_msg)
-Exception: 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失敗。
-2025-09-11 18:46:30 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失敗。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3160, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 418, in ainvoke
+    [self._convert_input(input)],
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 381, in _convert_input
+    raise ValueError(msg)
+ValueError: Invalid input type <class 'coroutine'>. Must be a PromptValue, str, or list of BaseMessages.
+2025-09-11 19:29:10 - [ERROR] - [512280345618546699] 所有模型 (gemini-2.5-flash-lite) 和所有 API 金鑰均尝试失败。启动最终备援策略: 'euphemize'
+2025-09-11 19:29:10 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-11 19:29:10 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 無法從參數中提取可委婉化的文本。。將觸發安全備援。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2982, in _euphemize_and_retry
+    raise ValueError("無法從參數中提取可委婉化的文本。")
+ValueError: 無法從參數中提取可委婉化的文本。
+2025-09-11 19:29:10 - [ERROR] - [512280345618546699] 處理核心設定時發生嚴重錯誤: 手动生成向量失败或返回了不匹配的数量。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2465, in add_canon_to_vector_store
+    raise Exception("手动生成向量失败或返回了不匹配的数量。")
+Exception: 手动生成向量失败或返回了不匹配的数量。
+2025-09-11 19:29:10 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: 手动生成向量失败或返回了不匹配的数量。
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 890, in _background_process_canon
     chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2471, in add_canon_to_vector_store
-    raise Exception(final_error_msg)
-Exception: 在嘗試了所有 6 個 API 金鑰後，處理小批次 1 仍然失敗。
-2025-09-11 19:28:20 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 19:28:21 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 19:28:23 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 19:28:23 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 19:28:24 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 19:28:33 - [INFO] - [512280345618546699] 後台重置任務開始...
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2465, in add_canon_to_vector_store
+    raise Exception("手动生成向量失败或返回了不匹配的数量。")
+Exception: 手动生成向量失败或返回了不匹配的数量。
+2025-09-11 19:31:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 19:31:55 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 19:31:58 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 19:31:58 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 19:31:58 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 19:32:01 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-11 19:32:03 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-11 19:32:07 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 已成功加載 4 個戰術指令模組: 00_core_protocol, 00_supreme_directive, action_macro_movement, action_sexual_content
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 正在创建模型 'gemini-2.5-flash-lite' 实例 (API Key #1)
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 应用的安全设定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] 已为模型 'gemini-2.5-flash-lite' 启用【动态思考】功能。
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
+2025-09-11 19:32:07 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
+2025-09-11 19:32:08 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
+2025-09-11 19:32:08 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
+2025-09-11 19:32:09 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
+2025-09-11 19:32:09 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-11 19:32:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-11 19:32:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
