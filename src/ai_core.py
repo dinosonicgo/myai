@@ -2412,16 +2412,17 @@ class AILover:
 
 
     
-# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
+    # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
     # 更新紀錄:
     # v6.0 (2025-10-13): [災難性BUG修復] 配合 _build_retriever 的修改，此函式现在负责完全手动的 Embedding 流程。它接收一个没有 embedding 功能的 vector_store 实例，自己调用 self.embeddings.aembed_documents 将文本转换为向量，然后再将文本和生成的向量一起提交给 vector_store。这确保了 API 调用只在我们需要时、以我们可控的方式发生，彻底解决了初始化时隐藏的 API 调用问题。
     # v5.0 (2025-09-29): [根本性重構] 采用更底层的、小批次、带强制延迟的手动控制流程。
+    # v6.1 (2025-10-14): [災難性BUG修復] 修正了 `ainvoke_with_rotation` 調用 `embedding_chain` 時，因 `embedding_task` 返回協程導致的 `ValueError`。現在直接 `await self.embeddings.aembed_documents`。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         if not self.vector_store or not self.embeddings:
             raise ValueError("Vector store or embeddings function is not initialized.")
         
         try:
-            # 步骤 1: 清理旧数据
+            # 步驟 1: 清理舊數據
             ids_to_delete = []
             if self.vector_store._collection.count() > 0:
                 collection = await asyncio.to_thread(self.vector_store.get, where={"source": "canon"})
@@ -2430,9 +2431,9 @@ class AILover:
             
             if ids_to_delete:
                 await asyncio.to_thread(self.vector_store.delete, ids=ids_to_delete)
-                logger.info(f"[{self.user_id}] (Canon Processor) 已从向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
+                logger.info(f"[{self.user_id}] (Canon Processor) 已從向量儲存中清理了 {len(ids_to_delete)} 條舊 'canon' 記錄。")
 
-            # 步骤 2: 分割文本
+            # 步驟 2: 分割文本
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
             docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
             if not docs:
@@ -2441,33 +2442,25 @@ class AILover:
             texts_to_embed = [doc.page_content for doc in docs]
             metadatas = [doc.metadata for doc in docs]
             
-            # [v6.0 核心修正] 步骤 3: 手动调用 Embedding API
-            # 我们在这里进行一次性的、集中的 API 调用，并应用完整的重试逻辑
-            logger.info(f"[{self.user_id}] (Canon Processor) 准备为 {len(texts_to_embed)} 个文本块手动生成向量...")
+            # [v6.1 核心修正] 步驟 3: 手動調用 Embedding API
+            # 我們在這裡進行一次性的、集中的 API 調用，並應用完整的重試邏輯
+            logger.info(f"[{self.user_id}] (Canon Processor) 準備為 {len(texts_to_embed)} 個文本塊手動生成向量...")
             
-            # aembed_documents 自身没有模型降级，所以我们用 ainvoke_with_rotation 包装一个 lambda
-            embedding_task = lambda params: self.embeddings.aembed_documents(params['texts'])
-            
-            # 使用一个简单的 RunnableLambda 来包装
-            from langchain_core.runnables import RunnableLambda
-            embedding_chain = RunnableLambda(embedding_task)
-
-            # 注意：此处不使用模型降级(use_degradation=False)，因为 embedding 模型是固定的
-            embeddings = await self.ainvoke_with_rotation(
-                embedding_chain,
-                {'texts': texts_to_embed},
-                retry_strategy='euphemize',
-                use_degradation=False
-            )
+            try:
+                # 直接調用 embedding 模型的異步方法，它不屬於 LLM 鏈，不需要 ainvoke_with_rotation
+                embeddings = await self.embeddings.aembed_documents(texts_to_embed)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] (Canon Processor) 調用 embedding 模型失敗: {e}", exc_info=True)
+                raise Exception("手動生成向量失敗或返回了不匹配的數量。") from e
 
             if not embeddings or len(embeddings) != len(texts_to_embed):
-                raise Exception("手动生成向量失败或返回了不匹配的数量。")
+                raise Exception("手動生成向量失敗或返回了不匹配的數量。")
 
-            logger.info(f"[{self.user_id}] (Canon Processor) 成功生成 {len(embeddings)} 组向量。")
+            logger.info(f"[{self.user_id}] (Canon Processor) 成功生成 {len(embeddings)} 組向量。")
 
-            # [v6.0 核心修正] 步骤 4: 将文本和已生成的向量一起添加到 ChromaDB
-            # 这个操作是纯本地的，不会再触发任何网络调用
-            logger.info(f"[{self.user_id}] (Canon Processor) 正在将文本和向量添加到本地 ChromaDB...")
+            # [v6.0 核心修正] 步驟 4: 將文本和已生成的向量一起添加到 ChromaDB
+            # 這個操作是純本地的，不會再觸發任何網絡調用
+            logger.info(f"[{self.user_id}] (Canon Processor) 正在將文本和向量添加到本地 ChromaDB...")
             await asyncio.to_thread(
                 self.vector_store.add_texts,
                 texts=texts_to_embed,
@@ -2475,14 +2468,13 @@ class AILover:
                 embeddings=embeddings
             )
             
-            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个文本块均已成功处理并存入向量库。")
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 個文本塊均已成功處理並存入向量庫。")
             return len(docs)
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 處理核心設定時發生嚴重錯誤: {e}", exc_info=True)
             raise
-# 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
-
+    # 函式：將世界聖經添加到向量儲存 (v6.0 - 手动 Embedding 流程)
 
 
 
@@ -3427,6 +3419,7 @@ class AILover:
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 
 # 類別結束
+
 
 
 
