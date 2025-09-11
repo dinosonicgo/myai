@@ -191,13 +191,18 @@ class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名稱。")
     parameters: Dict[str, Any] = Field(..., description="要傳遞給工具的參數字典。")
 
+    # [v37.0 核心修正] 增加一個前置驗證器，用於處理 LLM 可能返回字符串格式的參數
     @field_validator('parameters', mode='before')
     @classmethod
     def parse_parameters_from_string(cls, value):
         if isinstance(value, str):
             try:
-                return json.loads(value)
+                # 替換可能由 LLM 生成的單引號為雙引號，以符合 JSON 規範
+                corrected_string = value.replace("'", '"')
+                return json.loads(corrected_string)
             except json.JSONDecodeError:
+                # 如果解析失敗，返回原始字符串，讓後續的 Pydantic 驗證來處理錯誤
+                # 這有助於生成更清晰的錯誤訊息
                 return value
         return value
 
@@ -399,6 +404,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
