@@ -118,6 +118,7 @@ class AILover:
     # v211.0 (2025-10-15): [架構重構] 移除了对 ChromaDB 和 EnsembleRetriever 的依赖，改用纯 BM25Retriever 以避免 Embedding API 配额问题。
     # v212.0 (2025-10-15): [架構重構] 恢復了 ChromaDB 和 EnsembleRetriever，實現了 Embedding 作為主方案、BM25 作為備援的混合策略。
     # v213.0 (2025-10-15): [健壯性] 新增了 API Key 冷卻系統，避免重複調用已達配額上限的金鑰。
+    # v214.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -129,8 +130,12 @@ class AILover:
         self.api_keys: List[str] = settings.GOOGLE_API_KEYS_LIST
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
-        # [v213.0 核心修正] 新增 API Key 冷卻系統
-        self.key_cooldowns: Dict[int, float] = {} # {key_index: cooldown_until_timestamp}
+        
+        # [v214.0 核心修正] 實現智能兩級冷卻系統
+        self.key_cooldowns: Dict[int, float] = {} # 長期冷卻 (RPD)
+        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list) # 短期失敗記錄 (RPM)
+        self.RPM_FAILURE_WINDOW = 60  # 短期失敗的時間窗口（秒）
+        self.RPM_FAILURE_THRESHOLD = 3 # 在窗口內失敗多少次後觸發長期冷卻
 
         # --- 核心链 (新架构) ---
         self.unified_generation_chain: Optional[Runnable] = None
@@ -3279,6 +3284,7 @@ class AILover:
     # v220.4 (2025-10-15): [健壯性] 增加了失敗後的延遲時間，以更積極地應對 API 速率限制。
     # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
     # v221.1 (2025-10-15): [健壯性] 增加了更清晰的日誌，並確保在所有金鑰冷卻時能正確觸發模型降級。
+    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3291,25 +3297,21 @@ class AILover:
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            # [v221.1 核心修正] 記錄當前模型嘗試的成功狀態
             model_succeeded = False
             
             for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key()
                 if not key_info:
-                    # 如果沒有可用的金鑰，直接跳出金鑰輪換循環，觸發模型降級
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
+                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
                     break 
                 
-                key_to_use, key_index = key_info
+                _, key_index = key_info
 
                 try:
                     self.embeddings = self._create_embeddings_instance()
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
-                    if not configured_llm: # self.embeddings 允許為 None
-                        # 這意味著 _get_next_available_key 在創建 LLM 時返回了 None
-                        # 這不應該發生，因為我們在循環開始時已經檢查過
+                    if not configured_llm:
                         continue
 
                     effective_chain = chain
@@ -3343,8 +3345,26 @@ class AILover:
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_rate_limit_error:
-                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制。正在將其冷卻 24 小時。")
-                        self.key_cooldowns[key_index] = time.time() + 60 * 60 * 24 
+                        # [v222.0 核心修正] 智能兩級冷卻邏輯
+                        now = time.time()
+                        # 記錄本次失敗
+                        self.key_short_term_failures[key_index].append(now)
+                        # 清理超過時間窗口的舊記錄
+                        self.key_short_term_failures[key_index] = [
+                            t for t in self.key_short_term_failures[key_index] 
+                            if now - t < self.RPM_FAILURE_WINDOW
+                        ]
+                        
+                        failure_count = len(self.key_short_term_failures[key_index])
+                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。")
+
+                        if failure_count >= self.RPM_FAILURE_THRESHOLD:
+                            logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
+                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
+                            self.key_short_term_failures[key_index] = [] # 進入長期冷卻後清空短期記錄
+                        
+                        await asyncio.sleep(3.0) # 無論如何都等待一下
+
                     elif is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
                         await asyncio.sleep(3.0)
@@ -3354,17 +3374,14 @@ class AILover:
                         await asyncio.sleep(3.0)
                         break
             
-            # [v221.1 核心修正] 檢查當前模型是否成功，如果不成功，則繼續下一個模型
             if not model_succeeded:
                 if model_index < len(models_to_try) - 1:
                     logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...")
                 else:
                     logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
             else:
-                # 如果模型成功，則不需要再嘗試下一個模型
                 break
 
-        # 如果所有模型都失敗了，最終執行備援策略
         logger.error(f"[{self.user_id}] 啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
@@ -3603,6 +3620,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
