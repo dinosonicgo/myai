@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-11T20:43:08.791392 ###
+### AI Lover Log - Last updated at 2025-09-11T20:48:11.254026 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/value_error
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|4) 前置工具执行完毕。
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 4)
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-pro' 成功返回結果 ---
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
-2025-09-11 20:14:04 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
-2025-09-11 20:22:49 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 20:22:49 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 20:22:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 20:22:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 20:22:53 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 20:42:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 20:42:54 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 20:42:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 20:42:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 20:42:58 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-11 20:43:01 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-11 20:43:01 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
-2025-09-11 20:43:01 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 未找到歷史對話記錄，無需恢復記憶。
-2025-09-11 20:43:02 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景...
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:02 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:43:03 - [WARNING] - [512280345618546699] (Graph|1) 场景感知链失败，启动【基于规则的备援推断】。
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] (Graph|1) 场景感知完成。最终视角: 'local', 目标地点: ['艾瑟利亞大陸', '晨風鎮', '靜謐溪谷小屋']
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在检索记忆与查询LORE...
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:03 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] (RAG Executor) 正在使用查詢 '【情節概述】:
-
-該片段描繪了一個簡短的互動，其中一個角色發...' 執行完整的「檢索+重排」流程...
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:04 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:04 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-11 20:43:05 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
-2025-09-11 20:43:05 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 20:43:05 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:05 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:05 - [WARNING] - [512280345618546699] API Key index: 0 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-11 20:43:06 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-11 20:43:06 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-11 20:43:06 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:06 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:07 - [WARNING] - [512280345618546699] API Key index: 2 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-11 20:43:08 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-11 20:43:08 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-11 20:43:08 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:43:08 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:43:08 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制。正在輪換到下一個金鑰...
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-pro' 成功返回結果 ---
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:45 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:46 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:46 - [INFO] - [512280345618546699] (Graph|7) 事後學習到 2 條新 LORE，正在後台保存...
+2025-09-11 20:43:46 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
+2025-09-11 20:43:46 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-09-11 20:43:46 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 2 個任務) ---
+2025-09-11 20:43:50 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...同蛇一般滑行。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...同蛇一般滑行。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:50 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:51 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:52 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:52 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '關於角色艾拉的資訊。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-11 20:43:52 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...色艾拉的資訊。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...色艾拉的資訊。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2620, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...色艾拉的資訊。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...色艾拉的資訊。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-11 20:43:56 - [WARNING] - [512280345618546699] 工具 'add_or_update_world_lore' 首次執行失敗: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...卻人類的概念。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...卻人類的概念。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:56 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:57 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:57 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'content': '提到了艾拉。'。正在用其重試工具 'add_or_update_world_lore'...
+2025-09-11 20:43:57 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for add_or_update_world_lore: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...': '提到了艾拉。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...': '提到了艾拉。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2620, in _execute_tool_call_plan
+    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for AddOrUpdateWorldLoreArgs
+lore_key
+  Field required [type=missing, input_value={'original_name': '艾拉...': '提到了艾拉。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+standardized_name
+  Field required [type=missing, input_value={'original_name': '艾拉...': '提到了艾拉。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-11 20:43:57 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-11 20:43:57 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
