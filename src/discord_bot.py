@@ -113,7 +113,10 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
 
 # --- [v46.0 新增] 持久化視圖 (Persistent Views) ---
 
-# 類別：開始設定視圖 (v46.0 - 持久化)
+# 類別：開始設定視圖 (v46.1 - 持久化與竞争条件修复)
+# 更新紀錄:
+# v46.1 (2025-10-11): [災難性BUG修復] 彻底重构了按钮回调函式以修复竞争条件。现在，在执行任何可能耗时或转移焦点的操作（如 send_modal）之前，会先立即禁用按钮并调用 interaction.response.edit_message 来更新视图状态。这可以原子性地防止用户在 Modal 弹出前重复点击按钮，从而避免了 UI 状态混乱。
+# v46.0 (2025-10-02): [重大架構重構] 实现了持久化视图。
 class StartSetupView(discord.ui.View):
     def __init__(self, *, cog: "BotCog"):
         super().__init__(timeout=None)
@@ -124,20 +127,16 @@ class StartSetupView(discord.ui.View):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'StartSetupView' button clicked.")
         
-        # 使用 followup.send_modal
-        await interaction.response.defer(ephemeral=True, thinking=False) # 先 defer
-        
-        world_modal = WorldSettingsModal(self.cog, current_world="這是一個魔法與科技交織的幻想世界。", is_setup_flow=True)
-        await interaction.followup.send_modal(world_modal)
-        
-        # 禁用按鈕並更新原始消息
+        # [v46.1 核心修正] 步骤 1: 立即禁用按钮并响应互动，以原子性地更新 UI 状态
         button.disabled = True
-        try:
-            await interaction.edit_original_response(view=self)
-        except discord.errors.NotFound:
-            # 如果原始消息被刪除或無法訪問，則忽略
-            pass
-# 類別：開始設定視圖 (v46.0 - 持久化)
+        await interaction.response.edit_message(content="正在为您准备世界观设定...", view=self)
+        
+        # 步骤 2: 然后再安全地执行后续操作
+        world_modal = WorldSettingsModal(self.cog, current_world="這是一個魔法與科技交織的幻想世界。", is_setup_flow=True)
+        
+        # 因为我们已经用 edit_message 响应了原始互动，所以这里必须用 followup 来发送 Modal
+        await interaction.followup.send_modal(world_modal)
+# 類別：開始設定視圖 (v46.1 - 持久化與竞争条件修复)
 
 # 類別：繼續使用者設定視圖 (v46.0 - 持久化)
 class ContinueToUserSetupView(discord.ui.View):
@@ -145,22 +144,22 @@ class ContinueToUserSetupView(discord.ui.View):
         super().__init__(timeout=None)
         self.cog = cog
 
+# 函式：ContinueToUserSetupView.continue_button (v46.1 - 修复竞争条件)
     @discord.ui.button(label="下一步：設定您的角色", style=discord.ButtonStyle.primary, custom_id="persistent_continue_to_user_setup")
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.")
-        await interaction.response.defer(ephemeral=True, thinking=False)
+        
+        # [v46.1 核心修正] 先禁用按钮并响应互动
+        button.disabled = True
+        await interaction.response.edit_message(content="正在为您准备角色设定...", view=self)
 
         ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=True)
         profile_data = ai_instance.profile.user_profile.model_dump() if ai_instance and ai_instance.profile else {}
         modal = CharacterSettingsModal(self.cog, title="步驟 2/3: 您的角色設定", profile_data=profile_data, profile_type='user', is_setup_flow=True)
+        
         await interaction.followup.send_modal(modal)
-
-        button.disabled = True
-        try:
-            await interaction.edit_original_response(view=self)
-        except discord.errors.NotFound:
-            pass
+# 函式：ContinueToUserSetupView.continue_button (v46.1 - 修复竞争条件)
 # 類別：繼續使用者設定視圖 (v46.0 - 持久化)
 
 # 類別：繼續 AI 設定視圖 (v46.0 - 持久化)
@@ -169,22 +168,22 @@ class ContinueToAiSetupView(discord.ui.View):
         super().__init__(timeout=None)
         self.cog = cog
 
+# 函式：ContinueToAiSetupView.continue_button (v46.1 - 修复竞争条件)
     @discord.ui.button(label="最後一步：設定 AI 戀人", style=discord.ButtonStyle.primary, custom_id="persistent_continue_to_ai_setup")
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.")
-        await interaction.response.defer(ephemeral=True, thinking=False)
+
+        # [v46.1 核心修正] 先禁用按钮并响应互动
+        button.disabled = True
+        await interaction.response.edit_message(content="正在为您准备 AI 戀人设定...", view=self)
         
         ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id), is_setup_flow=True)
         profile_data = ai_instance.profile.ai_profile.model_dump() if ai_instance and ai_instance.profile else {}
         modal = CharacterSettingsModal(self.cog, title="步驟 3/3: AI 戀人設定", profile_data=profile_data, profile_type='ai', is_setup_flow=True)
-        await interaction.followup.send_modal(modal)
 
-        button.disabled = True
-        try:
-            await interaction.edit_original_response(view=self)
-        except discord.errors.NotFound:
-            pass
+        await interaction.followup.send_modal(modal)
+# 函式：ContinueToAiSetupView.continue_button (v46.1 - 修复竞争条件)
 # 類別：繼續 AI 設定視圖 (v46.0 - 持久化)
 
 # 類別：繼續世界聖經設定視圖 (v46.0 - 持久化)
@@ -193,21 +192,20 @@ class ContinueToCanonSetupView(discord.ui.View):
         super().__init__(timeout=None)
         self.cog = cog
 
+# 函式：ContinueToCanonSetupView.paste_canon (v46.1 - 修复竞争条件)
     @discord.ui.button(label="📄 貼上世界聖經 (文字)", style=discord.ButtonStyle.success, custom_id="persistent_paste_canon")
     async def paste_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.")
-        await interaction.response.defer(ephemeral=True, thinking=False)
         
-        modal = WorldCanonPasteModal(self.cog, is_setup_flow=True)
-        await interaction.followup.send_modal(modal)
-
+        # [v46.1 核心修正] 先禁用所有按钮并响应互动
         for item in self.children:
             item.disabled = True
-        try:
-            await interaction.edit_original_response(content="請在彈出的視窗中貼上您的世界聖經...", view=self)
-        except discord.errors.NotFound:
-            pass
+        await interaction.response.edit_message(content="請在彈出的視窗中貼上您的世界聖經...", view=self)
+
+        modal = WorldCanonPasteModal(self.cog, is_setup_flow=True)
+        await interaction.followup.send_modal(modal)
+# 函式：ContinueToCanonSetupView.paste_canon (v46.1 - 修复竞争条件)
 
     @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
