@@ -2490,6 +2490,7 @@ class AILover:
     # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
     #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
     #    2. [速率限制] 在處理每個實體類別之間加入了 4 秒的強制延遲，以嚴格遵守 API 的速率限制，確保在處理大型設定檔時的穩定性。
+    # v2.0 (2025-10-15): [災難性BUG修復] 新增了【核心角色保護機制】，防止在解析世界聖經時，將用戶或 AI 角色錯誤地創建為 LORE。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -2508,6 +2509,21 @@ class AILover:
             if not parsing_result:
                 logger.warning(f"[{self.user_id}] 世界聖經解析鏈返回空結果，可能觸發了內容審查。")
                 return
+            
+            # [v2.0 核心修正] 核心角色保護機制
+            user_name_lower = self.profile.user_profile.name.lower()
+            ai_name_lower = self.profile.ai_profile.name.lower()
+            protected_names = {user_name_lower, ai_name_lower}
+
+            # 淨化解析結果，移除與核心角色同名的 NPC
+            original_npc_count = len(parsing_result.npc_profiles)
+            parsing_result.npc_profiles = [
+                npc for npc in parsing_result.npc_profiles 
+                if npc.name.lower() not in protected_names
+            ]
+            if len(parsing_result.npc_profiles) < original_npc_count:
+                logger.info(f"[{self.user_id}] [核心角色保護] 已從世界聖經解析結果中過濾掉 {original_npc_count - len(parsing_result.npc_profiles)} 個與主角同名的 NPC。")
+
 
             # 步驟 2: 定義一個可重用的輔助函式來處理實體解析和儲存
             async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
@@ -2571,6 +2587,11 @@ class AILover:
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
     # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+
+
+
+
+    
     
    # 函式：執行工具呼叫計畫 (v183.2 - 核心主角保護)
     # 更新紀錄:
@@ -3580,6 +3601,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
