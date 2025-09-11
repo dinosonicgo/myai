@@ -1,7 +1,7 @@
-### AI Lover Log - Last updated at 2025-09-11T22:09:29.171335 ###
+### AI Lover Log - Last updated at 2025-09-11T22:13:19.733867 ###
 
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -9,7 +9,7 @@ violations {
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
 , links {
   description: "Learn more about Gemini API quotas"
@@ -41,7 +41,7 @@ google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quot
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -49,7 +49,7 @@ violations {
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
 , links {
   description: "Learn more about Gemini API quotas"
@@ -62,7 +62,7 @@ The above exception was the direct cause of the following exception:
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 890, in _background_process_canon
     chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2387, in add_canon_to_vector_store
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2384, in add_canon_to_vector_store
     embeddings = await self.embeddings.aembed_documents(texts_to_embed)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 67, in aembed_documents
     return await run_in_executor(None, self.embed_documents, texts)
@@ -80,7 +80,7 @@ langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content:
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -88,15 +88,15 @@ violations {
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
 , links {
   description: "Learn more about Gemini API quotas"
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
 ]
-2025-09-11 22:09:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-11 22:09:15 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-11 22:09:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-11 22:09:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-11 22:09:18 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 22:13:05 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 22:13:06 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 22:13:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 22:13:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 22:13:10 - [INFO] - 已成功發送啟動成功通知給管理員。
