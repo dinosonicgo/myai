@@ -145,7 +145,7 @@ import time
 import shutil
 import warnings
 import datetime
-from typing import List, Dict, Optional, Any, Literal, Callable
+from typing import List, Dict, Optional, Any, Literal, Callable, Tuple # [v4.0 核心修正] 導入 Tuple
 import asyncio
 import gc
 from pathlib import Path
@@ -189,11 +189,10 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, SingleResolutionPlan)
-from .database import AsyncSessionLocal, UserData, MemoryData
+from .database import AsyncSessionLocal, UserData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
-
 
 
 
@@ -3548,6 +3547,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
