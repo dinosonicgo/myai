@@ -3,7 +3,7 @@
 # v7.0 (2025-10-04): [重大架構重構] 為了實現“守護任務的絕對獨立性”，徹底重構了主任務的啟動和管理邏輯。現在，核心服務（如 Discord Bot）和守護任務（如自動更新）被分離到不同的邏輯組中。核心服務的啟動器（start_discord_bot_task）被一個巨大的 try...except 塊包裹，以確保其自身的任何崩潰都不會影響到主事件循環。主函式現在使用 asyncio.gather 來並行運行所有任務，即使核心服務失敗退出，守護任務也會繼續在後台運行，從而確保了遠程修復通道的絕對可用性。
 # v6.0 (2025-09-06): [災難性BUG修復] 引入了全局的 asyncio.Event 作為優雅關閉信號。
 # v5.2 (2025-09-02): [根本性BUG修復] 增加了自動清理 __pycache__ 的功能。
-# v8.0 (2025-10-14): [災難性BUG修復] 確保 `main.py` 進程在收到重啟信號後能明確退出，以觸發 `launcher.py` 的重啟機制。
+# v8.0 (2025-10-15): [健壯性] 引入了全局的 asyncio.Lock 來保護 Git 操作，徹底解決了日誌推送和自動更新之間的競態條件問題。
 
 import os
 import sys
@@ -23,6 +23,9 @@ import traceback
 
 # 全局的關閉事件，用於協調所有任務的優雅退出
 shutdown_event = asyncio.Event()
+
+# [v8.0 核心修正] 創建一個全局的異步鎖，用於保護 Git 操作
+git_lock = asyncio.Lock()
 
 
 # [核心修正] 将 PROJ_DIR 定义提升到全局作用域
@@ -96,7 +99,8 @@ async def read_root(request: Request):
 
 
 # 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
-async def start_git_log_pusher_task():
+# v5.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與自動更新任務發生 Git 競態條件。
+async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
     print("✅ [守護任務] LOG 自動推送器已啟動。")
@@ -138,7 +142,12 @@ async def start_git_log_pusher_task():
 
     while not shutdown_event.is_set():
         try:
-            await asyncio.to_thread(run_git_commands_sync)
+            # [v5.0 核心修正] 在執行 Git 操作前獲取鎖
+            async with lock:
+                print("🔵 [LOG Pusher] 已獲取 Git 鎖，準備推送日誌...")
+                await asyncio.to_thread(run_git_commands_sync)
+                print("🟢 [LOG Pusher] 日誌推送完成，已釋放 Git 鎖。")
+            
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
             print("⚪️ [LOG Pusher] 背景任務被正常取消。")
@@ -155,10 +164,11 @@ async def start_git_log_pusher_task():
 
     
 # 函式：[守護任務] GitHub 自動更新檢查器 (v2.2 - 縮排修正)
-# 更新紀錄:
+# 更新纪录:
 # v2.2 (2025-10-10): [災難性BUG修復] 修正了此函式定義的全局作用域缩排錯誤，解決了導致 NameError 的問題。
-# v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因無法訪問 PROJ_DIR 變數而導致的 NameError。
-async def start_github_update_checker_task():
+# v2.1 (2025-10-09): [災難性BUG修復] 修正了此函式因无法访问 PROJ_DIR 變數而導致的 NameError。
+# v3.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與日誌推送任務發生 Git 競態條件。
+async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
     await asyncio.sleep(10)
     print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
@@ -170,20 +180,26 @@ async def start_github_update_checker_task():
         
     while not shutdown_event.is_set():
         try:
-            await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
-            rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
-            
-            if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
-                print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
-                pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
-                if pull_rc == 0:
-                    print("✅ [自動更新] 程式碼強制同步成功！")
-                    print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
-                    await asyncio.sleep(3)
-                    shutdown_event.set()
-                    break 
+            # [v3.0 核心修正] 在執行 Git 操作前獲取鎖
+            async with lock:
+                print("🔵 [Auto Update] 已獲取 Git 鎖，準備檢查更新...")
+                await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
+                rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+                
+                if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
+                    print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
+                    if pull_rc == 0:
+                        print("✅ [自動更新] 程式碼強制同步成功！")
+                        print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
+                        await asyncio.sleep(3)
+                        shutdown_event.set()
+                        print("🟢 [Auto Update] 更新完成，已釋放 Git 鎖。")
+                        break 
+                    else:
+                        print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
                 else:
-                    print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+                     print("🟢 [Auto Update] 未檢測到更新，已釋放 Git 鎖。")
             
             await asyncio.sleep(300)
 
@@ -259,8 +275,9 @@ async def start_web_server_task():
 
 
 # 函式：主函式 (v7.0 - 錯誤隔離架構)
+# v8.0 (2025-10-15): [健壯性] 將全局的 git_lock 傳遞給守護任務。
 async def main():
-    MAIN_PY_VERSION = "v7.0"
+    MAIN_PY_VERSION = "v8.0" # 更新版本號
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
     _check_and_install_dependencies()
@@ -279,9 +296,9 @@ async def main():
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
 
-        # 守護任務始終運行
-        guardian_tasks.append(start_github_update_checker_task())
-        guardian_tasks.append(start_git_log_pusher_task())
+        # [v8.0 核心修正] 將 git_lock 傳遞給守護任務
+        guardian_tasks.append(start_github_update_checker_task(git_lock))
+        guardian_tasks.append(start_git_log_pusher_task(git_lock))
 
         if not core_services and not guardian_tasks:
             print(f"錯誤：未知的運行模式 '{mode}'。請使用 'all', 'discord', 或 'web'。")
@@ -289,14 +306,12 @@ async def main():
 
         print(f"\n啟動 AI戀人系統 (模式: {mode})...")
         
-        # [v7.0 核心修正] 使用 asyncio.gather 並行運行所有任務
         all_tasks = core_services + guardian_tasks
         await asyncio.gather(*all_tasks)
 
-        # [v8.0 核心修正] 在所有任務結束後，如果收到重啟信號，則強制退出
         if shutdown_event.is_set():
             print("🔄 [Main Process] 收到重啟信號，主程式即將退出以觸發 Launcher 重啟。")
-            sys.exit(0) # 正常退出，讓 Launcher 重啟
+            sys.exit(0) 
 
     except asyncio.CancelledError:
         print("主任務被取消，程式正在關閉。")
@@ -304,8 +319,6 @@ async def main():
         print(f"\n主程式運行時發生未處理的頂層錯誤: {str(e)}")
         traceback.print_exc()
     finally:
-        # 如果程式非正常退出，Launcher 會偵測到非零返回碼並進入冷卻模式
-        # 如果是正常退出（sys.exit(0)），Launcher 會正常重啟
         print("主程式 main() 函式已結束。 launcher.py 將在 5 秒後嘗試重啟。")
 # 函式：主函式 (v7.0 - 錯誤隔離架構)
 
