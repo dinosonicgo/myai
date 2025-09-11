@@ -1,55 +1,82 @@
-### AI Lover Log - Last updated at 2025-09-12T01:01:49.208499 ###
+### AI Lover Log - Last updated at 2025-09-12T01:08:04.967432 ###
 
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-12 00:52:00 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-12 00:52:03 - [INFO] - [512280345618546699] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...
-2025-09-12 00:52:03 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:03 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
-2025-09-12 00:52:03 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-12 00:52:08 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
-2025-09-12 00:52:08 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:08 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-12 00:52:08 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-12 00:52:08 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['碧', '艾瑟瑞亞大陸', '迷霧森林深處', '天空龍']
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 0 條唯一的LORE記錄。
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 0 条相关LORE。
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|4) 未解析到明確的工具調用。
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 00:52:09 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 3)
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-12 00:52:43 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
-2025-09-12 00:52:45 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。
-2025-09-12 00:52:45 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:45 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-12 00:52:45 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-12 00:52:47 - [INFO] - [512280345618546699] (Graph|7) 事後學習到 1 條新 LORE，正在後台保存...
-2025-09-12 00:52:47 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
-2025-09-12 00:52:47 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
-2025-09-12 00:52:47 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 1 個任務) ---
-2025-09-12 00:52:48 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
-2025-09-12 00:52:48 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+2025-09-12 01:02:39 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。
+2025-09-12 01:02:39 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 01:02:39 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-12 01:02:39 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-12 01:02:41 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 4 validation errors for ToolCallPlan
+plan.0.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '性...徒的原始衝動。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.1.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': 'DINO ...烈的生理反應。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.2.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '迷...喧囂形成對比。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.3.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '水...的恩澤相關聯。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3377, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
+    return await self.bound.ainvoke(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\base.py", line 219, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\base.py", line 280, in aparse_result
+    return await run_in_executor(None, self.parse_result, result, partial=partial)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\openai_tools.py", line 336, in parse_result
+    pydantic_objects.append(name_dict[res["type"]](**res["args"]))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 253, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 4 validation errors for ToolCallPlan
+plan.0.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '性...徒的原始衝動。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.1.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': 'DINO ...烈的生理反應。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.2.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '迷...喧囂形成對比。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.3.parameters
+  Input should be a valid dictionary [type=dict_type, input_value="{'original_name': '水...的恩澤相關聯。'}", input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+2025-09-12 01:02:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-12 01:02:44 - [ERROR] - [512280345618546699] 啟動最終備援策略: 'euphemize'
+2025-09-12 01:02:44 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-12 01:02:44 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '【情節概述】:
+
+本片段描繪了一個與性神 DINO 崇拜相關的市集場景，其喧囂與周圍的迷霧森林形成鮮...' 清洗為安全的文學概述...
+2025-09-12 01:02:44 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 01:02:44 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-12 01:02:44 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-12 01:02:46 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '本片段描繪了一個圍繞性神 DINO 崇拜的市集景象，其世俗的喧囂與環繞的迷霧森林構成了鮮明的對比。市...'
+2025-09-12 01:02:48 - [INFO] - [512280345618546699] (Graph|7) 事後學習到 5 條新 LORE，正在後台保存...
+2025-09-12 01:02:48 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
+2025-09-12 01:02:48 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-09-12 01:02:48 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 5 個任務) ---
+2025-09-12 01:02:49 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-12 01:02:49 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到 ChromaDB 時遭遇 API 錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -57,46 +84,19 @@ violations {
 }
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
 }
 , links {
   description: "Learn more about Gemini API quotas"
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
 ]。將跳過向量化，但 SQL 備援數據已保存。
-2025-09-12 00:52:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-12 00:52:51 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:51 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-12 00:52:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-12 00:52:52 - [WARNING] - [512280345618546699] 工具 'define_creature_type' 首次執行失敗: 1 validation error for DefineCreatureTypeArgs
-original_name
-  Field required [type=missing, input_value={'standardized_name': '...一种自然力量。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。啟動【委婉化重試】策略...
-2025-09-12 00:52:52 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 00:52:52 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:52 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 00:52:52 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 00:52:53 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 00:52:53 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 00:52:53 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 00:52:54 - [INFO] - [512280345618546699] (重試) 已生成安全參數 'description': '描述天空的君主，一條巨龍，在永恆風暴中，引發閃電。'。正在用其重試工具 'define_creature_type'...
-2025-09-12 00:52:54 - [ERROR] - [512280345618546699] 任務失敗 (重試後): for define_creature_type: 1 validation error for DefineCreatureTypeArgs
-original_name
-  Field required [type=missing, input_value={'standardized_name': '...中，引發閃電。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2801, in _execute_tool_call_plan
-    validated_retry_args = tool_to_execute.args_schema.model_validate(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for DefineCreatureTypeArgs
-original_name
-  Field required [type=missing, input_value={'standardized_name': '...中，引發閃電。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-12 00:52:54 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
-2025-09-12 00:52:54 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
-2025-09-12 00:56:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-12 00:56:33 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-12 00:56:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-12 00:56:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-12 00:56:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-12 01:03:08 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-12 01:03:08 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-12 01:07:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 01:07:03 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-12 01:07:06 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-12 01:07:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-12 01:07:07 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-12 01:07:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 01:07:50 - [INFO] - 所有持久化 UI 視圖已成功註冊。
