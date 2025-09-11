@@ -1,76 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-11T20:38:10.051918 ###
+### AI Lover Log - Last updated at 2025-09-11T20:43:08.791392 ###
 
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 681, in similarity_search
-    docs_and_scores = self.similarity_search_with_score(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 773, in similarity_search_with_score
-    results = self.__query_collection(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\utils.py", line 54, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 473, in __query_collection
-    return self._collection.query(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\models\Collection.py", line 209, in query
-    query_request = self._validate_and_prepare_query_request(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\models\CollectionCommon.py", line 95, in wrapper
-    return func(self, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\models\CollectionCommon.py", line 316, in _validate_and_prepare_query_request
-    request_embeddings = self._embed_record_set(record_set=query_records)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\models\CollectionCommon.py", line 551, in _embed_record_set
-    return self._embed(input=record_set[field])  # type: ignore[literal-required]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\models\CollectionCommon.py", line 567, in _embed
-    raise ValueError(
-ValueError: You must provide an embedding function to compute embeddings.https://docs.trychroma.com/guides/embeddings in query.
-2025-09-11 20:13:39 - [WARNING] - [512280345618546699] RAG 檢索返回 None (可能因委婉化失敗)，使用空列表作為備援。
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:39 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] (LORE Querier) 提取到以下關鍵實體: ['命令式的互動', '該片段', 'DINO', '靜止狀態', '角色', '靜謐溪谷小屋', '主導地位', '一方', '服從', '關係', '伏筆', '另一方', '碧', '控制', '劇情發展', '艾瑟利亞大陸', '晨風鎮']
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] (LORE Querier) 查詢到 2 條唯一的LORE記錄。
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] (Graph|2) 查询完成。检索到 4 条相关LORE。
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在决策是否扩展LORE...
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:40 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] (Graph|3) 决策结果：无需扩展。理由: 艾拉的角色描述為「一位聽從指令的角色，對顧問的指示表現出極大的興趣和服從」，這與劇本中一方要求另一方進入靜止狀態並展現主導地位的情節相符，因此不需要擴展。
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具调用...
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
-2025-09-11 20:13:41 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
-2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|4) 解析到 1 个工具调用，准备执行...
-2025-09-11 20:13:42 - [ERROR] - [512280345618546699] (Graph|4) 前置工具执行时发生错误: 1 validation error for CharacterAction
-  Value error, 一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。 [type=value_error, input_value={'character_name': 'syste...nt_action': '坐著'}})}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/value_error
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 255, in preemptive_tool_call_node
-    character_actions=[CharacterAction(character_name="system", reasoning="preemptive", tool_call=call) for call in tool_call_plan.plan]
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 255, in <listcomp>
-    character_actions=[CharacterAction(character_name="system", reasoning="preemptive", tool_call=call) for call in tool_call_plan.plan]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 253, in __init__
-    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterAction
-  Value error, 一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。 [type=value_error, input_value={'character_name': 'syste...nt_action': '坐著'}})}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/value_error
 2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|4) 前置工具执行完毕。
 2025-09-11 20:13:42 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
@@ -100,3 +29,74 @@ pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterAc
 2025-09-11 20:22:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-11 20:22:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-11 20:22:53 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 20:42:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-11 20:42:54 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-11 20:42:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-11 20:42:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-11 20:42:58 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-11 20:43:01 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-11 20:43:01 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Retriever Builder) 正在樂觀嘗試初始化 ChromaDB (无 Embedding 函数)...
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Sync Worker) 正在嘗試使用路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 創建 PersistentClient...
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Sync Worker) PersistentClient 創建成功。
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 樂觀初始化成功，已加載 0 個現有文檔。
+2025-09-11 20:43:01 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] (Retriever Builder) 檢索器構建成功。
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 未找到歷史對話記錄，無需恢復記憶。
+2025-09-11 20:43:02 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景...
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:02 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:03 - [WARNING] - [512280345618546699] (Graph|1) 场景感知链失败，启动【基于规则的备援推断】。
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] (Graph|1) 场景感知完成。最终视角: 'local', 目标地点: ['艾瑟利亞大陸', '晨風鎮', '靜謐溪谷小屋']
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在检索记忆与查询LORE...
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:03 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] --- 模型 'gemini-2.5-flash-lite' 成功返回結果 ---
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] (RAG Executor) 正在使用查詢 '【情節概述】:
+
+該片段描繪了一個簡短的互動，其中一個角色發...' 執行完整的「檢索+重排」流程...
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:04 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:04 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制。正在輪換到下一個金鑰...
+2025-09-11 20:43:05 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-11 20:43:05 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-11 20:43:05 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:05 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:05 - [WARNING] - [512280345618546699] API Key index: 0 遭遇速率限制。正在輪換到下一個金鑰...
+2025-09-11 20:43:06 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-11 20:43:06 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-11 20:43:06 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:06 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:07 - [WARNING] - [512280345618546699] API Key index: 2 遭遇速率限制。正在輪換到下一個金鑰...
+2025-09-11 20:43:08 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-11 20:43:08 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-11 20:43:08 - [INFO] - [512280345618546699] 應用安全設定: {'HARM_CATEGORY_HARASSMENT': 'BLOCK_NONE', 'HARM_CATEGORY_HATE_SPEECH': 'BLOCK_NONE', 'HARM_CATEGORY_SEXUALLY_EXPLICIT': 'BLOCK_NONE', 'HARM_CATEGORY_DANGEROUS_CONTENT': 'BLOCK_NONE', 'HARM_CATEGORY_CIVIC_INTEGRITY': 'BLOCK_NONE'}
+2025-09-11 20:43:08 - [INFO] - [512280345618546699] 已為模型 'gemini-2.5-flash-lite' 啟用【動態思考】功能。
+2025-09-11 20:43:08 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制。正在輪換到下一個金鑰...
