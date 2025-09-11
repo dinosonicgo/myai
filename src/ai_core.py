@@ -1947,8 +1947,12 @@ class AILover:
     # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 根據使用者反饋，徹底重構了文檔清洗邏輯以解決“重試風暴”和效能低下的問題。新版本採用了“批次處理”策略：不再為每個檢索到的文檔單獨調用LLM進行清洗，而是將所有文檔內容合併為一個大的文本塊，然後用一次LLM調用（文學評論家鏈）將其整體安全化，再用第二次LLM調用進行摘要。此修改將此函式的LLM調用次數從 N+1 次恆定為 2 次，極大提升了速度並降低了API速率超限的風險。
     # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
     # v7.0 (2025-10-15): [架構重構] 實現了 Embedding API 失敗時，自動降級到 BM25 備援的混合策略。
+    # v8.0 (2025-10-15): [災難性BUG修復] 修正了 `except` 塊，使其能夠正確捕獲 `GoogleGenerativeAIError`，確保備援方案能被觸發。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。具備對 Embedding API 失敗的優雅降級能力。"""
+        # [v8.0 核心修正] 導入 langchain_google_genai._common.GoogleGenerativeAIError
+        from langchain_google_genai._common import GoogleGenerativeAIError
+
         if not self.retriever:
             logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
@@ -1958,8 +1962,9 @@ class AILover:
             logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用混合檢索器 (Embedding + BM25) 進行檢索...")
             retrieved_docs = await self.retriever.ainvoke(query_text)
 
-        except (ResourceExhausted, GoogleAPICallError) as e:
-            if "embed_content" in str(e):
+        # [v8.0 核心修正] 擴大異常捕獲範圍，以包含 LangChain 的包裝異常
+        except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+            if "embed_content" in str(e) or "429" in str(e):
                 logger.warning(f"[{self.user_id}] (RAG Executor) [備援觸發] Embedding API 遭遇速率限制或錯誤。正在啟動純 BM25 備援方案...")
                 if self.bm25_retriever:
                     try:
@@ -2012,7 +2017,6 @@ class AILover:
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # 函式：[新] 檢索並總結記憶 (v6.0 - 批次清洗效能優化)
-
 
 
     
@@ -3502,6 +3506,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
