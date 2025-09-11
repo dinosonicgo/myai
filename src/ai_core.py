@@ -2402,6 +2402,7 @@ class AILover:
     # v8.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL (為 BM25) 和 ChromaDB (為主方案)。
     # v9.0 (2025-10-15): [健壯性] 增加了對 Embedding API 失敗的優雅降級處理，確保即使 Embedding 失敗，聖經內容也能成功保存到 SQL 以供 BM25 備援使用。
     # v10.0 (2025-10-15): [災難性BUG修復] 修正了錯誤處理邏輯，確保在 Embedding 失敗時，函式能夠正常返回而不是向上拋出異常。
+    # v11.0 (2025-10-15): [健壯性] 將 Embedding 失敗的日誌級別從 ERROR 降級為 WARNING，並提供更清晰的說明。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """將世界聖經文本處理並同時保存到 SQL 記憶庫和 Chroma 向量庫。"""
         if not self.profile:
@@ -2431,12 +2432,12 @@ class AILover:
                         user_id=self.user_id,
                         content=doc.page_content,
                         timestamp=time.time(),
-                        importance=-1 # 使用 -1 表示这是来自世界圣經的静态知识
+                        importance=-1 # 使用 -1 表示这是来自世界聖經的静态知识
                     ) for doc in docs
                 ]
                 session.add_all(new_memories)
                 await session.commit()
-            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库。")
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库 (BM25 備援方案)。")
 
         except Exception as e:
             # 如果連最基礎的 SQL 保存都失敗，則向上拋出異常
@@ -2465,10 +2466,14 @@ class AILover:
                         metadatas=metadatas,
                         embeddings=embeddings
                     )
-                    logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已成功存入 Chroma 向量庫。")
+                    logger.info(f"[{self.user_id}] (Canon Processor) {len(docs)} 個世界聖經文本塊已成功存入 Chroma 向量庫 (主方案)。")
         except (ResourceExhausted, GoogleAPICallError) as e:
-            # [v10.0 核心修正] 優雅降級：如果 Embedding 失敗，只記錄警告，不中斷流程
-            logger.warning(f"[{self.user_id}] (Canon Processor) [優雅降級] 在保存世界聖經到 ChromaDB 時遭遇 Embedding API 錯誤: {e}。將跳過向量化，但 SQL 備援數據已保存。")
+            # [v11.0 核心修正] 將日誌級別降級為 WARNING，並提供清晰的說明
+            logger.warning(
+                f"[{self.user_id}] (Canon Processor) [優雅降級] "
+                f"主記憶系統 (Embedding) 因達到 API 配額限制而保存失敗。程式將自動使用備援記憶系統 (BM25)。"
+                f"錯誤詳情: {e}"
+            )
         except Exception as e:
             # 其他 ChromaDB 相關的錯誤
             logger.error(f"[{self.user_id}] (Canon Processor) 保存到 ChromaDB 時發生未知錯誤: {e}", exc_info=True)
@@ -3575,6 +3580,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
