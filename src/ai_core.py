@@ -1190,7 +1190,47 @@ class AILover:
     # 函式：獲取委婉化重構鏈 (v207.0 - 全新創建)
 
 
+    # 函式：[全新] 獲取角色量化鏈
+    # 更新紀錄:
+    # v1.0 (2025-10-08): [災難性BUG修復] 根據 AttributeError Log，補全了這個在重構中遺漏的延遲加載方法。此修改旨在解決因方法未定義而導致的 LORE 擴展流程徹底崩潰的問題。
+    def get_character_quantification_chain(self) -> Runnable:
+        """獲取或創建一個專門用於從使用者輸入中量化出角色描述列表的鏈。"""
+        if not hasattr(self, 'character_quantification_chain') or self.character_quantification_chain is None:
+            from .schemas import CharacterQuantificationResult
+            quant_llm = self._create_llm_instance(temperature=0.0).with_structured_output(CharacterQuantificationResult)
+            
+            quant_prompt_template = """你是一位精確的實體識別與量化分析師。你的唯一任務是閱讀一段【使用者輸入】，並將其中描述的所有【獨立的角色實體】量化為一個描述性字串的列表。
 
+# === 【【【核心量化規則】】】 ===
+1.  **【實體分離鐵則】**: 如果輸入中描述了多個不同的角色（例如 "一個獸人和一個地精"），你【必須】為每一個角色生成一個獨立的描述字串。
+2.  **【描述完整性】**: 對於每一個角色，你的描述字串【必須】包含所有與其相關的形容詞、職業、種族、動作等關鍵資訊。
+3.  **【忠於原文】**: 你的輸出【必須且只能】是基於【使用者輸入】的直接轉述和組合，【絕對禁止】添加任何原文中沒有的資訊。
+4.  **【無角色則為空】**: 如果輸入中沒有描述任何角色，則返回一個空的列表 `[]`。
+
+# === 【【【行為模型範例】】】 ===
+#
+#   --- 範例 1：單一角色，多重描述 ---
+#   - **使用者輸入**: "性神城市場的女魚販，把活魚插在自己的肉穴內販售。"
+#   - **【✅ 唯一正確的輸出】**: `{{"character_descriptions": ["一個在性神城市場販售活魚、並將活魚插入自己肉穴的女魚販"]}}`
+#
+#   --- 範例 2：多個獨立角色 ---
+#   - **使用者輸入**: "一個高大的獸人戰士，正與一個狡猾的地精商人討價還價。"
+#   - **【✅ 唯一正確的輸出】**: `{{"character_descriptions": ["一個高大的獸人戰士", "一個狡猾的地精商人"]}}`
+#
+#   --- 範例 3：無角色 ---
+#   - **使用者輸入**: "描述一下市場的樣子。"
+#   - **【✅ 唯一正確的輸出】**: `{{"character_descriptions": []}}`
+
+---
+【使用者輸入】:
+{user_input}
+---
+請嚴格遵循以上所有規則，開始你的量化分析工作。
+"""
+            prompt = ChatPromptTemplate.from_template(quant_prompt_template)
+            self.character_quantification_chain = prompt | quant_llm
+        return self.character_quantification_chain
+    # 函式：[全新] 獲取角色量化鏈
     
 
 
@@ -3480,6 +3520,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
