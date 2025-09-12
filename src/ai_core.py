@@ -687,6 +687,57 @@ class AILover:
 
 
 
+
+
+
+    # 函式：[全新] 校準場景分析結果
+    # 更新紀錄:
+    # v1.0 (2025-10-07): [全新創建] 創建此輔助函式，作為“兩階段驗證”策略的核心。它在 Python 層面對 LLM 的初步分析結果進行嚴格的邏輯校準，以確保最終輸出的場景分析在邏輯上是絕對自洽和健壯的。
+    def calibrate_scene_analysis(self, raw_analysis: Optional[Any]) -> Optional[SceneAnalysisResult]:
+        """
+        對來自 LLM 的原始場景分析結果進行邏輯校準和驗證，生成最終的、
+        邏輯自洽的 SceneAnalysisResult。
+        """
+        if not raw_analysis or not isinstance(raw_analysis, BaseModel):
+            logger.warning(f"[{self.user_id}] (Calibrator) 接收到無效的原始分析結果: {raw_analysis}")
+            return None
+
+        # 將 Pydantic 模型轉換為字典以便修改
+        data = raw_analysis.model_dump()
+        
+        # --- 核心校準邏輯 ---
+        
+        # 規則 1: 如果視角是 'local'，則目標地點路徑必須為 None。
+        if data.get('viewing_mode') == 'local':
+            if data.get('target_location_path') is not None:
+                logger.info(f"[{self.user_id}] (Calibrator) 校準：將 local 視角下的目標路徑從 {data['target_location_path']} 強制重設為 None。")
+                data['target_location_path'] = None
+        
+        # 規則 2: 如果視角是 'remote'，但沒有提取到有效路徑，則嘗試從 focus_entity 回退。
+        # (此邏輯更適合在 perceive_scene_node 中處理，此處保持簡潔)
+        
+        # 規則 3: 確保 action_summary 不為空。
+        if not data.get('action_summary', '').strip():
+            logger.warning(f"[{self.user_id}] (Calibrator) 校準：LLM 返回了空的 action_summary，將使用原始輸入作為備援。")
+            # 這裡無法直接訪問原始輸入，所以這個校準最好在 graph node 中完成
+            # 此處只做記錄
+            pass
+
+        try:
+            # 嘗試用校準後的數據創建最終的、帶有驗證器的模型實例
+            calibrated_result = SceneAnalysisResult.model_validate(data)
+            return calibrated_result
+        except ValidationError as e:
+            logger.error(f"[{self.user_id}] (Calibrator) 即使經過校準，場景分析結果驗證仍然失敗: {e}")
+            return None
+    # 函式：[全新] 校準場景分析結果
+
+
+
+
+
+    
+
     # 函式：[重構] 更新並持久化導演視角模式
     # 更新紀錄:
     # v4.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式的狀態管理邏輯，增加了 remote_target_path 的持久化，並將其職責簡化為純粹的狀態更新與持久化，不再包含任何分析邏輯。
@@ -1146,11 +1197,10 @@ class AILover:
     # == ⛓️ 鏈的延遲加載 (Lazy Loading) 構建器 v203.1 ⛓️
     # ==============================================================================
 
-    # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取世界創世鏈 (v204.0 - 核心角色排除)
     # 更新紀錄:
-    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
     # v204.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色排除原則】，防止創世鏈將主角錯誤地創建為初始 NPC。
-    # v205.0 (2025-10-15): [功能強化] 增加了【絕對私密原則】，禁止在創世時生成任何初始 NPC，確保二人世界的開局。
+    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
     def get_world_genesis_chain(self) -> Runnable:
         if not hasattr(self, 'world_genesis_chain') or self.world_genesis_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.8)
@@ -1163,9 +1213,6 @@ class AILover:
 # 1.  **【👑 核心角色排除原則】**:
 #     - 下方【主角資訊】中列出的「{username}」和「{ai_name}」是這個世界【绝对的主角】。
 #     - 你在 `initial_npcs` 列表中【绝对禁止】包含這兩位主角。
-# 2.  **【🔒 絕對私密原則 (Absolute Privacy Mandate)】**:
-#     - 这是一个只為兩位主角準備的、完全私密的開端。
-#     - 因此，你的 `initial_npcs` 列表【必须永远为空】。你【绝对禁止】在創世場景中添加任何額外的 NPC，無論他們與環境多麼相關。
 
 【核心规则】
 1.  **【‼️ 場景氛圍 (v55.7) ‼️】**: 这是一个为一对伙伴准备的故事开端。你所创造的初始地点【必须】是一个**安静、私密、适合两人独处**的场所。
@@ -1175,7 +1222,9 @@ class AILover:
 3.  **创造地点**:
     *   构思一个具体的、有层级的地点。路径至少包含两层，例如 ['王國/大陸', '城市/村庄', '具体建筑/地点']。
     *   为这个地点撰写一段引人入胜的详细描述（`LocationInfo`）。
-4.  **结构化输出**: 你的最终输出【必须且只能】是一个符合 `WorldGenesisResult` Pydantic 格式的 JSON 物件，并且 `initial_npcs` 欄位必須是一個空列表 `[]`。
+4.  **创造NPC (如果适用)**:
+    *   为这个初始地点创造一到两位符合情境的、有名有姓的初始NPC (`initial_npcs`)。
+5.  **结构化输出**: 你的最终输出【必须且只能】是一个符合 `WorldGenesisResult` Pydantic 格式的 JSON 物件。
 
 ---
 【核心世界觀】:
@@ -1185,12 +1234,12 @@ class AILover:
 *   使用者: {username}
 *   AI角色: {ai_name}
 ---
-请严格遵循所有禁令，特别是【絕對私密原則】，开始你的创世。"""
+请开始你的创世。"""
 
             genesis_prompt = ChatPromptTemplate.from_template(genesis_prompt_str)
             self.world_genesis_chain = genesis_prompt | genesis_llm
         return self.world_genesis_chain
-    # 函式：獲取世界創世鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取世界創世鏈 (v204.0 - 核心角色排除)
 
 
 
@@ -1838,43 +1887,7 @@ class AILover:
     
 
 
-        # 函式：[新] 獲取遠景計劃鏈
-    # 更新紀錄:
-    # v1.0 (2025-09-12): [架構重構] 創建此專用規劃鏈，將遠景場景的構思與寫作分離。它只負責輸出結構化的 TurnPlan JSON。
-    def get_remote_planning_chain(self) -> Runnable:
-        """[新] 獲取遠景描述路徑的規劃鏈，輸出 TurnPlan JSON。"""
-        if not hasattr(self, 'remote_planning_chain') or self.remote_planning_chain is None:
-            planner_llm = self._create_llm_instance(temperature=0.7).with_structured_output(TurnPlan)
-            
-            system_prompt = """# ==================================================
-# == 🧠 系統核心指令 (遠景規劃模式) 🧠
-# ==================================================
-# 你的角色是【電影導演】。你的任務是將鏡頭切換到一個遠程地點，並構思一幕生動的場景。
-# 你的輸出不是小說本身，而是一份給“小說家”看的、結構化的【場景行動計劃 JSON】。
-# 【最高禁令】：你的計劃中【絕對禁止】包含使用者「{username}」或其AI夥伴「{ai_name}」。
----
-{system_prompt}
-"""
-            human_prompt = """# ==================================================
-# == 🎬 導演指令卡 🎬
-# ==================================================
-# --- 核心世界觀 ---
-{world_settings}
-# --- 遠程地點情報摘要 ---
-{remote_scene_context}
-# --- 使用者的描述指令 ---
-{user_input}
-# --- 你的任務 ---
-請嚴格遵循所有規則，構思一幕發生在遠程地點的場景，並將其轉化為一份詳細的 TurnPlan JSON。
-計畫中的 character_actions 必須包含你為此場景創造的【有名有姓】的NPC。
-"""
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt),
-                ("human", human_prompt)
-            ])
-            self.remote_planning_chain = prompt | planner_llm
-        return self.remote_planning_chain
-    # 函式：[新] 獲取遠景計劃鏈
+ 
 
 
 
@@ -2141,45 +2154,7 @@ class AILover:
 
 
 
-        # 函式：[新] 從LORE組裝上下文 (用於 assemble_context_node)
-    # 更新紀錄:
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將上下文格式化邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
-    def _assemble_context_from_lore(self, raw_lore_objects: List[Lore], is_remote_scene: bool = False) -> Dict[str, str]:
-        """[新] 將原始LORE對象和遊戲狀態格式化為最終的上下文簡報。"""
-        if not self.profile: return {}
-        
-        gs = self.profile.game_state
-        location_path = gs.location_path
-        current_path_str = " > ".join(location_path)
-        dossiers = []
-        
-        if not is_remote_scene:
-            dossiers.append(f"--- 檔案: {self.profile.user_profile.name} (使用者角色) ---\n"
-                            f"- 描述: {self.profile.user_profile.description}\n...")
-            dossiers.append(f"--- 檔案: {self.profile.ai_profile.name} (AI 角色) ---\n"
-                            f"- 描述: {self.profile.ai_profile.description}\n...")
-        
-        for lore in raw_lore_objects:
-            content = lore.content
-            name = content.get('name') or content.get('title', '未知名稱')
-            dossier_content = [f"--- 檔案: {name} ({lore.category}) ---"]
-            if 'description' in content: dossier_content.append(f"- 描述: {content['description']}")
-            dossiers.append("\n".join(dossier_content))
-            
-        location_context = f"當前地點: {current_path_str}"
-        inventory_context = f"團隊庫存: {', '.join(gs.inventory) or '空的'}" if not is_remote_scene else "（遠程觀察模式）"
-        dossier_context = "\n".join(dossiers) if dossiers else "場景中無已知的特定情報。"
 
-        final_context = {
-            "location_context": location_context,
-            "possessions_context": inventory_context,
-            "quests_context": "當前任務: (已整合進情報檔案)",
-            "npc_context": dossier_context,
-            "relevant_npc_context": ""
-        }
-        logger.info(f"[{self.user_id}] (Context Assembler) 上下文簡報組裝完畢。")
-        return final_context
-    # 函式：[新] 從LORE組裝上下文 (用於 assemble_context_node)
 
 
 
@@ -2200,11 +2175,10 @@ class AILover:
 
     
 
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
+    # 函式：獲取 LORE 擴展決策鏈 (v5.0 - 核心角色優先)
     # 更新紀錄:
-    # v4.2 (2025-09-09): [災難性BUG修復] 根據 KeyError Log，確認 LangChain 的提示詞解析器會錯誤地解析模板中的 JSON 範例語法。為從根本上解決此問題，已將所有具體的“關鍵對比範例”從此靜態模板中移除，並替換為一個無害的 `{examples}` 佔位符。實際的範例內容將由調用點（graph.py）動態注入。
-    # v4.1 (2025-09-06): [災難性BUG修復] 徹底重寫了提示詞中的所有範例，移除了所有大括號 {} 佔位符。
     # v5.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色優先原則】，防止 AI 在主角可以執行動作時，錯誤地決定擴展無關的 NPC。
+    # v4.2 (2025-09-09): [災難性BUG修復] 將所有具體的“關鍵對比範例”從此靜態模板中移除。
     def get_expansion_decision_chain(self) -> Runnable:
         if not hasattr(self, 'expansion_decision_chain') or self.expansion_decision_chain is None:
             from .schemas import ExpansionDecision
@@ -2251,10 +2225,18 @@ class AILover:
 請嚴格遵循以上所有規則，特別是【核心角色優先原則】，做出你作為選角導演的專業判斷。"""
             
             prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.expansion_decision_chain = prompt | decision_llm
+            
+            # 使用 assign 自動注入主角名稱
+            self.expansion_decision_chain = (
+                RunnablePassthrough.assign(
+                    username=lambda x: self.profile.user_profile.name if self.profile else "使用者",
+                    ai_name=lambda x: self.profile.ai_profile.name if self.profile else "AI"
+                ) 
+                | prompt 
+                | decision_llm
+            )
         return self.expansion_decision_chain
-    # 函式：獲取 LORE 擴展決策鏈 (v4.2 - 範例分離)
-
+    # 函式：獲取 LORE 擴展決策鏈 (v5.0 - 核心角色優先)
 
 
     
@@ -2856,84 +2838,7 @@ class AILover:
             logger.error(f"生成個人記憶時發生錯誤: {e}", exc_info=True)
     # 函式：生成並儲存個人記憶 (v167.2 語法修正)
 
-    # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
-    # 更新紀錄:
-    # v171.0 (2025-09-03): [重大邏輯升級] 遵从用户反馈和日志分析，重构了此函式的执行流程。现在，在调用 `scene_expansion_chain` 之前，会先调用 `lore_book.get_all_lores_for_user` 来获取所有现有 LORE，并将其格式化为一个简洁的摘要。这个摘要随后被注入到扩展链的 Prompt 中，为其提供了避免重复创造 LORE 的关键上下文，旨在从根本上解决无限生成相似 LORE 的问题。
-    # v170.0 (2025-09-02): [健壯性] 增加了初始延遲以緩解 API 速率限制。
-    async def _background_scene_expansion(self, user_input: str, final_response: str, effective_location_path: List[str]):
-        if not self.profile:
-            return
-            
-        try:
-            await asyncio.sleep(5.0)
 
-            # [v171.0 核心修正] 查詢並構建現有 LORE 的摘要
-            try:
-                # 使用 lore_book 中新封装的函数
-                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-                lore_summary_list = []
-                for lore in all_lores:
-                    name = lore.content.get('name', lore.content.get('title', lore.key))
-                    lore_summary_list.append(f"- [{lore.category}] {name}")
-                existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
-            except Exception as e:
-                logger.error(f"[{self.user_id}] 在背景擴展中查詢現有 LORE 失敗: {e}", exc_info=True)
-                existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
-
-            current_path_str = " > ".join(effective_location_path)
-            
-            chat_history_manager = self.session_histories.get(self.user_id, ChatMessageHistory())
-            recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-4:]])
-            recent_dialogue += f"\n使用者: {user_input}\nAI: {final_response}"
-
-            logger.info(f"[{self.user_id}] 背景任務：世界心跳在最新狀態下啟動 (地點: {current_path_str})...")
-            
-            scene_expansion_chain = self.get_scene_expansion_chain()
-            if not scene_expansion_chain:
-                logger.warning(f"[{self.user_id}] 背景場景擴展鏈未初始化，跳過擴展。")
-                return
-
-            # [v171.0 核心修正] 將 LORE 摘要注入鏈中
-            initial_plan_dict = await self.ainvoke_with_rotation(scene_expansion_chain, {
-                "username": self.profile.user_profile.name,
-                "ai_name": self.profile.ai_profile.name,
-                "world_settings": self.profile.world_settings or "",
-                "current_location_path": effective_location_path,
-                "recent_dialogue": recent_dialogue,
-                "existing_lore_summary": existing_lore_summary,
-            })
-            
-            if not initial_plan_dict:
-                logger.warning(f"[{self.user_id}] 背景場景擴展鏈的 LLM 回應為空，很可能是因為內容審查。已跳過本輪場景擴展。")
-                return
-
-            initial_plan: Optional[ToolCallPlan] = None
-            try:
-                initial_plan = ToolCallPlan.model_validate(initial_plan_dict)
-            except ValidationError:
-                logger.warning(f"[{self.user_id}] Pydantic 驗證失敗，啟動對 LLM 輸出格式的備援修復機制...")
-                if isinstance(initial_plan_dict, list):
-                    repaired_plan_dict = {"plan": initial_plan_dict}
-                    try:
-                        initial_plan = ToolCallPlan.model_validate(repaired_plan_dict)
-                    except ValidationError as e_repair:
-                        logger.error(f"[{self.user_id}] 場景擴展計畫驗證仍然失敗: {e_repair}\n收到的原始計畫: {initial_plan_dict}", exc_info=True)
-                        return
-                else:
-                    logger.error(f"[{self.user_id}] 場景擴展計畫驗證失敗，且輸出不是可修復的列表類型。\n收到的原始計畫: {initial_plan_dict}", exc_info=True)
-                    return
-
-            if initial_plan:
-                await self._execute_tool_call_plan(initial_plan, effective_location_path)
-
-        except OutputParserException as e:
-            logger.warning(
-                f"[{self.user_id}] 背景場景擴展鏈的 LLM 回應無法解析為 JSON (很可能是因內容審查返回空值)。"
-                f"已跳過本輪場景擴展。錯誤詳情: {e}"
-            )
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 背景場景擴展鏈執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景場景擴展 (v171.0 - 注入 LORE 上下文)
 
     # 函式：建構委婉化鏈 (v1.0 - 全新創建)
     # 更新紀錄:
@@ -3464,22 +3369,7 @@ class AILover:
 
     
 
-    # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
-    # 更新紀錄:
-    # v2.0 (2025-09-05): [功能強化] 擴充了 NSFW 關鍵詞列表，增加了更多口語化和指令性的詞彙（如“上我”、“幹我”），以提高路由器的判斷準確率。
-    # v1.0 (2025-09-05): [全新創建] 創建此函式以作為混合模式圖路由器的核心判斷依據。
-    def _is_explicit_sexual_request(self, text: str) -> bool:
-        """一個輔助函式，用於檢測使用者的輸入是否為明確的、需要進入 NSFW 直通路徑的指令。"""
-        explicit_keywords = [
-            "口交", "舔", "吸吮", "肉棒", "肉穴", "插入", "交合", "做愛", "性交", 
-            "肛交", "後庭", "抽插", "射精", "淫穴", "淫水", "調教", "自慰",
-            "上我", "幹我", "操我", "騎上來", "含住", "脫光", "裸體", "高潮"
-        ]
-        text_lower = text.lower()
-        if any(keyword in text_lower for keyword in explicit_keywords):
-            return True
-        return False
-    # 函式：判斷是否為露骨的性指令 (v2.0 - 關鍵詞擴展)
+
 
 
 
@@ -3586,6 +3476,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
