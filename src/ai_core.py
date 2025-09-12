@@ -977,7 +977,7 @@ class AILover:
 
 
 
-        # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
+    # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。它負責在每次對話成功後，非阻塞地執行LORE提取和擴展流程，並內建了強大的、基於文學委婉化的內容審查備援機制，以確保世界觀總能動態成長。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
@@ -2076,48 +2076,20 @@ class AILover:
 
     
 
-        # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
-    # 更新紀錄:
-    # v2.0 (2025-09-08): [災難性BUG修復] 根據 LOG 分析，徹底重構了此函式的錯誤處理邏輯。現在，對內部 `entity_extraction_chain` 的調用增加了與 `retrieve_memories_node` 相同的【快速失敗】保護機制（`retry_strategy='none'` + `try...except`）。此修改旨在從根本上解決當使用者輸入露骨內容時，此函式因觸發複雜且不穩定的委婉化重試鏈而導致整個圖形流程卡死的問題。
-    # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
-    # v2.1 (2025-10-14): [災難性BUG修復] 修正了 `AttributeError: 'AILover' object has no attribute 'get_entity_extraction_chain'`，確保調用正確的函式。
-    # v3.0 (2025-10-15): [功能優化] 引入了分層查詢邏輯，使 LORE 查詢更具場景感知能力，優先返回與當前地點相關的 LORE。
-    # v4.0 (2025-10-15): [災難性BUG修復] 簡化並強化了 LORE 查詢邏輯，確保在連續性指令下，能夠無條件加載當前場景的所有 LORE。
+    # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
     async def _query_lore_from_entities(self, user_input: str, is_remote_scene: bool = False) -> List[Lore]:
         """[新] 提取實體並查詢其原始LORE對象。這是專門為新的 query_lore_node 設計的。"""
         if not self.profile: return []
 
-        final_lores_map = {} # 使用字典來自動去重
-
-        # --- 步驟 1: 無條件加載當前場景的所有 LORE (最高優先級) ---
-        gs = self.profile.game_state
-        effective_location_path = gs.remote_target_path if is_remote_scene and gs.remote_target_path else gs.location_path
-        
-        logger.info(f"[{self.user_id}] (LORE Querier) [第一層] 正在查詢當前場景 '{' > '.join(effective_location_path)}' 內的所有 LORE...")
-        # 查詢場景中的所有 NPC 和物品
-        scene_npcs = await lore_book.get_lores_by_category_and_filter(
-            self.user_id, 'npc_profile', lambda c: c.get('location_path') == effective_location_path
-        )
-        scene_items = await lore_book.get_lores_by_category_and_filter(
-            self.user_id, 'item_info', lambda c: c.get('location_path') == effective_location_path
-        )
-        for lore in scene_npcs + scene_items:
-            final_lores_map[lore.key] = lore
-
-        # --- 步驟 2: 從用戶輸入中提取實體，並進行補充查詢 ---
-        if is_remote_scene:
-            text_for_extraction = user_input
-        else:
-            chat_history_manager = self.session_histories.get(self.user_id, ChatMessageHistory())
-            recent_dialogue = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history_manager.messages[-2:]])
-            text_for_extraction = f"{user_input}\n{recent_dialogue}"
-
+        # 步驟 1: 從使用者輸入中提取實體
         extracted_names = set()
         try:
+            # 確保使用 get 方法來延遲加載
             entity_extraction_chain = self.get_entity_extraction_chain() 
+            # 使用快速失敗策略，如果提取本身觸發審查，則不進行委婉化重試，直接跳過
             entity_result = await self.ainvoke_with_rotation(
                 entity_extraction_chain, 
-                {"text_input": text_for_extraction},
+                {"text_input": user_input},
                 retry_strategy='none' 
             )
             if entity_result and entity_result.names:
@@ -2126,28 +2098,46 @@ class AILover:
             logger.error(f"[{self.user_id}] (LORE Querier) 在從使用者輸入中提取實體時發生錯誤: {e}。")
         
         if not extracted_names:
-            logger.info(f"[{self.user_id}] (LORE Querier) [第二層] 未從用戶輸入中提取到新的實體，跳過補充查詢。")
-        else:
-            logger.info(f"[{self.user_id}] (LORE Querier) [第二層] 正在為提取到的實體 {list(extracted_names)} 進行補充查詢...")
-            all_lore_categories = ["npc_profile", "location_info", "item_info", "creature_info", "quest", "world_lore"]
-            
-            async def find_lore(name: str):
-                tasks = [get_lores_by_category_and_filter(self.user_id, category, lambda c: name.lower() in c.get('name', '').lower() or name.lower() in c.get('title', '').lower()) for category in all_lore_categories]
+            logger.info(f"[{self.user_id}] (LORE Querier) 未從使用者輸入中提取到實體，將只返回場景預設LORE。")
+
+        # 步驟 2: 查詢與提取到的實體相關的所有LORE
+        all_lores_map = {} # 使用字典來自動去重
+        if extracted_names:
+            # 準備並行查詢任務
+            async def find_lore_for_name(name: str):
+                tasks = []
+                for category in ["npc_profile", "location_info", "item_info", "creature_info", "quest", "world_lore"]:
+                    # 創建一個模糊匹配的過濾器
+                    filter_func = lambda c: name.lower() in c.get('name', '').lower() or \
+                                            name.lower() in c.get('title', '').lower() or \
+                                            any(name.lower() in alias.lower() for alias in c.get('aliases', []))
+                    tasks.append(get_lores_by_category_and_filter(self.user_id, category, filter_func))
+                
                 results_per_name = await asyncio.gather(*tasks, return_exceptions=True)
+                # 扁平化結果列表
                 return [lore for res in results_per_name if isinstance(res, list) for lore in res]
 
-            query_tasks = [find_lore(name) for name in extracted_names if name]
+            query_tasks = [find_lore_for_name(name) for name in extracted_names if name]
             all_query_results = await asyncio.gather(*query_tasks, return_exceptions=True)
             
             for result_list in all_query_results:
                 if isinstance(result_list, list):
                     for lore in result_list:
-                        final_lores_map.setdefault(lore.key, lore) # setdefault 確保不會覆蓋已有的更高優先級的 LORE
+                        all_lores_map[lore.key] = lore
 
-        final_lores = list(final_lores_map.values())
+        # 步驟 3: 無條件地疊加當前場景的所有NPC
+        gs = self.profile.game_state
+        effective_location_path = gs.remote_target_path if is_remote_scene and gs.remote_target_path else gs.location_path
+        scene_npcs = await lore_book.get_lores_by_category_and_filter(
+            self.user_id, 'npc_profile', lambda c: c.get('location_path') == effective_location_path
+        )
+        for lore in scene_npcs:
+            all_lores_map[lore.key] = lore # 這會覆蓋掉模糊搜索的結果，確保場景內NPC的優先級
+
+        final_lores = list(all_lores_map.values())
         logger.info(f"[{self.user_id}] (LORE Querier) 查詢完成，共找到 {len(final_lores)} 條唯一的 LORE 記錄。")
         return final_lores
-    # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
+    # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
 
 
 
@@ -3097,15 +3087,9 @@ class AILover:
 
 
 
-    # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-10-15): [核心功能] 創建此函式，用於將對話歷史保存到 SQL 資料庫和 Chroma 向量庫，以供長期記憶和 RAG 檢索使用。
-    # v2.0 (2025-10-15): [架構重構] 移除了向向量库添加文本的步骤，现在只保存到 SQL 数据库。
-    # v3.0 (2025-10-15): [架構重構] 恢復了雙重保存邏輯，同時保存到 SQL 和 ChromaDB。
-    # v4.0 (2025-10-15): [健壯性] 增加了對 ChromaDB 保存失敗的錯誤處理，確保 Embedding API 失敗不會中斷記憶保存流程。
-    # v5.0 (2025-10-15): [健壯性] 統一了日誌格式，確保在 Embedding 失敗時，只打印簡潔的優雅降級訊息。
+    # 函式：將互動保存到資料庫
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (为主方案)。"""
+        """将单次互动的文本同时保存到 SQL 数据库和 Chroma 向量库。"""
         if not interaction_text or not self.profile:
             return
 
@@ -3113,7 +3097,7 @@ class AILover:
         current_time = time.time()
         
         try:
-            # 步驟 1: 保存到 SQL 資料庫 (備援方案的數據源，必須成功)
+            # 步驟 1: 保存到 SQL 資料庫 (為 BM25 備援方案，此步驟必須成功)
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
@@ -3125,36 +3109,20 @@ class AILover:
                 await session.commit()
             logger.info(f"[{user_id}] 對話記錄已成功保存到 SQL 資料庫。")
 
-            # 步驟 2: 嘗試保存到 Chroma 向量庫 (主方案的數據源，允許失敗)
+            # 步驟 2: 嘗試保存到 Chroma 向量庫 (為主方案，允許失敗)
             if self.vector_store:
                 try:
-                    # 確保 self.embeddings 實例存在且使用最新的金鑰
-                    if self.embeddings is None:
-                        self.embeddings = self._create_embeddings_instance()
-                    
-                    # 如果沒有可用的金鑰，則直接跳過
-                    if self.embeddings is None:
-                         raise Exception("所有 Embedding API 金鑰都在冷卻期，跳過向量化保存。")
-
                     await asyncio.to_thread(
                         self.vector_store.add_texts,
                         [interaction_text],
                         metadatas=[{"source": "history", "timestamp": current_time}]
                     )
-                    logger.info(f"[{user_id}] 對話記錄已成功保存到 Chroma 向量庫。")
+                    logger.info(f"[{self.user_id}] 對話記錄已成功向量化並保存。")
                 except Exception as chroma_e:
-                    # [v5.0 核心修正] 統一所有 ChromaDB 相關錯誤的日誌記錄
-                    error_type = type(chroma_e).__name__
-                    logger.warning(
-                        f"[{user_id}] [優雅降級] "
-                        f"在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。"
-                        f"錯誤類型: {error_type}"
-                    )
-
+                    logger.warning(f"[{self.user_id}] [優雅降級] 在保存記憶到向量庫時失敗: {chroma_e}。程式將依賴基於SQL的BM25檢索。")
         except Exception as e:
-            logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
-    # 函式：將互動保存到資料庫 (v1.0 - 全新創建)
-
+            logger.error(f"[{self.user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
+    # 函式：將互動保存到資料庫
 
     
 
@@ -3618,6 +3586,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
