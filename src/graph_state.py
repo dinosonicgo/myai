@@ -15,6 +15,7 @@ from .ai_core import AILover
 # v11.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，移除了 `turn_plan` 字段，并新增了 `narrative_outline: str` 字段。这个新字段将用于在规划节点和最终渲染节点之间传递自然语言的、相对安全的“剧本大纲”，以取代之前容易被审查的 TurnPlan JSON 对象。
 # v10.0 (2025-09-08): [重大架構重構] 移除了已废弃的 `sanitized_user_input` 欄位。
 # v12.0 (2025-10-15): [健壯性] 新增了 `last_response_text` 欄位，用於在連續性指令下實現無損的上下文傳遞。
+# v14.0 (2025-10-15): [架構簡化] 移除了 `current_intent` 欄位，因為已採用永久性轟炸策略。
 class ConversationGraphState(TypedDict):
     """
     主對話流程的狀態容器。
@@ -49,7 +50,6 @@ class ConversationGraphState(TypedDict):
     narrative_outline: str
     tool_results: str
 
-    # [v12.0 新增] 無損上下文通道
     last_response_text: Optional[str]
 
     # 最终输出与状态变更
@@ -73,6 +73,7 @@ class SetupGraphState(TypedDict):
     genesis_result: Optional["WorldGenesisResult"]
     opening_scene: str
 # 類別：設定圖狀態
+
 
 
 
