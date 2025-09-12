@@ -1610,59 +1610,8 @@ class AILover:
     
     
 
-     # 函式：[新] 獲取角色量化鏈 (v3.0 - Prompt 轉義修正)
-    # 更新紀錄:
-    # v3.0 (2025-09-08): [災難性BUG修復] 根據 KeyError Traceback，徹底修正了此鏈 Prompt 模板中的語法錯誤。舊版本在範例中使用了未經轉義的單大括號 `{}` 來書寫 JSON，導致 LangChain 的解析器將其誤認為是需要填充的輸入變數，從而引發致命的 KeyError。新版本遵循 LangChain 規範，將所有作為範例的 `{}` 都用雙大括號 `{{}}` 進行了正確的轉義。
-    # v2.0 (2025-09-08): [災難性BUG修復 & 品質提升] 注入了全新的【互動感知鐵則】，升級了此鏈的職能。
-    # v4.0 (2025-10-15): [災難性BUG修復] 注入了【單一主體優先原則】，解決了 AI 將單個角色的多個描述錯誤地拆分為多個角色的問題。
-    def get_character_quantification_chain(self) -> Runnable:
-        """獲取或創建一個專門用於將群體描述轉化為具體數量列表的鏈。"""
-        if not hasattr(self, 'character_quantification_chain') or self.character_quantification_chain is None:
-            from .schemas import CharacterQuantificationResult
-            quantifier_llm = self._create_llm_instance(temperature=0.2).with_structured_output(CharacterQuantificationResult)
-            
-            prompt_template = """你是一位精明且富有洞察力的【副導演】。你的唯一任務是閱讀【劇本片段（使用者輸入）】，精確識別出這個場景需要的所有演員，並將他們轉換為一個【具體的描述性字串列表】。
 
-# === 【【【v4.0 新增：最高分析原則】】】 ===
 
-# 1.  **【🧍 單一主體優先原則 (Single Subject Priority) - 絕對優先級】**:
-#     - 在分析劇本時，你【必须】首先嘗試將所有連續的、相關的描述性短語（職業、動作、外貌等）都歸屬於【同一個核心角色主體】。
-#     - 【绝对禁止】在沒有明確的複數詞或分隔符（如「和」、「以及」）的情況下，將單一句子中描述同一個人的多個特徵，錯誤地拆分為多個獨立的角色。
-
-# 2.  **【🎭 互動感知鐵則 (Interaction-Awareness Mandate)】**:
-#     - 只有在遵循【單一主體優先原則】之後，你才能啟用此原則。
-#     - 如果劇本描述了一個**互動**，且明確描述了互動的雙方（例如「一個衛兵正在毆打一個囚犯」），你才應該為每一方都創建一個描述條目。
-
-# 3.  **【群體量化鐵則】**:
-#     - 當你遇到模糊的群體詞彙時（例如：「一群」、「幾個」），你【必須】將其解釋為一個 **3 到 6 人** 的隨機數量。
-
-# === 【【【行為模型範例 (最重要！)】】】 ===
-#
-#   --- 範例 1：單一主體優先 (正确行为) ---
-#   - **使用者輸入**: "性神城市場的女魚販，把活魚插在自己的肉穴內販售。"
-#   - **【❌ 舊的錯誤輸出】**: `{{"character_descriptions": ["女魚販", "一個把活魚插在肉穴販售的人"]}}` (失敗原因：錯誤地將同一個人的職業和動作拆分成了兩個角色)
-#   - **【✅ 唯一正確的輸出】**: `{{"character_descriptions": ["一個把活魚插在自己肉穴內販售的女魚販"]}}` (成功原因：將所有描述正確地歸屬於單一主體)
-#
-#   --- 範例 2：互動感知 (正确行为) ---
-#   - **使用者輸入**: "一個獸人戰士正在追趕一個地精商人。"
-#   - **【✅ 唯一正確的輸出】**:
-#     `{{"character_descriptions": ["獸人戰士", "地精商人"]}}`
-#
-#   --- 範例 3：群體量化 (正确行为) ---
-#   - **使用者輸入**: "一群男性神教徒乞丐"
-#   - **【✅ 唯一正確的輸出 (假設隨機數為4)】**:
-#     `{{"character_descriptions": ["男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐", "男性神教徒乞丐"]}}`
-
----
-【使用者輸入】:
-{user_input}
----
-請嚴格遵循以上所有規則，特別是【單一主體優先原則】，開始量化並生成 JSON 輸出。
-"""
-            prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.character_quantification_chain = prompt | quantifier_llm
-        return self.character_quantification_chain
-    # 函式：[新] 獲取角色量化鏈 (v3.0 - Prompt 轉義修正)
 
 
 
@@ -3731,6 +3680,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
