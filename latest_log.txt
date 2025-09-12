@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-13T01:05:28.228653 ###
+### AI Lover Log - Last updated at 2025-09-13T01:08:35.786624 ###
 
-    return await failed_chain.ainvoke(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
     output: Output = await coro_with_context(coro, context)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2299, in gemini_subtask_expansion_fallback
     quant_chain = self.get_character_quantification_chain()
 AttributeError: 'AILover' object has no attribute 'get_character_quantification_chain'. Did you mean: 'character_quantification_chain'?
+2025-09-13 01:08:21 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-13 01:08:22 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-13 01:08:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-13 01:08:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-13 01:08:25 - [INFO] - 已成功發送啟動成功通知給管理員。
