@@ -2145,11 +2145,29 @@ class AILover:
     # v1.0 (2025-09-12): [架構重構] 創建此專用函式，將 LORE 查詢邏輯從舊的 _get_structured_context 中分離，以支持新的 LangGraph 節點。
     # v2.1 (2025-10-14): [災難性BUG修復] 修正了 `AttributeError: 'AILover' object has no attribute 'get_entity_extraction_chain'`，確保調用正確的函式。
     # v3.0 (2025-10-15): [功能優化] 引入了分層查詢邏輯，使 LORE 查詢更具場景感知能力，優先返回與當前地點相關的 LORE。
+    # v4.0 (2025-10-15): [災難性BUG修復] 簡化並強化了 LORE 查詢邏輯，確保在連續性指令下，能夠無條件加載當前場景的所有 LORE。
     async def _query_lore_from_entities(self, user_input: str, is_remote_scene: bool = False) -> List[Lore]:
         """[新] 提取實體並查詢其原始LORE對象。這是專門為新的 query_lore_node 設計的。"""
         if not self.profile: return []
 
-        # --- 步驟 1: 從輸入中提取核心實體 ---
+        final_lores_map = {} # 使用字典來自動去重
+
+        # --- 步驟 1: 無條件加載當前場景的所有 LORE (最高優先級) ---
+        gs = self.profile.game_state
+        effective_location_path = gs.remote_target_path if is_remote_scene and gs.remote_target_path else gs.location_path
+        
+        logger.info(f"[{self.user_id}] (LORE Querier) [第一層] 正在查詢當前場景 '{' > '.join(effective_location_path)}' 內的所有 LORE...")
+        # 查詢場景中的所有 NPC 和物品
+        scene_npcs = await lore_book.get_lores_by_category_and_filter(
+            self.user_id, 'npc_profile', lambda c: c.get('location_path') == effective_location_path
+        )
+        scene_items = await lore_book.get_lores_by_category_and_filter(
+            self.user_id, 'item_info', lambda c: c.get('location_path') == effective_location_path
+        )
+        for lore in scene_npcs + scene_items:
+            final_lores_map[lore.key] = lore
+
+        # --- 步驟 2: 從用戶輸入中提取實體，並進行補充查詢 ---
         if is_remote_scene:
             text_for_extraction = user_input
         else:
@@ -2169,61 +2187,28 @@ class AILover:
                 extracted_names = set(entity_result.names)
         except Exception as e:
             logger.error(f"[{self.user_id}] (LORE Querier) 在從使用者輸入中提取實體時發生錯誤: {e}。")
+        
+        if not extracted_names:
+            logger.info(f"[{self.user_id}] (LORE Querier) [第二層] 未從用戶輸入中提取到新的實體，跳過補充查詢。")
+        else:
+            logger.info(f"[{self.user_id}] (LORE Querier) [第二層] 正在為提取到的實體 {list(extracted_names)} 進行補充查詢...")
+            all_lore_categories = ["npc_profile", "location_info", "item_info", "creature_info", "quest", "world_lore"]
+            
+            async def find_lore(name: str):
+                tasks = [get_lores_by_category_and_filter(self.user_id, category, lambda c: name.lower() in c.get('name', '').lower() or name.lower() in c.get('title', '').lower()) for category in all_lore_categories]
+                results_per_name = await asyncio.gather(*tasks, return_exceptions=True)
+                return [lore for res in results_per_name if isinstance(res, list) for lore in res]
 
-        # --- 步驟 2: 準備查詢參數和結果容器 ---
-        gs = self.profile.game_state
-        effective_location_path = gs.remote_target_path if is_remote_scene and gs.remote_target_path else gs.location_path
-        
-        final_lores_map = {} # 使用字典來自動去重
-
-        # --- 步驟 3: 分層查詢 ---
-        # 第一層：查詢當前場景中的所有實體 (最高優先級)
-        logger.info(f"[{self.user_id}] (LORE Querier) [第一層] 正在查詢當前場景 '{' > '.join(effective_location_path)}' 內的所有 LORE...")
-        scene_lores = await lore_book.get_lores_by_category_and_filter(
-            self.user_id, 'npc_profile', lambda c: c.get('location_path') == effective_location_path
-        )
-        for lore in scene_lores:
-            final_lores_map[lore.key] = lore
-        
-        # 第二層：查詢與主角和當前地點相關的實體
-        query_subjects = extracted_names.copy()
-        if not is_remote_scene:
-            query_subjects.add(self.profile.user_profile.name)
-            query_subjects.add(self.profile.ai_profile.name)
-        query_subjects.update(effective_location_path)
-        
-        logger.info(f"[{self.user_id}] (LORE Querier) [第二層] 正在查詢與核心主體 {list(query_subjects)} 相關的 LORE...")
-        
-        all_lore_categories = ["npc_profile", "location_info", "item_info", "creature_info", "quest", "world_lore"]
-        
-        async def find_related_lore(name: str):
-            tasks = [
-                get_lores_by_category_and_filter(
-                    self.user_id, 
-                    category, 
-                    # 查詢條件：名稱匹配，或屬於全局 LORE，或與當前地點的父級相關
-                    lambda c: (
-                        name.lower() in c.get('name', '').lower() or 
-                        name.lower() in c.get('title', '').lower()
-                    ) and (
-                        category == 'world_lore' or 
-                        (c.get('location_path') and any(parent in c.get('location_path') for parent in effective_location_path[:-1]))
-                    )
-                ) for category in all_lore_categories
-            ]
-            results_per_name = await asyncio.gather(*tasks, return_exceptions=True)
-            return [lore for res in results_per_name if isinstance(res, list) for lore in res]
-
-        query_tasks = [find_related_lore(name) for name in query_subjects if name]
-        all_query_results = await asyncio.gather(*query_tasks, return_exceptions=True)
-        
-        for result_list in all_query_results:
-            if isinstance(result_list, list):
-                for lore in result_list:
-                    final_lores_map.setdefault(lore.key, lore) # setdefault 確保不會覆蓋已有的更高優先級的 LORE
+            query_tasks = [find_lore(name) for name in extracted_names if name]
+            all_query_results = await asyncio.gather(*query_tasks, return_exceptions=True)
+            
+            for result_list in all_query_results:
+                if isinstance(result_list, list):
+                    for lore in result_list:
+                        final_lores_map.setdefault(lore.key, lore) # setdefault 確保不會覆蓋已有的更高優先級的 LORE
 
         final_lores = list(final_lores_map.values())
-        logger.info(f"[{self.user_id}] (LORE Querier) 查詢完成，共找到 {len(final_lores)} 條唯一的、與場景相關的 LORE 記錄。")
+        logger.info(f"[{self.user_id}] (LORE Querier) 查詢完成，共找到 {len(final_lores)} 條唯一的 LORE 記錄。")
         return final_lores
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node) (v2.0 - 健壯性修正)
 
@@ -3718,6 +3703,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
