@@ -1,9 +1,4 @@
-### AI Lover Log - Last updated at 2025-09-13T01:13:38.049294 ###
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 188, in expansion_decision_and_execution_node
-    if not cast_result: raise Exception("主選角鏈返回空值")
-Exception: 主選角鏈返回空值
+### AI Lover Log - Last updated at 2025-09-13T01:17:43.583354 ###
 
 During handling of the above exception, another exception occurred:
 
@@ -100,3 +95,8 @@ violations {
 2025-09-13 01:09:12 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 3 個任務) ---
 2025-09-13 01:09:24 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
 2025-09-13 01:09:24 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-13 01:17:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-13 01:17:29 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-13 01:17:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-13 01:17:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-13 01:17:33 - [INFO] - 已成功發送啟動成功通知給管理員。
