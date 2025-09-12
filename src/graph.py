@@ -128,18 +128,28 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
 
 # 函式：[新] 記憶與 LORE 查詢節點
 # 更新紀錄:
-# v2.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
-# v2.1 (2025-10-15): [性能優化] 新增了對短指令的判斷，避免對 "坐下" 等簡單指令執行不必要的 RAG 檢索，以節省 Embedding API 配額。
-# v3.0 (2025-10-15): [功能優化] 此函式現在調用具有場景感知能力的 `_query_lore_from_entities`，查詢結果更精準。
+# ... (保留之前的更新紀錄)
+# v4.0 (2025-10-15): [性能優化] 增加了對已恢復上下文的檢查。如果上下文已由 `classify_intent_node` 注入，則跳過所有耗時的查詢操作。
 async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     """[2] 清洗使用者輸入，檢索 RAG 記憶，並查詢所有相關的 LORE。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    scene_analysis = state['scene_analysis']
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...")
+    
+    # [v4.0 核心修正] 檢查上下文是否已被恢復
+    if state.get('raw_lore_objects') is not None:
+        logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 檢測到已恢復的 LORE 上下文，將跳過重新查詢。")
+        # 只需要執行 RAG 檢索，因為它可能與新指令相關
+        rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
+        return {
+            "rag_context": rag_context_str,
+            "raw_lore_objects": state['raw_lore_objects'], # 直接傳遞已恢復的 LORE
+            "sanitized_query_for_tools": user_input # 使用原始輸入即可
+        }
 
-    # 源頭清洗
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...")
+    scene_analysis = state['scene_analysis']
+    
     sanitized_query = user_input
     try:
         literary_chain = ai_core.get_literary_euphemization_chain()
@@ -149,7 +159,6 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     except Exception:
         logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。")
 
-    # [v2.1 核心修正] RAG 檢索優化
     rag_context_str = "沒有檢索到相關的長期記憶。"
     if len(user_input) > 10 or any(kw in user_input for kw in ["誰", "什麼", "回憶", "記得"]):
         logger.info(f"[{user_id}] (Graph|2) 輸入較複雜，執行 RAG 檢索...")
@@ -157,8 +166,6 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     else:
         logger.info(f"[{user_id}] (Graph|2) 輸入為簡單指令，跳過 RAG 檢索以節省配額。")
 
-
-    # [v3.0 核心修正] LORE 查詢現在具有場景感知能力
     is_remote = scene_analysis.viewing_mode == 'remote'
     final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
         
@@ -170,6 +177,62 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
         "sanitized_query_for_tools": sanitized_query
     }
 # 函式：[新] 記憶與 LORE 查詢節點
+
+
+
+
+# 函式：[新] 意圖分類節點
+# 更新紀錄:
+# v1.0 (2025-10-15): [核心功能] 創建此節點，作為對話流程的守門人。它負責分析用戶意圖，並具備繼承上一輪意圖的能力，為後續的「智能轟炸」策略提供決策依據。
+# v2.0 (2025-10-15): [健壯性] 引入了【上下文快照恢復】機制。在處理連續性指令時，此節點現在會從 ai_core 恢復上一輪的完整 LORE 和文本上下文，並將其注入當前狀態。
+async def classify_intent_node(state: ConversationGraphState) -> Dict:
+    """[1] (守門人) 分析用戶輸入意圖，並在連續性指令下恢復上一輪的完整上下文。"""
+    user_id = state['user_id']
+    ai_core = state['ai_core']
+    user_input = state['messages'][-1].content.strip()
+    logger.info(f"[{user_id}] (Graph|1) Node: classify_intent -> 正在分析用戶意圖...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|1) ai_core.profile 未加載，無法分析意圖。")
+        return {"current_intent": "sfw"}
+
+    gs = ai_core.profile.game_state
+    
+    # [v2.0 核心修正] 處理連續性指令的意圖與上下文繼承
+    continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+    if any(user_input.lower().startswith(kw) for kw in continuation_keywords):
+        last_intent = gs.last_intent_type
+        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，已繼承上一輪的意圖: '{last_intent}'")
+        
+        # 嘗試從快照恢復上下文
+        if ai_core.last_context_snapshot:
+            logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功恢復上一輪的上下文快照。")
+            return {
+                "current_intent": last_intent,
+                "raw_lore_objects": ai_core.last_context_snapshot.get("raw_lore_objects", []),
+                "last_response_text": ai_core.last_context_snapshot.get("last_response_text", None)
+            }
+        else:
+            logger.warning(f"[{user_id}] (Graph|1) [上下文恢復] 未找到上一輪的上下文快照，將重新查詢。")
+            return {"current_intent": last_intent}
+    
+    # 對新指令進行分類
+    intent_chain = ai_core.get_intent_classification_chain()
+    classification_result = await ai_core.ainvoke_with_rotation(
+        intent_chain,
+        {"user_input": user_input},
+        retry_strategy='euphemize'
+    )
+
+    final_intent = classification_result.intent_type if classification_result else "sfw"
+    
+    gs.last_intent_type = final_intent
+    await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+    
+    logger.info(f"[{user_id}] (Graph|1) 意圖分析完成。最終意圖: '{final_intent}'")
+    return {"current_intent": final_intent}
+# 函式：[新] 意圖分類節點
+
 
 
 
@@ -431,10 +494,9 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 # 函式：驗證、學習與持久化節點
 # 更新紀錄:
 # ... (保留之前的更新紀錄)
-# v2.6 (2025-10-15): [健壯性] 優化了 LORE 提取失敗時的日誌，使其更清晰地說明原因。
-# v2.7 (2025-10-15): [災難性BUG修復] 修正了調用 `literary_euphemization_chain` 時，因參數鍵名拼寫錯誤 (`dialogology_history`) 導致的 `KeyError`。
+# v2.8 (2025-10-15): [健壯性] 在此節點的末尾，創建並儲存上下文快照到 `ai_core`，以供下一輪的連續性指令恢復使用。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
-    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪準備無損上下文。"""
+    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪創建上下文快照。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
@@ -455,14 +517,12 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
         if lore_extraction_chain and ai_core.profile:
-            
             logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...")
             literary_chain = ai_core.get_literary_euphemization_chain()
-            # [v2.7 核心修正] 修正拼寫錯誤
             safe_response_for_lore = await ai_core.ainvoke_with_rotation(
                 literary_chain,
                 {"dialogue_history": clean_response},
-                retry_strategy='none' # 快速失敗
+                retry_strategy='none'
             )
 
             if not safe_response_for_lore:
@@ -498,10 +558,17 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         
         logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
 
+    # [v2.8 核心修正] 創建並儲存上下文快照
+    context_snapshot = {
+        "raw_lore_objects": state.get("raw_lore_objects", []),
+        "last_response_text": clean_response
+    }
+    ai_core.last_context_snapshot = context_snapshot
+    logger.info(f"[{user_id}] (Graph|7) 已為下一輪創建上下文快照。")
 
     logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     
-    return {"final_output": clean_response, "last_response_text": clean_response}
+    return {"final_output": clean_response}
 # 函式：驗證、學習與持久化節點
 
 
@@ -719,6 +786,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
