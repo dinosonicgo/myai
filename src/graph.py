@@ -368,10 +368,9 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
 
 # 函式：[新] 最终生成节点 (v2.0 - 优化信息顺序)
 # 更新纪录:
-# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
-# v3.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】策略。重構了 `human_prompt_template`，將用戶指令與上下文數據明確分離，並用強烈的提示詞命令 AI 絕對優先執行指令，以解決 AI 因上下文數據污染而忽略用戶指令的問題。
-# v4.0 (2025-10-15): [健壯性] 引入了【無損上下文通道】，在處理連續性指令時，將上一輪的原文注入提示詞，確保劇情連貫。
-# v5.0 (2025-10-15): [災難性BUG修復] 引入了【劇情錨點】機制。現在會將上一幕的原文作為最高優先級的「劇情錨點」注入，強制 AI 進行劇情延續，而不是另起爐灶。
+# ... (保留之前的更新紀錄)
+# v6.0 (2025-10-15): [健壯性] 實現了「智能轟炸」策略，根據上游的意圖分類結果，動態決定是否啟用 `force` 備援策略。
+# v7.0 (2025-10-15): [架構簡化] 移除了意圖分類的判斷，將 `retry_strategy` 硬編碼為 `'force'`，以實現永久性的「地毯式轟炸」。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
     """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
     user_id = state['user_id']
@@ -381,49 +380,45 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     rag_context = state.get('rag_context', '无相关长期记忆。')
     logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动最终生成流程...")
 
-    # [v5.0 核心修正] 準備上下文
-    chat_history_str = await _get_summarized_chat_history(ai_core, user_id)
-    
-    # [v5.0 核心修正] 預設 historical_context 和 plot_anchor
-    historical_context = f"{rag_context}\n\n{chat_history_str}"
-    plot_anchor = "（無）" # 預設為無劇情錨點
+    historical_context = await _get_summarized_chat_history(ai_core, user_id)
+    plot_anchor = "（無）"
 
     continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
     if any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords):
         last_response = state.get('last_response_text')
         if last_response:
-            # 如果是連續指令，將上一回合的原文設置為劇情錨點
             plot_anchor = last_response
             logger.info(f"[{user_id}] (Graph|6) 已成功為連續性指令設置【劇情錨點】。")
 
     prompt_template_runnable = ai_core.get_unified_generation_chain()
     
-    final_chain = prompt_template_runnable
+    # [v7.0 核心修正] 硬編碼 'force' 策略
+    final_retry_strategy: Literal['force', 'euphemize', 'none'] = 'force'
+    logger.info(f"[{user_id}] (Graph|6) [永久性轟炸] 已啟用 'force' 備援策略以最大化成功率。")
     
     final_response_raw = await ai_core.ainvoke_with_rotation(
-        final_chain,
+        prompt_template_runnable,
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
             "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "plot_anchor": plot_anchor, # 傳入劇情錨點
+            "plot_anchor": plot_anchor,
             "historical_context": historical_context,
             "world_snapshot": world_snapshot,
             "latest_user_input": user_input,
         },
-        retry_strategy='force',
+        retry_strategy=final_retry_strategy,
         use_degradation=True
     )
 
     final_response = final_response_raw.content if hasattr(final_response_raw, 'content') else str(final_response_raw)
 
     if not final_response or not final_response.strip():
-        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在指令轰炸和模型降级后最终失败！")
+        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在所有策略（包括 '{final_retry_strategy}'）之后最终失败！")
         final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
 # 函式：[新] 最终生成节点 (v2.0 - 优化信息顺序)
-
 
 
 
@@ -724,6 +719,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
