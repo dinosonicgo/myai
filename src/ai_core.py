@@ -1028,9 +1028,10 @@ class AILover:
 
 
 
-    # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
+    # 函式：[全新] 背景LORE提取與擴展 (v2.0 - 參數修正)
     # 更新紀錄:
-    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。它負責在每次對話成功後，非阻塞地執行LORE提取和擴展流程，並內建了強大的、基於文學委婉化的內容審查備援機制，以確保世界觀總能動態成長。
+    # v2.0 (2025-10-08): [災難性BUG修復] 在調用 ainvoke_with_rotation 時，補全了缺失的 username 和 ai_name 參數，解決了因 Prompt 變數不足而導致的 KeyError。
+    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化。
@@ -1040,10 +1041,8 @@ class AILover:
             return
             
         try:
-            # 為了避免API速率超限，在啟動背景任務前稍作延遲
             await asyncio.sleep(5.0)
 
-            # 步驟 1: 獲取最新的LORE摘要作為上下文
             try:
                 all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
@@ -1054,30 +1053,32 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動...")
             
-            # 步驟 2: 調用LORE提取鏈，並啟用委婉化重試備援
             lore_extraction_chain = self.get_lore_extraction_chain()
             if not lore_extraction_chain:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈未初始化，跳過擴展。")
                 return
 
+            # [核心修正] 補全缺失的 username 和 ai_name 參數
+            extraction_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "existing_lore_summary": existing_lore_summary,
+                "user_input": user_input,
+                "final_response_text": final_response,
+            }
+
             extraction_plan = await self.ainvoke_with_rotation(
                 lore_extraction_chain, 
-                {
-                    "existing_lore_summary": existing_lore_summary,
-                    "user_input": user_input,
-                    "final_response_text": final_response,
-                },
-                retry_strategy='euphemize' # 核心：如果因NSFW內容被攔截，則委婉化後重試
+                extraction_params,
+                retry_strategy='euphemize'
             )
             
             if not extraction_plan:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。")
                 return
 
-            # 步驟 3: 執行提取到的擴展計畫
             if extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
-                # 使用當前玩家的物理位置作為新LORE的預設錨點
                 current_location = self.profile.game_state.location_path
                 await self._execute_tool_call_plan(extraction_plan, current_location)
             else:
@@ -1085,7 +1086,7 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：[全新] 背景LORE提取與擴展 (v1.0 - 全新創建)
+    # 函式：[全新] 背景LORE提取與擴展 (v2.0 - 參數修正)
 
 
 
@@ -3479,6 +3480,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
