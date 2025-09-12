@@ -558,6 +558,9 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
 
 
 # --- [v30.0 新架构] 图的构建 ---
+# 更新紀錄:
+# v31.0 (2025-10-15): [架構重構] 將新的 `classify_intent_node` 作為圖的入口點，實現了「智能轟炸」策略。
+# v32.0 (2025-10-15): [架構簡化] 移除了 `classify_intent_node`，恢復 `perceive_scene_node` 為入口點，以實現永久性轟炸策略。
 def create_main_response_graph() -> StateGraph:
     """创建并连接所有节点，构建最终的对话图。"""
     graph = StateGraph(ConversationGraphState)
@@ -571,7 +574,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("final_generation", final_generation_node)
     graph.add_node("validate_and_persist", validate_and_persist_node)
     
-    # 设置入口点
+    # [v32.0 核心修正] 恢復入口點
     graph.set_entry_point("perceive_scene")
     
     # 连接流程
@@ -584,6 +587,10 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("validate_and_persist", END)
     
     return graph.compile()
+
+
+
+
 
 # --- 旧的 Setup Graph (保持不变，用于 /start 流程) ---
 # ... (此处应包含 setup_graph 的所有节点和构建器代码)
@@ -717,6 +724,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
