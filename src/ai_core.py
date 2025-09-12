@@ -687,66 +687,37 @@ class AILover:
 
 
 
-    # 函式：[重構] 更新並持久化導演視角模式 (v5.0 - 上下文感知視角保持)
+    # 函式：[重構] 更新並持久化導演視角模式
     # 更新紀錄:
-    # v5.0 (2025-09-18): [災難性BUG修復] 徹底重寫了此函式的狀態管理邏輯，引入“上下文感知的視角保持”機制。新的核心規則是“遠程優先”：如果當前視角已是 remote，系統將優先保持此狀態，除非檢測到包含宏觀移動關鍵詞或直接與 AI 夥伴對話的、明確要返回本地的指令。此修改旨在從根本上解決在連續的、針對遠程場景的修正性指令下，視角被錯誤重置回 local 的問題。
-    # v4.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式的狀態管理邏輯，增加了 remote_target_path 的持久化。
+    # v4.0 (2025-09-18): [災難性BUG修復] 徹底重構了此函式的狀態管理邏輯，增加了 remote_target_path 的持久化，並將其職責簡化為純粹的狀態更新與持久化，不再包含任何分析邏輯。
     # v3.0 (2025-09-06): [災難性BUG修復] 再次徹底重構了狀態更新邏輯。
-    async def _update_viewing_mode(self, state: Dict[str, Any]) -> None:
-        """根據意圖和場景分析，更新並持久化導演視角模式，並增加遠程視角下的狀態和路徑保持邏輯。"""
+    # v2.0 (2025-09-06): [災難性BUG修復] 徹底重構了狀態更新邏輯。
+    async def _update_viewing_mode(self, final_analysis: SceneAnalysisResult) -> None:
+        """根據最終的場景分析結果，更新並持久化導演視角模式和目標路徑。"""
         if not self.profile:
             return
 
         gs = self.profile.game_state
-        scene_analysis = state.get('scene_analysis')
-        user_input = state.get('messages', [HumanMessage(content="")])[-1].content
-        
         original_mode = gs.viewing_mode
         original_path = gs.remote_target_path
-        changed = False
+        
+        # 直接從最終的、已校準的分析結果中獲取新狀態
+        new_mode = final_analysis.viewing_mode
+        new_path = final_analysis.target_location_path
 
-        new_viewing_mode = scene_analysis.viewing_mode if scene_analysis else 'local'
-        new_target_path = scene_analysis.target_location_path if scene_analysis else None
-
-        # --- v5.0 核心邏輯 ---
-
-        if gs.viewing_mode == 'remote':
-            # **當前處於遠程模式**
-            # 檢查是否存在【明確的】返回本地的信號
-            is_explicit_local_move = any(user_input.strip().startswith(keyword) for keyword in ["去", "前往", "移動到", "旅行到"])
-            is_direct_ai_interaction = self.profile.ai_profile.name in user_input
+        # 檢查狀態是否有變化
+        if gs.viewing_mode != new_mode or gs.remote_target_path != new_path:
+            gs.viewing_mode = new_mode
+            # 如果切換回 local 模式，則清空遠程目標路徑
+            gs.remote_target_path = new_path if new_mode == 'remote' else None
             
-            if is_explicit_local_move or is_direct_ai_interaction:
-                # 信號明確：切換回本地
-                gs.viewing_mode = 'local'
-                gs.remote_target_path = None
-                changed = True
-                logger.info(f"[{self.user_id}] 檢測到明確的本地移動或直接 AI 互動，導演視角從 'remote' 切換回 'local'。")
-            else:
-                # 信號不明確：保持遠程模式，並檢查是否需要更新觀察目標
-                if new_viewing_mode == 'remote' and new_target_path and gs.remote_target_path != new_target_path:
-                    gs.remote_target_path = new_target_path
-                    changed = True
-                    logger.info(f"[{self.user_id}] 在遠程模式下，更新了觀察目標地點為: {gs.remote_target_path}")
-                else:
-                    # 保持遠程模式和當前目標不變
-                    logger.info(f"[{self.user_id}] 未檢測到明確的本地切換信號，導演視角保持為 'remote'。")
-
-        else:  # gs.viewing_mode == 'local'
-            # **當前處於本地模式**
-            # 檢查是否需要切換到遠程
-            if new_viewing_mode == 'remote' and new_target_path:
-                gs.viewing_mode = 'remote'
-                gs.remote_target_path = new_target_path
-                changed = True
-                logger.info(f"[{self.user_id}] 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {gs.remote_target_path}")
-
-        if changed:
             logger.info(f"[{self.user_id}] 導演視角模式已從 '{original_mode}' (路徑: {original_path}) 更新為 '{gs.viewing_mode}' (路徑: {gs.remote_target_path})")
+            
+            # 持久化更新後的遊戲狀態
             await self.update_and_persist_profile({'game_state': gs.model_dump()})
         else:
             logger.info(f"[{self.user_id}] 導演視角模式保持為 '{original_mode}' (路徑: {original_path})，無需更新。")
-    # 函式：[重構] 更新並持久化導演視角模式 (v5.0 - 上下文感知視角保持)
+    # 函式：[重構] 更新並持久化導演視角模式
 
 
 
@@ -892,12 +863,11 @@ class AILover:
 
 
     
-    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
+    # 函式：加載所有模板檔案 (v173.1 - 核心協議加載修正)
     # 更新紀錄:
-    # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。此修改確保了所有模組化協議（包括核心協議）都能被正確加載，是解決 AI 行為不一致問題的根本性修正。
-    # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。現在它會掃描 `prompts/modular/` 目錄，並將所有戰術指令模組加載到 `self.modular_prompts` 字典中。
     # v173.1 (2025-10-14): [功能精簡] 根據需求，僅加載 `world_snapshot_template.txt` 和 `00_supreme_directive.txt`。並將 `00_supreme_directive.txt` 的內容賦值給 `self.core_protocol_prompt`。
-    # v173.2 (2025-10-15): [災難性BUG修復] 修正了 `00_supreme_directive.txt` 檔案未找到的問題，並在錯誤發生時提供更清晰的備援。
+    # v173.0 (2025-09-06): [災難性BUG修復] 徹底移除了在模板加載流程中硬編碼跳過 `00_core_protocol.txt` 的致命錯誤。
+    # v172.0 (2025-09-04): [重大功能擴展] 此函式職責已擴展。
     def _load_templates(self):
         """從 prompts/ 目錄加載所有需要的核心及模組化模板檔案。"""
         # 1. 加載核心數據快照模板
@@ -910,14 +880,13 @@ class AILover:
             logger.error(f"[{self.user_id}] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！")
             self.world_snapshot_template = "錯誤：世界快照數據模板未找到。"
 
-        # [v173.1 核心修正] 僅加載 00_supreme_directive.txt 並設置為 core_protocol_prompt
+        # 2. [v173.1 核心修正] 僅加載 00_supreme_directive.txt 並設置為 core_protocol_prompt
         try:
             core_protocol_path = PROJ_DIR / "prompts" / "00_supreme_directive.txt"
             with open(core_protocol_path, "r", encoding="utf-8") as f:
                 self.core_protocol_prompt = f.read()
             logger.info(f"[{self.user_id}] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。")
         except FileNotFoundError:
-            # [v173.2 核心修正] 如果檔案不存在，提供一個預設值，避免後續崩潰
             logger.critical(f"[{self.user_id}] 致命錯誤: 未找到核心協議模板 '00_supreme_directive.txt'！AI 將失去核心行為約束！")
             self.core_protocol_prompt = (
                 "# 【【【警告：核心協議模板缺失！AI行為將不受約束！】】】\n"
@@ -930,11 +899,10 @@ class AILover:
                 "所有角色的直接對話【必須且只能】使用 `「」` 引號。"
             )
 
-        # 移除對 modular_prompts 的加載和處理，因為現在只使用兩個特定文件
+        # 3. 移除對 modular_prompts 的加載和處理
         self.modular_prompts = {} # 確保此屬性存在，但為空
         logger.info(f"[{self.user_id}] 已精簡模組化提示詞加載，只保留核心協議。")
-    # 函式：加載所有模板檔案 (v173.0 - 核心協議加載修正)
-
+    # 函式：加載所有模板檔案 (v173.1 - 核心協議加載修正)
 
 
 
@@ -1474,13 +1442,10 @@ class AILover:
 
 
 
-# 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
+    # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
     # 更新紀錄:
     # v2.0 (2025-10-07): [重大品質提升] 根据最新的提示工程最佳实践，重构了 Human Prompt 模板的结构。现在它严格遵循“历史上下文 -> 当前场景事实 -> 用户最新指令”的信息呈现顺序，以优化 LLM 的注意力权重，提高其对当前任务的专注度和对事实的遵循度。
     # v1.0 (2025-10-06): [重大架構重構] 创建此单一、强大的生成链。
-    # v3.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】模板結構，以解決上下文數據污染問題。
-    # v4.0 (2025-10-15): [災難性BUG修復] 引入了【劇情錨點】模板結構，強制 AI 進行劇情延續。
-    # v5.0 (2025-10-15): [災難性BUG修復] 引入了【設定融合】原則，指導 AI 如何將用戶在連續指令中補充的新 LORE 應用到現有劇情上。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -1494,52 +1459,37 @@ class AILover:
 ---
 """
             
-            # [v5.0 核心修正] 引入設定融合原則
-            human_prompt_template = """
+            human_prompt_template = """# ==============================================================================
+# == 📚 第一部分：上下文與背景數據 (參考資料) 📚
 # ==============================================================================
-# == 🎬 第一部分：劇情錨點 (Plot Anchor - 最高劇情優先級) 🎬
-# ==============================================================================
-# 說明：這是上一回合的場景原文。如果此部分不為「（無）」，你的創作【必须】
-#       作為這段原文的直接、無縫的延續。
-# ------------------------------------------------------------------------------
-{plot_anchor}
-# ==============================================================================
-# == 🎯 第二部分：本回合核心任務指令 (最高指令優先級) 🎯
-# ==============================================================================
-# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。
-#
-# --- 【v5.0 設定融合原則 (Setting Integration Principle)】 ---
-# 如果下方的指令中，除了「繼續」等動作詞外，還包含了對角色或世界的新描述
-# （例如「性神教徒喜愛被凌辱」），你【必须】將這些新描述視為對【劇情錨點】
-# 中角色的【即時設定更新】，並讓你接下來的創作【體現】出這些新特性。
-# ------------------------------------------------------------------------------
-{latest_user_input}
-# ==============================================================================
-# == 📚 第三部分：上下文與背景數據 (次要參考) 📚
-# ==============================================================================
-# 說明：這是供你參考的背景資料。如果與【劇情錨點】或【核心任務指令】衝突，
-#       則以後兩者為準。
+# 說明：這是供你參考的背景資料。如果與下方的核心指令衝突，則以後者為準。
 # ------------------------------------------------------------------------------
 ## 📜 歷史上下文 (背景參考) 📜
 {historical_context}
 ## 📖 世界即時快照 (當前事實) 📖
 {world_snapshot}
 # ==============================================================================
+# == 🎯 第二部分：本回合核心任務指令 (最高優先級) 🎯
+# ==============================================================================
+# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。
+# ------------------------------------------------------------------------------
+{latest_user_input}
+# ==============================================================================
 # == ✍️ 你的創作 ==
-# 現在，請嚴格遵循所有規則，首先確保你的創作是【劇情錨點】的直接延續，
-# 然後絕對優先地執行【核心任務指令】（並融合其中的新設定），最後基於
-# 【上下文數據】來豐富細節。
+# 現在，請嚴格遵循所有規則，絕對優先地執行【核心任務指令】，並基於【上下文數據】
+# 來豐富細節。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
                 ("human", human_prompt_template)
             ])
             
-            placeholder_llm = self._create_llm_instance()
-            self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
+            # 注意：這裡不直接綁定 LLM。ainvoke_with_rotation 會在運行時注入
+            # 一個佔位的 StrOutputParser 確保鏈的結構完整
+            self.unified_generation_chain = prompt | StrOutputParser()
             
         return self.unified_generation_chain
-# 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
+    # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
 
 
 
@@ -1548,8 +1498,6 @@ class AILover:
     # 函式：[全新] 獲取前置工具解析鏈
     # 更新纪录:
     # v1.0 (2025-10-06): [重大架構重構] 创建此链，用于在主創作流程前，从用户输入中解析出明确的、需要改变世界状态的工具调用。它被设计为高度聚焦和确定性的，固定使用 FUNCTIONAL_MODEL。
-    # v1.1 (2025-10-14): [災難性BUG修復] 修正了 Prompt 模板中 `{tool_name}` 變數未被轉義導致的 `KeyError`。現在所有工具名稱都作為字面量包含在列表中。
-    # v1.2 (2025-10-14): [災難性BUG修復] 修正了 Prompt 模板中缺少 `ai_name` 變數導致的 `KeyError`，現在通過 `partial` 注入。
     def get_preemptive_tool_parsing_chain(self) -> Runnable:
         """獲取或創建一個簡單的鏈，用於從使用者輸入中解析出明確的工具調用。"""
         if not hasattr(self, 'preemptive_tool_parsing_chain') or self.preemptive_tool_parsing_chain is None:
@@ -1572,27 +1520,17 @@ class AILover:
 - `update_character_profile(character_name: str, updates: Dict[str, Any])`: 更新角色檔案（例如狀態、動作）。
 
 # === 範例 ===
-- 輸入: "我們去市場吧" -> plan: `[{{"tool_name": "change_location", "parameters": {{"path": "市場"}}}}]`
-- 輸入: "碧，把這把匕首裝備上" -> plan: `[{{"tool_name": "equip_item", "parameters": {{"character_name": "碧", "item_name": "匕首"}}}}]`
-- 輸入: "我愛你" -> plan: `[]`
-- 輸入: "坐下" -> plan: `[{{"tool_name": "update_character_profile", "parameters": {{"character_name": "{ai_name}", "updates": {{"current_action": "坐著"}}}}}}]`
-- 輸入: "讓碧坐下" -> plan: `[{{"tool_name": "update_character_profile", "parameters": {{"character_name": "{ai_name}", "updates": {{"current_action": "坐著"}}}}}}]`
-
+- 輸入: "我們去市場吧" -> plan: [{{"tool_name": "change_location", "parameters": {{"path": "市場"}}}}]
+- 輸入: "碧，把這把匕首裝備上" -> plan: [{{"tool_name": "equip_item", "parameters": {{"character_name": "碧", "item_name": "匕首"}}}}]
+- 輸入: "我愛你" -> plan: []
+- 輸入: "坐下" -> plan: [{{"tool_name": "update_character_profile", "parameters": {{"character_name": "碧", "updates": {{"current_action": "坐著"}}}}}}]
 
 ---
 【當前在場角色】: {character_list_str}
 【使用者輸入】: {user_input}
 ---
 """
-            # [v1.2 核心修正] 將 ai_name 作為 partial_variables 注入
-            # 確保 self.profile 已經被加載
-            if self.profile and self.profile.ai_profile:
-                partial_vars = {"ai_name": self.profile.ai_profile.name}
-                prompt = ChatPromptTemplate.from_template(prompt_template).partial(**partial_vars)
-            else:
-                # 如果 profile 未加載，則使用一個佔位符，但這不應該發生在主對話流程中
-                prompt = ChatPromptTemplate.from_template(prompt_template)
-                logger.warning(f"[{self.user_id}] 警告：在 `get_preemptive_tool_parsing_chain` 中訪問 `ai_name` 時 profile 未加載。")
+            prompt = ChatPromptTemplate.from_template(prompt_template)
             
             # 此鏈固定使用功能性模型
             functional_llm = self._create_llm_instance().with_structured_output(ToolCallPlan)
@@ -1600,7 +1538,7 @@ class AILover:
             self.preemptive_tool_parsing_chain = prompt | functional_llm
             
         return self.preemptive_tool_parsing_chain
-# 函式：[全新] 獲取前置工具解析鏈
+    # 函式：[全新] 獲取前置工具解析鏈
 
 
 
@@ -3351,17 +3289,10 @@ class AILover:
 
     
     
-# 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
     # 更新紀錄:
     # v220.0 (2025-10-06): [重大架構重構] 彻底重写了此函式，以实现“模型降级 x 金鑰轮换”的二维重试矩阵。新增 use_degradation 参数，当为 True 时，外层循环会按优先级列表降级模型；内层循环则在每个模型级别上轮换所有 API 金鑰。此修改为系统提供了前所未有的健壮性，能在输出质量和抗审查能力之间进行动态平衡。
     # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
-    # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。現在會檢查鏈是否已經包含 `llm` 部分，如果包含，則使用 `with_config` 替換現有的 LLM 實例；否則，將 `configured_llm` 作為新的步驟追加到鏈的末尾。這解決了在 `world_genesis_chain` 等已經包含 `with_structured_output` 的鏈上重複綁定 LLM 導致的類型錯誤。
-    # v220.2 (2025-10-14): [災難性BUG修復] 增加了對 `self.embeddings` 的動態創建和金鑰輪換，以解決 Embedding API 的速率限制問題。
-    # v220.3 (2025-10-14): [健壯性] 在每次 API 調用失敗後，增加一個短暫的延遲，以緩解連續的速率限制問題。
-    # v220.4 (2025-10-15): [健壯性] 增加了失敗後的延遲時間，以更積極地應對 API 速率限制。
-    # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
-    # v221.1 (2025-10-15): [健壯性] 增加了更清晰的日誌，並確保在所有金鑰冷卻時能正確觸發模型降級。
-    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3371,104 +3302,89 @@ class AILover:
     ) -> Any:
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         
+        # 外層循環：模型降級
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            model_succeeded = False
-            
+            # 內層循環：API Key 輪換
             for attempt in range(len(self.api_keys)):
-                key_info = self._get_next_available_key()
-                if not key_info:
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                    break 
-                
-                _, key_index = key_info
-
                 try:
-                    self.embeddings = self._create_embeddings_instance()
+                    # 在每次嘗試時都重新創建 LLM 實例，以確保使用最新的輪換金鑰
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
+                    # 如果沒有可用的金鑰（全部冷卻中），則跳出內層循環
                     if not configured_llm:
-                        continue
-
+                        logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
+                        break 
+                        
+                    # 智能綁定 LLM 到鏈上
                     effective_chain = chain
+                    # Case 1: 如果鏈只是一個 Prompt，則直接附加 LLM
                     if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | configured_llm
+                    # Case 2: 如果鏈是一個複雜的可配置對象，則用新 LLM 替換
                     elif hasattr(chain, 'with_config'):
                         try:
+                            # 這是 LangChain 的標準方式，但並非所有鏈都支持
                             effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
                         except Exception:
-                            effective_chain = chain
-                    
+                            # 如果 with_config 失敗，回退到追加模式
+                            effective_chain = chain | configured_llm
+                    else:
+                        effective_chain = chain | configured_llm
+
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
-                        timeout=90.0
+                        timeout=90.0 # 增加超時以適應更強大的模型
                     )
                     
+                    # 檢查是否因安全審查返回空內容
                     is_empty_or_invalid = not result or (hasattr(result, 'content') and not getattr(result, 'content', True))
                     if is_empty_or_invalid:
                         raise Exception("SafetyError: The model returned an empty or invalid response.")
                     
-                    model_succeeded = True
+                    # 如果成功，則直接返回結果
                     return result
 
                 except asyncio.TimeoutError:
-                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {key_index})。")
-                    await asyncio.sleep(3.0)
-                
+                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {self.current_key_index})。正在嘗試下一個金鑰...")
+                    await asyncio.sleep(2.0)
+                    continue
+
                 except Exception as e:
                     error_str = str(e).lower()
                     is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_rate_limit_error:
-                        # [v222.0 核心修正] 智能兩級冷卻邏輯
-                        now = time.time()
-                        # 記錄本次失敗
-                        self.key_short_term_failures[key_index].append(now)
-                        # 清理超過時間窗口的舊記錄
-                        self.key_short_term_failures[key_index] = [
-                            t for t in self.key_short_term_failures[key_index] 
-                            if now - t < self.RPM_FAILURE_WINDOW
-                        ]
-                        
-                        failure_count = len(self.key_short_term_failures[key_index])
-                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。")
-
-                        if failure_count >= self.RPM_FAILURE_THRESHOLD:
-                            logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
-                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                            self.key_short_term_failures[key_index] = [] # 進入長期冷卻後清空短期記錄
-                        
-                        await asyncio.sleep(3.0) # 無論如何都等待一下
-
+                        logger.warning(f"[{self.user_id}] API Key index: {self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
+                        await asyncio.sleep(2.0)
+                        continue # 繼續內層循環，嘗試下一個 Key
                     elif is_safety_error:
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
-                        await asyncio.sleep(3.0)
-                        break 
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {self.current_key_index}) 遭遇內容審查。將直接嘗試下一個更高優先級的模型。")
+                        await asyncio.sleep(2.0)
+                        break # 跳出內層循環，進入外層循環的下一個 Model
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        await asyncio.sleep(3.0)
-                        break
-            
-            if not model_succeeded:
-                if model_index < len(models_to_try) - 1:
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...")
-                else:
-                    logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
-            else:
-                break
+                        await asyncio.sleep(2.0)
+                        break # 未知錯誤，也嘗試下一個 Model
 
-        logger.error(f"[{self.user_id}] 啟動最終備援策略: '{retry_strategy}'")
+            # 如果內層循環（所有Key）都嘗試完畢，檢查是否需要降級
+            if model_index < len(models_to_try) - 1:
+                logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有 API 金鑰後均失敗。正在降級到下一個模型...")
+            else:
+                logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有 API 金鑰均嘗試失敗。")
+
+        # 如果所有模型和金鑰都失敗了，則啟動最終的備援策略
+        logger.error(f"[{self.user_id}] 所有標準嘗試均失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
             return await self._force_and_retry(chain, params)
         elif retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params, Exception("Final fallback after all retries."))
         
-        return None 
-# 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
-
+        return None # 如果策略是 'none' 或其他未知值，則返回 None
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
     
 
 
@@ -3702,6 +3618,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
