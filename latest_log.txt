@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-12T09:17:56.141567 ###
+### AI Lover Log - Last updated at 2025-09-12T09:22:58.642126 ###
 
-2025-09-12 09:13:44 - [INFO] - [512280345618546699] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態。
-2025-09-12 09:13:44 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
-2025-09-12 09:13:44 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:44 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:44 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] (Graph|2) 輸入較複雜，執行 RAG 檢索...
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding + BM25) 進行檢索...
-2025-09-12 09:13:45 - [WARNING] - [512280345618546699] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 因達到 API 配額限制而失敗。錯誤: GoogleGenerativeAIError
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 1 份文檔，正在進行批次清洗與摘要...
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:45 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:47 - [INFO] - [512280345618546699] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...
-2025-09-12 09:13:47 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:47 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:48 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
-2025-09-12 09:13:48 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:48 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:48 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] (LORE Querier) [第一層] 正在查詢當前場景 '性神城 > 市場' 內的所有 LORE...
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] (LORE Querier) [第二層] 正在查詢與核心主體 ['顧客', '性神城', '市場', '魚販'] 相關的 LORE...
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] (LORE Querier) 查詢完成，共找到 2 條唯一的、與場景相關的 LORE 記錄。
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 2 條相關LORE。
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:49 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:50 - [INFO] - [512280345618546699] (Graph|3) 決策結果：需要擴展。理由: 劇本引入了一個顧客與魚販之間的互動場景，雖然現有角色JSON中有一位名為「瑪琳娜」的魚販，但劇本描述的互動似乎需要一個全新的、未定義的「顧客」角色來推動情節，且該顧客的角色職責無法由現有角色或主角承擔。。正在執行LORE擴展...
-2025-09-12 09:13:50 - [INFO] - [512280345618546699] (Graph|3) 擴展 Plan A: 嘗試使用主選角鏈...
-2025-09-12 09:13:50 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:50 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:50 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:51 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:51 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] 已成功将【新】NPC '阿爾多' 添加到場景 '性神城 > 市場'。
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] 已成功将【新】NPC '莉娜' 添加到場景 '性神城 > 市場'。
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] (Graph|3) 擴展 Plan A 成功，創建了 2 位新角色。
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:53 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:54 - [INFO] - [512280345618546699] (Graph|2) 輸入較複雜，執行 RAG 檢索...
-2025-09-12 09:13:54 - [INFO] - [512280345618546699] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding + BM25) 進行檢索...
-2025-09-12 09:13:55 - [WARNING] - [512280345618546699] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 因達到 API 配額限制而失敗。錯誤: GoogleGenerativeAIError
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 1 份文檔，正在進行批次清洗與摘要...
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:55 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:56 - [INFO] - [512280345618546699] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...
-2025-09-12 09:13:56 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:56 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:56 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:57 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
-2025-09-12 09:13:57 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:57 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:57 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] (LORE Querier) [第一層] 正在查詢當前場景 '性神城 > 市場' 內的所有 LORE...
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] (LORE Querier) [第二層] 正在查詢與核心主體 ['性神城', '魚', '市場'] 相關的 LORE...
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] (LORE Querier) 查詢完成，共找到 5 條唯一的、與場景相關的 LORE 記錄。
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 5 條相關LORE。
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:13:58 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] (Graph|4) 未解析到明確的工具調用。
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:13:59 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:14:00 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-12 09:14:00 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:14:00 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 0)
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
-2025-09-12 09:14:04 - [WARNING] - [512280345618546699] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-12 09:14:04 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-12 09:14:05 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。
-2025-09-12 09:14:05 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-12 09:14:05 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-12 09:14:05 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-12 09:14:07 - [INFO] - [512280345618546699] (Graph|7) 事後學習到 3 條新 LORE，正在後台保存...
-2025-09-12 09:14:07 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
-2025-09-12 09:14:07 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
-2025-09-12 09:14:07 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 3 個任務) ---
-2025-09-12 09:14:07 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
-2025-09-12 09:14:08 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
-2025-09-12 09:14:19 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
-2025-09-12 09:14:19 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-12 09:22:12 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
+2025-09-12 09:22:12 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:12 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-12 09:22:12 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|3) 決策結果：無需擴展。理由: 劇本描述的是一個名為「性神教」的群體及其行為模式，並沒有涉及具體需要互動的第三方角色。核心角色「DINO」和「碧」可以與這個群體設定進行互動，無需引入新的角色。
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|4) 未解析到明確的工具調用。
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-12 09:22:13 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-12 09:22:15 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-12 09:22:15 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-12 09:22:15 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 0)
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
+2025-09-12 09:22:19 - [WARNING] - [512280345618546699] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] (Graph|7) 正在啟動事後 LORE 學習...
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-12 09:22:19 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-12 09:22:22 - [INFO] - [512280345618546699] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。
+2025-09-12 09:22:22 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:22 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-12 09:22:22 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-12 09:22:23 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 4 validation errors for ToolCallPlan
+plan.0.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "慾...神\'的\'狂喜\'。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.1.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "潮...神\'的\'狂喜\'。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.2.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "性...驗相關的神祇。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.3.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "大...\'狂喜\'有關。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3417, in ainvoke_with_rotation
+    result = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
+    return await self.bound.ainvoke(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\base.py", line 219, in ainvoke
+    return await self._acall_with_config(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
+    output: Output = await coro_with_context(coro, context)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\base.py", line 280, in aparse_result
+    return await run_in_executor(None, self.parse_result, result, partial=partial)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\openai_tools.py", line 336, in parse_result
+    pydantic_objects.append(name_dict[res["type"]](**res["args"]))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 253, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 4 validation errors for ToolCallPlan
+plan.0.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "慾...神\'的\'狂喜\'。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.1.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "潮...神\'的\'狂喜\'。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.2.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "性...驗相關的神祇。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+plan.3.parameters
+  Input should be a valid dictionary [type=dict_type, input_value='{"original_name": "大...\'狂喜\'有關。"}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/dict_type
+2025-09-12 09:22:26 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-12 09:22:26 - [ERROR] - [512280345618546699] 啟動最終備援策略: 'euphemize'
+2025-09-12 09:22:26 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
+2025-09-12 09:22:26 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '【情節概述】:
+
+本段手稿描寫了一場發生在繁華市集中的隱秘交易，旨在探討權力、慾望與宗教儀式之間的交...' 清洗為安全的文學概述...
+2025-09-12 09:22:26 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-12 09:22:26 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-12 09:22:26 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-12 09:22:28 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功，生成安全文本: '本段手稿描繪了一場發生在公共場所的隱蔽交換，其核心在於權力、慾望與儀式化體驗的交織。敘事圍繞著角色瑪...'
+2025-09-12 09:22:29 - [INFO] - [512280345618546699] (Graph|7) 事後學習到 4 條新 LORE，正在後台保存...
+2025-09-12 09:22:29 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
+2025-09-12 09:22:29 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-09-12 09:22:29 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 4 個任務) ---
+2025-09-12 09:22:29 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-12 09:22:30 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
+2025-09-12 09:22:45 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-12 09:22:45 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
