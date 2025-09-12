@@ -432,6 +432,7 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 # 更新紀錄:
 # ... (保留之前的更新紀錄)
 # v2.6 (2025-10-15): [健壯性] 優化了 LORE 提取失敗時的日誌，使其更清晰地說明原因。
+# v2.7 (2025-10-15): [災難性BUG修復] 修正了調用 `literary_euphemization_chain` 時，因參數鍵名拼寫錯誤 (`dialogology_history`) 導致的 `KeyError`。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪準備無損上下文。"""
     user_id = state['user_id']
@@ -457,14 +458,14 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
             
             logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...")
             literary_chain = ai_core.get_literary_euphemization_chain()
+            # [v2.7 核心修正] 修正拼寫錯誤
             safe_response_for_lore = await ai_core.ainvoke_with_rotation(
                 literary_chain,
-                {"dialogology_history": clean_response},
+                {"dialogue_history": clean_response},
                 retry_strategy='none' # 快速失敗
             )
 
             if not safe_response_for_lore:
-                # [v2.6 核心修正] 提供更清晰的日誌
                 logger.warning(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 文本預清洗因內容審查或 API 錯誤而失敗。為了保護核心流程，將跳過本輪 LORE 提取。")
             else:
                 logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。")
@@ -502,7 +503,6 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     
     return {"final_output": clean_response, "last_response_text": clean_response}
 # 函式：驗證、學習與持久化節點
-
 
 
 
@@ -719,6 +719,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
