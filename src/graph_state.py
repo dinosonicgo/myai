@@ -1,21 +1,18 @@
-# src/graph_state.py 的中文註釋(v11.0 - 数据伪装)
+# src/graph_state.py 的中文註釋(v12.0 - 信息注入式架构)
 # 更新紀錄:
-# v11.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，移除了 `turn_plan` 字段，并新增了 `narrative_outline: str` 字段。这个新字段将用于在规划节点和最终渲染节点之间传递自然语言的、相对安全的“剧本大纲”，以取代之前容易被审查的 TurnPlan JSON 对象。
+# v12.0 (2025-10-07): [重大架構重構] 根據全新的「資訊注入式架構」，徹底重構了此狀態。移除了所有與 `TurnPlan` 相關的欄位，並簡化了中間分析結果，使其完美適配新的線性資訊流。
+# v11.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，移除了 `turn_plan` 字段，并新增了 `narrative_outline: str` 字段。
 # v10.0 (2025-09-08): [重大架構重構] 移除了已废弃的 `sanitized_user_input` 欄位。
-# v9.0 (2025-09-08): [災難性BUG修復] 新增了 `quantified_character_list` 欄位。
 from typing import TypedDict, List, Dict, Optional, Any
 from langchain_core.messages import BaseMessage
 
-from .schemas import (UserInputAnalysis, SceneAnalysisResult, WorldGenesisResult, 
-                      TurnPlan, ExpansionDecision, IntentClassificationResult, StyleAnalysisResult)
+from .schemas import (SceneAnalysisResult, WorldGenesisResult)
 from .ai_core import AILover
 
-# 類別：對話圖狀態 (v11.0 - 数据伪装)
+# 類別：對話圖狀態 (v12.0 - 信息注入式架构)
 # 更新紀錄:
-# v11.0 (2025-09-22): [重大架構重構] 根据“数据伪装”策略，移除了 `turn_plan` 字段，并新增了 `narrative_outline: str` 字段。这个新字段将用于在规划节点和最终渲染节点之间传递自然语言的、相对安全的“剧本大纲”，以取代之前容易被审查的 TurnPlan JSON 对象。
-# v10.0 (2025-09-08): [重大架構重構] 移除了已废弃的 `sanitized_user_input` 欄位。
-# v12.0 (2025-10-15): [健壯性] 新增了 `last_response_text` 欄位，用於在連續性指令下實現無損的上下文傳遞。
-# v14.0 (2025-10-15): [架構簡化] 移除了 `current_intent` 欄位，因為已採用永久性轟炸策略。
+# v12.0 (2025-10-07): [重大架構重構] 根據全新的「資訊注入式架構」，徹底重構了此狀態。
+# v11.0 (2025-09-22): [重大架構重構] 移除了 `turn_plan` 字段。
 class ConversationGraphState(TypedDict):
     """
     主對話流程的狀態容器。
@@ -28,38 +25,21 @@ class ConversationGraphState(TypedDict):
     # --- 核心對話數據 ---
     messages: List[BaseMessage]
     
-    # --- 精細化節點的數據載體 ---
-    raw_lore_objects: List[Any]
-    
-    planning_subjects: Optional[List[Dict[str, Any]]]
-
-    quantified_character_list: Optional[List[str]]
-
-    # --- 中間處理結果 ---
-    intent_classification: Optional["IntentClassificationResult"]
-    style_analysis: Optional["StyleAnalysisResult"]
-    input_analysis: Optional["UserInputAnalysis"]
-    expansion_decision: Optional["ExpansionDecision"]
+    # --- 資訊收集階段的數據載體 ---
     scene_analysis: Optional["SceneAnalysisResult"]
-    rag_context: str
-    structured_context: Dict[str, str]
-    world_snapshot: str
-    
     sanitized_query_for_tools: str
-
-    narrative_outline: str
+    rag_context: str
+    raw_lore_objects: List[Any]
+    planning_subjects: Optional[List[Dict[str, Any]]]
     tool_results: str
 
-    last_response_text: Optional[str]
+    # --- 資訊彙總階段的數據載體 ---
+    world_snapshot: str
 
-    # 最终输出与状态变更
+    # --- 最終生成與輸出的數據載體 ---
     llm_response: str
     final_output: str
-    state_updates: Dict[str, Any]
-# 類別：對話圖狀態 (v11.0 - 数据伪装)
-
-
-
+# 類別：對話圖狀態 (v12.0 - 信息注入式架构)
 
 # 類別：設定圖狀態
 class SetupGraphState(TypedDict):
@@ -73,7 +53,3 @@ class SetupGraphState(TypedDict):
     genesis_result: Optional["WorldGenesisResult"]
     opening_scene: str
 # 類別：設定圖狀態
-
-
-
-
