@@ -179,6 +179,7 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
 # v3.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
 # v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
 # v3.1 (2025-10-15): [災難性BUG修復] 在調用 `expansion_decision_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數，解決了 `KeyError`。
+# v4.0 (2025-10-15): [架構重構] 移除了 `character_quantification_chain`，將用戶原始輸入直接傳遞給重構後的 `scene_casting_chain`，實現「原子化角色創建」。
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
     """[3] 決策是否需要擴展 LORE，如果需要，則立即執行擴展。"""
     user_id = state['user_id']
@@ -194,11 +195,9 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     )
     decision_chain = ai_core.get_expansion_decision_chain()
     
-    # [v3.1 核心修正] 準備調用 `expansion_decision_chain` 所需的所有參數
     decision_params = {
         "user_input": safe_query_text, 
-        "existing_characters_json": lightweight_lore_json, 
-        "examples": "", # 範例目前在提示詞中硬編碼，未來可以動態注入
+        "existing_characters_json": lightweight_lore_json,
         "username": ai_core.profile.user_profile.name,
         "ai_name": ai_core.profile.ai_profile.name
     }
@@ -209,12 +208,8 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     )
 
     if not decision:
-        # Plan B (備援): LLM 失敗，啟動基於 LORE 覆蓋率的備援決策
-        logger.warning(f"[{user_id}] (Graph|3) LORE擴展決策鏈失敗，啟動【基於LORE覆蓋率的備援決策】。")
-        if len(raw_lore_objects) < 3 and len(safe_query_text) > 15:
-            decision = ExpansionDecision(should_expand=True, reasoning="備援：場景中角色較少且使用者輸入較長，可能需要新角色。")
-        else:
-            decision = ExpansionDecision(should_expand=False, reasoning="備援：決策鏈失敗，預設不擴展。")
+        logger.warning(f"[{user_id}] (Graph|3) LORE擴展決策鏈失敗，啟動備援決策。")
+        decision = ExpansionDecision(should_expand=False, reasoning="備援：決策鏈失敗，預設不擴展。")
 
     if not decision.should_expand:
         logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {decision.reasoning}")
@@ -223,31 +218,31 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     # --- 如果需要擴展，則執行擴展 ---
     logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
-    # Plan A: 嘗試使用主 casting_chain
+    # [v4.0 核心修正] Plan A: 移除 character_quantification_chain，直接調用新的 scene_casting_chain
     try:
-        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用主選角鏈...")
-        quantification_chain = ai_core.get_character_quantification_chain()
-        quant_result = await ai_core.ainvoke_with_rotation(quantification_chain, {"user_input": safe_query_text}, retry_strategy='euphemize')
+        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用原子化的主選角鏈...")
+        gs = ai_core.profile.game_state
+        effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         
-        if quant_result and quant_result.character_descriptions:
-            gs = ai_core.profile.game_state
-            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-            
-            casting_chain = ai_core.get_scene_casting_chain()
-            cast_result = await ai_core.ainvoke_with_rotation(
-                casting_chain,
-                {"world_settings": ai_core.profile.world_settings or "", "current_location_path": effective_location_path, "character_descriptions_list": quant_result.character_descriptions},
-                retry_strategy='euphemize'
-            )
-            
-            if not cast_result: raise Exception("主選角鏈返回空值")
+        casting_chain = ai_core.get_scene_casting_chain()
+        cast_result = await ai_core.ainvoke_with_rotation(
+            casting_chain,
+            {
+                "world_settings": ai_core.profile.world_settings or "", 
+                "current_location_path": effective_location_path, 
+                "user_input": safe_query_text # 直接傳遞用戶原始輸入
+            },
+            retry_strategy='euphemize'
+        )
+        
+        if not cast_result: raise Exception("原子化主選角鏈返回空值")
 
-            created_names = await ai_core._add_cast_to_scene(cast_result)
-            logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
-            
-            # 獲取更新後的所有 LORE
-            all_lores_after_expansion_state = await retrieve_and_query_node(state)
-            return {"planning_subjects": [lore.content for lore in all_lores_after_expansion_state.get("raw_lore_objects", [])]}
+        created_names = await ai_core._add_cast_to_scene(cast_result)
+        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
+        
+        # 獲取更新後的所有 LORE
+        all_lores_after_expansion_state = await retrieve_and_query_node(state)
+        return {"planning_subjects": [lore.content for lore in all_lores_after_expansion_state.get("raw_lore_objects", [])]}
 
     except Exception as e:
         # Plan B (備援): 主鏈失敗，啟動 Gemini 子任務鏈備援
@@ -721,6 +716,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
