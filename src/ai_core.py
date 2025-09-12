@@ -1491,10 +1491,10 @@ class AILover:
 
 
 
-    # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
+    # 函式：[全新] 獲取统一生成链 (v3.0 - 結構修正)
     # 更新紀錄:
-    # v2.0 (2025-10-07): [重大品質提升] 根据最新的提示工程最佳实践，重构了 Human Prompt 模板的结构。现在它严格遵循“历史上下文 -> 当前场景事实 -> 用户最新指令”的信息呈现顺序，以优化 LLM 的注意力权重，提高其对当前任务的专注度和对事实的遵循度。
-    # v1.0 (2025-10-06): [重大架構重構] 创建此单一、强大的生成链。
+    # v3.0 (2025-10-08): [災難性BUG修復] 修正了鏈的結構。在 Prompt 和 StrOutputParser 之間增加了一個佔位的 LLM 實例，以確保數據流的正確性 (Prompt -> LLM -> Parser)，從根本上解決了因數據類型不匹配導致的 ValidationError。
+    # v2.0 (2025-10-07): [重大品質提升] 重构了 Human Prompt 模板的结构。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -1533,12 +1533,15 @@ class AILover:
                 ("human", human_prompt_template)
             ])
             
-            # 注意：這裡不直接綁定 LLM。ainvoke_with_rotation 會在運行時注入
-            # 一個佔位的 StrOutputParser 確保鏈的結構完整
-            self.unified_generation_chain = prompt | StrOutputParser()
+            # [核心修正] 創建一個佔位的 LLM 實例。ainvoke_with_rotation 會在運行時
+            # 用一個帶有正確模型和金鑰的實例來替換它。
+            # 這確保了鏈的結構始終是 [Prompt -> LLM -> Parser]。
+            placeholder_llm = self._create_llm_instance()
+
+            self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[全新] 獲取统一生成链 (v2.0 - 优化信息顺序)
+    # 函式：[全新] 獲取统一生成链 (v3.0 - 結構修正)
 
 
 
@@ -3476,6 +3479,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
