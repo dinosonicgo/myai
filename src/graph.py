@@ -506,6 +506,7 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
         await asyncio.sleep(delay_seconds)
     return {}
 
+# graph.py 的 world_genesis_node 函式
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
@@ -514,7 +515,20 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
     try:
         if not ai_core.profile: raise Exception("AI Profile is not loaded.")
         genesis_chain = ai_core.get_world_genesis_chain()
-        genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, {"username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}, retry_strategy='force')
+        
+        # [核心修正] 補全缺失的 world_settings 參數
+        genesis_params = {
+            "world_settings": ai_core.profile.world_settings or "未設定", 
+            "username": ai_core.profile.user_profile.name, 
+            "ai_name": ai_core.profile.ai_profile.name
+        }
+        
+        genesis_result = await ai_core.ainvoke_with_rotation(
+            genesis_chain, 
+            genesis_params, 
+            retry_strategy='force'
+        )
+
         if not genesis_result: raise Exception("世界創世鏈返回了空結果。")
         gs = ai_core.profile.game_state
         gs.location_path = genesis_result.location_path
@@ -531,6 +545,10 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
         logger.info(f"[{user_id}] (Setup Graph|3/4|Flow Control) 為平滑 API 請求，將強制等待 {delay_seconds} 秒後進入下一節點...")
         await asyncio.sleep(delay_seconds)
     return {"genesis_result": genesis_result}
+# graph.py 的 world_genesis_node 函式
+
+
+
 
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
@@ -560,3 +578,4 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
