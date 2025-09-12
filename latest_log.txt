@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-12T20:07:42.164829 ###
+### AI Lover Log - Last updated at 2025-09-12T20:13:10.014939 ###
 
-2025-09-12 19:21:32 - [INFO] - [512280345618546699] (Graph|7) 對話歷史已更新並準備保存到 DB。
-2025-09-12 19:21:32 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
-2025-09-12 19:21:32 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
-2025-09-12 19:21:32 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
-2025-09-12 19:44:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-12 19:44:09 - [INFO] - Discord Bot is ready and commands are synced!
 2025-09-12 19:44:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-12 19:44:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
@@ -100,3 +95,8 @@ KeyError: "Input to ChatPromptTemplate is missing variables {'dialogue_history'}
 2025-09-12 20:02:19 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
 2025-09-12 20:02:19 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
 2025-09-12 20:02:19 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到主記憶系統 (Embedding) 時失敗。程式將自動依賴備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
+2025-09-12 20:12:55 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-12 20:12:56 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-12 20:12:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-12 20:12:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-12 20:12:59 - [INFO] - 已成功發送啟動成功通知給管理員。
