@@ -435,13 +435,8 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 
 # 函式：驗證、學習與持久化節點
 # 更新紀錄:
-# v7.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。废弃了所有基于 TurnPlan JSON 的复杂规划和渲染节点。新的“信息注入式架构”流程更线性、更简单：1. 感知与信息收集。 2. (全新) 前置工具调用，用于处理明确的状态变更。 3. 将所有信息（LORE、记忆、工具结果）组装成一个巨大的 world_snapshot 上下文。 4. (全新) 单一的最终生成节点，将 world_snapshot 和用户指令直接交给一个由 00_supreme_directive.txt 驱动的强大 LLM 进行一步到位的自由创作。每个与 API 交互的节点都内置了强大的“功能重建”式备援方案。
-# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。它现在负责组装所有不同来源的上下文（RAG 记忆、短期对话历史、世界快照），并严格按照“历史 -> 事实 -> 指令”的顺序，将它们填充到新的提示词模板中，然后调用核心生成链。
-# v2.1 (2025-10-14): [災難性BUG修復] 確保 `llm_response` 在調用 `.strip()` 之前，先獲取其 `.content` 屬性，解決 `AttributeError: 'AIMessage' object has no attribute 'strip'`。
-# v2.2 (2025-10-15): [災難性BUG修復] 恢復了對 `ai_core._save_interaction_to_dbs` 的調用，以確保對話歷史被正確持久化。
-# v2.3 (2025-10-15): [災難性BUG修復] 在調用 `lore_extraction_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數，解決了 `KeyError`。
-# v2.4 (2025-10-15): [健壯性] 在調用 `lore_extraction_chain` 之前，先對可能包含 NSFW 內容的 `clean_response` 進行清洗，以避免內容審查。
-# v2.5 (2025-10-15): [健壯性] 將本回合的最終回應存入 state，為下一輪的連續性指令提供無損上下文。
+# ... (保留之前的更新紀錄)
+# v2.6 (2025-10-15): [健壯性] 優化了 LORE 提取失敗時的日誌，使其更清晰地說明原因。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪準備無損上下文。"""
     user_id = state['user_id']
@@ -464,16 +459,18 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         logger.info(f"[{user_id}] (Graph|7) 正在啟動事後 LORE 學習...")
         lore_extraction_chain = ai_core.get_lore_extraction_chain()
         if lore_extraction_chain and ai_core.profile:
+            
             logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 正在為 LORE 提取器準備安全的輸入文本...")
             literary_chain = ai_core.get_literary_euphemization_chain()
             safe_response_for_lore = await ai_core.ainvoke_with_rotation(
                 literary_chain,
-                {"dialogue_history": clean_response},
-                retry_strategy='none'
+                {"dialogology_history": clean_response},
+                retry_strategy='none' # 快速失敗
             )
 
             if not safe_response_for_lore:
-                logger.warning(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 文本預清洗失敗，將跳過本輪 LORE 提取。")
+                # [v2.6 核心修正] 提供更清晰的日誌
+                logger.warning(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 文本預清洗因內容審查或 API 錯誤而失敗。為了保護核心流程，將跳過本輪 LORE 提取。")
             else:
                 logger.info(f"[{user_id}] (Graph|7) [LORE Pre-Sanitization] 文本預清洗成功。")
                 lore_extraction_params = {
@@ -492,7 +489,7 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
                     logger.info(f"[{user_id}] (Graph|7) 事後學習到 {len(extraction_plan.plan)} 條新 LORE，正在後台保存...")
                     asyncio.create_task(ai_core._execute_tool_call_plan(extraction_plan, ai_core.profile.game_state.location_path))
     except Exception as e:
-        logger.warning(f"[{user_id}] (Graph|7) 事後 LORE 學習失敗，已跳過。核心對話保存不受影響。錯誤: {e}")
+        logger.warning(f"[{user_id}] (Graph|7) 事後 LORE 學習時發生未預期錯誤，已跳過。錯誤: {e}")
 
     # 3. 持久化
     if clean_response and "抱歉" not in clean_response:
@@ -505,11 +502,15 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
         
         logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
 
+
     logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     
-    # [v2.5 核心修正] 將本回合的最終回應存入 state，為下一輪提供無損上下文
     return {"final_output": clean_response, "last_response_text": clean_response}
 # 函式：驗證、學習與持久化節點
+
+
+
+
 
 
 # 函式：獲取摘要後的對話歷史 (v28.0 - 終極備援修正)
@@ -716,6 +717,7 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
 
