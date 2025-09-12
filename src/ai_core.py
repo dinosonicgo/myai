@@ -111,14 +111,8 @@ class AILover:
 
     # 函式：初始化AI核心 (v210.0 - 统一流程重构)
     # 更新紀錄:
-    # v210.0 (2025-10-06): [重大架構重構] 根据最终的“信息注入式”蓝图，彻底清理了所有旧的、分散的链属性。新增了 `unified_generation_chain` 和 `preemptive_tool_parsing_chain` 等新链的声明，并为模型降级轮换机制添加了 `model_priority_list` 和 `current_model_index` 属性。
-    # v204.0 (2025-09-09): [災難性BUG修復] 补完了属性声明。
-    # v203.2 (2025-10-14): [災難性BUG修復] 增加了對 `profile_parser_prompt`, `profile_completion_prompt`, `profile_rewriting_prompt` 的初始化，解決 `AttributeError`。
-    # v203.3 (2025-10-14): [災難性BUG修復] 增加了 `entity_extraction_chain` 的初始化，解決 `AttributeError`。
-    # v211.0 (2025-10-15): [架構重構] 移除了对 ChromaDB 和 EnsembleRetriever 的依赖，改用纯 BM25Retriever 以避免 Embedding API 配额问题。
-    # v212.0 (2025-10-15): [架構重構] 恢復了 ChromaDB 和 EnsembleRetriever，實現了 Embedding 作為主方案、BM25 作為備援的混合策略。
-    # v213.0 (2025-10-15): [健壯性] 新增了 API Key 冷卻系統，避免重複調用已達配額上限的金鑰。
-    # v214.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制。
+    # ... (保留之前的更新紀錄)
+    # v215.0 (2025-10-15): [健壯性] 新增了 `last_context_snapshot` 屬性，用於實現跨回合的上下文快照與恢復機制。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -137,10 +131,15 @@ class AILover:
         self.RPM_FAILURE_WINDOW = 60  # 短期失敗的時間窗口（秒）
         self.RPM_FAILURE_THRESHOLD = 3 # 在窗口內失敗多少次後觸發長期冷卻
 
+        # [v215.0 核心修正] 上下文快照
+        self.last_context_snapshot: Optional[Dict[str, Any]] = None
+
         # --- 核心链 (新架构) ---
         self.unified_generation_chain: Optional[Runnable] = None
         self.preemptive_tool_parsing_chain: Optional[Runnable] = None
 
+        # ... (後續屬性聲明保持不變) ...
+        
         # --- 功能性与備援鏈 ---
         self.input_analysis_chain: Optional[Runnable] = None
         self.scene_analysis_chain: Optional[Runnable] = None
@@ -3703,6 +3702,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
