@@ -129,7 +129,11 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：[新] 記憶與 LORE 查詢節點
 
-# 函式：[新] LORE 擴展決策與執行節點
+# graph.py 的 expansion_decision_and_execution_node 函式
+# 函式：[新] LORE 擴展決策與執行節點 (v4.0 - 原子化創造)
+# 更新紀錄:
+# v4.0 (2025-10-15): [架構重構] 移除了 `character_quantification_chain`，將用戶原始輸入直接傳遞給重構後的 `scene_casting_chain`，實現「原子化角色創建」，從根本上解決角色分裂問題。
+# v3.1 (2025-10-15): [災難性BUG修復] 在調用 `expansion_decision_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數。
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
     """[3] 決策是否需要擴展 LORE，如果需要，則立即執行擴展。"""
     user_id = state['user_id']
@@ -139,15 +143,20 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     logger.info(f"[{user_id}] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...")
 
     # Plan A: 嘗試使用 LLM 進行決策
-    # 準備一個輕量級的 JSON，只包含現有 NPC 的名字和描述
     lightweight_lore_json = json.dumps(
         [{"name": lore.content.get("name"), "description": lore.content.get("description")} for lore in raw_lore_objects if lore.category == 'npc_profile'],
         ensure_ascii=False
     )
     decision_chain = ai_core.get_expansion_decision_chain()
+    
+    # 這裡的調用保持不變，因為它需要原始輸入
+    decision_params = {
+        "user_input": safe_query_text, 
+        "existing_characters_json": lightweight_lore_json
+    }
     decision = await ai_core.ainvoke_with_rotation(
         decision_chain, 
-        {"user_input": safe_query_text, "existing_characters_json": lightweight_lore_json},
+        decision_params,
         retry_strategy='euphemize'
     )
 
@@ -162,30 +171,24 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     # --- 如果需要擴展，則執行擴展 ---
     logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
-    # Plan A: 嘗試使用主選角鏈 (Scene Casting)
+    # [v4.0 核心修正] Plan A: 移除 character_quantification_chain，直接調用新的 scene_casting_chain
     try:
-        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用主選角鏈...")
+        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用原子化的主選角鏈...")
         gs = ai_core.profile.game_state
         effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         
         casting_chain = ai_core.get_scene_casting_chain()
-        quant_chain = ai_core.get_character_quantification_chain()
-
-        quant_result = await ai_core.ainvoke_with_rotation(quant_chain, {"user_input": safe_query_text}, retry_strategy='euphemize')
-        if not quant_result or not quant_result.character_descriptions:
-            raise Exception("角色量化步驟失敗，無法繼續擴展。")
-
         cast_result = await ai_core.ainvoke_with_rotation(
             casting_chain,
             {
                 "world_settings": ai_core.profile.world_settings or "", 
                 "current_location_path": effective_location_path, 
-                "character_descriptions": quant_result.character_descriptions
+                "user_input": safe_query_text # 直接傳遞用戶原始輸入
             },
             retry_strategy='euphemize'
         )
         
-        if not cast_result: raise Exception("主選角鏈返回空值")
+        if not cast_result: raise Exception("原子化主選角鏈返回空值")
 
         created_names = await ai_core._add_cast_to_scene(cast_result)
         logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
@@ -206,7 +209,10 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
         else:
              logger.error(f"[{user_id}] (Graph|3) 子任務鏈備援最終失敗。")
              return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
-# 函式：[新] LORE 擴展決策與執行節點
+# graph.py 的 expansion_decision_and_execution_node 函式
+
+
+
 
 # 函式：[新] 前置工具調用節點
 async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
@@ -578,4 +584,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
