@@ -795,6 +795,9 @@ class BotCog(commands.Cog):
         await self.bot.wait_until_ready()
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
 
+    # 函式：處理訊息事件 (v2.0 - 直連模式攔截)
+    # 更新紀錄:
+    # v2.0 (2025-10-16): [功能擴展] 增加了對管理員「直連模式」的攔截。在呼叫 LangGraph 之前，會檢查使用者的 direct_mode_enabled 狀態，如果為 True，則會繞過整個圖形，直接呼叫 ai_core 中的專用函式進行對話。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -812,8 +815,25 @@ class BotCog(commands.Cog):
         if not ai_instance:
             await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
             return
-        logger.info(f"[{user_id}] 响应条件满足，启动 LangGraph 對話流程...")
+
         async with message.channel.typing():
+            # [v2.0 核心修正] 直連模式攔截
+            if ai_instance.profile and ai_instance.profile.game_state.direct_mode_enabled:
+                logger.info(f"[{user_id}] [直連模式] 已啟用，繞過 LangGraph，直接與 LLM 對話...")
+                try:
+                    response = await ai_instance.direct_chat_with_llm(user_input)
+                    if response and response.strip():
+                        for i in range(0, len(response), 2000):
+                            await message.channel.send(response[i:i+2000])
+                    else:
+                        await message.channel.send("（AI 沒有返回任何內容。）")
+                except Exception as e:
+                    logger.error(f"[{user_id}] [直連模式] 處理時發生異常: {e}", exc_info=True)
+                    await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
+                return # 結束函式，不執行後續的 LangGraph
+
+            # --- 原有的 LangGraph 流程 ---
+            logger.info(f"[{user_id}] 响应条件满足，启动 LangGraph 對話流程...")
             try:
                 chat_history_manager = ai_instance.session_histories.setdefault(user_id, ChatMessageHistory())
                 current_messages = chat_history_manager.messages.copy()
@@ -829,7 +849,46 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"處理使用者 {user_id} 的 LangGraph 聊天流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
+    # 函式：處理訊息事件 (v2.0 - 直連模式攔截)
 
+
+
+
+# discord_bot.py 的 admin_direct_mode 指令 (請將此函式添加到 BotCog class 的管理員指令區域)
+    # 函式：[全新] 切換直連 LLM 測試模式
+    # 更新紀錄:
+    # v1.0 (2025-10-16): [核心功能] 創建此管理員指令，允許為指定使用者開啟或關閉「直連模式」，以便進行功能測試。
+    @app_commands.command(name="admin_direct_mode", description="[管理員] 為指定使用者開啟或關閉直連 LLM 測試模式。")
+    @app_commands.check(is_admin)
+    @app_commands.autocomplete(target_user=user_autocomplete)
+    @app_commands.describe(target_user="要修改模式的目標使用者。", mode="選擇要開啟還是關閉直連模式。")
+    async def admin_direct_mode(self, interaction: discord.Interaction, target_user: str, mode: Literal['on', 'off']):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        ai_instance = await self.get_or_create_ai_instance(target_user)
+        if not ai_instance or not ai_instance.profile:
+            await interaction.followup.send(f"❌ 錯誤：找不到使用者 {target_user} 的資料，或其資料未初始化。", ephemeral=True)
+            return
+
+        try:
+            new_state = True if mode == 'on' else False
+            ai_instance.profile.game_state.direct_mode_enabled = new_state
+            
+            if await ai_instance.update_and_persist_profile({'game_state': ai_instance.profile.game_state.model_dump()}):
+                discord_user = self.bot.get_user(int(target_user)) or await self.bot.fetch_user(int(target_user))
+                status_text = "🟢 開啟" if new_state else "🔴 關閉"
+                await interaction.followup.send(f"✅ 成功！已為使用者 **{discord_user.name}** (`{target_user}`) 將直連 LLM 模式設定為 **{status_text}**。", ephemeral=True)
+            else:
+                await interaction.followup.send(f"❌ 錯誤：更新使用者 {target_user} 的設定檔失敗。", ephemeral=True)
+        except Exception as e:
+            logger.error(f"為使用者 {target_user} 切換直連模式時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 處理您的請求時發生了未預期的錯誤: {type(e).__name__}", ephemeral=True)
+    # 函式：[全新] 切換直連 LLM 測試模式
+
+
+
+
+    
     # finalize_setup (v46.0 - 適配持久化視圖)
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
