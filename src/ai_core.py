@@ -3287,14 +3287,12 @@ class AILover:
 
 
 
-     # 函式：將新角色加入場景 (v179.0 - 遠程LORE錨定)
+    # 函式：將新角色加入場景 (v181.0 - 返回Lore對象)
     # 更新紀錄:
-    # v179.0 (2025-09-06): [災難性BUG修復] 徹底重構了新LORE的地理位置錨定邏輯。此函式現在會檢查當前的 `viewing_mode`。如果在 `remote` 模式下，它會強制將所有新創建的NPC的地點設置為 `remote_target_path`，而不是錯誤地回退到玩家的物理位置。此修改從根本上解決了在遠程描述中創建的LORE被錯誤地放置在玩家身邊的嚴重問題。
-    # v178.2 (2025-09-06): [重大架構重構] 將此函式從 discord_bot.py 遷移至 ai_core.py。
-    # v178.1 (2025-09-06): [災難性BUG修復] 新增了核心主角保護機制。
-    # v180.0 (2025-10-15): [健壯性] 新增了地點路徑的健全性檢查，防止將動作或角色名錯誤地當作地點來創建 LORE。
-    async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[str]:
-        """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并在遇到命名冲突时启动多层备援机制。"""
+    # v181.0 (2025-10-10): [架構重構] 修改了函式的返回值，現在它返回一個包含完整 Lore 物件的列表，而不僅僅是名字字符串。此修改旨在為上游的圖節點提供更豐富的上下文數據，以中斷遞迴查詢風暴。
+    # v180.0 (2025-10-15): [健壯性] 新增了地點路徑的健全性檢查。
+    async def _add_cast_to_scene(self, cast_result: SceneCastingResult) -> List[Lore]:
+        """将 SceneCastingResult 中新创建的 NPC 持久化到 LORE 资料库，并返回被创建的 Lore 对象列表。"""
         if not self.profile:
             return []
 
@@ -3307,23 +3305,22 @@ class AILover:
         ai_name_lower = self.profile.ai_profile.name.lower()
         protected_names = {user_name_lower, ai_name_lower}
 
-        created_names = []
+        created_lores: List[Lore] = [] # [核心修正] 返回 Lore 物件
         for character in all_new_characters:
             try:
                 if character.name.lower() in protected_names:
                     logger.warning(f"[{self.user_id}] 【LORE 保護】：已攔截一個試圖創建與核心主角 '{character.name}' 同名的 NPC LORE。此創建請求已被跳過。")
                     continue
 
+                # ... 命名衝突處理邏輯保持不變 ...
                 names_to_try = [character.name] + character.alternative_names
                 final_name_to_use = None
                 conflicted_names = []
 
                 for name_attempt in names_to_try:
                     if name_attempt.lower() in protected_names:
-                        logger.warning(f"[{self.user_id}] 【LORE 保護】：NPC 的備用名 '{name_attempt}' 與核心主角衝突，已跳過此備用名。")
                         conflicted_names.append(name_attempt)
                         continue
-
                     existing_npcs = await get_lores_by_category_and_filter(
                         self.user_id, 'npc_profile', lambda c: c.get('name', '').lower() == name_attempt.lower()
                     )
@@ -3334,63 +3331,44 @@ class AILover:
                         conflicted_names.append(name_attempt)
                 
                 if final_name_to_use is None:
-                    logger.warning(f"[{self.user_id}] 【NPC 命名冲突】: 角色 '{character.name}' 的所有预生成名称 ({', '.join(names_to_try)}) 均已存在或與核心主角衝突。启动最终备援：强制LLM重命名。")
-                    
-                    renaming_prompt = PromptTemplate.from_template(
-                        "你是一个创意命名师。为一个角色想一个全新的名字。\n"
-                        "角色描述: {description}\n"
-                        "已存在的、不能使用的名字: {conflicted_names}\n"
-                        "请只返回一个全新的名字，不要有任何其他文字。"
-                    )
+                    logger.warning(f"[{self.user_id}] 【NPC 命名冲突】: 角色 '{character.name}' 的所有预生成名称均冲突。启动最终备援：强制LLM重命名。")
+                    renaming_prompt = PromptTemplate.from_template("为一个角色想一个全新的名字。\n角色描述: {description}\n已存在的、不能使用的名字: {conflicted_names}\n请只返回一个全新的名字。")
                     renaming_chain = renaming_prompt | self._create_llm_instance(temperature=0.8) | StrOutputParser()
-                    
-                    new_name = await self.ainvoke_with_rotation(renaming_chain, {
-                        "description": character.description,
-                        "conflicted_names": ", ".join(conflicted_names + list(protected_names))
-                    })
-                    
+                    new_name = await self.ainvoke_with_rotation(renaming_chain, {"description": character.description, "conflicted_names": ", ".join(conflicted_names + list(protected_names))})
                     final_name_to_use = new_name.strip().replace('"', '').replace("'", "")
                     logger.info(f"[{self.user_id}] 最终备援成功，AI为角色生成了新名称: '{final_name_to_use}'")
 
                 character.name = final_name_to_use
                 
-                # --- [v180.0 核心修正] 地點路徑健全性檢查 ---
                 final_location_path: List[str]
                 gs = self.profile.game_state
-                
                 candidate_path = character.location_path or (gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path)
-                
-                # 檢查路徑是否看起來像一個真實的地點
                 is_valid_path = True
                 invalid_keywords = ["口交", "做愛", "插入", "攻擊", "命令"] + list(protected_names)
                 for part in candidate_path:
                     if any(kw in part.lower() for kw in invalid_keywords):
                         is_valid_path = False
                         break
-                
                 if is_valid_path:
                     final_location_path = candidate_path
                 else:
-                    # 如果候選路徑無效，則強制回退到玩家的真實物理位置
                     final_location_path = gs.location_path
                     logger.warning(f"[{self.user_id}] [地點錨定保護] 檢測到無效的地點路徑 '{candidate_path}'，已強制回退到玩家的真實位置 '{final_location_path}'。")
                 
                 character.location_path = final_location_path
-                # --- 修正結束 ---
                 
                 path_prefix = " > ".join(final_location_path)
                 lore_key = f"{path_prefix} > {character.name}"
                 
-                await db_add_or_update_lore(self.user_id, 'npc_profile', lore_key, character.model_dump())
+                new_lore = await db_add_or_update_lore(self.user_id, 'npc_profile', lore_key, character.model_dump())
                 logger.info(f"[{self.user_id}] 已成功将【新】NPC '{character.name}' 添加到場景 '{path_prefix}'。")
-                created_names.append(character.name)
+                created_lores.append(new_lore) # [核心修正] 添加 Lore 物件
 
             except Exception as e:
                 logger.error(f"[{self.user_id}] 在将新角色 '{character.name}' 添加到 LORE 时发生错误: {e}", exc_info=True)
         
-        return created_names
-    # 函式：將新角色加入場景 (v179.0 - 遠程LORE錨定)
-
+        return created_lores # [核心修正] 返回 Lore 物件列表
+    # 函式：將新角色加入場景 (v181.0 - 返回Lore對象)
 
     
 
@@ -3501,6 +3479,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
