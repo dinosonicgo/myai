@@ -306,6 +306,53 @@ class AILover:
         logger.info(f"[{self.user_id}] 正在創建 Embedding 模型實例 (API Key index: {key_index})")
         return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
     # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
+
+
+
+
+
+
+    # 函式：[全新] 直連 LLM 對話 (管理員測試功能)
+    # 更新紀錄:
+    # v1.0 (2025-10-16): [核心功能] 創建此函式，用於提供一個繞過 LangGraph、無上下文、但應用了安全閥值的直接 LLM 對話通道，以供管理員進行功能測試和性能對比。
+    async def direct_chat_with_llm(self, user_input: str) -> str:
+        """
+        執行一個無上下文、無 Prompt 模板的直接 LLM 呼叫。
+        此函式會使用最高優先級的模型並應用標準的安全閥值設定。
+        """
+        logger.info(f"[{self.user_id}] [直連模式] 正在執行直接 LLM 呼叫...")
+        try:
+            # 使用最高優先級的模型進行測試
+            model_name = self.model_priority_list[0] if self.model_priority_list else FUNCTIONAL_MODEL
+            
+            # 創建一個純淨的鏈，只包含 LLM 和輸出解析器
+            # _create_llm_instance 會自動應用安全閥值
+            llm = self._create_llm_instance(model_name=model_name, temperature=0.7)
+            if not llm:
+                return "（錯誤：無法創建 LLM 實例，可能所有 API 金鑰都在冷卻中。）"
+            
+            chain = llm | StrOutputParser()
+
+            # 使用 ainvoke_with_rotation 呼叫以利用其健壯的重試和降級機制
+            # 但使用 'none' 策略以避免不必要的委婉化或轟炸
+            response = await self.ainvoke_with_rotation(
+                chain,
+                user_input,
+                retry_strategy='none',
+                use_degradation=True # 允許在失敗時降級模型
+            )
+
+            if not response:
+                return "（AI 沒有返回任何內容，可能觸發了內容審查或 API 錯誤。）"
+            
+            return str(response)
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [直連模式] 執行時發生嚴重錯誤: {e}", exc_info=True)
+            return f"（在執行直接 LLM 呼叫時發生了嚴重錯誤：{type(e).__name__}）"
+    # 函式：[全新] 直連 LLM 對話 (管理員測試功能)
+
+
     
 
     
@@ -3481,6 +3528,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
