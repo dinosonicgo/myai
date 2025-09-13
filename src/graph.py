@@ -129,11 +129,15 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     }
 # 函式：[新] 記憶與 LORE 查詢節點
 
+
+
+
+
 # graph.py 的 expansion_decision_and_execution_node 函式
-# 函式：[新] LORE 擴展決策與執行節點 (v4.0 - 原子化創造)
+# 函式：[新] LORE 擴展決策與執行節點 (v5.0 - 循環中斷)
 # 更新紀錄:
-# v4.0 (2025-10-15): [架構重構] 移除了 `character_quantification_chain`，將用戶原始輸入直接傳遞給重構後的 `scene_casting_chain`，實現「原子化角色創建」，從根本上解決角色分裂問題。
-# v3.1 (2025-10-15): [災難性BUG修復] 在調用 `expansion_decision_chain` 時，補全了缺失的 `username` 和 `ai_name` 參數。
+# v5.0 (2025-10-10): [災難性BUG修復] 徹底重構了節點的輸出邏輯。移除了在節點末尾對 `retrieve_and_query_node` 的遞迴式調用，改為在節點內部手動合併新舊 LORE 列表後再輸出。此修改從根本上解決了因不穩定的數據流和 API 調用加倍而導致的「遞迴查詢」風暴問題。
+# v4.0 (2025-10-15): [架構重構] 移除了 `character_quantification_chain`。
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
     """[3] 決策是否需要擴展 LORE，如果需要，則立即執行擴展。"""
     user_id = state['user_id']
@@ -142,14 +146,12 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...")
 
-    # Plan A: 嘗試使用 LLM 進行決策
     lightweight_lore_json = json.dumps(
         [{"name": lore.content.get("name"), "description": lore.content.get("description")} for lore in raw_lore_objects if lore.category == 'npc_profile'],
         ensure_ascii=False
     )
     decision_chain = ai_core.get_expansion_decision_chain()
     
-    # 這裡的調用保持不變，因為它需要原始輸入
     decision_params = {
         "user_input": safe_query_text, 
         "existing_characters_json": lightweight_lore_json
@@ -168,10 +170,9 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
         logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {decision.reasoning}")
         return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
 
-    # --- 如果需要擴展，則執行擴展 ---
     logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
-    # [v4.0 核心修正] Plan A: 移除 character_quantification_chain，直接調用新的 scene_casting_chain
+    newly_created_lores = [] # 用於存儲新創建的 LORE 對象
     try:
         logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用原子化的主選角鏈...")
         gs = ai_core.profile.game_state
@@ -183,32 +184,32 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
             {
                 "world_settings": ai_core.profile.world_settings or "", 
                 "current_location_path": effective_location_path, 
-                "user_input": safe_query_text # 直接傳遞用戶原始輸入
+                "user_input": safe_query_text
             },
             retry_strategy='euphemize'
         )
         
         if not cast_result: raise Exception("原子化主選角鏈返回空值")
 
-        created_names = await ai_core._add_cast_to_scene(cast_result)
+        # _add_cast_to_scene 現在應該返回 Lore 對象列表
+        newly_created_lores = await ai_core._add_cast_to_scene(cast_result)
+        created_names = [lore.content.get("name", "未知") for lore in newly_created_lores]
         logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
         
-        # 關鍵步驟：擴展後，重新查詢一次 LORE 以獲取最新的場景實體
-        all_lores_after_expansion_state = await retrieve_and_query_node(state)
-        return {"planning_subjects": [lore.content for lore in all_lores_after_expansion_state.get("raw_lore_objects", [])]}
-
     except Exception as e:
-        # Plan B (備援): 主鏈失敗，啟動 Gemini 子任務鏈備援
         logger.warning(f"[{user_id}] (Graph|3) 擴展 Plan A 失敗: {e}。啟動【Gemini子任務鏈備援】...")
         newly_created_lores = await ai_core.gemini_subtask_expansion_fallback(safe_query_text)
         if newly_created_lores:
              logger.info(f"[{user_id}] (Graph|3) 子任務鏈備援成功，創建了 {len(newly_created_lores)} 位新角色。")
-             all_current_lores = state.get('raw_lore_objects', [])
-             all_current_lores.extend(newly_created_lores)
-             return {"planning_subjects": [lore.content for lore in all_current_lores]}
         else:
              logger.error(f"[{user_id}] (Graph|3) 子任務鏈備援最終失敗。")
-             return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
+    
+    # [v5.0 核心修正] 在節點內部合併新舊 LORE，然後直接輸出
+    final_lore_objects = raw_lore_objects + newly_created_lores
+    # 去重
+    final_lores_map = {lore.key: lore for lore in final_lore_objects}
+    
+    return {"planning_subjects": [lore.content for lore in final_lores_map.values()]}
 # graph.py 的 expansion_decision_and_execution_node 函式
 
 
@@ -584,5 +585,6 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
+
 
 
