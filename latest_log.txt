@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-13T23:09:49.955265 ###
+### AI Lover Log - Last updated at 2025-09-13T23:15:13.609304 ###
 
-2025-09-13 23:06:31 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-13 23:06:33 - [WARNING] - [512280345618546699] API Key index: 1 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-13 23:06:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
-2025-09-13 23:06:38 - [WARNING] - [512280345618546699] API Key index: 2 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-13 23:06:40 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-13 23:06:42 - [WARNING] - [512280345618546699] API Key index: 3 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-13 23:06:44 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-13 23:06:47 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制。正在輪換到下一個金鑰...
-2025-09-13 23:06:49 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite) 和所有 API 金鑰均嘗試失敗。
-2025-09-13 23:06:49 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'force'
-2025-09-13 23:06:49 - [WARNING] - [512280345618546699] 鏈遭遇審查。啟動【地毯式指令強化重試】策略...
-2025-09-13 23:06:49 - [INFO] - [512280345618546699] 已對參數中的所有字符串欄位附加強制指令，正在進行強化重試...
-2025-09-13 23:06:51 - [ERROR] - [512280345618546699] 指令強化重試最終失敗: 429 Resource has been exhausted (e.g. check quota).
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3180, in _force_and_retry
-    return await failed_chain.ainvoke(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 417, in ainvoke
-    llm_result = await self.agenerate_prompt(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 991, in agenerate_prompt
-    return await self.agenerate(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 949, in agenerate
-    raise exceptions[0]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 1117, in _agenerate_with_cache
     result = await self._agenerate(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1010, in _agenerate
     response: GenerateContentResponse = await _achat_with_retry(
@@ -100,3 +75,28 @@ violations {
 2025-09-13 23:06:59 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 3 個任務) ---
 2025-09-13 23:07:11 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
 2025-09-13 23:07:11 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
+2025-09-13 23:14:59 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-13 23:14:59 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-13 23:15:02 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-13 23:15:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-13 23:15:03 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-13 23:15:12 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 2 條記憶。
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-13 23:15:12 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 成功恢復了 2 條對話記錄到短期記憶中。
+2025-09-13 23:15:13 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 响应条件满足，启动 LangGraph 對話流程...
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景...
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-13 23:15:13 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
