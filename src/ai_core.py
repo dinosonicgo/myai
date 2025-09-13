@@ -109,10 +109,11 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v210.0 - 统一流程重构)
+    # 函式：初始化AI核心 (v221.0 - 冷卻系統)
     # 更新紀錄:
-    # ... (保留之前的更新紀錄)
-    # v215.0 (2025-10-15): [健壯性] 新增了 `last_context_snapshot` 屬性，用於實現跨回合的上下文快照與恢復機制。
+    # v221.0 (2025-10-15): [健壯性] 新增了 `key_cooldowns` 屬性，用於實現 API 金鑰冷卻系統，以應對專案級的速率限制。
+    # v215.0 (2025-10-15): [健壯性] 新增了 `last_context_snapshot` 屬性。
+    # v210.0 (2025-10-15): [健壯性] 統一了流程重構。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -125,11 +126,8 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v214.0 核心修正] 實現智能兩級冷卻系統
-        self.key_cooldowns: Dict[int, float] = {} # 長期冷卻 (RPD)
-        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list) # 短期失敗記錄 (RPM)
-        self.RPM_FAILURE_WINDOW = 60  # 短期失敗的時間窗口（秒）
-        self.RPM_FAILURE_THRESHOLD = 3 # 在窗口內失敗多少次後觸發長期冷卻
+        # [v221.0 核心修正] 新增 API 金鑰冷卻字典
+        self.key_cooldowns: Dict[int, float] = {} # 鍵: key_index, 值: 解除冷卻的時間戳
 
         # [v215.0 核心修正] 上下文快照
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
@@ -137,8 +135,6 @@ class AILover:
         # --- 核心链 (新架构) ---
         self.unified_generation_chain: Optional[Runnable] = None
         self.preemptive_tool_parsing_chain: Optional[Runnable] = None
-
-        # ... (後續屬性聲明保持不變) ...
         
         # --- 功能性与備援鏈 ---
         self.input_analysis_chain: Optional[Runnable] = None
@@ -193,7 +189,7 @@ class AILover:
         
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v210.0 - 统一流程重构)
+    # 函式：初始化AI核心 (v221.0 - 冷卻系統)
     
 
 
@@ -241,11 +237,10 @@ class AILover:
     # 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
 
 
-    # 函式：獲取下一個可用的 API 金鑰 (v1.0 - 全新創建)
+    # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
     # 更新紀錄:
-    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於集中管理 API 金鑰的輪換。確保所有需要金鑰的實例（LLM 和 Embeddings）都能使用統一的輪換邏輯。
     # v2.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，會自動跳過處於冷卻期的金鑰。
-    # v2.1 (2025-10-15): [健壯性] 增加了更詳細的日誌記錄。
+    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於集中管理 API 金鑰的輪換。
     def _get_next_available_key(self) -> Optional[Tuple[str, int]]:
         """
         獲取下一個可用的 API 金鑰及其索引。
@@ -260,7 +255,6 @@ class AILover:
             
             cooldown_until = self.key_cooldowns.get(index_to_check)
             if cooldown_until and time.time() < cooldown_until:
-                # [v2.1 新增] 增加日誌
                 cooldown_remaining = round(cooldown_until - time.time())
                 logger.info(f"[{self.user_id}] [API Key Cooling] 跳過冷卻中的 API Key #{index_to_check} (剩餘 {cooldown_remaining} 秒)。")
                 continue
@@ -272,17 +266,24 @@ class AILover:
         # 如果循環結束都沒有找到可用的金鑰
         logger.warning(f"[{self.user_id}] [API 警告] 所有 API 金鑰當前都處於冷卻期。")
         return None
-    # 函式：獲取下一個可用的 API 金鑰 (v1.0 - 全新創建)
+    # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
 
-    # ... (保留 _create_llm_instance 和 _create_embeddings_instance，但它們現在需要調用 _get_next_available_key) ...
 
+
+    # 函式：創建 LLM 實例 (v3.2 - 適配冷卻系統)
+    # 更新紀錄:
+    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後，此處未更新調用導致的 AttributeError。
+    # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> Optional[ChatGoogleGenerativeAI]:
+        """
+        創建並返回一個 ChatGoogleGenerativeAI 實例。
+        此函式會從 `_get_next_available_key` 獲取當前可用的 API 金鑰。
+        """
         key_info = self._get_next_available_key()
         if not key_info:
-            return None
+            return None # 沒有可用的金鑰
         key_to_use, key_index = key_info
         
-        # ... (後續的 generation_config 和日誌記錄邏輯不變) ...
         generation_config = {"temperature": temperature}
         if model_name == "gemini-2.5-flash-lite":
             generation_config["thinking_config"] = {"thinking_budget": -1}
@@ -293,27 +294,31 @@ class AILover:
             model=model_name,
             google_api_key=key_to_use,
             safety_settings=SAFETY_SETTINGS,
-            generation_config=generation_config
+            generation_config=generation_config,
+            max_retries=1 
         )
+    # 函式：創建 LLM 實例 (v3.2 - 適配冷卻系統)
 
-    # 函式：創建 Embeddings 實例 (v1.0 - 全新創建)
+
+    
+
+    # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
     # 更新紀錄:
-    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於在需要時創建 GoogleGenerativeAIEmbeddings 實例，並使用當前輪換的金鑰。
-    # v1.1 (2025-10-15): [災難性BUG修復] 修正了因重命名 `_get_next_api_key_and_index` 為 `_get_next_available_key` 後，此處未更新調用導致的 AttributeError。
+    # v1.1 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後，此處未更新調用導致的 AttributeError。
+    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式。
     def _create_embeddings_instance(self) -> Optional[GoogleGenerativeAIEmbeddings]:
         """
         創建並返回一個 GoogleGenerativeAIEmbeddings 實例。
-        此函式會從 `_get_next_available_key` 獲取當前輪換的 API 金鑰。
+        此函式會從 `_get_next_available_key` 獲取當前可用的 API 金鑰。
         """
-        # [v1.1 核心修正] 調用重命名後的函式
         key_info = self._get_next_available_key()
         if not key_info:
-            return None
+            return None # 沒有可用的金鑰
         key_to_use, key_index = key_info
         
         logger.info(f"[{self.user_id}] 正在創建 Embedding 模型實例 (API Key index: {key_index})")
         return GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
-    # 函式：創建 Embeddings 實例 (v1.0 - 全新創建)
+    # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
     
 
     
@@ -3187,10 +3192,11 @@ class AILover:
 
     
     
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
+# ai_core.py 的 ainvoke_with_rotation 函式
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v221.0 - 冷卻系統)
     # 更新紀錄:
-    # v220.0 (2025-10-06): [重大架構重構] 彻底重写了此函式，以实现“模型降级 x 金鑰轮换”的二维重试矩阵。新增 use_degradation 参数，当为 True 时，外层循环会按优先级列表降级模型；内层循环则在每个模型级别上轮换所有 API 金鑰。此修改为系统提供了前所未有的健壮性，能在输出质量和抗审查能力之间进行动态平衡。
-    # v210.0 (2025-09-08): [災難性BUG修復] 新增了 'none' 快速失败策略。
+    # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。當一個金鑰遭遇速率限制時，會被置於 65 秒的冷卻期，期間會被自動跳過。此修改旨在從根本上解決因 API 專案級速率限制而導致的“重試風暴”問題。
+    # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3200,80 +3206,83 @@ class AILover:
     ) -> Any:
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         
-        # 外層循環：模型降級
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            # 內層循環：API Key 輪換
+            model_succeeded = False
+            
+            # 嘗試所有 API 金鑰
             for attempt in range(len(self.api_keys)):
+                # [核心修正] 獲取下一個 *可用* 的金鑰
+                key_info = self._get_next_available_key()
+                if not key_info:
+                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
+                    break # 跳出金鑰循環，觸發模型降級
+
+                key_to_use, key_index = key_info
+
                 try:
-                    # 在每次嘗試時都重新創建 LLM 實例，以確保使用最新的輪換金鑰
+                    self.embeddings = self._create_embeddings_instance()
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
-                    # 如果沒有可用的金鑰（全部冷卻中），則跳出內層循環
                     if not configured_llm:
-                        logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
-                        break 
-                        
-                    # 智能綁定 LLM 到鏈上
+                        continue # 如果創建失敗（例如，因為金鑰在 _get_next_available_key 中被跳過）
+
                     effective_chain = chain
-                    # Case 1: 如果鏈只是一個 Prompt，則直接附加 LLM
                     if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | configured_llm
-                    # Case 2: 如果鏈是一個複雜的可配置對象，則用新 LLM 替換
                     elif hasattr(chain, 'with_config'):
                         try:
-                            # 這是 LangChain 的標準方式，但並非所有鏈都支持
                             effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
                         except Exception:
-                            # 如果 with_config 失敗，回退到追加模式
-                            effective_chain = chain | configured_llm
-                    else:
-                        effective_chain = chain | configured_llm
-
+                            effective_chain = chain
+                    
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
-                        timeout=90.0 # 增加超時以適應更強大的模型
+                        timeout=90.0
                     )
                     
-                    # 檢查是否因安全審查返回空內容
                     is_empty_or_invalid = not result or (hasattr(result, 'content') and not getattr(result, 'content', True))
                     if is_empty_or_invalid:
                         raise Exception("SafetyError: The model returned an empty or invalid response.")
                     
-                    # 如果成功，則直接返回結果
+                    model_succeeded = True
                     return result
 
                 except asyncio.TimeoutError:
-                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {self.current_key_index})。正在嘗試下一個金鑰...")
-                    await asyncio.sleep(2.0)
-                    continue
-
+                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {key_index})。")
+                    await asyncio.sleep(3.0)
+                
                 except Exception as e:
                     error_str = str(e).lower()
                     is_safety_error = "safety" in error_str or "blocked" in error_str or "empty or invalid response" in error_str
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_rate_limit_error:
-                        logger.warning(f"[{self.user_id}] API Key index: {self.current_key_index} 遭遇速率限制。正在輪換到下一個金鑰...")
-                        await asyncio.sleep(2.0)
-                        continue # 繼續內層循環，嘗試下一個 Key
+                        # [核心修正] 觸發冷卻
+                        cooldown_seconds = 65
+                        cooldown_until = time.time() + cooldown_seconds
+                        self.key_cooldowns[key_index] = cooldown_until
+                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制。已將其置於 {cooldown_seconds} 秒的冷卻期。")
+                        await asyncio.sleep(3.0) # 等待一下再嘗試下一個
+                    
                     elif is_safety_error:
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {self.current_key_index}) 遭遇內容審查。將直接嘗試下一個更高優先級的模型。")
-                        await asyncio.sleep(2.0)
-                        break # 跳出內層循環，進入外層循環的下一個 Model
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
+                        await asyncio.sleep(3.0)
+                        break 
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        await asyncio.sleep(2.0)
-                        break # 未知錯誤，也嘗試下一個 Model
-
-            # 如果內層循環（所有Key）都嘗試完畢，檢查是否需要降級
-            if model_index < len(models_to_try) - 1:
-                logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有 API 金鑰後均失敗。正在降級到下一個模型...")
+                        await asyncio.sleep(3.0)
+                        break
+            
+            if not model_succeeded:
+                if model_index < len(models_to_try) - 1:
+                    logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...")
+                else:
+                    logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
             else:
-                logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有 API 金鑰均嘗試失敗。")
+                break
 
-        # 如果所有模型和金鑰都失敗了，則啟動最終的備援策略
         logger.error(f"[{self.user_id}] 所有標準嘗試均失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
@@ -3281,8 +3290,8 @@ class AILover:
         elif retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params, Exception("Final fallback after all retries."))
         
-        return None # 如果策略是 'none' 或其他未知值，則返回 None
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v220.0 - 二维重试矩阵)
+        return None
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v221.0 - 冷卻系統)
     
 
 
@@ -3479,6 +3488,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
