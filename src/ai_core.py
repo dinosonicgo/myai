@@ -109,16 +109,14 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v221.0 - 冷卻系統)
+    # 函式：初始化AI核心 (v222.0 - 兩級冷卻)
     # 更新紀錄:
-    # v221.0 (2025-10-15): [健壯性] 新增了 `key_cooldowns` 屬性，用於實現 API 金鑰冷卻系統，以應對專案級的速率限制。
-    # v215.0 (2025-10-15): [健壯性] 新增了 `last_context_snapshot` 屬性。
-    # v210.0 (2025-10-15): [健壯性] 統一了流程重構。
+    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制，並避免因短期抖動而導致的長期封鎖。
+    # v221.0 (2025-10-15): [健壯性] 新增了 `key_cooldowns` 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
         
-        # --- 模型管理 ---
         self.model_priority_list: List[str] = GENERATION_MODEL_PRIORITY
         self.current_model_index: int = 0
         self.current_key_index: int = 0
@@ -126,17 +124,16 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v221.0 核心修正] 新增 API 金鑰冷卻字典
-        self.key_cooldowns: Dict[int, float] = {} # 鍵: key_index, 值: 解除冷卻的時間戳
+        # [v222.0 核心修正] 實現智能兩級冷卻系統
+        self.key_cooldowns: Dict[int, float] = {} # 長期冷卻 (RPD)
+        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list) # 短期失敗記錄 (RPM)
+        self.RPM_FAILURE_WINDOW = 60  # 短期失敗的時間窗口（秒）
+        self.RPM_FAILURE_THRESHOLD = 3 # 在窗口內失敗多少次後觸發長期冷卻
 
-        # [v215.0 核心修正] 上下文快照
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
 
-        # --- 核心链 (新架构) ---
         self.unified_generation_chain: Optional[Runnable] = None
         self.preemptive_tool_parsing_chain: Optional[Runnable] = None
-        
-        # --- 功能性与備援鏈 ---
         self.input_analysis_chain: Optional[Runnable] = None
         self.scene_analysis_chain: Optional[Runnable] = None
         self.expansion_decision_chain: Optional[Runnable] = None
@@ -147,8 +144,6 @@ class AILover:
         self.gemini_creative_name_chain: Optional[Runnable] = None
         self.gemini_description_generation_chain: Optional[Runnable] = None
         self.entity_extraction_chain: Optional[Runnable] = None 
-        
-        # --- 其他輔助鏈 ---
         self.personal_memory_chain: Optional[Runnable] = None
         self.output_validation_chain: Optional[Runnable] = None
         self.rewrite_chain: Optional[Runnable] = None
@@ -166,30 +161,22 @@ class AILover:
         self.profile_completion_chain: Optional[Runnable] = None 
         self.profile_rewriting_chain: Optional[Runnable] = None 
         self.remote_planning_chain: Optional[Runnable] = None 
-
-        # --- (保留) /start 流程專用鏈 ---
         self.world_genesis_chain: Optional[Runnable] = None
-        
-        # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
-        
         self.vector_store: Optional[Chroma] = None
         self.retriever: Optional[EnsembleRetriever] = None
         self.bm25_retriever: Optional[BM25Retriever] = None
         self.embeddings: Optional[GoogleGenerativeAIEmbeddings] = None
         self.available_tools: Dict[str, Runnable] = {}
-        
         self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
         self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
         self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
-        
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
-        
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v221.0 - 冷卻系統)
+    # 函式：初始化AI核心 (v222.0 - 兩級冷卻)
     
 
 
@@ -1537,10 +1524,10 @@ class AILover:
 
 
 
-    # 函式：[全新] 獲取统一生成链 (v3.0 - 結構修正)
+    # 函式：[全新] 獲取统一生成链 (v5.0 - 劇情錨點與設定融合)
     # 更新紀錄:
-    # v3.0 (2025-10-08): [災難性BUG修復] 修正了鏈的結構。在 Prompt 和 StrOutputParser 之間增加了一個佔位的 LLM 實例，以確保數據流的正確性 (Prompt -> LLM -> Parser)，從根本上解決了因數據類型不匹配導致的 ValidationError。
-    # v2.0 (2025-10-07): [重大品質提升] 重构了 Human Prompt 模板的结构。
+    # v5.0 (2025-10-15): [災難性BUG修復] 引入了【劇情錨點】模板結構和【設定融合】原則，強制 AI 進行劇情延續，並將用戶在連續指令中補充的新 LORE 應用到現有劇情上。
+    # v4.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】模板結構。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -1554,41 +1541,51 @@ class AILover:
 ---
 """
             
-            human_prompt_template = """# ==============================================================================
-# == 📚 第一部分：上下文與背景數據 (參考資料) 📚
+            human_prompt_template = """
 # ==============================================================================
-# 說明：這是供你參考的背景資料。如果與下方的核心指令衝突，則以後者為準。
+# == 🎬 第一部分：劇情錨點 (Plot Anchor - 最高劇情優先級) 🎬
+# ==============================================================================
+# 說明：這是上一回合的場景原文。如果此部分不為「（無）」，你的創作【必须】
+#       作為這段原文的直接、無縫的延續。
+# ------------------------------------------------------------------------------
+{plot_anchor}
+# ==============================================================================
+# == 🎯 第二部分：本回合核心任務指令 (最高指令優先級) 🎯
+# ==============================================================================
+# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。
+#
+# --- 【設定融合原則 (Setting Integration Principle)】 ---
+# 如果下方的指令中，除了「繼續」等動作詞外，還包含了對角色或世界的新描述
+# （例如「繼續，並且性神教徒喜愛被凌辱」），你【必须】將這些新描述視為對【劇情錨點】
+# 中角色的【即時設定更新】，並讓你接下來的創作【體現】出這些新特性。
+# ------------------------------------------------------------------------------
+{latest_user_input}
+# ==============================================================================
+# == 📚 第三部分：上下文與背景數據 (次要參考) 📚
+# ==============================================================================
+# 說明：這是供你參考的背景資料。如果與【劇情錨點】或【核心任務指令】衝突，
+#       則以後兩者為準。
 # ------------------------------------------------------------------------------
 ## 📜 歷史上下文 (背景參考) 📜
 {historical_context}
 ## 📖 世界即時快照 (當前事實) 📖
 {world_snapshot}
 # ==============================================================================
-# == 🎯 第二部分：本回合核心任務指令 (最高優先級) 🎯
-# ==============================================================================
-# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。
-# ------------------------------------------------------------------------------
-{latest_user_input}
-# ==============================================================================
 # == ✍️ 你的創作 ==
-# 現在，請嚴格遵循所有規則，絕對優先地執行【核心任務指令】，並基於【上下文數據】
-# 來豐富細節。
+# 現在，請嚴格遵循所有規則，首先確保你的創作是【劇情錨點】的直接延續，
+# 然後絕對優先地執行【核心任務指令】（並融合其中的新設定），最後基於
+# 【上下文數據】來豐富細節。
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
                 ("human", human_prompt_template)
             ])
             
-            # [核心修正] 創建一個佔位的 LLM 實例。ainvoke_with_rotation 會在運行時
-            # 用一個帶有正確模型和金鑰的實例來替換它。
-            # 這確保了鏈的結構始終是 [Prompt -> LLM -> Parser]。
             placeholder_llm = self._create_llm_instance()
-
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[全新] 獲取统一生成链 (v3.0 - 結構修正)
-
+    # 函式：[全新] 獲取统一生成链 (v5.0 - 劇情錨點與設定融合)
 
 
 
@@ -3183,11 +3180,10 @@ class AILover:
 
     
     
-# ai_core.py 的 ainvoke_with_rotation 函式
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v221.0 - 冷卻系統)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v222.0 - 兩級冷卻)
     # 更新紀錄:
-    # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。當一個金鑰遭遇速率限制時，會被置於 65 秒的冷卻期，期間會被自動跳過。此修改旨在從根本上解決因 API 專案級速率限制而導致的“重試風暴”問題。
-    # v220.1 (2025-10-14): [災難性BUG修復] 修正了 LLM 綁定邏輯。
+    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制，並避免因短期抖動而導致的長期封鎖。
+    # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3202,22 +3198,20 @@ class AILover:
             
             model_succeeded = False
             
-            # 嘗試所有 API 金鑰
             for attempt in range(len(self.api_keys)):
-                # [核心修正] 獲取下一個 *可用* 的金鑰
                 key_info = self._get_next_available_key()
                 if not key_info:
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
-                    break # 跳出金鑰循環，觸發模型降級
-
-                key_to_use, key_index = key_info
+                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
+                    break 
+                
+                _, key_index = key_info
 
                 try:
                     self.embeddings = self._create_embeddings_instance()
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
                     if not configured_llm:
-                        continue # 如果創建失敗（例如，因為金鑰在 _get_next_available_key 中被跳過）
+                        continue
 
                     effective_chain = chain
                     if isinstance(chain, ChatPromptTemplate):
@@ -3250,13 +3244,21 @@ class AILover:
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_rate_limit_error:
-                        # [核心修正] 觸發冷卻
-                        cooldown_seconds = 65
-                        cooldown_until = time.time() + cooldown_seconds
-                        self.key_cooldowns[key_index] = cooldown_until
-                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制。已將其置於 {cooldown_seconds} 秒的冷卻期。")
-                        await asyncio.sleep(3.0) # 等待一下再嘗試下一個
-                    
+                        # [v222.0 核心修正] 智能兩級冷卻邏輯
+                        now = time.time()
+                        self.key_short_term_failures[key_index].append(now)
+                        self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                        
+                        failure_count = len(self.key_short_term_failures[key_index])
+                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。")
+
+                        if failure_count >= self.RPM_FAILURE_THRESHOLD:
+                            logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
+                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
+                            self.key_short_term_failures[key_index] = []
+                        
+                        await asyncio.sleep(3.0)
+
                     elif is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
                         await asyncio.sleep(3.0)
@@ -3281,8 +3283,8 @@ class AILover:
         elif retry_strategy == 'euphemize':
             return await self._euphemize_and_retry(chain, params, Exception("Final fallback after all retries."))
         
-        return None
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v221.0 - 冷卻系統)
+        return None 
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v222.0 - 兩級冷卻)
     
 
 
@@ -3479,6 +3481,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
