@@ -620,17 +620,18 @@ class VersionControlView(discord.ui.View):
         embed.add_field(name="⚠️ 最終確認", value=f"您確定要將伺服器程式碼回退到 **`{version}`** 嗎？", inline=False)
         await interaction.edit_original_response(embed=embed, view=self)
 
-# 類別：機器人核心功能集 (Cog) (v47.0 - 終極簡化)
+# 類別：機器人核心功能集 (Cog) (v48.0 - 徹底移除Graph)
 class BotCog(commands.Cog):
     def __init__(self, bot: "AILoverBot"):
         self.bot = bot
         self.ai_instances: dict[str, AILover] = {}
         self.setup_locks: set[str] = set()
         
-        # [v47.0 核心修正] 移除 main_response_graph，只保留 setup_graph
-        self.setup_graph = create_setup_graph()
+        # [v48.0 核心修正] 徹底移除所有 LangGraph 實例
+        # self.setup_graph = create_setup_graph()
         
         self.connection_watcher.start()
+# 類別：機器人核心功能集 (Cog) (v48.0 - 徹底移除Graph)
 
     def cog_unload(self):
         self.connection_watcher.cancel()
@@ -767,7 +768,9 @@ class BotCog(commands.Cog):
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # 函式：處理訊息事件 (v47.0 - 終極簡化架構)
 
-    # finalize_setup (保持不變，繼續使用 LangGraph)
+    # 函式：完成設定流程 (v48.0 - 徹底移除Graph)
+    # 更新紀錄:
+    # v48.0 (2025-10-19): [重大架構重構] 徹底重寫此函式，移除了對 LangGraph 的所有依賴。現在，它通過手動串行調用 ai_core 中的專用函式來執行創世流程，確保了 /start 流程中的每一次 LLM 調用都受到 ainvoke_with_rotation 的保護。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
@@ -782,18 +785,30 @@ class BotCog(commands.Cog):
         try:
             await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到兩分鐘，請稍候。", ephemeral=True)
             
-            logger.info(f"[{user_id}] /start 流程：正在強制初始化 AI 核心組件...")
-            await ai_instance._configure_pre_requisites()
+            # [v48.0 核心修正] 手動編排的串行創世流程
             
-            initial_state = SetupGraphState(user_id=user_id, ai_core=ai_instance, canon_text=canon_text)
-            logger.info(f"[{user_id}] /start 流程：準備調用 LangGraph 設定圖...")
-            final_state = await self.setup_graph.ainvoke(initial_state)
-            logger.info(f"[{user_id}] /start 流程：LangGraph 設定圖執行完畢。")
-            
-            opening_scene = final_state.get('opening_scene')
-            
-            if not opening_scene:
-                 opening_scene = (f"在一片柔和的光芒中，你和 {ai_instance.profile.ai_profile.name} 發現自己身處於一個寧靜的空間裡...")
+            # 階段一：處理世界聖經
+            logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
+            await ai_instance.process_canon_and_extract_lores(canon_text)
+            logger.info(f"[{user_id}] [/start 流程 1/4] 世界聖經處理完畢。")
+            await asyncio.sleep(2.0) # 短暫延遲以平滑API請求
+
+            # 階段二：補完角色檔案
+            logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            logger.info(f"[{user_id}] [/start 流程 2/4] 角色檔案補完畢。")
+            await asyncio.sleep(2.0)
+
+            # 階段三：生成世界創世資訊
+            logger.info(f"[{user_id}] [/start 流程 3/4] 正在生成世界創世資訊...")
+            await ai_instance.generate_world_genesis()
+            logger.info(f"[{user_id}] [/start 流程 3/4] 世界創世資訊生成完畢。")
+            await asyncio.sleep(2.0)
+
+            # 階段四：生成開場白
+            logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene()
+            logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
             dm_channel = await interaction.user.create_dm()
             
@@ -803,14 +818,14 @@ class BotCog(commands.Cog):
             logger.info(f"[{user_id}] /start 流程：開場白發送完畢。設定流程成功結束。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 在 LangGraph 設定流程中發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 在手動編排的創世流程中發生嚴重錯誤: {e}", exc_info=True)
             try:
                 await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
             except discord.errors.NotFound:
                 await interaction.user.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}")
         finally:
             self.setup_locks.discard(user_id)
-    # finalize_setup (保持不變)
+    # 函式：完成設定流程 (v48.0 - 徹底移除Graph)
 
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
