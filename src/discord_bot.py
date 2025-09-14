@@ -709,10 +709,10 @@ class BotCog(commands.Cog):
         await self.bot.wait_until_ready()
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
 
-    # 函式：處理訊息事件 (v48.0 - 思考-行動-敘事架構)
+    # 函式：處理訊息事件 (v49.0 - 終極自由創作架構)
     # 更新紀錄:
-    # v48.0 (2025-10-21): [重大架構重構] 根據最終藍圖，徹底重寫了此函式，以實現全新的「思考-行動-敘事」三階段串行流程。此修改旨在從根本上解決 LLM 行動敷衍和指令遵循性差的問題。
-    # v47.0 (2025-10-18): [重大架構重構] 廢棄了 LangGraph，改為手動編排的線性流程。
+    # v49.0 (2025-10-26): [重大架構重構] 根據最終藍圖，徹底廢除了「思考-行動-敘事」三階段流程，回歸到一個更純粹、更高效的「上下文注入 + 單次自由創作」兩階段流程。此修改旨在最大限度地釋放 LLM 的創作能力，解決因過度約束導致的 AI 行為死板問題。
+    # v48.0 (2025-10-21): [重大架構重構] 實現了全新的「思考-行動-敘事」三階段串行流程。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -734,22 +734,15 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                # [v48.0 核心] 執行全新的「思考-行動-敘事」三階段流程
-                logger.info(f"[{user_id}] 啟動「思考-行動-敘事」對話流程...")
+                # [v49.0 核心] 執行全新的「上下文注入 + 單次自由創作」流程
+                logger.info(f"[{user_id}] 啟動「上下文注入 + 單次自由創作」對話流程...")
 
                 # 準備輸入數據
                 chat_history = ai_instance.session_histories.get(user_id, ChatMessageHistory()).messages
                 input_data = { "user_input": user_input, "chat_history": chat_history }
 
-                # 階段一 & 二：思考，規劃並執行行動
-                logger.info(f"[{user_id}] (階段 1 & 2) 正在進行思考與行動規劃...")
-                action_results = await ai_instance.plan_and_execute_actions(input_data)
-                logger.info(f"[{user_id}] (階段 1 & 2) 思考與行動規劃執行完畢。")
-                
-                # 階段三：基於行動結果進行敘事生成
-                logger.info(f"[{user_id}] (階段 3) 正在基於行動結果生成敘事...")
-                final_response = await ai_instance.generate_final_response(input_data, action_results)
-                logger.info(f"[{user_id}] (階段 3) 敘事生成完成。")
+                # 一步到位：預處理上下文並直接生成回應
+                final_response, final_context = await ai_instance.preprocess_and_generate(input_data)
                 
                 # 回覆與事後處理
                 if final_response and final_response.strip():
@@ -760,16 +753,16 @@ class BotCog(commands.Cog):
                     await ai_instance.update_memories(user_input, final_response)
                     
                     # (非同步) 進行事後LORE擴展
-                    asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, action_results))
+                    asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, final_context))
 
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「思考-行動-敘事」流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的「終極自由創作」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 函式：處理訊息事件 (v48.0 - 思考-行動-敘事架構)
+    # 函式：處理訊息事件 (v49.0 - 終極自由創作架構)
 
 
 
