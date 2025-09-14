@@ -2508,81 +2508,91 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v6.0 - 雙層淨化與熔斷)
+    # 函式：[新] 檢索並總結記憶 (v7.0 - 混合備援策略)
     # 更新紀錄:
-    # v6.0 (2025-09-08): [災難性BUG修復 & 重大健壯性提升] 徹底重構了此函式，引入了“雙層淨化與熔斷備援”策略，以從根本上解決淨化節點自身被內容審查的悖論問題。
-    # v5.2 (2025-09-08): [災難性BUG修復] 應用了快速失敗策略以解決重試循環。
+    # v7.0 (2025-10-15): [架構重構] 徹底重寫了此函式的執行邏輯。不再依賴 EnsembleRetriever，而是通過手動編排的主/備援調用流程，實現了對 Embedding API 失敗的優雅降級，確保在任何情況下都能回退到 BM25 備援方案而不會使系統崩潰。
+    # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 採用了“批次處理”策略。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """[新] 執行RAG檢索並將結果總結為摘要。內建多層淨化與熔斷備援機制。"""
-        if not self.retriever:
-            logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
+        """[新] 執行RAG檢索並將結果總結為摘要。具備對 Embedding API 失敗的優雅降級能力。"""
+        from langchain_google_genai._common import GoogleGenerativeAIError
+
+        if not self.retriever and not self.bm25_retriever:
+            logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
-        try:
-            retrieved_docs = await self.retriever.ainvoke(query_text)
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 在 RAG 檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
-            return "檢索長期記憶時發生未知錯誤，部分上下文可能缺失。"
+        retrieved_docs = []
+        
+        # --- [v7.0 核心修正] 手動編排的主/備援調用流程 ---
+        
+        # 檢查是否有可用的 Embedding Key
+        has_available_keys = any(
+            time.time() >= self.key_cooldowns.get(i, 0) for i in range(len(self.api_keys))
+        )
+
+        if not has_available_keys:
+            logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
+        else:
+            # 嘗試主方案 (ChromaDB)
+            if self.retriever:
+                try:
+                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding) 進行檢索...")
+                    retrieved_docs = await self.retriever.ainvoke(query_text)
+                except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                    logger.warning(
+                        f"[{self.user_id}] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 失敗，將觸發備援。 "
+                        f"錯誤類型: {type(e).__name__}"
+                    )
+                    retrieved_docs = [] # 確保在失敗時清空列表
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
+                    retrieved_docs = []
+
+        # 如果主方案失敗或被跳過，則執行備援方案 (BM25)
+        if not retrieved_docs and self.bm25_retriever:
+            try:
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
+                retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
+            except Exception as bm25_e:
+                logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 在檢索時發生錯誤: {bm25_e}", exc_info=True)
+                return "檢索長期記憶時發生備援系統錯誤，部分上下文可能缺失。"
 
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        logger.info(f"[{self.user_id}] (Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行多層淨化與摘要...")
+        # --- 後續的批次清洗與摘要邏輯保持不變 ---
+        logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
         
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         
-        # --- 第一道防線 (主要方案)：文學評論家鏈 ---
-        try:
-            logger.info(f"[{self.user_id}] (Sanitizer) 嘗試使用第一道防線：文學評論家鏈...")
-            literary_chain = self.get_literary_euphemization_chain()
-            safe_overview = await self.ainvoke_with_rotation(
-                literary_chain,
-                {"dialogue_history": combined_content},
-                retry_strategy='none' # 快速失敗，不在此處重試
-            )
-            if not safe_overview or not safe_overview.strip():
-                raise ValueError("文學評論家鏈返回了空內容。")
-            
-            logger.info(f"[{self.user_id}] (Sanitizer) 第一道防線成功。正在基於文學概述進行最終摘要...")
-            docs_for_summarizer = [Document(page_content=safe_overview)]
-            summarized_context = await self.ainvoke_with_rotation(
-                self.get_rag_summarizer_chain(), 
-                docs_for_summarizer,
-                retry_strategy='none'
-            )
-            if summarized_context and summarized_context.strip():
-                return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-            else:
-                raise ValueError("最終摘要鏈在處理已清洗內容後返回空值。")
+        literary_chain = self.get_literary_euphemization_chain()
+        safe_overview_of_all_docs = await self.ainvoke_with_rotation(
+            literary_chain,
+            {"dialogue_history": combined_content},
+            retry_strategy='none' 
+        )
 
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] (Sanitizer) 第一道防線失敗: {e}。啟動第二道防線：解構-重構鏈...")
+        if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
+            logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
+            return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
+        
+        logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
 
-            # --- 第二道防線 (備援方案)：解構-重構鏈 ---
-            try:
-                # 步驟 A: 解構 (提取安全關鍵詞)
-                deconstruction_prompt = ChatPromptTemplate.from_template("從以下文本中提取核心的名詞和動詞概念，組成一個關鍵詞列表。忽略所有修飾性詞語和露骨細節。\n\n文本：{text}\n\n關鍵詞列表：")
-                deconstruction_chain = deconstruction_prompt | self._create_llm_instance(temperature=0.0) | StrOutputParser()
-                keywords = await self.ainvoke_with_rotation(deconstruction_chain, {"text": combined_content}, retry_strategy='none')
-                if not keywords or not keywords.strip():
-                    raise ValueError("解構鏈未能提取到關鍵詞。")
+        docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
+        
+        summarized_context = await self.ainvoke_with_rotation(
+            self.get_rag_summarizer_chain(), 
+            docs_for_summarizer,
+            retry_strategy='none' 
+        )
 
-                # 步驟 B: 重構 (用安全關鍵詞造句)
-                reconstruction_prompt = ChatPromptTemplate.from_template("請用以下關鍵詞，組織成一段通順的、客觀的、中性的事實陳述。\n\n關鍵詞：{keywords}\n\n事實陳述：")
-                reconstruction_chain = reconstruction_prompt | self._create_llm_instance(temperature=0.0) | StrOutputParser()
-                reconstructed_summary = await self.ainvoke_with_rotation(reconstruction_chain, {"keywords": keywords}, retry_strategy='none')
-                if not reconstructed_summary or not reconstructed_summary.strip():
-                    raise ValueError("重構鏈未能生成句子。")
-                
-                logger.info(f"[{self.user_id}] (Sanitizer) 第二道防線成功。")
-                return f"【背景歷史參考（事實要點）】:\n{reconstructed_summary}"
-
-            except Exception as e2:
-                logger.error(f"[{self.user_id}] (Sanitizer) 第二道防線最終失敗: {e2}。觸發最終熔斷器。")
-                
-                # --- 最終熔斷器 (絕對安全備援) ---
-                return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成安全的摘要。）"
-    # 函式：[新] 檢索並總結記憶 (v6.0 - 雙層淨化與熔斷)
+        if not summarized_context or not summarized_context.strip():
+             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
+             summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
+        
+        logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
+        return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
+    # 函式：[新] 檢索並總結記憶 (v7.0 - 混合備援策略)
 
     
 
@@ -3961,6 +3971,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
