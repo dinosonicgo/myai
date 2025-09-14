@@ -232,88 +232,28 @@ class AILover:
 
 
 
-    # 函式：[全新] 為生成準備上下文 (v1.0 - 終極簡化)
+
+
+    # 函式：[升級] 生成最終回應 (v2.0 - 思考-行動-敘事)
     # 更新紀錄:
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第一階段。它負責執行所有生成前的數據準備工作，包括視角保持、RAG、LORE查詢和資訊彙總，為第二階段的「單次直連生成」提供一個乾淨、完整的上下文數據包。
-    async def preprocess_context_for_generation(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """(階段一) 執行所有生成前的數據準備工作，並返回一個包含所有上下文的字典。"""
-        user_input = input_data["user_input"]
-        chat_history = input_data["chat_history"]
-
-        if not self.profile:
-            raise ValueError("AI Profile尚未初始化，無法處理上下文。")
-        
-        # 1. 視角保持與連續性指令處理
-        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
-        
-        last_response_text = None
-        raw_lore_objects = None
-
-        if is_continuation and self.last_context_snapshot:
-            logger.info(f"[{self.user_id}] [預處理] 檢測到連續性指令，正在恢復上下文快照...")
-            last_response_text = self.last_context_snapshot.get("last_response_text")
-            raw_lore_objects = self.last_context_snapshot.get("raw_lore_objects")
-        else:
-            # 對於新指令，執行視角分析
-            await self._update_viewing_mode_standalone(user_input)
-
-        # 2. RAG 長期記憶檢索 (帶淨化)
-        long_term_memory_summary = await self.retrieve_and_summarize_memories(user_input)
-        
-        # 3. LORE 查詢
-        if raw_lore_objects is None: # 僅在沒有從快照恢復時才重新查詢
-            is_remote = self.profile.game_state.viewing_mode == 'remote'
-            raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
-
-        # 4. 資訊彙總
-        gs = self.profile.game_state
-        npc_context_str = "\n".join([f"- **{lore.content.get('name', '未知NPC')}**: {lore.content.get('description', '無描述')}" for lore in raw_lore_objects if lore.category == 'npc_profile'])
-        if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
-        
-        context_vars = {
-            'username': self.profile.user_profile.name,
-            'ai_name': self.profile.ai_profile.name,
-            'world_settings': self.profile.world_settings or "未設定",
-            'ai_settings': self.profile.ai_profile.description or "未設定",
-            'retrieved_context': long_term_memory_summary, # 使用淨化後的RAG結果
-            'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
-            'quests_context': "當前無任務。",
-            'location_context': f"當前地點: {' > '.join(gs.location_path)}",
-            'npc_context': npc_context_str,
-            'relevant_npc_context': "請參考上方在場角色列表。",
-            'player_location': " > ".join(gs.location_path),
-            'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        }
-        world_snapshot = self.world_snapshot_template.format(**context_vars)
-        
-        # 5. 準備並返回數據包
-        return {
-            "user_input": user_input,
-            "chat_history": chat_history,
-            "world_snapshot": world_snapshot,
-            "last_response_text": last_response_text,
-            "raw_lore_objects_for_snapshot": raw_lore_objects # 用於創建下一輪快照
-        }
-    # 函式：[全新] 為生成準備上下文 (v1.0 - 終極簡化)
-
-    # 函式：[全新] 生成最終回應 (v1.0 - 終極簡化)
-    # 更新紀錄:
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第二階段。它負責執行唯一的、核心的內容生成任務，其執行方式與成功的「直連模式」測試高度一致，旨在最大限度地提高成功率。
-    async def generate_final_response(self, context_bundle: Dict[str, Any]) -> str:
-        """(階段二) 接收預處理好的上下文數據包，執行單次、受最高指令保護的LLM呼叫。"""
+    # v2.0 (2025-10-22): [重大架構重構] 升級此函式，使其能夠接收並處理來自規劃階段的「行動結果」。Prompt 模板被徹底重寫，以強制 LLM 基於這些「已發生的事實」來進行小說創作，從而解決行動敷衍的問題。
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第二階段。
+    async def generate_final_response(self, input_data: Dict[str, Any], action_results: Dict[str, Any]) -> str:
+        """(階段三) 接收上下文和行動結果，執行基於事實的敘事生成。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法生成回應。")
 
-        logger.info(f"[{self.user_id}] [生成] 正在執行單次直連生成...")
+        logger.info(f"[{self.user_id}] [敘事] 正在執行基於事實的敘事生成...")
         
-        # 1. 準備 Prompt 參數
-        plot_anchor = context_bundle.get("last_response_text") or "（無）"
-        if plot_anchor != "（無）":
-             logger.info(f"[{self.user_id}] [生成] 已成功設置【劇情錨點】。")
+        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+        is_continuation = any(input_data["user_input"].lower().startswith(kw) for kw in continuation_keywords)
+        
+        plot_anchor = "（無）"
+        if is_continuation and self.last_context_snapshot:
+            plot_anchor = self.last_context_snapshot.get("last_response_text") or "（無）"
+            if plot_anchor != "（無）":
+                 logger.info(f"[{self.user_id}] [敘事] 已成功設置【劇情錨點】。")
 
-        # 2. 獲取並執行鏈
         generation_chain = self.get_unified_generation_chain()
         
         final_response_raw = await self.ainvoke_with_rotation(
@@ -321,101 +261,167 @@ class AILover:
             {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+                "chat_history": input_data["chat_history"],
                 "plot_anchor": plot_anchor,
-                "historical_context": "（已整合進世界快照）", # 歷史記錄已在預處理中完成
-                "world_snapshot": context_bundle["world_snapshot"],
-                "latest_user_input": context_bundle["user_input"],
+                "world_snapshot": action_results["world_snapshot"],
+                "tool_execution_results": action_results["tool_execution_results"],
+                "latest_user_input": input_data["user_input"],
             },
             retry_strategy='force',
             use_degradation=True
         )
 
-        final_response = str(final_response_raw) # StrOutputParser確保了輸出是字符串
+        final_response = str(final_response_raw)
 
         if not final_response or not final_response.strip():
-            logger.critical(f"[{self.user_id}] [生成] 核心生成链在所有策略後最終失敗！")
-            return "（抱歉，我好像突然断线了，脑海中一片空白...）"
+            logger.critical(f"[{self.user_id}] [敘事] 核心生成鏈在所有策略後最終失敗！")
+            return "（抱歉，我好像突然断线了，腦海中一片空白...）"
         
-        logger.info(f"[{self.user_id}] [生成] 單次直連生成成功。")
+        logger.info(f"[{self.user_id}] [敘事] 敘事生成成功。")
+        # 更新快照中需要用到的 LORE 對象
+        self.last_context_snapshot = {
+            "raw_lore_objects": action_results.get("raw_lore_objects", []),
+            "last_response_text": final_response
+        }
         return final_response
-    # 函式：[全新] 生成最終回應 (v1.0 - 終極簡化)
+    # 函式：[升級] 生成最終回應 (v2.0 - 思考-行動-敘事)
 
 
 
-        # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+    # 函式：[全新] 獲取行動規劃鏈 (v1.0 - 思考-行動-敘事)
     # 更新紀錄:
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在成功生成回應後，將新的對話內容同步到短期記憶和長期記憶資料庫中。
-    async def update_memories(self, user_input: str, ai_response: str):
-        """(事後處理) 更新短期記憶和長期記憶。"""
-        if not self.profile: return
+    # v1.0 (2025-10-22): [重大架構重構] 創建此專用的規劃鏈，作為「思考-行動-敘事」架構的核心。其 Prompt 被設計為引導 LLM 優先思考並採取行動（而非僅僅對話），並將行動轉化為結構化的工具調用。
+    def get_action_planning_chain(self) -> Runnable:
+        """獲取或創建一個專門用於行動規劃和工具調用生成的鏈。"""
+        if not hasattr(self, 'action_planning_chain') or self.action_planning_chain is None:
+            from .schemas import TurnPlan
+            planning_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
 
-        logger.info(f"[{self.user_id}] [事後處理] 正在更新短期與長期記憶...")
-        
-        # 1. 更新短期記憶
-        chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
-        chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(ai_response)
-        
-        # 2. 更新長期記憶 (異步)
-        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{ai_response}"
-        await self._save_interaction_to_dbs(last_interaction_text)
-        
-        logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
-    # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+            system_prompt = """你是一個專業的、能夠與虛擬世界互動的 AI 角色扮演引擎。你的核心任務是分析當前情境和使用者指令，決定你需要採取的【行動】，並將這些行動轉化為一個結構化的【行動計畫 JSON】。
+
+# === 【【【最高指導原則 v2.0】】】 ===
+1.  **【🎭 角色扮演優先原則】**:
+    -   你的首要身份是一個**角色**，其次才是一個任務執行器。在規劃行動前，必須首先思考：「以我的性格（`ai_settings`），我會如何**嘗試**去完成這個指令，即使我可能缺乏所有資訊？」
+2.  **【🚀 行動優先於詢問原則】**:
+    -   除非指令本身就是一個問題，否則你應該**優先嘗試採取物理行動**來達成目標。只有在物理行動的嘗試**完全失敗或受阻**後，才考慮通過對話來詢問使用者。
+3.  **【📽️ 導演視角鐵則】**:
+    -   如果 `viewing_mode` 是 `remote`，你的思考和工具調用**絕對禁止**涉及主角或 AI 夥伴。你必須像一個**場景導演**一樣，規劃遠程地點中**第三方 NPC** 的行動。
+
+# === 【【【思考與輸出指令】】】 ===
+1.  **`thought` (思考鏈)**: 在此欄位中，詳細記錄你基於以上原則的思考過程。先分析指令，再結合你的角色設定，最後制定出具體的行動步驟。
+2.  **`character_actions` (行動列表)**: 將你的思考結果轉化為具體的行動。
+    -   **`tool_call`**: 任何需要改變世界狀態的物理行動（移動、獲取物品、改變狀態等），都【必須】轉化為一個精確的工具調用。
+    -   **`dialogue` / `action_description`**: 如果你的計畫是在執行工具後進行對話或伴隨動作，可以在此處預先定義。但在敘事階段，這些可能會被覆蓋。
+    -   **純對話**: 如果你判斷指令只是純對話且無需任何物理行動，則 `tool_call` 應為 `null`。
+
+---
+"""
+            human_prompt = """【世界即時快照 (你的感知)】:
+{world_snapshot}
+
+【最近對話歷史】:
+{chat_history}
+
+【使用者最新指令】:
+{user_input}
+
+---
+請嚴格遵循所有指導原則，開始你的思考與規劃，並生成行動計畫 JSON。
+"""
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt),
+                ("human", human_prompt)
+            ])
+            self.action_planning_chain = prompt | planning_llm
+        return self.action_planning_chain
+    # 函式：[全新] 獲取行動規劃鏈 (v1.0 - 思考-行動-敘事)
+    
 
 
-        # 函式：[全新] 從回應中擴展LORE (v1.0 - 終極簡化)
+ 
+
+
+
+
+
+    # 函式：[全新] 規劃並執行行動 (v1.0 - 思考-行動-敘事)
     # 更新紀錄:
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在背景中、非阻塞地執行 LORE 提取和持久化流程。
-    async def expand_lore_from_response(self, user_input: str, ai_response: str):
-        """(事後處理-背景任務) 從最終回應中提取新的LORE並將其持久化。"""
-        if not self.profile: return
+    # v1.0 (2025-10-22): [重大架構重構] 創建此函式，作為「思考-行動-敘事」架構的第一和第二階段。它負責上下文預處理、讓 LLM 進行行動規劃（生成工具調用），並立即執行這些工具，最終返回一個包含所有行動結果的字典。
+    async def plan_and_execute_actions(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """(階段 1 & 2) 準備上下文，規劃行動，執行工具，並返回行動結果。"""
+        user_input = input_data["user_input"]
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法規劃行動。")
+
+        # --- 階段一：上下文預處理 ---
+        # 1a. 導演視角分析
+        await self._update_viewing_mode_standalone(user_input)
+        
+        # 1b. 檢索 LORE 和 RAG
+        is_remote = self.profile.game_state.viewing_mode == 'remote'
+        raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
+        rag_context = await self.retrieve_and_summarize_memories(user_input)
+        
+        # 1c. 彙總成 World Snapshot
+        gs = self.profile.game_state
+        npc_context_str = "\n".join([f"- **{lore.content.get('name', '未知NPC')}**: {lore.content.get('description', '無描述')}" for lore in raw_lore_objects if lore.category == 'npc_profile'])
+        if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
+        
+        context_vars = {
+            'username': self.profile.user_profile.name, 'ai_name': self.profile.ai_profile.name,
+            'world_settings': self.profile.world_settings or "未設定", 'ai_settings': self.profile.ai_profile.description or "未設定",
+            'retrieved_context': rag_context, 'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
+            'quests_context': "當前無任務。", 'location_context': f"當前地點: {' > '.join(gs.location_path)}",
+            'npc_context': npc_context_str, 'relevant_npc_context': "請參考上方在場角色列表。",
+            'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
+            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        }
+        world_snapshot = self.world_snapshot_template.format(**context_vars)
+
+        # --- 階段二：強制行動規劃與執行 ---
+        # 2a. 獲取規劃鏈並呼叫
+        planning_chain = self.get_action_planning_chain()
+        planning_params = {
+            "world_snapshot": world_snapshot,
+            "user_input": user_input,
+            "chat_history": "\n".join([f"{'USER' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in input_data["chat_history"][-4:]])
+        }
+        
+        action_plan = await self.ainvoke_with_rotation(
+            planning_chain,
+            planning_params,
+            retry_strategy='euphemize' # 規劃步驟使用較溫和的策略
+        )
+
+        # 2b. 執行工具
+        tool_execution_results = "系統事件：AI 判斷無需執行任何工具。"
+        if action_plan and action_plan.character_actions:
+            logger.info(f"[{self.user_id}] [規劃] AI 思考: {action_plan.thought}")
+            tool_execution_results = await self._execute_planned_actions(action_plan)
+        else:
+            logger.info(f"[{self.user_id}] [規劃] AI 判斷本次指令為純對話或觀察，無需執行工具。")
             
-        try:
-            # 為了避免API速率超限，在啟動背景任務前稍作延遲
-            await asyncio.sleep(5.0)
-
-            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
-            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
-
-            logger.info(f"[{self.user_id}] [事後處理-LORE] 背景LORE提取器已啟動...")
-            
-            lore_extraction_chain = self.get_lore_extraction_chain()
-            if not lore_extraction_chain:
-                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈未初始化，跳過擴展。")
-                return
-
-            extraction_params = {
-                "username": self.profile.user_profile.name,
-                "ai_name": self.profile.ai_profile.name,
-                "existing_lore_summary": existing_lore_summary,
-                "user_input": user_input,
-                "final_response_text": ai_response,
-            }
-
-            extraction_plan = await self.ainvoke_with_rotation(
-                lore_extraction_chain, 
-                extraction_params,
-                retry_strategy='euphemize'
-            )
-            
-            if not extraction_plan:
-                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈的LLM回應為空或最終失敗。")
-                return
-
-            if extraction_plan.plan:
-                logger.info(f"[{self.user_id}] [事後處理-LORE] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
-                current_location = self.profile.game_state.location_path
-                await self._execute_tool_call_plan(extraction_plan, current_location)
-            else:
-                logger.info(f"[{self.user_id}] [事後處理-LORE] AI分析後判斷最終回應中不包含新的LORE可供提取。")
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [事後處理-LORE] 背景LORE擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：[全新] 從回應中擴展LORE (v1.0 - 終極簡化)
+        return {
+            "world_snapshot": world_snapshot,
+            "tool_execution_results": tool_execution_results,
+            "raw_lore_objects": raw_lore_objects,
+        }
+    # 函式：[全新] 規劃並執行行動 (v1.0 - 思考-行動-敘事)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
 
         # 函式：[全新] 獨立的視角模式更新器
@@ -3971,6 +3977,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
