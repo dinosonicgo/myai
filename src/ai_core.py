@@ -3586,9 +3586,12 @@ class AILover:
 
 
 
-    # 函式：將互動保存到資料庫
+    # 函式：將互動保存到資料庫 (v5.0 - 整合智能冷卻)
+    # 更新紀錄:
+    # v5.0 (2025-10-23): [災難性BUG修復] 徹底重構了此函式，將其與核心的「智能兩級冷卻系統」完全整合。現在，它會在嘗試向量化之前檢查金鑰的可用性，並在失敗後主動觸發對應金鑰的冷卻，從根本上解決了因 Embedding API 速率限制而導致的持續性警告風暴問題。
+    # v4.0 (2025-10-15): [健壯性] 增加了對 ChromaDB 保存失敗的錯誤處理。
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """将单次互动的文本同时保存到 SQL 数据库和 Chroma 向量库。"""
+        """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為主方案)。"""
         if not interaction_text or not self.profile:
             return
 
@@ -3596,32 +3599,61 @@ class AILover:
         current_time = time.time()
         
         try:
-            # 步驟 1: 保存到 SQL 資料庫 (為 BM25 備援方案，此步驟必須成功)
+            # 步驟 1: 保存到 SQL 資料庫 (備援方案的數據源，此步驟必須成功)
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
                     content=interaction_text,
                     timestamp=current_time,
-                    importance=5 # 預設重要性
+                    importance=5
                 )
                 session.add(new_memory)
                 await session.commit()
             logger.info(f"[{user_id}] 對話記錄已成功保存到 SQL 資料庫。")
 
-            # 步驟 2: 嘗試保存到 Chroma 向量庫 (為主方案，允許失敗)
-            if self.vector_store:
-                try:
-                    await asyncio.to_thread(
-                        self.vector_store.add_texts,
-                        [interaction_text],
-                        metadatas=[{"source": "history", "timestamp": current_time}]
-                    )
-                    logger.info(f"[{self.user_id}] 對話記錄已成功向量化並保存。")
-                except Exception as chroma_e:
-                    logger.warning(f"[{self.user_id}] [優雅降級] 在保存記憶到向量庫時失敗: {chroma_e}。程式將依賴基於SQL的BM25檢索。")
         except Exception as e:
-            logger.error(f"[{self.user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
-    # 函式：將互動保存到資料庫
+            logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
+            return # SQL 保存失敗是致命的，直接返回
+
+        # [v5.0 核心修正] 步驟 2: 嘗試保存到 Chroma 向量庫 (整合智能冷卻)
+        if self.vector_store:
+            # 2a. 事前檢查：是否有可用的 API 金鑰？
+            key_info = self._get_next_available_key()
+            if not key_info:
+                logger.info(f"[{self.user_id}] [優雅降級] 所有 Embedding API 金鑰都在冷卻中，本輪記憶僅保存至 SQL。")
+                return
+
+            key_to_use, key_index = key_info
+            
+            try:
+                # 2b. 嘗試使用可用的金鑰進行向量化和儲存
+                temp_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
+                
+                await asyncio.to_thread(
+                    self.vector_store.add_texts,
+                    [interaction_text],
+                    metadatas=[{"source": "history", "timestamp": current_time}],
+                    embedding_function=temp_embeddings # 確保使用我們指定的實例
+                )
+                logger.info(f"[{self.user_id}] 對話記錄已成功向量化並保存到 ChromaDB。")
+            
+            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                # 2c. 事後學習：如果仍然失敗，則觸發對該金鑰的冷卻
+                logger.warning(
+                    f"[{self.user_id}] [優雅降級] "
+                    f"API Key #{key_index} 在保存記憶到主記憶系統 (Embedding) 時失敗。將觸發對其的冷卻。"
+                    f"錯誤類型: {type(e).__name__}"
+                )
+                # 手動觸發智能冷卻
+                now = time.time()
+                self.key_short_term_failures[key_index].append(now)
+                self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
+                    self.key_cooldowns[key_index] = now + 60 * 60 * 24 # 長期冷卻
+                    self.key_short_term_failures[key_index] = []
+            except Exception as e:
+                 logger.error(f"[{self.user_id}] 保存記憶到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
+    # 函式：將互動保存到資料庫 (v5.0 - 整合智能冷卻)
 
     
 
@@ -4057,6 +4089,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
