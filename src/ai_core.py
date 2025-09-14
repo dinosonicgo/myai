@@ -109,10 +109,10 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v222.0 - 兩級冷卻)
+    # 函式：初始化AI核心 (v223.0 - 終極簡化)
     # 更新紀錄:
-    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制，並避免因短期抖動而導致的長期封鎖。
-    # v221.0 (2025-10-15): [健壯性] 新增了 `key_cooldowns` 屬性。
+    # v223.0 (2025-10-18): [重大架構重構] 移除了對 main_response_graph 的引用，以適配全新的、不依賴 LangGraph 的線性對話流程。
+    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -124,14 +124,17 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v222.0 核心修正] 實現智能兩級冷卻系統
-        self.key_cooldowns: Dict[int, float] = {} # 長期冷卻 (RPD)
-        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list) # 短期失敗記錄 (RPM)
-        self.RPM_FAILURE_WINDOW = 60  # 短期失敗的時間窗口（秒）
-        self.RPM_FAILURE_THRESHOLD = 3 # 在窗口內失敗多少次後觸發長期冷卻
+        self.key_cooldowns: Dict[int, float] = {}
+        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list)
+        self.RPM_FAILURE_WINDOW = 60
+        self.RPM_FAILURE_THRESHOLD = 3
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
 
+        # [v223.0 核心修正] 移除對 LangGraph 的依賴
+        # self.main_response_graph: Optional[Any] = None 
+        
+        # --- 所有 get_..._chain 輔助鏈的佔位符 (保持不變) ---
         self.unified_generation_chain: Optional[Runnable] = None
         self.preemptive_tool_parsing_chain: Optional[Runnable] = None
         self.input_analysis_chain: Optional[Runnable] = None
@@ -162,6 +165,8 @@ class AILover:
         self.profile_rewriting_chain: Optional[Runnable] = None 
         self.remote_planning_chain: Optional[Runnable] = None 
         self.world_genesis_chain: Optional[Runnable] = None
+        
+        # --- 模板與資源 (保持不變) ---
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
         self.session_histories: Dict[str, ChatMessageHistory] = {}
@@ -176,7 +181,7 @@ class AILover:
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v222.0 - 兩級冷卻)
+    # 函式：初始化AI核心 (v223.0 - 終極簡化)
     
 
 
@@ -223,6 +228,247 @@ class AILover:
         return llm
     # 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
 
+
+
+
+
+
+
+
+    # 函式：[全新] 為生成準備上下文 (v1.0 - 終極簡化)
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第一階段。它負責執行所有生成前的數據準備工作，包括視角保持、RAG、LORE查詢和資訊彙總，為第二階段的「單次直連生成」提供一個乾淨、完整的上下文數據包。
+    async def preprocess_context_for_generation(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """(階段一) 執行所有生成前的數據準備工作，並返回一個包含所有上下文的字典。"""
+        user_input = input_data["user_input"]
+        chat_history = input_data["chat_history"]
+
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法處理上下文。")
+        
+        # 1. 視角保持與連續性指令處理
+        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+        is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
+        
+        last_response_text = None
+        raw_lore_objects = None
+
+        if is_continuation and self.last_context_snapshot:
+            logger.info(f"[{self.user_id}] [預處理] 檢測到連續性指令，正在恢復上下文快照...")
+            last_response_text = self.last_context_snapshot.get("last_response_text")
+            raw_lore_objects = self.last_context_snapshot.get("raw_lore_objects")
+        else:
+            # 對於新指令，執行視角分析
+            await self._update_viewing_mode_standalone(user_input)
+
+        # 2. RAG 長期記憶檢索 (帶淨化)
+        long_term_memory_summary = await self.retrieve_and_summarize_memories(user_input)
+        
+        # 3. LORE 查詢
+        if raw_lore_objects is None: # 僅在沒有從快照恢復時才重新查詢
+            is_remote = self.profile.game_state.viewing_mode == 'remote'
+            raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
+
+        # 4. 資訊彙總
+        gs = self.profile.game_state
+        npc_context_str = "\n".join([f"- **{lore.content.get('name', '未知NPC')}**: {lore.content.get('description', '無描述')}" for lore in raw_lore_objects if lore.category == 'npc_profile'])
+        if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
+        
+        context_vars = {
+            'username': self.profile.user_profile.name,
+            'ai_name': self.profile.ai_profile.name,
+            'world_settings': self.profile.world_settings or "未設定",
+            'ai_settings': self.profile.ai_profile.description or "未設定",
+            'retrieved_context': long_term_memory_summary, # 使用淨化後的RAG結果
+            'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
+            'quests_context': "當前無任務。",
+            'location_context': f"當前地點: {' > '.join(gs.location_path)}",
+            'npc_context': npc_context_str,
+            'relevant_npc_context': "請參考上方在場角色列表。",
+            'player_location': " > ".join(gs.location_path),
+            'viewing_mode': gs.viewing_mode,
+            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        }
+        world_snapshot = self.world_snapshot_template.format(**context_vars)
+        
+        # 5. 準備並返回數據包
+        return {
+            "user_input": user_input,
+            "chat_history": chat_history,
+            "world_snapshot": world_snapshot,
+            "last_response_text": last_response_text,
+            "raw_lore_objects_for_snapshot": raw_lore_objects # 用於創建下一輪快照
+        }
+    # 函式：[全新] 為生成準備上下文 (v1.0 - 終極簡化)
+
+    # 函式：[全新] 生成最終回應 (v1.0 - 終極簡化)
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第二階段。它負責執行唯一的、核心的內容生成任務，其執行方式與成功的「直連模式」測試高度一致，旨在最大限度地提高成功率。
+    async def generate_final_response(self, context_bundle: Dict[str, Any]) -> str:
+        """(階段二) 接收預處理好的上下文數據包，執行單次、受最高指令保護的LLM呼叫。"""
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法生成回應。")
+
+        logger.info(f"[{self.user_id}] [生成] 正在執行單次直連生成...")
+        
+        # 1. 準備 Prompt 參數
+        plot_anchor = context_bundle.get("last_response_text") or "（無）"
+        if plot_anchor != "（無）":
+             logger.info(f"[{self.user_id}] [生成] 已成功設置【劇情錨點】。")
+
+        # 2. 獲取並執行鏈
+        generation_chain = self.get_unified_generation_chain()
+        
+        final_response_raw = await self.ainvoke_with_rotation(
+            generation_chain,
+            {
+                "core_protocol_prompt": self.core_protocol_prompt,
+                "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+                "plot_anchor": plot_anchor,
+                "historical_context": "（已整合進世界快照）", # 歷史記錄已在預處理中完成
+                "world_snapshot": context_bundle["world_snapshot"],
+                "latest_user_input": context_bundle["user_input"],
+            },
+            retry_strategy='force',
+            use_degradation=True
+        )
+
+        final_response = str(final_response_raw) # StrOutputParser確保了輸出是字符串
+
+        if not final_response or not final_response.strip():
+            logger.critical(f"[{self.user_id}] [生成] 核心生成链在所有策略後最終失敗！")
+            return "（抱歉，我好像突然断线了，脑海中一片空白...）"
+        
+        logger.info(f"[{self.user_id}] [生成] 單次直連生成成功。")
+        return final_response
+    # 函式：[全新] 生成最終回應 (v1.0 - 終極簡化)
+
+
+
+        # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在成功生成回應後，將新的對話內容同步到短期記憶和長期記憶資料庫中。
+    async def update_memories(self, user_input: str, ai_response: str):
+        """(事後處理) 更新短期記憶和長期記憶。"""
+        if not self.profile: return
+
+        logger.info(f"[{self.user_id}] [事後處理] 正在更新短期與長期記憶...")
+        
+        # 1. 更新短期記憶
+        chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
+        chat_history_manager.add_user_message(user_input)
+        chat_history_manager.add_ai_message(ai_response)
+        
+        # 2. 更新長期記憶 (異步)
+        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{ai_response}"
+        await self._save_interaction_to_dbs(last_interaction_text)
+        
+        logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
+    # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+
+
+        # 函式：[全新] 從回應中擴展LORE (v1.0 - 終極簡化)
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在背景中、非阻塞地執行 LORE 提取和持久化流程。
+    async def expand_lore_from_response(self, user_input: str, ai_response: str):
+        """(事後處理-背景任務) 從最終回應中提取新的LORE並將其持久化。"""
+        if not self.profile: return
+            
+        try:
+            # 為了避免API速率超限，在啟動背景任務前稍作延遲
+            await asyncio.sleep(5.0)
+
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
+            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+
+            logger.info(f"[{self.user_id}] [事後處理-LORE] 背景LORE提取器已啟動...")
+            
+            lore_extraction_chain = self.get_lore_extraction_chain()
+            if not lore_extraction_chain:
+                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈未初始化，跳過擴展。")
+                return
+
+            extraction_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "existing_lore_summary": existing_lore_summary,
+                "user_input": user_input,
+                "final_response_text": ai_response,
+            }
+
+            extraction_plan = await self.ainvoke_with_rotation(
+                lore_extraction_chain, 
+                extraction_params,
+                retry_strategy='euphemize'
+            )
+            
+            if not extraction_plan:
+                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈的LLM回應為空或最終失敗。")
+                return
+
+            if extraction_plan.plan:
+                logger.info(f"[{self.user_id}] [事後處理-LORE] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
+                current_location = self.profile.game_state.location_path
+                await self._execute_tool_call_plan(extraction_plan, current_location)
+            else:
+                logger.info(f"[{self.user_id}] [事後處理-LORE] AI分析後判斷最終回應中不包含新的LORE可供提取。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [事後處理-LORE] 背景LORE擴展任務執行時發生未預期的異常: {e}", exc_info=True)
+    # 函式：[全新] 從回應中擴展LORE (v1.0 - 終極簡化)
+
+
+
+
+        # 函式：[全新] 獨立的視角模式更新器
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，將視角分析與更新的邏輯從舊的 LangGraph 節點中分離出來，使其能被新的「上下文預處理」流程獨立調用。
+    async def _update_viewing_mode_standalone(self, user_input: str):
+        """根據使用者輸入，分析並更新導演視角模式。"""
+        if not self.profile: return
+
+        gs = self.profile.game_state
+        new_viewing_mode = 'local'
+        new_target_path = None
+
+        try:
+            location_chain = self.get_contextual_location_chain()
+            location_result = await self.ainvoke_with_rotation(
+                location_chain, 
+                {"user_input": user_input, "world_settings": self.profile.world_settings or "未设定", "scene_context_json": "[]"},
+                retry_strategy='euphemize'
+            )
+            if location_result and location_result.location_path:
+                new_target_path = location_result.location_path
+                new_viewing_mode = 'remote'
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [視角分析] 地點推斷鏈失敗: {e}，將回退到基本邏輯。")
+
+        final_viewing_mode = gs.viewing_mode
+        final_target_path = gs.remote_target_path
+
+        if gs.viewing_mode == 'remote':
+            is_explicit_local_move = any(user_input.startswith(kw) for kw in ["去", "前往", "移動到", "旅行到"])
+            is_direct_ai_interaction = self.profile.ai_profile.name in user_input
+            if is_explicit_local_move or is_direct_ai_interaction:
+                final_viewing_mode = 'local'
+                final_target_path = None
+            elif new_viewing_mode == 'remote' and new_target_path and new_target_path != gs.remote_target_path:
+                final_target_path = new_target_path
+        else:
+            if new_viewing_mode == 'remote' and new_target_path:
+                final_viewing_mode = 'remote'
+                final_target_path = new_target_path
+
+        if gs.viewing_mode != final_viewing_mode or gs.remote_target_path != final_target_path:
+            gs.viewing_mode = final_viewing_mode
+            gs.remote_target_path = final_target_path
+            await self.update_and_persist_profile({'game_state': gs.model_dump()})
+            logger.info(f"[{self.user_id}] [視角分析] 導演視角已更新為 '{gs.viewing_mode}'，目標: {gs.remote_target_path}")
+    # 函式：[全新] 獨立的視角模式更新器
+
+    
 
     # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
     # 更新紀錄:
@@ -312,45 +558,7 @@ class AILover:
 
 
 
-    # 函式：[全新] 直連 LLM 對話 (管理員測試功能)
-    # 更新紀錄:
-    # v1.0 (2025-10-16): [核心功能] 創建此函式，用於提供一個繞過 LangGraph、無上下文、但應用了安全閥值的直接 LLM 對話通道，以供管理員進行功能測試和性能對比。
-    async def direct_chat_with_llm(self, user_input: str) -> str:
-        """
-        執行一個無上下文、無 Prompt 模板的直接 LLM 呼叫。
-        此函式會使用最高優先級的模型並應用標準的安全閥值設定。
-        """
-        logger.info(f"[{self.user_id}] [直連模式] 正在執行直接 LLM 呼叫...")
-        try:
-            # 使用最高優先級的模型進行測試
-            model_name = self.model_priority_list[0] if self.model_priority_list else FUNCTIONAL_MODEL
-            
-            # 創建一個純淨的鏈，只包含 LLM 和輸出解析器
-            # _create_llm_instance 會自動應用安全閥值
-            llm = self._create_llm_instance(model_name=model_name, temperature=0.7)
-            if not llm:
-                return "（錯誤：無法創建 LLM 實例，可能所有 API 金鑰都在冷卻中。）"
-            
-            chain = llm | StrOutputParser()
 
-            # 使用 ainvoke_with_rotation 呼叫以利用其健壯的重試和降級機制
-            # 但使用 'none' 策略以避免不必要的委婉化或轟炸
-            response = await self.ainvoke_with_rotation(
-                chain,
-                user_input,
-                retry_strategy='none',
-                use_degradation=True # 允許在失敗時降級模型
-            )
-
-            if not response:
-                return "（AI 沒有返回任何內容，可能觸發了內容審查或 API 錯誤。）"
-            
-            return str(response)
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [直連模式] 執行時發生嚴重錯誤: {e}", exc_info=True)
-            return f"（在執行直接 LLM 呼叫時發生了嚴重錯誤：{type(e).__name__}）"
-    # 函式：[全新] 直連 LLM 對話 (管理員測試功能)
 
 
     
@@ -3528,6 +3736,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
