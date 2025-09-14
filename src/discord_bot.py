@@ -709,7 +709,10 @@ class BotCog(commands.Cog):
         await self.bot.wait_until_ready()
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
 
-    # 函式：處理訊息事件 (v47.0 - 終極簡化架構)
+    # 函式：處理訊息事件 (v48.0 - 思考-行動-敘事架構)
+    # 更新紀錄:
+    # v48.0 (2025-10-21): [重大架構重構] 根據最終藍圖，徹底重寫了此函式，以實現全新的「思考-行動-敘事」三階段串行流程。此修改旨在從根本上解決 LLM 行動敷衍和指令遵循性差的問題。
+    # v47.0 (2025-10-18): [重大架構重構] 廢棄了 LangGraph，改為手動編排的線性流程。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -731,42 +734,50 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                # [v47.0 核心修正] 執行全新的三階段串行流程
-                logger.info(f"[{user_id}] 啟動「終極簡化」對話流程...")
+                # [v48.0 核心] 執行全新的「思考-行動-敘事」三階段流程
+                logger.info(f"[{user_id}] 啟動「思考-行動-敘事」對話流程...")
 
-                # 階段一：上下文預處理
-                logger.info(f"[{user_id}] (階段 1/3) 正在進行上下文預處理...")
-                input_data = {
-                    "user_input": user_input,
-                    "chat_history": ai_instance.session_histories.get(user_id, ChatMessageHistory()).messages
-                }
-                context_bundle = await ai_instance.preprocess_context_for_generation(input_data)
-                logger.info(f"[{user_id}] (階段 1/3) 上下文預處理完成。")
+                # 準備輸入數據
+                chat_history = ai_instance.session_histories.get(user_id, ChatMessageHistory()).messages
+                input_data = { "user_input": user_input, "chat_history": chat_history }
 
-                # 階段二：單次直連生成
-                logger.info(f"[{user_id}] (階段 2/3) 正在執行單次直連生成...")
-                final_response = await ai_instance.generate_final_response(context_bundle)
-                logger.info(f"[{user_id}] (階段 2/3) 單次直連生成完成。")
+                # 階段一 & 二：思考，規劃並執行行動
+                logger.info(f"[{user_id}] (階段 1 & 2) 正在進行思考與行動規劃...")
+                action_results = await ai_instance.plan_and_execute_actions(input_data)
+                logger.info(f"[{user_id}] (階段 1 & 2) 思考與行動規劃執行完畢。")
                 
-                # 回覆與更新
+                # 階段三：基於行動結果進行敘事生成
+                logger.info(f"[{user_id}] (階段 3) 正在基於行動結果生成敘事...")
+                final_response = await ai_instance.generate_final_response(input_data, action_results)
+                logger.info(f"[{user_id}] (階段 3) 敘事生成完成。")
+                
+                # 回覆與事後處理
                 if final_response and final_response.strip():
                     for i in range(0, len(final_response), 2000):
                         await message.channel.send(final_response[i:i+2000])
                     
-                    # 階段三：事後處理 (記憶更新 + LORE擴展)
-                    logger.info(f"[{user_id}] (階段 3/3) 正在執行事後處理...")
+                    # 更新短期與長期記憶
                     await ai_instance.update_memories(user_input, final_response)
-                    asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response))
-                    logger.info(f"[{user_id}] (階段 3/3) 事後處理已啟動。")
+                    
+                    # (非同步) 進行事後LORE擴展
+                    asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, action_results))
 
                 else:
-                    logger.error(f"為使用者 {user_id} 的直接生成流程返回了空的或無效的回應。")
+                    logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「終極簡化」流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的「思考-行動-敘事」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 函式：處理訊息事件 (v47.0 - 終極簡化架構)
+    # 函式：處理訊息事件 (v48.0 - 思考-行動-敘事架構)
+
+
+
+
+
+
+
+    
 
     # 函式：完成設定流程 (v48.0 - 徹底移除Graph)
     # 更新紀錄:
