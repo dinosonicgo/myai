@@ -98,9 +98,11 @@ async def read_root(request: Request):
 
 
 
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
-# v5.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與自動更新任務發生 Git 競態條件。
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.0 - 靜默模式)
+# 更新紀錄:
+# v7.0 (2025-10-20): [健壯性] 根據使用者回饋，徹底重構了日誌推送邏輯。現在只有在成功推送新的日誌內容時，才會打印單條簡潔的確認訊息，移除了所有冗餘的過程性日誌，實現了「靜默成功」。
 # v6.0 (2025-10-15): [健壯性] 增加了「靜默模式」，只有在檢測到新的日誌內容時，才會打印詳細的 Git 操作日誌。
+# v5.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與自動更新任務發生 Git 競態條件。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -129,21 +131,19 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 ["git", "commit", "-m", commit_message], 
                 capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
             )
-            # 檢查 commit 是否成功創建
             if commit_process.returncode != 0:
-                if "nothing to commit" in commit_process.stdout:
-                    return False # 沒有新的 commit，返回 False
+                if "nothing to commit" in commit_process.stdout or "沒有東西可以提交" in commit_process.stdout:
+                    return False
                 else:
                     raise subprocess.CalledProcessError(
                         commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
                     )
             
-            # 如果 commit 成功，則推送
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
-            return True # 有新的 commit 被推送，返回 True
+            return True
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
-            if "nothing to commit" not in str(error_output):
+            if "nothing to commit" not in str(error_output) and "沒有東西可以提交" not in str(error_output):
                 print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
             return False
         except Exception as e:
@@ -152,13 +152,11 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
 
     while not shutdown_event.is_set():
         try:
-            pushed_new_log = False
             async with lock:
-                # [v6.0 核心修正] 先執行，再根據結果判斷是否打印日誌
+                # [v7.0 核心修正] 只有在成功推送新日誌時才打印日誌
                 pushed_new_log = await asyncio.to_thread(run_git_commands_sync)
                 if pushed_new_log:
-                    print("🔵 [LOG Pusher] 已獲取 Git 鎖，準備推送日誌...")
-                    print("🟢 [LOG Pusher] 新的日誌已成功推送，已釋放 Git 鎖。")
+                    print("✅ [LOG Pusher] 檢測到新的日誌內容，並已成功推送到遠程倉庫。")
             
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
@@ -167,7 +165,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v4.1 - 作用域修正)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.0 - 靜默模式)
 
 
 
