@@ -30,6 +30,7 @@ from collections import defaultdict
 import functools
 
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
+from langchain_google_genai._common import GoogleGenerativeAIError
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI, 
@@ -2619,49 +2620,55 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v7.0 - 混合備援策略)
+    # 函式：[新] 檢索並總結記憶 (v8.1 - 導入修正)
     # 更新紀錄:
-    # v7.0 (2025-10-15): [架構重構] 徹底重寫了此函式的執行邏輯。不再依賴 EnsembleRetriever，而是通過手動編排的主/備援調用流程，實現了對 Embedding API 失敗的優雅降級，確保在任何情況下都能回退到 BM25 備援方案而不會使系統崩潰。
-    # v6.0 (2025-09-08): [災難性BUG修復 & 重大效能優化] 採用了“批次處理”策略。
+    # v8.1 (2025-10-25): [健壯性] 確認此函式使用的 GoogleGenerativeAIError 異常已在文件頂部正確導入。
+    # v8.0 (2025-10-25): [災難性BUG修復] 徹底重構了此函式的 RAG 檢索邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """[新] 執行RAG檢索並將結果總結為摘要。具備對 Embedding API 失敗的優雅降級能力。"""
-        from langchain_google_genai._common import GoogleGenerativeAIError
-
+        """[新] 執行RAG檢索並將結果總結為摘要。內建多層淨化與熔斷備援機制。"""
+        # [v8.1 核心修正] 確保 GoogleGenerativeAIError 已在文件頂部導入
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
         
         retrieved_docs = []
-        
-        # --- [v7.0 核心修正] 手動編排的主/備援調用流程 ---
-        
-        # 檢查是否有可用的 Embedding Key
-        has_available_keys = any(
-            time.time() >= self.key_cooldowns.get(i, 0) for i in range(len(self.api_keys))
-        )
+        succeeded = False
+        if self.retriever:
+            for attempt in range(len(self.api_keys)):
+                key_info = self._get_next_available_key()
+                if not key_info:
+                    logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
+                    break
 
-        if not has_available_keys:
-            logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
-        else:
-            # 嘗試主方案 (ChromaDB)
-            if self.retriever:
+                _, key_index = key_info
+                
                 try:
-                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding) 進行檢索...")
+                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在嘗試使用 API Key #{key_index} 進行 Embedding 檢索...")
+                    temp_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[key_index])
+                    self._update_retriever_embeddings(self.retriever, temp_embeddings)
+
                     retrieved_docs = await self.retriever.ainvoke(query_text)
+                    succeeded = True
+                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案成功] 使用 API Key #{key_index} 檢索成功。")
+                    break
+
                 except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                    logger.warning(
-                        f"[{self.user_id}] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 失敗，將觸發備援。 "
-                        f"錯誤類型: {type(e).__name__}"
-                    )
-                    retrieved_docs = [] # 確保在失敗時清空列表
+                    logger.warning(f"[{self.user_id}] (RAG Executor) API Key #{key_index} 在 Embedding 時失敗，將觸發冷卻並嘗試下一個金鑰。錯誤: {type(e).__name__}")
+                    now = time.time()
+                    self.key_short_term_failures[key_index].append(now)
+                    self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                    if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
+                        self.key_cooldowns[key_index] = now + 60 * 60 * 24
+                        self.key_short_term_failures[key_index] = []
+                    continue
+                
                 except Exception as e:
                     logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
-                    retrieved_docs = []
+                    break
 
-        # 如果主方案失敗或被跳過，則執行備援方案 (BM25)
-        if not retrieved_docs and self.bm25_retriever:
+        if not succeeded and self.bm25_retriever:
             try:
-                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 主方案在所有嘗試後失敗，正在啟動備援記憶系統 (BM25)...")
                 retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
                 logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
             except Exception as bm25_e:
@@ -2671,40 +2678,22 @@ class AILover:
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        # --- 後續的批次清洗與摘要邏輯保持不變 ---
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
-        
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
-        
         literary_chain = self.get_literary_euphemization_chain()
-        safe_overview_of_all_docs = await self.ainvoke_with_rotation(
-            literary_chain,
-            {"dialogue_history": combined_content},
-            retry_strategy='none' 
-        )
-
+        safe_overview_of_all_docs = await self.ainvoke_with_rotation(literary_chain, {"dialogue_history": combined_content}, retry_strategy='none')
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
             logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
-        
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
-
         docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
-        
-        summarized_context = await self.ainvoke_with_rotation(
-            self.get_rag_summarizer_chain(), 
-            docs_for_summarizer,
-            retry_strategy='none' 
-        )
-
+        summarized_context = await self.ainvoke_with_rotation(self.get_rag_summarizer_chain(), docs_for_summarizer, retry_strategy='none')
         if not summarized_context or not summarized_context.strip():
              logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
              summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
-        
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v7.0 - 混合備援策略)
-
+    # 函式：[新] 檢索並總結記憶 (v8.1 - 導入修正)
     
 
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
@@ -2771,7 +2760,25 @@ class AILover:
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
 
 
+    # 函式：[全新] 更新檢索器的 Embedding 函式 (v1.0 - RAG健壯性重構)
+    # 更新紀錄:
+    # v1.0 (2025-10-25): [重大架構重構] 創建此輔助函式，用於遞歸地查找並「熱插拔」檢索器鏈中所有底層 ChromaDB 實例的 Embedding 函式。這是實現 RAG 檢索器 API 金鑰動態輪換的核心。
+    def _update_retriever_embeddings(self, retriever_instance: Any, new_embeddings: GoogleGenerativeAIEmbeddings):
+        """遞歸地查找並更新檢索器鏈中所有 Chroma vectorstore 的 embedding_function。"""
+        # Case 1: 處理 LangChain 的標準檢索器，它們通常有一個 vectorstore 屬性
+        if hasattr(retriever_instance, 'vectorstore') and isinstance(retriever_instance.vectorstore, Chroma):
+            retriever_instance.vectorstore._embedding_function = new_embeddings
+            # logger.info(f"[{self.user_id}] [RAG Hot-Swap] 已更新 {type(retriever_instance).__name__} 的 Embedding 函式。")
 
+        # Case 2: 處理 EnsembleRetriever，它有一個 retrievers 列表
+        if hasattr(retriever_instance, 'retrievers') and isinstance(retriever_instance.retrievers, list):
+            for sub_retriever in retriever_instance.retrievers:
+                self._update_retriever_embeddings(sub_retriever, new_embeddings)
+        
+        # Case 3: 處理 ContextualCompressionRetriever，它有一個 base_retriever
+        if hasattr(retriever_instance, 'base_retriever'):
+            self._update_retriever_embeddings(retriever_instance.base_retriever, new_embeddings)
+    # 函式：[全新] 更新檢索器的 Embedding 函式 (v1.0 - RAG健壯性重構)
 
 
 
@@ -3611,12 +3618,13 @@ class AILover:
 
 
 
-    # 函式：將互動保存到資料庫 (v5.0 - 整合智能冷卻)
+    # 函式：將互動保存到資料庫 (v5.1 - 導入修正)
     # 更新紀錄:
-    # v5.0 (2025-10-23): [災難性BUG修復] 徹底重構了此函式，將其與核心的「智能兩級冷卻系統」完全整合。現在，它會在嘗試向量化之前檢查金鑰的可用性，並在失敗後主動觸發對應金鑰的冷卻，從根本上解決了因 Embedding API 速率限制而導致的持續性警告風暴問題。
-    # v4.0 (2025-10-15): [健壯性] 增加了對 ChromaDB 保存失敗的錯誤處理。
+    # v5.1 (2025-10-25): [災難性BUG修復] 確保此函式使用的 GoogleGenerativeAIError 異常已在文件頂部被正確導入，解決了 NameError 崩潰問題。
+    # v5.0 (2025-10-23): [災難性BUG修復] 徹底重構了此函式，將其與核心的「智能兩級冷卻系統」完全整合。
     async def _save_interaction_to_dbs(self, interaction_text: str):
         """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為主方案)。"""
+        # [v5.1 核心修正] 確保 GoogleGenerativeAIError 已在文件頂部導入
         if not interaction_text or not self.profile:
             return
 
@@ -3624,7 +3632,6 @@ class AILover:
         current_time = time.time()
         
         try:
-            # 步驟 1: 保存到 SQL 資料庫 (備援方案的數據源，此步驟必須成功)
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
@@ -3638,11 +3645,9 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
-            return # SQL 保存失敗是致命的，直接返回
+            return
 
-        # [v5.0 核心修正] 步驟 2: 嘗試保存到 Chroma 向量庫 (整合智能冷卻)
         if self.vector_store:
-            # 2a. 事前檢查：是否有可用的 API 金鑰？
             key_info = self._get_next_available_key()
             if not key_info:
                 logger.info(f"[{self.user_id}] [優雅降級] 所有 Embedding API 金鑰都在冷卻中，本輪記憶僅保存至 SQL。")
@@ -3651,34 +3656,31 @@ class AILover:
             key_to_use, key_index = key_info
             
             try:
-                # 2b. 嘗試使用可用的金鑰進行向量化和儲存
                 temp_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
                 
                 await asyncio.to_thread(
                     self.vector_store.add_texts,
                     [interaction_text],
                     metadatas=[{"source": "history", "timestamp": current_time}],
-                    embedding_function=temp_embeddings # 確保使用我們指定的實例
+                    embedding_function=temp_embeddings
                 )
                 logger.info(f"[{self.user_id}] 對話記錄已成功向量化並保存到 ChromaDB。")
             
             except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                # 2c. 事後學習：如果仍然失敗，則觸發對該金鑰的冷卻
                 logger.warning(
                     f"[{self.user_id}] [優雅降級] "
                     f"API Key #{key_index} 在保存記憶到主記憶系統 (Embedding) 時失敗。將觸發對其的冷卻。"
                     f"錯誤類型: {type(e).__name__}"
                 )
-                # 手動觸發智能冷卻
                 now = time.time()
                 self.key_short_term_failures[key_index].append(now)
                 self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
                 if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                    self.key_cooldowns[key_index] = now + 60 * 60 * 24 # 長期冷卻
+                    self.key_cooldowns[key_index] = now + 60 * 60 * 24
                     self.key_short_term_failures[key_index] = []
             except Exception as e:
                  logger.error(f"[{self.user_id}] 保存記憶到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
-    # 函式：將互動保存到資料庫 (v5.0 - 整合智能冷卻)
+    # 函式：將互動保存到資料庫 (v5.1 - 導入修正)
 
     
 
@@ -4114,6 +4116,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
