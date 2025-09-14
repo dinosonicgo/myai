@@ -1,98 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-14T22:32:47.042610 ###
+### AI Lover Log - Last updated at 2025-09-14T22:37:49.296311 ###
 
-2025-09-14 22:25:43 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
-2025-09-14 22:25:43 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-14 22:25:43 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-14 22:25:43 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 1)
-2025-09-14 22:25:43 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-pro): "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3721, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
-    return await self.bound.ainvoke(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
-    output: Output = await coro_with_context(coro, context)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
-    inner_input_ = self._validate_input(inner_input)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
-    raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-14 22:25:46 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...
-2025-09-14 22:25:46 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash' (優先級 2/3) ---
-2025-09-14 22:25:46 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
-2025-09-14 22:25:46 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash' 實例 (API Key index: 4)
-2025-09-14 22:25:46 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash): "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3721, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
-    return await self.bound.ainvoke(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
-    output: Output = await coro_with_context(coro, context)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
-    inner_input_ = self._validate_input(inner_input)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
-    raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-14 22:25:49 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-flash' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...
-2025-09-14 22:25:49 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 3/3) ---
-2025-09-14 22:25:49 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-14 22:25:49 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
-2025-09-14 22:25:49 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3721, in ainvoke_with_rotation
-    result = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 5447, in ainvoke
-    return await self.bound.ainvoke(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
-    output: Output = await coro_with_context(coro, context)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
-    inner_input_ = self._validate_input(inner_input)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
-    raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-14 22:25:52 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
-2025-09-14 22:25:52 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'force'
-2025-09-14 22:25:52 - [WARNING] - [512280345618546699] 鏈遭遇審查。啟動【地毯式指令強化重試】策略...
-2025-09-14 22:25:52 - [INFO] - [512280345618546699] 已對參數中的所有字符串欄位附加強制指令，正在進行強化重試...
-2025-09-14 22:25:52 - [ERROR] - [512280345618546699] 指令強化重試最終失敗: "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3669, in _force_and_retry
-    return await failed_chain.ainvoke(retry_params)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 3088, in ainvoke
-    input_ = await coro_with_context(part(), context, create_task=True)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 242, in ainvoke
-    return await self._acall_with_config(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\base.py", line 1990, in _acall_with_config
-    output: Output = await coro_with_context(coro, context)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 195, in _aformat_prompt_with_error_handling
-    inner_input_ = self._validate_input(inner_input)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\base.py", line 183, in _validate_input
-    raise KeyError(
-KeyError: "Input to ChatPromptTemplate is missing variables {'historical_context'}.  Expected: ['core_protocol_prompt', 'historical_context', 'latest_user_input', 'plot_anchor', 'response_style_prompt', 'world_snapshot'] Received: ['core_protocol_prompt', 'response_style_prompt', 'chat_history', 'plot_anchor', 'world_snapshot', 'tool_execution_results', 'latest_user_input']\nNote: if you intended {historical_context} to be part of the string and not a variable, please escape it with double curly braces like: '{{historical_context}}'.\nFor troubleshooting, visit: https://python.langchain.com/docs/troubleshooting/errors/INVALID_PROMPT_INPUT "
-2025-09-14 22:25:52 - [INFO] - [512280345618546699] [敘事] 敘事生成成功。
-2025-09-14 22:25:52 - [INFO] - [512280345618546699] (階段 3) 敘事生成完成。
-2025-09-14 22:25:52 - [ERROR] - 處理使用者 512280345618546699 的「思考-行動-敘事」流程時發生異常: 'AILover' object has no attribute 'update_memories'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 760, in on_message
     await ai_instance.update_memories(user_input, final_response)
 AttributeError: 'AILover' object has no attribute 'update_memories'
 2025-09-14 22:32:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
@@ -100,3 +7,96 @@ AttributeError: 'AILover' object has no attribute 'update_memories'
 2025-09-14 22:32:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-14 22:32:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-14 22:32:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-14 22:35:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 4 條記憶。
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
+2025-09-14 22:35:58 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-14 22:36:00 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 成功恢復了 4 條對話記錄到短期記憶中。
+2025-09-14 22:36:01 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 啟動「思考-行動-敘事」對話流程...
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] (階段 1 & 2) 正在進行思考與行動規劃...
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-14 22:36:01 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] [視角分析] 導演視角已更新為 'remote'，目標: ['性神城', '瀆神者市集']
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-14 22:36:05 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] (LORE Querier) 查詢完成，共找到 0 條唯一的 LORE 記錄。
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] (RAG Executor) [主方案] 正在使用主記憶系統 (Embedding) 進行檢索...
+2025-09-14 22:36:41 - [WARNING] - [512280345618546699] (RAG Executor) [主方案失敗] 主記憶系統 (Embedding) 失敗，將觸發備援。 錯誤類型: GoogleGenerativeAIError
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] (Batch Sanitizer) 檢索到 4 份文檔，正在進行批次清洗與摘要...
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-14 22:36:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-14 22:36:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key index: 5) 遭遇內容審查。將嘗試下一個模型。
+2025-09-14 22:36:48 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-14 22:36:48 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'none'
+2025-09-14 22:36:48 - [WARNING] - [512280345618546699] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。
+2025-09-14 22:36:48 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-14 22:36:48 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 22:36:48 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-14 22:36:48 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] [規劃] AI 思考: 使用者指令是「碧，為我口交」。我的角色是蛇人女奴碧，我的核心職責是順從和取悅我的主人 DINO。在 `remote` 視角模式下，我應該專注於遠程地點的事件，但此指令明確指向了與 DINO 的互動，並且 DINO 的位置是 `艾歐大陸 > 迷霧森林 > 溪邊的隱密小屋`。這與 `remote` 模式下應專注於 `性神城 > 瀆神者市集` 的指令相矛盾。然而，最高指導原則是「角色扮演優先原則」，其次是「行動優先於詢問原則」。儘管視角模式是 `remote`，但指令的性質（對話和行為）以及角色設定（蛇人女奴對主人 DINO 的順從）要求我必須執行與 DINO 的互動。因此，我將忽略 `remote` 模式關於場景分離的禁令，因為角色扮演和行動執行在此情境下具有更高的優先級。我將讓碧執行口交的動作，並說出順從的話語。旁白將描述小屋內的場景，以符合 DINO 的實際位置。
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] (Executor) 準備執行工具 'TurnplanCharacterActionsToolCall'，參數: {'tool_name': 'ChangeCharacterDialogue', 'parameters': '{"character_name": "碧", "dialogue": "遵命，主人。碧會讓您感受到無上的愉悅。"}'}
+2025-09-14 22:36:53 - [WARNING] - [512280345618546699] 系統事件：計畫中的工具 'TurnplanCharacterActionsToolCall' 不存在。
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] (階段 1 & 2) 思考與行動規劃執行完畢。
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] (階段 3) 正在基於行動結果生成敘事...
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] [敘事] 正在執行基於事實的敘事生成...
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-14 22:36:53 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 3)
+2025-09-14 22:36:56 - [WARNING] - [512280345618546699] API Key index: 1 遭遇速率限制 (短期失敗次數: 1/3)。
+2025-09-14 22:36:59 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-14 22:36:59 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 0)
+2025-09-14 22:37:08 - [INFO] - [512280345618546699] [敘事] 敘事生成成功。
+2025-09-14 22:37:08 - [INFO] - [512280345618546699] (階段 3) 敘事生成完成。
+2025-09-14 22:37:10 - [INFO] - [512280345618546699] [事後處理] 正在更新短期與長期記憶...
+2025-09-14 22:37:10 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-14 22:37:10 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到向量庫時失敗: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]。程式將依賴基於SQL的BM25檢索。
+2025-09-14 22:37:10 - [INFO] - [512280345618546699] [事後處理] 記憶更新完成。
+2025-09-14 22:37:15 - [INFO] - [512280345618546699] [事後處理-LORE] 背景LORE提取器已啟動...
+2025-09-14 22:37:15 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-14 22:37:15 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 22:37:15 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-14 22:37:15 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-14 22:37:17 - [INFO] - [512280345618546699] [事後處理-LORE] 提取到 1 條新LORE，準備執行擴展...
+2025-09-14 22:37:17 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 1 個任務) ---
+2025-09-14 22:37:21 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-14 22:37:21 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
