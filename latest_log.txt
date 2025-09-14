@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-14T19:34:29.150096 ###
+### AI Lover Log - Last updated at 2025-09-14T19:39:31.558495 ###
 
-2025-09-14 00:34:34 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-14 00:34:34 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-14 00:34:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key index: 4) 遭遇內容審查。將嘗試下一個模型。
-2025-09-14 00:34:37 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
-2025-09-14 00:34:37 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
-2025-09-14 00:34:37 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-14 00:34:37 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '性神城的聖殿，曾經是信徒們祈禱和獻身的潔淨之地，此刻卻被褻瀆的陰影籠罩。三名來自城邦底層的乞丐，他們...' 清洗為安全的文學概述...
-2025-09-14 00:34:37 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-14 00:34:37 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-14 00:34:37 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-14 00:34:38 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key index: 1) 遭遇內容審查。將嘗試下一個模型。
-2025-09-14 00:34:41 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
-2025-09-14 00:34:41 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
-2025-09-14 00:34:41 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-14 00:34:41 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '性神城的聖殿，曾經是信徒們祈禱和獻身的潔淨之地，此刻卻被褻瀆的陰影籠罩。三名來自城邦底層的乞丐，他們...' 清洗為安全的文學概述...
-2025-09-14 00:34:41 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-14 00:34:41 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-14 00:34:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-14 00:34:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key index: 4) 遭遇內容審查。將嘗試下一個模型。
-2025-09-14 00:34:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
-2025-09-14 00:34:44 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
-2025-09-14 00:34:44 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-14 00:34:44 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '性神城的聖殿，曾經是信徒們祈禱和獻身的潔淨之地，此刻卻被褻瀆的陰影籠罩。三名來自城邦底層的乞丐，他們...' 清洗為安全的文學概述...
-2025-09-14 00:34:44 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-14 00:34:44 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-14 00:34:44 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-14 00:34:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key index: 1) 遭遇內容審查。將嘗試下一個模型。
-2025-09-14 00:34:47 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
-2025-09-14 00:34:47 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
-2025-09-14 00:34:47 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-14 00:34:47 - [INFO] - [512280345618546699] (Euphemizer) 正在將 '性神城的聖殿，曾經是信徒們祈禱和獻身的潔淨之地，此刻卻被褻瀆的陰影籠罩。三名來自城邦底層的乞丐，他們...' 清洗為安全的文學概述...
-2025-09-14 00:34:47 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-14 00:34:47 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
-2025-09-14 00:34:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-14 00:34:50 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制 (短期失敗次數: 1/3)。
-2025-09-14 00:34:53 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-14 00:34:53 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
-2025-09-14 00:35:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 00:35:05 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 00:35:08 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 00:35:08 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 00:35:08 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 00:40:30 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 00:40:30 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 00:40:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 00:40:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 00:40:34 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 00:45:55 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 00:45:56 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 00:45:58 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 00:45:58 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 00:45:59 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 00:48:25 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 4 條記憶。
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
-2025-09-14 00:48:25 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-14 00:48:27 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] 成功恢復了 4 條對話記錄到短期記憶中。
-2025-09-14 00:48:28 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-14 00:48:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] [直連模式] 已啟用，繞過 LangGraph，直接與 LLM 對話...
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] [直連模式] 正在執行直接 LLM 呼叫...
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 2)
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
-2025-09-14 00:49:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 5)
-2025-09-14 00:52:37 - [INFO] - [512280345618546699] [直連模式] 已啟用，繞過 LangGraph，直接與 LLM 對話...
-2025-09-14 00:52:37 - [INFO] - [512280345618546699] [直連模式] 正在執行直接 LLM 呼叫...
-2025-09-14 00:52:38 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 0)
-2025-09-14 00:52:38 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-14 00:52:38 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
-2025-09-14 00:52:38 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 3)
-2025-09-14 16:46:21 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 16:46:22 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 16:46:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 16:46:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 16:46:25 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 17:47:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 17:47:16 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 17:47:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 17:47:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 17:47:19 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 18:01:36 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 18:01:37 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 18:01:39 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 18:01:39 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 18:01:40 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-14 19:34:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-14 19:34:15 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-14 19:34:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-14 19:34:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-14 19:34:19 - [INFO] - 已成功發送啟動成功通知給管理員。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2522, in retrieve_and_summarize_memories
+    retrieved_docs = await self.retriever.ainvoke(query_text)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\retrievers.py", line 323, in ainvoke
+    result = await self._aget_relevant_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\contextual_compression.py", line 69, in _aget_relevant_documents
+    docs = await self.base_retriever.ainvoke(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 153, in ainvoke
+    result = await self.arank_fusion(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain\retrievers\ensemble.py", line 265, in arank_fusion
+    retriever_docs = await asyncio.gather(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\retrievers.py", line 323, in ainvoke
+    result = await self._aget_relevant_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 1104, in _aget_relevant_documents
+    docs = await self.vectorstore.asimilarity_search(query, **kwargs_)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 648, in asimilarity_search
+    return await run_in_executor(None, self.similarity_search, query, k=k, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 681, in similarity_search
+    docs_and_scores = self.similarity_search_with_score(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 781, in similarity_search_with_score
+    query_embedding = self._embedding_function.embed_query(query)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 256, in embed_query
+    return self.embed_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-09-14 19:38:55 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-14 19:38:55 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 19:38:55 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 3)
+2025-09-14 19:38:55 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 4)
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] (LORE Querier) 查詢完成，共找到 0 條唯一的 LORE 記錄。
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] (階段 1/3) 上下文預處理完成。
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] (階段 2/3) 正在執行單次直連生成...
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] [生成] 正在執行單次直連生成...
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-14 19:38:57 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 2)
+2025-09-14 19:39:00 - [INFO] - [512280345618546699] [生成] 單次直連生成成功。
+2025-09-14 19:39:00 - [INFO] - [512280345618546699] (階段 2/3) 單次直連生成完成。
+2025-09-14 19:39:00 - [INFO] - [512280345618546699] (階段 3/3) 正在執行事後處理...
+2025-09-14 19:39:00 - [INFO] - [512280345618546699] [事後處理] 正在更新短期與長期記憶...
+2025-09-14 19:39:00 - [INFO] - [512280345618546699] 對話記錄已成功保存到 SQL 資料庫。
+2025-09-14 19:39:01 - [WARNING] - [512280345618546699] [優雅降級] 在保存記憶到向量庫時失敗: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]。程式將依賴基於SQL的BM25檢索。
+2025-09-14 19:39:01 - [INFO] - [512280345618546699] [事後處理] 記憶更新完成。
+2025-09-14 19:39:01 - [INFO] - [512280345618546699] (階段 3/3) 事後處理已啟動。
+2025-09-14 19:39:06 - [INFO] - [512280345618546699] [事後處理-LORE] 背景LORE提取器已啟動...
+2025-09-14 19:39:06 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-14 19:39:06 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-14 19:39:06 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 5)
+2025-09-14 19:39:06 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-14 19:39:07 - [INFO] - [512280345618546699] [事後處理-LORE] 提取到 1 條新LORE，準備執行擴展...
+2025-09-14 19:39:07 - [INFO] - --- [512280345618546699] 開始串行執行已淨化的場景擴展計畫 (共 1 個任務) ---
+2025-09-14 19:39:11 - [INFO] - --- [512280345618546699] 場景擴展計畫執行完畢 ---
+2025-09-14 19:39:11 - [INFO] - [512280345618546699] 背景任務的工具上下文已清理。
