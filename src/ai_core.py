@@ -1082,9 +1082,10 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[全新] 預處理上下文並生成回應 (v1.0 - 終極自由創作)
+    # 函式：[全新] 預處理上下文並生成回應 (v1.1 - 雙標記淨化)
     # 更新紀錄:
-    # v1.0 (2025-10-28): [重大架構重構] 創建此統一的核心函式，以實現「上下文注入 + 單次自由創作」的終極簡化架構。它合併了之前分散在多個函式中的職責，負責從頭到尾的完整生成流程，最大限度地釋放 LLM 的能力。
+    # v1.1 (2025-10-29): [災難性BUG修復] 在此統一函式中，實現了針對「輸出起始/結束標記」的雙標記淨化邏輯，以從根本上解決所有潛在的指令洩漏問題。
+    # v1.0 (2025-10-28): [重大架構重構] 創建此統一的核心函式，以實現「上下文注入 + 單次自由創作」的終極簡化架構。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (統一流程) 執行從上下文預處理到最終回應生成的完整流程。
@@ -1162,9 +1163,25 @@ class AILover:
 
         raw_response = str(final_response_raw)
         
-        # 事後淨化
+        # --- [v1.1 核心修正] 雙標記淨化 ---
         start_marker = "§START_OF_RESPONSE§"
-        final_response = raw_response.split(start_marker, 1)[1].strip() if start_marker in raw_response else raw_response.strip()
+        end_marker = "§END_OF_RESPONSE§"
+        
+        start_index = raw_response.find(start_marker)
+        end_index = raw_response.rfind(end_marker) # 使用 rfind 確保找到最後一個結束標記
+
+        if start_index != -1:
+            start_pos = start_index + len(start_marker)
+            if end_index != -1 and end_index > start_pos:
+                final_response = raw_response[start_pos:end_index].strip()
+            else:
+                final_response = raw_response[start_pos:].strip()
+            logger.info(f"[{self.user_id}] [淨化] 成功基於標記提取到純淨輸出。")
+        else:
+            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！可能仍存在指令洩漏。")
+            final_response = raw_response.strip()
+            if end_marker in final_response:
+                final_response = final_response.split(end_marker, 1)[0].strip()
 
         if not final_response:
             logger.critical(f"[{self.user_id}] [生成] 核心生成鏈在淨化後為空！")
@@ -1172,17 +1189,15 @@ class AILover:
         
         logger.info(f"[{self.user_id}] [生成] 自由創作生成成功。")
 
-        # 準備用於事後分析的上下文數據包
         final_context = { "raw_lore_objects": raw_lore_objects }
 
-        # 更新快照
         self.last_context_snapshot = {
             "raw_lore_objects": raw_lore_objects,
             "last_response_text": final_response
         }
         
         return final_response, final_context
-    # 函式：[全新] 預處理上下文並生成回應 (v1.0 - 終極自由創作)
+    # 函式：[全新] 預處理上下文並生成回應 (v1.1 - 雙標記淨化)
 
 
 
@@ -4019,6 +4034,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
