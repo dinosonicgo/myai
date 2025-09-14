@@ -234,10 +234,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 生成最終回應 (v2.0 - 思考-行動-敘事)
+    # 函式：[升級] 生成最終回應 (v2.1 - 參數對齊)
     # 更新紀錄:
-    # v2.0 (2025-10-22): [重大架構重構] 升級此函式，使其能夠接收並處理來自規劃階段的「行動結果」。Prompt 模板被徹底重寫，以強制 LLM 基於這些「已發生的事實」來進行小說創作，從而解決行動敷衍的問題。
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第二階段。
+    # v2.1 (2025-10-23): [災難性BUG修復] 修正了傳遞給鏈的參數字典，使其與 get_unified_generation_chain 中更新後的 Prompt 模板完全匹配，解決了 KeyError。
+    # v2.0 (2025-10-22): [重大架構重構] 升級此函式以接收並處理「行動結果」。
     async def generate_final_response(self, input_data: Dict[str, Any], action_results: Dict[str, Any]) -> str:
         """(階段三) 接收上下文和行動結果，執行基於事實的敘事生成。"""
         if not self.profile:
@@ -256,17 +256,20 @@ class AILover:
 
         generation_chain = self.get_unified_generation_chain()
         
+        # [v2.1 核心修正] 確保傳遞的參數與 Prompt 模板完全匹配
+        final_params = {
+            "core_protocol_prompt": self.core_protocol_prompt,
+            "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+            "chat_history": input_data["chat_history"],
+            "plot_anchor": plot_anchor,
+            "world_snapshot": action_results["world_snapshot"],
+            "tool_execution_results": action_results["tool_execution_results"],
+            "latest_user_input": input_data["user_input"],
+        }
+
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain,
-            {
-                "core_protocol_prompt": self.core_protocol_prompt,
-                "response_style_prompt": self.profile.response_style_prompt or "預設風格",
-                "chat_history": input_data["chat_history"],
-                "plot_anchor": plot_anchor,
-                "world_snapshot": action_results["world_snapshot"],
-                "tool_execution_results": action_results["tool_execution_results"],
-                "latest_user_input": input_data["user_input"],
-            },
+            final_params,
             retry_strategy='force',
             use_degradation=True
         )
@@ -275,16 +278,90 @@ class AILover:
 
         if not final_response or not final_response.strip():
             logger.critical(f"[{self.user_id}] [敘事] 核心生成鏈在所有策略後最終失敗！")
-            return "（抱歉，我好像突然断线了，腦海中一片空白...）"
+            return "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
         logger.info(f"[{self.user_id}] [敘事] 敘事生成成功。")
-        # 更新快照中需要用到的 LORE 對象
         self.last_context_snapshot = {
             "raw_lore_objects": action_results.get("raw_lore_objects", []),
             "last_response_text": final_response
         }
         return final_response
-    # 函式：[升級] 生成最終回應 (v2.0 - 思考-行動-敘事)
+    # 函式：[升級] 生成最終回應 (v2.1 - 參數對齊)
+
+
+    # 函式：[全新] 從回應中擴展LORE (v1.1 - 參數修正)
+    # 更新紀錄:
+    # v1.1 (2025-10-23): [災難性BUG修復] 修正了函式簽名，增加了 action_results 參數，以確保事後分析能獲取到最新的 LORE 上下文。
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。
+    async def expand_lore_from_response(self, user_input: str, ai_response: str, action_results: Dict[str, Any]):
+        """(事後處理-背景任務) 從最終回應中提取新的LORE並將其持久化。"""
+        if not self.profile: return
+            
+        try:
+            await asyncio.sleep(5.0)
+
+            # [v1.1 核心修正] 直接從 action_results 中獲取當前回合的 LORE 上下文
+            current_lores = action_results.get("raw_lore_objects", [])
+            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in current_lores]
+            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+
+            logger.info(f"[{self.user_id}] [事後處理-LORE] 背景LORE提取器已啟動...")
+            
+            lore_extraction_chain = self.get_lore_extraction_chain()
+            if not lore_extraction_chain:
+                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈未初始化，跳過擴展。")
+                return
+
+            extraction_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "existing_lore_summary": existing_lore_summary,
+                "user_input": user_input,
+                "final_response_text": ai_response,
+            }
+
+            extraction_plan = await self.ainvoke_with_rotation(
+                lore_extraction_chain, 
+                extraction_params,
+                retry_strategy='euphemize'
+            )
+            
+            if not extraction_plan:
+                logger.warning(f"[{self.user_id}] [事後處理-LORE] LORE提取鏈的LLM回應為空或最終失敗。")
+                return
+
+            if extraction_plan.plan:
+                logger.info(f"[{self.user_id}] [事後處理-LORE] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
+                current_location = self.profile.game_state.location_path
+                await self._execute_tool_call_plan(extraction_plan, current_location)
+            else:
+                logger.info(f"[{self.user_id}] [事後處理-LORE] AI分析後判斷最終回應中不包含新的LORE可供提取。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [事後處理-LORE] 背景LORE擴展任務執行時發生未預期的異常: {e}", exc_info=True)
+    # 函式：[全新] 從回應中擴展LORE (v1.1 - 參數修正)
+
+
+        # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+    # 更新紀錄:
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在成功生成回應後，將新的對話內容同步到短期記憶和長期記憶資料庫中。
+    async def update_memories(self, user_input: str, ai_response: str):
+        """(事後處理) 更新短期記憶和長期記憶。"""
+        if not self.profile: return
+
+        logger.info(f"[{self.user_id}] [事後處理] 正在更新短期與長期記憶...")
+        
+        # 1. 更新短期記憶
+        chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
+        chat_history_manager.add_user_message(user_input)
+        chat_history_manager.add_ai_message(ai_response)
+        
+        # 2. 更新長期記憶 (異步)
+        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{ai_response}"
+        await self._save_interaction_to_dbs(last_interaction_text)
+        
+        logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
+    # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
 
 
 
@@ -2010,10 +2087,10 @@ class AILover:
 
 
 
-    # 函式：[全新] 獲取统一生成链 (v5.0 - 劇情錨點與設定融合)
+    # 函式：[升級] 獲取统一生成链 (v6.0 - 上下文統一)
     # 更新紀錄:
-    # v5.0 (2025-10-15): [災難性BUG修復] 引入了【劇情錨點】模板結構和【設定融合】原則，強制 AI 進行劇情延續，並將用戶在連續指令中補充的新 LORE 應用到現有劇情上。
-    # v4.0 (2025-10-15): [災難性BUG修復] 引入了【指令防火牆】模板結構。
+    # v6.0 (2025-10-23): [災難性BUG修復] 統一了上下文注入方式。移除了獨立的 `{historical_context}` 佔位符，並正式啟用 `MessagesPlaceholder` 來處理短期對話歷史，從根本上解決了因參數不匹配導致的 KeyError。
+    # v5.0 (2025-10-15): [災難性BUG修復] 引入了【劇情錨點】模板結構和【設定融合】原則。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2027,6 +2104,7 @@ class AILover:
 ---
 """
             
+            # [v6.0 核心修正] Human Prompt 現在只包含敘事生成所需的核心指令
             human_prompt_template = """
 # ==============================================================================
 # == 🎬 第一部分：劇情錨點 (Plot Anchor - 最高劇情優先級) 🎬
@@ -2052,18 +2130,20 @@ class AILover:
 # 說明：這是供你參考的背景資料。如果與【劇情錨點】或【核心任務指令】衝突，
 #       則以後兩者為準。
 # ------------------------------------------------------------------------------
-## 📜 歷史上下文 (背景參考) 📜
-{historical_context}
 ## 📖 世界即時快照 (當前事實) 📖
+# RAG檢索到的長期記憶摘要已包含在此處。
 {world_snapshot}
+## ⚡️ 本回合已發生的事實 (行動結果) ⚡️
+{tool_execution_results}
 # ==============================================================================
 # == ✍️ 你的創作 ==
 # 現在，請嚴格遵循所有規則，首先確保你的創作是【劇情錨點】的直接延續，
-# 然後絕對優先地執行【核心任務指令】（並融合其中的新設定），最後基於
-# 【上下文數據】來豐富細節。
+# 然後絕對優先地執行【核心任務指令】，最後基於【上下文數據】來豐富細節。
 """
+            # [v6.0 核心修正] 正式啟用 MessagesPlaceholder
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
+                MessagesPlaceholder(variable_name="chat_history"), # 短期記憶將插入此處
                 ("human", human_prompt_template)
             ])
             
@@ -2071,7 +2151,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[全新] 獲取统一生成链 (v5.0 - 劇情錨點與設定融合)
+    # 函式：[升級] 獲取统一生成链 (v6.0 - 上下文統一)
 
 
 
@@ -3977,6 +4057,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
