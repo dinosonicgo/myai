@@ -109,10 +109,10 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v223.0 - 終極簡化)
+    # 函式：初始化AI核心 (v224.0 - 徹底移除Graph)
     # 更新紀錄:
-    # v223.0 (2025-10-18): [重大架構重構] 移除了對 main_response_graph 的引用，以適配全新的、不依賴 LangGraph 的線性對話流程。
-    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統。
+    # v224.0 (2025-10-19): [重大架構重構] 移除了 setup_graph 屬性，標誌著對 LangGraph 的依賴被完全移除。
+    # v223.0 (2025-10-18): [重大架構重構] 移除了對 main_response_graph 的引用。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -130,9 +130,6 @@ class AILover:
         self.RPM_FAILURE_THRESHOLD = 3
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
-
-        # [v223.0 核心修正] 移除對 LangGraph 的依賴
-        # self.main_response_graph: Optional[Any] = None 
         
         # --- 所有 get_..._chain 輔助鏈的佔位符 (保持不變) ---
         self.unified_generation_chain: Optional[Runnable] = None
@@ -181,7 +178,7 @@ class AILover:
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v223.0 - 終極簡化)
+    # 函式：初始化AI核心 (v224.0 - 徹底移除Graph)
     
 
 
@@ -467,6 +464,234 @@ class AILover:
             await self.update_and_persist_profile({'game_state': gs.model_dump()})
             logger.info(f"[{self.user_id}] [視角分析] 導演視角已更新為 '{gs.viewing_mode}'，目標: {gs.remote_target_path}")
     # 函式：[全新] 獨立的視角模式更新器
+
+
+
+
+
+
+
+    # 函式：[全新] 處理世界聖經並提取LORE (/start 流程 1/4)
+    # 更新紀錄:
+    # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第一步，取代舊的 process_canon_node。
+    async def process_canon_and_extract_lores(self, canon_text: Optional[str]):
+        """(/start 流程 1/4) 處理世界聖經文本，存入RAG並解析LORE。"""
+        if not canon_text:
+            logger.info(f"[{self.user_id}] [/start] 未提供世界聖經文本，跳過處理。")
+            return
+        
+        logger.info(f"[{self.user_id}] [/start] 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
+        await self.add_canon_to_vector_store(canon_text)
+        logger.info(f"[{self.user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
+        
+        logger.info(f"[{self.user_id}] [/start] 正在進行 LORE 智能解析...")
+        await self.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
+        logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
+    # 函式：[全新] 處理世界聖經並提取LORE (/start 流程 1/4)
+
+    
+
+    # 函式：[全新] 補完角色檔案 (/start 流程 2/4)
+    # 更新紀錄:
+    # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第二步，取代舊的 complete_profiles_node。
+    async def complete_character_profiles(self):
+        """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
+        if not self.profile:
+            logger.error(f"[{self.user_id}] [/start] ai_core.profile 為空，無法補完角色檔案。")
+            return
+
+        completion_chain = self.get_profile_completion_chain()
+        literary_chain = self.get_literary_euphemization_chain()
+
+        async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
+            try:
+                # 準備一個安全的、經過委婉化處理的profile數據用於LLM補完
+                safe_profile_data = original_profile.model_dump()
+                tasks_to_clean = {}
+                if (desc := safe_profile_data.get('description', '')):
+                    tasks_to_clean['description'] = literary_chain.ainvoke({"dialogue_history": desc})
+                if (appr := safe_profile_data.get('appearance', '')):
+                    tasks_to_clean['appearance'] = literary_chain.ainvoke({"dialogue_history": appr})
+                
+                if tasks_to_clean:
+                    cleaned_results = await asyncio.gather(*tasks_to_clean.values(), return_exceptions=True)
+                    results_dict = dict(zip(tasks_to_clean.keys(), cleaned_results))
+                    if 'description' in results_dict and isinstance(results_dict['description'], str):
+                        safe_profile_data['description'] = results_dict['description']
+                    if 'appearance' in results_dict and isinstance(results_dict['appearance'], str):
+                        safe_profile_data['appearance'] = results_dict['appearance']
+                
+                # 使用安全數據進行補完
+                completed_safe_profile = await self.ainvoke_with_rotation(
+                    completion_chain, 
+                    {"profile_json": json.dumps(safe_profile_data, ensure_ascii=False)}, 
+                    retry_strategy='euphemize'
+                )
+                if not completed_safe_profile: return original_profile
+
+                # 將補完的數據合併回原始profile，但保留原始的NSFW描述
+                original_data = original_profile.model_dump()
+                completed_data = completed_safe_profile.model_dump()
+                for key, value in completed_data.items():
+                    # 只填充原本為空的欄位
+                    if not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]:
+                        if value: original_data[key] = value
+                
+                # 確保核心的、使用者輸入的描述不被覆蓋
+                original_data['description'] = original_profile.description
+                original_data['appearance'] = original_profile.appearance
+                original_data['name'] = original_profile.name
+                
+                return CharacterProfile.model_validate(original_data)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [/start] 為角色 '{original_profile.name}' 進行安全補完時發生錯誤: {e}", exc_info=True)
+                return original_profile
+
+        # 並行處理兩個角色的補完
+        completed_user_profile, completed_ai_profile = await asyncio.gather(
+            _safe_complete_profile(self.profile.user_profile),
+            _safe_complete_profile(self.profile.ai_profile)
+        )
+        
+        # 更新並持久化
+        await self.update_and_persist_profile({
+            'user_profile': completed_user_profile.model_dump(), 
+            'ai_profile': completed_ai_profile.model_dump()
+        })
+    # 函式：[全新] 補完角色檔案 (/start 流程 2/4)
+
+
+    # 函式：[全新] 生成世界創世資訊 (/start 流程 3/4)
+    # 更新紀錄:
+    # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第三步，取代舊的 world_genesis_node。
+    async def generate_world_genesis(self):
+        """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
+
+        genesis_chain = self.get_world_genesis_chain()
+        genesis_params = {
+            "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
+            "username": self.profile.user_profile.name,
+            "ai_name": self.profile.ai_profile.name
+        }
+        
+        genesis_result = await self.ainvoke_with_rotation(
+            genesis_chain, 
+            genesis_params, 
+            retry_strategy='force' # 使用最強策略確保成功
+        )
+        
+        if not genesis_result:
+            raise Exception("世界創世鏈在所有重試後最終失敗，返回了空結果。")
+
+        # 更新遊戲狀態並持久化 LORE
+        gs = self.profile.game_state
+        gs.location_path = genesis_result.location_path
+        await self.update_and_persist_profile({'game_state': gs.model_dump()})
+        
+        await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
+        
+        for npc in genesis_result.initial_npcs:
+            npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
+            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc.model_dump())
+    # 函式：[全新] 生成世界創世資訊 (/start 流程 3/4)
+
+
+
+
+    # 函式：生成開場白 (/start 流程 4/4)
+    # 更新紀錄:
+    # v178.0 (2025-10-19): [架構重構] 此函式現在作為手動編排的 /start 流程的第四步被調用，取代了舊的 generate_opening_scene_node。
+    # v177.3 (2025-10-14): [災難性BUG修復] 修正了 Attribute Error。
+    # v177.2 (2025-09-02): [架構清理] 徹底移除了對已被廢棄的 `_assemble_dynamic_prompt` 函式的調用。
+    async def generate_opening_scene(self) -> str:
+        """(/start 流程 4/4) 根據已生成的完整上下文，撰寫故事的開場白。"""
+        if not self.profile or not self.gm_model:
+            raise ValueError("AI 核心或 gm_model 未初始化，無法生成開場白。")
+
+        user_profile = self.profile.user_profile
+        ai_profile = self.profile.ai_profile
+        gs = self.profile.game_state
+
+        location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
+        location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+        
+        system_prompt_str = f"""你是一位才華橫溢的小說開篇作者。你的任務是為使用者「{user_profile.name}」和他的 AI 伴侶「{ai_profile.name}」撰寫一個寧靜而富有沉浸感的故事開端。
+
+【核心敘事原則】
+1.  **【使用者主權原則】**: 你的旁白【絕對禁止】描寫使用者角色「{user_profile.name}」的任何主觀思想、內心感受或未明確提供的動作。你只能根據其角色檔案進行客觀、靜態的描述。
+2.  **【禁止杜撰情節】**: 這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情，如性愛、暴力或衝突。
+
+【最終輸出強制令】
+你的最終輸出【必須且只能】是純粹的小說文本，並且其寫作風格必須嚴格遵循下方由使用者定義的風格指令。
+---
+{self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
+---
+"""
+
+        human_prompt_str = f"""
+請根據你在系統指令中學到的規則，為以下角色和場景撰寫開場白。
+
+【核心要求】
+1.  **雙人開場**：開場白【必須】同時描寫使用者角色「{user_profile.name}」和 AI 角色「{ai_profile.name}」。
+2.  **狀態還原**：【必須】準確描寫他們在【當前地點】的場景，並讓他們的行為、穿著和姿態完全符合下方提供的【角色檔案】。
+3.  **氛圍營造**：營造出符合【世界觀】和【當前地點描述】的氛圍。
+
+---
+【世界觀】
+{self.profile.world_settings}
+---
+【當前地點】: {" > ".join(gs.location_path)}
+【地點描述】: {location_description}
+---
+【使用者角色檔案：{user_profile.name}】
+{json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False)}
+---
+【AI角色檔案：{ai_profile.name}】
+{json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False)}
+---
+
+請開始撰寫一個寧靜且符合設定的開場故事。
+"""
+        
+        final_opening_scene = ""
+        try:
+            opening_chain = (
+                ChatPromptTemplate.from_messages([
+                    ("system", system_prompt_str),
+                    ("human", human_prompt_str)
+                ])
+                | self.gm_model
+                | StrOutputParser()
+            )
+
+            # 使用最強策略確保開場白能成功生成
+            initial_scene_raw = await self.ainvoke_with_rotation(
+                opening_chain, 
+                {}, # 參數已在模板字符串中，此處傳空字典
+                retry_strategy='force',
+                use_degradation=True
+            )
+            
+            initial_scene = str(initial_scene_raw)
+
+            if not initial_scene or not initial_scene.strip():
+                raise Exception("生成了空的場景內容。")
+
+            final_opening_scene = initial_scene.strip()
+            
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [/start] 開場白生成遭遇無法恢復的錯誤(很可能是內容審查): {e}。啟動【安全備用開場白】。")
+            final_opening_scene = (
+                f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡，故事即將從這裡開始。"
+                "\n\n（系統提示：由於您的設定可能包含敏感詞彙，AI無法生成詳細的開場白，但您現在可以開始互動了。）"
+            )
+
+        return final_opening_scene
+    # 函式：生成開場白 (/start 流程 4/4)
+
+
 
     
 
@@ -3736,6 +3961,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
