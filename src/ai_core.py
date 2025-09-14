@@ -2043,10 +2043,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v8.0 - 終極自由創作)
+    # 函式：[升級] 獲取统一生成链 (v8.1 - 雙標記注入)
     # 更新紀錄:
-    # v8.0 (2025-10-28): [重大架構重構] 根據「終極自由創作」架構，徹底重寫了 Prompt 模板。移除了所有關於工具和行動結果的結構化約束，將最高權限交還給 LLM，鼓勵其基於上下文進行自由、主動的創作和世界模擬。
-    # v7.0 (2025-10-24): [災難性BUG修復] 引入了「輸出起始標記」以解決指令洩漏問題。
+    # v8.1 (2025-10-29): [災難性BUG修復] 在 Prompt 模板的末尾同時注入了「輸出起始標記」和「輸出結束標記」的指令，以配合雙標記淨化邏輯，徹底解決指令洩漏問題。
+    # v8.0 (2025-10-28): [重大架構重構] 根據「終極自由創作」架構，徹底重寫了 Prompt 模板。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2084,6 +2084,7 @@ class AILover:
 {latest_user_input}
 # ==============================================================================
 # == ✍️ 你的創作 ==
+# 【輸出格式強制令】：你的創作【必須】以 `§START_OF_RESPONSE§` 作為開頭，並以 `§END_OF_RESPONSE§` 作為結尾。
 §START_OF_RESPONSE§
 """
             prompt = ChatPromptTemplate.from_messages([
@@ -2096,7 +2097,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v8.0 - 終極自由創作)
+    # 函式：[升級] 獲取统一生成链 (v8.1 - 雙標記注入)
 
 
     
@@ -4034,6 +4035,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
