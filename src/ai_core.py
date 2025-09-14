@@ -235,74 +235,7 @@ class AILover:
 
 
 
-    # 函式：[升級] 生成最終回應 (v3.0 - 指令洩漏修復)
-    # 更新紀錄:
-    # v3.0 (2025-10-24): [災難性BUG修復] 引入了「輸出起始標記」(`§START_OF_RESPONSE§`) 和事後淨化邏輯，以從根本上解決因 LLM 模仿 Prompt 結構而導致的系統指令洩漏問題。
-    # v2.1 (2025-10-23): [災難性BUG修復] 修正了參數傳遞，使其與 Prompt 模板完全匹配。
-    async def generate_final_response(self, input_data: Dict[str, Any], action_results: Dict[str, Any]) -> str:
-        """(階段三) 接收上下文和行動結果，執行基於事實的敘事生成，並淨化輸出。"""
-        if not self.profile:
-            raise ValueError("AI Profile尚未初始化，無法生成回應。")
 
-        logger.info(f"[{self.user_id}] [敘事] 正在執行基於事實的敘事生成...")
-        
-        # --- 準備 Prompt 參數 (與之前相同) ---
-        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        is_continuation = any(input_data["user_input"].lower().startswith(kw) for kw in continuation_keywords)
-        
-        plot_anchor = "（無）"
-        if is_continuation and self.last_context_snapshot:
-            plot_anchor = self.last_context_snapshot.get("last_response_text") or "（無）"
-            if plot_anchor != "（無）":
-                 logger.info(f"[{self.user_id}] [敘事] 已成功設置【劇情錨點】。")
-        
-        # --- [v3.0 核心修正] 更新 Prompt 模板 ---
-        # 由於 get_unified_generation_chain 是延遲加載的，我們可以在這裡重新定義模板字符串
-        # 為了確保完整性，這裡直接提供 get_unified_generation_chain 的完整修正版本
-        
-        generation_chain = self.get_unified_generation_chain() # 這會獲取到包含新標記的鏈
-        
-        final_params = {
-            "core_protocol_prompt": self.core_protocol_prompt,
-            "response_style_prompt": self.profile.response_style_prompt or "預設風格",
-            "chat_history": input_data["chat_history"],
-            "plot_anchor": plot_anchor,
-            "world_snapshot": action_results["world_snapshot"],
-            "tool_execution_results": action_results["tool_execution_results"],
-            "latest_user_input": input_data["user_input"],
-        }
-
-        final_response_raw = await self.ainvoke_with_rotation(
-            generation_chain,
-            final_params,
-            retry_strategy='force',
-            use_degradation=True
-        )
-
-        raw_response = str(final_response_raw)
-
-        # --- [v3.0 核心修正] 事後淨化 ---
-        start_marker = "§START_OF_RESPONSE§"
-        if start_marker in raw_response:
-            # 找到標記，並取其後的所有內容
-            final_response = raw_response.split(start_marker, 1)[1].strip()
-            logger.info(f"[{self.user_id}] [淨化] 成功移除指令洩漏，獲取到純淨輸出。")
-        else:
-            # 如果模型由於某些原因沒有生成標記，則記錄警告並返回原始回應
-            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！可能仍存在指令洩漏。")
-            final_response = raw_response.strip()
-
-        if not final_response:
-            logger.critical(f"[{self.user_id}] [敘事] 核心生成鏈在淨化後為空！")
-            return "（抱歉，我好像突然断线了，腦海中一片空白...）"
-        
-        logger.info(f"[{self.user_id}] [敘事] 敘事生成成功。")
-        self.last_context_snapshot = {
-            "raw_lore_objects": action_results.get("raw_lore_objects", []),
-            "last_response_text": final_response # 儲存淨化後的回應
-        }
-        return final_response
-    # 函式：[升級] 生成最終回應 (v3.0 - 指令洩漏修復)
 
 
     # 函式：[全新] 從回應中擴展LORE (v1.1 - 參數修正)
@@ -381,64 +314,7 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取行動規劃鏈 (v2.0 - 主體識別)
-    # 更新紀錄:
-    # v2.0 (2025-10-24): [災難性BUG修復] 注入了【主體-客體-動作 (S-V-O) 分析鐵則】，強制 AI 在規劃行動前必須先識別出指令的發出者和接收者，從根本上解決了因指令主體混淆而導致的「AI 給錯人蘋果」的問題。
-    # v1.0 (2025-10-22): [重大架構重構] 創建此專用的規劃鏈。
-    def get_action_planning_chain(self) -> Runnable:
-        """獲取或創建一個專門用於行動規劃和工具調用生成的鏈。"""
-        if not hasattr(self, 'action_planning_chain') or self.action_planning_chain is None:
-            from .schemas import TurnPlan
-            planning_llm = self._create_llm_instance(temperature=0.2).with_structured_output(TurnPlan)
 
-            system_prompt = """你是一個專業的、能夠與虛擬世界互動的 AI 角色扮演引擎。你的核心任務是分析當前情境和使用者指令，決定你需要採取的【行動】，並將這些行動轉化為一個結構化的【行動計畫 JSON】。
-
-# === 【【【最高指導原則 v3.0】】】 ===
-1.  **【🤖 主體-客體-動作 (S-V-O) 分析鐵則 - 絕對優先】**:
-    -   在進行任何思考前，你【必須】首先對【使用者最新指令】進行語法分析，找出指令的【主體 (Subject)】、【動作 (Verb)】和【客體 (Object)】。
-    -   **代詞定義**:
-        -   `我`, `我的` -> **永遠**指代【使用者角色 (`{username}`)】。
-        -   `你`, `你的` -> **永遠**指代【AI 角色 (`{ai_name}`)】。
-        -   `我們` -> 指代【使用者角色】和【AI 角色】組成的團隊。
-    -   **隱含主體**: 如果指令是祈使句（例如「給我蘋果」），其隱含的【主體】是【AI 角色 (`{ai_name}`)】，【客體】是【使用者角色 (`{username}`)】。
-    -   你的所有行動規劃【必須】嚴格基於這個 S-V-O 分析結果，【絕對禁止】將動作錯誤地應用到無關的第三方 NPC 身上。
-
-2.  **【🎭 角色扮演優先原則】**:
-    -   你的首要身份是一個**角色**。在規劃行動前，必須首先思考：「以我的性格（`ai_settings`），我會如何**嘗試**去完成這個指令？」
-
-3.  **【🚀 行動優先於詢問原則】**:
-    -   除非指令本身就是一個問題，否則你應該**優先嘗試採取物理行動**。
-
-4.  **【📽️ 導演視角鐵則】**:
-    -   如果 `viewing_mode` 是 `remote`，你的思考和工具調用**絕對禁止**涉及主角（`{username}`）或其 AI 夥伴（`{ai_name}`）。
-
-# === 【【【思考與輸出指令】】】 ===
-1.  **`thought` (思考鏈)**: 在此欄位中，詳細記錄你基於以上原則的思考過程。**第一步必須是 S-V-O 分析結果**。
-2.  **`character_actions` (行動列表)**: 將你的思考結果轉化為具體的行動。
-    -   **`tool_call`**: 任何需要改變世界狀態的物理行動都【必須】轉化為一個精確的工具調用。
-"""
-            human_prompt = """【世界即時快照 (你的感知)】:
-{world_snapshot}
-
-【最近對話歷史】:
-{chat_history}
-
-【使用者最新指令】:
-{user_input}
-
----
-請嚴格遵循所有指導原則，特別是【主體-客體-動作分析鐵則】，开始你的思考與規劃，並生成行動計畫 JSON。
-"""
-            prompt = ChatPromptTemplate.from_template(system_prompt + human_prompt)
-            # 使用 assign 自動注入主角名稱，以強化 S-V-O 分析
-            chain_with_names = RunnablePassthrough.assign(
-                username=lambda x: self.profile.user_profile.name if self.profile else "使用者",
-                ai_name=lambda x: self.profile.ai_profile.name if self.profile else "AI"
-            ) | prompt
-
-            self.action_planning_chain = chain_with_names | planning_llm
-        return self.action_planning_chain
-    # 函式：[升級] 獲取行動規劃鏈 (v2.0 - 主體識別)
     
 
 
@@ -448,69 +324,7 @@ class AILover:
 
 
 
-    # 函式：[全新] 規劃並執行行動 (v1.0 - 思考-行動-敘事)
-    # 更新紀錄:
-    # v1.0 (2025-10-22): [重大架構重構] 創建此函式，作為「思考-行動-敘事」架構的第一和第二階段。它負責上下文預處理、讓 LLM 進行行動規劃（生成工具調用），並立即執行這些工具，最終返回一個包含所有行動結果的字典。
-    async def plan_and_execute_actions(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """(階段 1 & 2) 準備上下文，規劃行動，執行工具，並返回行動結果。"""
-        user_input = input_data["user_input"]
-        if not self.profile:
-            raise ValueError("AI Profile尚未初始化，無法規劃行動。")
 
-        # --- 階段一：上下文預處理 ---
-        # 1a. 導演視角分析
-        await self._update_viewing_mode_standalone(user_input)
-        
-        # 1b. 檢索 LORE 和 RAG
-        is_remote = self.profile.game_state.viewing_mode == 'remote'
-        raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
-        rag_context = await self.retrieve_and_summarize_memories(user_input)
-        
-        # 1c. 彙總成 World Snapshot
-        gs = self.profile.game_state
-        npc_context_str = "\n".join([f"- **{lore.content.get('name', '未知NPC')}**: {lore.content.get('description', '無描述')}" for lore in raw_lore_objects if lore.category == 'npc_profile'])
-        if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
-        
-        context_vars = {
-            'username': self.profile.user_profile.name, 'ai_name': self.profile.ai_profile.name,
-            'world_settings': self.profile.world_settings or "未設定", 'ai_settings': self.profile.ai_profile.description or "未設定",
-            'retrieved_context': rag_context, 'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
-            'quests_context': "當前無任務。", 'location_context': f"當前地點: {' > '.join(gs.location_path)}",
-            'npc_context': npc_context_str, 'relevant_npc_context': "請參考上方在場角色列表。",
-            'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        }
-        world_snapshot = self.world_snapshot_template.format(**context_vars)
-
-        # --- 階段二：強制行動規劃與執行 ---
-        # 2a. 獲取規劃鏈並呼叫
-        planning_chain = self.get_action_planning_chain()
-        planning_params = {
-            "world_snapshot": world_snapshot,
-            "user_input": user_input,
-            "chat_history": "\n".join([f"{'USER' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in input_data["chat_history"][-4:]])
-        }
-        
-        action_plan = await self.ainvoke_with_rotation(
-            planning_chain,
-            planning_params,
-            retry_strategy='euphemize' # 規劃步驟使用較溫和的策略
-        )
-
-        # 2b. 執行工具
-        tool_execution_results = "系統事件：AI 判斷無需執行任何工具。"
-        if action_plan and action_plan.character_actions:
-            logger.info(f"[{self.user_id}] [規劃] AI 思考: {action_plan.thought}")
-            tool_execution_results = await self._execute_planned_actions(action_plan)
-        else:
-            logger.info(f"[{self.user_id}] [規劃] AI 判斷本次指令為純對話或觀察，無需執行工具。")
-            
-        return {
-            "world_snapshot": world_snapshot,
-            "tool_execution_results": tool_execution_results,
-            "raw_lore_objects": raw_lore_objects,
-        }
-    # 函式：[全新] 規劃並執行行動 (v1.0 - 思考-行動-敘事)
 
 
 
@@ -1268,7 +1082,107 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
+    # 函式：[全新] 預處理上下文並生成回應 (v1.0 - 終極自由創作)
+    # 更新紀錄:
+    # v1.0 (2025-10-28): [重大架構重構] 創建此統一的核心函式，以實現「上下文注入 + 單次自由創作」的終極簡化架構。它合併了之前分散在多個函式中的職責，負責從頭到尾的完整生成流程，最大限度地釋放 LLM 的能力。
+    async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+        """
+        (統一流程) 執行從上下文預處理到最終回應生成的完整流程。
+        返回 (final_response, final_context) 的元組。
+        """
+        user_input = input_data["user_input"]
+        chat_history = input_data["chat_history"]
 
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法處理上下文。")
+
+        # --- 階段一：上下文預處理 ---
+        logger.info(f"[{self.user_id}] [預處理] 正在準備上下文...")
+        
+        # 1a. 視角保持與連續性指令處理
+        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+        is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
+        
+        last_response_text = None
+        raw_lore_objects = None
+
+        if is_continuation and self.last_context_snapshot:
+            logger.info(f"[{self.user_id}] [預處理] 檢測到連續性指令，正在恢復上下文快照...")
+            last_response_text = self.last_context_snapshot.get("last_response_text")
+            raw_lore_objects = self.last_context_snapshot.get("raw_lore_objects")
+        else:
+            await self._update_viewing_mode_standalone(user_input)
+
+        # 1b. RAG 長期記憶檢索 (帶淨化)
+        rag_context = await self.retrieve_and_summarize_memories(user_input)
+        
+        # 1c. LORE 查詢
+        if raw_lore_objects is None:
+            is_remote = self.profile.game_state.viewing_mode == 'remote'
+            raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
+
+        # 1d. 彙總成 World Snapshot
+        gs = self.profile.game_state
+        npc_context_str = "\n".join([f"- **{lore.content.get('name', '未知NPC')}**: {lore.content.get('description', '無描述')}" for lore in raw_lore_objects if lore.category == 'npc_profile'])
+        if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
+        
+        context_vars = {
+            'username': self.profile.user_profile.name, 'ai_name': self.profile.ai_profile.name,
+            'world_settings': self.profile.world_settings or "未設定", 'ai_settings': self.profile.ai_profile.description or "未設定",
+            'retrieved_context': rag_context, 'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
+            'quests_context': "當前無任務。", 'location_context': f"當前地點: {' > '.join(gs.location_path)}",
+            'npc_context': npc_context_str, 'relevant_npc_context': "請參考上方在場角色列表。",
+            'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
+            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        }
+        world_snapshot = self.world_snapshot_template.format(**context_vars)
+        logger.info(f"[{self.user_id}] [預處理] 上下文準備完畢。")
+
+        # --- 階段二：單次自由創作 ---
+        logger.info(f"[{self.user_id}] [生成] 正在執行單次自由創作...")
+        plot_anchor = last_response_text or "（無）"
+
+        generation_chain = self.get_unified_generation_chain()
+        
+        final_params = {
+            "core_protocol_prompt": self.core_protocol_prompt,
+            "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+            "chat_history": chat_history,
+            "plot_anchor": plot_anchor,
+            "world_snapshot": world_snapshot,
+            "latest_user_input": user_input,
+        }
+
+        final_response_raw = await self.ainvoke_with_rotation(
+            generation_chain,
+            final_params,
+            retry_strategy='force',
+            use_degradation=True
+        )
+
+        raw_response = str(final_response_raw)
+        
+        # 事後淨化
+        start_marker = "§START_OF_RESPONSE§"
+        final_response = raw_response.split(start_marker, 1)[1].strip() if start_marker in raw_response else raw_response.strip()
+
+        if not final_response:
+            logger.critical(f"[{self.user_id}] [生成] 核心生成鏈在淨化後為空！")
+            final_response = "（抱歉，我好像突然断线了，腦海中一片空白...）"
+        
+        logger.info(f"[{self.user_id}] [生成] 自由創作生成成功。")
+
+        # 準備用於事後分析的上下文數據包
+        final_context = { "raw_lore_objects": raw_lore_objects }
+
+        # 更新快照
+        self.last_context_snapshot = {
+            "raw_lore_objects": raw_lore_objects,
+            "last_response_text": final_response
+        }
+        
+        return final_response, final_context
+    # 函式：[全新] 預處理上下文並生成回應 (v1.0 - 終極自由創作)
 
 
 
@@ -2114,10 +2028,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v7.0 - 指令洩漏修復)
+    # 函式：[升級] 獲取统一生成链 (v8.0 - 終極自由創作)
     # 更新紀錄:
-    # v7.0 (2025-10-24): [災難性BUG修復] 在 Prompt 模板的末尾增加了「輸出起始標記」(`§START_OF_RESPONSE§`)，以配合事後淨化邏輯，解決系統指令洩漏問題。
-    # v6.0 (2025-10-23): [災難性BUG修復] 統一了上下文注入方式，解決了 KeyError。
+    # v8.0 (2025-10-28): [重大架構重構] 根據「終極自由創作」架構，徹底重寫了 Prompt 模板。移除了所有關於工具和行動結果的結構化約束，將最高權限交還給 LLM，鼓勵其基於上下文進行自由、主動的創作和世界模擬。
+    # v7.0 (2025-10-24): [災難性BUG修復] 引入了「輸出起始標記」以解決指令洩漏問題。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2133,38 +2047,28 @@ class AILover:
             
             human_prompt_template = """
 # ==============================================================================
-# == 🎬 第一部分：劇情錨點 (Plot Anchor - 最高劇情優先級) 🎬
+# == 📚 第一部分：上下文與背景數據 (世界事實) 📚
+# ==============================================================================
+# 說明：這是關於當前世界狀態的【絕對事實】。你的創作必須完全基於這些事實。
+# ------------------------------------------------------------------------------
+{world_snapshot}
+# ==============================================================================
+# == 🎬 第二部分：劇情錨點 (Plot Anchor - 最高劇情優先級) 🎬
 # ==============================================================================
 # 說明：這是上一回合的場景原文。如果此部分不為「（無）」，你的創作【必须】
 #       作為這段原文的直接、無縫的延續。
 # ------------------------------------------------------------------------------
 {plot_anchor}
 # ==============================================================================
-# == 🎯 第二部分：本回合核心任務指令 (最高指令優先級) 🎯
+# == 🎯 第三部分：本回合核心任務指令 (最高指令優先級) 🎯
 # ==============================================================================
-# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。
-#
-# --- 【設定融合原則 (Setting Integration Principle)】 ---
-# 如果下方的指令中，除了「繼續」等動作詞外，還包含了對角色或世界的新描述
-# （例如「繼續，並且性神教徒喜愛被凌辱」），你【必须】將這些新描述視為對【劇情錨D
-# 中角色的【即時設定更新】，並讓你接下來的創作【體現】出這些新特性。
+# 說明：這是你本回合【唯一且絕對】需要完成的核心任務。你現在擁有完全的創作自由，
+#       請基於所有已知事實，主動地、富有想像力地模擬出接下來發生的事情，並用
+#       最高品質的小說語言將其描寫出來。
 # ------------------------------------------------------------------------------
 {latest_user_input}
 # ==============================================================================
-# == 📚 第三部分：上下文與背景數據 (次要參考) 📚
-# ==============================================================================
-# 說明：這是供你參考的背景資料。如果與【劇情錨點】或【核心任務指令】衝突，
-#       則以後兩者為準。
-# ------------------------------------------------------------------------------
-## 📖 世界即時快照 (當前事實) 📖
-# RAG檢索到的長期記憶摘要已包含在此處。
-{world_snapshot}
-## ⚡️ 本回合已發生的事實 (行動結果) ⚡️
-{tool_execution_results}
-# ==============================================================================
 # == ✍️ 你的創作 ==
-# 現在，請嚴格遵循所有規則，首先確保你的創作是【劇情錨點】的直接延續，
-# 然後絕對優先地執行【核心任務指令】，最後基於【上下文數據】來豐富細節。
 §START_OF_RESPONSE§
 """
             prompt = ChatPromptTemplate.from_messages([
@@ -2177,8 +2081,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v7.0 - 指令洩漏修復)
-
+    # 函式：[升級] 獲取统一生成链 (v8.0 - 終極自由創作)
 
 
     
@@ -4116,6 +4019,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
