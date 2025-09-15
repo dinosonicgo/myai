@@ -1071,13 +1071,13 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v5.0 - 劇情錨點)
+    # 函式：[升級] 預處理上下文並生成回應 (v6.0 - 絕對歷史)
     # 更新紀錄:
-    # v5.0 (2025-11-08): [災難性BUG修復] 根據「劇情錨點」架構重寫了上下文組合邏輯。現在會精確提取上一輪AI的回應作為錨點，並生成一個只包含核心狀態的簡潔世界快照，以解決上下文污染和指令錨定問題。
-    # v4.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底重寫了此函式。
+    # v6.0 (2025-11-09): [災難性BUG修復] 根據「絕對歷史」架構重寫了上下文組合邏輯。廢除了不穩定的「劇情錨點」，回歸到一個統一的、格式化的歷史上下文，以配合新的Prompt禁令，解決重複旁白問題。
+    # v5.0 (2025-11-08): [災難性BUG修復] 根據「劇情錨點」架構重寫了上下文組合邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (劇情錨點流程) 組合核心指令並直接呼叫 LLM 進行生成。
+        (絕對歷史流程) 組合核心指令並直接呼叫 LLM 進行生成。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
@@ -1085,22 +1085,28 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-劇情錨點模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-絕對歷史模式] 正在準備上下文...")
         
-        # [v5.0 核心] 步驟 1: 準備上下文組件
+        # [v6.0 核心] 步驟 1: 準備上下文組件
         chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
         chat_history = chat_history_manager.messages
         
-        # [v5.0 核心] 提取劇情錨點 (上一輪 AI 的回應)
-        plot_anchor = "（這是故事的開端）"
-        if chat_history and len(chat_history) > 0:
-            # 從後往前找最後一條 AIMessage
-            for msg in reversed(chat_history):
-                if isinstance(msg, AIMessage):
-                    plot_anchor = msg.content
-                    break
+        # [v6.0 核心] 構建統一的歷史上下文
+        historical_context = "--- 歷史上下文 ---\n"
+        if chat_history:
+            # 取最近 6 條訊息 (3輪對話)
+            for msg in chat_history[-6:]:
+                role = self.profile.user_profile.name if isinstance(msg, HumanMessage) else self.profile.ai_profile.name
+                # 區分旁白和對話
+                if "「" in msg.content or "」" in msg.content:
+                     historical_context += f"{role}: {msg.content}\n"
+                else:
+                     historical_context += f"[旁白]: {msg.content}\n"
+        else:
+            historical_context += "（這是故事的開端）\n"
+        historical_context += "-------------------\n"
         
-        # [v5.0 核心] 構建簡潔的世界快照
+        # [v6.0 核心] 構建簡潔的世界快照
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
         world_snapshot_parts = [
@@ -1114,20 +1120,20 @@ class AILover:
         ]
         world_snapshot = "\n".join(world_snapshot_parts)
 
-        # [v5.0 核心] 步驟 2: 獲取生成鏈和核心參數
+        # [v6.0 核心] 步驟 2: 獲取生成鏈和核心參數
         generation_chain = self.get_unified_generation_chain()
         
         final_params = {
             "core_protocol_prompt": self.core_protocol_prompt,
             "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
             "world_snapshot": world_snapshot,
-            "plot_anchor": plot_anchor,
+            "historical_context": historical_context,
             "latest_user_input": user_input,
         }
 
-        logger.info(f"[{self.user_id}] [生成-劇情錨點模式] 正在執行直接生成...")
+        logger.info(f"[{self.user_id}] [生成-絕對歷史模式] 正在執行直接生成...")
         
-        # [v5.0 核心] 步驟 3: 呼叫 LLM
+        # [v6.0 核心] 步驟 3: 呼叫 LLM
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain,
             final_params,
@@ -1138,18 +1144,21 @@ class AILover:
         final_response = str(final_response_raw).strip()
 
         if not final_response:
-            logger.critical(f"[{self.user_id}] [生成-劇情錨點模式] 核心生成鏈返回了空的結果！")
+            logger.critical(f"[{self.user_id}] [生成-絕對歷史模式] 核心生成鏈返回了空的結果！")
             final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         
-        # [v5.0 核心] 步驟 4: 更新短期記憶 (這是唯一保留的狀態管理)
+        # [v6.0 核心] 步驟 4: 更新短期記憶
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(final_response)
         
-        logger.info(f"[{self.user_id}] [生成-劇情錨D點模式] 直接生成成功。")
+        logger.info(f"[{self.user_id}] [生成-絕對歷史模式] 直接生成成功。")
 
-        # 返回一個空的 context，因為所有事後處理都已禁用
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v5.0 - 劇情錨點)
+    # 函式：[升級] 預處理上下文並生成回應 (v6.0 - 絕對歷史)
+
+
+
+    
 
     # 函式：[全新] 校準場景分析結果
     # 更新紀錄:
@@ -1988,10 +1997,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v12.0 - 劇情錨點)
+    # 函式：[升級] 獲取统一生成链 (v13.0 - 絕對歷史)
     # 更新紀錄:
-    # v12.0 (2025-11-08): [災難性BUG修復] 徹底重構了Prompt模板，引入了「劇情錨點(Plot Anchor)」和「狀態更新(World Snapshot)」的概念。增加了「嚴禁重複」和「直接延續」的核心規則，旨在從根本上解決因上下文污染導致的「指令錨定」和重複旁白問題。
-    # v11.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底簡化了Prompt模板。
+    # v13.0 (2025-11-09): [災難性BUG修復] 再次徹底重構Prompt模板，廢除引起歧義的"劇情錨點"，回歸統一的"歷史上下文"。引入了措辭極其強硬的【絕對禁止事項】，從規則層面強制禁止AI重複歷史旁白，旨在根除上下文污染問題。
+    # v12.0 (2025-11-08): [災難性BUG修復] 徹底重構了Prompt模板，引入了「劇情錨點(Plot Anchor)」和「狀態更新(World Snapshot)」的概念。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2004,36 +2013,38 @@ class AILover:
 ---
 """
             
-            # [v12.0 核心修正] 引入劇情錨點和狀態更新模板
+            # [v13.0 核心修正] 引入絕對歷史和禁令
             human_prompt_template = """
 # ==============================================================================
-# == 📚 第一部分：世界與場景狀態 (World & Scene State) 📚
-# == 說明：這是關於當前世界狀態的客觀事實，你的創作必須基於此。
+# == 📚 第一部分：世界與歷史上下文 (World & Historical Context) 📚
+# == 說明：這是關於世界狀態和【已經發生過】的事件的客觀事實。
 # ==============================================================================
 {world_snapshot}
+
+{historical_context}
 # ==============================================================================
-# == 🎬 第二部分：上一幕場景原文 (Plot Anchor) 🎬
-# == 說明：這是故事剛剛發生的最後一幕。
+# == 🎯 第二部分：本回合任務指令 (Your Task) 🎯
 # ==============================================================================
-{plot_anchor}
-# ==============================================================================
-# == 🎯 第三部分：本回合任務指令 (Your Task) 🎯
-# ==============================================================================
-# 【【【核心任務指令：推進劇情 (Advance the Plot)】】】
-# 1.  **你的身份**: 你是這個世界的【模擬器與敘事者】。
-# 2.  **你的任務**: 你的唯一任務，是創作一段【直接延續】上方【第二部分：上一幕場景原文】的劇情。
-# 3.  **【【【絕對的劇情連貫性鐵則】】】**:
-#     - 你的新創作【必須】是【上一幕場景原文】最後一句話的【直接、無縫的延續】。
-#     - 你【必須】在新的創作中，體現出下方【主角的最新行動】對場景造成的影響。
-# 4.  **【【【絕對禁止重複原則】】】**:
-#     - 你的回應中，【絕對禁止】以任何形式複述、總結或換句話說地重複【第二部分：上一幕場景原文】的任何內容。你的職責是【推進】故事，而不是【複述】歷史。
+# 【【【核心任務指令：演繹下一幕 (Simulate the Next Scene)】】】
+#
+# 你的唯一任務是，基於上方【第一部分】提供的所有客觀事實，
+# 去模擬並創作【主角的最新行動】發生之後，接下來【全新的】場景、動作和對話。
+#
+# ---【【【🚫 絕對禁止事項 (ABSOLUTE PROHIBITIONS) 🚫】】】---
+#
+# 1.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】以任何形式複述、重寫、或摘要化
+#     上方【歷史上下文】中已經出現過的任何旁白或對話。
+#     你的職責是寫【下一秒】發生的事，不是重複【上一秒】。
+#
+# 2.  **【嚴禁場景跳躍】**: 你的創作【必須】是【歷史上下文】最後一刻的直接延續。
+#     【絕對禁止】拋棄當前場景，去捏造一個無關的新場景。
 # ------------------------------------------------------------------------------
 #
 # --- 主角的最新行動/對話 ---
 {latest_user_input}
 #
 # ==============================================================================
-# == ✍️ 你的創作 (必須是上一幕的直接延續) ==
+# == ✍️ 你的創作 (必須是全新的、接續上一幕的內容) ==
 # ==============================================================================
 """
             prompt = ChatPromptTemplate.from_messages([
@@ -2045,7 +2056,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v12.0 - 劇情錨點)
+    # 函式：[升級] 獲取统一生成链 (v13.0 - 絕對歷史)
 
 
 
@@ -3996,6 +4007,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
