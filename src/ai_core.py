@@ -3708,13 +3708,23 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 已對參數中的所有字符串欄位附加強制指令，正在進行強化重試...")
             
-            return await failed_chain.ainvoke(retry_params)
+            # 在重試時，我們需要一個全新的、擁有最高優先級的模型實例
+            retry_llm = self._create_llm_instance(model_name=self.model_priority_list[0])
+            if not retry_llm:
+                raise Exception("無法為強制重試創建 LLM 實例。")
+
+            effective_chain = chain
+            if isinstance(chain, ChatPromptTemplate):
+                effective_chain = chain | retry_llm
+            elif hasattr(chain, 'with_config'):
+                effective_chain = chain.with_config({"configurable": {"llm": retry_llm}})
+
+            return await effective_chain.ainvoke(retry_params)
             
         except Exception as e:
             logger.error(f"[{self.user_id}] 指令強化重試最終失敗: {e}", exc_info=True)
             return None
     # 函式：指令強化重試處理器 (v5.1 - 攻擊性升級)
-
 
     
     
@@ -4008,6 +4018,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
