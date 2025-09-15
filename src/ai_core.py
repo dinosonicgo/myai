@@ -1083,16 +1083,17 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v2.0 - 上下文扁平化)
+    # 函式：[升級] 預處理上下文並生成回應 (v3.0 - 混合記憶讀取)
     # 更新紀錄:
-    # v2.0 (2025-11-01): [重大架構重構] 根據「指令防火牆」架構，重寫了此函式的上下文彙總邏輯。現在它會將短期記憶「扁平化」為劇本式純文本，並動態生成「場景參與者」列表，為新的 Prompt 模板提供結構清晰的、統一的「客觀事實」。
-    # v1.1 (2025-10-29): [災難性BUG修復] 引入了雙標記淨化邏輯。
+    # v3.0 (2025-11-04): [重大架構重構] 根據「混合記憶」架構，重寫了上下文的組合邏輯。現在會從RAG獲取安全的「長期記憶摘要」，並從session_histories獲取原始的「短期對話歷史」，將兩者結合注入到Prompt中，實現了安全與精確的平衡。
+    # v2.0 (2025-11-01): [重大架構重構] 根據「指令防火牆」架構，重寫了此函式的上下文彙總邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (統一流程) 執行從上下文預處理到最終回應生成的完整流程。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
+        # [v3.0 核心] chat_history 現在代表原始的、未經過濾的短期記憶
         chat_history = input_data["chat_history"]
 
         if not self.profile:
@@ -1113,13 +1114,13 @@ class AILover:
         else:
             await self._update_viewing_mode_standalone(user_input)
 
-        # 1b. RAG 與 LORE 檢索
+        # 1b. [v3.0 核心] RAG 與 LORE 檢索 (RAG現在只處理安全的長期記憶)
         rag_context = await self.retrieve_and_summarize_memories(user_input)
         if raw_lore_objects is None:
             is_remote = self.profile.game_state.viewing_mode == 'remote'
             raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
 
-        # 1c. [v2.0 核心修正] 上下文扁平化
+        # 1c. [v3.0 核心] 組合混合記憶
         gs = self.profile.game_state
         
         # 格式化場景參與者
@@ -1137,21 +1138,22 @@ class AILover:
                 npc_desc = lore.content.get('description', '無描述')
                 npc_context_list.append(f"- NPC: {npc_name} (當前位置: {npc_location})\n  - 描述: {npc_desc}")
         
-        # 格式化短期記憶
-        formatted_chat_history = "\n--- 最近的對話場景 ---\n"
+        # [v3.0 核心] 格式化【原始的】短期記憶
+        formatted_short_term_history = "\n--- 最近的詳細對話場景 (Raw Short-Term Memory) ---\n"
         if chat_history:
-            for msg in chat_history[-4:]: # 取最近4條
+            # 取最近 6 條訊息 (3輪對話) 以獲得足夠的直接上下文
+            for msg in chat_history[-6:]:
                 role = self.profile.user_profile.name if isinstance(msg, HumanMessage) else self.profile.ai_profile.name
-                formatted_chat_history += f"{role}: 「{msg.content}」\n"
+                formatted_short_term_history += f"{role}: 「{msg.content}」\n"
         else:
-            formatted_chat_history += "（沒有最近的對話歷史）\n"
-        formatted_chat_history += "---------------------\n"
+            formatted_short_term_history += "（沒有最近的對話歷史）\n"
+        formatted_short_term_history += "--------------------------------------------------\n"
 
         # 1d. 彙總成 World Snapshot
         npc_context_str = "\n".join(scene_participants + npc_context_list) if scene_participants or npc_context_list else "當前場景沒有已知的特定角色。"
         
-        # 將扁平化的短期記憶和 RAG 摘要合併到 retrieved_context
-        combined_retrieved_context = f"{rag_context}\n{formatted_chat_history}"
+        # [v3.0 核心] 將安全的長期記憶摘要(rag_context)和原始的短期記憶(formatted_short_term_history)組合
+        combined_retrieved_context = f"{rag_context}\n{formatted_short_term_history}"
 
         context_vars = {
             'username': self.profile.user_profile.name, 'ai_name': self.profile.ai_profile.name,
@@ -1163,7 +1165,7 @@ class AILover:
             'npc_context': npc_context_str, 
             'relevant_npc_context': "請參考上方的在場角色情報檔案。",
             'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+            'remote_target_path_str': " > '.join(gs.remote_target_path) if gs.remote_target_path else "未指定",
         }
         world_snapshot = self.world_snapshot_template.format(**context_vars)
         logger.info(f"[{self.user_id}] [預處理] 上下文準備完畢。")
@@ -1177,7 +1179,7 @@ class AILover:
         final_params = {
             "core_protocol_prompt": self.core_protocol_prompt,
             "response_style_prompt": self.profile.response_style_prompt or "預設風格",
-            "plot_anchor": "（無）", # plot_anchor 的邏輯已整合進 world_snapshot，此處保留為兼容
+            "plot_anchor": plot_anchor, # plot_anchor 現在主要用於「繼續」指令
             "world_snapshot": world_snapshot,
             "latest_user_input": user_input,
         }
@@ -1191,7 +1193,6 @@ class AILover:
 
         raw_response = str(final_response_raw)
         
-        # [v2.0 新增] 輸出淨化邏輯
         start_marker = "§START_OF_RESPONSE§"
         end_marker = "§END_OF_RESPONSE§"
         start_index = raw_response.find(start_marker)
@@ -1205,9 +1206,8 @@ class AILover:
                 final_response = raw_response[start_pos:].strip()
             logger.info(f"[{self.user_id}] [淨化] 成功基於標記提取到純淨輸出。")
         else:
-            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！將返回原始輸出。")
+            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！")
             final_response = raw_response.strip()
-            # 嘗試清理結尾標記，以防萬一
             if end_marker in final_response:
                 final_response = final_response.split(end_marker, 1)[0].strip()
 
@@ -1217,18 +1217,15 @@ class AILover:
         
         logger.info(f"[{self.user_id}] [生成] 自由創作生成成功。")
 
-        # 準備事後分析所需的上下文
         final_context = { "raw_lore_objects": raw_lore_objects }
 
-        # 為下一輪的「繼續」指令準備快照
         self.last_context_snapshot = {
             "raw_lore_objects": raw_lore_objects,
             "last_response_text": final_response
         }
         
         return final_response, final_context
-    # 函式：[升級] 預處理上下文並生成回應 (v2.0 - 上下文扁平化)
-
+    # 函式：[升級] 預處理上下文並生成回應 (v3.0 - 混合記憶讀取)
 
 
     # 函式：[全新] 校準場景分析結果
@@ -3565,63 +3562,60 @@ class AILover:
 
 
 
-    # 函式：將互動保存到資料庫 (v5.1 - 導入修正)
+    # 函式：將互動保存到資料庫 (v7.0 - 混合記憶寫入)
     # 更新紀錄:
-    # v5.1 (2025-10-25): [災難性BUG修復] 確保此函式使用的 GoogleGenerativeAIError 異常已在文件頂部被正確導入，解決了 NameError 崩潰問題。
-    # v5.0 (2025-10-23): [災難性BUG修復] 徹底重構了此函式，將其與核心的「智能兩級冷卻系統」完全整合。
+    # v7.0 (2025-11-04): [重大架構重構] 根據「混合記憶」架構，此函式現在是長期記憶的寫入端。它強制對所有傳入的互動文本進行文學化處理，確保存入SQL和ChromaDB的永遠是安全的、摘要式的「冷記憶」。
+    # v6.0 (2025-11-03): [災難性BUG修復] 實施了更嚴格的「徹底事前消毒」策略。
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """将单次互动的文本同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為主方案)。"""
-        # [v5.1 核心修正] 確保 GoogleGenerativeAIError 已在文件頂部導入
+        """将单次互动的文本【消毒後】同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為 RAG)。"""
         if not interaction_text or not self.profile:
             return
 
         user_id = self.user_id
         current_time = time.time()
         
-        # [核心修正] 步驟 1: 事前消毒
-        sanitized_text_for_db = interaction_text
+        # [v7.0 核心] 步驟 1: 強制文學化，生成安全的「冷記憶」
+        sanitized_text_for_db = ""
         try:
-            # 檢查文本是否可能包含敏感內容，避免不必要的 API 調用
-            sensitive_keywords = ["肉棒", "肉穴", "淫", "插入", "射精", "口交", "做愛", "強姦"]
-            if any(kw in interaction_text for kw in sensitive_keywords):
-                logger.info(f"[{user_id}] [事前消毒] 檢測到潛在敏感記憶，正在進行文學化處理...")
-                literary_chain = self.get_literary_euphemization_chain()
-                # 使用 'euphemize' 策略確保即使消毒本身失敗也能有備援
-                sanitized_result = await self.ainvoke_with_rotation(
-                    literary_chain, 
-                    {"dialogue_history": interaction_text}, 
-                    retry_strategy='euphemize'
-                )
-                if sanitized_result and sanitized_result.strip():
-                    sanitized_text_for_db = f"【劇情概述】:\n{sanitized_result.strip()}"
-                    logger.info(f"[{user_id}] [事前消毒] 記憶已成功消毒。")
-                else:
-                    logger.warning(f"[{user_id}] [事前消毒] 文學化處理失敗，將儲存原始文本，這可能導致未來檢索失敗。")
+            logger.info(f"[{user_id}] [長期記憶寫入] 正在對互動進行強制文學化處理，以生成安全的存檔版本...")
+            literary_chain = self.get_literary_euphemization_chain()
+            sanitized_result = await self.ainvoke_with_rotation(
+                literary_chain, 
+                {"dialogue_history": interaction_text}, 
+                retry_strategy='euphemize'
+            )
+            if sanitized_result and sanitized_result.strip():
+                sanitized_text_for_db = f"【劇情概述】:\n{sanitized_result.strip()}"
+                logger.info(f"[{user_id}] [長期記憶寫入] 已成功生成安全的存檔版本。")
+            else:
+                logger.warning(f"[{user_id}] [長期記憶寫入] 文學化處理失敗，將儲存一段安全提示以防止資料庫污染。")
+                sanitized_text_for_db = "【系統記錄】：此段對話因包含極端內容且文學化處理失敗，其詳細內容已被隱去以保護系統穩定性。"
         except Exception as e:
-            logger.error(f"[{user_id}] [事前消毒] 在儲存記憶前進行消毒時發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [長期記憶寫入] 在生成存檔版本時發生嚴重錯誤: {e}", exc_info=True)
+            sanitized_text_for_db = f"【系統記錄】：記憶消毒過程遭遇嚴重錯誤({type(e).__name__})，內容已被隱去。"
 
-        # 步驟 2: 將消毒後的文本存入 SQL
+        # 步驟 2: 將【消毒後的文本】存入 SQL
         try:
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
-                    content=sanitized_text_for_db, # 使用消毒後的文本
+                    content=sanitized_text_for_db,
                     timestamp=current_time,
                     importance=5
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{user_id}] 對話記錄已成功保存到 SQL 資料庫。")
+            logger.info(f"[{user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [長期記憶寫入] 將安全存檔保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
             return
 
-        # 步驟 3: 將消毒後的文本存入 ChromaDB
+        # 步驟 3: 將【消毒後的文本】存入 ChromaDB
         if self.vector_store:
             key_info = self._get_next_available_key()
             if not key_info:
-                logger.info(f"[{user_id}] [優雅降級] 所有 Embedding API 金鑰都在冷卻中，本輪記憶僅保存至 SQL。")
+                logger.info(f"[{user_id}] [長期記憶寫入] 所有 Embedding API 金鑰都在冷卻中，本輪長期記憶僅保存至 SQL。")
                 return
 
             key_to_use, key_index = key_info
@@ -3631,16 +3625,16 @@ class AILover:
                 
                 await asyncio.to_thread(
                     self.vector_store.add_texts,
-                    [sanitized_text_for_db], # 使用消毒後的文本
+                    [sanitized_text_for_db],
                     metadatas=[{"source": "history", "timestamp": current_time}],
                     embedding_function=temp_embeddings
                 )
-                logger.info(f"[{user_id}] 對話記錄已成功向量化並保存到 ChromaDB。")
+                logger.info(f"[{user_id}] [長期記憶寫入] 安全存檔已成功向量化並保存到 ChromaDB。")
             
             except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
                 logger.warning(
-                    f"[{user_id}] [優雅降級] "
-                    f"API Key #{key_index} 在保存記憶到主記憶系統 (Embedding) 時失敗。將觸發對其的冷卻。"
+                    f"[{user_id}] [長期記憶寫入] "
+                    f"API Key #{key_index} 在保存安全存檔到 ChromaDB 時失敗。將觸發對其的冷卻。"
                     f"錯誤類型: {type(e).__name__}"
                 )
                 now = time.time()
@@ -3650,8 +3644,8 @@ class AILover:
                     self.key_cooldowns[key_index] = now + 60 * 60 * 24
                     self.key_short_term_failures[key_index] = []
             except Exception as e:
-                 logger.error(f"[{user_id}] 保存記憶到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
-    # 函式：將互動保存到資料庫 (v5.1 - 導入修正)
+                 logger.error(f"[{user_id}] [長期記憶寫入] 保存安全存檔到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
+    # 函式：將互動保存到資料庫 (v7.0 - 混合記憶寫入)
 
     
 
@@ -4087,6 +4081,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
