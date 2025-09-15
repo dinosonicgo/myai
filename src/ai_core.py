@@ -1072,150 +1072,70 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v3.1 - 語法修正)
+    # 函式：[升級] 預處理上下文並生成回應 (v4.0 - 極簡直連)
     # 更新紀錄:
+    # v4.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底重寫了此函式。所有複雜的上下文預處理（RAG、LORE查詢、視角分析、世界快照）均被移除。現在只保留最核心的：組合三大指令(核心、風格、最新輸入)和一個極簡的短期記憶，然後直接呼叫LLM。
     # v3.1 (2025-11-04): [災難性BUG修復] 修正了 context_vars 中 remote_target_path_str 的 SyntaxError。
-    # v3.0 (2025-11-04): [重大架構重構] 根據「混合記憶」架構，重寫了上下文的組合邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (統一流程) 執行從上下文預處理到最終回應生成的完整流程。
+        (極簡直連流程) 組合核心指令並直接呼叫 LLM 進行生成。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
-        # [v3.0 核心] chat_history 現在代表原始的、未經過濾的短期記憶
-        chat_history = input_data["chat_history"]
 
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-極簡模式] 正在準備核心指令...")
         
-        # --- 階段一：上下文預處理 ---
+        # [v4.0 核心] 步驟 1: 準備極簡的短期記憶
+        # 為了防止AI連上一句話都記不住，我們依然保留一個非常短的記憶窗口
+        chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
         
-        # 1a. 視角分析與快照恢復
-        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
-        last_response_text = None
-        raw_lore_objects = None
-        if is_continuation and self.last_context_snapshot:
-            last_response_text = self.last_context_snapshot.get("last_response_text")
-            raw_lore_objects = self.last_context_snapshot.get("raw_lore_objects")
-        else:
-            await self._update_viewing_mode_standalone(user_input)
-
-        # 1b. [v3.0 核心] RAG 與 LORE 檢索 (RAG現在只處理安全的長期記憶)
-        rag_context = await self.retrieve_and_summarize_memories(user_input)
-        if raw_lore_objects is None:
-            is_remote = self.profile.game_state.viewing_mode == 'remote'
-            raw_lore_objects = await self._query_lore_from_entities(user_input, is_remote)
-
-        # 1c. [v3.0 核心] 組合混合記憶
-        gs = self.profile.game_state
-        
-        # 格式化場景參與者
-        scene_participants = []
-        if gs.viewing_mode == 'local':
-            scene_participants.append(f"- 主角: {self.profile.user_profile.name} (當前位置: {' > '.join(gs.location_path)})")
-            scene_participants.append(f"- AI角色: {self.profile.ai_profile.name} (當前位置: {' > '.join(gs.location_path)})")
-        
-        # 將 LORE 格式化為 NPC 檔案
-        npc_context_list = []
-        for lore in raw_lore_objects:
-            if lore.category == 'npc_profile':
-                npc_name = lore.content.get('name', '未知NPC')
-                npc_location = ' > '.join(lore.content.get('location_path', ['未知地點']))
-                npc_desc = lore.content.get('description', '無描述')
-                npc_context_list.append(f"- NPC: {npc_name} (當前位置: {npc_location})\n  - 描述: {npc_desc}")
-        
-        # [v3.0 核心] 格式化【原始的】短期記憶
-        formatted_short_term_history = "\n--- 最近的詳細對話場景 (Raw Short-Term Memory) ---\n"
-        if chat_history:
-            # 取最近 6 條訊息 (3輪對話) 以獲得足夠的直接上下文
-            for msg in chat_history[-6:]:
+        simple_chat_history = ""
+        if chat_history_manager.messages:
+            # 只取最近4條訊息 (2輪對話)
+            for msg in chat_history_manager.messages[-4:]:
                 role = self.profile.user_profile.name if isinstance(msg, HumanMessage) else self.profile.ai_profile.name
-                formatted_short_term_history += f"{role}: 「{msg.content}」\n"
+                simple_chat_history += f"{role}: 「{msg.content}」\n"
         else:
-            formatted_short_term_history += "（沒有最近的對話歷史）\n"
-        formatted_short_term_history += "--------------------------------------------------\n"
+            simple_chat_history = "（這是對話的開始）\n"
 
-        # 1d. 彙總成 World Snapshot
-        npc_context_str = "\n".join(scene_participants + npc_context_list) if scene_participants or npc_context_list else "當前場景沒有已知的特定角色。"
-        
-        # [v3.0 核心] 將安全的長期記憶摘要(rag_context)和原始的短期記憶(formatted_short_term_history)組合
-        combined_retrieved_context = f"{rag_context}\n{formatted_short_term_history}"
-
-        context_vars = {
-            'username': self.profile.user_profile.name, 'ai_name': self.profile.ai_profile.name,
-            'world_settings': self.profile.world_settings or "未設定", 'ai_settings': self.profile.ai_profile.description or "未設定",
-            'retrieved_context': combined_retrieved_context, 
-            'possessions_context': f"團隊財產與庫存: {', '.join(gs.inventory) or '空的'}",
-            'quests_context': "當前無任務。",
-            'location_context': f"當前地點: {' > '.join(gs.location_path)}",
-            'npc_context': npc_context_str, 
-            'relevant_npc_context': "請參考上方的在場角色情報檔案。",
-            'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
-            # [v3.1 核心修正] 修正此處的語法錯誤
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        }
-        world_snapshot = self.world_snapshot_template.format(**context_vars)
-        logger.info(f"[{self.user_id}] [預處理] 上下文準備完畢。")
-
-        # --- 階段二：單次自由創作 ---
-        logger.info(f"[{self.user_id}] [生成] 正在執行單次自由創作...")
-        plot_anchor = last_response_text or "（無）"
-
+        # [v4.0 核心] 步驟 2: 獲取生成鏈和核心參數
         generation_chain = self.get_unified_generation_chain()
         
         final_params = {
             "core_protocol_prompt": self.core_protocol_prompt,
-            "response_style_prompt": self.profile.response_style_prompt or "預設風格",
-            "plot_anchor": plot_anchor, # plot_anchor 現在主要用於「繼續」指令
-            "world_snapshot": world_snapshot,
+            "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+            "simple_chat_history": simple_chat_history,
             "latest_user_input": user_input,
         }
 
+        logger.info(f"[{self.user_id}] [生成-極簡模式] 正在執行直接生成...")
+        
+        # [v4.0 核心] 步驟 3: 呼叫 LLM
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain,
             final_params,
             retry_strategy='force',
-            use_degradation=True
+            use_degradation=True # 依然保留模型降級以提高成功率
         )
 
-        raw_response = str(final_response_raw)
-        
-        start_marker = "§START_OF_RESPONSE§"
-        end_marker = "§END_OF_RESPONSE§"
-        start_index = raw_response.find(start_marker)
-        end_index = raw_response.rfind(end_marker)
-
-        if start_index != -1:
-            start_pos = start_index + len(start_marker)
-            if end_index != -1 and end_index > start_pos:
-                final_response = raw_response[start_pos:end_index].strip()
-            else:
-                final_response = raw_response[start_pos:].strip()
-            logger.info(f"[{self.user_id}] [淨化] 成功基於標記提取到純淨輸出。")
-        else:
-            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！")
-            final_response = raw_response.strip()
-            if end_marker in final_response:
-                final_response = final_response.split(end_marker, 1)[0].strip()
+        final_response = str(final_response_raw).strip()
 
         if not final_response:
-            logger.critical(f"[{self.user_id}] [生成] 核心生成鏈在淨化後為空！")
-            final_response = "（抱歉，我好像突然断线了，腦海中一片空白...）"
+            logger.critical(f"[{self.user_id}] [生成-極簡模式] 核心生成鏈返回了空的結果！")
+            final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         
-        logger.info(f"[{self.user_id}] [生成] 自由創作生成成功。")
-
-        final_context = { "raw_lore_objects": raw_lore_objects }
-
-        self.last_context_snapshot = {
-            "raw_lore_objects": raw_lore_objects,
-            "last_response_text": final_response
-        }
+        # [v4.0 核心] 步驟 4: 更新短期記憶 (這是唯一保留的狀態管理)
+        chat_history_manager.add_user_message(user_input)
+        chat_history_manager.add_ai_message(final_response)
         
-        return final_response, final_context
-    # 函式：[升級] 預處理上下文並生成回應 (v3.1 - 語法修正)
+        logger.info(f"[{self.user_id}] [生成-極簡模式] 直接生成成功。")
+
+        # 返回一個空的 context，因為所有事後處理都已禁用
+        return final_response, {}
+    # 函式：[升級] 預處理上下文並生成回應 (v4.0 - 極簡直連)
 
 
     # 函式：[全新] 校準場景分析結果
@@ -2054,10 +1974,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v10.0 - 世界模擬器)
+    # 函式：[升級] 獲取统一生成链 (v11.0 - 極簡模板)
     # 更新紀錄:
-    # v10.0 (2025-11-02): [災難性BUG修復] 徹底重構了指令防火牆的措辭，將AI的身份從「小說家」修正為「世界模擬器與敘事者」，將用戶輸入從「創作指令」修正為「主角的最新行動」。增加了「絕對的劇情連貫性」鐵則，旨在從根本上解決AI創造力失控、拋棄現有場景並忽略指令的問題。
-    # v9.0 (2025-11-01): [重大架構重構] 根據最終藍圖，徹底重寫了 Prompt 模板，引入了「指令防火牆」和「數據驅動」的設計。
+    # v11.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底簡化了Prompt模板。移除了所有對`world_snapshot`的依賴，只保留核心協議、風格指令、一個極簡的短期記憶佔位符和最新指令。
+    # v10.0 (2025-11-02): [災難性BUG修復] 徹底重構了指令防火牆的措辭。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2071,32 +1991,19 @@ class AILover:
 ---
 """
             
-            # [v10.0 核心修正] 重構指令防火牆，明確 AI 的身份和任務
+            # [v11.0 核心修正] 極簡化 Human Prompt，移除 world_snapshot
             human_prompt_template = """
 # ==============================================================================
-# == 📚 第一部分：上下文與背景數據 (不可違背的客觀事實) 📚
+# == 📜 上下文：最近的對話場景 📜
 # ==============================================================================
-# 說明：這是關於當前世界狀態的、絕對真實的、不可修改的即時情報簡報。
-#       你的所有創作都必須嚴格基於這些數據，【絕對禁止】創造與之相悖的內容。
-# ------------------------------------------------------------------------------
-{world_snapshot}
+{simple_chat_history}
 # ==============================================================================
-# == 🎯 第二部分：本回合世界演繹任務 (Your World Simulation Task) 🎯
+# == 🎯 當前回合任務 🎯
 # ==============================================================================
-# 【【【核心任務指令：絕對的劇情連貫性】】】
-# 1.  **你的身份**: 你是這個世界的【模擬器與敘事者】。
-# 2.  **你的任務**: 你的唯一任務，是基於上方【第一部分】提供的【所有客觀事實】，去模擬並描述出【主角的最新行動】發生後，世界所產生的【直接、合乎邏輯的後續反應】。
-# 3.  **絕對的連貫性**: 你的創作【必須】是【客觀事實】中描述的場景的【直接延續】。你【絕對禁止】拋棄現有場景，去憑空捏造一個不相關的新場景。
-# 4.  **遵守所有指令**: 你【必須同時遵守】本提示最開頭的【核心協議】與【使用者自訂風格指令】。
-# ------------------------------------------------------------------------------
-#
-# --- 主角的最新行動/對話 ---
 {latest_user_input}
-#
 # ==============================================================================
-# == ✍️ 你的敘事 (世界的回應) ==
-# 【輸出格式強制令】：你的創作【必須】以 `§START_OF_RESPONSE§` 作為開頭，並以 `§END_OF_RESPONSE§` 作為結尾。
-§START_OF_RESPONSE§
+# == ✍️ 你的創作 ==
+# ==============================================================================
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -2107,7 +2014,11 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v10.0 - 世界模擬器)
+    # 函式：[升級] 獲取统一生成链 (v11.0 - 極簡模板)
+
+
+
+    
     
     # 函式：[全新] 獲取前置工具解析鏈
     # 更新纪录:
@@ -4056,6 +3967,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
