@@ -709,10 +709,10 @@ class BotCog(commands.Cog):
         await self.bot.wait_until_ready()
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
 
-    # 函式：處理訊息事件 (v49.0 - 終極自由創作架構)
+    # 函式：處理訊息事件 (v50.0 - 極簡直連重構)
     # 更新紀錄:
-    # v49.0 (2025-10-26): [重大架構重構] 根據最終藍圖，徹底廢除了「思考-行動-敘事」三階段流程，回歸到一個更純粹、更高效的「上下文注入 + 單次自由創作」兩階段流程。此修改旨在最大限度地釋放 LLM 的創作能力，解決因過度約束導致的 AI 行為死板問題。
-    # v48.0 (2025-10-21): [重大架構重構] 實現了全新的「思考-行動-敘事」三階段串行流程。
+    # v50.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底移除了所有事後處理（記憶更新、LORE擴展）的呼叫。現在此函式的職責被簡化為純粹的「請求-回應」循環，以建立一個最穩定的測試基準線。
+    # v49.0 (2025-10-26): [重大架構重構] 根據最終藍圖，徹底廢除了「思考-行動-敘事」三階段流程。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -734,35 +734,32 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                # [v49.0 核心] 執行全新的「上下文注入 + 單次自由創作」流程
-                logger.info(f"[{user_id}] 啟動「上下文注入 + 單次自由創作」對話流程...")
+                # [v50.0 核心] 執行全新的「極簡直連」流程
+                logger.info(f"[{user_id}] 啟動「極簡直連」對話流程...")
 
-                # 準備輸入數據
-                chat_history = ai_instance.session_histories.get(user_id, ChatMessageHistory()).messages
-                input_data = { "user_input": user_input, "chat_history": chat_history }
+                # 準備輸入數據 (只傳入最新指令，歷史記錄暫時由ai_core內部處理)
+                input_data = { "user_input": user_input }
 
-                # 一步到位：預處理上下文並直接生成回應
-                final_response, final_context = await ai_instance.preprocess_and_generate(input_data)
+                # 一步到位：直接生成回應
+                final_response, _ = await ai_instance.preprocess_and_generate(input_data)
                 
-                # 回覆與事後處理
+                # 回覆
                 if final_response and final_response.strip():
                     for i in range(0, len(final_response), 2000):
                         await message.channel.send(final_response[i:i+2000])
                     
-                    # 更新短期與長期記憶
-                    await ai_instance.update_memories(user_input, final_response)
-                    
-                    # (非同步) 進行事後LORE擴展
-                    asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, final_context))
+                    # [v50.0 核心修正] 徹底移除所有事後處理，以確保流程純淨
+                    # await ai_instance.update_memories(user_input, final_response)
+                    # asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, final_context))
 
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「終極自由創作」流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的「極簡直連」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 函式：處理訊息事件 (v49.0 - 終極自由創作架構)
+    # 函式：處理訊息事件 (v50.0 - 極簡直連重構)
 
 
 
