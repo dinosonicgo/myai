@@ -1071,13 +1071,13 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v6.0 - 絕對歷史)
+    # 函式：[升級] 預處理上下文並生成回應 (v7.0 - 純淨數據)
     # 更新紀錄:
-    # v6.0 (2025-11-09): [災難性BUG修復] 根據「絕對歷史」架構重寫了上下文組合邏輯。廢除了不穩定的「劇情錨點」，回歸到一個統一的、格式化的歷史上下文，以配合新的Prompt禁令，解決重複旁白問題。
-    # v5.0 (2025-11-08): [災難性BUG修復] 根據「劇情錨點」架構重寫了上下文組合邏輯。
+    # v7.0 (2025-11-12): [架構重構] 更新了 final_params 的結構，以適配「最終輸出強制令」架構下的純淨數據模板。
+    # v6.0 (2025-11-09): [災難性BUG修復] 根據「絕對歷史」架構重寫了上下文組合邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (絕對歷史流程) 組合核心指令並直接呼叫 LLM 進行生成。
+        (最終強制令流程) 組合核心指令並直接呼叫 LLM 進行生成。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
@@ -1085,19 +1085,15 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-絕對歷史模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-最終強制令模式] 正在準備上下文...")
         
-        # [v6.0 核心] 步驟 1: 準備上下文組件
         chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
         chat_history = chat_history_manager.messages
         
-        # [v6.0 核心] 構建統一的歷史上下文
         historical_context = "--- 歷史上下文 ---\n"
         if chat_history:
-            # 取最近 6 條訊息 (3輪對話)
             for msg in chat_history[-6:]:
                 role = self.profile.user_profile.name if isinstance(msg, HumanMessage) else self.profile.ai_profile.name
-                # 區分旁白和對話
                 if "「" in msg.content or "」" in msg.content:
                      historical_context += f"{role}: {msg.content}\n"
                 else:
@@ -1106,7 +1102,6 @@ class AILover:
             historical_context += "（這是故事的開端）\n"
         historical_context += "-------------------\n"
         
-        # [v6.0 核心] 構建簡潔的世界快照
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
         world_snapshot_parts = [
@@ -1120,9 +1115,9 @@ class AILover:
         ]
         world_snapshot = "\n".join(world_snapshot_parts)
 
-        # [v6.0 核心] 步驟 2: 獲取生成鏈和核心參數
         generation_chain = self.get_unified_generation_chain()
         
+        # [v7.0 核心修正] 更新 final_params 以匹配新的模板
         final_params = {
             "core_protocol_prompt": self.core_protocol_prompt,
             "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
@@ -1131,9 +1126,8 @@ class AILover:
             "latest_user_input": user_input,
         }
 
-        logger.info(f"[{self.user_id}] [生成-絕對歷史模式] 正在執行直接生成...")
+        logger.info(f"[{self.user_id}] [生成-最終強制令模式] 正在執行直接生成...")
         
-        # [v6.0 核心] 步驟 3: 呼叫 LLM
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain,
             final_params,
@@ -1144,17 +1138,16 @@ class AILover:
         final_response = str(final_response_raw).strip()
 
         if not final_response:
-            logger.critical(f"[{self.user_id}] [生成-絕對歷史模式] 核心生成鏈返回了空的結果！")
+            logger.critical(f"[{self.user_id}] [生成-最終強制令模式] 核心生成鏈返回了空的結果！")
             final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         
-        # [v6.0 核心] 步驟 4: 更新短期記憶
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(final_response)
         
-        logger.info(f"[{self.user_id}] [生成-絕對歷史模式] 直接生成成功。")
+        logger.info(f"[{self.user_id}] [生成-最終強制令模式] 直接生成成功。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v6.0 - 絕對歷史)
+    # 函式：[升級] 預處理上下文並生成回應 (v7.0 - 純淨數據)
 
 
 
@@ -1997,59 +1990,62 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v16.0 - 反惰性重複)
+    # 函式：[升級] 獲取统一生成链 (v17.0 - 最終強制令)
     # 更新紀錄:
-    # v16.0 (2025-11-11): [災難性BUG修復] 在「絕對禁止事項」中，增加了一條措辭極其強硬的【嚴禁惰性重複】規則。此規則強制AI在接收到與歷史相似或相同的指令時，必須將其視為一個全新的事件來生成全新的旁白，而不是複製歷史文本。此修改旨在從根本上解決因RAG系統過度匹配而導致的「偷懶」和重複回應問題。
-    # v15.0 (2025-11-10): [災難性BUG修復] 恢復了在 system_prompt_template 中被意外刪除的 {response_style_prompt} placeholder。
+    # v17.0 (2025-11-12): [重大架構重構] 根據「提示詞脆弱性」問題，實施了終極的「最終輸出強制令」架構。將所有任務指令從human_prompt轉移至system_prompt，將human_prompt淨化為純粹的數據容器。此修改旨在建立一個絕對清晰、無任何解釋歧義的指令層級，從根本上解決AI因錯誤權衡指令而導致的行為偏差。
+    # v16.0 (2025-11-11): [災難性BUG修復] 在「絕對禁止事項」中，增加了一條措辭極其強硬的【嚴禁惰性重複】規則。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
             
+            # [v17.0 核心修正] 將所有指令集中到 System Prompt
             system_prompt_template = """
 {core_protocol_prompt}
 # ---
-# 【【【使用者自訂風格指令 (RENDER STYLE - ABSOLUTE & HIGHEST PRIORITY)】】】
-# 你的最终输出【必须且只能】严格地、完全地遵循下方由使用者定义的風格指令。
+# 【【【使用者自訂風格指令 (RENDER STYLE)】】】
 {response_style_prompt}
----
+# ==============================================================================
+# == ⚙️ 第三部分：最終輸出強制令 (FINAL OUTPUT MANDATE) ⚙️
+# == 說明：這是對你本次任務的最終、絕對、不可違背的執行指令。
+# ==============================================================================
+#
+# ---【【【A. 輸入數據源定義】】】---
+# 你將在下方的使用者提示中，接收到包含以下結構的【源數據】：
+#   1.  `world_snapshot`: 關於世界當前狀態的客觀事實。
+#   2.  `historical_context`: 【已經發生過】的歷史事件原文。
+#   3.  `latest_user_input`: 主角在本回合【絕對會執行】的最新行動或對話。
+#
+# ---【【【B. 核心任務與絕對禁令】】】---
+# 你的唯一任務是，嚴格地、完全地基於所有【源數據】，生成一段【全新的】小說文本，
+# 這段文本必須是【historical_context】最後一刻的【直接、無縫的延續】，
+# 並且必須體現出【latest_user_input】這個行動發生【之後】，世界所產生的後續反應。
+#
+# 在執行此任務時，以下規則具有最高優先級，【絕對禁止】任何形式的違反：
+#
+#   1.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
+#   2.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由（包括角色設定或看似不合邏輯）來質疑、評論或描述角色【沒有執行】【latest_user_input】中的行動。你只能描述【執行了行動之後】的結果。
+#   3.  **【嚴禁惰性重複】**: 即使【latest_user_input】與歷史中的舊指令相似，你也【必須】將其視為一個【全新的事件】來創作全新的旁白。
+#
+# ---【【【C. 輸出格式】】】---
+# 你的最終輸出【必須且只能】是純粹的小說文本。
+#
+# 【指令結束。準備接收源數據並開始創作。】
 """
             
+            # [v17.0 核心修正] 將 Human Prompt 淨化為純數據容器
             human_prompt_template = """
-# ==============================================================================
-# == 📚 第一部分：世界與歷史上下文 (World & Historical Context) 📚
-# == 說明：這是關於世界狀態和【已經發生過】的事件的客觀事實。
-# ==============================================================================
+# --- 源數據 (Source Data) ---
+
+# World Snapshot:
 {world_snapshot}
 
+# Historical Context:
 {historical_context}
-# ==============================================================================
-# == 🎯 第二部分：本回合任務指令 (Your Task) 🎯
-# ==============================================================================
-# 【【【核心任務指令：演繹下一幕 (Simulate the Next Scene)】】】
-#
-# ---【【【👑 玩家主權原則 (Player Sovereignty Principle) - 絕對優先級 👑】】】---
-#
-# 1.  **【行動的絕對性】**: 下方的【主角的最新行動/對話】是本回合【絕對發生】的事件。
-# 2.  **【模擬「之後」的世界】**: 你的唯一任務，是模擬並創作在【主角的最新行動/對話】發生【之後】，世界產生的【直接、合乎邏輯的後續反應】。
-#
-# ---【【【🚫 絕對禁止事項 (ABSOLUTE PROHIBITIONS) 🚫】】】---
-#
-# 1.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或摘要化上方【歷史上下文】中已經出現過的任何旁白。
-# 2.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由在旁白中描述角色【沒有執行】主角的行動。
-# 3.  **【【【v16.0 新增：嚴禁惰性重複 (No Lazy Repetition)】】】**:
-#     - 即使【主角的最新行動/對話】與【歷史上下文】中的某個舊指令【完全一樣】，你也【必須】將其視為一個【全新的、獨立的事件】來處理。
-#     - 你【絕對禁止】直接複製或模仿歷史上對相同指令的回應。
-#     - 你【必須】生成一段【全新的、原創的】旁白，描述角色【再一次】執行該動作時的場景。
-#     - **範例**：如果歷史中已有「碧拍了拍手」，當新指令再次為「拍手」時，你的新旁白可以是「碧又一次拍了拍手，這次的掌聲更響亮了。」
-#
-# ------------------------------------------------------------------------------
-#
-# --- 主角的最新行動/對話 (本回合的既定事實) ---
+
+# Latest User Input (Action to be executed):
 {latest_user_input}
-#
-# ==============================================================================
-# == ✍️ 你的創作 (必須是全新的、接續上一幕的內容) ==
-# ==============================================================================
+
+# --- 你的創作 (Your Creation) ---
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -2060,7 +2056,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v16.0 - 反惰性重複)
+    # 函式：[升級] 獲取统一生成链 (v17.0 - 最終強制令)
 
 
 
@@ -4021,6 +4017,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
