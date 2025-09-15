@@ -973,7 +973,8 @@ class AILover:
 
         logger.info(f"[{self.user_id}] 正在輕量級重建核心模型以應用金鑰策略...")
         
-        # 這會調用 _create_llm_instance，從而使用下一個可用的金鑰
+        # 這會調用 _create_llm_instance 和 _create_embeddings_instance，
+        # 它們會自動使用下一個可用的金鑰
         self._initialize_models()
         
         logger.info(f"[{self.user_id}] 核心模型已成功重建。")
@@ -1971,21 +1972,15 @@ class AILover:
         return self.profile_rewriting_chain
     # 函式：獲取角色檔案重寫鏈 (v203.1 - 延遲加載重構)
 
-     # 函式：初始化核心模型 (v1.0.3 - 簡化)
+    # 函式：初始化核心模型 (v2.0 - 職責簡化)
     # 更新紀錄:
-    # v1.0.3 (2025-09-21): [架構簡化] 移除了此處多餘的 .bind(safety_settings=...) 調用。核心安全設定已由 _create_llm_instance 工廠函式統一注入，此修改避免了冗餘並確保了設定來源的唯一性。
-    # v1.0.2 (2025-08-29): [BUG修復] 修正了函式定義的縮排錯誤。
-    # v1.0.1 (2025-08-29): [BUG修復] 修正了對 self.safety_settings 的錯誤引用。
-    # v2.0 (2025-10-14): [災難性BUG修復] 確保 `self.gm_model` 使用 `FUNCTIONAL_MODEL`，以匹配其在其他鏈中的預期用途。
-    # v3.0 (2025-10-14): [災難性BUG修復] 將 `self.embeddings` 的初始化移到 `_configure_pre_requisites` 之外，使其在每次需要時可以與當前輪換的金鑰一起被創建。
+    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。它現在只觸發核心模型的重新初始化，讓新的 `_create_llm_instance` 函式來自動處理金鑰的輪換。
     def _initialize_models(self):
-        """初始化核心的LLM。嵌入模型將在需要時動態創建並獲取最新金鑰。"""
-        # [v2.0 核心修正] 確保 gm_model 使用 FUNCTIONAL_MODEL
+        """初始化核心的LLM和Embedding模型實例。"""
+        # 確保 gm_model 使用 FUNCTIONAL_MODEL 以保證輔助鏈的穩定性
         self.gm_model = self._create_llm_instance(temperature=0.7, model_name=FUNCTIONAL_MODEL)
-        
-        # [v3.0 核心修正] 移除此處的 embeddings 初始化，它將在 `ainvoke_with_rotation` 或 `_create_embeddings_instance` 中動態創建
-        # self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[self.current_key_index])
-    # 函式：初始化核心模型 (v1.0.3 - 簡化)
+        self.embeddings = self._create_embeddings_instance()
+    # 函式：初始化核心模型 (v2.0 - 職責簡化)
 
 
 
@@ -3769,10 +3764,10 @@ class AILover:
 
     
     
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v222.0 - 兩級冷卻)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v223.0 - 實例快取)
     # 更新紀錄:
-    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統，以更好地區分 RPM 和 RPD 限制，並避免因短期抖動而導致的長期封鎖。
-    # v221.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
+    # v223.0 (2025-11-05): [災難性BUG修復] 徹底重構了此函式的資源管理。不再於循環中重複創建模型實例，而是改為使用類級別的實例(self.gm_model)，僅在遭遇速率限制時才觸發重建。此修改旨在從根本上解決因過多實例化導致的API請求風暴問題。
+    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3785,57 +3780,43 @@ class AILover:
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            model_succeeded = False
-            
-            # [核心修正] 在模型級別的循環中，而不是金鑰級別的循環中創建模型
-            # 這樣可以重用同一個模型實例來嘗試不同的金鑰
-            
+            # [核心修正] 確保當前 self.gm_model 的模型名稱與我們要嘗試的名稱一致
+            if not self.gm_model or self.gm_model.model != model_name:
+                self.gm_model = self._create_llm_instance(model_name=model_name)
+
             for attempt in range(len(self.api_keys)):
-                key_info = self._get_next_available_key()
-                if not key_info:
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                    break # 跳出金鑰循環，嘗試下一個模型
-                
-                _, key_index = key_info
+                if not self.gm_model:
+                    # 如果在循環開始時就沒有可用的金鑰來創建模型，則直接跳過
+                    await self._rebuild_agent_with_new_key()
+                    if not self.gm_model:
+                        logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
+                        break # 跳出金鑰循環，嘗試下一個模型
 
                 try:
-                    # [核心修正] 統一且延遲地創建模型和配置鏈
-                    self.embeddings = self._create_embeddings_instance()
-                    configured_llm = self._create_llm_instance(model_name=model_name)
-                    
-                    if not configured_llm:
-                        # 如果無法創建模型（例如，因為金鑰問題），則跳過這次嘗試
-                        continue
-
+                    # [核心修正] 直接使用 self.gm_model，不再重複創建
                     effective_chain = chain
-                    # 智能地將新創建的 LLM 注入到鏈中
                     if isinstance(chain, ChatPromptTemplate):
-                        effective_chain = chain | configured_llm
+                        effective_chain = chain | self.gm_model
                     elif hasattr(chain, 'with_config'):
-                        # 嘗試使用 LangChain 的標準配置方法
                         try:
-                            effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
+                            effective_chain = chain.with_config({"configurable": {"llm": self.gm_model}})
                         except Exception:
-                            # 如果失敗（例如，鏈不支持此配置），則保持原樣
                             effective_chain = chain
                     
-                    # 增加超時以防止請求卡死
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
                         timeout=90.0
                     )
                     
-                    # 檢查模型是否返回了空內容（這通常是內容審查的標誌）
                     is_empty_or_invalid = not result or (hasattr(result, 'content') and not getattr(result, 'content', True))
                     if is_empty_or_invalid:
                         raise Exception("SafetyError: The model returned an empty or invalid response.")
                     
-                    model_succeeded = True
                     return result
 
                 except asyncio.TimeoutError:
-                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {key_index})。")
-                    await asyncio.sleep(3.0) # 短暫等待後重試
+                    logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name})。正在重建 Agent 並重試...")
+                    await self._rebuild_agent_with_new_key()
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3843,42 +3824,33 @@ class AILover:
                     is_rate_limit_error = "resourceexhausted" in error_str or "429" in error_str
 
                     if is_rate_limit_error:
-                        # [v222.0 核心修正] 智能兩級冷卻邏輯
+                        current_key_index = (self.current_key_index - 1 + len(self.api_keys)) % len(self.api_keys)
                         now = time.time()
-                        self.key_short_term_failures[key_index].append(now)
-                        # 清理掉一分鐘前的失敗記錄
-                        self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                        self.key_short_term_failures[current_key_index].append(now)
+                        self.key_short_term_failures[current_key_index] = [t for t in self.key_short_term_failures[current_key_index] if now - t < self.RPM_FAILURE_WINDOW]
                         
-                        failure_count = len(self.key_short_term_failures[key_index])
-                        logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。")
+                        failure_count = len(self.key_short_term_failures[current_key_index])
+                        logger.warning(f"[{self.user_id}] API Key index: {current_key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。正在重建 Agent 並用下一個金鑰重試...")
 
-                        # 只有在短期內頻繁失敗時，才觸發長期冷卻
                         if failure_count >= self.RPM_FAILURE_THRESHOLD:
-                            logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
-                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                            self.key_short_term_failures[key_index] = [] # 重置計數器
+                            logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {current_key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
+                            self.key_cooldowns[current_key_index] = now + 60 * 60 * 24
+                            self.key_short_term_failures[current_key_index] = []
                         
-                        await asyncio.sleep(3.0) # 短暫等待後重試
+                        await self._rebuild_agent_with_new_key()
 
                     elif is_safety_error:
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
-                        await asyncio.sleep(3.0)
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' 遭遇內容審查。將嘗試下一個模型。")
                         break # 跳出金鑰循環，直接嘗試下一個更高優先級的模型
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        await asyncio.sleep(3.0)
                         break
             
-            if not model_succeeded:
-                if model_index < len(models_to_try) - 1:
-                    logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...")
-                else:
-                    logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
+            if model_index < len(models_to_try) - 1:
+                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...")
             else:
-                # 如果當前模型成功了，就沒必要再嘗試更低級別的模型了
-                break
+                 logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
 
-        # 如果所有模型和金鑰都失敗了，才執行最終的備援策略
         logger.error(f"[{self.user_id}] 所有標準嘗試均失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
@@ -3887,7 +3859,7 @@ class AILover:
             return await self._euphemize_and_retry(chain, params, Exception("Final fallback after all retries."))
         
         return None 
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v222.0 - 兩級冷卻)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v223.0 - 實例快取)
     
 
 
@@ -4084,6 +4056,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
