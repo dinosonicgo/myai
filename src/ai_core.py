@@ -1176,8 +1176,8 @@ class AILover:
         final_params = {
             "core_protocol_prompt": self.core_protocol_prompt,
             "response_style_prompt": self.profile.response_style_prompt or "預設風格",
+            "plot_anchor": "（無）", # plot_anchor 的邏輯已整合進 world_snapshot，此處保留為兼容
             "world_snapshot": world_snapshot,
-            "plot_anchor": plot_anchor,
             "latest_user_input": user_input,
         }
 
@@ -1190,6 +1190,7 @@ class AILover:
 
         raw_response = str(final_response_raw)
         
+        # [v2.0 新增] 輸出淨化邏輯
         start_marker = "§START_OF_RESPONSE§"
         end_marker = "§END_OF_RESPONSE§"
         start_index = raw_response.find(start_marker)
@@ -1203,8 +1204,9 @@ class AILover:
                 final_response = raw_response[start_pos:].strip()
             logger.info(f"[{self.user_id}] [淨化] 成功基於標記提取到純淨輸出。")
         else:
-            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！")
+            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！將返回原始輸出。")
             final_response = raw_response.strip()
+            # 嘗試清理結尾標記，以防萬一
             if end_marker in final_response:
                 final_response = final_response.split(end_marker, 1)[0].strip()
 
@@ -1214,8 +1216,10 @@ class AILover:
         
         logger.info(f"[{self.user_id}] [生成] 自由創作生成成功。")
 
+        # 準備事後分析所需的上下文
         final_context = { "raw_lore_objects": raw_lore_objects }
 
+        # 為下一輪的「繼續」指令準備快照
         self.last_context_snapshot = {
             "raw_lore_objects": raw_lore_objects,
             "last_response_text": final_response
@@ -2086,6 +2090,7 @@ class AILover:
 ---
 """
             
+            # [v9.0 核心修正] 引入指令防火牆和數據驅動模板
             human_prompt_template = """
 # ==============================================================================
 # == 📚 第一部分：上下文與背景數據 (不可違背的客觀事實) 📚
@@ -2118,6 +2123,7 @@ class AILover:
                 ("human", human_prompt_template)
             ])
             
+            # 注意：此處的 LLM 僅為佔位符，實際的 LLM 實例將由 ainvoke_with_rotation 動態注入
             placeholder_llm = self._create_llm_instance()
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
@@ -4059,6 +4065,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
