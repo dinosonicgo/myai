@@ -183,49 +183,37 @@ class AILover:
     
 
 
-    # 函式：创建 LLM 实例 (v3.0 - 模型思考与分级支持)
+    # 函式：創建 LLM 實例 (v3.3 - 禁用內部重試)
     # 更新紀錄:
-    # v3.0 (2025-10-06): [重大功能擴展] 重构了此模型工厂。现在它接受一个 model_name 参数，并能为 gemini-2.5-flash-lite 模型自动添加 thinking_config（启用动态思考）。同时增加了详细的日志，以清晰地记录每个实例的创建配置。
-    # v2.0 (2025-09-03): [重大性能優化] 实现了循环负荷均衡。
-    # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。API 金鑰輪換邏輯已移至 `_create_llm_instance` 和 `_create_embeddings_instance` 共同管理的 `_get_next_api_key_and_index` 輔助函式。
-    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名 `_get_next_api_key_and_index` 為 `_get_next_available_key` 後，此處未更新調用導致的 AttributeError。
     # v3.3 (2025-10-15): [健壯性] 設置 `max_retries=1` 來禁用 LangChain 的內部自動重試，由我們自己的 `ainvoke_with_rotation` 統一管理。
+    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後，此處未更新調用導致的 AttributeError。
+    # v3.1 (2025-10-14): [職責分離] 此函式現在只專注於創建 ChatGoogleGenerativeAI 實例。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL) -> Optional[ChatGoogleGenerativeAI]:
         """
         創建並返回一個 ChatGoogleGenerativeAI 實例。
-        此函式會從 `_get_next_available_key` 獲取當前輪換的 API 金鑰。
+        此函式會從 `_get_next_available_key` 獲取當前可用的 API 金鑰。
         """
         key_info = self._get_next_available_key()
         if not key_info:
-            return None
+            return None # 沒有可用的金鑰
         key_to_use, key_index = key_info
         
-        generation_config = {
-            "temperature": temperature,
-        }
-
+        generation_config = {"temperature": temperature}
         if model_name == "gemini-2.5-flash-lite":
-            generation_config["thinking_config"] = {
-                "thinking_budget": -1  # 啟用動態思考
-            }
-
-        # [核心修正] 增加詳細的日誌記錄
+            generation_config["thinking_config"] = {"thinking_budget": -1}
+        
         safety_settings_log = {k.name: v.name for k, v in SAFETY_SETTINGS.items()}
         logger.info(f"[{self.user_id}] 正在創建模型 '{model_name}' 實例 (API Key index: {key_index})")
         logger.info(f"[{self.user_id}] 應用安全設定: {safety_settings_log}")
-        if "thinking_config" in generation_config:
-            logger.info(f"[{self.user_id}] 已為模型 '{model_name}' 啟用【動態思考】功能。")
-
-        llm = ChatGoogleGenerativeAI(
+        
+        return ChatGoogleGenerativeAI(
             model=model_name,
             google_api_key=key_to_use,
             safety_settings=SAFETY_SETTINGS,
             generation_config=generation_config,
-            max_retries=1 # [v3.3 核心修正] 禁用 LangChain 的內部重試，交由 ainvoke_with_rotation 全權管理
+            max_retries=1 # [核心修正] 禁用 LangChain 的內部重試，交由 ainvoke_with_rotation 全權管理
         )
-        
-        return llm
-    # 函式：創建 LLM 實例 (v3.0 - 模型思考与分级支持)
+    # 函式：創建 LLM 實例 (v3.3 - 禁用內部重試)
 
 
 
@@ -3799,35 +3787,45 @@ class AILover:
             
             model_succeeded = False
             
+            # [核心修正] 在模型級別的循環中，而不是金鑰級別的循環中創建模型
+            # 這樣可以重用同一個模型實例來嘗試不同的金鑰
+            
             for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key()
                 if not key_info:
                     logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                    break 
+                    break # 跳出金鑰循環，嘗試下一個模型
                 
                 _, key_index = key_info
 
                 try:
+                    # [核心修正] 統一且延遲地創建模型和配置鏈
                     self.embeddings = self._create_embeddings_instance()
                     configured_llm = self._create_llm_instance(model_name=model_name)
                     
                     if not configured_llm:
+                        # 如果無法創建模型（例如，因為金鑰問題），則跳過這次嘗試
                         continue
 
                     effective_chain = chain
+                    # 智能地將新創建的 LLM 注入到鏈中
                     if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | configured_llm
                     elif hasattr(chain, 'with_config'):
+                        # 嘗試使用 LangChain 的標準配置方法
                         try:
                             effective_chain = chain.with_config({"configurable": {"llm": configured_llm}})
                         except Exception:
+                            # 如果失敗（例如，鏈不支持此配置），則保持原樣
                             effective_chain = chain
                     
+                    # 增加超時以防止請求卡死
                     result = await asyncio.wait_for(
                         effective_chain.ainvoke(params),
                         timeout=90.0
                     )
                     
+                    # 檢查模型是否返回了空內容（這通常是內容審查的標誌）
                     is_empty_or_invalid = not result or (hasattr(result, 'content') and not getattr(result, 'content', True))
                     if is_empty_or_invalid:
                         raise Exception("SafetyError: The model returned an empty or invalid response.")
@@ -3837,7 +3835,7 @@ class AILover:
 
                 except asyncio.TimeoutError:
                     logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name}, Key index: {key_index})。")
-                    await asyncio.sleep(3.0)
+                    await asyncio.sleep(3.0) # 短暫等待後重試
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3848,22 +3846,24 @@ class AILover:
                         # [v222.0 核心修正] 智能兩級冷卻邏輯
                         now = time.time()
                         self.key_short_term_failures[key_index].append(now)
+                        # 清理掉一分鐘前的失敗記錄
                         self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
                         
                         failure_count = len(self.key_short_term_failures[key_index])
                         logger.warning(f"[{self.user_id}] API Key index: {key_index} 遭遇速率限制 (短期失敗次數: {failure_count}/{self.RPM_FAILURE_THRESHOLD})。")
 
+                        # 只有在短期內頻繁失敗時，才觸發長期冷卻
                         if failure_count >= self.RPM_FAILURE_THRESHOLD:
                             logger.error(f"[{self.user_id}] [長期冷卻觸發] API Key index: {key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗達到 {failure_count} 次。將其冷卻 24 小時。")
                             self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                            self.key_short_term_failures[key_index] = []
+                            self.key_short_term_failures[key_index] = [] # 重置計數器
                         
-                        await asyncio.sleep(3.0)
+                        await asyncio.sleep(3.0) # 短暫等待後重試
 
                     elif is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
                         await asyncio.sleep(3.0)
-                        break 
+                        break # 跳出金鑰循環，直接嘗試下一個更高優先級的模型
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         await asyncio.sleep(3.0)
@@ -3875,8 +3875,10 @@ class AILover:
                 else:
                     logger.error(f"[{self.user_id}] [Final Failure] 所有模型 ({', '.join(models_to_try)}) 和所有可用 API 金鑰均嘗試失敗。")
             else:
+                # 如果當前模型成功了，就沒必要再嘗試更低級別的模型了
                 break
 
+        # 如果所有模型和金鑰都失敗了，才執行最終的備援策略
         logger.error(f"[{self.user_id}] 所有標準嘗試均失敗。啟動最終備援策略: '{retry_strategy}'")
         
         if retry_strategy == 'force':
@@ -4082,6 +4084,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
