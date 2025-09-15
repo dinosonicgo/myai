@@ -1083,10 +1083,10 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v3.0 - 混合記憶讀取)
+    # 函式：[升級] 預處理上下文並生成回應 (v3.1 - 語法修正)
     # 更新紀錄:
-    # v3.0 (2025-11-04): [重大架構重構] 根據「混合記憶」架構，重寫了上下文的組合邏輯。現在會從RAG獲取安全的「長期記憶摘要」，並從session_histories獲取原始的「短期對話歷史」，將兩者結合注入到Prompt中，實現了安全與精確的平衡。
-    # v2.0 (2025-11-01): [重大架構重構] 根據「指令防火牆」架構，重寫了此函式的上下文彙總邏輯。
+    # v3.1 (2025-11-04): [災難性BUG修復] 修正了 context_vars 中 remote_target_path_str 的 SyntaxError。
+    # v3.0 (2025-11-04): [重大架構重構] 根據「混合記憶」架構，重寫了上下文的組合邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (統一流程) 執行從上下文預處理到最終回應生成的完整流程。
@@ -1165,7 +1165,8 @@ class AILover:
             'npc_context': npc_context_str, 
             'relevant_npc_context': "請參考上方的在場角色情報檔案。",
             'player_location': " > ".join(gs.location_path), 'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > '.join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+            # [v3.1 核心修正] 修正此處的語法錯誤
+            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
         }
         world_snapshot = self.world_snapshot_template.format(**context_vars)
         logger.info(f"[{self.user_id}] [預處理] 上下文準備完畢。")
@@ -1225,7 +1226,7 @@ class AILover:
         }
         
         return final_response, final_context
-    # 函式：[升級] 預處理上下文並生成回應 (v3.0 - 混合記憶讀取)
+    # 函式：[升級] 預處理上下文並生成回應 (v3.1 - 語法修正)
 
 
     # 函式：[全新] 校準場景分析結果
@@ -4081,6 +4082,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
