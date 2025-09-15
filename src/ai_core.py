@@ -209,6 +209,7 @@ class AILover:
                 "thinking_budget": -1  # 啟用動態思考
             }
 
+        # [核心修正] 增加詳細的日誌記錄
         safety_settings_log = {k.name: v.name for k, v in SAFETY_SETTINGS.items()}
         logger.info(f"[{self.user_id}] 正在創建模型 '{model_name}' 實例 (API Key index: {key_index})")
         logger.info(f"[{self.user_id}] 應用安全設定: {safety_settings_log}")
@@ -224,7 +225,7 @@ class AILover:
         )
         
         return llm
-    # 函式：創建 LLM 實例 (v3.0 - 模型思考與分級支持)
+    # 函式：創建 LLM 實例 (v3.0 - 模型思考与分级支持)
 
 
 
@@ -2630,7 +2631,8 @@ class AILover:
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         literary_chain = self.get_literary_euphemization_chain()
-        safe_overview_of_all_docs = await self.ainvoke_with_rotation(literary_chain, {"dialogue_history": combined_content}, retry_strategy='none')
+        # [核心修正] 將重試策略從 'none' 改為 'euphemize'
+        safe_overview_of_all_docs = await self.ainvoke_with_rotation(literary_chain, {"dialogue_history": combined_content}, retry_strategy='euphemize')
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
             logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
@@ -3580,11 +3582,34 @@ class AILover:
         user_id = self.user_id
         current_time = time.time()
         
+        # [核心修正] 步驟 1: 事前消毒
+        sanitized_text_for_db = interaction_text
+        try:
+            # 檢查文本是否可能包含敏感內容，避免不必要的 API 調用
+            sensitive_keywords = ["肉棒", "肉穴", "淫", "插入", "射精", "口交", "做愛", "強姦"]
+            if any(kw in interaction_text for kw in sensitive_keywords):
+                logger.info(f"[{user_id}] [事前消毒] 檢測到潛在敏感記憶，正在進行文學化處理...")
+                literary_chain = self.get_literary_euphemization_chain()
+                # 使用 'euphemize' 策略確保即使消毒本身失敗也能有備援
+                sanitized_result = await self.ainvoke_with_rotation(
+                    literary_chain, 
+                    {"dialogue_history": interaction_text}, 
+                    retry_strategy='euphemize'
+                )
+                if sanitized_result and sanitized_result.strip():
+                    sanitized_text_for_db = f"【劇情概述】:\n{sanitized_result.strip()}"
+                    logger.info(f"[{user_id}] [事前消毒] 記憶已成功消毒。")
+                else:
+                    logger.warning(f"[{user_id}] [事前消毒] 文學化處理失敗，將儲存原始文本，這可能導致未來檢索失敗。")
+        except Exception as e:
+            logger.error(f"[{user_id}] [事前消毒] 在儲存記憶前進行消毒時發生嚴重錯誤: {e}", exc_info=True)
+
+        # 步驟 2: 將消毒後的文本存入 SQL
         try:
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
-                    content=interaction_text,
+                    content=sanitized_text_for_db, # 使用消毒後的文本
                     timestamp=current_time,
                     importance=5
                 )
@@ -3596,10 +3621,11 @@ class AILover:
             logger.error(f"[{user_id}] 將互動保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
             return
 
+        # 步驟 3: 將消毒後的文本存入 ChromaDB
         if self.vector_store:
             key_info = self._get_next_available_key()
             if not key_info:
-                logger.info(f"[{self.user_id}] [優雅降級] 所有 Embedding API 金鑰都在冷卻中，本輪記憶僅保存至 SQL。")
+                logger.info(f"[{user_id}] [優雅降級] 所有 Embedding API 金鑰都在冷卻中，本輪記憶僅保存至 SQL。")
                 return
 
             key_to_use, key_index = key_info
@@ -3609,15 +3635,15 @@ class AILover:
                 
                 await asyncio.to_thread(
                     self.vector_store.add_texts,
-                    [interaction_text],
+                    [sanitized_text_for_db], # 使用消毒後的文本
                     metadatas=[{"source": "history", "timestamp": current_time}],
                     embedding_function=temp_embeddings
                 )
-                logger.info(f"[{self.user_id}] 對話記錄已成功向量化並保存到 ChromaDB。")
+                logger.info(f"[{user_id}] 對話記錄已成功向量化並保存到 ChromaDB。")
             
             except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
                 logger.warning(
-                    f"[{self.user_id}] [優雅降級] "
+                    f"[{user_id}] [優雅降級] "
                     f"API Key #{key_index} 在保存記憶到主記憶系統 (Embedding) 時失敗。將觸發對其的冷卻。"
                     f"錯誤類型: {type(e).__name__}"
                 )
@@ -3628,7 +3654,7 @@ class AILover:
                     self.key_cooldowns[key_index] = now + 60 * 60 * 24
                     self.key_short_term_failures[key_index] = []
             except Exception as e:
-                 logger.error(f"[{self.user_id}] 保存記憶到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
+                 logger.error(f"[{user_id}] 保存記憶到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
     # 函式：將互動保存到資料庫 (v5.1 - 導入修正)
 
     
@@ -4065,6 +4091,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
