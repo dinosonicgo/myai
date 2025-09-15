@@ -961,24 +961,23 @@ class AILover:
 
     
 
-    # 函式：輕量級重建核心模型 (v2.0 - 職責簡化)
+    # 函式：輕量級重建核心模型 (v3.0 - 參數化)
     # 更新紀錄:
-    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。它現在只觸發核心模型的重新初始化，讓新的 `_create_llm_instance` 函式來自動處理金鑰的輪換。
-    # v198.0 (2025-08-31): [架構重構] 根據 LangGraph 架構重構。
-    async def _rebuild_agent_with_new_key(self):
+    # v3.0 (2025-11-07): [災難性BUG修復] 增加了 model_name 參數，並將其傳遞給 _initialize_models，確保在重建時能創建正確的模型類型。
+    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。
+    async def _rebuild_agent_with_new_key(self, model_name: str):
         """輕量級地重新初始化所有核心模型，以應用新的 API 金鑰策略（如負載均衡）。"""
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下重建 Agent。")
             return
 
-        logger.info(f"[{self.user_id}] 正在輕量級重建核心模型以應用金鑰策略...")
+        logger.info(f"[{self.user_id}] 正在輕量級重建核心模型 (目標: {model_name}) 以應用金鑰策略...")
         
-        # 這會調用 _create_llm_instance 和 _create_embeddings_instance，
-        # 它們會自動使用下一個可用的金鑰
-        self._initialize_models()
+        # [v3.0 核心修正] 將 model_name 參數向下傳遞
+        self._initialize_models(model_name=model_name)
         
         logger.info(f"[{self.user_id}] 核心模型已成功重建。")
-    # 函式：輕量級重建核心模型 (v2.0 - 職責簡化)
+    # 函式：輕量級重建核心模型 (v3.0 - 參數化)
 
 
 
@@ -1892,15 +1891,16 @@ class AILover:
         return self.profile_rewriting_chain
     # 函式：獲取角色檔案重寫鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：初始化核心模型 (v2.0 - 職責簡化)
+    # 函式：初始化核心模型 (v3.0 - 參數化)
     # 更新紀錄:
-    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。它現在只觸發核心模型的重新初始化，讓新的 `_create_llm_instance` 函式來自動處理金鑰的輪換。
-    def _initialize_models(self):
+    # v3.0 (2025-11-07): [災難性BUG修復] 增加了 model_name 參數，使其能夠根據需要創建指定類型的模型實例，而不是永遠硬編碼為 FUNCTIONAL_MODEL。此修改旨在解決無限重建循環的問題。
+    # v2.0 (2025-09-03): [重大架構重構] 配合循環負載均衡的實現，此函式的職責被簡化。
+    def _initialize_models(self, model_name: str = FUNCTIONAL_MODEL):
         """初始化核心的LLM和Embedding模型實例。"""
-        # 確保 gm_model 使用 FUNCTIONAL_MODEL 以保證輔助鏈的穩定性
-        self.gm_model = self._create_llm_instance(temperature=0.7, model_name=FUNCTIONAL_MODEL)
+        # [v3.0 核心修正] 使用傳入的 model_name 參數
+        self.gm_model = self._create_llm_instance(temperature=0.7, model_name=model_name)
         self.embeddings = self._create_embeddings_instance()
-    # 函式：初始化核心模型 (v2.0 - 職責簡化)
+    # 函式：初始化核心模型 (v3.0 - 參數化)
 
 
 
@@ -3675,10 +3675,10 @@ class AILover:
 
     
     
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v223.0 - 實例快取)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v224.0 - 參數化重建呼叫)
     # 更新紀錄:
-    # v223.0 (2025-11-05): [災難性BUG修復] 徹底重構了此函式的資源管理。不再於循環中重複創建模型實例，而是改為使用類級別的實例(self.gm_model)，僅在遭遇速率限制時才觸發重建。此修改旨在從根本上解決因過多實例化導致的API請求風暴問題。
-    # v222.0 (2025-10-15): [健壯性] 實現了智能兩級冷卻系統。
+    # v224.0 (2025-11-07): [災難性BUG修復] 在觸發重建時，將當前正在嘗試的 model_name 傳遞給重建函式，從根本上解決了因模型不匹配導致的無限重建循環和API請求風暴問題。
+    # v223.0 (2025-11-05): [災難性BUG修復] 徹底重構了此函式的資源管理。
     async def ainvoke_with_rotation(
         self, 
         chain: Runnable, 
@@ -3691,20 +3691,17 @@ class AILover:
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
             
-            # [核心修正] 確保當前 self.gm_model 的模型名稱與我們要嘗試的名稱一致
             if not self.gm_model or self.gm_model.model != model_name:
                 self.gm_model = self._create_llm_instance(model_name=model_name)
 
             for attempt in range(len(self.api_keys)):
                 if not self.gm_model:
-                    # 如果在循環開始時就沒有可用的金鑰來創建模型，則直接跳過
-                    await self._rebuild_agent_with_new_key()
+                    await self._rebuild_agent_with_new_key(model_name=model_name)
                     if not self.gm_model:
                         logger.warning(f"[{self.user_id}] [Model Degradation] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                        break # 跳出金鑰循環，嘗試下一個模型
+                        break
 
                 try:
-                    # [核心修正] 直接使用 self.gm_model，不再重複創建
                     effective_chain = chain
                     if isinstance(chain, ChatPromptTemplate):
                         effective_chain = chain | self.gm_model
@@ -3727,7 +3724,7 @@ class AILover:
 
                 except asyncio.TimeoutError:
                     logger.warning(f"[{self.user_id}] API 調用超時 (模型: {model_name})。正在重建 Agent 並重試...")
-                    await self._rebuild_agent_with_new_key()
+                    await self._rebuild_agent_with_new_key(model_name=model_name)
                 
                 except Exception as e:
                     error_str = str(e).lower()
@@ -3748,11 +3745,12 @@ class AILover:
                             self.key_cooldowns[current_key_index] = now + 60 * 60 * 24
                             self.key_short_term_failures[current_key_index] = []
                         
-                        await self._rebuild_agent_with_new_key()
+                        # [核心修正] 傳遞正確的 model_name 進行重建
+                        await self._rebuild_agent_with_new_key(model_name=model_name)
 
                     elif is_safety_error:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' 遭遇內容審查。將嘗試下一個模型。")
-                        break # 跳出金鑰循環，直接嘗試下一個更高優先級的模型
+                        break
                     else:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         break
@@ -3770,7 +3768,7 @@ class AILover:
             return await self._euphemize_and_retry(chain, params, Exception("Final fallback after all retries."))
         
         return None 
-    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v223.0 - 實例快取)
+    # 函式：带模型降级与金鑰轮换的非同步呼叫 (v224.0 - 參數化重建呼叫)
     
 
 
@@ -3967,6 +3965,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
