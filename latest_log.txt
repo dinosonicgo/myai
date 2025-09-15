@@ -1,70 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-15T23:44:37.150333 ###
+### AI Lover Log - Last updated at 2025-09-15T23:49:39.272757 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
-    raise ValueError("文學評論家鏈未能生成安全文本。")
-ValueError: 文學評論家鏈未能生成安全文本。
-2025-09-15 23:25:14 - [ERROR] - [512280345618546699] 【文學評論家委婉化】策略最終失敗: 文學評論家鏈未能生成安全文本。。將觸發安全備援。
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3499, in _euphemize_and_retry
     raise ValueError("文學評論家鏈未能生成安全文本。")
@@ -100,3 +35,68 @@ AttributeError: 'NoneType' object has no attribute 'with_structured_output'
 2025-09-15 23:39:23 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-15 23:39:23 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-15 23:39:24 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-15 23:47:39 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 4 條記憶。
+2025-09-15 23:47:39 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
+2025-09-15 23:47:41 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-15 23:47:41 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-15 23:47:41 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-15 23:47:41 - [INFO] - [512280345618546699] 正在從資料庫恢復短期記憶...
+2025-09-15 23:47:41 - [INFO] - [512280345618546699] 成功恢復了 4 條對話記錄到短期記憶中。
+2025-09-15 23:47:41 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] 啟動「極簡直連」對話流程...
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] [預處理-極簡模式] 正在準備核心指令...
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] [生成-極簡模式] 正在執行直接生成...
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-15 23:47:42 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 3)
+2025-09-15 23:47:43 - [INFO] - [512280345618546699] [生成-極簡模式] 直接生成成功。
+2025-09-15 23:48:32 - [INFO] - [512280345618546699] 啟動「極簡直連」對話流程...
+2025-09-15 23:48:32 - [INFO] - [512280345618546699] [預處理-極簡模式] 正在準備核心指令...
+2025-09-15 23:48:32 - [INFO] - [512280345618546699] [生成-極簡模式] 正在執行直接生成...
+2025-09-15 23:48:32 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-15 23:48:32 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 4)
+2025-09-15 23:48:35 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制 (短期失敗次數: 1/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:35 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:35 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-15 23:48:35 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-15 23:48:35 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:38 - [WARNING] - [512280345618546699] API Key index: 0 遭遇速率限制 (短期失敗次數: 1/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:38 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:38 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-15 23:48:38 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-15 23:48:38 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:41 - [WARNING] - [512280345618546699] API Key index: 2 遭遇速率限制 (短期失敗次數: 1/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:41 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:41 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-15 23:48:41 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-15 23:48:41 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:44 - [WARNING] - [512280345618546699] API Key index: 4 遭遇速率限制 (短期失敗次數: 2/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:44 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:44 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-15 23:48:44 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-15 23:48:44 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:47 - [WARNING] - [512280345618546699] API Key index: 0 遭遇速率限制 (短期失敗次數: 2/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:47 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:47 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 1)
+2025-09-15 23:48:47 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 2)
+2025-09-15 23:48:47 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:51 - [WARNING] - [512280345618546699] API Key index: 2 遭遇速率限制 (短期失敗次數: 2/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 3)
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 4)
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:48:51 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 在嘗試所有可用 API 金鑰後均失敗。正在降級到下一個模型...
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash' (優先級 2/3) ---
+2025-09-15 23:48:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash' 實例 (API Key index: 5)
+2025-09-15 23:48:54 - [WARNING] - [512280345618546699] API Key index: 5 遭遇速率限制 (短期失敗次數: 1/3)。正在重建 Agent 並用下一個金鑰重試...
+2025-09-15 23:48:54 - [INFO] - [512280345618546699] 正在輕量級重建核心模型以應用金鑰策略...
+2025-09-15 23:48:54 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-15 23:48:54 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-15 23:48:54 - [INFO] - [512280345618546699] 核心模型已成功重建。
+2025-09-15 23:49:02 - [INFO] - [512280345618546699] [生成-極簡模式] 直接生成成功。
