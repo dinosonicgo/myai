@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-17T00:38:53.698752 ###
+### AI Lover Log - Last updated at 2025-09-17T00:44:16.342471 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
     return func(*args, **kwargs)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\output_parsers\openai_tools.py", line 336, in parse_result
     pydantic_objects.append(name_dict[res["type"]](**res["args"]))
@@ -100,3 +95,8 @@ npc_profiles.0.name
 2025-09-17 00:30:42 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 2)
 2025-09-17 00:31:00 - [INFO] - [512280345618546699] [淨化] 成功基於雙標記提取到純淨輸出。
 2025-09-17 00:31:00 - [INFO] - [512280345618546699] [生成] 直接生成成功。互動已存入場景 '512280345618546699_local_艾瑟利亞大陸_靜謐海岸_海邊小屋'。
+2025-09-17 00:44:02 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-17 00:44:02 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-17 00:44:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-17 00:44:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-17 00:44:06 - [INFO] - 已成功發送啟動成功通知給管理員。
