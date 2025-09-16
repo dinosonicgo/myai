@@ -725,9 +725,10 @@ class AILover:
     
 
     
-    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+     # 函式：初始化AI實例 (v204.0 - 移除記憶恢復)
     # 更新紀錄:
-    # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名，完成了延遲加載重構。
+    # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。在「場景會話管理」架構下，記憶不再於啟動時預加載，而是在進入每個場景時按需創建，此修改從根本上解決了因預加載導致的上下文污染問題。
+    # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名。
     async def initialize(self) -> bool:
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
@@ -758,14 +759,22 @@ class AILover:
             )
         
         try:
-            # [v203.1 核心修正] 呼叫新的配置方法
             await self._configure_pre_requisites()
-            await self._rehydrate_short_term_memory()
+            # [v204.0 核心修正] 徹底移除對已過時的記憶恢復函式的呼叫
+            # await self._rehydrate_short_term_memory()
         except Exception as e:
-            logger.error(f"[{self.user_id}] 配置前置資源或恢復記憶時發生致命錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 配置前置資源時發生致命錯誤: {e}", exc_info=True)
             return False
         return True
-    # 函式：初始化AI實例 (v203.1 - 延遲加載重構)
+    # 函式：初始化AI實例 (v204.0 - 移除記憶恢復)
+
+
+
+
+
+
+
+    
 
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
     # 說明：接收更新字典，驗證並更新記憶體中的設定檔，然後將其持久化到資料庫。
@@ -1004,48 +1013,6 @@ class AILover:
 
 
 
-    # 函式：從資料庫恢復短期記憶 (v158.0 重構)
-    # 說明：從資料庫讀取最近的對話記錄，並將其加載到純淨的 ChatMessageHistory 中。
-    async def _rehydrate_short_term_memory(self):
-        logger.info(f"[{self.user_id}] 正在從資料庫恢復短期記憶...")
-        
-        # 確保該使用者的歷史記錄實例存在
-        if self.user_id not in self.session_histories:
-            self.session_histories[self.user_id] = ChatMessageHistory()
-        
-        chat_history_manager = self.session_histories[self.user_id]
-        
-        if chat_history_manager.messages:
-            logger.info(f"[{self.user_id}] 短期記憶已存在，跳過恢復。")
-            return
-
-        async with AsyncSessionLocal() as session:
-            stmt = select(MemoryData).where(MemoryData.user_id == self.user_id).order_by(MemoryData.timestamp.desc()).limit(20)
-            result = await session.execute(stmt)
-            recent_memories = result.scalars().all()
-        
-        recent_memories.reverse()
-
-        if not recent_memories:
-            logger.info(f"[{self.user_id}] 未找到歷史對話記錄，無需恢復記憶。")
-            return
-
-        for record in recent_memories:
-            try:
-                parts = record.content.split("\n\n[場景回應]:\n", 1)
-                if len(parts) == 2:
-                    user_part, ai_part = parts
-                    user_input_match = re.search(r"說: (.*)", user_part, re.DOTALL)
-                    if user_input_match:
-                        user_input = user_input_match.group(1).strip()
-                        ai_response = ai_part.strip()
-                        chat_history_manager.add_user_message(user_input)
-                        chat_history_manager.add_ai_message(ai_response)
-            except Exception as e:
-                logger.warning(f"[{self.user_id}] 解析記憶記錄 ID {record.id} 時出錯: {e}")
-        
-        logger.info(f"[{self.user_id}] 成功恢復了 {len(recent_memories)} 條對話記錄到短期記憶中。")
-    # 函式：從資料庫恢復短期記憶 (v158.0 重構)
 
 
 
@@ -4119,6 +4086,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
