@@ -1071,10 +1071,10 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v8.0 - 導演視角)
+    # 函式：[升級] 預處理上下文並生成回應 (v9.0 - 條件化上下文)
     # 更新紀錄:
-    # v8.0 (2025-11-14): [重大架構升級] 引入了「導演視角(Viewing Mode)」系統。此函式現在會動態分析使用者指令，判斷其意圖是本地互動(local)還是遠程觀察(remote)，並將此狀態持久化。通過在world_snapshot中注入最高優先級的情境指令，從根本上解決了AI混淆「描述」與「前往」的問題。
-    # v7.0 (2025-11-12): [架構重構] 更新了 final_params 的結構，以適配「最終輸出強制令」架構下的純淨數據模板。
+    # v9.0 (2025-11-15): [災難性BUG修復] 引入了「條件化上下文注入」策略。現在，在準備上下文時，會嚴格檢查導演視角(viewing_mode)。如果處於'remote'模式，將徹底過濾掉所有關於主角和AI角色的本地歷史與狀態數據，旨在從根本上解決AI在遠程觀察時幻想出主角在場的問題。
+    # v8.0 (2025-11-14): [重大架構升級] 引入了「導演視角(Viewing Mode)」系統。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (導演視角流程) 組合核心指令並直接呼叫 LLM 進行生成。
@@ -1087,69 +1087,59 @@ class AILover:
 
         logger.info(f"[{self.user_id}] [預處理-導演視角模式] 正在準備上下文...")
         
-        # [v8.0 核心] 步驟 1: 導演視角分析與狀態更新
         gs = self.profile.game_state
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
         
         is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
         
+        # [v9.0 核心修正] 簡化視角判斷與狀態更新
         if is_descriptive_intent:
-            gs.viewing_mode = 'remote'
-            # 簡化處理：直接從指令中提取地點，未來可升級為更智能的實體提取
-            # 例如，從 "描述性神城的街道" 提取 "性神城的街道"
+            if gs.viewing_mode != 'remote':
+                gs.viewing_mode = 'remote'
+                logger.info(f"[{self.user_id}] [導演視角] 檢測到遠程觀察指令。視角切換為 'remote'。")
+            # 提取遠程目標
             try:
                 target_str = user_input
                 for kw in descriptive_keywords:
                     if target_str.startswith(kw):
                         target_str = target_str[len(kw):].strip()
-                # 簡單的路徑分割
-                gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()]
+                gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()] or [target_str]
             except Exception:
-                gs.remote_target_path = [user_input] # Fallback
-            logger.info(f"[{self.user_id}] [導演視角] 檢測到遠程觀察指令。視角切換為 'remote'，目標: {gs.remote_target_path}")
+                gs.remote_target_path = [user_input]
         else:
-            gs.viewing_mode = 'local'
-            gs.remote_target_path = None
-            logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令。視角切換為 'local'。")
+            if gs.viewing_mode != 'local':
+                gs.viewing_mode = 'local'
+                gs.remote_target_path = None
+                logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令。視角切換為 'local'。")
             
-        # 持久化更新後的視角狀態
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
 
-        # 步驟 2: 準備上下文組件
         chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
         chat_history = chat_history_manager.messages
-        
-        historical_context = "--- 歷史上下文 ---\n"
-        if chat_history:
-            for msg in chat_history[-6:]:
-                role = self.profile.user_profile.name if isinstance(msg, HumanMessage) else self.profile.ai_profile.name
-                if "「" in msg.content or "」" in msg.content:
-                     historical_context += f"{role}: {msg.content}\n"
-                else:
-                     historical_context += f"[旁白]: {msg.content}\n"
-        else:
-            historical_context += "（這是故事的開端）\n"
-        historical_context += "-------------------\n"
-        
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
-        # 在遠程模式下，npc_context 應該為空，因為主角不在場
-        npc_context_str = "當前場景沒有已知的特定角色。"
-        if gs.viewing_mode == 'local':
-            npc_context_str = f"- {user_profile.name}: {user_profile.current_action}\n- {ai_profile.name}: {ai_profile.current_action}"
 
-        world_snapshot_parts = [
-            f"--- 世界觀 ---", self.profile.world_settings or "未設定",
-            f"--- 核心 AI 設定 ---", ai_profile.description or "未設定",
-            f"--- 長期記憶檢索 (RAG) ---", "（本次極簡流程中禁用）",
-            f"--- 團隊財產與庫存 ---", f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
-            f"--- 當前任務日誌 ---", "當前無任務。",
-            f"--- 當前地點 ---", " > ".join(gs.location_path),
-            f"--- 在場角色情報檔案 ---", npc_context_str,
-            f"--- 核心互動目標 ---", "請參考上方情報檔案。",
-        ]
+        # [v9.0 核心修正] 條件化上下文注入
+        historical_context = ""
+        npc_context_str = ""
+        if gs.viewing_mode == 'remote':
+            historical_context = "--- 歷史上下文 ---\n（當前正在觀察遠程場景，本地對話歷史已隱藏。）\n-------------------\n"
+            npc_context_str = "（當前正在觀察遠程場景，本地角色資訊已隱藏。）"
+        else: # local mode
+            historical_context = "--- 歷史上下文 ---\n"
+            if chat_history:
+                for msg in chat_history[-6:]:
+                    role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
+                    if "「" in msg.content or "」" in msg.content:
+                         historical_context += f"{role}: {msg.content}\n"
+                    else:
+                         historical_context += f"[旁白]: {msg.content}\n"
+            else:
+                historical_context += "（這是故事的開端）\n"
+            historical_context += "-------------------\n"
+            npc_context_str = f"- {user_profile.name}: {user_profile.current_action}\n- {ai_profile.name}: {ai_profile.current_action}"
         
-        # [v8.0 核心] 填充新的模板變數
+        # 準備模板變數
         context_vars = {
             'username': user_profile.name, 'ai_name': ai_profile.name,
             'player_location': " > ".join(gs.location_path),
@@ -1157,7 +1147,7 @@ class AILover:
             'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
             'world_settings': self.profile.world_settings or "未設定",
             'ai_settings': ai_profile.description or "未設定",
-            'retrieved_context': "（本次極簡流程中禁用）",
+            'retrieved_context': "（RAG 系統當前禁用）",
             'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
             'quests_context': "當前無任務。",
             'location_context': " > ".join(gs.location_path),
@@ -1165,11 +1155,7 @@ class AILover:
             'relevant_npc_context': "請參考上方情報檔案。",
         }
 
-        # 使用兩個模板組合
-        directive_template = self.world_snapshot_template.split("# ==============================================================================")[0]
-        main_template = "# ==============================================================================".join(self.world_snapshot_template.split("# ==============================================================================")[1:])
-        
-        world_snapshot = directive_template.format(**context_vars) + main_template.format(**context_vars)
+        world_snapshot = self.world_snapshot_template.format(**context_vars)
         
         generation_chain = self.get_unified_generation_chain()
         
@@ -1198,7 +1184,7 @@ class AILover:
         logger.info(f"[{self.user_id}] [生成-導演視角模式] 直接生成成功。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v8.0 - 導演視角)
+    # 函式：[升級] 預處理上下文並生成回應 (v9.0 - 條件化上下文)
 
 
 
@@ -4072,6 +4058,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
