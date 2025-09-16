@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-16T22:38:37.049166 ###
+### AI Lover Log - Last updated at 2025-09-16T22:42:23.247434 ###
 
-2025-09-16 21:48:46 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-16 21:48:57 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-16 21:48:57 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-16 21:48:57 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-16 21:49:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.
 2025-09-16 21:49:04 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-09-16 21:49:04 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
 2025-09-16 21:49:04 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
@@ -100,3 +95,8 @@
 2025-09-16 22:10:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
 2025-09-16 22:10:01 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-pro' 實例 (API Key index: 5)
 2025-09-16 22:10:06 - [INFO] - [512280345618546699] [生成-導演視角模式] 直接生成成功。
+2025-09-16 22:42:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-16 22:42:11 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-16 22:42:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-16 22:42:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-16 22:42:14 - [INFO] - 已成功發送啟動成功通知給管理員。
