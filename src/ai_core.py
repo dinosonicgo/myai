@@ -1061,13 +1061,13 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v16.0 - 動態綁定)
+    # 函式：[升級] 預處理上下文並生成回應 (v17.0 - 終極隔離)
     # 更新紀錄:
-    # v16.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，此函式現在承擔了「總指揮」的職責。它會先獲取純淨的Prompt模板，然後根據視角模式動態地修改模板內容，並在最後一刻才將最終的模板與LLM實例進行綁定和執行。此修改徹底解決了AttributeError，並使程式碼結構更清晰、更健壯。
-    # v15.1 (2025-11-21): [災難性BUG修復] 修正了 'else' 區塊的 IndentationError 語法錯誤。
+    # v17.0 (2025-11-23): [重大架構重構] 最終實現了「徹底的Prompt隔離」。此函式現在會根據viewing_mode，呼叫兩個完全獨立的Prompt模板工廠（一個本地，一個遠程），並為其組合完全隔離的上下文數據。此修改從根本上杜絕了因Prompt指令衝突而導致的所有AI行為錯亂問題。
+    # v16.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，此函式現在承擔了「總指揮」的職責。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (終極條件化Prompt流程) 根據持久化的視角狀態，動態選擇並組合對應的Prompt模板和上下文，呼叫LLM生成。
+        (終極隔離流程) 根據視角狀態，動態選擇並組合完全獨立的Prompt模板和上下文，呼叫LLM生成。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
@@ -1075,7 +1075,7 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-終極條件化模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-終極隔離模式] 正在準備上下文...")
         
         gs = self.profile.game_state
         
@@ -1112,33 +1112,12 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # [v16.0 核心] 步驟 1: 獲取基礎模板
-        base_prompt_template = self.get_unified_generation_chain()
-        
-        prompt_to_use = base_prompt_template
+        prompt_template = None
         final_params = {}
 
         if gs.viewing_mode == 'remote':
-            logger.info(f"[{self.user_id}] 正在使用【遠程觀察】Prompt 模板。")
-            
-            # [v16.0 核心] 動態修改模板字符串
-            base_system_prompt_str = base_prompt_template.messages[0].prompt.template
-            system_prompt_for_remote_str = base_system_prompt_str.replace(
-                "# == ⚙️ 第三部分：最終輸出強制令 (FINAL OUTPUT MANDATE) ⚙️", 
-                "# == ⚙️ 第三部分：遠程場景生成指令 (REMOTE SCENE MANDATE) ⚙️"
-            ).replace(
-                "---【【【👑 玩家主權原則 (Player Sovereignty Principle) - 絕對優先級 👑】】】---",
-                "---【【【🎥 導演視角原則 (Director's View Principle) - 絕對優先級 🎥】】】---"
-            ).replace(
-                "主角在本回合【絕對會執行】的最新行動或對話。",
-                "你作為導演需要為我描述的場景指令。"
-            ).replace(
-                "主角的最新行動/對話 (本回合的既定事實)",
-                "導演指令 (Scene Description Request)"
-            ).replace(
-                "你的創作 (必須是主角行動【之後】的場景)",
-                "你的創作 (必須是關於遠程場景的獨立描述)"
-            )
+            logger.info(f"[{self.user_id}] 正在使用【遠程觀察】專用鏈。")
+            prompt_template = self.get_remote_scene_generation_chain()
             
             remote_npcs = await lore_book.get_lores_by_category_and_filter(
                 self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path
@@ -1159,11 +1138,6 @@ class AILover:
                 historical_context += "（這是此遠程場景的開端）\n"
             historical_context += "-------------------\n"
             
-            prompt_to_use = ChatPromptTemplate.from_messages([
-                ("system", system_prompt_for_remote_str),
-                base_prompt_template.messages[1] # 使用原始的 Human Prompt
-            ])
-
             final_params = {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
@@ -1173,7 +1147,8 @@ class AILover:
             }
 
         else: # local mode
-            logger.info(f"[{self.user_id}] 正在使用【本地互動】Prompt 模板。")
+            logger.info(f"[{self.user_id}] 正在使用【本地互動】專用鏈。")
+            prompt_template = self.get_unified_generation_chain()
             
             historical_context = "--- 歷史上下文 ---\n"
             if chat_history:
@@ -1192,7 +1167,6 @@ class AILover:
                 f"- {ai_profile.name}: {ai_profile.current_action}",
             ])
             
-            prompt_to_use = base_prompt_template
             final_params = {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
@@ -1203,8 +1177,7 @@ class AILover:
 
         logger.info(f"[{self.user_id}] [生成] 正在執行直接生成...")
         
-        # [v16.0 核心] 動態綁定 LLM 和 Parser
-        generation_chain = prompt_to_use | self.gm_model | StrOutputParser()
+        generation_chain = prompt_template | self.gm_model | StrOutputParser()
         
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain, final_params, retry_strategy='force', use_degradation=True
@@ -1239,8 +1212,7 @@ class AILover:
         logger.info(f"[{self.user_id}] [生成] 直接生成成功。互動已存入場景 '{scene_key}'。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v16.0 - 動態綁定)
-
+    # 函式：[升級] 預處理上下文並生成回應 (v17.0 - 終極隔離)
 
     
     
@@ -2084,12 +2056,12 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v20.0 - 模板工廠)
+    # 函式：[升級] 獲取【本地互動】生成鏈 (v21.0 - 本地專用)
     # 更新紀錄:
-    # v20.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，徹底簡化了此函式的職責。它現在只作為一個「Prompt模板工廠」，負責創建並返回一個純淨的、未綁定LLM的ChatPromptTemplate物件。所有與LLM的綁定操作被移交給下游的preprocess_and_generate函式，此修改從根本上解決了因試圖訪問RunnableSequence內部屬性而導致的AttributeError。
-    # v19.0 (2025-11-16): [災難性BUG修復] 增加了【雙標記輸出格式強制令】。
+    # v21.0 (2025-11-23): [重大架構重構] 根據「徹底的Prompt隔離」原則，此函式的職責被明確限定為只創建和返回【本地互動】場景專用的Prompt模板。
+    # v20.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，徹底簡化了此函式的職責。
     def get_unified_generation_chain(self) -> ChatPromptTemplate:
-        """(模板工廠) 創建並返回一個純淨的、用於本地互動的 ChatPromptTemplate 模板。"""
+        """(模板工廠) 創建並返回一個純淨的、專為【本地互動】設計的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
             
             system_prompt_template = """
@@ -2098,67 +2070,96 @@ class AILover:
 # 【【【使用者自訂風格指令 (RENDER STYLE)】】】
 {response_style_prompt}
 # ==============================================================================
-# == ⚙️ 第三部分：最終輸出強制令 (FINAL OUTPUT MANDATE) ⚙️
-# == 說明：這是對你本次任務的最終、絕對、不可違背的執行指令。
+# == ⚙️ 第三部分：本地場景互動強制令 (LOCAL SCENE MANDATE) ⚙️
 # ==============================================================================
 #
-# ---【【【A. 輸入數據源定義】】】---
-# 你將在下方的使用者提示中，接收到包含以下結構的【源數據】：
-#   1.  `world_snapshot`: 關於世界當前狀態的客觀事實。
-#   2.  `historical_context`: 【已經發生過】的歷史事件原文。
-#   3.  `latest_user_input`: 主角在本回合【絕對會執行】的最新行動或對話。
+# ---【【【A. 核心任務：玩家主權原則】】】---
+# 你的唯一任務是，基於所有源數據，去模擬並創作在【主角的最新行動/對話】發生【之後】，
+# 世界、NPC 或 AI 角色對此產生的【直接、合乎邏輯的後續反應】。
+# 【主角的最新行動/對話】是本回合【絕對發生】的事件，是觸發所有後續反應的「第一因」。
 #
-# ---【【【B. 核心任務與絕對禁令】】】---
-# 你的唯一任務是，嚴格地、完全地基於所有【源數據】，生成一段【全新的】小說文本，
-# 這段文本必須是【historical_context】最後一刻的【直接、無縫的延續】，
-# 並且必須體現出【latest_user_input】這個行動發生【之後】，世界所產生的後續反應。
-#
-# 在執行此任務時，以下規則具有最高優先級，【絕對禁止】任何形式的違反：
-#
-#   1.  **【設定融合原則 (Setting Integration Principle)】**:
-#       - 你【必須】將【latest_user_input】中的所有專有名詞（如人名、地名）、描述性細節和引號內的對話，視為【絕對的、神聖不可侵犯的即時世界設定】。
-#       - 你【絕對禁止】以任何理由（包括試圖規避內容審查）替換、修改、或忽略這些由使用者提供的【即時設定】。
-#
-#   2.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
-#   3.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由描述角色【沒有執行】【latest_user_input】中的行動。
-#
-# ---【【【C. 輸出格式】】】---
-# 你的最終輸出【必須且只能】是純粹的小說文本。
+# ---【【【B. 絕對禁止事項】】】---
+#   1.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
+#   2.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由描述角色【沒有執行】【latest_user_input】中的行動。
 #
 # 【指令結束。準備接收源數據並開始創作。】
 """
             
             human_prompt_template = """
 # --- 源數據 (Source Data) ---
-
 # World Snapshot:
 {world_snapshot}
 
 # Historical Context:
 {historical_context}
 
-# Latest User Input (Action & Setting to be integrated):
+# Latest User Input (Action to be executed):
 {latest_user_input}
 
-# ==============================================================================
-# == ✍️ 你的創作 (Your Creation) ==
-# 【【【輸出格式強制令 v2.0 - 雙標記】】】
-# 你的創作【必須】以 `§START_OF_RESPONSE§` 作為開頭，並以 `§END_OF_RESPONSE§` 作為結尾。
-# 這兩個標記之間【必須且只能】是純粹的小說文本。
-# ==============================================================================
+# --- 你的創作 (Your Creation) ---
+# 【輸出格式強制令 v2.0 - 雙標記】：你的創作必須以 `§START_OF_RESPONSE§` 開頭，以 `§END_OF_RESPONSE§` 結尾。
 §START_OF_RESPONSE§
 """
-            # [v20.0 核心修正] 只創建並返回 PromptTemplate，不進行綁定
             self.unified_generation_chain = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
                 ("human", human_prompt_template)
             ])
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v20.0 - 模板工廠)
+    # 函式：[升級] 獲取【本地互動】生成鏈 (v21.0 - 本地專用)
 
 
+    # 函式：[全新] 獲取【遠程觀察】生成鏈 (v1.0 - 遠程專用)
+    # 更新紀錄:
+    # v1.0 (2025-11-23): [重大架構升級] 根據「徹底的Prompt隔離」原則，創建了這個全新的、專為【遠程觀察】設計的Prompt模板工廠。此模板將使用者輸入定義為「導演指令」，並徹底移除了所有關於「玩家主權」的指令，以確保AI在遠程描述時的絕對場景分離。
+    def get_remote_scene_generation_chain(self) -> ChatPromptTemplate:
+        """(模板工廠) 創建並返回一個純淨的、專為【遠程觀察】設計的 ChatPromptTemplate 模板。"""
+        if not hasattr(self, 'remote_planning_chain') or self.remote_planning_chain is None:
+            
+            system_prompt_template = """
+{core_protocol_prompt}
+# ---
+# 【【【使用者自訂風格指令 (RENDER STYLE)】】】
+{response_style_prompt}
+# ==============================================================================
+# == ⚙️ 第三部分：遠程場景生成強制令 (REMOTE SCENE MANDATE) ⚙️
+# ==============================================================================
+#
+# ---【【【A. 核心任務：導演視角原則】】】---
+# 你的唯一身份是一位【小說家/導演】。你的唯一任務是，基於所有源數據，
+# 為我創作一段關於【遠程場景】的、生動的、獨立的小說章節。
+#
+# ---【【【B. 絕對禁止事項】】】---
+#   1.  **【絕對的場景分離】**: 你的創作【絕對禁止】以任何形式，提及、暗示或描寫
+#       任何當前不在【world_snapshot】中指定的【遠程觀察地點】的角色，
+#       特別是主角（例如 "DINO"）或其 AI 夥伴（例如 "碧"）。
+#   2.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
+#
+# 【指令結束。準備接收源數據並開始創作。】
+"""
+            
+            human_prompt_template = """
+# --- 源數據 (Source Data) ---
+# World Snapshot (Remote Scene):
+{world_snapshot}
 
+# Historical Context (Remote Scene):
+{historical_context}
+
+# Director's Command (Scene to be described):
+{latest_user_input}
+
+# --- 你的創作 (Your Creation) ---
+# 【輸出格式強制令 v2.0 - 雙標記】：你的創作必須以 `§START_OF_RESPONSE§` 開頭，以 `§END_OF_RESPONSE§` 結尾。
+§START_OF_RESPONSE§
+"""
+            self.remote_planning_chain = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_template),
+                ("human", human_prompt_template)
+            ])
+            
+        return self.remote_planning_chain
+    # 函式：[全新] 獲取【遠程觀察】生成鏈 (v1.0 - 遠程專用)
     
     
     # 函式：[全新] 獲取前置工具解析鏈
@@ -4111,6 +4112,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
