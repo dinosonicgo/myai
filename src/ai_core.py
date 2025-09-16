@@ -1900,10 +1900,10 @@ class AILover:
     # 函式：獲取單體實體解析鏈 (v203.1 - 延遲加載重構)
 
 
-    # 函式：獲取世界聖經解析鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取世界聖經解析鏈 (v204.0 - 抑制幻覺)
     # 更新紀錄:
-    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
     # v204.0 (2025-10-15): [災難性BUG修復] 注入了【絕對數據來源原則】，以抑制模型在解析世界聖經時產生幻覺（Hallucination）的行為。
+    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
     def get_canon_parser_chain(self) -> Runnable:
         if not hasattr(self, 'canon_parser_chain') or self.canon_parser_chain is None:
             raw_llm = self._create_llm_instance(temperature=0.0) # 使用最低溫度以減少創造性
@@ -1966,7 +1966,11 @@ class AILover:
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.canon_parser_chain = full_prompt | parser_llm
         return self.canon_parser_chain
-    # 函式：獲取世界聖經解析鏈 (v203.1 - 延遲加載重構)
+    # 函式：獲取世界聖經解析鏈 (v204.0 - 抑制幻覺)
+
+
+
+
 
     # 函式：獲取角色檔案補完鏈 (v203.1 - 延遲加載重構)
     def get_profile_completion_chain(self) -> Runnable:
@@ -3065,13 +3069,10 @@ class AILover:
 
 
     
-    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+    # 函式：解析世界聖經並創建 LORE (v2.0 - 寬容處理)
     # 更新紀錄:
-    # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。新版本不僅恢復了其功能，還進行了強化：
-    #    1. [健壯性] 整合了單體實體解析鏈，確保從世界聖經中提取的實體在存入資料庫前會進行查重，避免重複創建 LORE。
-    #    2. [速率限制] 在處理每個實體類別之間加入了 4 秒的強制延遲，以嚴格遵守 API 的速率限制，確保在處理大型設定檔時的穩定性。
-    # v2.0 (2025-10-15): [災難性BUG修復] 新增了【核心角色保護機制】，防止在解析世界聖經時，將用戶或 AI 角色錯誤地創建為 LORE。
-    # v3.0 (2025-10-15): [災難性BUG修復] 將核心角色保護機制移至 `_resolve_and_save` 內部，確保對所有 LORE 類別都生效。
+    # v2.0 (2025-11-22): [災難性BUG修復] 增加了對不完整數據的寬容處理。在儲存LORE前，會先驗證每個實體是否包含必要的name或title字段，如果沒有則跳過該條目並記錄警告，而不是讓整個/start流程因ValidationError而崩潰。
+    # v1.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError Log，重新實現了這個在重構中被意外刪除的核心函式。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -3083,7 +3084,6 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本...")
         
         try:
-            # 步驟 1: 使用專門的鏈來解析文本
             parser_chain = self.get_canon_parser_chain()
             parsing_result = await self.ainvoke_with_rotation(parser_chain, {"canon_text": content_text})
 
@@ -3091,29 +3091,30 @@ class AILover:
                 logger.warning(f"[{self.user_id}] 世界聖經解析鏈返回空結果，可能觸發了內容審查。")
                 return
             
-            # [v3.0 核心修正] 將保護名單移至輔助函式內部使用
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
 
-            # 步驟 2: 定義一個可重用的輔助函式來處理實體解析和儲存
             async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
                 if not entities:
                     return
 
                 logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
                 
-                # [v3.0 核心修正] 在處理每個實體前進行保護檢查
                 purified_entities = []
                 for entity in entities:
-                    entity_name = entity.get(name_key) or entity.get(title_key, "")
+                    # [v2.0 核心修正] 增加對關鍵字段的預檢查
+                    entity_name = entity.get(name_key) or entity.get(title_key)
+                    if not entity_name:
+                        logger.warning(f"[{self.user_id}] [數據清洗] 已跳過一條在類別 '{category}' 中缺少 '{name_key}' 或 '{title_key}' 的無效 LORE 條目。數據: {entity}")
+                        continue
+                    
                     if entity_name.lower() in protected_names:
                         logger.warning(f"[{self.user_id}] [核心角色保護] 已從世界聖經解析結果中過濾掉一個與主角同名的 LORE 條目 (類別: {category}, 名稱: {entity_name})。")
                     else:
                         purified_entities.append(entity)
                 
                 if not purified_entities:
-                    logger.info(f"[{self.user_id}] 在類別 '{category}' 中，所有實體均因與主角同名而被過濾。")
                     return
 
                 existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
@@ -3126,8 +3127,7 @@ class AILover:
 
                 for entity_data in purified_entities:
                     original_name = entity_data.get(name_key) or entity_data.get(title_key)
-                    if not original_name:
-                        continue
+                    if not original_name: continue
                     
                     await asyncio.sleep(4.0)
 
@@ -3154,8 +3154,7 @@ class AILover:
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
                         logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
 
-            # 步驟 3: 依次處理所有解析出的實體類別
-            await _resolve_and_save('npc_profile', [p.model_dump() for p in parsing_result.npc_profiles])
+            await _resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles])
             await _resolve_and_save('location_info', [loc.model_dump() for loc in parsing_result.locations])
             await _resolve_and_save('item_info', [item.model_dump() for item in parsing_result.items])
             await _resolve_and_save('creature_info', [c.model_dump() for c in parsing_result.creatures])
@@ -3168,7 +3167,7 @@ class AILover:
             logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
             if interaction and not is_setup_flow:
                 await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
-    # 函式：解析世界聖經並創建 LORE (v1.0 - 全新創建/恢復)
+    # 函式：解析世界聖經並創建 LORE (v2.0 - 寬容處理)
 
 
 
@@ -4112,6 +4111,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
