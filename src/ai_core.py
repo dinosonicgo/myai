@@ -1094,6 +1094,28 @@ class AILover:
         
         if is_descriptive_intent:
             if gs.viewing_mode != 'remote':
+                gs.viewing_mode = 'remote'    # 函式：[升級] 預處理上下文並生成回應 (v11.0 - 條件化 Prompt)
+    # 更新紀錄:
+    # v11.0 (2025-11-17): [重大架構重構] 引入了「條件化Prompt模板」策略。此函式現在會根據viewing_mode動態選擇兩套完全不同的Prompt模板（一套用於本地互動，一套用於遠程觀察），從而徹底解決因指令結構單一而導致的AI混淆「元指令」與「角色行動」的根本性問題。
+    # v10.0 (2025-11-16): [災難性BUG修復] 增加了「雙標記淨化」後處理步驟。
+    async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+        """
+        (條件化Prompt流程) 根據視角模式選擇不同的Prompt模板，組合核心指令並直接呼叫 LLM 進行生成。
+        返回 (final_response, final_context) 的元組。
+        """
+        user_input = input_data["user_input"]
+
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法處理上下文。")
+
+        logger.info(f"[{self.user_id}] [預處理-條件化Prompt模式] 正在準備上下文...")
+        
+        gs = self.profile.game_state
+        descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
+        is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
+        
+        if is_descriptive_intent:
+            if gs.viewing_mode != 'remote':
                 gs.viewing_mode = 'remote'
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到遠程觀察指令。視角切換為 'remote'。")
             try:
@@ -1117,45 +1139,95 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        historical_context = ""
-        npc_context_str = ""
+        # [v11.0 核心] 根據 viewing_mode 選擇不同的 Prompt 模板和參數
         if gs.viewing_mode == 'remote':
+            # --- 遠程觀察模式 (Remote Mode) ---
+            logger.info(f"[{self.user_id}] 正在使用【遠程觀察】Prompt 模板。")
+            
+            # 在遠程模式下，歷史上下文和NPC上下文都是空的，以確保絕對的場景分離
             historical_context = "--- 歷史上下文 ---\n（當前正在觀察遠程場景，本地對話歷史已隱藏。）\n-------------------\n"
             npc_context_str = "（當前正在觀察遠程場景，本地角色資訊已隱藏。）"
+            
+            context_vars = {
+                'username': user_profile.name, 'ai_name': ai_profile.name,
+                'player_location': " > ".join(gs.location_path),
+                'viewing_mode': gs.viewing_mode,
+                'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+            }
+            world_snapshot = self.world_snapshot_template.split("== 📖")[0].format(**context_vars)
+
+            final_params = {
+                "core_protocol_prompt": self.core_protocol_prompt,
+                "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+                "world_snapshot_for_remote": world_snapshot,
+                "scene_description_request": user_input, # 將使用者輸入定義為「場景描述請求」
+            }
+            
+            # 使用一個專為遠程觀察設計的、移除了「玩家主權」的 System Prompt
+            system_prompt_for_remote = (self.get_unified_generation_chain().prompt.messages[0].prompt.template
+                                        .replace("# == ⚙️ 第三部分：最終輸出強制令 (FINAL OUTPUT MANDATE) ⚙️", "# == ⚙️ 第三部分：遠程場景生成指令 (REMOTE SCENE MANDATE) ⚙️")
+                                        .replace("---【【【A. 輸入數據源定義】】】---", "---【【【A. 數據源定義】】】---")
+                                        .replace("`latest_user_input`: 主角在本回合【絕對會執行】的最新行動或對話。", "`scene_description_request`: 你需要為我描述的場景。"))
+
+            # 使用一個專為遠程觀察設計的、完全不同的 Human Prompt
+            human_prompt_for_remote = """
+# --- 源數據 (Source Data) ---
+# World Snapshot (Director's View):
+{world_snapshot_for_remote}
+
+# Scene Description Request:
+{scene_description_request}
+
+# --- 你的創作 (Your Creation) ---
+# 【【【輸出格式強制令 v2.0 - 雙標記】】】
+# 你的創作【必須】以 `§START_OF_RESPONSE§` 作為開頭，並以 `§END_OF_RESPONSE§` 作為結尾。
+§START_OF_RESPONSE§
+"""
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_for_remote),
+                ("human", human_prompt_for_remote)
+            ])
+            generation_chain = prompt | self._create_llm_instance() | StrOutputParser()
+
         else:
+            # --- 本地互動模式 (Local Mode) ---
+            logger.info(f"[{self.user_id}] 正在使用【本地互動】Prompt 模板。")
+            
             historical_context = "--- 歷史上下文 ---\n"
             if chat_history:
                 for msg in chat_history[-6:]:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
-                    if "「" in msg.content or "」" in msg.content:
-                         historical_context += f"{role}: {msg.content}\n"
-                    else:
-                         historical_context += f"[旁白]: {msg.content}\n"
+                    historical_context += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
             else:
                 historical_context += "（這是故事的開端）\n"
             historical_context += "-------------------\n"
-            npc_context_str = f"- {user_profile.name}: {user_profile.current_action}\n- {ai_profile.name}: {ai_profile.current_action}"
-        
-        context_vars = {
-            'username': user_profile.name, 'ai_name': ai_profile.name,
-            'player_location': " > ".join(gs.location_path),
-            'viewing_mode': gs.viewing_mode,
-            'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        }
+            
+            world_snapshot = self.world_snapshot_template.format(
+                username=user_profile.name, ai_name=ai_profile.name,
+                player_location=" > ".join(gs.location_path),
+                viewing_mode=gs.viewing_mode,
+                remote_target_path_str="未指定",
+                # ... 填充其他 world_snapshot 所需的變數 ...
+                world_settings=self.profile.world_settings or "未設定",
+                ai_settings=ai_profile.description or "未設定",
+                retrieved_context="（RAG 系統當前禁用）",
+                possessions_context=f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
+                quests_context="當前無任務。",
+                location_context=" > ".join(gs.location_path),
+                npc_context=f"- {user_profile.name}: {user_profile.current_action}\n- {ai_profile.name}: {ai_profile.current_action}",
+                relevant_npc_context="請參考上方情報檔案。"
+            )
 
-        world_snapshot = self.world_snapshot_template.format(**context_vars)
-        
-        generation_chain = self.get_unified_generation_chain()
-        
-        final_params = {
-            "core_protocol_prompt": self.core_protocol_prompt,
-            "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-            "world_snapshot": world_snapshot,
-            "historical_context": historical_context,
-            "latest_user_input": user_input,
-        }
+            generation_chain = self.get_unified_generation_chain()
+            final_params = {
+                "core_protocol_prompt": self.core_protocol_prompt,
+                "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
+                "world_snapshot": world_snapshot,
+                "historical_context": historical_context,
+                "latest_user_input": user_input,
+            }
 
-        logger.info(f"[{self.user_id}] [生成-導演視角模式] 正在執行直接生成...")
+        logger.info(f"[{self.user_id}] [生成] 正在執行直接生成...")
         
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain, final_params, retry_strategy='force', use_degradation=True
@@ -1163,7 +1235,6 @@ class AILover:
 
         raw_response = str(final_response_raw)
         
-        # [v10.0 核心修正] 雙標記淨化邏輯
         start_marker = "§START_OF_RESPONSE§"
         end_marker = "§END_OF_RESPONSE§"
         start_index = raw_response.find(start_marker)
@@ -1174,13 +1245,11 @@ class AILover:
             if end_index != -1 and end_index > start_pos:
                 final_response = raw_response[start_pos:end_index].strip()
             else:
-                # 如果沒有找到結尾標記，則從起始標記取到結尾
                 final_response = raw_response[start_pos:].strip()
             logger.info(f"[{self.user_id}] [淨化] 成功基於雙標記提取到純淨輸出。")
         else:
-            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！將返回可能被污染的原始輸出。")
+            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！")
             final_response = raw_response.strip()
-            # 嘗試清理結尾標記，以防萬一
             if end_marker in final_response:
                 final_response = final_response.split(end_marker, 1)[0].strip()
 
@@ -1190,11 +1259,10 @@ class AILover:
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(final_response)
         
-        logger.info(f"[{self.user_id}] [生成-導演視角模式] 直接生成成功。")
+        logger.info(f"[{self.user_id}] [生成] 直接生成成功。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v10.0 - 雙標記淨化)
-
+    # 函式：[升級] 預處理上下文並生成回應 (v11.0 - 條件化 Prompt)
 
 
     
@@ -4071,6 +4139,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
