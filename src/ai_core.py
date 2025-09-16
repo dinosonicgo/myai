@@ -1071,10 +1071,10 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v9.0 - 條件化上下文)
+    # 函式：[升級] 預處理上下文並生成回應 (v10.0 - 雙標記淨化)
     # 更新紀錄:
-    # v9.0 (2025-11-15): [災難性BUG修復] 引入了「條件化上下文注入」策略。現在，在準備上下文時，會嚴格檢查導演視角(viewing_mode)。如果處於'remote'模式，將徹底過濾掉所有關於主角和AI角色的本地歷史與狀態數據，旨在從根本上解決AI在遠程觀察時幻想出主角在場的問題。
-    # v8.0 (2025-11-14): [重大架構升級] 引入了「導演視角(Viewing Mode)」系統。
+    # v10.0 (2025-11-16): [災難性BUG修復] 增加了「雙標記淨化」後處理步驟。現在會從AI的原始輸出中，精確提取被特殊標記包裹的純淨小說文本，從而徹底解決因模型能力不足或指令複雜性導致的「Prompt洩漏」問題。
+    # v9.0 (2025-11-15): [災難性BUG修復] 引入了「條件化上下文注入」策略。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (導演視角流程) 組合核心指令並直接呼叫 LLM 進行生成。
@@ -1092,12 +1092,10 @@ class AILover:
         
         is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
         
-        # [v9.0 核心修正] 簡化視角判斷與狀態更新
         if is_descriptive_intent:
             if gs.viewing_mode != 'remote':
                 gs.viewing_mode = 'remote'
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到遠程觀察指令。視角切換為 'remote'。")
-            # 提取遠程目標
             try:
                 target_str = user_input
                 for kw in descriptive_keywords:
@@ -1119,13 +1117,12 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # [v9.0 核心修正] 條件化上下文注入
         historical_context = ""
         npc_context_str = ""
         if gs.viewing_mode == 'remote':
             historical_context = "--- 歷史上下文 ---\n（當前正在觀察遠程場景，本地對話歷史已隱藏。）\n-------------------\n"
             npc_context_str = "（當前正在觀察遠程場景，本地角色資訊已隱藏。）"
-        else: # local mode
+        else:
             historical_context = "--- 歷史上下文 ---\n"
             if chat_history:
                 for msg in chat_history[-6:]:
@@ -1139,20 +1136,11 @@ class AILover:
             historical_context += "-------------------\n"
             npc_context_str = f"- {user_profile.name}: {user_profile.current_action}\n- {ai_profile.name}: {ai_profile.current_action}"
         
-        # 準備模板變數
         context_vars = {
             'username': user_profile.name, 'ai_name': ai_profile.name,
             'player_location': " > ".join(gs.location_path),
             'viewing_mode': gs.viewing_mode,
             'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-            'world_settings': self.profile.world_settings or "未設定",
-            'ai_settings': ai_profile.description or "未設定",
-            'retrieved_context': "（RAG 系統當前禁用）",
-            'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
-            'quests_context': "當前無任務。",
-            'location_context': " > ".join(gs.location_path),
-            'npc_context': npc_context_str,
-            'relevant_npc_context': "請參考上方情報檔案。",
         }
 
         world_snapshot = self.world_snapshot_template.format(**context_vars)
@@ -1173,7 +1161,28 @@ class AILover:
             generation_chain, final_params, retry_strategy='force', use_degradation=True
         )
 
-        final_response = str(final_response_raw).strip()
+        raw_response = str(final_response_raw)
+        
+        # [v10.0 核心修正] 雙標記淨化邏輯
+        start_marker = "§START_OF_RESPONSE§"
+        end_marker = "§END_OF_RESPONSE§"
+        start_index = raw_response.find(start_marker)
+        end_index = raw_response.rfind(end_marker)
+
+        if start_index != -1:
+            start_pos = start_index + len(start_marker)
+            if end_index != -1 and end_index > start_pos:
+                final_response = raw_response[start_pos:end_index].strip()
+            else:
+                # 如果沒有找到結尾標記，則從起始標記取到結尾
+                final_response = raw_response[start_pos:].strip()
+            logger.info(f"[{self.user_id}] [淨化] 成功基於雙標記提取到純淨輸出。")
+        else:
+            logger.warning(f"[{self.user_id}] [淨化] 未在 AI 回應中找到輸出起始標記！將返回可能被污染的原始輸出。")
+            final_response = raw_response.strip()
+            # 嘗試清理結尾標記，以防萬一
+            if end_marker in final_response:
+                final_response = final_response.split(end_marker, 1)[0].strip()
 
         if not final_response:
             final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
@@ -1184,7 +1193,7 @@ class AILover:
         logger.info(f"[{self.user_id}] [生成-導演視角模式] 直接生成成功。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v9.0 - 條件化上下文)
+    # 函式：[升級] 預處理上下文並生成回應 (v10.0 - 雙標記淨化)
 
 
 
@@ -2027,12 +2036,10 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v17.0 - 最終強制令)
+    # 函式：[升級] 獲取统一生成链 (v19.0 - 雙標記指令)
     # 更新紀錄:
-    # v17.0 (2025-11-12): [重大架構重構] 根據「提示詞脆弱性」問題，實施了終極    # 函式：[升級] 獲取统一生成链 (v18.0 - 設定融合)
-    # 更新紀錄:
-    # v18.0 (2025-11-13): [災難性BUG修復] 根據「主動自我審查」問題，在核心任務指令中增加了【設定融合(Setting Integration)】原則。此原則強制AI將使用者輸入中的所有專有名詞和描述性細節視為不可篡改的「即時世界設定」，旨在從根本上解決AI因規避審查而「偷換概念」的問題。
-    # v17.0 (2025-11-12): [重大架構重構] 根據「提示詞脆弱性」問題，實施了終極的「最終輸出強制令」架構。
+    # v19.0 (2025-11-16): [災難性BUG修復] 根據「Prompt洩漏」問題，在human_prompt中增加了【雙標記輸出格式強制令】。此指令強制AI在有效回應的開頭和結尾分別插入特殊標記，為後處理淨化提供絕對可靠的錨點。
+    # v18.0 (2025-11-13): [災難性BUG修復] 根據「主動自我審查」問題，在核心任務指令中增加了【設定融合(Setting Integration)】原則。
     def get_unified_generation_chain(self) -> Runnable:
         """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
@@ -2060,10 +2067,9 @@ class AILover:
 #
 # 在執行此任務時，以下規則具有最高優先級，【絕對禁止】任何形式的違反：
 #
-#   1.  **【v18.0 新增：設定融合原則 (Setting Integration Principle)】**:
-#       - 你【必須】將【latest_user_input】中的所有專有名詞（如人名、地名）、描述性細節和引號內的對話，視為【絕對的、神聖不可侵犯的即時世界設定】。
-#       - 你【絕對禁止】以任何理由（包括試圖規避內容審查）替換、修改、或忽略這些由使用者提供的【即時設定】。
-#       - **範例**：如果使用者指令是「描述性神城的市集」，你的回應【必須】是關於「性神城」，【絕對禁止】將其替換為「讚歌之城」或任何其他名稱。
+#   1.  **【設定融合原則 (Setting Integration Principle)】**:
+#       - 你【必須】將【latest_user_input】中的所有專有名詞和描述性細節視為【絕對的、神聖不可侵犯的即時世界設定】。
+#       - 你【絕對禁止】以任何理由替換、修改、或忽略這些由使用者提供的【即時設定】。
 #
 #   2.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
 #   3.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由描述角色【沒有執行】【latest_user_input】中的行動。
@@ -2074,6 +2080,7 @@ class AILover:
 # 【指令結束。準備接收源數據並開始創作。】
 """
             
+            # [v19.0 核心修正] 增加雙標記強制令
             human_prompt_template = """
 # --- 源數據 (Source Data) ---
 
@@ -2086,7 +2093,13 @@ class AILover:
 # Latest User Input (Action & Setting to be integrated):
 {latest_user_input}
 
-# --- 你的創作 (Your Creation) ---
+# ==============================================================================
+# == ✍️ 你的創作 (Your Creation) ==
+# 【【【輸出格式強制令 v2.0 - 雙標記】】】
+# 你的創作【必須】以 `§START_OF_RESPONSE§` 作為開頭，並以 `§END_OF_RESPONSE§` 作為結尾。
+# 這兩個標記之間【必須且只能】是純粹的小說文本。
+# ==============================================================================
+§START_OF_RESPONSE§
 """
             prompt = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
@@ -2097,7 +2110,7 @@ class AILover:
             self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
             
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v18.0 - 設定融合)
+    # 函式：[升級] 獲取统一生成链 (v19.0 - 雙標記指令)
 
 
 
@@ -4058,6 +4071,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
