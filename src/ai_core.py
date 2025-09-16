@@ -1061,10 +1061,10 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v15.1 - 縮排修正)
+    # 函式：[升級] 預處理上下文並生成回應 (v16.0 - 動態綁定)
     # 更新紀錄:
+    # v16.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，此函式現在承擔了「總指揮」的職責。它會先獲取純淨的Prompt模板，然後根據視角模式動態地修改模板內容，並在最後一刻才將最終的模板與LLM實例進行綁定和執行。此修改徹底解決了AttributeError，並使程式碼結構更清晰、更健壯。
     # v15.1 (2025-11-21): [災難性BUG修復] 修正了 'else' 區塊的 IndentationError 語法錯誤。
-    # v15.0 (2025-11-21): [重大架構重構] 最終回歸並強化了「條件化Prompt模板」架構。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (終極條件化Prompt流程) 根據持久化的視角狀態，動態選擇並組合對應的Prompt模板和上下文，呼叫LLM生成。
@@ -1112,12 +1112,18 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        base_system_prompt = self.get_unified_generation_chain().prompt.messages[0].prompt.template
+        # [v16.0 核心] 步驟 1: 獲取基礎模板
+        base_prompt_template = self.get_unified_generation_chain()
+        
+        prompt_to_use = base_prompt_template
+        final_params = {}
 
         if gs.viewing_mode == 'remote':
             logger.info(f"[{self.user_id}] 正在使用【遠程觀察】Prompt 模板。")
             
-            system_prompt_for_remote = base_system_prompt.replace(
+            # [v16.0 核心] 動態修改模板字符串
+            base_system_prompt_str = base_prompt_template.messages[0].prompt.template
+            system_prompt_for_remote_str = base_system_prompt_str.replace(
                 "# == ⚙️ 第三部分：最終輸出強制令 (FINAL OUTPUT MANDATE) ⚙️", 
                 "# == ⚙️ 第三部分：遠程場景生成指令 (REMOTE SCENE MANDATE) ⚙️"
             ).replace(
@@ -1152,9 +1158,12 @@ class AILover:
             else:
                 historical_context += "（這是此遠程場景的開端）\n"
             historical_context += "-------------------\n"
-
-            human_prompt_template = self.get_unified_generation_chain().prompt.messages[1].prompt.template
             
+            prompt_to_use = ChatPromptTemplate.from_messages([
+                ("system", system_prompt_for_remote_str),
+                base_prompt_template.messages[1] # 使用原始的 Human Prompt
+            ])
+
             final_params = {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
@@ -1162,15 +1171,8 @@ class AILover:
                 "historical_context": historical_context,
                 "latest_user_input": user_input,
             }
-            
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", system_prompt_for_remote),
-                ("human", human_prompt_template)
-            ])
-            generation_chain = prompt | self._create_llm_instance() | StrOutputParser()
 
         else: # local mode
-            # [v15.1 核心修正] 確保此 else 區塊內的所有程式碼都正確縮排
             logger.info(f"[{self.user_id}] 正在使用【本地互動】Prompt 模板。")
             
             historical_context = "--- 歷史上下文 ---\n"
@@ -1190,7 +1192,7 @@ class AILover:
                 f"- {ai_profile.name}: {ai_profile.current_action}",
             ])
             
-            generation_chain = self.get_unified_generation_chain()
+            prompt_to_use = base_prompt_template
             final_params = {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
@@ -1200,6 +1202,9 @@ class AILover:
             }
 
         logger.info(f"[{self.user_id}] [生成] 正在執行直接生成...")
+        
+        # [v16.0 核心] 動態綁定 LLM 和 Parser
+        generation_chain = prompt_to_use | self.gm_model | StrOutputParser()
         
         final_response_raw = await self.ainvoke_with_rotation(
             generation_chain, final_params, retry_strategy='force', use_degradation=True
@@ -1234,8 +1239,10 @@ class AILover:
         logger.info(f"[{self.user_id}] [生成] 直接生成成功。互動已存入場景 '{scene_key}'。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v15.1 - 縮排修正)
+    # 函式：[升級] 預處理上下文並生成回應 (v16.0 - 動態綁定)
 
+
+    
     
 
     # 函式：[全新] 校準場景分析結果
@@ -2075,12 +2082,12 @@ class AILover:
 
 
 
-    # 函式：[升級] 獲取统一生成链 (v19.0 - 雙標記指令)
+    # 函式：[升級] 獲取统一生成链 (v20.0 - 模板工廠)
     # 更新紀錄:
-    # v19.0 (2025-11-16): [災難性BUG修復] 根據「Prompt洩漏」問題，在human_prompt中增加了【雙標記輸出格式強制令】。此指令強制AI在有效回應的開頭和結尾分別插入特殊標記，為後處理淨化提供絕對可靠的錨點。
-    # v18.0 (2025-11-13): [災難性BUG修復] 根據「主動自我審查」問題，在核心任務指令中增加了【設定融合(Setting Integration)】原則。
-    def get_unified_generation_chain(self) -> Runnable:
-        """获取或创建新的、统一的、由最高指令驱动的核心生成链。"""
+    # v20.0 (2025-11-22): [重大架構重構] 根據「延遲綁定」原則，徹底簡化了此函式的職責。它現在只作為一個「Prompt模板工廠」，負責創建並返回一個純淨的、未綁定LLM的ChatPromptTemplate物件。所有與LLM的綁定操作被移交給下游的preprocess_and_generate函式，此修改從根本上解決了因試圖訪問RunnableSequence內部屬性而導致的AttributeError。
+    # v19.0 (2025-11-16): [災難性BUG修復] 增加了【雙標記輸出格式強制令】。
+    def get_unified_generation_chain(self) -> ChatPromptTemplate:
+        """(模板工廠) 創建並返回一個純淨的、用於本地互動的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'unified_generation_chain') or self.unified_generation_chain is None:
             
             system_prompt_template = """
@@ -2107,8 +2114,8 @@ class AILover:
 # 在執行此任務時，以下規則具有最高優先級，【絕對禁止】任何形式的違反：
 #
 #   1.  **【設定融合原則 (Setting Integration Principle)】**:
-#       - 你【必須】將【latest_user_input】中的所有專有名詞和描述性細節視為【絕對的、神聖不可侵犯的即時世界設定】。
-#       - 你【絕對禁止】以任何理由替換、修改、或忽略這些由使用者提供的【即時設定】。
+#       - 你【必須】將【latest_user_input】中的所有專有名詞（如人名、地名）、描述性細節和引號內的對話，視為【絕對的、神聖不可侵犯的即時世界設定】。
+#       - 你【絕對禁止】以任何理由（包括試圖規避內容審查）替換、修改、或忽略這些由使用者提供的【即時設定】。
 #
 #   2.  **【嚴禁重複歷史】**: 你的創作【絕對禁止】複述、重寫或模仿【historical_context】中已有的任何內容。
 #   3.  **【嚴禁拒絕執行】**: 你【絕對禁止】以任何理由描述角色【沒有執行】【latest_user_input】中的行動。
@@ -2119,7 +2126,6 @@ class AILover:
 # 【指令結束。準備接收源數據並開始創作。】
 """
             
-            # [v19.0 核心修正] 增加雙標記強制令
             human_prompt_template = """
 # --- 源數據 (Source Data) ---
 
@@ -2140,16 +2146,14 @@ class AILover:
 # ==============================================================================
 §START_OF_RESPONSE§
 """
-            prompt = ChatPromptTemplate.from_messages([
+            # [v20.0 核心修正] 只創建並返回 PromptTemplate，不進行綁定
+            self.unified_generation_chain = ChatPromptTemplate.from_messages([
                 ("system", system_prompt_template),
                 ("human", human_prompt_template)
             ])
             
-            placeholder_llm = self._create_llm_instance()
-            self.unified_generation_chain = prompt | placeholder_llm | StrOutputParser()
-            
         return self.unified_generation_chain
-    # 函式：[升級] 獲取统一生成链 (v19.0 - 雙標記指令)
+    # 函式：[升級] 獲取统一生成链 (v20.0 - 模板工廠)
 
 
 
@@ -4110,6 +4114,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
