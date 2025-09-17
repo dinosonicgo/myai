@@ -1373,25 +1373,34 @@ class AILover:
 
     # ai_core.py 的 get_lore_extraction_chain 函式
     # 更新紀錄:
-    # v3.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件，以適配「無LangChain」架構。
-    # v2.1 (2025-11-10): [災難性BUG修復] 修正了整個函式定義的縮排錯誤。
+    # v3.1 (2025-11-14): [災難性BUG修復] 根據 JSONDecodeError，徹底重寫了此函式的 Prompt。新版本移除了所有對話式、指令式的語言，改為一個純粹的、數據驅動的格式，並注入了極其嚴厲的【JSON 輸出強制令】，旨在從根本上解決模型返回對話式文本而非純淨JSON的問題。
+    # v3.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
             
-            prompt_template = """你是一位博學多聞、一絲不苟的【世界觀檔案管理員】。你的唯一任務是閱讀一段【小說文本】，並與【現有LORE摘要】進行比對，找出其中包含的【全新的世界設定】或【現有實體的狀態更新】，並為其生成一個結構化的【LORE擴展計畫JSON】。
+            prompt_template = """# ROLE: 你是一個無感情的數據提取引擎。
+# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並以指定的 JSON 格式輸出結果。
 
-# === 【【【v2.0 新增：最高決策原則】】】 ===
-# 1.  **【🔄 狀態更新優先原則 (State-Update First Principle)】**:
-#     - 在尋找新知識前，你【必須】首先判斷【小說文本】中的資訊是否是對【現有LORE摘要】中某個實體（特別是NPC）的**狀態更新**。
-#     - 如果是，你的【首要任務】是生成一個 `update_npc_profile` 工具調用來更新該實體的檔案。
-#     - **只有當**資訊是關於一個**全新的、不存在的**實體時，你才應該考慮使用 `create_new_npc_profile` 或其他創建工具。
+# RULES:
+# 1. **STATE_UPDATE_FIRST**: 首先檢查 [NOVEL_TEXT] 是否包含對 [EXISTING_LORE] 中任何實體的狀態更新。如果是，優先生成 `update_npc_profile` 工具調用。
+# 2. **NEW_ENTITY_ONLY**: 僅當資訊是關於一個全新的、不存在的實體時，才使用創建工具 (如 `create_new_npc_profile`)。
+# 3. **PROTAGONIST_PROTECTION**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
+# 4. **PARAMETER_INTEGRITY**: 所有工具調用的 `parameters` 都必須包含所有必要的鍵。
+# 5. **NO_OUTPUT_IF_EMPTY**: 如果沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
 
-# ... (此處省略與您檔案中一致的、完整的Prompt內容) ...
+# SOURCE DATA:
+# [EXISTING_LORE]:
+{existing_lore_summary}
+# [USER_INPUT]:
+{user_input}
+# [NOVEL_TEXT]:
+{final_response_text}
 
-請嚴格遵循以上所有規則，特別是【狀態更新優先原則】，开始你的分析并生成 LORE 擴展計畫 JSON。
+# OUTPUT_FORMAT:
+# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件，其結構必須符合 ToolCallPlan Pydantic 模型。
+# 【【【警告：任何非 JSON 的輸出都將導致系統性失敗。立即開始分析並輸出 JSON。】】】
 """
-            # [v3.0 核心修正] 只創建並返回 ChatPromptTemplate 物件
             self.lore_extraction_chain = ChatPromptTemplate.from_template(prompt_template)
         return self.lore_extraction_chain
     # get_lore_extraction_chain 函式結束
@@ -2792,6 +2801,7 @@ class AILover:
 
 
     
+
 
 
 
