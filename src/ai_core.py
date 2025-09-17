@@ -1569,14 +1569,13 @@ class AILover:
     # == ⛓️ 鏈的延遲加載 (Lazy Loading) 構建器 v203.1 ⛓️
     # ==============================================================================
 
-    # 函式：獲取世界創世鏈 (v204.0 - 核心角色排除)
+    # ai_core.py 的 get_world_genesis_chain 函式
     # 更新紀錄:
-    # v204.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色排除原則】，防止創世鏈將主角錯誤地創建為初始 NPC。
-    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
-    def get_world_genesis_chain(self) -> Runnable:
+    # v205.0 (2025-11-13): [災難性BUG修復] 根據 AttributeError，徹底重構了此函式的職責。它不再創建並返回一個完整的 RunnableSequence，而是被簡化為一個純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件。此修改完成了向「無LangChain」架構的遷移，從根本上解決了因類型不匹配導致的 .format_prompt 方法調用失敗問題。
+    # v204.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色排除原則】。
+    def get_world_genesis_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於世界創世的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'world_genesis_chain') or self.world_genesis_chain is None:
-            raw_llm = self._create_llm_instance(temperature=0.8)
-            genesis_llm = raw_llm.with_structured_output(WorldGenesisResult)
             
             genesis_prompt_str = """你现在扮演一位富有想像力的世界构建师和开场导演。
 你的任务是根据使用者提供的【核心世界觀】，为他和他的AI角色创造一个独一-无二的、充满细节和故事潜力的【初始出生点】。
@@ -1608,10 +1607,12 @@ class AILover:
 ---
 请开始你的创世。"""
 
-            genesis_prompt = ChatPromptTemplate.from_template(genesis_prompt_str)
-            self.world_genesis_chain = genesis_prompt | genesis_llm
+            # [核心修正] 只創建並緩存 ChatPromptTemplate 物件，不附加任何 LLM
+            self.world_genesis_chain = ChatPromptTemplate.from_template(genesis_prompt_str)
+        
+        # 返回純淨的 ChatPromptTemplate 物件
         return self.world_genesis_chain
-    # 函式：獲取世界創世鏈 (v204.0 - 核心角色排除)
+    # get_world_genesis_chain 函式結束
 
 
 
@@ -2790,6 +2791,7 @@ class AILover:
 
 
     
+
 
 
 
