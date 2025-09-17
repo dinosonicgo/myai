@@ -1,89 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-17T22:20:48.194676 ###
+### AI Lover Log - Last updated at 2025-09-17T22:25:50.358293 ###
 
-2025-09-17 20:07:58 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-17 20:07:59 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-17 20:08:01 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-17 20:08:01 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-17 20:08:02 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-17 20:08:10 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 3 條記憶。
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
-2025-09-17 20:08:10 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-17 20:08:11 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] 啟動「極簡直連」對話流程...
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] [預處理-最終直連模式] 正在準備上下文...
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] [導演視角] 檢測到新的遠程觀察指令。視角切換為 'remote'，目標: ['性神城', '市場，女魚販在賣鯊魚']
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] 正在組合【遠程】上下文...
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] [生成-最終直連模式] 正在執行直接生成...
-2025-09-17 20:08:11 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-17 20:08:41 - [INFO] - [512280345618546699] [生成-最終直連模式] 直接生成成功。互動已存入場景 '512280345618546699_remote_性神城_市場，女魚販在賣鯊魚'。
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] 啟動「極簡直連」對話流程...
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] [預處理-最終直連模式] 正在準備上下文...
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] [導演視角] 檢測到連續性指令，繼承上一輪視角模式: 'remote'
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] 正在組合【遠程】上下文...
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] [生成-最終直連模式] 正在執行直接生成...
-2025-09-17 20:45:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-17 20:45:37 - [INFO] - [512280345618546699] [生成-最終直連模式] 直接生成成功。互動已存入場景 '512280345618546699_remote_性神城_市場，女魚販在賣鯊魚'。
-2025-09-17 22:13:02 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-17 22:13:02 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-17 22:13:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-17 22:13:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-17 22:13:06 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-17 22:16:02 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-17 22:16:05 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-17 22:16:09 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-17 22:16:10 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
-2025-09-17 22:16:10 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
-2025-09-17 22:16:11 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-17 22:16:12 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-17 22:16:12 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-17 22:16:12 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-17 22:16:12 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-17 22:16:12 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-17 22:16:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-17 22:16:22 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-17 22:16:23 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-17 22:16:23 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-17 22:16:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-17 22:16:40 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-17 22:16:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-17 22:16:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-17 22:16:42 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.
-2025-09-17 22:16:43 - [INFO] - [512280345618546699] (UI Event) finalize_setup 被觸發。Canon provided: False
-2025-09-17 22:16:43 - [INFO] - [512280345618546699] [/start 流程 1/4] 正在處理世界聖經...
-2025-09-17 22:16:43 - [INFO] - [512280345618546699] [/start] 未提供世界聖經文本，跳過處理。
-2025-09-17 22:16:43 - [INFO] - [512280345618546699] [/start 流程 1/4] 世界聖經處理完畢。
-2025-09-17 22:16:45 - [INFO] - [512280345618546699] [/start 流程 2/4] 正在補完角色檔案...
-2025-09-17 22:16:45 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
-2025-09-17 22:16:48 - [ERROR] - [512280345618546699] [/start] 為角色 'DINO' 進行安全補完時發生錯誤: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 468, in _safe_complete_profile
-    completed_safe_profile = await self.ainvoke_with_rotation(
-TypeError: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
-2025-09-17 22:16:49 - [ERROR] - [512280345618546699] [/start] 為角色 '碧' 進行安全補完時發生錯誤: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 468, in _safe_complete_profile
-    completed_safe_profile = await self.ainvoke_with_rotation(
-TypeError: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
-2025-09-17 22:16:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
 2025-09-17 22:16:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-17 22:16:49 - [INFO] - [512280345618546699] [/start 流程 2/4] 角色檔案補完畢。
 2025-09-17 22:16:51 - [INFO] - [512280345618546699] [/start 流程 3/4] 正在生成世界創世資訊...
@@ -100,3 +16,87 @@ TypeError: AILover.ainvoke_with_rotation() got multiple values for argument 'ret
 2025-09-17 22:20:37 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-17 22:20:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-17 22:20:37 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-17 22:21:18 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-17 22:21:19 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-17 22:21:24 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
+2025-09-17 22:21:24 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
+2025-09-17 22:21:25 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-17 22:21:25 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-17 22:21:25 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-17 22:21:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-17 22:21:25 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-17 22:21:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-17 22:21:27 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-17 22:21:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-17 22:21:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-17 22:21:38 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-17 22:21:40 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-17 22:22:05 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-17 22:22:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-17 22:22:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-17 22:22:08 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.
+2025-09-17 22:22:09 - [INFO] - [512280345618546699] (UI Event) finalize_setup 被觸發。Canon provided: False
+2025-09-17 22:22:09 - [INFO] - [512280345618546699] [/start 流程 1/4] 正在處理世界聖經...
+2025-09-17 22:22:09 - [INFO] - [512280345618546699] [/start] 未提供世界聖經文本，跳過處理。
+2025-09-17 22:22:09 - [INFO] - [512280345618546699] [/start 流程 1/4] 世界聖經處理完畢。
+2025-09-17 22:22:11 - [INFO] - [512280345618546699] [/start 流程 2/4] 正在補完角色檔案...
+2025-09-17 22:22:11 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 2)
+2025-09-17 22:22:14 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2635, in ainvoke_with_rotation
+    temp_llm = self._create_llm_instance(model_name=model_name, google_api_key=key_to_use)
+TypeError: AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] [/start] 為角色 '碧' 進行安全補完時發生錯誤: 'AILover' object has no attribute '_euphemize_and_retry'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 468, in _safe_complete_profile
+    completed_safe_profile = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2687, in ainvoke_with_rotation
+    return await self._euphemize_and_retry(chain, params, Exception("Final fallback triggered"))
+AttributeError: 'AILover' object has no attribute '_euphemize_and_retry'
+2025-09-17 22:22:14 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2635, in ainvoke_with_rotation
+    temp_llm = self._create_llm_instance(model_name=model_name, google_api_key=key_to_use)
+TypeError: AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'euphemize'
+2025-09-17 22:22:14 - [ERROR] - [512280345618546699] [/start] 為角色 'DINO' 進行安全補完時發生錯誤: 'AILover' object has no attribute '_euphemize_and_retry'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 468, in _safe_complete_profile
+    completed_safe_profile = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2687, in ainvoke_with_rotation
+    return await self._euphemize_and_retry(chain, params, Exception("Final fallback triggered"))
+AttributeError: 'AILover' object has no attribute '_euphemize_and_retry'
+2025-09-17 22:22:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-17 22:22:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-17 22:22:14 - [INFO] - [512280345618546699] [/start 流程 2/4] 角色檔案補完畢。
+2025-09-17 22:22:16 - [INFO] - [512280345618546699] [/start 流程 3/4] 正在生成世界創世資訊...
+2025-09-17 22:22:16 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 5)
+2025-09-17 22:22:16 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-17 22:22:16 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2635, in ainvoke_with_rotation
+    temp_llm = self._create_llm_instance(model_name=model_name, google_api_key=key_to_use)
+TypeError: AILover._create_llm_instance() got an unexpected keyword argument 'google_api_key'
+2025-09-17 22:22:16 - [ERROR] - [512280345618546699] [Final Failure] 所有模型 (gemini-2.5-flash-lite) 和所有可用 API 金鑰均嘗試失敗。
+2025-09-17 22:22:16 - [ERROR] - [512280345618546699] 所有標準嘗試均失敗。啟動最終備援策略: 'force'
+2025-09-17 22:22:16 - [WARNING] - [512280345618546699] 'force' 重試策略無法應用於非直連的 Runnable 鏈。
+2025-09-17 22:22:16 - [ERROR] - [512280345618546699] 在手動編排的創世流程中發生嚴重錯誤: 世界創世鏈在所有重試後最終失敗，返回了空結果。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 800, in finalize_setup
+    await ai_instance.generate_world_genesis()
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 529, in generate_world_genesis
+    raise Exception("世界創世鏈在所有重試後最終失敗，返回了空結果。")
+Exception: 世界創世鏈在所有重試後最終失敗，返回了空結果。
