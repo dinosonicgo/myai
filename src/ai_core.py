@@ -555,19 +555,18 @@ class AILover:
 
     
 
-# ai_core.py 的 complete_character_profiles 函式
+    # ai_core.py 的 complete_character_profiles 函式
     # 更新紀錄:
-    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則，此函式被徹底重寫。它現在手動構建Prompt字符串，直接調用ainvoke_with_rotation，並手動解析返回的JSON字符串，完全移除了對Runnable鏈的依賴。
+    # v2.1 (2025-11-13): [災難性BUG修復] 根據 AttributeError，修正了手動格式化 ChatPromptTemplate 的方式。放棄了不存在的 .template 屬性，改為使用官方推薦的 .format_prompt(...).to_string() 方法，以正確生成完整的提示詞字符串。
+    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則重寫。
     async def complete_character_profiles(self):
         """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
         if not self.profile:
             logger.error(f"[{self.user_id}] [/start] ai_core.profile 為空，無法補完角色檔案。")
             return
 
-        # 輔助函式：安全解析JSON並驗證
         def _safe_json_parse(json_string: str) -> Optional[CharacterProfile]:
             try:
-                # 移除Markdown代碼塊標記
                 if json_string.strip().startswith("```json"):
                     json_string = json_string.strip()[7:-3].strip()
                 data = json.loads(json_string)
@@ -578,13 +577,15 @@ class AILover:
 
         async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
             try:
-                prompt_template = self.get_profile_completion_prompt().template
+                # [v2.1 核心修正] 先獲取 ChatPromptTemplate 物件
+                prompt_template_obj = self.get_profile_completion_prompt()
                 
-                # 準備一個安全的profile數據用於LLM補完 (此處邏輯不變)
                 safe_profile_data = original_profile.model_dump()
-                # ... (此處省略 literary_chain 的轉換，因為它本身也是一個鏈)
                 
-                full_prompt = prompt_template.format(profile_json=json.dumps(safe_profile_data, ensure_ascii=False))
+                # [v2.1 核心修正] 使用 .format_prompt().to_string() 正確格式化
+                full_prompt = prompt_template_obj.format_prompt(
+                    profile_json=json.dumps(safe_profile_data, ensure_ascii=False)
+                ).to_string()
                 
                 completed_json_str = await self.ainvoke_with_rotation(full_prompt, retry_strategy='euphemize')
                 
@@ -619,79 +620,31 @@ class AILover:
         })
     # complete_character_profiles 函式結束
     
+
     # ai_core.py 的 generate_world_genesis 函式
     # 更新紀錄:
-    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則重寫，手動構建Prompt並解析JSON。
+    # v2.1 (2025-11-13): [災難性BUG修復] 根據 TypeError，修正了 ainvoke_with_rotation 的呼叫方式，確保其符合 (chain, params) 的格式，徹底解決了因參數重複導致的崩潰問題。
+    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則重寫。
     async def generate_world_genesis(self):
         """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
-        # 獲取模板字符串
-        prompt_str = """你现在扮演一位富有想像力的世界构建师和开场导演。
-你的任务是根据使用者提供的【核心世界觀】，为他和他的AI角色创造一个独一-无二的、充满细节和故事潜力的【初始出生点】。
-# ... (此處省略完整的prompt內容，與您檔案中一致) ...
----
-请开始你的创世。"""
-
-        # 手動格式化
-        full_prompt = prompt_str.format(
-            world_settings=self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
-            username=self.profile.user_profile.name,
-            ai_name=self.profile.ai_profile.name
-        )
+        # 獲取 ChatPromptTemplate 物件
+        genesis_prompt_obj = self.get_world_genesis_chain()
         
-        # 直接調用
-        genesis_json_str = await self.ainvoke_with_rotation(
-            full_prompt, 
-            retry_strategy='force'
-        )
-        
-        if not genesis_json_str:
-            raise Exception("世界創世在所有重試後最終失敗，返回了空結果。")
-
-        # 手動解析
-        try:
-            if genesis_json_str.strip().startswith("```json"):
-                genesis_json_str = genesis_json_str.strip()[7:-3].strip()
-            genesis_result = WorldGenesisResult.model_validate(json.loads(genesis_json_str))
-        except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(f"[{self.user_id}] [/start] 解析世界創世JSON時失敗: {e}")
-            raise Exception(f"世界創世返回了無效的JSON格式: {e}")
-
-        gs = self.profile.game_state
-        gs.location_path = genesis_result.location_path
-        await self.update_and_persist_profile({'game_state': gs.model_dump()})
-        
-        await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
-        
-        for npc in genesis_result.initial_npcs:
-            npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
-            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc.model_dump())
-    # generate_world_genesis 函式結束
-
-
-
-
-    # 函式：[全新] 生成世界創世資訊 (/start 流程 3/4)
-    # 更新紀錄:
-    # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第三步，取代舊的 world_genesis_node。
-    async def generate_world_genesis(self):
-        """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
-        if not self.profile:
-            raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
-
-        genesis_chain = self.get_world_genesis_chain()
+        # 準備參數
         genesis_params = {
             "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
             "username": self.profile.user_profile.name,
             "ai_name": self.profile.ai_profile.name
         }
         
+        # [v2.1 核心修正] 使用正確的 (chain, params) 格式調用
         genesis_result = await self.ainvoke_with_rotation(
-            genesis_chain, 
-            genesis_params, 
-            retry_strategy='force' # 使用最強策略確保成功
+            genesis_prompt_obj,
+            genesis_params,
+            retry_strategy='force'
         )
         
         if not genesis_result:
@@ -707,9 +660,7 @@ class AILover:
         for npc in genesis_result.initial_npcs:
             npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
             await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc.model_dump())
-    # 函式：[全新] 生成世界創世資訊 (/start 流程 3/4)
-
-
+    # generate_world_genesis 函式結束
 
 
 
@@ -2827,6 +2778,7 @@ class AILover:
 
 
     
+
 
 
 
