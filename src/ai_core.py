@@ -2659,7 +2659,8 @@ class AILover:
     
     # ai_core.py 的 ainvoke_with_rotation 函式
     # 更新紀錄:
-    # v231.0 (2025-11-12): [重大架構重構] 根據使用者「徹底移除LangChain」的核心指令，此函式被徹底重寫。它不再處理任何Runnable對象，唯一的職責是接收一個完整的Prompt字符串，管理金鑰/模型輪換，並返回一個純淨的文本結果。此修改從根本上解決了所有因LangChain抽象層導致的TypeError和AttributeError。
+    # v232.0 (2025-11-13): [健壯性強化] 根據 InternalServerError Log，在核心的API調用周圍增加了一個【即時重試】內部循環。此修改使系統能夠智能地處理臨時性的、可恢復的服務器端錯誤（如 500, 503），在輪換API金鑰或降級模型之前，會先對同一個請求進行最多3次帶有延遲的重試，極大增強了系統對網絡和API臨時故障的容錯能力。
+    # v231.0 (2025-11-12): [重大架構重構] 將此函式徹底重構為「無LangChain」的純字符串處理模式。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -2671,6 +2672,7 @@ class AILover:
 
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         last_exception = None
+        IMMEDIATE_RETRY_LIMIT = 3 # [v232.0 新增] 即時重試次數上限
 
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
@@ -2683,37 +2685,56 @@ class AILover:
 
                 key_to_use, key_index = key_info
 
-                try:
-                    result = await asyncio.wait_for(
-                        self._direct_gemini_generate(key_to_use, model_name, full_prompt),
-                        timeout=90.0
-                    )
-                    
-                    if not result or not result.strip():
-                         raise Exception("SafetyError: The model returned an empty or invalid response.")
-                    
-                    return result
+                # [v232.0 核心修正] 增加內部即時重試循環
+                for immediate_retry in range(IMMEDIATE_RETRY_LIMIT):
+                    try:
+                        result = await asyncio.wait_for(
+                            self._direct_gemini_generate(key_to_use, model_name, full_prompt),
+                            timeout=90.0
+                        )
+                        
+                        if not result or not result.strip():
+                             raise Exception("SafetyError: The model returned an empty or invalid response.")
+                        
+                        return result # 成功，直接返回
 
-                except (asyncio.TimeoutError, google_api_exceptions.ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded) as e:
-                    last_exception = e
-                    # ... (此處的速率限制和冷卻邏輯保持不變) ...
-                    now = time.time()
-                    self.key_short_term_failures[key_index].append(now)
-                    self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
-                    if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                        self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                        self.key_short_term_failures[key_index] = []
-                    await asyncio.sleep(3.0)
+                    except (google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as transient_error:
+                        last_exception = transient_error
+                        if immediate_retry < IMMEDIATE_RETRY_LIMIT - 1:
+                            sleep_time = (immediate_retry + 1) * 3 # 3s, 6s
+                            logger.warning(f"[{self.user_id}] 遭遇可恢復的伺服器錯誤 ({type(transient_error).__name__})。將在 {sleep_time} 秒後對 Key #{key_index} 進行第 {immediate_retry + 2} 次嘗試...")
+                            await asyncio.sleep(sleep_time)
+                            continue # 繼續內部重試
+                        else:
+                            logger.error(f"[{self.user_id}] 即時重試 {IMMEDIATE_RETRY_LIMIT} 次後，伺服器錯誤依然存在。將此金鑰視為失敗並輪換。")
+                            # 讓這個異常被外層的 except 捕獲以觸發輪換邏輯
+                            raise transient_error from transient_error
 
-                except (BlockedPromptException, GoogleGenerativeAIError) as e:
-                    last_exception = e
-                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key index: {key_index}) 遭遇內容審查。將嘗試下一個模型。")
-                    await asyncio.sleep(3.0)
-                    break 
+                    except (google_api_exceptions.ResourceExhausted) as e:
+                        last_exception = e
+                        now = time.time()
+                        self.key_short_term_failures[key_index].append(now)
+                        self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                        if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
+                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
+                        logger.warning(f"[{self.user_id}] API Key #{key_index} 遭遇速率限制。將輪換到下一個金鑰。")
+                        break # 跳出內部重試，進入外部金鑰輪換
+
+                    except (BlockedPromptException, GoogleGenerativeAIError) as e:
+                        last_exception = e
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查。將嘗試下一個模型。")
+                        # 使用 goto 語法糖的效果，跳出兩層循環
+                        goto_next_model = True
+                        break
+
+                    except Exception as e:
+                        last_exception = e
+                        logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        goto_next_model = True
+                        break
                 
-                except Exception as e:
-                    last_exception = e
-                    logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                # 檢查是否需要跳到下一個模型
+                if 'goto_next_model' in locals() and goto_next_model:
                     break
             
             if model_index < len(models_to_try) - 1:
@@ -2721,13 +2742,17 @@ class AILover:
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均失敗。")
 
-        # 備援邏輯 (簡化版，因為不再有 chain/params)
         if retry_strategy == 'force':
              logger.warning(f"[{self.user_id}] 所有標準嘗試均失敗。啟動最終備援策略: 'force'")
              return await self._force_and_retry(None, full_prompt)
 
         return None
     # ainvoke_with_rotation 函式結束
+
+
+
+
+    
     
     # ai_core.py 的 generate_opening_scene 函式
     # 更新紀錄:
@@ -2814,6 +2839,7 @@ class AILover:
 
 
     
+
 
 
 
