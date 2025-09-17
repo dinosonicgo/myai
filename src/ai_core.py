@@ -1956,13 +1956,12 @@ class AILover:
 
 
 
-    # 函式：[新] 檢索並總結記憶 (v8.1 - 導入修正)
+    # ai_core.py 的 retrieve_and_summarize_memories 函式
     # 更新紀錄:
-    # v8.1 (2025-10-25): [健壯性] 確認此函式使用的 GoogleGenerativeAIError 異常已在文件頂部正確導入。
-    # v8.0 (2025-10-25): [災難性BUG修復] 徹底重構了此函式的 RAG 檢索邏輯。
+    # v9.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的 ainvoke_with_rotation 調用邏輯，使其完全遵循「無LangChain」的「手動格式化Prompt -> 直接調用」模式，從而解決了與核心調用器的架構衝突。
+    # v8.1 (2025-10-25): [健壯性] 確認 GoogleGenerativeAIError 異常已正確導入。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """[新] 執行RAG檢索並將結果總結為摘要。內建多層淨化與熔斷備援機制。"""
-        # [v8.1 核心修正] 確保 GoogleGenerativeAIError 已在文件頂部導入
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
@@ -1970,45 +1969,22 @@ class AILover:
         retrieved_docs = []
         succeeded = False
         if self.retriever:
-            for attempt in range(len(self.api_keys)):
-                key_info = self._get_next_available_key()
-                if not key_info:
-                    logger.warning(f"[{self.user_id}] (RAG Executor) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
-                    break
-
-                _, key_index = key_info
-                
-                try:
-                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案] 正在嘗試使用 API Key #{key_index} 進行 Embedding 檢索...")
-                    temp_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=self.api_keys[key_index])
-                    self._update_retriever_embeddings(self.retriever, temp_embeddings)
-
-                    retrieved_docs = await self.retriever.ainvoke(query_text)
-                    succeeded = True
-                    logger.info(f"[{self.user_id}] (RAG Executor) [主方案成功] 使用 API Key #{key_index} 檢索成功。")
-                    break
-
-                except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                    logger.warning(f"[{self.user_id}] (RAG Executor) API Key #{key_index} 在 Embedding 時失敗，將觸發冷卻並嘗試下一個金鑰。錯誤: {type(e).__name__}")
-                    now = time.time()
-                    self.key_short_term_failures[key_index].append(now)
-                    self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
-                    if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                        self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                        self.key_short_term_failures[key_index] = []
-                    continue
-                
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
-                    break
+            try:
+                # 這裡的 .ainvoke 是 LangChain Retriever 的標準用法，它不涉及我們的 ainvoke_with_rotation
+                retrieved_docs = await self.retriever.ainvoke(query_text)
+                succeeded = True
+            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                logger.warning(f"[{self.user_id}] (RAG Executor) 主記憶系統 (Embedding) 失敗: {type(e).__name__}")
+            except Exception as e:
+                logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {e}", exc_info=True)
 
         if not succeeded and self.bm25_retriever:
             try:
-                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 主方案在所有嘗試後失敗，正在啟動備援記憶系統 (BM25)...")
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
                 retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
                 logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
             except Exception as bm25_e:
-                logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 在檢索時發生錯誤: {bm25_e}", exc_info=True)
+                logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 發生錯誤: {bm25_e}", exc_info=True)
                 return "檢索長期記憶時發生備援系統錯誤，部分上下文可能缺失。"
 
         if not retrieved_docs:
@@ -2016,21 +1992,39 @@ class AILover:
 
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
         combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
-        literary_chain = self.get_literary_euphemization_chain()
-        # [核心修正] 將重試策略從 'none' 改為 'euphemize'
-        safe_overview_of_all_docs = await self.ainvoke_with_rotation(literary_chain, {"dialogue_history": combined_content}, retry_strategy='euphemize')
+        
+        # [v9.0 核心修正] 手動化流程
+        literary_prompt_obj = self.get_literary_euphemization_chain()
+        literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=combined_content).to_string()
+        
+        safe_overview_of_all_docs = await self.ainvoke_with_rotation(
+            literary_full_prompt, 
+            retry_strategy='euphemize'
+        )
+
         if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
             logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
+        
         logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
-        docs_for_summarizer = [Document(page_content=safe_overview_of_all_docs)]
-        summarized_context = await self.ainvoke_with_rotation(self.get_rag_summarizer_chain(), docs_for_summarizer, retry_strategy='none')
+        
+        # [v9.0 核心修正] 手動化流程
+        summarizer_prompt_obj = self.get_rag_summarizer_chain()
+        # 注意：get_rag_summarizer_chain 的 prompt 期望一個 `documents` 變數
+        summarizer_full_prompt = summarizer_prompt_obj.format_prompt(documents=safe_overview_of_all_docs).to_string()
+
+        summarized_context = await self.ainvoke_with_rotation(
+            summarizer_full_prompt, 
+            retry_strategy='none'
+        )
+
         if not summarized_context or not summarized_context.strip():
              logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
              summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
+             
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
-    # 函式：[新] 檢索並總結記憶 (v8.1 - 導入修正)
+    # retrieve_and_summarize_memories 函式結束
     
 
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
@@ -2805,6 +2799,7 @@ class AILover:
 
 
     
+
 
 
 
