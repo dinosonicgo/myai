@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-17T22:59:56.234579 ###
+### AI Lover Log - Last updated at 2025-09-17T23:01:36.498798 ###
 
-2025-09-17 22:51:13 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-17 22:51:21 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-17 22:51:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-17 22:51:27 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-17 22:51:27 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-09-17 22:51:27 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
 2025-09-17 22:51:27 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-09-17 22:51:27 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 991, in __getattr__
     raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
 AttributeError: 'RunnableSequence' object has no attribute 'format_prompt'
+2025-09-17 23:01:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-17 23:01:22 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-17 23:01:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-17 23:01:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-17 23:01:26 - [INFO] - 已成功發送啟動成功通知給管理員。
