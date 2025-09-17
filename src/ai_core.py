@@ -304,26 +304,30 @@ class AILover:
     # 函式：[全新] 從回應中擴展LORE (v1.1 - 參數修正)
 
 
-        # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+    # ai_core.py 的 update_memories 函式
     # 更新紀錄:
-    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。它專門負責在成功生成回應後，將新的對話內容同步到短期記憶和長期記憶資料庫中。
+    # v2.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將 self.session_histories 的引用更新為 self.scene_histories，並增加了對 _get_scene_key() 的調用，以確保與新的多場景記憶管理器兼容。
+    # v1.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的事後處理部分。
     async def update_memories(self, user_input: str, ai_response: str):
         """(事後處理) 更新短期記憶和長期記憶。"""
         if not self.profile: return
 
         logger.info(f"[{self.user_id}] [事後處理] 正在更新短期與長期記憶...")
         
-        # 1. 更新短期記憶
-        chat_history_manager = self.session_histories.setdefault(self.user_id, ChatMessageHistory())
+        # 1. 更新短期記憶 (場景記憶)
+        # [v2.0 核心修正] 使用 scene_histories 和 _get_scene_key
+        scene_key = self._get_scene_key()
+        chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(ai_response)
+        logger.info(f"[{self.user_id}] [事後處理] 互動已存入短期記憶 (場景: '{scene_key}')。")
         
         # 2. 更新長期記憶 (異步)
         last_interaction_text = f"使用者: {user_input}\n\nAI:\n{ai_response}"
         await self._save_interaction_to_dbs(last_interaction_text)
         
         logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
-    # 函式：[全新] 更新記憶 (v1.0 - 終極簡化)
+    # update_memories 函式結束
 
 
 
@@ -1459,14 +1463,13 @@ class AILover:
 
 
 
-    # 函式：[全新] 背景LORE提取與擴展 (v2.0 - 參數修正)
+    # ai_core.py 的 _background_lore_extraction 函式
     # 更新紀錄:
-    # v2.0 (2025-10-08): [災難性BUG修復] 在調用 ainvoke_with_rotation 時，補全了缺失的 username 和 ai_name 參數，解決了因 Prompt 變數不足而導致的 KeyError。
-    # v1.0 (2025-09-09): [重大功能擴展] 創建此全新的背景執行函式。
+    # v3.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的執行邏輯，使其完全遵循「無LangChain」的「手動格式化Prompt -> 直接調用 -> 手動解析」模式，從而解決了與 ainvoke_with_rotation 的架構衝突。
+    # v2.0 (2025-10-08): [災難性BUG修復] 補全了缺失的 username 和 ai_name 參數。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化。
-        內建了對內容審查的委婉化重試備援。
         """
         if not self.profile:
             return
@@ -1484,12 +1487,12 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動...")
             
-            lore_extraction_chain = self.get_lore_extraction_chain()
-            if not lore_extraction_chain:
-                logger.warning(f"[{self.user_id}] 背景LORE提取鏈未初始化，跳過擴展。")
+            # [v3.0 核心修正] 手動化流程
+            prompt_template_obj = self.get_lore_extraction_chain()
+            if not prompt_template_obj:
+                logger.warning(f"[{self.user_id}] 背景LORE提取Prompt模板未初始化，跳過擴展。")
                 return
 
-            # [核心修正] 補全缺失的 username 和 ai_name 參數
             extraction_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
@@ -1497,18 +1500,28 @@ class AILover:
                 "user_input": user_input,
                 "final_response_text": final_response,
             }
+            
+            full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
 
-            extraction_plan = await self.ainvoke_with_rotation(
-                lore_extraction_chain, 
-                extraction_params,
+            extraction_json_str = await self.ainvoke_with_rotation(
+                full_prompt,
                 retry_strategy='euphemize'
             )
             
-            if not extraction_plan:
+            if not extraction_json_str:
                 logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。")
                 return
 
-            if extraction_plan.plan:
+            # 手動解析
+            try:
+                if extraction_json_str.strip().startswith("```json"):
+                    extraction_json_str = extraction_json_str.strip()[7:-3].strip()
+                extraction_plan = ToolCallPlan.model_validate(json.loads(extraction_json_str))
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"[{self.user_id}] 背景LORE提取：解析ToolCallPlan JSON時失敗: {e}。原始返回: '{extraction_json_str}'")
+                return
+
+            if extraction_plan and extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
                 current_location = self.profile.game_state.location_path
                 await self._execute_tool_call_plan(extraction_plan, current_location)
@@ -1517,7 +1530,7 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-    # 函式：[全新] 背景LORE提取與擴展 (v2.0 - 參數修正)
+    # _background_lore_extraction 函式結束
 
 
 
@@ -2847,6 +2860,7 @@ class AILover:
 
 
     
+
 
 
 
