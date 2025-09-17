@@ -709,57 +709,65 @@ class BotCog(commands.Cog):
         await self.bot.wait_until_ready()
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
 
-    # 函式：處理訊息事件 (v50.0 - 極簡直連重構)
-    # 更新紀錄:
-    # v50.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底移除了所有事後處理（記憶更新、LORE擴展）的呼叫。現在此函式的職責被簡化為純粹的「請求-回應」循環，以建立一個最穩定的測試基準線。
-    # v49.0 (2025-10-26): [重大架構重構] 根據最終藍圖，徹底廢除了「思考-行動-敘事」三階段流程。
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot: return
-        is_dm = isinstance(message.channel, discord.DMChannel)
-        is_mentioned = self.bot.user in message.mentions
-        if not is_dm and not is_mentioned: return
-        ctx = await self.bot.get_context(message)
-        if ctx.valid: return
-        user_id = str(message.author.id)
-        user_input = message.content.replace(f'<@{self.bot.user.id}>', '').strip()
-        if is_mentioned and not user_input:
-            await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
-            return
-        
-        ai_instance = await self.get_or_create_ai_instance(user_id)
-        if not ai_instance:
-            await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
-            return
 
-        async with message.channel.typing():
-            try:
-                # [v50.0 核心] 執行全新的「極簡直連」流程
-                logger.info(f"[{user_id}] 啟動「極簡直連」對話流程...")
 
-                # 準備輸入數據 (只傳入最新指令，歷史記錄暫時由ai_core內部處理)
-                input_data = { "user_input": user_input }
 
-                # 一步到位：直接生成回應
-                final_response, _ = await ai_instance.preprocess_and_generate(input_data)
+
+
+    
+# src/discord_bot.py 的 on_message 函式
+# 更新紀錄:
+# v51.0 (2025-11-08): [功能恢復] 根據使用者指令，重新啟用了在成功生成回應後的事後處理流程。現在，系統會以非阻塞的背景任務形式，自動更新短期/長期記憶，並從對話中提取新的世界知識（LORE）以實現世界觀的動態擴展。
+# v50.0 (2025-11-06): [重大架構重構] 根據「回歸基礎」策略，徹底移除了所有事後處理的呼叫。
+# v49.0 (2025-10-26): [重大架構重構] 根據最終藍圖，徹底廢除了「思考-行動-敘事」三階段流程。
+@commands.Cog.listener()
+async def on_message(self, message: discord.Message):
+    if message.author.bot: return
+    is_dm = isinstance(message.channel, discord.DMChannel)
+    is_mentioned = self.bot.user in message.mentions
+    if not is_dm and not is_mentioned: return
+    ctx = await self.bot.get_context(message)
+    if ctx.valid: return
+    user_id = str(message.author.id)
+    user_input = message.content.replace(f'<@{self.bot.user.id}>', '').strip()
+    if is_mentioned and not user_input:
+        await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
+        return
+    
+    ai_instance = await self.get_or_create_ai_instance(user_id)
+    if not ai_instance:
+        await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
+        return
+
+    async with message.channel.typing():
+        try:
+            # [v51.0 不變] 繼續使用「極簡直連」對話流程
+            logger.info(f"[{user_id}] 啟動「極簡直連」對話流程...")
+
+            # 準備輸入數據
+            input_data = { "user_input": user_input }
+
+            # 一步到位：直接生成回應
+            final_response, _ = await ai_instance.preprocess_and_generate(input_data)
+            
+            # 回覆
+            if final_response and final_response.strip():
+                for i in range(0, len(final_response), 2000):
+                    await message.channel.send(final_response[i:i+2000])
                 
-                # 回覆
-                if final_response and final_response.strip():
-                    for i in range(0, len(final_response), 2000):
-                        await message.channel.send(final_response[i:i+2000])
-                    
-                    # [v50.0 核心修正] 徹底移除所有事後處理，以確保流程純淨
-                    # await ai_instance.update_memories(user_input, final_response)
-                    # asyncio.create_task(ai_instance.expand_lore_from_response(user_input, final_response, final_context))
+                # [v51.0 核心修正] 重新啟用事後處理作為非阻塞的背景任務
+                logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理背景任務（記憶更新 & LORE擴展）...")
+                asyncio.create_task(ai_instance.update_memories(user_input, final_response))
+                asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
 
-                else:
-                    logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
-                    await message.channel.send("（抱歉，我好像突然斷線了...）")
+            else:
+                logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
+                await message.channel.send("（抱歉，我好像突然斷線了...）")
 
-            except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「極簡直連」流程時發生異常: {e}", exc_info=True)
-                await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 函式：處理訊息事件 (v50.0 - 極簡直連重構)
+        except Exception as e:
+            logger.error(f"處理使用者 {user_id} 的「極簡直連」流程時發生異常: {e}", exc_info=True)
+            await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
+# on_message 函式結束
 
 
 
