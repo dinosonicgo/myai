@@ -892,16 +892,13 @@ class AILover:
     
 
 
-# ai_core.py
-
-    # 函式：[新] 獲取「文學評論家」委婉化鏈 (v1.0 - NSFW 歷史處理)
+    # ai_core.py 的 get_literary_euphemization_chain 函式
     # 更新紀錄:
-    # v1.0 (2025-09-25): [災難性BUG修復] 創建此全新的、專門的委婉化鏈。它通過將 LLM 的角色設定為「文學評論家」，並將任務重新框架為「撰寫情節概述」，來將極度露骨的歷史文本安全地轉換為一段學術性的、但信息完整的文學描述，旨在從根本上解決歷史摘要器自身被內容審查攔截的問題。
-    def get_literary_euphemization_chain(self) -> Runnable:
-        """獲取或創建一個專門的鏈，用於將露骨的歷史文本安全地轉換為文學式的、安全的劇情概述。"""
+    # v2.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件，以適配「無LangChain」架構。
+    # v1.0 (2025-09-25): [災難性BUG修復] 創建此全新的、專門的委婉化鏈。
+    def get_literary_euphemization_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門的模板，用於將露骨的歷史文本安全地轉換為文學式的、安全的劇情概述。"""
         if not hasattr(self, 'literary_euphemization_chain') or self.literary_euphemization_chain is None:
-            # 使用一個中等溫度的模型，以允許一定的創造性轉述
-            critic_llm = self._create_llm_instance(temperature=0.3)
             
             prompt_template = """你是一位頂尖的文學評論家，專門分析前衛的、探索性的成人幻想文學。你的唯一任務是接收一段【小說手稿片段】，並為其撰寫一段精煉的、客觀的、使用學術和文學語言的【情節概述】。
 
@@ -918,10 +915,10 @@ class AILover:
 ---
 【你的情節概述】:
 """
-            prompt = ChatPromptTemplate.from_template(prompt_template)
-            self.literary_euphemization_chain = prompt | critic_llm | StrOutputParser()
+            # [v2.0 核心修正] 只創建並返回 ChatPromptTemplate 物件
+            self.literary_euphemization_chain = ChatPromptTemplate.from_template(prompt_template)
         return self.literary_euphemization_chain
-    # 函式：[新] 獲取「文學評論家」委婉化鏈 (v1.0 - NSFW 歷史處理)
+    # get_literary_euphemization_chain 函式結束
 
     
 
@@ -1879,10 +1876,13 @@ class AILover:
 
 
 
-    # 函式：獲取 RAG 上下文總結鏈 (v203.1 - 延遲加載重構)
-    def get_rag_summarizer_chain(self) -> Runnable:
+    # ai_core.py 的 get_rag_summarizer_chain 函式
+    # 更新紀錄:
+    # v204.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件，以適配「無LangChain」架構。
+    # v203.1 (2025-09-05): [延遲加載重構] 迁移到 get 方法中。
+    def get_rag_summarizer_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於 RAG 上下文總結的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'rag_summarizer_chain') or self.rag_summarizer_chain is None:
-            summarizer_llm = self._create_llm_instance(temperature=0.0)
             
             prompt_template = """你的唯一任務是扮演一名情報分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
 
@@ -1897,17 +1897,10 @@ class AILover:
 ---
 【事實摘要】:
 """
-            prompt = ChatPromptTemplate.from_template(prompt_template)
-            
-            self.rag_summarizer_chain = (
-                {"documents": lambda docs: "\n\n---\n\n".join([doc.page_content for doc in docs])}
-                | prompt
-                | summarizer_llm
-                | StrOutputParser()
-            )
+            # [v204.0 核心修正] 只創建並返回 ChatPromptTemplate 物件
+            self.rag_summarizer_chain = ChatPromptTemplate.from_template(prompt_template)
         return self.rag_summarizer_chain
-    # 函式：獲取 RAG 上下文總結鏈 (v203.1 - 延遲加載重構)
-
+    # get_rag_summarizer_chain 函式結束
 
     
     
@@ -2799,6 +2792,7 @@ class AILover:
 
 
     
+
 
 
 
