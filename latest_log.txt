@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-18T00:35:09.779659 ###
+### AI Lover Log - Last updated at 2025-09-18T00:38:47.210069 ###
 
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
-    return await target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
-    raise exceptions.from_grpc_error(rpc_error) from rpc_error
 google.api_core.exceptions.InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting
 2025-09-17 23:53:14 - [INFO] - [512280345618546699] [/start 流程 4/4] 開場白生成完畢。
 2025-09-17 23:53:14 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1501, in _background_lore_extraction
     extraction_plan = await self.ainvoke_with_rotation(
 TypeError: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
+2025-09-18 00:38:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-18 00:38:33 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-18 00:38:36 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-18 00:38:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-18 00:38:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-18 00:38:41 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-18 00:38:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
