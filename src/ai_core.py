@@ -929,13 +929,14 @@ class AILover:
 
     
 
-    # 函式：[升級] 預處理上下文並生成回應 (v24.0 - 最終直連版)
+    # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v24.0 (2025-11-29): [重大架構定型] 最終定型為「絕對直連」架構。此函式不再依賴任何外部模板工廠，而是自己內部定義並拼接所有Prompt組件，然後將最終的純字符串傳遞給直連版的`ainvoke_with_rotation`。此修改確保了100%不使用LangChain生成鏈，並解決了所有接口不匹配的TypeError。
-    # v23.0 (2025-11-29): [災難性BUG修復] 徹底重構了ainvoke_with_rotation的呼叫方式，以解決致命的TypeError。
+    # v25.1 (2025-11-29): [災難性BUG修復] 修正了整個函式定義的縮排錯誤，以解決 IndentationError。
+    # v25.0 (2025-11-29): [重大架構升級] 根據使用者的核心反饋，實現了「混合記憶架構」。
+    # v24.0 (2025-11-29): [重大架構定型] 最終定型為「絕對直連」架構。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (最終直連流程) 根據視角狀態，準備數據，拼接成單一字符串，並直接呼叫底層生成器。
+        (混合記憶流程) 根據視角狀態，組合高保真短期記憶與穩定長期記憶，拼接成單一字符串，並直接呼叫底層生成器。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
@@ -943,10 +944,11 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-最終直連模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-混合記憶模式] 正在準備上下文...")
         
         gs = self.profile.game_state
         
+        # --- 視角判斷邏輯 (保持不變) ---
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
         is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
@@ -983,6 +985,40 @@ class AILover:
         historical_context = ""
         system_prompt_str = ""
 
+        # --- [v25.0 核心修正] 混合記憶組合邏輯 ---
+        logger.info(f"[{self.user_id}] 正在組合混合記憶...")
+        
+        # 步驟 1: 提取高保真度的、未經消毒的短期場景記憶
+        raw_short_term_history = ""
+        if chat_history:
+            history_slice = chat_history[-6:] # 取最近6條訊息
+            if gs.viewing_mode == 'remote':
+                # 遠程場景的歷史格式
+                for msg in history_slice:
+                    raw_short_term_history += f"[{'導演指令' if isinstance(msg, HumanMessage) else '場景描述'}]: {msg.content}\n"
+            else:
+                # 本地場景的歷史格式
+                for msg in history_slice:
+                    role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
+                    raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
+        
+        if not raw_short_term_history.strip():
+            raw_short_term_history = "（這是此場景的開端）\n"
+
+        # 步驟 2: 檢索經過消毒的、穩定的長期記憶摘要
+        sanitized_long_term_summary = await self.retrieve_and_summarize_memories(user_input)
+
+        # 步驟 3: 組合兩者，短期記憶優先
+        historical_context_parts = [
+            "# 歷史上下文 (最近的場景互動 - 未經消毒)",
+            raw_short_term_history,
+            "# 背景歷史參考 (來自遙遠過去的記憶 - 經過安全處理)",
+            sanitized_long_term_summary
+        ]
+        historical_context = "\n".join(historical_context_parts)
+        logger.info(f"[{self.user_id}] 混合記憶組合完畢。")
+        # --- 混合記憶組合邏輯結束 ---
+
         if gs.viewing_mode == 'remote':
             logger.info(f"[{self.user_id}] 正在組合【遠程】上下文...")
             
@@ -995,13 +1031,6 @@ class AILover:
                 f"地點: {' > '.join(gs.remote_target_path or ['未知'])}",
                 f"場景角色: {remote_npc_context}",
             ])
-            
-            historical_context = ""
-            if chat_history:
-                for msg in chat_history[-6:]:
-                    historical_context += f"[{'導演指令' if isinstance(msg, HumanMessage) else '場景描述'}]: {msg.content}\n"
-            else:
-                historical_context = "（這是此遠程場景的開端）"
             
             system_prompt_str = (
                 f"{self.core_protocol_prompt}\n\n"
@@ -1018,14 +1047,6 @@ class AILover:
         else: # local mode
             logger.info(f"[{self.user_id}] 正在組合【本地】上下文...")
             
-            historical_context = ""
-            if chat_history:
-                for msg in chat_history[-6:]:
-                    role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
-                    historical_context += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
-            else:
-                historical_context = "（這是本地場景的開端）"
-            
             world_snapshot = "\n".join([
                 f"地點: {' > '.join(gs.location_path)}",
                 f"在場角色: {user_profile.name} (狀態: {user_profile.current_action}), {ai_profile.name} (狀態: {ai_profile.current_action})",
@@ -1038,7 +1059,7 @@ class AILover:
                 f"# ==============================================================================\n"
                 f"# == 本地場景互動強制令 (LOCAL SCENE MANDATE)\n"
                 f"# ==============================================================================\n"
-                f"# 1. 你的唯一任務是，基於所有【源數據】，模擬並創作在【主角的最新行動】發生【之後】，世界產生的【直接、合乎邏輯的後續反應】。\n"
+                f"# 1. 你的唯一任務是，基於所有【源數據】，模擬並創作在【主角的最新行動】發生【之後】，世界產生的【直接、合乎 logique 的後續反應】。\n"
                 f"# 2. 【主角的最新行動】是本回合【絕對發生】的事件。\n"
                 f"# 3. 【絕對禁止】複述或模仿【歷史上下文】。\n"
                 f"# 4. 【絕對禁止】拒絕執行主角的行動。\n"
@@ -1049,15 +1070,14 @@ class AILover:
             "\n# --- 源數據 ---",
             "# 世界快照:",
             world_snapshot,
-            "\n# 歷史上下文:",
-            historical_context,
+            "\n" + historical_context, # 直接使用組合好的混合記憶
             "\n# 最新指令:",
             user_input,
             "\n# --- 你的創作 ---"
         ]
         full_prompt = "\n".join(full_prompt_parts)
 
-        logger.info(f"[{self.user_id}] [生成-最終直連模式] 正在執行直接生成...")
+        logger.info(f"[{self.user_id}] [生成-混合記憶模式] 正在執行直接生成...")
         
         final_response_raw = await self.ainvoke_with_rotation(
             full_prompt,
@@ -1073,10 +1093,10 @@ class AILover:
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(final_response)
         
-        logger.info(f"[{self.user_id}] [生成-最終直連模式] 直接生成成功。互動已存入場景 '{scene_key}'。")
+        logger.info(f"[{self.user_id}] [生成-混合記憶模式] 直接生成成功。互動已存入場景 '{scene_key}'。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v24.0 - 最終直連版)
+    # preprocess_and_generate 函式結束
     
     
 
@@ -2758,6 +2778,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
