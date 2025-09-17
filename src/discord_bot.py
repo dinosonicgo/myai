@@ -764,9 +764,10 @@ class BotCog(commands.Cog):
 
     
 
-    # 函式：完成設定流程 (v48.0 - 徹底移除Graph)
+    # discord_bot.py 的 finalize_setup 函式
     # 更新紀錄:
-    # v48.0 (2025-10-19): [重大架構重構] 徹底重寫此函式，移除了對 LangGraph 的所有依賴。現在，它通過手動串行調用 ai_core 中的專用函式來執行創世流程，確保了 /start 流程中的每一次 LLM 調用都受到 ainvoke_with_rotation 的保護。
+    # v49.0 (2025-11-14): [災難性BUG修復] 增加了在生成開場白後，將其手動存入場景歷史記錄的關鍵步驟。此修改確保了AI在第一輪對話中能夠“記住”開場白的內容，從根本上解決了記憶斷層的問題。
+    # v48.0 (2025-10-19): [重大架構重構] 徹底重寫此函式，移除了對 LangGraph 的所有依賴。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
@@ -781,30 +782,29 @@ class BotCog(commands.Cog):
         try:
             await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到兩分鐘，請稍候。", ephemeral=True)
             
-            # [v48.0 核心修正] 手動編排的串行創世流程
-            
-            # 階段一：處理世界聖經
+            # 階段一至三 (不變)
             logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
             await ai_instance.process_canon_and_extract_lores(canon_text)
-            logger.info(f"[{user_id}] [/start 流程 1/4] 世界聖經處理完畢。")
-            await asyncio.sleep(2.0) # 短暫延遲以平滑API請求
-
-            # 階段二：補完角色檔案
-            logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
-            await ai_instance.complete_character_profiles()
-            logger.info(f"[{user_id}] [/start 流程 2/4] 角色檔案補完畢。")
             await asyncio.sleep(2.0)
 
-            # 階段三：生成世界創世資訊
+            logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            await asyncio.sleep(2.0)
+
             logger.info(f"[{user_id}] [/start 流程 3/4] 正在生成世界創世資訊...")
             await ai_instance.generate_world_genesis()
-            logger.info(f"[{user_id}] [/start 流程 3/4] 世界創世資訊生成完畢。")
             await asyncio.sleep(2.0)
 
             # 階段四：生成開場白
             logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene()
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
+
+            # [v49.0 核心修正] 將開場白存入歷史記錄
+            scene_key = ai_instance._get_scene_key()
+            chat_history_manager = ai_instance.scene_histories.setdefault(scene_key, ChatMessageHistory())
+            chat_history_manager.add_ai_message(opening_scene)
+            logger.info(f"[{user_id}] 開場白已成功作為第一條AI訊息存入場景 '{scene_key}' 的歷史記錄。")
 
             dm_channel = await interaction.user.create_dm()
             
@@ -821,7 +821,7 @@ class BotCog(commands.Cog):
                 await interaction.user.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}")
         finally:
             self.setup_locks.discard(user_id)
-    # 函式：完成設定流程 (v48.0 - 徹底移除Graph)
+    # finalize_setup 函式結束
 
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
