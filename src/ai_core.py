@@ -1573,8 +1573,8 @@ class AILover:
 
     # ai_core.py 的 get_world_genesis_chain 函式
     # 更新紀錄:
-    # v205.0 (2025-11-13): [災難性BUG修復] 根據 AttributeError，徹底重構了此函式的職責。它不再創建並返回一個完整的 RunnableSequence，而是被簡化為一個純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件。此修改完成了向「無LangChain」架構的遷移，從根本上解決了因類型不匹配導致的 .format_prompt 方法調用失敗問題。
-    # v204.0 (2025-10-15): [災難性BUG修復] 注入了【核心角色排除原則】。
+    # v206.0 (2025-11-13): [災難性BUG修復] 根據 Pydantic ValidationError，徹底重寫了此函式的 Prompt。新版本注入了【強制欄位名稱鐵則】，並提供了一個與 WorldGenesisResult 模型結構完全匹配的 JSON 範例。此修改旨在從根本上解決因LLM幻覺導致的JSON鍵名不匹配問題。
+    # v205.0 (2025-11-13): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
     def get_world_genesis_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於世界創世的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'world_genesis_chain') or self.world_genesis_chain is None:
@@ -1587,17 +1587,39 @@ class AILover:
 #     - 下方【主角資訊】中列出的「{username}」和「{ai_name}」是這個世界【绝对的主角】。
 #     - 你在 `initial_npcs` 列表中【绝对禁止】包含這兩位主角。
 
-【核心规则】
-1.  **【‼️ 場景氛圍 (v55.7) ‼️】**: 这是一个为一对伙伴准备的故事开端。你所创造的初始地点【必须】是一个**安静、私密、适合两人独处**的场所。
-    *   **【推荐场景】**: 偏远的小屋、旅店的舒适房间、船隻的独立船舱、僻静的林间空地、废弃塔楼的顶层等。
-    *   **【绝对禁止】**: **严禁**生成酒馆、市集、广场等嘈杂、人多的公共场所作为初始地点。
-2.  **深度解读**: 你必须深度解读【核心世界觀】，抓住其风格、氛圍和关键元素。你的创作必须与之完美契合。
-3.  **创造地点**:
-    *   构思一个具体的、有层级的地点。路径至少包含两层，例如 ['王國/大陸', '城市/村庄', '具体建筑/地点']。
-    *   为这个地点撰写一段引人入胜的详细描述（`LocationInfo`）。
-4.  **创造NPC (如果适用)**:
-    *   为这个初始地点创造一到两位符合情境的、有名有姓的初始NPC (`initial_npcs`)。
-5.  **结构化输出**: 你的最终输出【必须且只能】是一个符合 `WorldGenesisResult` Pydantic 格式的 JSON 物件。
+# === 【【【⚙️ 核心规则】】】 ===
+# 1.  **【‼️ 場景氛圍 (v55.7) ‼️】**: 这是一个为一对伙伴准备的故事开端。你所创造的初始地点【必须】是一个**安静、私密、适合两人独处**的场所。
+# 2.  **【深度解读】**: 你必须深度解读【核心世界觀】，抓住其风格、氛圍和关键元素。你的创作必须与之完美契合。
+# 3.  **【✍️ 內容創作】**:
+#     *   **地点**: 构思一个具体的、有层级的地点，并为其撰写一段引人入胜的详细描述。
+#     *   **NPC**: 为这个初始地点创造一到两位符合情境的、有名有姓的初始NPC。
+
+# === 【【【🚨 結構化輸出強制令 (v206.0) - 絕對鐵則】】】 ===
+# 1.  **【格式強制】**: 你的最终输出【必须且只能】是一个**纯净的、不包含任何解释性文字的 JSON 物件**。
+# 2.  **【強制欄位名稱鐵則 (Key Naming Mandate)】**:
+#     - 你生成的 JSON 物件的**頂層鍵 (Top-level keys)**【必须且只能】是 `location_path`, `location_info`, 和 `initial_npcs`。
+#     - **任何**對這些鍵名的修改、增減或大小寫變動都將導致災難性系統失敗。
+# 3.  **【結構範例 (必須嚴格遵守)】**:
+#     ```json
+#     {{
+#       "location_path": ["王國/大陸", "城市/村庄", "具体建筑/地点"],
+#       "location_info": {{
+#         "name": "具体建筑/地点",
+#         "aliases": ["別名1", "別名2"],
+#         "description": "對該地點的詳細描述...",
+#         "notable_features": ["顯著特徵1", "顯著特徵2"],
+#         "known_npcs": ["NPC名字1", "NPC名字2"]
+#       }},
+#       "initial_npcs": [
+#         {{
+#           "name": "NPC名字1",
+#           "description": "NPC的詳細描述...",
+#           "gender": "性別",
+#           "race": "種族"
+#         }}
+#       ]
+#     }}
+#     ```
 
 ---
 【核心世界觀】:
@@ -1607,12 +1629,11 @@ class AILover:
 *   使用者: {username}
 *   AI角色: {ai_name}
 ---
-请开始你的创世。"""
+请严格遵循【結構化輸出強制令】，开始你的创世。
+"""
 
-            # [核心修正] 只創建並緩存 ChatPromptTemplate 物件，不附加任何 LLM
             self.world_genesis_chain = ChatPromptTemplate.from_template(genesis_prompt_str)
         
-        # 返回純淨的 ChatPromptTemplate 物件
         return self.world_genesis_chain
     # get_world_genesis_chain 函式結束
 
@@ -2793,6 +2814,7 @@ class AILover:
 
 
     
+
 
 
 
