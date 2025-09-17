@@ -625,43 +625,45 @@ class AILover:
 
     # ai_core.py 的 generate_world_genesis 函式
     # 更新紀錄:
-    # v3.0 (2025-11-13): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的 prompt 組合與調用邏輯。現在它嚴格遵循「無LangChain」原則，在內部手動將 ChatPromptTemplate 物件和參數格式化為一個完整的字符串，然後再將此單一字符串傳遞給 ainvoke_with_rotation，從根本上解決了所有參數不匹配的問題。
-    # v2.1 (2025-11-13): [災難性BUG修復] 修正了 ainvoke_with_rotation 的呼叫方式。
+    # v3.1 (2025-11-13): [災難性BUG修復] 根據 JSONDecodeError，增加了對 LLM 輸出的防禦性清洗邏輯。在嘗試解析JSON之前，會先使用正則表達式從可能混雜的文本中提取出最外層的 JSON 物件，以應對模型返回非純淨JSON的情況，從根本上解決解析失敗問題。
+    # v3.0 (2025-11-13): [災難性BUG修復] 徹底重構了此函式的 prompt 組合與調用邏輯。
     async def generate_world_genesis(self):
         """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
-        # 步驟 1: 獲取 ChatPromptTemplate 物件
-        genesis_prompt_obj = self.get_world_genesis_chain() # 假設此函式返回 ChatPromptTemplate
+        genesis_prompt_obj = self.get_world_genesis_chain()
         
-        # 步驟 2: 準備參數字典
         genesis_params = {
             "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
             "username": self.profile.user_profile.name,
             "ai_name": self.profile.ai_profile.name
         }
         
-        # 步驟 3: [核心修正] 手動將 prompt 物件和參數格式化為一個最終的字符串
         full_prompt_str = genesis_prompt_obj.format_prompt(**genesis_params).to_string()
         
-        # 步驟 4: 將【單一字符串】傳遞給 ainvoke_with_rotation
-        genesis_json_str = await self.ainvoke_with_rotation(
+        genesis_raw_str = await self.ainvoke_with_rotation(
             full_prompt_str,
             retry_strategy='force'
         )
         
-        if not genesis_json_str:
-            raise Exception("世界創世在所有重試後最終失敗，返回了空結果。")
+        if not genesis_raw_str or not genesis_raw_str.strip():
+            raise Exception("世界創世在所有重試後最終失敗，返回了空的結果字符串。")
 
-        # 步驟 5: 手動解析返回的 JSON 字符串 (邏輯不變)
+        # 步驟 5: [核心修正] 防禦性清洗與解析
         try:
-            if genesis_json_str.strip().startswith("```json"):
-                genesis_json_str = genesis_json_str.strip()[7:-3].strip()
-            genesis_result = WorldGenesisResult.model_validate(json.loads(genesis_json_str))
-        except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(f"[{self.user_id}] [/start] 解析世界創世JSON時失敗: {e}")
-            raise Exception(f"世界創世返回了無效的JSON格式: {e}")
+            # 嘗試用正則表達式從文本中找到最外層的 {...} 或 [...]
+            json_match = re.search(r'\{.*\}|\[.*\]', genesis_raw_str, re.DOTALL)
+            if not json_match:
+                logger.error(f"[{self.user_id}] [/start] 在創世LLM的返回中找不到有效的JSON結構。返回內容: {genesis_raw_str}")
+                raise ValueError("在返回的文本中找不到JSON結構。")
+            
+            clean_json_str = json_match.group(0)
+            genesis_result = WorldGenesisResult.model_validate(json.loads(clean_json_str))
+
+        except (json.JSONDecodeError, ValidationError, ValueError) as e:
+            logger.error(f"[{self.user_id}] [/start] 解析世界創世JSON時失敗: {e}。原始返回: '{genesis_raw_str}'")
+            raise Exception(f"世界創世返回了無效的JSON格式或內容: {e}")
 
         # 後續資料庫操作 (邏輯不變)
         gs = self.profile.game_state
@@ -2791,6 +2793,7 @@ class AILover:
 
 
     
+
 
 
 
