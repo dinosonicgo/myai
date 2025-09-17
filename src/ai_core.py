@@ -2659,8 +2659,8 @@ class AILover:
     
     # ai_core.py 的 ainvoke_with_rotation 函式
     # 更新紀錄:
-    # v232.0 (2025-11-13): [健壯性強化] 根據 InternalServerError Log，在核心的API調用周圍增加了一個【即時重試】內部循環。此修改使系統能夠智能地處理臨時性的、可恢復的服務器端錯誤（如 500, 503），在輪換API金鑰或降級模型之前，會先對同一個請求進行最多3次帶有延遲的重試，極大增強了系統對網絡和API臨時故障的容錯能力。
-    # v231.0 (2025-11-12): [重大架構重構] 將此函式徹底重構為「無LangChain」的純字符串處理模式。
+    # v233.0 (2025-11-14): [健壯性強化] 根據 API Log，統一了對臨時性錯誤的處理邏輯。現在，不僅是 InternalServerError，ResourceExhausted（速率限制）也會觸發【即時重試】內部循環，而不是立即輪換金鑰。此修改旨在減少因API服務普遍的、短暫的波動而導致的不必要的金鑰輪換，提高請求成功率和執行效率。
+    # v232.0 (2025-11-13): [健壯性強化] 增加了【即時重試】內部循環以應對 500 InternalServerError。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -2672,7 +2672,8 @@ class AILover:
 
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         last_exception = None
-        IMMEDIATE_RETRY_LIMIT = 3 # [v232.0 新增] 即時重試次數上限
+        IMMEDIATE_RETRY_LIMIT = 3
+        goto_next_model = False
 
         for model_index, model_name in enumerate(models_to_try):
             logger.info(f"[{self.user_id}] --- 開始嘗試模型: '{model_name}' (優先級 {model_index + 1}/{len(models_to_try)}) ---")
@@ -2684,8 +2685,7 @@ class AILover:
                     break
 
                 key_to_use, key_index = key_info
-
-                # [v232.0 核心修正] 增加內部即時重試循環
+                
                 for immediate_retry in range(IMMEDIATE_RETRY_LIMIT):
                     try:
                         result = await asyncio.wait_for(
@@ -2696,34 +2696,29 @@ class AILover:
                         if not result or not result.strip():
                              raise Exception("SafetyError: The model returned an empty or invalid response.")
                         
-                        return result # 成功，直接返回
+                        return result
 
-                    except (google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as transient_error:
+                    # [v233.0 核心修正] 將 ResourceExhausted 加入到可即時重試的錯誤類型中
+                    except (google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, google_api_exceptions.ResourceExhausted) as transient_error:
                         last_exception = transient_error
                         if immediate_retry < IMMEDIATE_RETRY_LIMIT - 1:
-                            sleep_time = (immediate_retry + 1) * 3 # 3s, 6s
-                            logger.warning(f"[{self.user_id}] 遭遇可恢復的伺服器錯誤 ({type(transient_error).__name__})。將在 {sleep_time} 秒後對 Key #{key_index} 進行第 {immediate_retry + 2} 次嘗試...")
+                            sleep_time = (immediate_retry + 1) * 3
+                            logger.warning(f"[{self.user_id}] 遭遇可恢復的伺服器/速率錯誤 ({type(transient_error).__name__})。將在 {sleep_time} 秒後對 Key #{key_index} 進行第 {immediate_retry + 2} 次嘗試...")
                             await asyncio.sleep(sleep_time)
-                            continue # 繼續內部重試
+                            continue
                         else:
-                            logger.error(f"[{self.user_id}] 即時重試 {IMMEDIATE_RETRY_LIMIT} 次後，伺服器錯誤依然存在。將此金鑰視為失敗並輪換。")
-                            # 讓這個異常被外層的 except 捕獲以觸發輪換邏輯
-                            raise transient_error from transient_error
-
-                    except (google_api_exceptions.ResourceExhausted) as e:
-                        last_exception = e
-                        now = time.time()
-                        self.key_short_term_failures[key_index].append(now)
-                        self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
-                        if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                            self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                        logger.warning(f"[{self.user_id}] API Key #{key_index} 遭遇速率限制。將輪換到下一個金鑰。")
-                        break # 跳出內部重試，進入外部金鑰輪換
+                            logger.error(f"[{self.user_id}] 即時重試 {IMMEDIATE_RETRY_LIMIT} 次後，錯誤依然存在。將此金鑰視為失敗並輪換。")
+                            # 觸發金鑰冷卻邏輯
+                            now = time.time()
+                            self.key_short_term_failures[key_index].append(now)
+                            self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
+                            if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
+                                self.key_cooldowns[key_index] = now + 60 * 60 * 24
+                            break # 跳出內部重試，進入外部金鑰輪換
 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查。將嘗試下一個模型。")
-                        # 使用 goto 語法糖的效果，跳出兩層循環
                         goto_next_model = True
                         break
 
@@ -2733,10 +2728,13 @@ class AILover:
                         goto_next_model = True
                         break
                 
-                # 檢查是否需要跳到下一個模型
-                if 'goto_next_model' in locals() and goto_next_model:
-                    break
+                if goto_next_model:
+                    break # 跳出金鑰輪換循環
             
+            if goto_next_model:
+                goto_next_model = False # 重置標記
+                continue # 立即開始下一個模型的嘗試
+
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 失敗。正在降級...")
             else:
@@ -2748,7 +2746,6 @@ class AILover:
 
         return None
     # ainvoke_with_rotation 函式結束
-
 
 
 
@@ -2850,6 +2847,7 @@ class AILover:
 
 
     
+
 
 
 
