@@ -1113,13 +1113,13 @@ class AILover:
     # 函式：獲取地點提取鏈 (v2.0 - JsonOutputParser 穩定化)
 
 
-    # 函式：[升級] 預處理上下文並生成回應 (v19.0 - 徹底重寫為直連)
+    # 函式：[升級] 預處理上下文並生成回應 (v20.0 - 恢復條件化)
     # 更新紀錄:
-    # v19.0 (2025-11-25): [重大架構重構] 最終實現了「絕對直連」架構。此函式不再處理任何LangChain對象，其唯一職責是將所有上下文組件（核心協議、風格、世界快照、歷史、最新輸入）拼接成一個單一的、巨大的字符串，然後將其傳遞給徹底重寫後的ainvoke_with_rotation函式。
-    # v18.0 (2025-11-24): [重大架構定型] 最終實現了完全標準化的LangChain實踐。
+    # v20.0 (2025-11-26): [災難性BUG修復] 最終回歸並完善了「條件化上下文」架構。徹底重寫了此函式，恢復了`if viewing_mode == 'remote'`的關鍵邏輯分支，確保在不同視角模式下，能夠組合完全獨立、邏輯自洽的上下文數據。此修改從根本上解決了因上下文準備邏輯錯誤導致的「主角亂入遠程場景」的頑固問題。
+    # v19.0 (2025-11-25): [重大架構重構] 最終實現了「絕對直連」架構。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (絕對直連流程) 將所有上下文組件拼接成單一字符串，並直接呼叫底層生成器。
+        (恢復條件化流程) 根據視角狀態，準備完全隔離的上下文數據，拼接成單一字符串，並直接呼叫底層生成器。
         返回 (final_response, final_context) 的元組。
         """
         user_input = input_data["user_input"]
@@ -1127,11 +1127,10 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-絕對直連模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-恢復條件化模式] 正在準備上下文...")
         
         gs = self.profile.game_state
         
-        # 之前的視角模式和場景歷史管理邏輯可以保持不變，因為它們只影響數據的準備
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
         is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
@@ -1140,10 +1139,22 @@ class AILover:
         if not is_continuation:
             if is_descriptive_intent:
                 gs.viewing_mode = 'remote'
-                # ... (此處的視角判斷邏輯與之前相同，為簡潔省略) ...
+                try:
+                    target_str = user_input
+                    for kw in descriptive_keywords:
+                        if target_str.startswith(kw):
+                            target_str = target_str[len(kw):].strip()
+                    gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()] or [target_str]
+                except Exception:
+                    gs.remote_target_path = [user_input]
+                logger.info(f"[{self.user_id}] [導演視角] 檢測到新的遠程觀察指令。視角切換為 'remote'，目標: {gs.remote_target_path}")
             else:
                 gs.viewing_mode = 'local'
-        
+                gs.remote_target_path = None
+                logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令。視角切換為 'local'。")
+        else:
+            logger.info(f"[{self.user_id}] [導演視角] 檢測到連續性指令，繼承上一輪視角模式: '{gs.viewing_mode}'")
+
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
 
         scene_key = self._get_scene_key()
@@ -1152,31 +1163,83 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
+        # [v20.0 核心] 恢復並強化條件化上下文組合
         world_snapshot = ""
         historical_context = ""
+        system_prompt_override = None
 
         if gs.viewing_mode == 'remote':
-            # ... (此處的遠程上下文準備邏輯與之前相同，為簡潔省略) ...
-             world_snapshot = "（遠程場景）" # 簡化示例
-             historical_context = "（遠程歷史）"
-        else: # local mode
-            # ... (此處的本地上下文準備邏輯與之前相同，為簡潔省略) ...
-            world_snapshot = f"地點: {' > '.join(gs.location_path)}"
-            historical_context = "（本地歷史）"
+            logger.info(f"[{self.user_id}] 正在組合【遠程】上下文...")
+            
+            remote_npcs = await lore_book.get_lores_by_category_and_filter(
+                self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path
+            )
+            remote_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
 
-        # [v19.0 核心] 步驟 1: 將所有組件拼接成一個巨大的 Prompt 字符串
+            world_snapshot = "\n".join([
+                f"地點: {' > '.join(gs.remote_target_path or ['未知'])}",
+                f"場景角色: {remote_npc_context}",
+            ])
+            
+            historical_context = ""
+            if chat_history:
+                for msg in chat_history[-6:]:
+                    historical_context += f"[{'導演指令' if isinstance(msg, HumanMessage) else '場景描述'}]: {msg.content}\n"
+            else:
+                historical_context = "（這是此遠程場景的開端）"
+            
+            # 準備一個專為遠程場景設計的、不包含「玩家主權」的 System Prompt
+            system_prompt_override = (
+                f"{self.core_protocol_prompt}\n\n"
+                f"# --- 使用者自訂風格指令 ---\n"
+                f"{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n"
+                f"# ==============================================================================\n"
+                f"# == 遠程場景生成強制令 (REMOTE SCENE MANDATE)\n"
+                f"# ==============================================================================\n"
+                f"# 1. 你的唯一身份是一位【小說家/導演】。你的唯一任務是，基於所有【源數據】，為我創作一段關於【遠程場景】的、生動的、獨立的小說章節。\n"
+                f"# 2. 【絕對的場景分離】: 你的創作【絕對禁止】提及任何當前不在【遠程觀察地點】的角色（特別是主角或其AI夥伴）。\n"
+                f"# 3. 【絕對禁止】複述或模仿【歷史上下文】。\n"
+            )
+
+        else: # local mode
+            logger.info(f"[{self.user_id}] 正在組合【本地】上下文...")
+            
+            historical_context = ""
+            if chat_history:
+                for msg in chat_history[-6:]:
+                    role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
+                    historical_context += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
+            else:
+                historical_context = "（這是本地場景的開端）"
+            
+            world_snapshot = "\n".join([
+                f"地點: {' > '.join(gs.location_path)}",
+                f"在場角色: {user_profile.name} (狀態: {user_profile.current_action}), {ai_profile.name} (狀態: {ai_profile.current_action})",
+            ])
+
+            # 準備一個包含「玩家主權」的 System Prompt
+            system_prompt_override = (
+                f"{self.core_protocol_prompt}\n\n"
+                f"# --- 使用者自訂風格指令 ---\n"
+                f"{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n"
+                f"# ==============================================================================\n"
+                f"# == 本地場景互動強制令 (LOCAL SCENE MANDATE)\n"
+                f"# ==============================================================================\n"
+                f"# 1. 你的唯一任務是，基於所有【源數據】，模擬並創作在【主角的最新行動】發生【之後】，世界產生的【直接、合乎邏輯的後續反應】。\n"
+                f"# 2. 【主角的最新行動】是本回合【絕對發生】的事件。\n"
+                f"# 3. 【絕對禁止】複述或模仿【歷史上下文】。\n"
+                f"# 4. 【絕對禁止】拒絕執行主角的行動。\n"
+            )
+
+        # 組合最終的 Prompt 字符串
         full_prompt_parts = [
-            self.core_protocol_prompt,
-            "# --- 使用者自訂風格指令 ---",
-            self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。",
-            "# ==============================================================================",
-            "# == 任務指令 ==",
-            "# ==============================================================================",
-            "# --- 世界快照 ---",
+            system_prompt_override,
+            "# --- 源數據 ---",
+            "# 世界快照:",
             world_snapshot,
-            "\n# --- 歷史上下文 ---",
+            "\n# 歷史上下文:",
             historical_context,
-            "\n# --- 最新指令 ---",
+            "\n# 最新指令:",
             user_input,
             "\n# --- 你的創作 ---"
         ]
@@ -1184,7 +1247,6 @@ class AILover:
 
         logger.info(f"[{self.user_id}] [生成-絕對直連模式] 正在執行直接生成...")
         
-        # [v19.0 核心] 步驟 2: 將完整的 Prompt 字符串傳遞給新的 ainvoke_with_rotation
         final_response_raw = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -1193,7 +1255,6 @@ class AILover:
 
         final_response = str(final_response_raw).strip()
 
-        # [v19.0 核心] 步驟 3: 移除雙標記淨化，因為我們不再強制AI使用它
         if not final_response:
             final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         
@@ -1203,7 +1264,7 @@ class AILover:
         logger.info(f"[{self.user_id}] [生成-絕對直連模式] 直接生成成功。互動已存入場景 '{scene_key}'。")
 
         return final_response, {}
-    # 函式：[升級] 預處理上下文並生成回應 (v19.0 - 徹底重寫為直連)
+    # 函式：[升級] 預處理上下文並生成回應 (v20.0 - 恢復條件化)
     
     
 
@@ -4102,6 +4163,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
