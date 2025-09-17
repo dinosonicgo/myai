@@ -557,8 +557,8 @@ class AILover:
 
     # ai_core.py 的 complete_character_profiles 函式
     # 更新紀錄:
-    # v2.1 (2025-11-13): [災難性BUG修復] 根據 AttributeError，修正了手動格式化 ChatPromptTemplate 的方式。放棄了不存在的 .template 屬性，改為使用官方推薦的 .format_prompt(...).to_string() 方法，以正確生成完整的提示詞字符串。
-    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則重寫。
+    # v3.0 (2025-11-13): [災難性BUG修復] 根據 AttributeError 和後續的 TypeError，徹底重構了此函式的 prompt 組合與調用邏輯，使其與 generate_world_genesis 的「無LangChain」模式完全統一。
+    # v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
     async def complete_character_profiles(self):
         """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
         if not self.profile:
@@ -577,16 +577,17 @@ class AILover:
 
         async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
             try:
-                # [v2.1 核心修正] 先獲取 ChatPromptTemplate 物件
+                # 步驟 1: 獲取 ChatPromptTemplate 物件
                 prompt_template_obj = self.get_profile_completion_prompt()
                 
                 safe_profile_data = original_profile.model_dump()
                 
-                # [v2.1 核心修正] 使用 .format_prompt().to_string() 正確格式化
+                # 步驟 2: [核心修正] 手動將 prompt 物件和參數格式化為一個最終的字符串
                 full_prompt = prompt_template_obj.format_prompt(
                     profile_json=json.dumps(safe_profile_data, ensure_ascii=False)
                 ).to_string()
                 
+                # 步驟 3: 將【單一字符串】傳遞給 ainvoke_with_rotation
                 completed_json_str = await self.ainvoke_with_rotation(full_prompt, retry_strategy='euphemize')
                 
                 if not completed_json_str: return original_profile
@@ -594,6 +595,7 @@ class AILover:
                 completed_safe_profile = _safe_json_parse(completed_json_str)
                 if not completed_safe_profile: return original_profile
 
+                # 後續資料合併邏輯 (不變)
                 original_data = original_profile.model_dump()
                 completed_data = completed_safe_profile.model_dump()
                 for key, value in completed_data.items():
@@ -623,34 +625,45 @@ class AILover:
 
     # ai_core.py 的 generate_world_genesis 函式
     # 更新紀錄:
-    # v2.1 (2025-11-13): [災難性BUG修復] 根據 TypeError，修正了 ainvoke_with_rotation 的呼叫方式，確保其符合 (chain, params) 的格式，徹底解決了因參數重複導致的崩潰問題。
-    # v2.0 (2025-11-12): [重大架構重構] 根據「無LangChain」原則重寫。
+    # v3.0 (2025-11-13): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的 prompt 組合與調用邏輯。現在它嚴格遵循「無LangChain」原則，在內部手動將 ChatPromptTemplate 物件和參數格式化為一個完整的字符串，然後再將此單一字符串傳遞給 ainvoke_with_rotation，從根本上解決了所有參數不匹配的問題。
+    # v2.1 (2025-11-13): [災難性BUG修復] 修正了 ainvoke_with_rotation 的呼叫方式。
     async def generate_world_genesis(self):
         """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
-        # 獲取 ChatPromptTemplate 物件
-        genesis_prompt_obj = self.get_world_genesis_chain()
+        # 步驟 1: 獲取 ChatPromptTemplate 物件
+        genesis_prompt_obj = self.get_world_genesis_chain() # 假設此函式返回 ChatPromptTemplate
         
-        # 準備參數
+        # 步驟 2: 準備參數字典
         genesis_params = {
             "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
             "username": self.profile.user_profile.name,
             "ai_name": self.profile.ai_profile.name
         }
         
-        # [v2.1 核心修正] 使用正確的 (chain, params) 格式調用
-        genesis_result = await self.ainvoke_with_rotation(
-            genesis_prompt_obj,
-            genesis_params,
+        # 步驟 3: [核心修正] 手動將 prompt 物件和參數格式化為一個最終的字符串
+        full_prompt_str = genesis_prompt_obj.format_prompt(**genesis_params).to_string()
+        
+        # 步驟 4: 將【單一字符串】傳遞給 ainvoke_with_rotation
+        genesis_json_str = await self.ainvoke_with_rotation(
+            full_prompt_str,
             retry_strategy='force'
         )
         
-        if not genesis_result:
-            raise Exception("世界創世鏈在所有重試後最終失敗，返回了空結果。")
+        if not genesis_json_str:
+            raise Exception("世界創世在所有重試後最終失敗，返回了空結果。")
 
-        # 更新遊戲狀態並持久化 LORE
+        # 步驟 5: 手動解析返回的 JSON 字符串 (邏輯不變)
+        try:
+            if genesis_json_str.strip().startswith("```json"):
+                genesis_json_str = genesis_json_str.strip()[7:-3].strip()
+            genesis_result = WorldGenesisResult.model_validate(json.loads(genesis_json_str))
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(f"[{self.user_id}] [/start] 解析世界創世JSON時失敗: {e}")
+            raise Exception(f"世界創世返回了無效的JSON格式: {e}")
+
+        # 後續資料庫操作 (邏輯不變)
         gs = self.profile.game_state
         gs.location_path = genesis_result.location_path
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
@@ -661,7 +674,6 @@ class AILover:
             npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
             await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc.model_dump())
     # generate_world_genesis 函式結束
-
 
 
 
@@ -2778,6 +2790,7 @@ class AILover:
 
 
     
+
 
 
 
