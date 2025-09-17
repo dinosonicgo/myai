@@ -1,27 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-17T23:26:05.936081 ###
+### AI Lover Log - Last updated at 2025-09-17T23:31:08.159557 ###
 
-    "艾欧尼亚王国",
-    "迷雾之森",
-    "古树庇护所"
-  ],
-  "LocationInfo": "在艾欧尼亚王国边缘，一片被古老魔法迷雾笼罩的森林深处，隐藏着一处不为人知的休憩之地——古树庇护所。这里并非由人类或精灵建造，而是由一棵拥有千年智慧的巨树自然孕育而成。它粗壮的根系深入大地，形成天然的屏障，而巨大的树冠则如同温厚的臂膀，庇护着下方的一方宁静。庇护所内部，树干被巧妙地掏空，形成一个温暖而舒适的空间。墙壁上流淌着微弱的荧光苔藓，散发出柔和的光芒，驱散了森林的幽暗。空气中弥漫着泥土、树叶和淡淡的草药香气，偶尔还能听到远处溪流潺潺的低语。一侧的树洞敞开，成为一个天然的观景窗，可以远眺被迷雾笼罩的森林，感受远离尘嚣的静谧。这里是旅行者们偶尔会提及的传说之地，一个可以在魔法的低语中，获得片刻安宁与重生的隐秘角落。",
-  "initial_npcs": [
-    {
-      "name": "艾尔文",
-      "description": "一位沉默寡言的林地隐士，对这片森林了如指掌。他身着由树叶和藤蔓编织而成的衣物，眼神中透露着岁月的智慧。他通常会默默地观察，只在必要时才会开口，分享关于森林的秘密或提供简单的帮助。他似乎与这棵古树有着某种特殊的联系。"
-    },
-    {
-      "name": "莉莉丝",
-      "description": "一只拥有灵性的松鼠，体型比寻常松鼠略大，毛色如同夕阳般的金红色。它有着一双好奇而聪慧的眼睛，经常在庇护所内外跳跃，传递一些微小的消息，或者带来森林中发现的奇特果实和植物。它似乎是艾尔文的得力助手，也是这个庇护所的守护者之一。"
-    }
-  ]
-}
-```'
-2025-09-17 23:08:10 - [ERROR] - [512280345618546699] 在手動編排的創世流程中發生嚴重錯誤: 世界創世返回了無效的JSON格式或內容: 2 validation errors for WorldGenesisResult
-location_path
-  Field required [type=missing, input_value={'location': ['艾欧尼...守护者之一。'}]}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-location_info
   Field required [type=missing, input_value={'location': ['艾欧尼...守护者之一。'}]}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
@@ -100,3 +78,25 @@ location_info
 2025-09-17 23:24:34 - [INFO] - [512280345618546699] [/start 流程 3/4] 世界創世資訊生成完畢。
 2025-09-17 23:24:36 - [INFO] - [512280345618546699] [/start 流程 4/4] 正在生成開場白...
 2025-09-17 23:24:36 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
+2025-09-17 23:26:17 - [ERROR] - [512280345618546699] 在直接Gemini API呼叫期間發生未知錯誤: InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 487, in _direct_gemini_generate
+    response = await model.generate_content_async(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 440, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.InternalServerError: 500 An internal error has occurred. Please retry or report in https://developers.generativeai.google/guide/troubleshooting
+2025-09-17 23:26:17 - [INFO] - [512280345618546699] [/start 流程 4/4] 開場白生成完畢。
+2025-09-17 23:26:17 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
+2025-09-17 23:26:18 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
