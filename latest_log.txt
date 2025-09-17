@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-17T22:18:19.540298 ###
+### AI Lover Log - Last updated at 2025-09-17T22:20:48.194676 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 744, in on_message
-    final_response, _ = await ai_instance.preprocess_and_generate(input_data)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1203, in preprocess_and_generate
-    final_response_raw = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
-TypeError: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'params'
 2025-09-17 20:07:58 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-17 20:07:59 - [INFO] - Discord Bot is ready and commands are synced!
 2025-09-17 20:08:01 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 522, in generate_world_genesis
     genesis_result = await self.ainvoke_with_rotation(
 TypeError: AILover.ainvoke_with_rotation() got multiple values for argument 'retry_strategy'
+2025-09-17 22:20:34 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-17 22:20:34 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-17 22:20:37 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-17 22:20:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-17 22:20:37 - [INFO] - 已成功發送啟動成功通知給管理員。
