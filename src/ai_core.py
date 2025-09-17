@@ -334,30 +334,29 @@ class AILover:
 
 
 
-    # 函式：[全新] 底層Gemini直連生成器
+    # 函式：[全新] 底層Gemini直連生成器 (v2.0 - 向下兼容)
     # 更新紀錄:
-    # v1.0 (2025-11-25): [重大架構重構] 創建此函式，作為「絕對直連」架構的核心。它徹底繞過LangChain，直接使用google-generativeai函式庫進行API呼叫，以確保safety_settings和Prompt的原始性不被任何抽象層干擾。
+    # v2.0 (2025-11-25): [災難性BUG修復] 徹底重寫了 safety_settings 的定義方式。放棄了不穩定且容易引發版本兼容性問題的 HarmCategory 枚舉類，改為使用絕對穩健的、官方文檔推薦的字符串字面量來定義安全類別。此修改從根本上解決了因函式庫版本差異導致的 AttributeError: HARM_CATEGORY_CIVIC_INTEGRITY 崩潰問題。
+    # v1.0 (2025-11-25): [重大架構重構] 創建此函式，作為「絕對直連」架構的核心。
     async def _direct_gemini_generate(self, api_key: str, model_name: str, full_prompt: str) -> str:
         """
         使用 google.generativeai 函式庫直接與 Gemini API 進行通信。
         """
         import google.generativeai as genai
-        from google.generativeai.types import HarmCategory, HarmBlockThreshold
-        # 導入特定的異常類型以進行精確捕獲
+        # [v2.0 核心修正] 不再需要導入 HarmCategory 和 HarmBlockThreshold
         from google.generativeai.types.generation_types import BlockedPromptException
         from google.api_core import exceptions as google_api_exceptions
 
         try:
             genai.configure(api_key=api_key)
             
-            # 再次確認安全設定
-            safety_settings = {
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY: HarmBlockThreshold.BLOCK_NONE,
-            }
+            # [v2.0 核心修正] 使用字符串字面量來定義 safety_settings，以實現絕對的版本兼容性
+            safety_settings = [
+                {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+            ]
 
             model = genai.GenerativeModel(
                 model_name=model_name,
@@ -366,26 +365,28 @@ class AILover:
             
             response = await model.generate_content_async(
                 full_prompt,
-                generation_config=genai.types.GenerationConfig(temperature=0.75) # 稍微提高溫度以增加創造性
+                generation_config=genai.types.GenerationConfig(temperature=0.75)
             )
             
-            # 檢查是否有因安全原因被阻止
             if response.prompt_feedback.block_reason:
                 raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
             
-            return response.text
+            # 增加對 response.text 的存在性檢查
+            if hasattr(response, 'text'):
+                return response.text
+            else:
+                # 處理可能的空回應或無 text 屬性的情況
+                logger.warning(f"[{self.user_id}] Gemini API 返回的回應中沒有 'text' 屬性。完整回應: {response}")
+                return "（AI的回應為空或格式不正確。）"
 
         except BlockedPromptException as e:
-            # 將其重新拋出，以便上層的 ainvoke_with_rotation 可以捕獲
             raise e
         except google_api_exceptions.ResourceExhausted as e:
-            # 將其重新拋出，以便上層的 ainvoke_with_rotation 可以捕獲
             raise e
         except Exception as e:
             logger.error(f"[{self.user_id}] 在直接Gemini API呼叫期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
-            # 對於其他未知錯誤，返回一個錯誤訊息
             return f"（系統錯誤：在直接生成內容時發生未預期的異常 {type(e).__name__}）"
-    # 函式：[全新] 底層Gemini直連生成器
+    # 函式：[全新] 底層Gemini直連生成器 (v2.0 - 向下兼容)
 
 
 
@@ -4101,6 +4102,7 @@ class AILover:
         return final_opening_scene
     # 函式：生成開場白 (v177.2 - 簡化與獨立化)
 # 類別結束
+
 
 
 
