@@ -1376,11 +1376,86 @@ class AILover:
 
 
 
+    # ai_core.py 的 _execute_tool_call_plan 函式
+    # 更新紀錄:
+    # v184.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此核心 LORE 執行器函式恢復到 AILover 類中。同时对其进行了现代化改造，使其能够正确处理由新版 LORE 提取器生成的 ToolCallPlan，并与统一的 tool_context 协同工作。
+    # v183.4 (2025-10-15): [健壯性] 增加了參數補全邏輯。
+    async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。"""
+        if not plan or not plan.plan:
+            logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
+            return "LORE 扩展計畫為空。"
+
+        # [v184.0 核心修正] 确保 tool_context 被正确设置
+        tool_context.set_context(self.user_id, self)
+        
+        try:
+            if not self.profile:
+                return "错误：无法执行工具計畫，因为使用者 Profile 未加载。"
+            
+            # ... (此处的净化和实体解析逻辑保持不变) ...
+            user_name_lower = self.profile.user_profile.name.lower()
+            ai_name_lower = self.profile.ai_profile.name.lower()
+            protected_names = {user_name_lower, ai_name_lower}
+            
+            purified_plan: List[ToolCall] = []
+            for call in plan.plan:
+                is_illegal = False
+                name_to_check = call.parameters.get('standardized_name') or call.parameters.get('original_name')
+                if name_to_check and name_to_check.lower() in protected_names:
+                    is_illegal = True
+                    logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 創建操作 ({call.tool_name})。")
+                
+                if not is_illegal:
+                    purified_plan.append(call)
+
+            if not purified_plan:
+                logger.info(f"[{self.user_id}] (LORE Executor) 計畫在淨化後為空，无需执行。")
+                return "LORE 扩展計畫在淨化後為空。"
+
+            logger.info(f"--- [{self.user_id}] (LORE Executor) 開始串行執行 {len(purified_plan)} 個LORE任务 ---")
+            
+            summaries = []
+            available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
+            
+            for call in purified_plan:
+                await asyncio.sleep(4.0) 
+
+                if 'location_path' not in call.parameters:
+                    call.parameters['location_path'] = current_location_path
+
+                tool_to_execute = available_lore_tools.get(call.tool_name)
+                if not tool_to_execute:
+                    logger.warning(f"[{self.user_id}] (LORE Executor) 計畫中的工具 '{call.tool_name}' 不存在于 LORE 工具集。")
+                    continue
+
+                try:
+                    # 参数验证和执行
+                    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
+                    result = await tool_to_execute.ainvoke(validated_args.model_dump())
+                    summary = f"任務成功: {result}"
+                    logger.info(f"[{self.user_id}] (LORE Executor) {summary}")
+                    summaries.append(summary)
+                except Exception as e:
+                    summary = f"任務失敗: for {call.tool_name}: {e}"
+                    logger.error(f"[{self.user_id}] (LORE Executor) {summary}", exc_info=True)
+                    summaries.append(summary)
+
+            logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
+            return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。"
+        
+        finally:
+            # [v184.0 核心修正] 确保 tool_context 被清理
+            tool_context.set_context(None, None)
+            logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
+    # _execute_tool_call_plan 函式結束
+
+    
+
 
     # ai_core.py 的 _background_lore_extraction 函式
-    # 更新紀錄:
-    # v3.1 (2025-11-14): [災難性BUG修復] 根據 AttributeError，修正了此函式的 prompt 組合與調用邏輯，確保 get_lore_extraction_chain 返回的是 ChatPromptTemplate 物件並被正確格式化。
-    # v3.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的執行邏輯。
+    # 更新纪录:
+    # v3.2 (2025-11-14): [完整性修復] 确认此函式与恢复后的 _execute_tool_call_plan 兼容。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化。
@@ -1401,7 +1476,6 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動...")
             
-            # [v3.1 核心修正] 手動化流程
             prompt_template_obj = self.get_lore_extraction_chain()
             if not prompt_template_obj:
                 logger.warning(f"[{self.user_id}] 背景LORE提取Prompt模板未初始化，跳過擴展。")
@@ -2770,6 +2844,7 @@ class AILover:
 
 
     
+
 
 
 
