@@ -1675,31 +1675,31 @@ class AILover:
 
     # ai_core.py 的 get_single_entity_resolution_chain 函式
     # 更新紀錄:
-    # v204.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件，以適配「無LangChain」架構。
-    # v203.1 (2025-09-05): [延遲加載重構] 迁移到 get 方法中。
+    # v205.0 (2025-11-14): [災難性BUG修復] 根據靜默的JSON解析失敗日誌，徹底重寫了此函式的 Prompt。新版本移除了所有對話式、指令式的語言，改為一個純粹的、數據驅動的格式，並注入了極其嚴厲的【JSON 輸出強制令】，旨在從根本上解決模型返回對話式文本而非純淨JSON的問題。
+    # v204.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
     def get_single_entity_resolution_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於單體實體解析的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'single_entity_resolution_chain') or self.single_entity_resolution_chain is None:
 
-            prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
-你將收到一個【待解析實體名稱】和一個【現有實體列表】。你的職責是根據語意、上下文和常識，為其精確判斷這是指向一個已存在的實體，還是一個確實全新的實體。
+            prompt_str = """# ROLE: 你是一個無感情的數據庫實體解析引擎。
+# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並以指定的 JSON 格式輸出結果。
 
-**【核心判斷原則】**
-1.  **語意優先**: 不要進行簡單的字串比對。「伍德隆市場」和「伍德隆的中央市集」應被視為同一個實體。
-2.  **包容變體**: 必須考慮到錯別字、多餘的空格、不同的簡寫或全稱（例如「晨風城」vs「首都晨風城」）。
-3.  **寧可合併，不可重複**: 為了保證世界的一致性，當存在較高可能性是同一個實體時，你應傾向於判斷為'EXISTING'。只有當新名稱顯然指向一個完全不同概念的實體時，才判斷為'NEW'。
-4.  **上下文路徑**: 對於具有 `location_path` 的實體，其路徑是判斷的關鍵依據。不同路徑下的同名實體是不同實體。
+# RULES:
+# 1. **SEMANTIC_MATCHING**: 必須進行語意比對，而非純字符串比對。"伍德隆市場" 與 "伍德隆的中央市集" 應視為同一實體。
+# 2. **MERGE_PREFERRED**: 為了世界觀一致性，當存在較高可能性是同一實體時，應傾向於判斷為 'EXISTING'。
+# 3. **CONTEXT_PATH_IS_KEY**: 對於具有 `location_path` 的實體，其路徑是判斷的關鍵依據。
 
-**【輸入】**
-- **實體類別**: {category}
-- **待解析實體 (JSON)**: 
+# SOURCE DATA:
+# [ENTITY_CATEGORY]: {category}
+# [ENTITY_TO_RESOLVE]:
 {new_entity_json}
-- **現有同類別的實體列表 (JSON格式，包含 key 和 name)**: 
+# [EXISTING_ENTITIES_IN_CATEGORY]:
 {existing_entities_json}
 
-**【輸出指令】**
-請為【待解析實體】生成一個 `SingleResolutionResult`，並將其包裝在 `SingleResolutionPlan` 的 `resolution` 欄位中返回。你的輸出必須是一個純淨的JSON。"""
-            # [v204.0 核心修正] 只創建並返回 ChatPromptTemplate 物件
+# OUTPUT_FORMAT:
+# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件，其結構必須符合 SingleResolutionPlan Pydantic 模型。
+# 【【【警告：任何非 JSON 的輸出都將導致系統性失敗。立即開始分析並輸出 JSON。】】】
+"""
             self.single_entity_resolution_chain = ChatPromptTemplate.from_template(prompt_str)
         return self.single_entity_resolution_chain
     # get_single_entity_resolution_chain 函式結束
@@ -2873,6 +2873,7 @@ class AILover:
 
 
     
+
 
 
 
