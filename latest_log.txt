@@ -1,43 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-20T01:58:19.439016 ###
+### AI Lover Log - Last updated at 2025-09-20T02:02:43.620453 ###
 
-2025-09-20 01:37:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-20 01:37:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-20 01:37:09 - [ERROR] - [512280345618546699] [/start] 解析角色檔案JSON時失敗: 1 validation error for CharacterProfile
-affinity
-  Input should be a valid integer, got a number with a fractional part [type=int_from_float, input_value=0.3, input_type=float]
-    For further information visit https://errors.pydantic.dev/2.11/v/int_from_float
-2025-09-20 01:37:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-20 01:37:10 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-20 01:37:12 - [INFO] - [512280345618546699] [/start 流程 3/4] 正在生成世界創世資訊...
-2025-09-20 01:37:12 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-20 01:37:19 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-20 01:37:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-20 01:37:21 - [INFO] - [512280345618546699] [/start 流程 4/4] 正在生成開場白...
-2025-09-20 01:37:21 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-pro' (優先級 1/3) ---
-2025-09-20 01:37:54 - [INFO] - [512280345618546699] [/start 流程 4/4] 開場白生成完畢。
-2025-09-20 01:37:54 - [INFO] - [512280345618546699] 開場白已成功作為第一條AI訊息存入場景 '512280345618546699_local_艾瑞亞大陸_迷霧森林_靜謐溪谷-月光小屋' 的歷史記錄。
-2025-09-20 01:37:54 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
-2025-09-20 01:37:54 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
-2025-09-20 01:48:00 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-20 01:48:01 - [INFO] - Discord Bot is ready and commands are synced!
-2025-09-20 01:48:03 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-20 01:48:03 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-20 01:48:04 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-20 01:50:07 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
-2025-09-20 01:50:07 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
-2025-09-20 01:50:09 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-20 01:50:10 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-20 01:50:10 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-20 01:50:10 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-20 01:50:10 - [INFO] - [512280345618546699] 啟動「極簡直連」對話流程...
-2025-09-20 01:50:10 - [INFO] - [512280345618546699] [預處理-混合記憶模式] 正在準備上下文...
-2025-09-20 01:50:10 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
 2025-09-20 01:50:10 - [INFO] - [512280345618546699] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。
 2025-09-20 01:50:10 - [INFO] - [512280345618546699] [導演視角] 遠程觀察目標設定為: ['性神城內', '市場，一名性神教徒', '女魚販，正把活魚插在肉穴販賣']
 2025-09-20 01:50:10 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
@@ -100,3 +62,41 @@ AttributeError: 'AILover' object has no attribute '_execute_tool_call_plan'
 2025-09-20 01:54:41 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
 2025-09-20 01:54:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查。將嘗試下一個模型。
 2025-09-20 01:54:45 - [WARNING] - [512280345618546699] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。
+2025-09-20 01:59:50 - [INFO] - [512280345618546699] (Canon Processor) 所有 1 个世界圣经文本块均已成功处理并存入 SQL 记忆库 (BM25 備援方案)。
+2025-09-20 01:59:51 - [WARNING] - [512280345618546699] (Canon Processor) [優雅降級] 主記憶系統 (Embedding) 在處理世界聖經時失敗。程式將自動使用備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
+2025-09-20 01:59:51 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本...
+2025-09-20 01:59:51 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-20 01:59:51 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-20 01:59:51 - [ERROR] - [512280345618546699] 在直接Gemini API呼叫期間發生未知錯誤: TypeError: Could not create `Blob`, expected `Blob`, `dict` or an `Image` type(`PIL.Image.Image` or `IPython.display.Image`).
+Got a: <class 'tuple'>
+Value: ('name', None)
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 489, in _direct_gemini_generate
+    response = await model.generate_content_async(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 359, in generate_content_async
+    request = self._prepare_request(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 154, in _prepare_request
+    contents = content_types.to_contents(contents)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\types\content_types.py", line 333, in to_contents
+    contents = [to_content(contents)]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\types\content_types.py", line 296, in to_content
+    return protos.Content(parts=[to_part(part) for part in content])
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\types\content_types.py", line 296, in <listcomp>
+    return protos.Content(parts=[to_part(part) for part in content])
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\types\content_types.py", line 264, in to_part
+    return protos.Part(inline_data=to_blob(part))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\types\content_types.py", line 210, in to_blob
+    raise TypeError(
+TypeError: Could not create `Blob`, expected `Blob`, `dict` or an `Image` type(`PIL.Image.Image` or `IPython.display.Image`).
+Got a: <class 'tuple'>
+Value: ('name', None)
+2025-09-20 01:59:51 - [ERROR] - [512280345618546699] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: 'str' object has no attribute 'npc_profiles'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2355, in parse_and_create_lore_from_canon
+    await _resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles])
+AttributeError: 'str' object has no attribute 'npc_profiles'
+2025-09-20 02:02:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-20 02:02:30 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-20 02:02:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-20 02:02:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-20 02:02:33 - [INFO] - 已成功發送啟動成功通知給管理員。
