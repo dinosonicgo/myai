@@ -620,17 +620,18 @@ class VersionControlView(discord.ui.View):
         embed.add_field(name="⚠️ 最終確認", value=f"您確定要將伺服器程式碼回退到 **`{version}`** 嗎？", inline=False)
         await interaction.edit_original_response(embed=embed, view=self)
 
-# 類別：機器人核心功能集
+# 類別：機器人核心功能集 (Cog) 的初始化方法
 # 更新紀錄:
-# v50.0 (2025-11-14): [災難性BUG修復] __init__ 現在接收並存儲 git_lock。_run_git_command 被修改為異步函式並使用 async with self.git_lock 進行保護。
-class BotCog(commands.Cog):
-    def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
-        self.bot = bot
-        self.ai_instances: dict[str, AILover] = {}
-        self.setup_locks: set[str] = set()
-        self.git_lock = git_lock # 存儲鎖
-        self.connection_watcher.start()
-# 類別：機器人核心功能集 (Cog) (v49.0 - 徹底移除Graph殘留代碼)
+# v51.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，移除了在 __init__ 中對 connection_watcher.start() 的錯誤調用。任務的啟動職責被上移到 AILoverBot.setup_hook，以確保在 Cog 完全初始化後再啟動任務。
+# v50.0 (2025-11-14): [災難性BUG修復] __init__ 現在接收並存儲 git_lock。
+def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
+    self.bot = bot
+    self.ai_instances: dict[str, AILover] = {}
+    self.setup_locks: set[str] = set()
+    self.git_lock = git_lock
+    
+    # [v51.0 核心修正] 移除此處的 .start() 調用，因為此時 self.connection_watcher 尚未被 discord.py 創建
+# __init__ 函式結束
 
     def cog_unload(self):
         self.connection_watcher.cancel()
@@ -1157,10 +1158,19 @@ class AILoverBot(commands.Bot):
         self.git_lock = git_lock # 存儲鎖
         self.is_ready_once = False
     
+    # 函式：Discord 機器人設置鉤子
+    # 更新紀錄:
+    # v48.1 (2025-11-14): [災難性BUG修復] 修正了函式定義的縮排錯誤。
+    # v48.0 (2025-11-14): [災難性BUG修復] 在 Cog 被成功添加後，增加了啟動 connection_watcher 背景任務的邏輯。
+    # v47.0 (2025-11-14): [災難性BUG修復] __init__ 和 setup_hook 被修改以傳遞 git_lock。
     async def setup_hook(self):
         # 將鎖傳遞給 Cog
         cog = BotCog(self, self.git_lock)
         await self.add_cog(cog)
+
+        # [v48.0 核心修正] 在 Cog 被完全加載後，再從 cog 實例中安全地啟動任務
+        cog.connection_watcher.start()
+        
         self.add_view(StartSetupView(cog=cog))
         self.add_view(ContinueToUserSetupView(cog=cog))
         self.add_view(ContinueToAiSetupView(cog=cog))
@@ -1168,6 +1178,7 @@ class AILoverBot(commands.Bot):
         logger.info("所有持久化 UI 視圖已成功註冊。")
         await self.tree.sync()
         logger.info("Discord Bot is ready and commands are synced!")
+    # setup_hook 函式結束
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
