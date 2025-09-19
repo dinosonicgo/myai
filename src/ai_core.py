@@ -1673,13 +1673,14 @@ class AILover:
         return self.batch_entity_resolution_chain
     # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
 
-    # 函式：獲取單體實體解析鏈 (v203.1 - 延遲加載重構)
-    def get_single_entity_resolution_chain(self) -> Runnable:
+    # ai_core.py 的 get_single_entity_resolution_chain 函式
+    # 更新紀錄:
+    # v204.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者，只返回 ChatPromptTemplate 物件，以適配「無LangChain」架構。
+    # v203.1 (2025-09-05): [延遲加載重構] 迁移到 get 方法中。
+    def get_single_entity_resolution_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於單體實體解析的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'single_entity_resolution_chain') or self.single_entity_resolution_chain is None:
-            from .schemas import SingleResolutionPlan
-            raw_llm = self._create_llm_instance(temperature=0.0)
-            resolution_llm = raw_llm.with_structured_output(SingleResolutionPlan)
-            
+
             prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
 你將收到一個【待解析實體名稱】和一個【現有實體列表】。你的職責是根據語意、上下文和常識，為其精確判斷這是指向一個已存在的實體，還是一個確實全新的實體。
 
@@ -1697,21 +1698,26 @@ class AILover:
 {existing_entities_json}
 
 **【輸出指令】**
-請為【待解析實體】生成一個 `SingleResolutionResult`，並將其包裝在 `SingleResolutionPlan` 的 `resolution` 欄位中返回。"""
-            full_prompt = ChatPromptTemplate.from_template(prompt_str)
-            self.single_entity_resolution_chain = full_prompt | resolution_llm
+請為【待解析實體】生成一個 `SingleResolutionResult`，並將其包裝在 `SingleResolutionPlan` 的 `resolution` 欄位中返回。你的輸出必須是一個純淨的JSON。"""
+            # [v204.0 核心修正] 只創建並返回 ChatPromptTemplate 物件
+            self.single_entity_resolution_chain = ChatPromptTemplate.from_template(prompt_str)
         return self.single_entity_resolution_chain
-    # 函式：獲取單體實體解析鏈 (v203.1 - 延遲加載重構)
+    # get_single_entity_resolution_chain 函式結束
 
 
-    # 函式：獲取世界聖經解析鏈 (v204.0 - 抑制幻覺)
+
+
+
+
+    
+
+    # ai_core.py 的 get_canon_parser_chain 函式
     # 更新紀錄:
-    # v204.0 (2025-10-15): [災難性BUG修復] 注入了【絕對數據來源原則】，以抑制模型在解析世界聖經時產生幻覺（Hallucination）的行為。
-    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
-    def get_canon_parser_chain(self) -> Runnable:
+    # v205.1 (2025-11-14): [完整性修復] 根據使用者要求，提供了此函式 Prompt 的完整、未省略版本，恢復了關鍵的行為模型範例。
+    # v205.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
+    def get_canon_parser_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於世界聖經解析的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'canon_parser_chain') or self.canon_parser_chain is None:
-            raw_llm = self._create_llm_instance(temperature=0.0) # 使用最低溫度以減少創造性
-            parser_llm = raw_llm.with_structured_output(CanonParsingResult)
             
             prompt_str = """你是一位極其嚴謹、一絲不苟的數據提取與結構化專家，你的職責類似於一個只會複製貼上的機器人。
 
@@ -1767,10 +1773,9 @@ class AILover:
 ---
 請嚴格遵循【絕對數據來源原則】，開始你的解析與結構化工作。
 """
-            full_prompt = ChatPromptTemplate.from_template(prompt_str)
-            self.canon_parser_chain = full_prompt | parser_llm
+            self.canon_parser_chain = ChatPromptTemplate.from_template(prompt_str)
         return self.canon_parser_chain
-    # 函式：獲取世界聖經解析鏈 (v204.0 - 抑制幻覺)
+    # get_canon_parser_chain 函式結束
 
 
 
@@ -2868,6 +2873,7 @@ class AILover:
 
 
     
+
 
 
 
