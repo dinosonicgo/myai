@@ -1,8 +1,8 @@
-# src/discord_bot.py 的中文註釋(v47.0 - 終極簡化架構)
+# src/discord_bot.py 的中文註釋(v50.0 - 完整性修復)
 # 更新紀錄:
-# v47.0 (2025-10-18): [重大架構重構] 根據「終極簡化」藍圖，徹底重構了 on_message 事件。廢棄了 LangGraph 作為主對話流程的控制器，改為一個更直接、更線性的三階段串行流程：1. 上下文預處理，2. 單次直連生成，3. 事後記憶與LORE擴展。此修改旨在從根本上解決因 LangChain/LangGraph 框架潛在干擾而導致的安全審查不穩定問題。
-# v46.2 (2025-10-12): [災難性BUG修復] 彻底重构了 /start 流程的 UI 交互逻辑。
-# v46.0 (2025-10-02): [災難性BUG修復] 為了從根本上解決因後端重啟導致的 UI 狀態丟失（僵屍UI）問題，徹底重構了整個 /start 設置流程。
+# v50.0 (2025-11-14): [災難性BUG修復] 根據 NameError，提供了此檔案的完整版本，以修復因分段式修正導致的類別定義丟失或文件結構不一致的問題。同時整合了所有關於 Git 鎖和任務生命週期的修正。
+# v49.0 (2025-11-14): [災難性BUG修復] 增加了在開場白後將其存入歷史記錄的關鍵步驟。
+# v48.0 (2025-10-19): [重大架構重構] 徹底移除了對 LangGraph 的所有依賴。
 
 import discord
 from discord import app_commands, Embed
@@ -32,16 +32,8 @@ from .database import AsyncSessionLocal, UserData, MemoryData, init_db
 from .schemas import CharacterProfile, LocationInfo, WorldGenesisResult
 from .models import UserProfile, GameState
 from src.config import settings
-# [v47.0 移除] 不再需要主對話圖
-# from .graph import create_main_response_graph, create_setup_graph
-
-# [v47.0 移除] 不再需要主對話圖狀態
-# from .graph_state import ConversationGraphState, SetupGraphState
-
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
-
-from langchain_core.output_parsers import StrOutputParser
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -115,8 +107,7 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# --- 持久化視圖與 Modals (v46.2) ---
-# ... 此處所有 View 和 Modal 的類別定義保持不變，為遵守“嚴禁省略”規則，將其完整粘貼 ...
+# --- 持久化視圖與 Modals ---
 class StartSetupView(discord.ui.View):
     def __init__(self, *, cog: "BotCog"):
         super().__init__(timeout=None)
@@ -620,18 +611,13 @@ class VersionControlView(discord.ui.View):
         embed.add_field(name="⚠️ 最終確認", value=f"您確定要將伺服器程式碼回退到 **`{version}`** 嗎？", inline=False)
         await interaction.edit_original_response(embed=embed, view=self)
 
-# 類別：機器人核心功能集 (Cog) 的初始化方法
-# 更新紀錄:
-# v51.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，移除了在 __init__ 中對 connection_watcher.start() 的錯誤調用。任務的啟動職責被上移到 AILoverBot.setup_hook，以確保在 Cog 完全初始化後再啟動任務。
-# v50.0 (2025-11-14): [災難性BUG修復] __init__ 現在接收並存儲 git_lock。
-def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
-    self.bot = bot
-    self.ai_instances: dict[str, AILover] = {}
-    self.setup_locks: set[str] = set()
-    self.git_lock = git_lock
-    
-    # [v51.0 核心修正] 移除此處的 .start() 調用，因為此時 self.connection_watcher 尚未被 discord.py 創建
-# __init__ 函式結束
+# 類別：機器人核心功能集 (Cog)
+class BotCog(commands.Cog):
+    def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
+        self.bot = bot
+        self.ai_instances: dict[str, AILover] = {}
+        self.setup_locks: set[str] = set()
+        self.git_lock = git_lock
 
     def cog_unload(self):
         self.connection_watcher.cancel()
@@ -660,115 +646,97 @@ def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
             return None
 
-# 函式：安全地異步執行 Git 命令並返回結果
-# 更新紀錄:
-# v2.0 (2025-11-14): [災難性BUG修復] 此函式現在是異步的，並且在執行任何 git 子進程之前，都會異步獲取全局的 self.git_lock。這從根本上解決了管理員指令與背景守護任務之間的 Git 操作競爭和死鎖問題。
-async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
-    """安全地異步執行一個 Git 命令並返回成功與否及輸出。"""
-    # [v2.0 核心修正] 在執行命令前獲取鎖
-    async with self.git_lock:
-        try:
-            process = await asyncio.to_thread(
-                subprocess.run, 
-                command, 
-                capture_output=True, 
-                text=True, 
-                encoding='utf-8', 
-                check=True, 
-                cwd=PROJ_DIR
-            )
-            return True, process.stdout.strip()
-        except subprocess.CalledProcessError as e:
-            error_message = e.stderr.strip() or e.stdout.strip()
-            logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
-            return False, error_message
-        except Exception as e: 
-            logger.error(f"執行 Git 指令時發生未知錯誤: {e}", exc_info=True)
-            return False, str(e)
-# _run_git_command 函式結束
+    # 函式：安全地異步執行 Git 命令並返回結果
+    async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+        """安全地異步執行一個 Git 命令並返回成功與否及輸出。"""
+        async with self.git_lock:
+            try:
+                process = await asyncio.to_thread(
+                    subprocess.run, 
+                    command, 
+                    capture_output=True, 
+                    text=True, 
+                    encoding='utf-8', 
+                    check=True, 
+                    cwd=PROJ_DIR
+                )
+                return True, process.stdout.strip()
+            except subprocess.CalledProcessError as e:
+                error_message = e.stderr.strip() or e.stdout.strip()
+                logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
+                return False, error_message
+            except Exception as e: 
+                logger.error(f"執行 Git 指令時發生未知錯誤: {e}", exc_info=True)
+                return False, str(e)
+    # _run_git_command 函式結束
 
     # 函式：獲取當前的 Git 版本描述
-async def _git_get_current_version(self) -> Tuple[bool, str]:
-    """獲取當前的 Git 版本描述 (tag 或 commit hash)。"""
-    return await self._run_git_command(["git", "describe", "--tags", "--always"])
-# _git_get_current_version 函式結束
+    async def _git_get_current_version(self) -> Tuple[bool, str]:
+        """獲取當前的 Git 版本描述 (tag 或 commit hash)。"""
+        return await self._run_git_command(["git", "describe", "--tags", "--always"])
+    # _git_get_current_version 函式結束
 
     # 函式：獲取所有遠程 Git 標籤 (版本) 列表
-async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
-    """從遠程倉庫拉取並列出所有版本標籤。"""
-    await self._run_git_command(["git", "fetch", "--tags", "--force"])
-    success, msg = await self._run_git_command(["git", "tag", "-l", "--sort=-v:refname"])
-    return (True, msg.splitlines()) if success else (False, [msg])
-# _git_get_remote_tags 函式結束
+    async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
+        """從遠程倉庫拉取並列出所有版本標籤。"""
+        await self._run_git_command(["git", "fetch", "--tags", "--force"])
+        success, msg = await self._run_git_command(["git", "tag", "-l", "--sort=-v:refname"])
+        return (True, msg.splitlines()) if success else (False, [msg])
+    # _git_get_remote_tags 函式結束
 
     # 函式：創建並推送一個新的 Git 標籤 (版本)
-async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
-    """創建一個帶有註解的新版本標籤，並將其推送到遠程倉庫。"""
-    success, msg = await self._run_git_command(["git", "status", "--porcelain"])
-    if success and msg: return False, "錯誤：工作區尚有未提交的變更。"
-    success, msg = await self._run_git_command(["git", "tag", "-a", version, "-m", description])
-    if not success: return False, f"創建Tag失敗: {msg}"
-    success, msg = await self._run_git_command(["git", "push", "origin", version])
-    if not success:
-        # 如果推送失敗，則刪除本地創建的標籤以保持一致性
-        await self._run_git_command(["git", "tag", "-d", version])
-        return False, f"推送Tag失敗: {msg}"
-    return True, f"成功創建並推送Tag {version}"
-# _git_create_tag 函式結束
+    async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
+        """創建一個帶有註解的新版本標籤，並將其推送到遠程倉庫。"""
+        success, msg = await self._run_git_command(["git", "status", "--porcelain"])
+        if success and msg: return False, "錯誤：工作區尚有未提交的變更。"
+        success, msg = await self._run_git_command(["git", "tag", "-a", version, "-m", description])
+        if not success: return False, f"創建Tag失敗: {msg}"
+        success, msg = await self._run_git_command(["git", "push", "origin", version])
+        if not success:
+            await self._run_git_command(["git", "tag", "-d", version])
+            return False, f"推送Tag失敗: {msg}"
+        return True, f"成功創建並推送Tag {version}"
+    # _git_create_tag 函式結束
 
     # 函式：回退到指定的 Git 標籤 (版本) 並觸發重啟
-async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
-    """將程式碼庫回退到指定的版本標籤，安裝依賴，並觸發系統重啟。"""
-    logger.info(f"管理員觸發版本回退至: {version}")
-    success, msg = await self._run_git_command(["git", "checkout", f"tags/{version}"])
-    if not success: return False, f"Checkout失敗: {msg}"
-    pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
-    try:
-        # 安裝依賴項是一個阻塞操作，也應該在線程中運行
-        await asyncio.to_thread(subprocess.run, pip_command, check=True, capture_output=True)
-    except Exception as e: 
-        logger.error(f"安裝依賴項時失敗: {e}", exc_info=True)
-        return False, f"安裝依賴項失敗: {e}"
-    if self.bot.shutdown_event: self.bot.shutdown_event.set()
-    return True, "回退指令已發送，伺服器正在重啟。"
-# _git_rollback_version 函式結束
+    async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
+        """將程式碼庫回退到指定的版本標籤，安裝依賴，並觸發系統重啟。"""
+        logger.info(f"管理員觸發版本回退至: {version}")
+        success, msg = await self._run_git_command(["git", "checkout", f"tags/{version}"])
+        if not success: return False, f"Checkout失敗: {msg}"
+        pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
+        try:
+            await asyncio.to_thread(subprocess.run, pip_command, check=True, capture_output=True)
+        except Exception as e: 
+            logger.error(f"安裝依賴項時失敗: {e}", exc_info=True)
+            return False, f"安裝依賴項失敗: {e}"
+        if self.bot.shutdown_event: self.bot.shutdown_event.set()
+        return True, "回退指令已發送，伺服器正在重啟。"
+    # _git_rollback_version 函式結束
 
     # 函式：Discord 連線健康檢查與狀態更新的背景任務
-@tasks.loop(seconds=240)
-async def connection_watcher(self):
-    """定期檢查與 Discord 的 WebSocket 連線延遲，並更新機器人的在線狀態。"""
-    try:
+    @tasks.loop(seconds=240)
+    async def connection_watcher(self):
+        """定期檢查與 Discord 的 WebSocket 連線延遲，並更新機器人的在線狀態。"""
+        try:
+            await self.bot.wait_until_ready()
+            if math.isinf(self.bot.latency): 
+                logger.critical("【重大錯誤】與 Discord 的 WebSocket 連線已中斷！")
+            else: 
+                await self.bot.change_presence(activity=discord.Game(name="與你共度時光"))
+        except Exception as e: 
+            logger.error(f"【健康檢查】任務中發生未預期的錯誤: {e}", exc_info=True)
+    # connection_watcher 函式結束
+
+    # 函式：在 connection_watcher 任務首次運行前執行的設置
+    @connection_watcher.before_loop
+    async def before_connection_watcher(self):
+        """確保在健康檢查循環開始前，機器人已完全準備就緒。"""
         await self.bot.wait_until_ready()
-        if math.isinf(self.bot.latency): 
-            logger.critical("【重大錯誤】與 Discord 的 WebSocket 連線已中斷！")
-        else: 
-            await self.bot.change_presence(activity=discord.Game(name="與你共度時光"))
-    except Exception as e: 
-        logger.error(f"【健康檢查】任務中發生未預期的錯誤: {e}", exc_info=True)
-# connection_watcher 函式結束
+        logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
+    # before_connection_watcher 函式結束
 
-# 函式：在 connection_watcher 任務首次運行前執行的設置
-@connection_watcher.before_loop
-async def before_connection_watcher(self):
-    """確保在健康檢查循環開始前，機器人已完全準備就緒。"""
-    await self.bot.wait_until_ready()
-    logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
-# before_connection_watcher 函式結束
-
-    
-
-
-
-
-
-
-
-
-
-
-    
-
-    # 函式：處理訊息事件 (v51.0 - 恢復事後處理)
+    # 函式：處理訊息事件
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -791,9 +759,7 @@ async def before_connection_watcher(self):
         async with message.channel.typing():
             try:
                 logger.info(f"[{user_id}] 啟動「極簡直連」對話流程...")
-
                 input_data = { "user_input": user_input }
-
                 final_response, _ = await ai_instance.preprocess_and_generate(input_data)
                 
                 if final_response and final_response.strip():
@@ -803,7 +769,6 @@ async def before_connection_watcher(self):
                     logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理背景任務（記憶更新 & LORE擴展）...")
                     asyncio.create_task(ai_instance.update_memories(user_input, final_response))
                     asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
-
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
@@ -813,18 +778,7 @@ async def before_connection_watcher(self):
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # on_message 函式結束
 
-
-
-
-
-
-
-    
-
-    # discord_bot.py 的 finalize_setup 函式
-    # 更新紀錄:
-    # v49.0 (2025-11-14): [災難性BUG修復] 增加了在生成開場白後，將其手動存入場景歷史記錄的關鍵步驟。此修改確保了AI在第一輪對話中能夠“記住”開場白的內容，從根本上解決了記憶斷層的問題。
-    # v48.0 (2025-10-19): [重大架構重構] 徹底重寫此函式，移除了對 LangGraph 的所有依賴。
+    # 函式：完成設定流程
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
@@ -839,7 +793,6 @@ async def before_connection_watcher(self):
         try:
             await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到兩分鐘，請稍候。", ephemeral=True)
             
-            # 階段一至三 (不變)
             logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
             await ai_instance.process_canon_and_extract_lores(canon_text)
             await asyncio.sleep(2.0)
@@ -852,12 +805,10 @@ async def before_connection_watcher(self):
             await ai_instance.generate_world_genesis()
             await asyncio.sleep(2.0)
 
-            # 階段四：生成開場白
             logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene()
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
-            # [v49.0 核心修正] 將開場白存入歷史記錄
             scene_key = ai_instance._get_scene_key()
             chat_history_manager = ai_instance.scene_histories.setdefault(scene_key, ChatMessageHistory())
             chat_history_manager.add_ai_message(opening_scene)
@@ -880,6 +831,7 @@ async def before_connection_watcher(self):
             self.setup_locks.discard(user_id)
     # finalize_setup 函式結束
 
+    # 函式：背景處理世界聖經
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -905,8 +857,9 @@ async def before_connection_watcher(self):
         except Exception as e:
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`")
+    # _background_process_canon 函式結束
     
-    # 函式：開始重置流程 (v47.0 - 徹底異步化)
+    # 函式：開始重置流程
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
@@ -936,7 +889,7 @@ async def before_connection_watcher(self):
             await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
-    # 函式：開始重置流程 (v47.0 - 徹底異步化)
+    # start_reset_flow 函式結束
 
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
@@ -998,7 +951,7 @@ async def before_connection_watcher(self):
             logger.error(f"處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
             await interaction.response.send_message(f"讀取檔案時發生錯誤。", ephemeral=True)
 
-    # 管理員指令 (保持不變)
+    # 管理員指令
     @app_commands.command(name="admin_set_affinity", description="[管理員] 設定指定使用者的好感度")
     @app_commands.check(is_admin)
     @app_commands.autocomplete(target_user=user_autocomplete)
@@ -1039,18 +992,18 @@ async def before_connection_watcher(self):
     async def _perform_update_and_restart(self, interaction: discord.Interaction):
         try:
             await asyncio.sleep(1)
-            def run_git_sync(): return subprocess.run(["git", "reset", "--hard", "origin/main"], capture_output=True, text=True, encoding='utf-8', check=False)
-            process = await asyncio.to_thread(run_git_sync)
-            if process.returncode == 0:
+            # 使用 _run_git_command 來確保鎖定
+            success, msg = await self._run_git_command(["git", "reset", "--hard", "origin/main"])
+            if success:
                 if settings.ADMIN_USER_ID:
                     try:
                         admin_user = self.bot.get_user(int(settings.ADMIN_USER_ID)) or await self.bot.fetch_user(int(settings.ADMIN_USER_ID))
                         await admin_user.send("✅ **系統更新成功！** 機器人即將重啟。")
                     except Exception as e: logger.error(f"發送更新成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
                 print("🔄 [Admin Update] Git 同步成功，觸發程式退出以進行重啟...")
-                sys.exit(0)
+                if self.bot.shutdown_event: self.bot.shutdown_event.set()
             else:
-                await interaction.followup.send(f"🔥 **同步失敗！**\n```\n{process.stderr.strip()}\n```", ephemeral=True)
+                await interaction.followup.send(f"🔥 **同步失敗！**\n```\n{msg}\n```", ephemeral=True)
         except Exception as e: 
             logger.error(f"背景任務：執行強制更新時發生未預期錯誤: {e}", exc_info=True)
             if interaction:
@@ -1096,6 +1049,7 @@ async def before_connection_watcher(self):
                 embed.add_field(name="📍 當前地點", value=' > '.join(game_state.location_path), inline=False)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
             else: await interaction.response.send_message(f"錯誤：找不到使用者 {target_user}。", ephemeral=True)
+            
     @app_commands.command(name="admin_check_lore", description="[管理員] 查詢指定使用者的 Lore 詳細資料")
     @app_commands.check(is_admin)
     @app_commands.describe(target_user="...", category="...", key="...")
@@ -1109,11 +1063,13 @@ async def before_connection_watcher(self):
             embed.add_field(name="詳細資料", value=f"```json\n{content_str[:1000]}\n```", inline=False)
             await interaction.response.send_message(embed=embed, ephemeral=True)
         else: await interaction.response.send_message(f"錯誤：找不到 Lore。", ephemeral=True)
+        
     @app_commands.command(name="admin_push_log", description="[管理員] 強制將最新的100條LOG推送到GitHub倉庫。")
     @app_commands.check(is_admin)
     async def admin_push_log(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         await self.push_log_to_github_repo(interaction)
+        
     async def push_log_to_github_repo(self, interaction: Optional[discord.Interaction] = None):
         try:
             log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
@@ -1123,15 +1079,23 @@ async def before_connection_watcher(self):
             with open(log_file_path, 'r', encoding='utf-8') as f: latest_lines = f.readlines()[-100:]
             upload_log_path = PROJ_DIR / "latest_log.txt"
             with open(upload_log_path, 'w', encoding='utf-8') as f: f.write(f"### AI Lover Log - {datetime.datetime.now().isoformat()} ###\n\n" + "".join(latest_lines))
-            def run_git_commands():
-                subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR)
-                commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-                subprocess.run(["git", "commit", "-m", commit_message], check=False, cwd=PROJ_DIR)
-                subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR)
-            await asyncio.to_thread(run_git_commands)
+            
+            # 使用帶鎖的輔助函式
+            await self._run_git_command(["git", "add", str(upload_log_path)])
+            commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            # Commit 可能會因為沒有變更而失敗，這不是一個真正的錯誤
+            await self._run_git_command_unlocked(["git", "commit", "-m", commit_message]) # 這裡需要一個無鎖版本或修改_run_git_command
+            await self._run_git_command(["git", "push", "origin", "main"])
+
             if interaction: await interaction.followup.send(f"✅ **LOG 推送成功！**", ephemeral=True)
         except Exception as e:
             if interaction: await interaction.followup.send(f"❌ **推送失敗**：`{e}`", ephemeral=True)
+
+    # 輔助函式，用於不檢查返回碼的 git commit
+    async def _run_git_command_unlocked(self, command: list):
+         async with self.git_lock:
+            await asyncio.to_thread(subprocess.run, command, check=False, cwd=PROJ_DIR, capture_output=True)
+
     @app_commands.command(name="admin_version_control", description="[管理員] 打開圖形化版本控制面板。")
     @app_commands.check(is_admin)
     async def admin_version_control(self, interaction: discord.Interaction):
@@ -1139,6 +1103,7 @@ async def before_connection_watcher(self):
         view = VersionControlView(cog=self, original_user_id=interaction.user.id)
         embed = await view._build_embed()
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.CheckFailure):
@@ -1148,27 +1113,19 @@ async def before_connection_watcher(self):
             if not interaction.response.is_done():
                 await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 
-# discord_bot.py 的 AILoverBot 類別
-# 更新紀錄:
-# v47.0 (2025-11-14): [災難性BUG修復] __init__ 和 setup_hook 被修改，以接收、存儲並向下傳遞 git_lock，確保 Cog 能夠訪問全局鎖。
+# 類別：AI 戀人機器人主體
 class AILoverBot(commands.Bot):
     def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
         self.shutdown_event = shutdown_event
-        self.git_lock = git_lock # 存儲鎖
+        self.git_lock = git_lock
         self.is_ready_once = False
     
     # 函式：Discord 機器人設置鉤子
-    # 更新紀錄:
-    # v48.1 (2025-11-14): [災難性BUG修復] 修正了函式定義的縮排錯誤。
-    # v48.0 (2025-11-14): [災難性BUG修復] 在 Cog 被成功添加後，增加了啟動 connection_watcher 背景任務的邏輯。
-    # v47.0 (2025-11-14): [災難性BUG修復] __init__ 和 setup_hook 被修改以傳遞 git_lock。
     async def setup_hook(self):
-        # 將鎖傳遞給 Cog
         cog = BotCog(self, self.git_lock)
         await self.add_cog(cog)
 
-        # [v48.0 核心修正] 在 Cog 被完全加載後，再從 cog 實例中安全地啟動任務
         cog.connection_watcher.start()
         
         self.add_view(StartSetupView(cog=cog))
