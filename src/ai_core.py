@@ -459,23 +459,21 @@ class AILover:
 
 
 
-    # 函式：[全新] 底層Gemini直連生成器 (v2.0 - 向下兼容)
+    # ai_core.py 的 _direct_gemini_generate 函式
     # 更新紀錄:
-    # v2.0 (2025-11-25): [災難性BUG修復] 徹底重寫了 safety_settings 的定義方式。放棄了不穩定且容易引發版本兼容性問題的 HarmCategory 枚舉類，改為使用絕對穩健的、官方文檔推薦的字符串字面量來定義安全類別。此修改從根本上解決了因函式庫版本差異導致的 AttributeError: HARM_CATEGORY_CIVIC_INTEGRITY 崩潰問題。
-    # v1.0 (2025-11-25): [重大架構重構] 創建此函式，作為「絕對直連」架構的核心。
+    # v3.0 (2025-11-14): [災難性BUG修復] 根據 ValueError Log，徹底重構了此函式的響應驗證邏輯。現在，在訪問 response.text 之前，會優先檢查 finish_reason 和 prompt_feedback。如果檢測到任何因安全策略導致的終止，會主動拋出一個標準的 BlockedPromptException，確保上游的 ainvoke_with_rotation 能夠正確識別並處理內容審查事件。
+    # v2.0 (2025-11-25): [災難性BUG修復] 徹底重寫了 safety_settings 的定義方式以實現向下兼容。
     async def _direct_gemini_generate(self, api_key: str, model_name: str, full_prompt: str) -> str:
         """
         使用 google.generativeai 函式庫直接與 Gemini API 進行通信。
         """
         import google.generativeai as genai
-        # [v2.0 核心修正] 不再需要導入 HarmCategory 和 HarmBlockThreshold
         from google.generativeai.types.generation_types import BlockedPromptException
         from google.api_core import exceptions as google_api_exceptions
 
         try:
             genai.configure(api_key=api_key)
             
-            # [v2.0 核心修正] 使用字符串字面量來定義 safety_settings，以實現絕對的版本兼容性
             safety_settings = [
                 {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                 {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -493,26 +491,36 @@ class AILover:
                 generation_config=genai.types.GenerationConfig(temperature=0.75)
             )
             
+            # [v3.0 核心修正] 在訪問 .text 之前，先進行更底層、更可靠的驗證
             if response.prompt_feedback.block_reason:
                 raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-            
-            # 增加對 response.text 的存在性檢查
-            if hasattr(response, 'text'):
-                return response.text
-            else:
-                # 處理可能的空回應或無 text 屬性的情況
-                logger.warning(f"[{self.user_id}] Gemini API 返回的回應中沒有 'text' 屬性。完整回應: {response}")
-                return "（AI的回應為空或格式不正確。）"
+
+            # finish_reason == 1 (STOP) 是正常的結束
+            # finish_reason == 8 (SAFETY) 是Gemini V1.5新增的，表示因安全設定而停止
+            if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
+                 finish_reason_name = response.candidates[0].finish_reason.name
+                 raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
+
+            # 只有在通過所有檢查後，才安全地訪問 .text
+            return response.text
 
         except BlockedPromptException as e:
+            # 將此異常向上傳遞，讓 ainvoke_with_rotation 能夠捕獲並處理
             raise e
         except google_api_exceptions.ResourceExhausted as e:
             raise e
+        except ValueError as e:
+            # 捕獲訪問 .text 時可能發生的 ValueError，並將其重新包裝為 BlockedPromptException
+            if "finish_reason" in str(e):
+                raise BlockedPromptException(f"Generation stopped due to safety settings (inferred from ValueError): {e}")
+            else:
+                logger.error(f"[{self.user_id}] 在直接Gemini API呼叫期間發生未預期的 ValueError: {e}", exc_info=True)
+                raise e # 重新拋出其他類型的 ValueError
         except Exception as e:
             logger.error(f"[{self.user_id}] 在直接Gemini API呼叫期間發生未知錯誤: {type(e).__name__}: {e}", exc_info=True)
+            # 返回一個錯誤訊息字符串，而不是拋出異常，以避免中斷上層的正常輪換邏輯
             return f"（系統錯誤：在直接生成內容時發生未預期的異常 {type(e).__name__}）"
-    # 函式：[全新] 底層Gemini直連生成器 (v2.0 - 向下兼容)
-
+    # _direct_gemini_generate 函式結束
 
 
 
@@ -2801,6 +2809,7 @@ class AILover:
 
 
     
+
 
 
 
