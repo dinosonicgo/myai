@@ -620,18 +620,15 @@ class VersionControlView(discord.ui.View):
         embed.add_field(name="⚠️ 最終確認", value=f"您確定要將伺服器程式碼回退到 **`{version}`** 嗎？", inline=False)
         await interaction.edit_original_response(embed=embed, view=self)
 
-# 類別：機器人核心功能集 (Cog) (v49.0 - 徹底移除Graph殘留代碼)
+# 類別：機器人核心功能集
 # 更新紀錄:
-# v49.0 (2025-11-12): [災難性BUG修復] 根據 ModuleNotFoundError，徹底移除了在 __init__ 中對已被廢棄的 create_setup_graph 的所有導入和實例化。此修改完成了向「無Graph」架構的遷移，解決了因此導致的啟動崩潰問題。
-# v48.0 (2025-10-19): [重大架構重構] 徹底移除了所有 LangGraph 實例。
+# v50.0 (2025-11-14): [災難性BUG修復] __init__ 現在接收並存儲 git_lock。_run_git_command 被修改為異步函式並使用 async with self.git_lock 進行保護。
 class BotCog(commands.Cog):
-    def __init__(self, bot: "AILoverBot"):
+    def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
         self.bot = bot
         self.ai_instances: dict[str, AILover] = {}
         self.setup_locks: set[str] = set()
-        
-        # [v49.0 核心修正] 徹底移除所有 LangGraph 實例的殘留代碼
-        
+        self.git_lock = git_lock # 存儲鎖
         self.connection_watcher.start()
 # 類別：機器人核心功能集 (Cog) (v49.0 - 徹底移除Graph殘留代碼)
 
@@ -662,54 +659,113 @@ class BotCog(commands.Cog):
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
             return None
 
-    # Git 操作輔助函式 (保持不變)
-    async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+# 函式：安全地異步執行 Git 命令並返回結果
+# 更新紀錄:
+# v2.0 (2025-11-14): [災難性BUG修復] 此函式現在是異步的，並且在執行任何 git 子進程之前，都會異步獲取全局的 self.git_lock。這從根本上解決了管理員指令與背景守護任務之間的 Git 操作競爭和死鎖問題。
+async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
+    """安全地異步執行一個 Git 命令並返回成功與否及輸出。"""
+    # [v2.0 核心修正] 在執行命令前獲取鎖
+    async with self.git_lock:
         try:
-            process = await asyncio.to_thread(subprocess.run, command, capture_output=True, text=True, encoding='utf-8', check=True, cwd=PROJ_DIR)
+            process = await asyncio.to_thread(
+                subprocess.run, 
+                command, 
+                capture_output=True, 
+                text=True, 
+                encoding='utf-8', 
+                check=True, 
+                cwd=PROJ_DIR
+            )
             return True, process.stdout.strip()
         except subprocess.CalledProcessError as e:
             error_message = e.stderr.strip() or e.stdout.strip()
             logger.error(f"Git指令 '{' '.join(command)}' 執行失敗: {error_message}")
             return False, error_message
-        except Exception as e: return False, str(e)
-    async def _git_get_current_version(self) -> Tuple[bool, str]:
-        return await self._run_git_command(["git", "describe", "--tags", "--always"])
-    async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
-        await self._run_git_command(["git", "fetch", "--tags", "--force"])
-        success, msg = await self._run_git_command(["git", "tag", "-l", "--sort=-v:refname"])
-        return (True, msg.splitlines()) if success else (False, [msg])
-    async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
-        success, msg = await self._run_git_command(["git", "status", "--porcelain"])
-        if success and msg: return False, "錯誤：工作區尚有未提交的變更。"
-        success, msg = await self._run_git_command(["git", "tag", "-a", version, "-m", description])
-        if not success: return False, f"創建Tag失敗: {msg}"
-        success, msg = await self._run_git_command(["git", "push", "origin", version])
-        if not success:
-            await self._run_git_command(["git", "tag", "-d", version])
-            return False, f"推送Tag失敗: {msg}"
-        return True, f"成功創建並推送Tag {version}"
-    async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
-        logger.info(f"管理員觸發版本回退至: {version}")
-        success, msg = await self._run_git_command(["git", "checkout", f"tags/{version}"])
-        if not success: return False, f"Checkout失敗: {msg}"
-        pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
-        try:
-            await asyncio.to_thread(subprocess.run, pip_command, check=True, capture_output=True)
-        except Exception as e: return False, f"安裝依賴項失敗: {e}"
-        if self.bot.shutdown_event: self.bot.shutdown_event.set()
-        return True, "回退指令已發送，伺服器正在重啟。"
+        except Exception as e: 
+            logger.error(f"執行 Git 指令時發生未知錯誤: {e}", exc_info=True)
+            return False, str(e)
+# _run_git_command 函式結束
 
-    @tasks.loop(seconds=240)
-    async def connection_watcher(self):
-        try:
-            await self.bot.wait_until_ready()
-            if math.isinf(self.bot.latency): logger.critical("【重大錯誤】與 Discord 的 WebSocket 連線已中斷！")
-            else: await self.bot.change_presence(activity=discord.Game(name="與你共度時光"))
-        except Exception as e: logger.error(f"【健康檢查】任務中發生未預期的錯誤: {e}", exc_info=True)
-    @connection_watcher.before_loop
-    async def before_connection_watcher(self):
+    # 函式：獲取當前的 Git 版本描述
+async def _git_get_current_version(self) -> Tuple[bool, str]:
+    """獲取當前的 Git 版本描述 (tag 或 commit hash)。"""
+    return await self._run_git_command(["git", "describe", "--tags", "--always"])
+# _git_get_current_version 函式結束
+
+    # 函式：獲取所有遠程 Git 標籤 (版本) 列表
+async def _git_get_remote_tags(self) -> Tuple[bool, List[str]]:
+    """從遠程倉庫拉取並列出所有版本標籤。"""
+    await self._run_git_command(["git", "fetch", "--tags", "--force"])
+    success, msg = await self._run_git_command(["git", "tag", "-l", "--sort=-v:refname"])
+    return (True, msg.splitlines()) if success else (False, [msg])
+# _git_get_remote_tags 函式結束
+
+    # 函式：創建並推送一個新的 Git 標籤 (版本)
+async def _git_create_tag(self, version: str, description: str) -> Tuple[bool, str]:
+    """創建一個帶有註解的新版本標籤，並將其推送到遠程倉庫。"""
+    success, msg = await self._run_git_command(["git", "status", "--porcelain"])
+    if success and msg: return False, "錯誤：工作區尚有未提交的變更。"
+    success, msg = await self._run_git_command(["git", "tag", "-a", version, "-m", description])
+    if not success: return False, f"創建Tag失敗: {msg}"
+    success, msg = await self._run_git_command(["git", "push", "origin", version])
+    if not success:
+        # 如果推送失敗，則刪除本地創建的標籤以保持一致性
+        await self._run_git_command(["git", "tag", "-d", version])
+        return False, f"推送Tag失敗: {msg}"
+    return True, f"成功創建並推送Tag {version}"
+# _git_create_tag 函式結束
+
+    # 函式：回退到指定的 Git 標籤 (版本) 並觸發重啟
+async def _git_rollback_version(self, version: str) -> Tuple[bool, str]:
+    """將程式碼庫回退到指定的版本標籤，安裝依賴，並觸發系統重啟。"""
+    logger.info(f"管理員觸發版本回退至: {version}")
+    success, msg = await self._run_git_command(["git", "checkout", f"tags/{version}"])
+    if not success: return False, f"Checkout失敗: {msg}"
+    pip_command = [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"]
+    try:
+        # 安裝依賴項是一個阻塞操作，也應該在線程中運行
+        await asyncio.to_thread(subprocess.run, pip_command, check=True, capture_output=True)
+    except Exception as e: 
+        logger.error(f"安裝依賴項時失敗: {e}", exc_info=True)
+        return False, f"安裝依賴項失敗: {e}"
+    if self.bot.shutdown_event: self.bot.shutdown_event.set()
+    return True, "回退指令已發送，伺服器正在重啟。"
+# _git_rollback_version 函式結束
+
+    # 函式：Discord 連線健康檢查與狀態更新的背景任務
+@tasks.loop(seconds=240)
+async def connection_watcher(self):
+    """定期檢查與 Discord 的 WebSocket 連線延遲，並更新機器人的在線狀態。"""
+    try:
         await self.bot.wait_until_ready()
-        logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
+        if math.isinf(self.bot.latency): 
+            logger.critical("【重大錯誤】與 Discord 的 WebSocket 連線已中斷！")
+        else: 
+            await self.bot.change_presence(activity=discord.Game(name="與你共度時光"))
+    except Exception as e: 
+        logger.error(f"【健康檢查】任務中發生未預期的錯誤: {e}", exc_info=True)
+# connection_watcher 函式結束
+
+# 函式：在 connection_watcher 任務首次運行前執行的設置
+@connection_watcher.before_loop
+async def before_connection_watcher(self):
+    """確保在健康檢查循環開始前，機器人已完全準備就緒。"""
+    await self.bot.wait_until_ready()
+    logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
+# before_connection_watcher 函式結束
+
+    
+
+
+
+
+
+
+
+
+
+
+    
 
     # 函式：處理訊息事件 (v51.0 - 恢復事後處理)
     @commands.Cog.listener()
@@ -1091,15 +1147,19 @@ class BotCog(commands.Cog):
             if not interaction.response.is_done():
                 await interaction.response.send_message(f"發生未知錯誤。", ephemeral=True)
 
-# 類別：AI 戀人機器人主體 (v46.0 - 持久化視圖註冊)
+# discord_bot.py 的 AILoverBot 類別
+# 更新紀錄:
+# v47.0 (2025-11-14): [災難性BUG修復] __init__ 和 setup_hook 被修改，以接收、存儲並向下傳遞 git_lock，確保 Cog 能夠訪問全局鎖。
 class AILoverBot(commands.Bot):
-    def __init__(self, shutdown_event: asyncio.Event):
+    def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
         self.shutdown_event = shutdown_event
+        self.git_lock = git_lock # 存儲鎖
         self.is_ready_once = False
     
     async def setup_hook(self):
-        cog = BotCog(self)
+        # 將鎖傳遞給 Cog
+        cog = BotCog(self, self.git_lock)
         await self.add_cog(cog)
         self.add_view(StartSetupView(cog=cog))
         self.add_view(ContinueToUserSetupView(cog=cog))
@@ -1120,4 +1180,4 @@ class AILoverBot(commands.Bot):
                     logger.info(f"已成功發送啟動成功通知給管理員。")
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
-# 類別：AI 戀人機器人主體 (v46.0 - 持久化視圖註冊)
+# AILoverBot 類別結束
