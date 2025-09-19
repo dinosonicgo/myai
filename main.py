@@ -225,8 +225,10 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
 
 
 
-# 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
-async def start_discord_bot_task():
+# main.py 的 start_discord_bot_task 函式
+# 更新紀錄:
+# v4.0 (2025-11-14): [災難性BUG修復] 此函式現在接收 git_lock 並將其傳遞給 AILoverBot 的構造函數。
+async def start_discord_bot_task(lock: asyncio.Lock):
     """啟動Discord Bot的核心服務。內建錯誤處理以防止其崩潰影響其他任務。"""
     try:
         if not settings.DISCORD_BOT_TOKEN:
@@ -234,7 +236,8 @@ async def start_discord_bot_task():
             return
 
         print("🚀 [Discord Bot] 正在嘗試啟動核心服務...")
-        bot = AILoverBot(shutdown_event=shutdown_event)
+        # [v4.0 核心修正] 將鎖傳入
+        bot = AILoverBot(shutdown_event=shutdown_event, git_lock=lock)
         
         bot_task = asyncio.create_task(bot.start(settings.DISCORD_BOT_TOKEN))
         shutdown_waiter = asyncio.create_task(shutdown_event.wait())
@@ -256,7 +259,7 @@ async def start_discord_bot_task():
         traceback.print_exc()
     finally:
         print("🔴 [Discord Bot] 核心服務任務已結束。守護任務將繼續獨立運行。")
-# 函式：[核心服務] Discord Bot 啟動器 (v3.0 - 錯誤隔離)
+# start_discord_bot_task 函式結束
 
 # 函式：[核心服務] Web 伺服器啟動器 (v2.0 - 錯誤隔離)
 async def start_web_server_task():
@@ -288,10 +291,12 @@ async def start_web_server_task():
 # 函式：[核心服務] Web 伺服器啟動器 (v2.0 - 錯誤隔離)
 
 
-# 函式：主函式 (v7.0 - 錯誤隔離架構)
-# v8.0 (2025-10-15): [健壯性] 將全局的 git_lock 傳遞給守護任務。
+# main.py 的 main 函式
+# 更新紀錄:
+# v9.0 (2025-11-14): [災難性BUG修復] 為了從根本上解決死鎖問題，現在將全局的 git_lock 實例在創建 AILoverBot 時直接傳遞給它，確保 Bot 內的所有 Git 操作都能與背景守護任務共享同一個鎖。
+# v8.0 (2025-10-15): [健壯性] 引入了全局的 asyncio.Lock 來保護 Git 操作。
 async def main():
-    MAIN_PY_VERSION = "v8.0" # 更新版本號
+    MAIN_PY_VERSION = "v9.0"
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
     _check_and_install_dependencies()
@@ -304,13 +309,12 @@ async def main():
         guardian_tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
-        # 分配任務到不同的組
+        # [v9.0 核心修正] 將 git_lock 傳遞給 AILoverBot
         if mode in ["all", "discord"]:
-            core_services.append(start_discord_bot_task())
+            core_services.append(start_discord_bot_task(git_lock))
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
 
-        # [v8.0 核心修正] 將 git_lock 傳遞給守護任務
         guardian_tasks.append(start_github_update_checker_task(git_lock))
         guardian_tasks.append(start_git_log_pusher_task(git_lock))
 
@@ -334,7 +338,7 @@ async def main():
         traceback.print_exc()
     finally:
         print("主程式 main() 函式已結束。 launcher.py 將在 5 秒後嘗試重啟。")
-# 函式：主函式 (v7.0 - 錯誤隔離架構)
+# main 函式結束
 
 if __name__ == "__main__":
     try:
