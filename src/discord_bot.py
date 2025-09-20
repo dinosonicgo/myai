@@ -736,7 +736,10 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # before_connection_watcher 函式結束
 
-    # 函式：處理訊息事件
+    # discord_bot.py 的 on_message 函式
+    # 更新紀錄:
+    # v52.0 (2025-11-15): [災難性BUG修復] 根據 LORE 地點錨定錯誤，在啟動背景 LORE 提取任務時，增加了對當前場景上下文（viewing_mode 和 remote_target_path）的捕獲與傳遞。此修改確保了背景任務能夠準確地知道 LORE 應該被創建在本地還是遠程場景，從根本上解決了 LORE 被錯誤地記錄在玩家位置的問題。
+    # v51.0 (2025-11-14): [功能恢復] 重新啟用了事後處理流程。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -766,9 +769,18 @@ class BotCog(commands.Cog):
                     for i in range(0, len(final_response), 2000):
                         await message.channel.send(final_response[i:i+2000])
                     
-                    logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理背景任務（記憶更新 & LORE擴展）...")
+                    logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理背景任務...")
+                    
+                    # [v52.0 核心修正] 捕獲當前回合的場景上下文
+                    current_game_state = ai_instance.profile.game_state
+                    
                     asyncio.create_task(ai_instance.update_memories(user_input, final_response))
-                    asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
+                    asyncio.create_task(ai_instance._background_lore_extraction(
+                        user_input=user_input, 
+                        final_response=final_response,
+                        scene_viewing_mode=current_game_state.viewing_mode,
+                        scene_remote_path=current_game_state.remote_target_path
+                    ))
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
