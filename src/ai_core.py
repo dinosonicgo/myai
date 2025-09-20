@@ -974,7 +974,48 @@ class AILover:
 
 
 
+    # ai_core.py 的 update_memories_from_summary 函式
+    # 更新紀錄:
+    # v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。它直接接收由主模型預先生成的、絕對安全的 memory_summary，並將其存入長期記憶，徹底移除了不穩定的事後消毒流程。
+    async def update_memories_from_summary(self, summary_data: Dict[str, Any]):
+        """(事後處理) 將預生成的安全記憶摘要存入長期記憶資料庫。"""
+        memory_summary = summary_data.get("memory_summary")
+        if not memory_summary or not isinstance(memory_summary, str) or not memory_summary.strip():
+            return
+            
+        logger.info(f"[{self.user_id}] [長期記憶寫入] 正在保存預生成的安全摘要...")
+        # 直接使用安全的摘要，不再需要消毒
+        await self._save_interaction_to_dbs(memory_summary)
+        logger.info(f"[{self.user_id}] [長期記憶寫入] 安全摘要保存完畢。")
+    # update_memories_from_summary 函式結束
 
+    # ai_core.py 的 execute_lore_updates_from_summary 函式
+    # 更新紀錄:
+    # v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。它直接接收由主模型預先生成的、結構完整的 lore_updates 工具調用計畫，並將其交給執行器處理，徹底移除了不穩定的事後LORE提取鏈。
+    async def execute_lore_updates_from_summary(self, summary_data: Dict[str, Any]):
+        """(事後處理) 執行由主模型預先生成的LORE更新計畫。"""
+        lore_updates = summary_data.get("lore_updates")
+        if not lore_updates or not isinstance(lore_updates, list):
+            logger.info(f"[{self.user_id}] 背景任務：預生成摘要中不包含LORE更新。")
+            return
+        
+        try:
+            await asyncio.sleep(2.0) # 短暫延遲
+            extraction_plan = ToolCallPlan(plan=[ToolCall.model_validate(call) for call in lore_updates])
+            
+            if extraction_plan and extraction_plan.plan:
+                logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條預生成LORE，準備執行...")
+                
+                # 確定錨定地點
+                gs = self.profile.game_state
+                effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                
+                await self._execute_tool_call_plan(extraction_plan, effective_location)
+            else:
+                logger.info(f"[{self.user_id}] 背景任務：預生成摘要中的LORE計畫為空。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 執行預生成LORE更新時發生異常: {e}", exc_info=True)
+    # execute_lore_updates_from_summary 函式結束
 
 
     
@@ -2911,6 +2952,7 @@ class AILover:
 
 
     
+
 
 
 
