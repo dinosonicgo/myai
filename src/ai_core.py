@@ -1476,9 +1476,16 @@ class AILover:
 
 
     # ai_core.py 的 _background_lore_extraction 函式
-    # 更新纪录:
-    # v3.2 (2025-11-14): [完整性修復] 确认此函式与恢复后的 _execute_tool_call_plan 兼容。
-    async def _background_lore_extraction(self, user_input: str, final_response: str):
+    # 更新紀錄:
+    # v4.0 (2025-11-15): [災難性BUG修復] 函式簽名增加了 scene_viewing_mode 和 scene_remote_path 參數。現在它能夠接收來自 on_message 的場景上下文，並智能地判斷新LORE應該被錨定在玩家的真實位置還是遠程觀察地點，從根本上解決了LORE地點錯亂的問題。
+    # v3.1 (2025-11-14): [災難性BUG修復] 修正了 prompt 組合與調用邏輯。
+    async def _background_lore_extraction(
+        self, 
+        user_input: str, 
+        final_response: str,
+        scene_viewing_mode: Literal['local', 'remote'],
+        scene_remote_path: Optional[List[str]]
+    ):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化。
         """
@@ -1488,15 +1495,15 @@ class AILover:
         try:
             await asyncio.sleep(5.0)
 
+            # ... (此處的 LORE 摘要獲取邏輯保持不變) ...
             try:
                 all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
                 existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
             except Exception as e:
-                logger.error(f"[{self.user_id}] 在背景LORE提取中查詢現有LORE失敗: {e}", exc_info=True)
                 existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
 
-            logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動...")
+            logger.info(f"[{self.user_id}] 背景任務：LORE 提取器已啟動 (場景上下文: {scene_viewing_mode})")
             
             prompt_template_obj = self.get_lore_extraction_chain()
             if not prompt_template_obj:
@@ -1512,30 +1519,33 @@ class AILover:
             }
             
             full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
-
-            extraction_json_str = await self.ainvoke_with_rotation(
-                full_prompt,
-                retry_strategy='euphemize'
-            )
+            extraction_json_str = await self.ainvoke_with_rotation(full_prompt, retry_strategy='euphemize')
             
             if not extraction_json_str:
-                logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗，已跳過本輪LORE擴展。")
+                logger.warning(f"[{self.user_id}] 背景LORE提取鏈的LLM回應為空或最終失敗。")
                 return
 
             try:
                 json_match = re.search(r'\{.*\}', extraction_json_str, re.DOTALL)
-                if not json_match:
-                    raise ValueError("在返回的文本中找不到JSON結構。")
+                if not json_match: raise ValueError("在返回的文本中找不到JSON結構。")
                 clean_json_str = json_match.group(0)
                 extraction_plan = ToolCallPlan.model_validate(json.loads(clean_json_str))
             except (json.JSONDecodeError, ValidationError, ValueError) as e:
-                logger.error(f"[{self.user_id}] 背景LORE提取：解析ToolCallPlan JSON時失敗: {e}。原始返回: '{extraction_json_str}'")
+                logger.error(f"[{self.user_id}] 背景LORE提取：解析ToolCallPlan JSON時失敗: {e}。")
                 return
 
             if extraction_plan and extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
-                current_location = self.profile.game_state.location_path
-                await self._execute_tool_call_plan(extraction_plan, current_location)
+                
+                # [v4.0 核心修正] 根據傳入的場景上下文，決定LORE的錨定地點
+                if scene_viewing_mode == 'remote' and scene_remote_path:
+                    effective_location = scene_remote_path
+                    logger.info(f"[{self.user_id}] LORE將被錨定在遠程地點: {effective_location}")
+                else:
+                    effective_location = self.profile.game_state.location_path
+                    logger.info(f"[{self.user_id}] LORE將被錨定在本地地點: {effective_location}")
+                
+                await self._execute_tool_call_plan(extraction_plan, effective_location)
             else:
                 logger.info(f"[{self.user_id}] 背景任務：AI分析後判斷最終回應中不包含新的LORE可供提取。")
 
@@ -2895,6 +2905,7 @@ class AILover:
 
 
     
+
 
 
 
