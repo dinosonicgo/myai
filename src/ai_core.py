@@ -1342,21 +1342,43 @@ class AILover:
 
     # ai_core.py 的 get_lore_extraction_chain 函式
     # 更新紀錄:
-    # v3.1 (2025-11-14): [災難性BUG修復] 根據 JSONDecodeError，徹底重寫了此函式的 Prompt。新版本移除了所有對話式、指令式的語言，改為一個純粹的、數據驅動的格式，並注入了極其嚴厲的【JSON 輸出強制令】，旨在從根本上解決模型返回對話式文本而非純淨JSON的問題。
-    # v3.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
+    # v4.1 (2025-11-14): [災難性BUG修復] 根據 Pydantic ValidationError，注入了【🔩 強制參數完整性鐵則】。此規則強制要求LLM在生成任何工具調用時，都必須提供所有必需的參數（特別是 lore_key, standardized_name, original_name），從根本上解決了因模型輸出參數不完整而導致的工具調用失敗問題。
+    # v4.0 (2025-11-14): [災難性BUG修復] 注入了【👑 專有名稱強制原則】。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'lore_extraction_chain') or self.lore_extraction_chain is None:
             
-            prompt_template = """# ROLE: 你是一個無感情的數據提取引擎。
+            prompt_template = """# ROLE: 你是一個無感情但極具智慧的數據提取與世界觀擴展引擎。
 # MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並以指定的 JSON 格式輸出結果。
 
 # RULES:
 # 1. **STATE_UPDATE_FIRST**: 首先檢查 [NOVEL_TEXT] 是否包含對 [EXISTING_LORE] 中任何實體的狀態更新。如果是，優先生成 `update_npc_profile` 工具調用。
-# 2. **NEW_ENTITY_ONLY**: 僅當資訊是關於一個全新的、不存在的實體時，才使用創建工具 (如 `create_new_npc_profile`)。
-# 3. **PROTAGONIST_PROTECTION**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
-# 4. **PARAMETER_INTEGRITY**: 所有工具調用的 `parameters` 都必須包含所有必要的鍵。
+# 2. **PROPER_NOUN_MANDATE**: 檢查 [NOVEL_TEXT] 是否引入了新的、有意義的、但沒有具體名字的角色（例如：“一個女魚販”）。如果是，【必須】為其發明一個專有名稱（例如：“瑪琳娜”）並生成 `create_new_npc_profile` 工具調用。
+# 3. **【🔩 強制參數完整性鐵則 (Parameter Integrity Mandate) - v4.1 新增】**:
+#    - 對於你生成的【每一個】 `create_new_npc_profile` 工具調用，其 `parameters` 字典【必須同時包含】以下所有鍵：`lore_key`, `standardized_name`, `original_name`, `description`。
+#    - `original_name` 必須是你在文本中識別出的原始描述（例如：“女魚販”）。
+#    - `standardized_name` 和 `lore_key` 必須是你為其發明的新專有名稱（例如：“瑪琳娜”）。
+# 4. **PROTAGONIST_PROTECTION**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
 # 5. **NO_OUTPUT_IF_EMPTY**: 如果沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
+
+# BEHAVIORAL_EXAMPLE (v4.1):
+#   - NOVEL_TEXT: "...一個衣衫襤褸的男乞丐坐在角落..."
+#   - CORRECT_OUTPUT: (為通用角色發明了名字 "賽巴斯汀" 並提供了所有必需參數)
+#     ```json
+#     {{
+#       "plan": [
+#         {{
+#           "tool_name": "create_new_npc_profile",
+#           "parameters": {{
+#             "original_name": "男乞丐",
+#             "standardized_name": "賽巴斯汀",
+#             "lore_key": "賽巴斯汀",
+#             "description": "一個衣衫襤褸的男乞丐，經常坐在角落，目光空洞。"
+#           }}
+#         }}
+#       ]
+#     }}
+#     ```
 
 # SOURCE DATA:
 # [EXISTING_LORE]:
@@ -1367,8 +1389,8 @@ class AILover:
 {final_response_text}
 
 # OUTPUT_FORMAT:
-# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件，其結構必須符合 ToolCallPlan Pydantic 模型。
-# 【【【警告：任何非 JSON 的輸出都將導致系統性失敗。立即開始分析並輸出 JSON。】】】
+# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件。
+# 【【【警告：任何非 JSON 或缺少參數的輸出都將導致系統性失敗。立即開始分析並輸出結構完整的 JSON。】】】
 """
             self.lore_extraction_chain = ChatPromptTemplate.from_template(prompt_template)
         return self.lore_extraction_chain
@@ -2873,6 +2895,7 @@ class AILover:
 
 
     
+
 
 
 
