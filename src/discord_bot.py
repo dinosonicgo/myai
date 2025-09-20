@@ -736,10 +736,13 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # before_connection_watcher 函式結束
 
+
+
+    
     # discord_bot.py 的 on_message 函式
     # 更新紀錄:
-    # v52.0 (2025-11-15): [災難性BUG修復] 根據 LORE 地點錨定錯誤，在啟動背景 LORE 提取任務時，增加了對當前場景上下文（viewing_mode 和 remote_target_path）的捕獲與傳遞。此修改確保了背景任務能夠準確地知道 LORE 應該被創建在本地還是遠程場景，從根本上解決了 LORE 被錯誤地記錄在玩家位置的問題。
-    # v51.0 (2025-11-14): [功能恢復] 重新啟用了事後處理流程。
+    # v54.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
+    # v54.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了事後處理的觸發邏輯。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -761,34 +764,34 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                logger.info(f"[{user_id}] 啟動「極簡直連」對話流程...")
+                logger.info(f"[{user_id}] 啟動「生成即摘要」對話流程...")
                 input_data = { "user_input": user_input }
-                final_response, _ = await ai_instance.preprocess_and_generate(input_data)
+                # 接收小說和預生成摘要
+                final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
                 
                 if final_response and final_response.strip():
                     for i in range(0, len(final_response), 2000):
                         await message.channel.send(final_response[i:i+2000])
                     
-                    logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理背景任務...")
-                    
-                    # [v52.0 核心修正] 捕獲當前回合的場景上下文
-                    current_game_state = ai_instance.profile.game_state
-                    
-                    asyncio.create_task(ai_instance.update_memories(user_input, final_response))
-                    asyncio.create_task(ai_instance._background_lore_extraction(
-                        user_input=user_input, 
-                        final_response=final_response,
-                        scene_viewing_mode=current_game_state.viewing_mode,
-                        scene_remote_path=current_game_state.remote_target_path
-                    ))
+                    # 將安全的摘要數據傳遞給事後處理任務
+                    if summary_data:
+                        logger.info(f"[{user_id}] 回應已發送。正在根據預生成摘要啟動事後處理任務...")
+                        asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
+                        asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
+                    else:
+                        logger.info(f"[{self.user_id}] 本輪回應無摘要數據，跳過事後處理。")
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「極簡直連」流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # on_message 函式結束
+
+
+
+    
 
     # 函式：完成設定流程
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
