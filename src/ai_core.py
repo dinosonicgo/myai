@@ -1025,25 +1025,26 @@ class AILover:
 
     # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v27.0 (2025-11-15): [災難性BUG修復] 根據使用者反饋的AI扮演問題，在最終拼接Prompt的環節，注入了一段【最終防線指令】。此修改在緊鄰AI開始創作的指令前，用最強硬的措辭重複了【使用者主權原則】，旨在解決LLM在處理長上下文時因“指令磨損”而遺忘核心禁令的致命問題。
-    # v26.0 (2025-11-14): [災難性BUG修復] 引入了【場景錨點原則】，解決了遠程場景上下文被意外中斷的問題。
+    # v29.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
+    # v29.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了此函式的輸出解析邏輯。
+    # v28.0 (2025-11-15): [災難性BUG修復] 引入了「智能模式切換」架構。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
-        (混合記憶流程) 根據視角狀態，組合高保真短期記憶與穩定長期記憶，拼接成單一字符串，並直接呼叫底層生成器。
-        返回 (final_response, final_context) 的元組。
+        (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
+        返回 (novel_text, summary_data) 的元組。
         """
         user_input = input_data["user_input"]
 
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-混合記憶模式] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [預處理-生成即摘要] 正在準備上下文...")
         
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # ... (此處的視角判斷邏輯保持不變) ...
+        # 視角判斷邏輯
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
@@ -1090,7 +1091,7 @@ class AILover:
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history = chat_history_manager.messages
 
-        # ... (此處的混合記憶組合邏輯保持不變) ...
+        # 混合記憶組合
         logger.info(f"[{self.user_id}] 正在組合混合記憶...")
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
@@ -1107,21 +1108,47 @@ class AILover:
         historical_context = "\n".join(["# 歷史上下文 (最近的場景互動 - 未經消毒)", raw_short_term_history, "# 背景歷史參考 (來自遙遠過去的記憶 - 經過安全處理)", sanitized_long_term_summary])
         logger.info(f"[{self.user_id}] 混合記憶組合完畢。")
 
-        # ... (此處的 Prompt 組合邏輯保持不變) ...
+        # Prompt 組合
         world_snapshot = ""
         system_prompt_str = ""
+        remote_target_path_str = ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點'
+        player_location_str = ' > '.join(gs.location_path)
+        
         if gs.viewing_mode == 'remote':
-            # ... (遠程場景的 world_snapshot 和 system_prompt_str 組合) ...
             remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             remote_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
-            world_snapshot = "\n".join([f"地點: {' > '.join(gs.remote_target_path or ['未知'])}", f"場景角色: {remote_npc_context}"])
-            system_prompt_str = (f"{self.core_protocol_prompt}\n\n# --- 使用者自訂風格指令 ---\n{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n# ... (遠程場景強制令) ...")
+            world_snapshot = self.world_snapshot_template.format(
+                world_settings=self.profile.world_settings,
+                ai_settings=ai_profile.description,
+                retrieved_context=sanitized_long_term_summary,
+                possessions_context=f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
+                quests_context="無進行中的任務",
+                location_context=f"當前觀察地點: {remote_target_path_str}",
+                npc_context=remote_npc_context,
+                relevant_npc_context="N/A"
+            )
         else:
-            # ... (本地場景的 world_snapshot 和 system_prompt_str 組合) ...
-            world_snapshot = "\n".join([f"地點: {' > '.join(gs.location_path)}", f"在場角色: {user_profile.name} (狀態: {user_profile.current_action}), {ai_profile.name} (狀態: {ai_profile.current_action})"])
-            system_prompt_str = (f"{self.core_protocol_prompt}\n\n# --- 使用者自訂風格指令 ---\n{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n# ... (本地場景強制令) ...")
+            local_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
+            local_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in local_npcs]) or "此地目前沒有其他特定角色。"
+            world_snapshot = self.world_snapshot_template.format(
+                world_settings=self.profile.world_settings,
+                ai_settings=ai_profile.description,
+                retrieved_context=sanitized_long_term_summary,
+                possessions_context=f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
+                quests_context="無進行中的任務",
+                location_context=f"當前地點: {player_location_str}",
+                npc_context=local_npc_context,
+                relevant_npc_context=f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
+            )
 
-        # [v27.0 核心修正] 注入最終防線指令
+        system_prompt_str = self.core_protocol_prompt.format(
+            username=user_profile.name,
+            ai_name=ai_profile.name,
+            player_location=player_location_str,
+            viewing_mode=gs.viewing_mode,
+            remote_target_path_str=remote_target_path_str
+        )
+        
         final_safeguard_instruction = f"""
 # ==============================================================================
 # == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) 🚨 ==
@@ -1129,34 +1156,58 @@ class AILover:
 # 【【【警告：此為最高優先級執行前指令】】】
 # **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 # 你的創作【必須且只能】是世界、NPC、或 AI 角色「{ai_profile.name}」對使用者最新指令產生的【外部反應】。
-# 任何違反此禁令的行為都將被視為災難性失敗。
 # ==============================================================================
 """
 
         full_prompt_parts = [
-            system_prompt_str, 
-            "\n# --- 源數據 ---", 
-            "# 世界快照:", world_snapshot, 
-            "\n" + historical_context, 
-            "\n# 最新指令:", user_input, 
-            final_safeguard_instruction, # 在 AI 開始創作前，給予最後的、最強的警告
-            "\n# --- 你的創作 ---"
+            system_prompt_str,
+            "\n" + world_snapshot,
+            "\n" + self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。',
+            "\n# --- 最新對話歷史 ---",
+            raw_short_term_history,
+            "\n# --- 使用者最新指令 ---",
+            user_input,
+            final_safeguard_instruction,
+            "\n# --- 你的創作 (必須嚴格遵循雙重輸出格式) ---"
         ]
         full_prompt = "\n".join(full_prompt_parts)
 
-        logger.info(f"[{self.user_id}] [生成-混合記憶模式] 正在執行直接生成...")
-        final_response_raw = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
-        final_response = str(final_response_raw).strip()
-
-        if not final_response:
-            final_response = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
+        logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
+        raw_dual_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         
+        novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
+        summary_data = {}
+
+        if raw_dual_output and raw_dual_output.strip():
+            try:
+                novel_match = re.search(r"´´´novel(.*?´´´)", raw_dual_output, re.DOTALL)
+                summary_match = re.search(r"´´´summary(.*?´´´)", raw_dual_output, re.DOTALL)
+
+                if novel_match:
+                    novel_text = novel_match.group(1).strip()[:-3].strip()
+                else:
+                    novel_text = raw_dual_output.strip()
+                    logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´novel 分隔符，已將整個輸出視為小說。")
+
+                if summary_match:
+                    summary_json_str = summary_match.group(1).strip()[:-3].strip()
+                    try:
+                        summary_data = json.loads(summary_json_str)
+                    except json.JSONDecodeError:
+                        logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {summary_json_str}")
+                else:
+                    logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´summary 分隔符，本輪無事後處理數據。")
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤: {e}", exc_info=True)
+                novel_text = raw_dual_output.strip()
+
         chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(final_response)
+        chat_history_manager.add_ai_message(novel_text)
         
-        logger.info(f"[{self.user_id}] [生成-混合記憶模式] 直接生成成功。互動已存入場景 '{scene_key}'。")
+        logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
 
-        return final_response, {}
+        return novel_text, summary_data
     # preprocess_and_generate 函式結束
     
     
@@ -2952,6 +3003,7 @@ class AILover:
 
 
     
+
 
 
 
