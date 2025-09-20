@@ -984,8 +984,8 @@ class AILover:
 
     # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v26.0 (2025-11-14): [災難性BUG修復] 根據使用者反饋，徹底重構了視角判斷邏輯，引入了【場景錨點原則】。現在，'remote' 視角會保持“黏性”，直到檢測到一個明確的、針對主角或AI的本地互動“強信號”時才會切換回 'local'，從根本上解決了遠程場景的上下文被意外中斷的致命問題。
-    # v25.1 (2025-11-29): [災難性BUG修復] 修正了整個函式定義的縮排錯誤。
+    # v27.0 (2025-11-15): [災難性BUG修復] 根據使用者反饋的AI扮演問題，在最終拼接Prompt的環節，注入了一段【最終防線指令】。此修改在緊鄰AI開始創作的指令前，用最強硬的措辭重複了【使用者主權原則】，旨在解決LLM在處理長上下文時因“指令磨損”而遺忘核心禁令的致命問題。
+    # v26.0 (2025-11-14): [災難性BUG修復] 引入了【場景錨點原則】，解決了遠程場景上下文被意外中斷的問題。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (混合記憶流程) 根據視角狀態，組合高保真短期記憶與穩定長期記憶，拼接成單一字符串，並直接呼叫底層生成器。
@@ -1002,18 +1002,14 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # [v26.0 核心修正] 引入【場景錨點原則】的全新視角判斷邏輯
+        # ... (此處的視角判斷邏輯保持不變) ...
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
-        
-        # 定義信號
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
         local_action_keywords = ["去", "前往", "移動到", "旅行到", "我說", "我對", "我問"]
-        
         is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
         is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
         is_explicit_local_action = any(user_input.startswith(kw) for kw in local_action_keywords) or (user_profile.name in user_input) or (ai_profile.name in user_input)
-
         if is_continuation:
             logger.info(f"[{self.user_id}] [導演視角] 檢測到連續性指令，繼承上一輪視角模式: '{gs.viewing_mode}'")
         elif gs.viewing_mode == 'remote':
@@ -1023,7 +1019,6 @@ class AILover:
                 gs.remote_target_path = None
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 無本地信號，視角保持在 'remote'。")
-                # 如果新的無主語指令也是描述性的，可以更新目標
                 if is_descriptive_intent:
                     try:
                         target_str = user_input
@@ -1032,7 +1027,7 @@ class AILover:
                         gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()] or [target_str]
                         logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標更新為: {gs.remote_target_path}")
                     except Exception: pass
-        else: # 當前模式為 'local'
+        else:
             if is_descriptive_intent:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。")
                 gs.viewing_mode = 'remote'
@@ -1048,18 +1043,13 @@ class AILover:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令，視角保持 'local'。")
                 gs.viewing_mode = 'local'
                 gs.remote_target_path = None
-
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
 
         scene_key = self._get_scene_key()
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history = chat_history_manager.messages
 
-        world_snapshot = ""
-        historical_context = ""
-        system_prompt_str = ""
-
-        # --- 混合記憶組合邏輯 (保持不變) ---
+        # ... (此處的混合記憶組合邏輯保持不變) ...
         logger.info(f"[{self.user_id}] 正在組合混合記憶...")
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
@@ -1072,29 +1062,45 @@ class AILover:
                 for msg in history_slice:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
-        
         sanitized_long_term_summary = await self.retrieve_and_summarize_memories(user_input)
-        historical_context = "\n".join([
-            "# 歷史上下文 (最近的場景互動 - 未經消毒)", raw_short_term_history,
-            "# 背景歷史參考 (來自遙遠過去的記憶 - 經過安全處理)", sanitized_long_term_summary
-        ])
+        historical_context = "\n".join(["# 歷史上下文 (最近的場景互動 - 未經消毒)", raw_short_term_history, "# 背景歷史參考 (來自遙遠過去的記憶 - 經過安全處理)", sanitized_long_term_summary])
         logger.info(f"[{self.user_id}] 混合記憶組合完畢。")
 
-        # --- 後續 Prompt 組合邏輯 (保持不變) ---
+        # ... (此處的 Prompt 組合邏輯保持不變) ...
+        world_snapshot = ""
+        system_prompt_str = ""
         if gs.viewing_mode == 'remote':
-            logger.info(f"[{self.user_id}] 正在組合【遠程】上下文...")
-            remote_npcs = await lore_book.get_lores_by_category_and_filter(
-                self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path
-            )
+            # ... (遠程場景的 world_snapshot 和 system_prompt_str 組合) ...
+            remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             remote_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
             world_snapshot = "\n".join([f"地點: {' > '.join(gs.remote_target_path or ['未知'])}", f"場景角色: {remote_npc_context}"])
             system_prompt_str = (f"{self.core_protocol_prompt}\n\n# --- 使用者自訂風格指令 ---\n{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n# ... (遠程場景強制令) ...")
         else:
-            logger.info(f"[{self.user_id}] 正在組合【本地】上下文...")
+            # ... (本地場景的 world_snapshot 和 system_prompt_str 組合) ...
             world_snapshot = "\n".join([f"地點: {' > '.join(gs.location_path)}", f"在場角色: {user_profile.name} (狀態: {user_profile.current_action}), {ai_profile.name} (狀態: {ai_profile.current_action})"])
             system_prompt_str = (f"{self.core_protocol_prompt}\n\n# --- 使用者自訂風格指令 ---\n{self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'}\n\n# ... (本地場景強制令) ...")
 
-        full_prompt_parts = [system_prompt_str, "\n# --- 源數據 ---", "# 世界快照:", world_snapshot, "\n" + historical_context, "\n# 最新指令:", user_input, "\n# --- 你的創作 ---"]
+        # [v27.0 核心修正] 注入最終防線指令
+        final_safeguard_instruction = f"""
+# ==============================================================================
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) 🚨 ==
+# ==============================================================================
+# 【【【警告：此為最高優先級執行前指令】】】
+# **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 你的創作【必須且只能】是世界、NPC、或 AI 角色「{ai_profile.name}」對使用者最新指令產生的【外部反應】。
+# 任何違反此禁令的行為都將被視為災難性失敗。
+# ==============================================================================
+"""
+
+        full_prompt_parts = [
+            system_prompt_str, 
+            "\n# --- 源數據 ---", 
+            "# 世界快照:", world_snapshot, 
+            "\n" + historical_context, 
+            "\n# 最新指令:", user_input, 
+            final_safeguard_instruction, # 在 AI 開始創作前，給予最後的、最強的警告
+            "\n# --- 你的創作 ---"
+        ]
         full_prompt = "\n".join(full_prompt_parts)
 
         logger.info(f"[{self.user_id}] [生成-混合記憶模式] 正在執行直接生成...")
@@ -2905,6 +2911,7 @@ class AILover:
 
 
     
+
 
 
 
