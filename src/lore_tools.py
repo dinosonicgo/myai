@@ -122,14 +122,26 @@ async def add_or_update_location_info(lore_key: str, standardized_name: str, ori
 
 # --- 物品相關工具 ---
 
-# 類別：新增或更新物品資訊參數
+# 函式：新增或更新物品資訊參數 (v2.0 - 自我修復)
+# 更新紀錄:
+# v2.0 (2025-11-21): [健壯性強化] 增加了一個 @field_validator，為 original_name 欄位提供自我修復能力。如果 LLM 在生成工具調用時遺漏了 original_name，此驗證器會自動使用 standardized_name 的值來填充，從而避免 ValidationError 並確保工具調用的成功執行。
+# v1.0 (2025-09-02): [全新創建] 創建此 Pydantic 模型。
 class AddOrUpdateItemInfoArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: str = Field(description="由實體解析鏈生成的、用於內部索引的標準化物品名稱。")
-    original_name: str = Field(description="LLM 在計畫中生成的原始物品名稱。")
+    original_name: Optional[str] = Field(default=None, description="LLM 在計畫中生成的原始物品名稱。")
     description: str = Field(description="對物品的詳細描述，包括其材質、歷史等。")
     effect: Optional[str] = Field(default=None, description="物品的效果，例如：'恢復少量生命值'。")
     visual_description: Optional[str] = Field(default=None, description="對物品外觀的詳細、生動的描寫。")
+
+    @field_validator('original_name', mode='before')
+    @classmethod
+    def default_original_name(cls, v, values):
+        # 如果 original_name 是 None 或空字符串，則使用 standardized_name 的值
+        if not v:
+            return values.get('standardized_name')
+        return v
+# 新增或更新物品資訊參數 函式結束
 
 # 工具：新增或更新物品資訊
 @tool(args_schema=AddOrUpdateItemInfoArgs)
@@ -259,3 +271,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
     ]
 # 函式：獲取所有 LORE 工具
+
