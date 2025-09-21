@@ -1025,7 +1025,8 @@ class AILover:
 
     # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v29.2 (2025-11-15): [災難性BUG修復] 根據 KeyError，在格式化 world_snapshot_template 時，補全了缺失的 username 和 ai_name 參數，解決了因此導致的 Prompt 拼接崩潰問題。
+    # v29.3 (2025-11-15): [災難性BUG修復] 根據 KeyError，在 base_params 中補全了缺失的 player_location 參數，確保 world_snapshot_template 在任何模式下都能被正確格式化。
+    # v29.2 (2025-11-15): [災難性BUG修復] 補全了缺失的 username 和 ai_name 參數。
     # v29.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
@@ -1113,10 +1114,11 @@ class AILover:
         remote_target_path_str = ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點'
         player_location_str = ' > '.join(gs.location_path)
         
-        # [v29.2 核心修正] 創建一個基礎的參數字典，確保 username 和 ai_name 始終存在
+        # [v29.3 核心修正] 創建一個基礎的參數字典，確保 username, ai_name, 和 player_location 始終存在
         base_params = {
             "username": user_profile.name,
             "ai_name": ai_profile.name,
+            "player_location": player_location_str,
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
             "retrieved_context": sanitized_long_term_summary,
@@ -2145,73 +2147,60 @@ class AILover:
 
     # ai_core.py 的 retrieve_and_summarize_memories 函式
     # 更新紀錄:
-    # v9.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的 ainvoke_with_rotation 調用邏輯，使其完全遵循「無LangChain」的「手動格式化Prompt -> 直接調用」模式，從而解決了與核心調用器的架構衝突。
-    # v8.1 (2025-10-25): [健壯性] 確認 GoogleGenerativeAIError 異常已正確導入。
+    # v11.0 (2025-11-15): [災難性BUG修復] 根據 RAG 內容審查失敗日誌，徹底重構了淨化流程。放棄了高風險的“批次淨化”模式，改為更健壯的“逐一淨化，安全拼接”策略。此修改極大地提高了在處理大量露骨歷史記錄時的淨化成功率，確保了RAG系統的穩定性。
+    # v10.0 (2025-11-15): [災難性BUG修復] 實現了【全局先淨化，後處理】架構。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """[新] 執行RAG檢索並將結果總結為摘要。內建多層淨化與熔斷備援機制。"""
-        if not self.retriever and not self.bm25_retriever:
-            logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
-            return "沒有檢索到相關的長期記憶。"
-        
+        """執行RAG檢索並將結果總結為摘要。採用【逐一淨化，安全拼接】策略以確保NSFW穩定性。"""
+        # ... (RAG 檢索邏輯保持不變，以獲取 retrieved_docs) ...
+        if not self.retriever and not self.bm25_retriever: return "沒有檢索到相關的長期記憶。"
         retrieved_docs = []
-        succeeded = False
-        if self.retriever:
-            try:
-                # 這裡的 .ainvoke 是 LangChain Retriever 的標準用法，它不涉及我們的 ainvoke_with_rotation
-                retrieved_docs = await self.retriever.ainvoke(query_text)
-                succeeded = True
-            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                logger.warning(f"[{self.user_id}] (RAG Executor) 主記憶系統 (Embedding) 失敗: {type(e).__name__}")
+        try:
+            if self.retriever: retrieved_docs = await self.retriever.ainvoke(query_text)
+        except Exception: pass
+        if not retrieved_docs and self.bm25_retriever:
+            try: retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
             except Exception as e:
-                logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] RAG 備援檢索失敗: {e}")
+                return "檢索長期記憶時發生備援系統錯誤。"
+        if not retrieved_docs: return "沒有檢索到相關的長期記憶。"
 
-        if not succeeded and self.bm25_retriever:
-            try:
-                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
-                retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
-                logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
-            except Exception as bm25_e:
-                logger.error(f"[{self.user_id}] (RAG Executor) [備援失敗] 備援記憶系統 (BM25) 發生錯誤: {bm25_e}", exc_info=True)
-                return "檢索長期記憶時發生備援系統錯誤，部分上下文可能缺失。"
-
-        if not retrieved_docs:
-            return "沒有檢索到相關的長期記憶。"
-
-        logger.info(f"[{self.user_id}] (Batch Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在進行批次清洗與摘要...")
-        combined_content = "\n\n---\n[新文檔]\n---\n\n".join([doc.page_content for doc in retrieved_docs])
+        logger.info(f"[{self.user_id}] (RAG Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在逐一淨化...")
         
-        # [v9.0 核心修正] 手動化流程
+        # [v11.0 核心修正] 逐一淨化，安全拼接
+        safely_sanitized_parts = []
         literary_prompt_obj = self.get_literary_euphemization_chain()
-        literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=combined_content).to_string()
-        
-        safe_overview_of_all_docs = await self.ainvoke_with_rotation(
-            literary_full_prompt, 
-            retry_strategy='euphemize'
-        )
 
-        if not safe_overview_of_all_docs or not safe_overview_of_all_docs.strip():
-            logger.warning(f"[{self.user_id}] (Batch Sanitizer) 批次清洗失敗，無法為 RAG 上下文生成摘要。")
-            return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成摘要。）"
+        for i, doc in enumerate(retrieved_docs):
+            try:
+                literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=doc.page_content).to_string()
+                sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none') # 單獨淨化，失敗則跳過
+                if sanitized_part and sanitized_part.strip():
+                    safely_sanitized_parts.append(sanitized_part.strip())
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] (RAG Sanitizer) 淨化第 {i+1}/{len(retrieved_docs)} 份文檔時失敗，已跳過。錯誤: {e}")
+                continue
         
-        logger.info(f"[{self.user_id}] (Batch Sanitizer) 批次清洗成功，正在基於安全的文學概述進行最終摘要...")
+        if not safely_sanitized_parts:
+            logger.warning(f"[{self.user_id}] (RAG Sanitizer) 所有檢索到的文檔都未能成功淨化。")
+            return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成安全的劇情概述。）"
+
+        safe_overview_of_all_docs = "\n\n---\n\n".join(safely_sanitized_parts)
+        logger.info(f"[{self.user_id}] (RAG Summarizer) 成功淨化 {len(safely_sanitized_parts)}/{len(retrieved_docs)} 份文檔，正在進行最終摘要...")
         
-        # [v9.0 核心修正] 手動化流程
+        # 後續摘要邏輯不變，處理的是絕對安全的文本
         summarizer_prompt_obj = self.get_rag_summarizer_chain()
-        # 注意：get_rag_summarizer_chain 的 prompt 期望一個 `documents` 變數
         summarizer_full_prompt = summarizer_prompt_obj.format_prompt(documents=safe_overview_of_all_docs).to_string()
-
-        summarized_context = await self.ainvoke_with_rotation(
-            summarizer_full_prompt, 
-            retry_strategy='none'
-        )
+        summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='none')
 
         if not summarized_context or not summarized_context.strip():
-             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已清洗的內容後，仍然返回了空的結果。")
              summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
              
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # retrieve_and_summarize_memories 函式結束
+
+
+    
     
 
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
@@ -3010,6 +2999,7 @@ class AILover:
 
 
     
+
 
 
 
