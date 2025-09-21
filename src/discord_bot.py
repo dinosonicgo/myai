@@ -1220,12 +1220,15 @@ class AILoverBot(commands.Bot):
         self.shutdown_event = shutdown_event
         self.git_lock = git_lock
         self.is_ready_once = False
+
+
+
     
 # AILoverBot 類別的 setup_hook 函式
 # 更新紀錄:
-# v51.1 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILoverBot 類別的成員被正確解析。
-# v51.0 (2025-11-16): [功能擴展] 新增了對 RegenerateView 的註冊，使「重新生成」按鈕在機器人重啟後依然有效。
-# v50.0 (2025-11-14): [完整性修復] 根據 NameError，提供了此檔案的完整版本。
+# v51.2 (2025-11-17): [健壯性強化] 為指令同步 (tree.sync) 增加了詳細的日誌記錄和 try...except 錯誤處理，以確保在同步失敗時能夠提供明確的錯誤訊息，而不是靜默失敗。
+# v51.1 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤。
+# v51.0 (2025-11-16): [功能擴展] 新增了對 RegenerateView 的註冊。
     async def setup_hook(self):
         cog = BotCog(self, self.git_lock)
         await self.add_cog(cog)
@@ -1237,12 +1240,19 @@ class AILoverBot(commands.Bot):
         self.add_view(ContinueToUserSetupView(cog=cog))
         self.add_view(ContinueToAiSetupView(cog=cog))
         self.add_view(ContinueToCanonSetupView(cog=cog))
-        # [v51.0 新增] 註冊重新生成視圖
         self.add_view(RegenerateView(cog=cog))
         
         logger.info("所有持久化 UI 視圖已成功註冊。")
-        await self.tree.sync()
-        logger.info("Discord Bot is ready and commands are synced!")
+
+        # [v51.2 核心修正] 為指令同步增加日誌和錯誤處理
+        try:
+            logger.info("正在嘗試將應用程式指令 (Slash Commands) 同步到 Discord...")
+            await self.tree.sync()
+            logger.info("✅ 應用程式指令同步成功！")
+        except Exception as e:
+            logger.error(f"🔥 應用程式指令同步失敗: {e}", exc_info=True)
+        
+        logger.info("Discord Bot is ready!") # 將原有的 sync log 移到這裡
 # setup_hook 函式結束
     
     async def on_ready(self):
