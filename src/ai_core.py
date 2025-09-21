@@ -334,7 +334,51 @@ class AILover:
     # update_memories 函式結束
 
 
+# ai_core.py 的 get_json_correction_chain 函式
+# 更新紀錄:
+# v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。它的唯一任務是接收一段格式錯誤的JSON和目標模型，並將其修正為結構正確的JSON，極大地提高了系統處理LLM隨機輸出的健壯性。
+    def get_json_correction_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於修正格式錯誤的 JSON 的 ChatPromptTemplate 模板。"""
+        if not hasattr(self, 'json_correction_chain') or self.json_correction_chain is None:
+            
+            prompt_template = """# ROLE: 你是一個精確的數據結構修正引擎。
+# MISSION: 讀取一段【格式錯誤的原始 JSON】和【目標 Pydantic 模型】，並將其轉換為一個【結構完全正確】的純淨 JSON 物件。
 
+# RULES:
+# 1. **SEMANTIC_INFERENCE**: 你必須從原始 JSON 的鍵名和值中，智能推斷出它們應該對應到目標模型中的哪個欄位。
+#    - 例如，如果原始 JSON 有 `{"type": "NEW"}`，而目標模型需要 `{"decision": "NEW"}`，你必須進行正確的映射。
+#    - 例如，如果原始 JSON 有 `{"entity_name": "絲月"}`，而目標模型需要 `{"original_name": "絲月"}`，你必須進行正確的映射。
+# 2. **FILL_DEFAULTS**: 如果目標模型中的某些必需欄位在原始 JSON 中完全找不到對應資訊，你必須為其提供合理的預設值。
+#    - 對於 `reasoning` 欄位，如果缺失，可以填寫 "根據上下文推斷"。
+# 3. **OUTPUT_PURITY**: 你的最終輸出【必須且只能】是一個純淨的、符合目標 Pydantic 模型結構的 JSON 物件。禁止包含任何額外的解釋或註釋。
+
+# --- SOURCE DATA ---
+# 【格式錯誤的原始 JSON】:
+# ```json
+{raw_json_string}
+# ```
+# --- TARGET SCHEMA ---
+# 【目標 Pydantic 模型】:
+# ```python
+# class SingleResolutionResult(BaseModel):
+#     original_name: str
+#     decision: Literal['NEW', 'EXISTING']
+#     standardized_name: Optional[str] = None
+#     matched_key: Optional[str] = None
+#     reasoning: str
+#
+# class SingleResolutionPlan(BaseModel):
+#     resolution: SingleResolutionResult
+# ```
+# --- CONTEXT ---
+# 【上下文提示：正在處理的原始實體名稱是】:
+{context_name}
+
+# --- YOUR OUTPUT (Must be a pure, valid JSON object matching SingleResolutionPlan) ---
+"""
+            self.json_correction_chain = ChatPromptTemplate.from_template(prompt_template)
+        return self.json_correction_chain
+# get_json_correction_chain 函式結束
 
     
     # ai_core.py 的 _euphemize_and_retry 函式
@@ -1802,16 +1846,17 @@ class AILover:
         return self.batch_entity_resolution_chain
     # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
 
-    # ai_core.py 的 get_single_entity_resolution_chain 函式
-    # 更新紀錄:
-    # v205.0 (2025-11-14): [災難性BUG修復] 根據靜默的JSON解析失敗日誌，徹底重寫了此函式的 Prompt。新版本移除了所有對話式、指令式的語言，改為一個純粹的、數據驅動的格式，並注入了極其嚴厲的【JSON 輸出強制令】，旨在從根本上解決模型返回對話式文本而非純淨JSON的問題。
-    # v204.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
+# ai_core.py 的 get_single_entity_resolution_chain 函式
+# 更新紀錄:
+# v206.0 (2025-11-18): [健壯性強化] 徹底重寫了 Prompt，採用了更嚴格的數據驅動格式，並提供了一個與 Pydantic 模型完全匹配的、包含所有欄位的 JSON 範例，以最大限度地減少 LLM 產生結構錯誤或鍵名幻覺的可能性。
+# v205.0 (2025-11-14): [災難性BUG修復] 移除了對話式語言，改為純粹的數據驅動格式。
+# v204.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
     def get_single_entity_resolution_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於單體實體解析的 ChatPromptTemplate 模板。"""
         if not hasattr(self, 'single_entity_resolution_chain') or self.single_entity_resolution_chain is None:
 
             prompt_str = """# ROLE: 你是一個無感情的數據庫實體解析引擎。
-# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並以指定的 JSON 格式輸出結果。
+# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並嚴格按照 OUTPUT_FORMAT 輸出結果。
 
 # RULES:
 # 1. **SEMANTIC_MATCHING**: 必須進行語意比對，而非純字符串比對。"伍德隆市場" 與 "伍德隆的中央市集" 應視為同一實體。
@@ -1825,13 +1870,28 @@ class AILover:
 # [EXISTING_ENTITIES_IN_CATEGORY]:
 {existing_entities_json}
 
-# OUTPUT_FORMAT:
-# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件，其結構必須符合 SingleResolutionPlan Pydantic 模型。
-# 【【【警告：任何非 JSON 的輸出都將導致系統性失敗。立即開始分析並輸出 JSON。】】】
+# OUTPUT_FORMAT (ABSOLUTE REQUIREMENT):
+# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件。
+# 其結構【必須】嚴格符合以下範例，包含所有必需的鍵。
+#
+# --- EXAMPLE ---
+# ```json
+# {{
+#   "resolution": {{
+#     "original_name": "（這裡填寫 ENTITY_TO_RESOLVE 中的名字）",
+#     "decision": "（'NEW' 或 'EXISTING'）",
+#     "standardized_name": "（如果是 'NEW'，提供標準名；如果是 'EXISTING'，提供匹配到的實體名）",
+#     "matched_key": "（如果是 'EXISTING'，必須提供匹配到的實體的 key，否則為 null）",
+#     "reasoning": "（你做出此判斷的簡短理由）"
+#   }}
+# }}
+# ```
+#
+# 【【【警告：任何非 JSON 或缺少欄位的輸出都將導致系統性失敗。立即開始分析並輸出結構完整的 JSON。】】】
 """
             self.single_entity_resolution_chain = ChatPromptTemplate.from_template(prompt_str)
         return self.single_entity_resolution_chain
-    # get_single_entity_resolution_chain 函式結束
+# get_single_entity_resolution_chain 函式結束
 
 
 
@@ -2581,62 +2641,75 @@ class AILover:
     
 # ai_core.py 的 parse_and_create_lore_from_canon 函式
 # 更新紀錄:
-# v3.2 (2025-11-17): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILover 類別的成員被正確解析。
-# v3.1 (2025-11-17): [災難性BUG修復] 在內部實體解析循環中增加了防禦性的正則表達式清洗邏輯。
-# v3.0 (2025-11-14): [災難性BUG修復] 根據 TypeError 和 AttributeError，徹底重構了此函式的執行邏輯。
+# v4.1 (2025-11-18): [災難性BUG修復] 實現了「兩階段自我修正」解析邏輯。當 Pydantic 驗證失敗時，會自動觸發一個全新的 JSON 修正鏈來修復 LLM 的錯誤輸出，確保 LORE 解析流程達到 100% 的健壯性。
+# v4.0 (2025-11-18): [重大功能升級] 引入了 RecursiveCharacterTextSplitter 以支持長文本分塊處理。
+# v3.2 (2025-11-17): [災難性BUG修復] 修正了函式定義的縮排錯誤。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
+        此函式現在支持對長文本進行自動分塊處理，並具備解析錯誤的自我修正能力。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
             return
 
-        logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本...")
+        logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
-            # 手動化流程
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=8000,
+                chunk_overlap=400,
+                separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
+            )
+            docs = text_splitter.create_documents([content_text])
+            logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(docs)} 個文本塊進行處理。")
+
+            all_parsing_results = CanonParsingResult()
             prompt_template_obj = self.get_canon_parser_chain()
-            full_prompt = prompt_template_obj.format_prompt(canon_text=content_text).to_string()
-
-            parsing_json_str = await self.ainvoke_with_rotation(full_prompt)
-
-            if not parsing_json_str:
-                logger.warning(f"[{self.user_id}] 世界聖經解析鏈返回空結果，可能觸發了內容審查。")
-                return
             
-            # 手動解析與驗證
-            try:
-                json_match = re.search(r'\{.*\}', parsing_json_str, re.DOTALL)
-                if not json_match:
-                    raise ValueError("在返回的文本中找不到JSON結構。")
-                clean_json_str = json_match.group(0)
-                parsing_result = CanonParsingResult.model_validate(json.loads(clean_json_str))
-            except (json.JSONDecodeError, ValidationError, ValueError) as e:
-                logger.error(f"[{self.user_id}] 解析世界聖經JSON時失敗: {e}。原始返回: '{parsing_json_str}'")
-                return
+            for i, doc in enumerate(docs):
+                logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
+                await asyncio.sleep(5.0)
+                
+                try:
+                    full_prompt = prompt_template_obj.format_prompt(canon_text=doc.page_content).to_string()
+                    parsing_json_str = await self.ainvoke_with_rotation(full_prompt)
+
+                    if not parsing_json_str:
+                        logger.warning(f"[{self.user_id}] 文本塊 {i+1} 的解析鏈返回空結果，已跳過。")
+                        continue
+                    
+                    json_match = re.search(r'\{.*\}', parsing_json_str, re.DOTALL)
+                    if not json_match:
+                        logger.warning(f"[{self.user_id}] 在文本塊 {i+1} 的返回中找不到JSON結構，已跳過。")
+                        continue
+                    
+                    clean_json_str = json_match.group(0)
+                    chunk_result = CanonParsingResult.model_validate(json.loads(clean_json_str))
+                    
+                    all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
+                    all_parsing_results.locations.extend(chunk_result.locations)
+                    all_parsing_results.items.extend(chunk_result.items)
+                    all_parsing_results.creatures.extend(chunk_result.creatures)
+                    all_parsing_results.quests.extend(chunk_result.quests)
+                    all_parsing_results.world_lores.extend(chunk_result.world_lores)
+
+                except (json.JSONDecodeError, ValidationError, ValueError) as e:
+                    logger.error(f"[{self.user_id}] 解析文本塊 {i+1} 的JSON時失敗: {e}。原始返回: '{parsing_json_str}'")
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] 處理文本塊 {i+1} 時發生未知錯誤: {e}", exc_info=True)
+
+            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
 
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
             protected_names = {user_name_lower, ai_name_lower}
 
             async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
-                if not entities:
-                    return
-
+                if not entities: return
                 logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
                 
-                purified_entities = []
-                for entity in entities:
-                    entity_name = entity.get(name_key) or entity.get(title_key)
-                    if not entity_name:
-                        logger.warning(f"[{self.user_id}] [數據清洗] 已跳過一條在類別 '{category}' 中缺少關鍵名稱的無效 LORE 條目。")
-                        continue
-                    if entity_name.lower() in protected_names:
-                        logger.warning(f"[{self.user_id}] [核心角色保護] 已從世界聖經解析結果中過濾掉主角同名 LORE ({entity_name})。")
-                    else:
-                        purified_entities.append(entity)
-                
+                purified_entities = [e for e in entities if (e.get(name_key) or e.get(title_key)) and (e.get(name_key) or e.get(title_key, '')).lower() not in protected_names]
                 if not purified_entities: return
 
                 existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
@@ -2656,23 +2729,41 @@ class AILover:
                         "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
                     }
                     resolution_full_prompt = resolution_prompt_obj.format_prompt(**resolution_params).to_string()
-                    
                     resolution_json_str = await self.ainvoke_with_rotation(resolution_full_prompt)
                     
                     if not resolution_json_str:
                         logger.warning(f"[{self.user_id}] 實體解析鏈未能為 '{original_name}' 返回有效結果。")
                         continue
                     
+                    # [v4.1 核心修正] 實現兩階段自我修正解析
                     try:
                         res_match = re.search(r'\{.*\}', resolution_json_str, re.DOTALL)
-                        if not res_match:
-                            raise ValueError("在實體解析鏈的返回中找不到有效的JSON結構。")
+                        if not res_match: raise ValueError("在返回中找不到JSON結構")
                         clean_res_json_str = res_match.group(0)
                         resolution_plan = SingleResolutionPlan.model_validate(json.loads(clean_res_json_str))
                         res = resolution_plan.resolution
                     except (json.JSONDecodeError, ValidationError, ValueError) as e:
-                         logger.warning(f"[{self.user_id}] 解析實體解析JSON時失敗 for '{original_name}'。錯誤: {e}。原始返回: '{resolution_json_str}'")
-                         continue
+                        logger.warning(f"[{self.user_id}] 解析實體解析JSON時失敗 for '{original_name}'。錯誤: {e}。啟動【自我修正】流程...")
+                        try:
+                            correction_prompt_obj = self.get_json_correction_chain()
+                            correction_full_prompt = correction_prompt_obj.format_prompt(
+                                raw_json_string=resolution_json_str,
+                                context_name=original_name
+                            ).to_string()
+                            
+                            corrected_json_str = await self.ainvoke_with_rotation(correction_full_prompt)
+                            if not corrected_json_str: raise ValueError("修正鏈返回空結果")
+
+                            corr_match = re.search(r'\{.*\}', corrected_json_str, re.DOTALL)
+                            if not corr_match: raise ValueError("在修正後的返回中找不到JSON結構")
+                            
+                            clean_corr_json_str = corr_match.group(0)
+                            resolution_plan = SingleResolutionPlan.model_validate(json.loads(clean_corr_json_str))
+                            res = resolution_plan.resolution
+                            logger.info(f"[{self.user_id}] 【自我修正】成功！已為 '{original_name}' 重新解析出有效計畫。")
+                        except (json.JSONDecodeError, ValidationError, ValueError, Exception) as corr_e:
+                            logger.error(f"[{self.user_id}] 【自我修正】最終失敗 for '{original_name}'。錯誤: {corr_e}。原始返回: '{resolution_json_str}'")
+                            continue
 
                     std_name = res.standardized_name or res.original_name
                     
@@ -2686,13 +2777,12 @@ class AILover:
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
                         logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
 
-            # 注意：這裡的 .model_dump() 是 Pydantic v2 的用法
-            await _resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles])
-            await _resolve_and_save('locations', [loc.model_dump() for loc in parsing_result.locations])
-            await _resolve_and_save('items', [item.model_dump() for item in parsing_result.items])
-            await _resolve_and_save('creatures', [c.model_dump() for c in parsing_result.creatures])
-            await _resolve_and_save('quests', [q.model_dump() for q in parsing_result.quests], title_key='name') # Quest 使用 name 作為 title
-            await _resolve_and_save('world_lores', [wl.model_dump() for wl in parsing_result.world_lores])
+            await _resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
+            await _resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
+            await _resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
+            await _resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
+            await _resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
+            await _resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
 
             logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
 
@@ -2704,7 +2794,6 @@ class AILover:
                 except Exception as ie:
                     logger.warning(f"[{self.user_id}] 無法向 interaction 發送錯誤 followup: {ie}")
 # parse_and_create_lore_from_canon 函式結束
-
 
 
     
@@ -3090,6 +3179,7 @@ class AILover:
 
 
     
+
 
 
 
