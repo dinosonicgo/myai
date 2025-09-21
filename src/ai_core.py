@@ -168,11 +168,55 @@ class AILover:
         return None
     # 獲取下一個可用的 API 金鑰 函式結束
 
-    # 函式：帶有輪換和備援策略的原生 API 調用引擎 (v233.0 - 原生SDK重構)
-    # 更新紀錄:
-    # v233.0 (2025-11-19): [根本性重構] 根據最新討論，徹底重寫此函式，完全拋棄 LangChain 的執行層，改為直接使用 google.generativeai SDK。此修改從根本上解決了 LangChain 無法正確應用安全閥值的致命BUG，並整合了手動的Pydantic驗證和備援重試邏輯，成為系統中唯一的API執行引擎。
-    # v232.0 (2025-11-19): [災難性BUG修復] 重構了鏈的組裝和調用邏輯。
-    # v230.0 (2025-11-18): [重大架構升級] 引入了 retry_strategy 參數以支持備援重試。
+
+
+    # 函式：創建 LangChain LLM 實例 (v4.0 - 健壯性)
+# 更新紀錄:
+# v4.0 (2025-11-19): [功能恢復] 根據 AttributeError Log，將此核心輔助函式恢復到 AILover 類中。在原生SDK重構後，此函式仍然為 Embedding 等需要 LangChain 模型的輔助功能提供支持。
+# v3.3 (2025-10-15): [健壯性] 設置 max_retries=1 來禁用內部重試。
+# v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
+    def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
+        """
+        [輔助功能專用] 創建並返回一個 ChatGoogleGenerativeAI 實例。
+        主要用於 Embedding 等仍需 LangChain 模型的非生成性任務。
+        如果提供了 google_api_key，則優先使用它；否則，從內部輪換獲取。
+        """
+        key_to_use = google_api_key
+        key_index_log = "provided"
+        
+        if not key_to_use:
+            key_info = self._get_next_available_key()
+            if not key_info:
+                return None # 沒有可用的金鑰
+            key_to_use, key_index = key_info
+            key_index_log = str(key_index)
+        
+        generation_config = {"temperature": temperature}
+        
+        # 獲取 LangChain 格式的安全設定
+        safety_settings_langchain = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        
+        logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log})")
+        
+        return ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=key_to_use,
+            safety_settings=safety_settings_langchain,
+            generation_config=generation_config,
+            max_retries=1 # 禁用 LangChain 的內部重試，由我們自己的 ainvoke_with_rotation 處理
+        )
+# 創建 LangChain LLM 實例 函式結束
+
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v234.0 - 徹底原生化)
+# 更新紀錄:
+# v234.0 (2025-11-20): [根本性重構] 移除了對 _rebuild_agent_with_new_key 的調用，使此函式完全獨立，不再依賴任何外部模型實例，實現了徹底的原生化。
+# v233.0 (2025-11-19): [根本性重構] 徹底重寫此函式，完全拋棄 LangChain 的執行層，改為直接使用 google.generativeai SDK。
+# v232.0 (2025-11-19): [災難性BUG修復] 重構了鏈的組裝和調用邏輯。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -185,7 +229,9 @@ class AILover:
         並手動處理 Pydantic 結構化輸出，完全繞開 LangChain 的執行層 BUG。
         """
         import google.generativeai as genai
-        
+        from google.generativeai.types.generation_types import BlockedPromptException
+        from google.api_core import exceptions as google_api_exceptions
+
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         last_exception = None
 
@@ -249,7 +295,7 @@ class AILover:
                     else:
                         return None
 
-                except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, asyncio.TimeoutError) as e:
+                except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
                     last_exception = e
                     logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇臨時性 API 錯誤: {type(e).__name__}。正在輪換金鑰...")
                     continue
@@ -257,7 +303,7 @@ class AILover:
                 except Exception as e:
                     last_exception = e
                     logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                    break # 遇到未知錯誤，跳出金鑰循環，嘗試下一個模型
+                    break
             
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
@@ -265,7 +311,8 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         return None
-    # 帶有輪換和備援策略的原生 API 調用引擎 函式結束
+# 帶有輪換和備援策略的原生 API 調用引擎 函式結束
+    
 
     # 函式：委婉化並重試 (v2.0 - 適配原生引擎)
     # 更新紀錄:
@@ -316,6 +363,277 @@ class AILover:
             logger.error(f"[{self.user_id}] 【文學評論家委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
     # 委婉化並重試 函式結束
+
+
+
+
+# 函式：處理世界聖經並提取LORE (/start 流程 1/4) (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第一步，取代舊的 process_canon_node。
+    async def process_canon_and_extract_lores(self, canon_text: Optional[str]):
+        """(/start 流程 1/4) 處理世界聖經文本，存入RAG並解析LORE。"""
+        if not canon_text:
+            logger.info(f"[{self.user_id}] [/start] 未提供世界聖經文本，跳過處理。")
+            return
+        
+        logger.info(f"[{self.user_id}] [/start] 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
+        await self.add_canon_to_vector_store(canon_text)
+        logger.info(f"[{self.user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
+        
+        logger.info(f"[{self.user_id}] [/start] 正在進行 LORE 智能解析...")
+        # 注意：這裡的 interaction 傳遞 None，因為這是在 /start 流程的後台，不直接回應互動
+        await self.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
+        logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
+# 處理世界聖經並提取LORE 函式結束
+
+    # 函式：補完角色檔案 (/start 流程 2/4) (v3.0 - 適配原生引擎)
+# 更新紀錄:
+# v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。
+# v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
+# v2.0 (2025-09-05): [重大架構重構] 創建此函式，作為 /start 流程的一部分。
+    async def complete_character_profiles(self):
+        """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
+        if not self.profile:
+            logger.error(f"[{self.user_id}] [/start] ai_core.profile 為空，無法補完角色檔案。")
+            return
+
+        # 輔助函式，用於安全地解析可能帶有 Markdown 標籤的 JSON 字符串
+        def _safe_json_parse(json_string: str) -> Optional[CharacterProfile]:
+            try:
+                # 移除常見的 Markdown 代碼塊標籤
+                if json_string.strip().startswith("```json"):
+                    json_string = json_string.strip()[7:-3].strip()
+                elif json_string.strip().startswith("```"):
+                     json_string = json_string.strip()[3:-3].strip()
+                
+                data = json.loads(json_string)
+                return CharacterProfile.model_validate(data)
+            except (json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"[{self.user_id}] [/start] 解析角色檔案JSON時失敗: {e}")
+                return None
+
+        # 異步輔助函式，處理單個角色檔案的補完
+        async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
+            try:
+                prompt_template_obj = self.get_profile_completion_prompt()
+                
+                # 確保傳遞給 Prompt 的是純淨的 JSON 數據
+                safe_profile_data = original_profile.model_dump()
+                
+                full_prompt = prompt_template_obj.format_prompt(
+                    profile_json=json.dumps(safe_profile_data, ensure_ascii=False, indent=2)
+                ).to_string()
+                
+                # 使用原生引擎調用 LLM，並期望返回 CharacterProfile 類型的物件
+                completed_safe_profile = await self.ainvoke_with_rotation(
+                    full_prompt,
+                    output_schema=CharacterProfile, # 告知原生引擎我們期望的輸出類型
+                    retry_strategy='euphemize'
+                )
+                
+                if not completed_safe_profile or not isinstance(completed_safe_profile, CharacterProfile):
+                    logger.warning(f"[{self.user_id}] [/start] 角色 '{original_profile.name}' 的檔案補完返回了無效的數據，將使用原始檔案。")
+                    return original_profile
+
+                # 將 LLM 生成的新數據與原始數據進行合併
+                original_data = original_profile.model_dump()
+                completed_data = completed_safe_profile.model_dump()
+
+                # 只更新原始數據中為空或預設值的欄位
+                for key, value in completed_data.items():
+                    if not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]:
+                        if value: 
+                            original_data[key] = value
+                
+                # 強制保留使用者明確設定的核心資訊，防止被 AI 覆蓋
+                original_data['description'] = original_profile.description
+                original_data['appearance'] = original_profile.appearance
+                original_data['name'] = original_profile.name
+                original_data['gender'] = original_profile.gender
+                
+                return CharacterProfile.model_validate(original_data)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [/start] 為角色 '{original_profile.name}' 進行安全補完時發生錯誤: {e}", exc_info=True)
+                return original_profile
+
+        # 並行處理使用者和 AI 的角色檔案
+        completed_user_profile, completed_ai_profile = await asyncio.gather(
+            _safe_complete_profile(self.profile.user_profile),
+            _safe_complete_profile(self.profile.ai_profile)
+        )
+        
+        # 將更新後的檔案持久化到資料庫
+        await self.update_and_persist_profile({
+            'user_profile': completed_user_profile.model_dump(), 
+            'ai_profile': completed_ai_profile.model_dump()
+        })
+    # 補完角色檔案 函式結束
+
+
+
+# 函式：生成世界創世資訊 (/start 流程 3/4) (v4.0 - 適配原生引擎)
+# 更新紀錄:
+# v4.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。
+# v3.1 (2025-11-13): [災難性BUG修復] 增加了對 LLM 輸出的防禦性清洗邏輯。
+# v3.0 (2025-11-13): [災難性BUG修復] 徹底重構了此函式的 prompt 組合與調用邏輯。
+    async def generate_world_genesis(self):
+        """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
+        if not self.profile:
+            raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
+
+        # 步驟 1: 獲取 Prompt 模板
+        genesis_prompt_obj = self.get_world_genesis_chain()
+        
+        # 步驟 2: 準備參數並格式化為最終的 Prompt 字符串
+        genesis_params = {
+            "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
+            "username": self.profile.user_profile.name,
+            "ai_name": self.profile.ai_profile.name
+        }
+        full_prompt_str = genesis_prompt_obj.format_prompt(**genesis_params).to_string()
+        
+        # 步驟 3: 使用原生引擎調用 LLM
+        genesis_result = await self.ainvoke_with_rotation(
+            full_prompt_str,
+            output_schema=WorldGenesisResult, # 告知原生引擎我們期望的輸出類型
+            retry_strategy='force' # 創世是關鍵步驟，使用強制策略
+        )
+        
+        if not genesis_result or not isinstance(genesis_result, WorldGenesisResult):
+            raise Exception("世界創世在所有重試後最終失敗，未能返回有效的 WorldGenesisResult 物件。")
+        
+        # 步驟 4: 將生成的數據持久化到資料庫
+        # 更新遊戲狀態中的當前地點
+        gs = self.profile.game_state
+        gs.location_path = genesis_result.location_path
+        await self.update_and_persist_profile({'game_state': gs.model_dump()})
+        
+        # 將地點資訊存入 LORE
+        await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
+        
+        # 將初始 NPC 資訊存入 LORE
+        for npc in genesis_result.initial_npcs:
+            # 創建一個唯一的 LORE key，例如 "艾瑟利亞王國 > 首都晨風城 > 鐵匠傑克"
+            npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
+            # 將 NPC 的位置路徑也存入其檔案中，便於後續查詢
+            npc_data = npc.model_dump()
+            npc_data['location_path'] = genesis_result.location_path
+            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc_data)
+    # 生成世界創世資訊 函式結束
+
+
+
+    # 函式：生成開場白 (/start 流程 4/4) (v181.0 - 適配原生引擎)
+# 更新紀錄:
+# v181.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。同時保留了 v181.0 版本 Prompt 的核心思想，即「靜態場景」和「開放式結尾」。
+# v180.0 (2025-11-12): [完整性修復] 提供了此函式的完整、未省略的版本。
+# v179.0 (2025-11-12): [重大架構重構] 創建此函式，作為 /start 流程的最後一步。
+    async def generate_opening_scene(self) -> str:
+        """(/start 流程 4/4) 根據已生成的完整上下文，撰寫故事的開場白。"""
+        if not self.profile:
+            raise ValueError("AI 核心未初始化，無法生成開場白。")
+
+        user_profile = self.profile.user_profile
+        ai_profile = self.profile.ai_profile
+        gs = self.profile.game_state
+
+        # 從 LORE 資料庫獲取當前地點的詳細描述
+        location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
+        location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+        
+        # 構建系統 Prompt，定義 AI 的角色和規則
+        system_prompt_str = f"""你是一位技藝精湛的【場景佈景師】與【開場導演】。
+
+# === 【【【v181.0 核心任務定義】】】 ===
+你的唯一任務是，基於所有源數據，創造一個**【靜態的場景快照 (Static Scene Snapshot)】**。
+這個快照描寫的是使用者角色「{user_profile.name}」與 AI 角色「{ai_profile.name}」在故事**正式開始前一刻**的畫面。
+你的職責是**搭建舞台**，而不是**啟動劇情**。
+
+# === 【【【v181.0 絕對敘事禁令】】】 ===
+1.  **【👑 使用者主權鐵則】**:
+    *   你的旁白【絕對禁止】描寫、暗示或杜撰使用者角色「{user_profile.name}」的**任何主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。
+    *   **反面範例 (絕對禁止出現)**: `「{user_profile.name}轉過身說...」`, `「{user_profile.name}心想...」`, `「{user_profile.name}輕哼了一聲。」`
+    *   **正確行為**: 你只能根據其角色檔案，對其進行**客觀的、靜態的外觀和姿態描述**，如同描述一尊精美的雕像。
+
+2.  **【🚫 禁止杜撰情節】**:
+    *   這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情，如性愛、暴力或衝突。
+
+# === 【【【最終輸出強制令】】】 ===
+你的最終輸出【必須且只能】是純粹的小說文本，並且其寫作風格必須嚴格遵循下方由使用者定義的風格指令。
+---
+{self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
+---
+"""
+        # 構建使用者 Prompt，提供所有必要的上下文數據
+        human_prompt_str = f"""
+請嚴格遵循你在系統指令中學到的所有規則，為以下角色和場景搭建一個【靜態的】開場快照。
+
+# === 【【【v181.0 核心要求】】】 ===
+1.  **【雙人場景】**: 開場白【必須】同時客觀描寫使用者角色「{user_profile.name}」和 AI 角色「{ai_profile.name}」的**靜態存在**。
+2.  **【狀態還原】**: 【必須】準確描寫他們在【當前地點】的場景，並讓他們的穿著和姿態完全符合下方提供的【角色檔案】。
+3.  **【氛圍營造】**: 營造出符合【世界觀】和【當前地點描述】的氛圍。
+4.  **【開放式結尾強制令】**:
+    *   你的開場白**結尾**【必須】是 **AI 角色「{ai_profile.name}」** 的一個動作或一句對話。
+    *   這個結尾的作用是**將故事的控制權正式交給使用者**，為「{user_profile.name}」創造一個明確的回應或行動的契機。
+
+---
+【世界觀】
+{self.profile.world_settings}
+---
+【當前地點】: {" > ".join(gs.location_path)}
+【地點描述】: {location_description}
+---
+【使用者角色檔案：{user_profile.name}】
+{json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False)}
+---
+【AI角色檔案：{ai_profile.name}】
+{json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False)}
+---
+
+請開始搭建一個寧靜、靜態且符合所有設定的開場場景。
+"""
+        
+        # 組合 Prompt 並使用原生引擎調用
+        full_prompt = f"{system_prompt_str}\n\n{human_prompt_str}"
+        
+        final_opening_scene = ""
+        try:
+            initial_scene = await self.ainvoke_with_rotation(
+                full_prompt, 
+                retry_strategy='force',
+                use_degradation=True # 使用最高級的模型以保證開場白質量
+            )
+            
+            if not initial_scene or not initial_scene.strip():
+                raise Exception("生成了空的場景內容。")
+
+            final_opening_scene = initial_scene.strip()
+            
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [/start] 開場白生成遭遇無法恢復的錯誤: {e}。啟動【安全備用開場白】。")
+            final_opening_scene = (
+                f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡，故事即將從這裡開始。"
+                "\n\n（系統提示：由於您的設定可能包含敏感詞彙，AI無法生成詳細的開場白，但您現在可以開始互動了。）"
+            )
+
+        return final_opening_scene
+# 生成開場白 函式結束
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
 
     # 函式：強制並重試 (v2.0 - 適配原生引擎)
     # 更新紀錄:
@@ -912,11 +1230,11 @@ class AILover:
 
     
 
-    # 函式：配置前置資源 (v203.1 - 延遲加載重構)
-    # 更新紀錄:
-    # v203.1 (2025-09-05): [延遲加載重構] 簡化職責，不再構建任何鏈。
-    # v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構。
-    # v202.0 (2025-09-05): [災難性BUG修復] 根據 AttributeError，確保在構建鏈之前先初始化模型。
+# 函式：配置前置資源 (v203.2 - 移除模型初始化)
+# 更新紀錄:
+# v203.2 (2025-11-20): [根本性重構] 徹底移除了對 _initialize_models 的調用，以完全切斷對 LangChain 執行層的依賴，確保所有 LLM 調用都通過原生 SDK 引擎。
+# v203.1 (2025-09-05): [延遲加載重構] 簡化職責，不再構建任何鏈。
+# v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構。
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
@@ -930,14 +1248,17 @@ class AILover:
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # 注意：這裡不再初始化 self.gm_model，因為原生引擎不需要它
+        # [v203.2 核心修正] 只創建 Embedding 實例，不再初始化任何 LLM 模型
         self.embeddings = self._create_embeddings_instance()
         
         self.retriever = await self._build_retriever()
         
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
-    # 配置前置資源 函式結束
+# 配置前置資源 函式結束
 
+
+
+    
     # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
     # 更新紀錄:
     # v1.1 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
@@ -1475,4 +1796,5 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
