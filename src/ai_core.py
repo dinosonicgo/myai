@@ -1780,15 +1780,15 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v7.2 - 強制RAG重建)
+# 函式：解析世界聖經並創建 LORE (v7.3 - 三階段終極備援)
 # 更新紀錄:
-# v7.2 (2025-11-22): [災難性BUG修復] 在函式執行的末尾，增加了一行對 `await self._build_retriever()` 的強制調用。此修改確保了在通過聖經解析大量創建/更新LORE之後，RAG 系統（BM25檢索器）會被立即用最新的數據完全重建，從而解決了新LORE無法被即時查詢到的問題。
+# v7.3 (2025-11-22): [災難性BUG修復] 引入了三階段 LORE 解析降級系統。當主解析鏈和委婉化重試鏈相繼因內容審查失敗後，會觸發終極備援：直接在原始 NSFW 文本上運行一個更具抗性的 LORE 實體提取鏈。此修改旨在最大限度地從被審查的文本塊中搶救 LORE 數據，將信息損失降至最低，無限趨近 100% 的解析成功率。
+# v7.2 (2025-11-22): [災難性BUG修復] 在函式執行的末尾，增加了對 RAG 索引的強制重建。
 # v7.1 (2025-11-22): [健壯性強化] 調整了 RecursiveCharacterTextSplitter 的 chunk_size 以避免長度超限問題。
-# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了 LLM 實體解析鏈，改為實現基於 Levenshtein 距離的智能合併邏輯。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
-        此函式採用 Levenshtein 距離算法來智能合併相似實體，並在結束後強制重建RAG索引。
+        此函式採用三階段降級策略（主解析 -> 委婉化重試 -> 原文提取）來應對內容審查。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
@@ -1806,80 +1806,97 @@ class AILover:
             logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(docs)} 個文本塊進行處理。")
 
             all_parsing_results = CanonParsingResult()
-            canon_parser_chain = self.get_canon_parser_chain()
             
             for i, doc in enumerate(docs):
                 logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
                 await asyncio.sleep(5.0)
+                
+                # --- 三階段 LORE 解析流程 ---
+                chunk_result = None
                 try:
-                    full_prompt = canon_parser_chain.format_prompt(canon_text=doc.page_content).to_string()
+                    # --- 階段 1: 嘗試主解析 ---
+                    logger.info(f"[{self.user_id}] [階段 1/3] 嘗試主要解析鏈...")
+                    canon_parser_prompt_obj = self.get_canon_parser_chain()
+                    full_prompt = canon_parser_prompt_obj.format_prompt(canon_text=doc.page_content).to_string()
+                    
+                    # 首次嘗試，如果成功就直接使用
                     chunk_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='euphemize'
+                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none' # 失敗後由我們手動處理
                     )
+                    
                     if not chunk_result:
-                        logger.warning(f"[{self.user_id}] 文本塊 {i+1} 在所有重試後最終解析失敗，已跳過。")
+                        # ainvoke_with_rotation 在 review 或 retry_strategy='none' 時會返回 None
+                        raise ValueError("主解析鏈返回空結果，可能已被審查。")
+
+                    logger.info(f"[{self.user_id}] [階段 1/3] 主要解析成功。")
+
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] [階段 1/3] 主要解析失敗: {e}。進入下一階段。")
+                    
+                    # --- 階段 2: 嘗試委婉化重試 ---
+                    logger.info(f"[{self.user_id}] [階段 2/3] 嘗試委婉化重試策略...")
+                    # 這裡的 failed_prompt 就是我們剛剛構建的 full_prompt
+                    chunk_result = await self._euphemize_and_retry(full_prompt, CanonParsingResult, e)
+
+                    if not chunk_result:
+                        logger.warning(f"[{self.user_id}] [階段 2/3] 委婉化重試失敗。進入終極備援。")
+                        
+                        # --- 階段 3: 終極備援 - 原文 LORE 提取 ---
+                        logger.info(f"[{self.user_id}] [階段 3/3] 啟動終極備援：原文 LORE 提取...")
+                        try:
+                            # 獲取所有現有 LORE 作為上下文
+                            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
+                            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+
+                            extraction_prompt_obj = self.get_lore_extraction_chain()
+                            extraction_prompt = extraction_prompt_obj.format_prompt(
+                                username=self.profile.user_profile.name,
+                                ai_name=self.profile.ai_profile.name,
+                                existing_lore_summary=existing_lore_summary,
+                                user_input="（來自世界聖經的上下文）",
+                                final_response_text=doc.page_content # 直接使用原始 NSFW 文本
+                            ).to_string()
+
+                            extraction_plan = await self.ainvoke_with_rotation(
+                                extraction_prompt, output_schema=ToolCallPlan, retry_strategy='none'
+                            )
+
+                            if extraction_plan and extraction_plan.plan:
+                                logger.info(f"[{self.user_id}] [階段 3/3] 終極備援成功，從原文中提取到 {len(extraction_plan.plan)} 條 LORE。")
+                                gs = self.profile.game_state
+                                effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                                await self._execute_tool_call_plan(extraction_plan, effective_location)
+                            else:
+                                logger.warning(f"[{self.user_id}] [階段 3/3] 終極備援未能從原文中提取到任何 LORE。")
+
+                        except Exception as final_e:
+                            logger.error(f"[{self.user_id}] [階段 3/3] 終極備援流程執行時發生未知錯誤: {final_e}", exc_info=True)
+                        
+                        # 終極備援後，無論成功與否，都跳過主結果的合併
                         continue
+                
+                # 如果階段 1 或 2 成功，則合併結果
+                if chunk_result:
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
                     all_parsing_results.locations.extend(chunk_result.locations)
                     all_parsing_results.items.extend(chunk_result.items)
                     all_parsing_results.creatures.extend(chunk_result.creatures)
                     all_parsing_results.quests.extend(chunk_result.quests)
                     all_parsing_results.world_lores.extend(chunk_result.world_lores)
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] 處理文本塊 {i+1} 時發生未知錯誤: {e}", exc_info=True)
 
-            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
+            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
 
-            user_name_lower = self.profile.user_profile.name.lower()
-            ai_name_lower = self.profile.ai_profile.name.lower()
-            protected_names = {user_name_lower, ai_name_lower}
-
-            async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
-                if not entities: return
-                logger.info(f"[{self.user_id}] [程式化合併] 正在為 '{category}' 類別的 {len(entities)} 個實體進行智能合併...")
-                
-                purified_entities = [e for e in entities if (e.get(name_key) or e.get(title_key)) and (e.get(name_key) or e.get(title_key, '')).lower() not in protected_names]
-                if not purified_entities: return
-
-                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
-                
-                SIMILARITY_THRESHOLD = 0.8
-
-                for entity_data in purified_entities:
-                    new_entity_name = entity_data.get(name_key) or entity_data.get(title_key)
-                    if not new_entity_name: continue
-
-                    best_match_lore = None
-                    highest_similarity = 0.0
-
-                    for existing_lore in existing_lores:
-                        existing_name = existing_lore.content.get(name_key) or existing_lore.content.get(title_key)
-                        if not existing_name: continue
-                        
-                        similarity = levenshtein_ratio(new_entity_name.lower(), existing_name.lower())
-                        
-                        if similarity > highest_similarity:
-                            highest_similarity = similarity
-                            best_match_lore = existing_lore
-                    
-                    if best_match_lore and highest_similarity >= SIMILARITY_THRESHOLD:
-                        await db_add_or_update_lore(self.user_id, category, best_match_lore.key, entity_data, source='canon', merge=True)
-                        logger.info(f"[{self.user_id}] [智能合併] 已將 '{new_entity_name}' 的資訊合併到相似度為 {highest_similarity:.2f} 的現有 LORE '{best_match_lore.key}' 中。")
-                    else:
-                        safe_key = re.sub(r'[\s/\\:*?"<>|]+', '_', new_entity_name)
-                        await db_add_or_update_lore(self.user_id, category, safe_key, entity_data, source='canon')
-                        logger.info(f"[{self.user_id}] [智能合併] 未找到相似 LORE (最高相似度: {highest_similarity:.2f})，已為新實體 '{new_entity_name}' 創建了 LORE，主鍵為 '{safe_key}'。")
-
-            await _resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
-            await _resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
-            await _resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
-            await _resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
-            await _resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
-            await _resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
+            # 後續的程式化合併與儲存邏輯保持不變
+            await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
+            await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
+            await self._resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
+            await self._resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
+            await self._resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
+            await self._resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
 
             logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
             
-            # [v7.2 核心修正] 強制重建 RAG 檢索器，使其包含所有新創建的 LORE
             logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
             self.retriever = await self._build_retriever()
             logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
@@ -2286,6 +2303,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
