@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T22:02:12.951967 ###
+### AI Lover Log - Last updated at 2025-09-21T22:04:21.228130 ###
 
-2025-09-21 20:45:09 - [INFO] - [512280345618546699] 混合記憶組合完畢。
-2025-09-21 20:45:09 - [ERROR] - 處理使用者 512280345618546699 的「生成即摘要」流程時發生異常: 'viewing_mode'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 770, in on_message
-    final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1139, in preprocess_and_generate
-    world_snapshot = self.world_snapshot_template.format(**remote_params)
 KeyError: 'viewing_mode'
 2025-09-21 20:56:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-21 20:56:58 - [INFO] - Discord Bot is ready and commands are synced!
@@ -100,3 +93,10 @@ AttributeError: 'Settings' object has no attribute 'TEST_GUILD_ID'
 2025-09-21 22:02:01 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-21 22:02:03 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-21 22:02:04 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-21 22:04:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-21 22:04:07 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-21 22:04:07 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-21 22:04:07 - [INFO] - Discord Bot is ready!
+2025-09-21 22:04:10 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-21 22:04:10 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-21 22:04:10 - [INFO] - 已成功發送啟動成功通知給管理員。
