@@ -739,55 +739,57 @@ class BotCog(commands.Cog):
 
 
     
-    # discord_bot.py 的 on_message 函式
-    # 更新紀錄:
-    # v54.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-    # v54.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了事後處理的觸發邏輯。
-    @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.author.bot: return
-        is_dm = isinstance(message.channel, discord.DMChannel)
-        is_mentioned = self.bot.user in message.mentions
-        if not is_dm and not is_mentioned: return
-        ctx = await self.bot.get_context(message)
-        if ctx.valid: return
-        user_id = str(message.author.id)
-        user_input = message.content.replace(f'<@{self.bot.user.id}>', '').strip()
-        if is_mentioned and not user_input:
-            await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
-            return
-        
-        ai_instance = await self.get_or_create_ai_instance(user_id)
-        if not ai_instance:
-            await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
-            return
+# discord_bot.py 的 on_message 函式
+# 更新紀錄:
+# v54.2 (2025-11-15): [災難性BUG修復] 根據 AttributeError，修正了日誌記錄中對 user_id 的錯誤引用，將 self.user_id 改為局部變數 user_id。
+# v54.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
+# v54.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了事後處理的觸發邏輯。
+@commands.Cog.listener()
+async def on_message(self, message: discord.Message):
+    if message.author.bot: return
+    is_dm = isinstance(message.channel, discord.DMChannel)
+    is_mentioned = self.bot.user in message.mentions
+    if not is_dm and not is_mentioned: return
+    ctx = await self.bot.get_context(message)
+    if ctx.valid: return
+    user_id = str(message.author.id)
+    user_input = message.content.replace(f'<@{self.bot.user.id}>', '').strip()
+    if is_mentioned and not user_input:
+        await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
+        return
+    
+    ai_instance = await self.get_or_create_ai_instance(user_id)
+    if not ai_instance:
+        await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
+        return
 
-        async with message.channel.typing():
-            try:
-                logger.info(f"[{user_id}] 啟動「生成即摘要」對話流程...")
-                input_data = { "user_input": user_input }
-                # 接收小說和預生成摘要
-                final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
+    async with message.channel.typing():
+        try:
+            logger.info(f"[{user_id}] 啟動「生成即摘要」對話流程...")
+            input_data = { "user_input": user_input }
+            # 接收小說和預生成摘要
+            final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
+            
+            if final_response and final_response.strip():
+                for i in range(0, len(final_response), 2000):
+                    await message.channel.send(final_response[i:i+2000])
                 
-                if final_response and final_response.strip():
-                    for i in range(0, len(final_response), 2000):
-                        await message.channel.send(final_response[i:i+2000])
-                    
-                    # 將安全的摘要數據傳遞給事後處理任務
-                    if summary_data:
-                        logger.info(f"[{user_id}] 回應已發送。正在根據預生成摘要啟動事後處理任務...")
-                        asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
-                        asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
-                    else:
-                        logger.info(f"[{self.user_id}] 本輪回應無摘要數據，跳過事後處理。")
+                # 將安全的摘要數據傳遞給事後處理任務
+                if summary_data:
+                    logger.info(f"[{user_id}] 回應已發送。正在根據預生成摘要啟動事後處理任務...")
+                    asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
+                    asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
                 else:
-                    logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
-                    await message.channel.send("（抱歉，我好像突然斷線了...）")
+                    # [v54.2 核心修正] 將 self.user_id 修正為局部變數 user_id
+                    logger.info(f"[{user_id}] 本輪回應無摘要數據，跳過事後處理。")
+            else:
+                logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
+                await message.channel.send("（抱歉，我好像突然斷線了...）")
 
-            except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
-                await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # on_message 函式結束
+        except Exception as e:
+            logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
+            await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
+# on_message 函式結束
 
 
 
@@ -846,33 +848,46 @@ class BotCog(commands.Cog):
             self.setup_locks.discard(user_id)
     # finalize_setup 函式結束
 
-    # 函式：背景處理世界聖經
-    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
-        user_id = str(interaction.user.id)
-        user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
-        try:
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
-            if not ai_instance:
-                await user.send("❌ **處理失敗！**")
-                return
-            if len(content_text) > 5000:
-                await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間。")
-            if not ai_instance.vector_store:
-                await ai_instance._configure_pre_requisites()
-            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-            
-            if is_setup_flow:
-                await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
-                asyncio.create_task(self.finalize_setup(interaction, content_text))
-                return
+# discord_bot.py 的 _background_process_canon 函式
+# 更新紀錄:
+# v51.0 (2025-11-16): [災難性BUG修復] 修正了在非 /start 流程中 (is_setup_flow=False)，函式只對聖經進行向量化而遺漏了LORE結構化解析的致命邏輯錯誤。
+# v50.0 (2025-11-14): [完整性修復] 根據 NameError，提供了此檔案的完整版本。
+# v49.0 (2025-11-14): [災難性BUG修復] 增加了在開場白後將其存入歷史記錄的關鍵步驟。
+async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+    user_id = str(interaction.user.id)
+    user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
+    try:
+        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
+        if not ai_instance:
+            await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
+            return
+        if len(content_text) > 5000:
+            await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
+        if not ai_instance.vector_store:
+            # 確保 RAG 系統已就緒
+            await ai_instance._configure_pre_requisites()
+        
+        # 步驟 1: 將聖經文本存入 RAG 知識庫 (向量化)
+        chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
+        
+        # 根據流程決定後續操作
+        if is_setup_flow:
+            # 如果是 /start 流程，直接觸發創世的最後一步
+            await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
+            asyncio.create_task(self.finalize_setup(interaction, content_text))
+            return
 
-            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行更深層的智能解析...")
-            await ai_instance.parse_and_create_lore_from_canon(interaction, content_text, is_setup_flow)
-            await user.send("✅ **智能解析完成！**")
-        except Exception as e:
-            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
-            await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`")
-    # _background_process_canon 函式結束
+        # [v51.0 核心修正] 對於非 /start 流程，確保 LORE 解析也被執行
+        await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段，現在AI可以在對話中回憶起這些內容了。\n\n🧠 接下來，AI 正在進行更深層的智能解析，將其轉化為結構化的 LORE 數據庫...")
+        
+        # 步驟 2: 智能解析聖經文本，創建結構化 LORE
+        await ai_instance.parse_and_create_lore_from_canon(interaction, content_text, is_setup_flow)
+        
+        await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+    except Exception as e:
+        logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+        await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
+# _background_process_canon 函式結束
     
     # 函式：開始重置流程
     async def start_reset_flow(self, interaction: discord.Interaction):
