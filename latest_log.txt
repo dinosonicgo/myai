@@ -1,31 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T22:53:12.769470 ###
+### AI Lover Log - Last updated at 2025-09-21T22:58:15.392743 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 902, in get_or_create_ai_instance
-    await ai_instance._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 867, in _configure_pre_requisites
-    self.retriever = await self._build_retriever()
-AttributeError: 'AILover' object has no attribute '_build_retriever'. Did you mean: 'bm25_retriever'?
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-21 22:39:16 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-21 22:39:18 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-21 22:39:25 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-21 22:39:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-21 22:39:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-21 22:39:27 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-21 22:39:37 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-21 22:39:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-21 22:39:38 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-21 22:39:39 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.
-2025-09-21 22:39:40 - [INFO] - [512280345618546699] (UI Event) finalize_setup 被觸發。Canon provided: False
-2025-09-21 22:39:40 - [INFO] - [512280345618546699] [/start 流程 1/4] 正在處理世界聖經...
-2025-09-21 22:39:40 - [ERROR] - [512280345618546699] 在手動編排的創世流程中發生嚴重錯誤: 'AILover' object has no attribute 'process_canon_and_extract_lores'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1060, in finalize_setup
-    await ai_instance.process_canon_and_extract_lores(canon_text)
-AttributeError: 'AILover' object has no attribute 'process_canon_and_extract_lores'
-2025-09-21 22:44:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-21 22:44:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
 2025-09-21 22:44:10 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-09-21 22:44:10 - [INFO] - Discord Bot is ready!
@@ -100,3 +74,29 @@ AttributeError: 'AILover' object has no attribute 'process_canon_and_extract_lor
 2025-09-21 22:53:02 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-21 22:53:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-21 22:53:02 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-21 22:53:14 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
+2025-09-21 22:53:14 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-21 22:53:15 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-21 22:53:15 - [WARNING] - [512280345618546699] (RAG Executor) 主記憶系統 (Embedding) 失敗: GoogleGenerativeAIError
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
+2025-09-21 22:53:15 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-21 22:53:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇臨時性 API 錯誤: ResourceExhausted。正在輪換金鑰...
+2025-09-21 22:53:32 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇臨時性 API 錯誤: ResourceExhausted。正在輪換金鑰...
+2025-09-21 22:54:14 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-21 22:54:15 - [INFO] - [512280345618546699] 回應已發送。正在根據預生成摘要啟動事後處理任務...
+2025-09-21 22:54:15 - [INFO] - [512280345618546699] 背景任務：預生成摘要中不包含LORE更新。
