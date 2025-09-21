@@ -1015,11 +1015,11 @@ class AILover:
 
 
     
-# 函式：預處理並生成主回應 (v33.0 - 微任務上下文注入)
+# 函式：預處理並生成主回應 (v33.1 - 直接上下文注入)
 # 更新紀錄:
-# v33.0 (2025-11-21): [重大邏輯修正] 增加了「微任務上下文注入」機制。函式現在會從最近的對話歷史中自動提取潛在的、未完成的行動目標（例如“去尋找月霜果”），並將其作為明確的任務指令注入到主 Prompt 中。此修改旨在從根本上解決 AI 忘記上下文、導致劇情邏輯跳躍的問題。
+# v33.1 (2025-11-21): [架構優化] 根據討論，採納了更優的實現方案。移除了所有額外的輕量級LLM調用，改為直接將從歷史記錄中提取的「微任務上下文」填充到 world_snapshot_template 的 quests_context 欄位中，實現了零開銷的劇情邏輯強化。
+# v33.0 (2025-11-21): [重大邏輯修正] 增加了「微任務上下文注入」機制。
 # v32.0 (2025-11-20): [重大架構升級] 引入了「互動焦點篩選」機制。
-# v31.0 (2025-11-20): [災難性BUG修復] 針對 AI 幻覺和輸出格式污染問題進行了雙重修正。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1036,8 +1036,7 @@ class AILover:
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # 視角判斷邏輯 (保持不變)
-        # ... (此部分程式碼與 v32.0 完全相同，為簡潔此處省略，實際應為完整程式碼) ...
+        # 視角判斷邏輯
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
@@ -1080,7 +1079,6 @@ class AILover:
                 gs.remote_target_path = None
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
 
-
         scene_key = self._get_scene_key()
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history = chat_history_manager.messages
@@ -1098,8 +1096,8 @@ class AILover:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
-        # [v33.0 核心修正] 微任務上下文注入
-        micro_task_context = "目前沒有明確的短期任務。"
+        # [v33.1 核心修正] 直接從對話歷史中提取微任務上下文
+        micro_task_context = "無進行中的任務"
         if chat_history:
             last_ai_message = ""
             for msg in reversed(chat_history):
@@ -1107,11 +1105,10 @@ class AILover:
                     last_ai_message = msg.content
                     break
             if "需要" in last_ai_message or "去" in last_ai_message or "尋找" in last_ai_message or "目標是" in last_ai_message:
-                # 簡單的關鍵詞提取，可以替換為更複雜的NLU
                 match = re.search(r"(需要|去|尋找|目標是|前往)[\s\S]*", last_ai_message)
                 if match:
-                    task_description = match.group(0).replace("\n", " ")
-                    micro_task_context = f"當前的短期任務或目標是：{task_description}"
+                    task_description = match.group(0).replace("\n", " ").strip()
+                    micro_task_context = f"臨時短期任務：{task_description}"
                     logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
 
         system_prompt_template = self.core_protocol_prompt
@@ -1146,15 +1143,12 @@ class AILover:
             "ai_settings": ai_profile.description,
             "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            # [v33.0] 將微任務上下文添加到 quests_context
             "quests_context": micro_task_context,
             "user_input": user_input,
             "response_style_prompt": response_style_template,
             "historical_context": raw_short_term_history,
         }
 
-        # 互動焦點篩選邏輯 (保持不變)
-        # ... (此部分程式碼與 v32.0 完全相同，為簡潔此處省略，實際應為完整程式碼) ...
         if gs.viewing_mode == 'remote':
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
@@ -1162,7 +1156,7 @@ class AILover:
             full_prompt_params["relevant_npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs]) or "（此場景目前沒有核心互動目標。）"
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此場景沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
-        else: # local 模式
+        else:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
             
@@ -1172,7 +1166,6 @@ class AILover:
             full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\n{ai_profile_summary}\n{relevant_npcs_summary}".strip()
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
-
 
         full_template = "\n".join([
             system_prompt_template,
@@ -1233,7 +1226,6 @@ class AILover:
 
         return final_novel_text, summary_data
 # 預處理並生成主回應 函式結束
-
 
     
 
@@ -1990,6 +1982,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
