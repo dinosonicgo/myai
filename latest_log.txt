@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T01:04:32.878341 ###
+### AI Lover Log - Last updated at 2025-09-22T01:06:53.818704 ###
 
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
 }
 violations {
@@ -100,3 +93,10 @@ violations {
 2025-09-22 01:00:17 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
 2025-09-22 01:00:17 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
 2025-09-22 01:00:17 - [INFO] - [512280345618546699] [Unified RAG] 已成功將 LORE 'deep_throat_technique_advanced' 的知識動態注入 BM25 檢索器。
+2025-09-22 01:06:39 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 01:06:39 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 01:06:40 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 01:06:40 - [INFO] - Discord Bot is ready!
+2025-09-22 01:06:43 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 01:06:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 01:06:43 - [INFO] - 已成功發送啟動成功通知給管理員。
