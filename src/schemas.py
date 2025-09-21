@@ -187,6 +187,17 @@ class ActionIntent(BaseModel):
     primary_target: Optional[str] = Field(default=None, description="動作的主要目標是誰或什麼？（例如 NPC 的名字）")
     action_summary_for_status: str = Field(description="用一句話總結這個動作，以便將其記錄為角色的 `current_action` 狀態。例如：'正在與碧進行口交'、'坐下'、'正在攻擊哥布林'。")
 
+
+
+# 類別：行動意圖分析結果
+class ActionIntent(BaseModel):
+    action_type: Literal['physical', 'verbal', 'mixed', 'observation', 'question'] = Field(description="將使用者指令的核心意圖分類。'physical'：純物理動作指令。'verbal'：純對話或陳述。'mixed'：同時包含動作和對話。'observation'：觀察或感知。'question'：提出一個明確的問題。")
+    reasoning: str = Field(description="做出此分類的簡短理由。")
+    requires_dialogue_response: bool = Field(description="根據 action_type 判斷，此指令是否強烈暗示需要一個包含對話的回應。通常 'verbal', 'mixed', 'question' 為 true，'physical', 'observation' 為 false。")
+# 行動意圖分析結果 類別結束
+
+
+
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名稱。")
     parameters: Dict[str, Any] = Field(..., description="要傳遞給工具的參數字典。")
@@ -436,6 +447,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
