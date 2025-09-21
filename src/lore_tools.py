@@ -1,8 +1,8 @@
-# src/lore_tools.py 的中文註釋(v3.2 - 全面自我修復 Pro Max)
+# src/lore_tools.py 的中文註釋(v3.3 - 職責分離)
 # 更新紀錄:
-# v3.2 (2025-11-22): [災難性BUG修復] 根據使用者指令，對檔案中【所有】的 Pydantic 參數模型進行了全面的健壯性升級。為所有可能被 LLM 遺漏或寫錯鍵名的關鍵欄位（如 standardized_name, content, description 等）都增加了 AliasChoices 和/或 field_validator，使其具備極高的容錯和自我修復能力，從根本上杜絕相關的 ValidationError。
+# v3.3 (2025-11-22): [根本性重構] 根據「持久化 RAG」架構，移除了此檔案中所有對 ai_core.add_lore_to_rag 的異步任務調用。現在，工具的職責被嚴格限定為僅與資料庫交互，而觸發 RAG 索引重建的責任被統一上移到 ai_core.py 的工具執行器層，確保了職責的清晰分離和 RAG 數據的持久性。
+# v3.2 (2025-11-22): [災難性BUG修復] 對所有 Pydantic 參數模型進行了全面的健壯性升級。
 # v3.0 (2025-11-21): [災難性BUG修復] 對 Pydantic 參數模型增加了全面的自我修復驗證器。
-# v2.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，對所有工具進行了改造。
 
 import time
 import re
@@ -58,10 +58,8 @@ class CreateNewNpcProfileArgs(BaseToolArgs):
 async def create_new_npc_profile(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: List[str], status: Optional[str] = "閒置", equipment: Optional[List[str]] = None) -> str:
     """【只在】你需要創造一個【全新的、不存在的】NPC 時使用此工具。它會在世界中永久記錄一個新的角色檔案。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     profile_data = {"name": standardized_name, "description": description, "location_path": location_path, "status": status, "equipment": equipment or [], "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
     return f"已成功為新 NPC '{standardized_name}' 創建了檔案 (主鍵: '{lore_key}')。"
 # 創建新 NPC 檔案 工具結束
 
@@ -76,9 +74,7 @@ class UpdateNpcProfileArgs(BaseToolArgs):
 async def update_npc_profile(lore_key: str, updates: Dict[str, Any]) -> str:
     """當你需要更新一個【已存在】NPC 的狀態或資訊時使用此工具。你必須提供其精確的 `lore_key`。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     updated_lore = await add_or_update_lore(user_id, 'npc_profile', lore_key, updates, merge=True)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(updated_lore))
     npc_name = updated_lore.content.get('name', lore_key.split(' > ')[-1])
     return f"已成功更新 NPC '{npc_name}' 的檔案。"
 # 更新 NPC 檔案 工具結束
@@ -104,10 +100,8 @@ class AddOrUpdateLocationInfoArgs(BaseToolArgs):
 async def add_or_update_location_info(lore_key: str, standardized_name: str, original_name: str, description: str) -> str:
     """用於創建一個新的地點條目，或用全新的描述覆蓋一個已有的地點條目。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     location_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
     return f"已成功為地點 '{standardized_name}' 記錄了資訊。"
 # 新增或更新地點資訊 工具結束
 
@@ -134,10 +128,8 @@ class AddOrUpdateItemInfoArgs(BaseToolArgs):
 async def add_or_update_item_info(lore_key: str, standardized_name: str, original_name: str, description: str, effect: Optional[str] = None, visual_description: Optional[str] = None) -> str:
     """用於創建一個新的物品條目，或用全新的描述覆蓋一個已有的物品條目。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     item_data = {"name": standardized_name, "description": description, "effect": effect, "visual_description": visual_description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
     return f"已成功為物品 '{standardized_name}' 記錄了詳細資訊。"
 # 新增或更新物品資訊 工具結束
 
@@ -162,10 +154,8 @@ class DefineCreatureTypeArgs(BaseToolArgs):
 async def define_creature_type(lore_key: str, standardized_name: str, original_name: str, description: str) -> str:
     """用於在世界百科全書中創建一個全新的生物/物種詞條。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     creature_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
     return f"已成功為物種 '{standardized_name}' 創建了百科詞條。"
 # 定義生物類型 工具結束
 
@@ -192,10 +182,8 @@ class AddOrUpdateQuestLoreArgs(BaseToolArgs):
 async def add_or_update_quest_lore(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: List[str], status: str = "可用") -> str:
     """用於創建一個新的任務，或用全新的描述覆蓋一個已有的任務。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     quest_data = {"title": standardized_name, "description": description, "location_path": location_path, "status": status, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
 # 新增或更新任務傳說 工具結束
 
@@ -218,10 +206,8 @@ class AddOrUpdateWorldLoreArgs(BaseToolArgs):
 async def add_or_update_world_lore(lore_key: str, standardized_name: str, original_name: str, content: str) -> str:
     """用於在世界歷史或傳說中記錄一個新的故事、事件或背景設定。"""
     user_id = tool_context.get_user_id()
-    ai_core = tool_context.get_ai_core()
     lore_data = {"title": standardized_name, "content": content, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    new_lore = await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
-    if ai_core: asyncio.create_task(ai_core.add_lore_to_rag(new_lore))
+    await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
     return f"已成功將 '{standardized_name}' 記錄為傳說。"
 # 新增或更新世界傳說 工具結束
 
