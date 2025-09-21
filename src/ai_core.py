@@ -1818,10 +1818,15 @@ class AILover:
     
 
 
-    # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
+# 函式：獲取批次實體解析鏈 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-18): [全新創建] 創建此鏈以支持高效的批次實體解析。它的 Prompt 被設計為一次性處理整個實體列表，並返回一個結構化的結果列表，從而將多次API調用合併為一次，極大地提升了LORE解析的性能和成本效益。
     def get_batch_entity_resolution_chain(self) -> Runnable:
+        """獲取或創建一個專門用於批次實體解析的鏈。"""
         if not hasattr(self, 'batch_entity_resolution_chain') or self.batch_entity_resolution_chain is None:
+            # 確保使用 temperature=0.0 以獲得更具確定性的結構化輸出
             raw_llm = self._create_llm_instance(temperature=0.0)
+            # 將 LLM 與 Pydantic 輸出模型綁定
             resolution_llm = raw_llm.with_structured_output(BatchResolutionPlan)
             
             prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
@@ -1841,11 +1846,15 @@ class AILover:
 {existing_entities_json}
 
 **【輸出指令】**
-請為【待解析實體名稱列表】中的【每一個】項目生成一個 `BatchResolutionResult`，並將所有結果彙總到 `BatchResolutionPlan` 的 `resolutions` 列表中返回。"""
+你的輸出必須是一個純淨的 JSON 物件。請為【待解析實體名稱列表】中的【每一個】項目生成一個 `BatchResolutionResult`，並將所有結果彙總到 `BatchResolutionPlan` 的 `resolutions` 列表中返回。返回的列表長度必須與輸入列表的長度完全一致。"""
+            
             full_prompt = ChatPromptTemplate.from_template(prompt_str)
             self.batch_entity_resolution_chain = full_prompt | resolution_llm
         return self.batch_entity_resolution_chain
-    # 函式：獲取批次實體解析鏈 (v203.1 - 延遲加載重構)
+# 獲取批次實體解析鏈 函式結束
+
+
+    
 
 # ai_core.py 的 get_single_entity_resolution_chain 函式
 # 更新紀錄:
@@ -2640,15 +2649,15 @@ class AILover:
 
 
     
-# 函式：解析世界聖經並創建 LORE (v4.2 - 應用備援策略)
+# 函式：解析世界聖經並創建 LORE (v5.0 - 批次解析重構)
 # 更新紀錄:
-# v4.2 (2025-11-18): [健壯性強化] 在所有對 ainvoke_with_rotation 的內部調用中，明確傳入了 retry_strategy='euphemize'。這使得 LORE 解析流程在遭遇內容審查時能夠自動觸發“消毒與重試”機制，確保了數據處理的完整性。
+# v5.0 (2025-11-18): [重大性能優化] 徹底重構了實體解析邏輯，從逐一解析升級為高效的「批次解析」模式。現在函式會收集所有待處理實體，通過一次API調用完成所有解析，極大地降低了API調用次數、成本和處理時間。
+# v4.2 (2025-11-18): [健壯性強化] 應用了「委婉化重試」策略。
 # v4.1 (2025-11-18): [災難性BUG修復] 實現了「兩階段自我修正」解析邏輯。
-# v4.0 (2025-11-18): [重大功能升級] 引入了 RecursiveCharacterTextSplitter 以支持長文本分塊處理。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
-        此函式現在支持對長文本進行自動分塊處理，並具備解析錯誤的自我修正能力。
+        此函式現在支持對長文本進行自動分塊處理，並採用高效的批次解析模式。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
@@ -2658,8 +2667,7 @@ class AILover:
         
         try:
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=8000,
-                chunk_overlap=400,
+                chunk_size=8000, chunk_overlap=400,
                 separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
             )
             docs = text_splitter.create_documents([content_text])
@@ -2671,26 +2679,19 @@ class AILover:
             for i, doc in enumerate(docs):
                 logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
                 await asyncio.sleep(5.0)
-                
                 try:
-                    # [v4.2 核心修正] 應用委婉化重試策略
                     chunk_result = await self.ainvoke_with_rotation(
-                        canon_parser_chain,
-                        {"canon_text": doc.page_content},
-                        retry_strategy='euphemize'
+                        canon_parser_chain, {"canon_text": doc.page_content}, retry_strategy='euphemize'
                     )
-
                     if not chunk_result:
                         logger.warning(f"[{self.user_id}] 文本塊 {i+1} 在所有重試後最終解析失敗，已跳過。")
                         continue
-                    
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
                     all_parsing_results.locations.extend(chunk_result.locations)
                     all_parsing_results.items.extend(chunk_result.items)
                     all_parsing_results.creatures.extend(chunk_result.creatures)
                     all_parsing_results.quests.extend(chunk_result.quests)
                     all_parsing_results.world_lores.extend(chunk_result.world_lores)
-
                 except Exception as e:
                     logger.error(f"[{self.user_id}] 處理文本塊 {i+1} 時發生未知錯誤: {e}", exc_info=True)
 
@@ -2702,52 +2703,53 @@ class AILover:
 
             async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
                 if not entities: return
-                logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
+                logger.info(f"[{self.user_id}] [批次處理] 正在為 '{category}' 類別的 {len(entities)} 個實體準備批次解析...")
                 
                 purified_entities = [e for e in entities if (e.get(name_key) or e.get(title_key)) and (e.get(name_key) or e.get(title_key, '')).lower() not in protected_names]
                 if not purified_entities: return
 
-                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
-                existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get(name_key) or lore.content.get(title_key)} for lore in existing_lores]
-                
-                resolution_chain = self.get_single_entity_resolution_chain()
-                correction_chain = self.get_json_correction_chain()
+                # [v5.0 核心修正] 批次解析流程
+                resolution_plan: Optional[BatchResolutionPlan] = None
+                try:
+                    existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
+                    existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get(name_key) or lore.content.get(title_key)} for lore in existing_lores]
+                    
+                    new_entities_for_prompt = [{"name": e.get(name_key) or e.get(title_key)} for e in purified_entities]
 
-                for entity_data in purified_entities:
-                    original_name = entity_data.get(name_key) or entity_data.get(title_key)
-                    if not original_name: continue
-                    
-                    await asyncio.sleep(4.0)
-                    
-                    try:
-                        # [v4.2 核心修正] 應用委婉化重試策略
-                        resolution_plan = await self.ainvoke_with_rotation(
-                            resolution_chain,
-                            {
-                                "category": category,
-                                "new_entity_json": json.dumps({"name": original_name}, ensure_ascii=False),
-                                "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
-                            },
-                            retry_strategy='euphemize'
-                        )
-                        if not resolution_plan:
-                            raise ValueError("實體解析鏈在所有重試後返回空結果。")
-                        res = resolution_plan.resolution
-                    except (ValidationError, ValueError) as e:
-                         logger.warning(f"[{self.user_id}] 實體解析鏈 for '{original_name}' 返回了無效的 Pydantic 物件。錯誤: {e}。")
-                         continue # 跳過這個實體
-                    
+                    batch_resolution_chain = self.get_batch_entity_resolution_chain()
+                    resolution_plan = await self.ainvoke_with_rotation(
+                        batch_resolution_chain,
+                        {
+                            "category": category,
+                            "new_entities_json": json.dumps(new_entities_for_prompt, ensure_ascii=False),
+                            "existing_entities_json": json.dumps(existing_entities_for_prompt, ensure_ascii=False)
+                        },
+                        retry_strategy='euphemize'
+                    )
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [批次處理] 為類別 '{category}' 執行批次實體解析時發生嚴重錯誤: {e}", exc_info=True)
+                
+                if not resolution_plan or not resolution_plan.resolutions:
+                    logger.warning(f"[{self.user_id}] [批次處理] 批次實體解析未能為類別 '{category}' 返回有效結果。將跳過 LORE 創建。")
+                    return
+
+                # 為了方便查找，創建一個從原始名稱到實體數據的映射
+                entity_map = {(e.get(name_key) or e.get(title_key)): e for e in purified_entities}
+
+                logger.info(f"[{self.user_id}] [批次處理] 批次解析成功，收到 {len(resolution_plan.resolutions)} 條解析結果。正在寫入資料庫...")
+                for res in resolution_plan.resolutions:
+                    entity_data = entity_map.get(res.original_name)
+                    if not entity_data: continue
+
                     std_name = res.standardized_name or res.original_name
                     
                     if res.decision == 'EXISTING' and res.matched_key:
                         lore_key = res.matched_key
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon', merge=True)
-                        logger.info(f"[{self.user_id}] 已將 '{original_name}' 解析為現有實體 '{lore_key}' 並合併了資訊。")
                     else:
                         safe_name = re.sub(r'[\s/\\:*?"<>|]+', '_', std_name)
                         lore_key = safe_name
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
-                        logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
 
             await _resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
             await _resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
@@ -2765,8 +2767,7 @@ class AILover:
                     await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
                 except Exception as ie:
                     logger.warning(f"[{self.user_id}] 無法向 interaction 發送錯誤 followup: {ie}")
-# parse_and_create_lore_from_canon 函式結束
-
+# 解析世界聖經並創建 LORE 函式結束
     
     
 
@@ -3137,6 +3138,7 @@ class AILover:
 
 
     
+
 
 
 
