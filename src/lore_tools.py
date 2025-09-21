@@ -204,18 +204,28 @@ async def add_or_update_quest_lore(lore_key: str, standardized_name: str, origin
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄，並將其知識同步到AI記憶中。"
 # 新增或更新任務傳說 工具結束
 
-# 類別：新增或更新世界傳說參數
+# 類別：新增或更新世界傳說參數 (v3.1 - 健壯性別名)
+# 更新紀錄:
+# v3.1 (2025-11-22): [災難性BUG修復] 為 content 欄位增加了 validation_alias=AliasChoices('content', 'description', 'lore_content')。此修改使得 Pydantic 模型能夠接受 LLM 可能錯誤生成的 description 等鍵名作為 content 的有效輸入，從根本上解決了因鍵名不匹配導致的 ValidationError。
+# v3.0 (2025-11-21): [災難性BUG修復] 增加了全面的自我修復驗證器。
+# v2.0 (2025-11-15): [重大架構升級] 整合了統一 RAG 注入。
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'title'), description="標準化傳說標題。")
     original_name: Optional[str] = Field(default=None, description="原始傳說標題。")
-    content: str = Field(description="傳說或背景故事的詳細內容。")
+    # [v3.1 核心修正] 允許 content 欄位接受多個可能的鍵名
+    content: str = Field(
+        description="傳說或背景故事的詳細內容。",
+        validation_alias=AliasChoices('content', 'description', 'lore_content')
+    )
 
+    # 函式：自我修復驗證器
     @field_validator('standardized_name', 'original_name', mode='before')
     @classmethod
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
+    # 自我修復驗證器 函式結束
 # 新增或更新世界傳說參數 類別結束
 
 # 工具：新增或更新世界傳說
@@ -245,3 +255,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
     ]
 # 獲取所有 LORE 工具 函式結束
+
