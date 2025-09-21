@@ -1025,9 +1025,8 @@ class AILover:
 
     # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v29.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-    # v29.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了此函式的輸出解析邏輯。
-    # v28.0 (2025-11-15): [災難性BUG修復] 引入了「智能模式切換」架構。
+    # v29.2 (2025-11-15): [災難性BUG修復] 根據 KeyError，在格式化 world_snapshot_template 時，補全了缺失的 username 和 ai_name 參數，解決了因此導致的 Prompt 拼接崩潰問題。
+    # v29.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1114,32 +1113,39 @@ class AILover:
         remote_target_path_str = ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點'
         player_location_str = ' > '.join(gs.location_path)
         
+        # [v29.2 核心修正] 創建一個基礎的參數字典，確保 username 和 ai_name 始終存在
+        base_params = {
+            "username": user_profile.name,
+            "ai_name": ai_profile.name,
+            "world_settings": self.profile.world_settings,
+            "ai_settings": ai_profile.description,
+            "retrieved_context": sanitized_long_term_summary,
+            "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
+            "quests_context": "無進行中的任務",
+        }
+        
         if gs.viewing_mode == 'remote':
             remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             remote_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
-            world_snapshot = self.world_snapshot_template.format(
-                world_settings=self.profile.world_settings,
-                ai_settings=ai_profile.description,
-                retrieved_context=sanitized_long_term_summary,
-                possessions_context=f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-                quests_context="無進行中的任務",
-                location_context=f"當前觀察地點: {remote_target_path_str}",
-                npc_context=remote_npc_context,
-                relevant_npc_context="N/A"
-            )
+            
+            remote_params = base_params.copy()
+            remote_params.update({
+                "location_context": f"當前觀察地點: {remote_target_path_str}",
+                "npc_context": remote_npc_context,
+                "relevant_npc_context": "N/A"
+            })
+            world_snapshot = self.world_snapshot_template.format(**remote_params)
         else:
             local_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             local_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in local_npcs]) or "此地目前沒有其他特定角色。"
-            world_snapshot = self.world_snapshot_template.format(
-                world_settings=self.profile.world_settings,
-                ai_settings=ai_profile.description,
-                retrieved_context=sanitized_long_term_summary,
-                possessions_context=f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-                quests_context="無進行中的任務",
-                location_context=f"當前地點: {player_location_str}",
-                npc_context=local_npc_context,
-                relevant_npc_context=f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
-            )
+            
+            local_params = base_params.copy()
+            local_params.update({
+                "location_context": f"當前地點: {player_location_str}",
+                "npc_context": local_npc_context,
+                "relevant_npc_context": f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
+            })
+            world_snapshot = self.world_snapshot_template.format(**local_params)
 
         system_prompt_str = self.core_protocol_prompt.format(
             username=user_profile.name,
@@ -1162,7 +1168,8 @@ class AILover:
         full_prompt_parts = [
             system_prompt_str,
             "\n" + world_snapshot,
-            "\n" + self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。',
+            "\n# --- 使用者自訂風格指令 ---",
+            self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。',
             "\n# --- 最新對話歷史 ---",
             raw_short_term_history,
             "\n# --- 使用者最新指令 ---",
@@ -3003,6 +3010,7 @@ class AILover:
 
 
     
+
 
 
 
