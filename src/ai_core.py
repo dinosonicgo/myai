@@ -1223,11 +1223,11 @@ class AILover:
 
 
     
-# 函式：預處理並生成主回應 (v33.3 - 強化風格指令)
+# 函式：預處理並生成主回應 (v33.4 - 微任務提取修正)
 # 更新紀錄:
-# v33.3 (2025-11-22): [架構優化] 調整了最終 Prompt 的拼接順序，將使用者自訂的風格指令 (`response_style_prompt`) 移動到更靠近最終指令的位置，並用醒目的標題包裹。此修改旨在提高自訂風格指令在複雜上下文中的權重，使其更不容易被 LLM 忽略。
+# v33.4 (2025-11-22): [災難性BUG修復] 徹底重寫了「微任務上下文」的提取邏輯。舊的貪婪正則表達式會錯誤地將無關的描述（如“不再說話”）捕獲為任務，從而污染 AI 行為。新邏輯改為基於句子的精準匹配，確保只有真正的行動目標會被注入 Prompt，從根本上解決了 AI 因此違反風格指令的問題。
+# v33.3 (2025-11-22): [架構優化] 調整了最終 Prompt 的拼接順序，強化了風格指令的權重。
 # v33.2 (2025-11-21): [根本性重構] 適配了 world_snapshot_template.txt v3.2 的新結構。
-# v33.1 (2025-11-21): [架構優化] 移除了所有額外的輕量級LLM調用。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1304,6 +1304,7 @@ class AILover:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
+        # [v33.4 核心修正] 重寫微任務提取邏輯
         micro_task_context = "無"
         if chat_history:
             last_ai_message = ""
@@ -1311,12 +1312,18 @@ class AILover:
                 if isinstance(msg, AIMessage):
                     last_ai_message = msg.content
                     break
-            if "需要" in last_ai_message or "去" in last_ai_message or "尋找" in last_ai_message or "目標是" in last_ai_message:
-                match = re.search(r"(需要|去|尋找|目標是|前往)[\s\S]*", last_ai_message)
-                if match:
-                    task_description = match.group(0).replace("\n", " ").strip()
-                    micro_task_context = f"{task_description} (狀態：進行中)"
-                    logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
+            
+            if last_ai_message:
+                task_keywords = ["需要", "去", "尋找", "目標是", "前往"]
+                # 將文本按句子分割
+                sentences = re.split(r'[。！？]', last_ai_message)
+                for sentence in sentences:
+                    # 找到第一個包含任務關鍵詞的句子
+                    if any(keyword in sentence for keyword in task_keywords):
+                        task_description = sentence.strip()
+                        micro_task_context = f"臨時短期任務：{task_description} (狀態：進行中)"
+                        logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
+                        break # 只提取第一個找到的任務
 
         system_prompt_template = self.core_protocol_prompt
         world_snapshot_template = self.world_snapshot_template
@@ -1372,7 +1379,6 @@ class AILover:
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
 
-        # [v33.3 核心修正] 調整模板拼接順序，強化風格指令
         style_mandate = f"""# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===
 # 你的回應風格【必須】嚴格遵循以下由使用者定義的規則：
 # {full_prompt_params['response_style_prompt']}
@@ -1386,12 +1392,11 @@ class AILover:
             "{historical_context}",
             "\n# --- 使用者最新指令 ---",
             "{user_input}",
-            style_mandate, # 將風格指令移到這裡
+            style_mandate,
             final_safeguard_template,
             dual_output_mandate
         ])
 
-        # 從參數字典中移除已被手動拼接的 response_style_prompt，避免格式化錯誤
         full_prompt_params.pop("response_style_prompt", None)
         full_prompt = full_template.format(**full_prompt_params)
 
@@ -2188,6 +2193,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
