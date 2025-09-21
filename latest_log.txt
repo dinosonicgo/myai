@@ -1,35 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T00:59:30.553730 ###
+### AI Lover Log - Last updated at 2025-09-22T01:04:32.878341 ###
 
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
-    result = self.client.batch_embed_contents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
-    response = rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
-    result = target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
 * Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
 * Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
@@ -100,3 +70,33 @@ violations {
 2025-09-22 00:59:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 00:59:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 00:59:20 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 00:59:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 4 條文檔用於構建 BM25。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-22 00:59:31 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 15 條訊息。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 臨時短期任務：她不再有任何試探，整個身體向前傾倒，雙手緊緊抓著你的大腿以固定自己的位置，然後決絕地、一口氣地將你的肉棒向著自己的喉嚨深處吞去 (狀態：進行中)
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 4 份文檔，正在檢查淨化快取...
+2025-09-22 00:59:31 - [WARNING] - [512280345618546699] (RAG Sanitizer) 所有檢索到的文檔都未能成功淨化。
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
+2025-09-22 00:59:31 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-22 01:00:06 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-22 01:00:07 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-22 01:00:12 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-22 01:00:13 - [INFO] - [512280345618546699] [事後處理-LORE保險] 提取到 1 條新LORE，準備執行擴展...
+2025-09-22 01:00:13 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個LORE任务 ---
+2025-09-22 01:00:17 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '深喉技巧 (進階)' 記錄為傳說。
+2025-09-22 01:00:17 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-09-22 01:00:17 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
+2025-09-22 01:00:17 - [INFO] - [512280345618546699] [Unified RAG] 已成功將 LORE 'deep_throat_technique_advanced' 的知識動態注入 BM25 檢索器。
