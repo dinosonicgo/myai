@@ -2147,52 +2147,99 @@ class AILover:
 
     # ai_core.py 的 retrieve_and_summarize_memories 函式
     # 更新紀錄:
-    # v11.0 (2025-11-15): [災難性BUG修復] 根據 RAG 內容審查失敗日誌，徹底重構了淨化流程。放棄了高風險的“批次淨化”模式，改為更健壯的“逐一淨化，安全拼接”策略。此修改極大地提高了在處理大量露骨歷史記錄時的淨化成功率，確保了RAG系統的穩定性。
-    # v10.0 (2025-11-15): [災難性BUG修復] 實現了【全局先淨化，後處理】架構。
+    # v12.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本，並補全了缺失的 SQLAlchemy update 導入。
+    # v12.0 (2025-11-15): [災難性BUG修復 & 性能優化] 徹底重構了此函式以實現【持久化淨化快取】。
+    # v11.0 (2025-11-15): [災難性BUG修復] 改為“逐一淨化，安全拼接”策略。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """執行RAG檢索並將結果總結為摘要。採用【逐一淨化，安全拼接】策略以確保NSFW穩定性。"""
-        # ... (RAG 檢索邏輯保持不變，以獲取 retrieved_docs) ...
-        if not self.retriever and not self.bm25_retriever: return "沒有檢索到相關的長期記憶。"
+        """執行RAG檢索並將結果總結為摘要。採用【持久化淨化快取】策略以確保性能和穩定性。"""
+        # [v12.1 核心修正] 確保導入 SQLAlchemy 的 update 函式
+        from sqlalchemy import update
+
+        if not self.retriever and not self.bm25_retriever:
+            logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
+            return "沒有檢索到相關的長期記憶。"
+        
         retrieved_docs = []
         try:
-            if self.retriever: retrieved_docs = await self.retriever.ainvoke(query_text)
-        except Exception: pass
-        if not retrieved_docs and self.bm25_retriever:
-            try: retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
-            except Exception as e:
-                logger.error(f"[{self.user_id}] RAG 備援檢索失敗: {e}")
-                return "檢索長期記憶時發生備援系統錯誤。"
-        if not retrieved_docs: return "沒有檢索到相關的長期記憶。"
+            # 首先嘗試主 RAG 檢索器 (Embedding + BM25)
+            if self.retriever:
+                retrieved_docs = await self.retriever.ainvoke(query_text)
+        except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
+            logger.warning(f"[{self.user_id}] (RAG Executor) 主記憶系統 (Embedding) 失敗: {type(e).__name__}")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 在 RAG 主方案檢索期間發生未知錯誤: {e}", exc_info=True)
 
-        logger.info(f"[{self.user_id}] (RAG Sanitizer) 檢索到 {len(retrieved_docs)} 份文檔，正在逐一淨化...")
+        # 如果主檢索器失敗或未返回結果，則使用備援的 BM25 檢索器
+        if not retrieved_docs and self.bm25_retriever:
+            try:
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
+                retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                logger.info(f"[{self.user_id}] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
+            except Exception as bm25_e:
+                logger.error(f"[{self.user_id}] RAG 備援檢索失敗: {bm25_e}", exc_info=True)
+                return "檢索長期記憶時發生備援系統錯誤。"
+                
+        if not retrieved_docs:
+            return "沒有檢索到相關的長期記憶。"
+
+        logger.info(f"[{self.user_id}] (RAG Cache) 檢索到 {len(retrieved_docs)} 份文檔，正在檢查淨化快取...")
         
-        # [v11.0 核心修正] 逐一淨化，安全拼接
         safely_sanitized_parts = []
+        docs_to_update_in_db = {} # {memory_id: sanitized_text}
         literary_prompt_obj = self.get_literary_euphemization_chain()
 
-        for i, doc in enumerate(retrieved_docs):
-            try:
-                literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=doc.page_content).to_string()
-                sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none') # 單獨淨化，失敗則跳過
-                if sanitized_part and sanitized_part.strip():
-                    safely_sanitized_parts.append(sanitized_part.strip())
-            except Exception as e:
-                logger.warning(f"[{self.user_id}] (RAG Sanitizer) 淨化第 {i+1}/{len(retrieved_docs)} 份文檔時失敗，已跳過。錯誤: {e}")
-                continue
+        async with AsyncSessionLocal() as session:
+            for i, doc in enumerate(retrieved_docs):
+                # BM25Retriever 不會自動添加 metadata，我們需要從 page_content 中推斷
+                # 假設 memory.id 不直接可用，我們需要一種方式來查找
+                # 為了簡化，我們假設 content 是唯一的
+                stmt = select(MemoryData).where(MemoryData.user_id == self.user_id, MemoryData.content == doc.page_content)
+                result = await session.execute(stmt)
+                memory_entry = result.scalars().first()
+
+                if not memory_entry:
+                    continue # 如果在DB中找不到，則跳過
+
+                # 步驟 1: 檢查快取
+                if memory_entry.sanitized_content:
+                    safely_sanitized_parts.append(memory_entry.sanitized_content)
+                    continue
+
+                # 步驟 2: 快取未命中，執行一次性淨化
+                logger.info(f"[{self.user_id}] (RAG Cache) 快取未命中 for Memory ID #{memory_entry.id}，執行一次性淨化...")
+                try:
+                    literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=doc.page_content).to_string()
+                    sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none')
+                    if sanitized_part and sanitized_part.strip():
+                        sanitized_text = sanitized_part.strip()
+                        safely_sanitized_parts.append(sanitized_text)
+                        docs_to_update_in_db[memory_entry.id] = sanitized_text
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] (RAG Cache) 一次性淨化 Memory ID #{memory_entry.id} 失敗，已跳過。錯誤: {e}")
+                    continue
         
+        # 步驟 3: 批量寫回快取
+        if docs_to_update_in_db:
+            async with AsyncSessionLocal() as session:
+                for mem_id, sanitized_text in docs_to_update_in_db.items():
+                    stmt = update(MemoryData).where(MemoryData.id == mem_id).values(sanitized_content=sanitized_text)
+                    await session.execute(stmt)
+                await session.commit()
+            logger.info(f"[{self.user_id}] (RAG Cache) 已成功將 {len(docs_to_update_in_db)} 條新淨化的記憶寫回快取。")
+
         if not safely_sanitized_parts:
             logger.warning(f"[{self.user_id}] (RAG Sanitizer) 所有檢索到的文檔都未能成功淨化。")
             return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成安全的劇情概述。）"
-
+        
         safe_overview_of_all_docs = "\n\n---\n\n".join(safely_sanitized_parts)
         logger.info(f"[{self.user_id}] (RAG Summarizer) 成功淨化 {len(safely_sanitized_parts)}/{len(retrieved_docs)} 份文檔，正在進行最終摘要...")
         
-        # 後續摘要邏輯不變，處理的是絕對安全的文本
         summarizer_prompt_obj = self.get_rag_summarizer_chain()
         summarizer_full_prompt = summarizer_prompt_obj.format_prompt(documents=safe_overview_of_all_docs).to_string()
         summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='none')
 
         if not summarized_context or not summarized_context.strip():
+             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已淨化的內容後，返回了空的結果。")
              summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
              
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
@@ -2200,7 +2247,78 @@ class AILover:
     # retrieve_and_summarize_memories 函式結束
 
 
-    
+
+
+
+
+
+
+    # ai_core.py 的 _format_lore_into_document 和 add_lore_to_rag 函式
+    # 更新紀錄:
+    # v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建了這兩個核心函式。_format_lore_into_document 負責將結構化的LORE數據轉換為對RAG友好的純文本，add_lore_to_rag 則負責將這些文本即時注入到向量數據庫和BM25檢索器中，極大地擴展了AI的知識廣度。
+
+    # 函式：將單條 LORE 格式化為 RAG 文檔
+    def _format_lore_into_document(self, lore: Lore) -> Document:
+        """將一個 LORE 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
+        content = lore.content
+        text_parts = []
+        
+        title = content.get('name') or content.get('title') or lore.key
+        category_map = {
+            "npc_profile": "NPC 檔案", "location_info": "地點資訊",
+            "item_info": "物品資訊", "creature_info": "生物資訊",
+            "quest": "任務日誌", "world_lore": "世界傳說"
+        }
+        category_name = category_map.get(lore.category, lore.category)
+
+        text_parts.append(f"【{category_name}: {title}】")
+        
+        for key, value in content.items():
+            if value and key not in ['name', 'title', 'aliases']:
+                key_str = key.replace('_', ' ').capitalize()
+                if isinstance(value, list) and value:
+                    value_str = ", ".join(map(str, value))
+                    text_parts.append(f"- {key_str}: {value_str}")
+                elif isinstance(value, dict) and value:
+                    dict_str = "; ".join([f"{k}: {v}" for k, v in value.items()])
+                    text_parts.append(f"- {key_str}: {dict_str}")
+                elif isinstance(value, str) and value.strip():
+                    text_parts.append(f"- {key_str}: {value}")
+
+        full_text = "\n".join(text_parts)
+        return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
+    # _format_lore_into_document 函式結束
+
+
+
+
+
+    # 函式：將單條 LORE 添加到 RAG 系統
+    async def add_lore_to_rag(self, lore: Lore):
+        """接收一個 LORE 物件，將其格式化後，即時注入到 RAG 系統中。"""
+        if not self.vector_store or not self.bm25_retriever:
+            logger.warning(f"[{self.user_id}] RAG 系統未完全初始化，跳過 LORE 即時注入。")
+            return
+
+        doc = self._format_lore_into_document(lore)
+        
+        # 使用 LORE 的唯一鍵作為 ID，實現更新和刪除
+        doc_id = f"lore_{lore.category}_{lore.key}"
+
+        try:
+            # 注入到 ChromaDB (Upsert 模式)
+            await asyncio.to_thread(self.vector_store.add_documents, [doc], ids=[doc_id])
+            
+            # 注入到 BM25 (需要重建)
+            # 這裡我們採取一個簡化策略：僅將新文檔添加到 BM25 的文檔列表中
+            # 注意：這不是最高效的方式，但在低頻更新下是可接受的
+            self.bm25_retriever.docs.append(doc)
+
+            logger.info(f"[{self.user_id}] [Unified RAG] 已成功將 LORE '{lore.key}' 注入 RAG 知識庫。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 RAG 時失敗: {e}", exc_info=True)
+    # add_lore_to_rag 函式結束
+
     
 
     # 函式：[新] 從實體查詢LORE (用於 query_lore_node)
@@ -2649,9 +2767,9 @@ class AILover:
 
     # ai_core.py 的 _save_interaction_to_dbs 函式
     # 更新紀錄:
-    # v8.1 (2025-11-14): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-    # v8.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的執行邏輯，使其完全遵循「無LangChain」的「手動格式化Prompt -> 直接調用」模式，從从而解決了與 ainvoke_with_rotation 的架構衝突。
-    # v7.0 (2025-11-04): [重大架構重構] 實現「混合記憶」的寫入端，強制消毒。
+    # v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，現在會將生成的安全摘要同時寫入 content 和 sanitized_content 欄位，確保所有新創建的記憶都自帶快取。
+    # v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
+    # v8.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的執行邏輯。
     async def _save_interaction_to_dbs(self, interaction_text: str):
         """将单次互动的文本【消毒後】同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為 RAG)。"""
         if not interaction_text or not self.profile:
@@ -2660,51 +2778,34 @@ class AILover:
         user_id = self.user_id
         current_time = time.time()
         
-        sanitized_text_for_db = ""
-        try:
-            logger.info(f"[{user_id}] [長期記憶寫入] 正在對互動進行強制文學化處理，以生成安全的存檔版本...")
-            
-            # [v8.0 核心修正] 手動化流程
-            prompt_template_obj = self.get_literary_euphemization_chain()
-            full_prompt = prompt_template_obj.format_prompt(dialogue_history=interaction_text).to_string()
-            
-            sanitized_result = await self.ainvoke_with_rotation(
-                full_prompt, 
-                retry_strategy='euphemize'
-            )
-
-            if sanitized_result and sanitized_result.strip():
-                sanitized_text_for_db = f"【劇情概述】:\n{sanitized_result.strip()}"
-                logger.info(f"[{user_id}] [長期記憶寫入] 已成功生成安全的存檔版本。")
-            else:
-                logger.warning(f"[{user_id}] [長期記憶寫入] 文學化處理失敗，將儲存一段安全提示以防止資料庫污染。")
-                sanitized_text_for_db = "【系統記錄】：此段對話因包含極端內容且文學化處理失敗，其詳細內容已被隱去以保護系統穩定性。"
-        except Exception as e:
-            logger.error(f"[{user_id}] [長期記憶寫入] 在生成存檔版本時發生嚴重錯誤: {e}", exc_info=True)
-            sanitized_text_for_db = f"【系統記錄】：記憶消毒過程遭遇嚴重錯誤({type(e).__name__})，內容已被隱去。"
+        # 由於此函式接收的 interaction_text 已經是來自 ´´´summary 的安全文本，
+        # 所以它本身就是淨化後的內容。
+        sanitized_text_for_db = interaction_text
 
         # 步驟 2: 將【消毒後的文本】存入 SQL
         try:
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
-                    content=sanitized_text_for_db,
+                    content=sanitized_text_for_db, # 供 BM25 使用
                     timestamp=current_time,
-                    importance=5
+                    importance=5,
+                    # [v9.0 核心修正] 將安全文本同時存入快取欄位
+                    sanitized_content=sanitized_text_for_db
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。")
+            logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫 (含快取)。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] [長期記憶寫入] 將安全存檔保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [長期記憶寫入] 將安全存檔保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
             return
 
         # 步驟 3: 將【消毒後的文本】存入 ChromaDB
         if self.vector_store:
             key_info = self._get_next_available_key()
             if not key_info:
-                logger.info(f"[{user_id}] [長期記憶寫入] 所有 Embedding API 金鑰都在冷卻中，本輪長期記憶僅保存至 SQL。")
+                logger.info(f"[{self.user_id}] [長期記憶寫入] 所有 Embedding API 金鑰都在冷卻中，本輪長期記憶僅保存至 SQL。")
                 return
 
             key_to_use, key_index = key_info
@@ -2719,11 +2820,11 @@ class AILover:
                     metadatas=[{"source": "history", "timestamp": current_time}],
                     embedding_function=temp_embeddings
                 )
-                logger.info(f"[{user_id}] [長期記憶寫入] 安全存檔已成功向量化並保存到 ChromaDB。")
+                logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功向量化並保存到 ChromaDB。")
             
             except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
                 logger.warning(
-                    f"[{user_id}] [長期記憶寫入] "
+                    f"[{self.user_id}] [長期記憶寫入] "
                     f"API Key #{key_index} 在保存安全存檔到 ChromaDB 時失敗。將觸發對其的冷卻。"
                     f"錯誤類型: {type(e).__name__}"
                 )
@@ -2734,7 +2835,7 @@ class AILover:
                     self.key_cooldowns[key_index] = now + 60 * 60 * 24
                     self.key_short_term_failures[key_index] = []
             except Exception as e:
-                 logger.error(f"[{user_id}] [長期記憶寫入] 保存安全存檔到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
+                 logger.error(f"[{self.user_id}] [長期記憶寫入] 保存安全存檔到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
     # _save_interaction_to_dbs 函式結束
 
     
@@ -2999,6 +3100,7 @@ class AILover:
 
 
     
+
 
 
 
