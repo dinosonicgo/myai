@@ -1767,11 +1767,11 @@ class AILover:
         return self.literary_euphemization_chain
     # 獲取文學性委婉化 Prompt 函式結束
 
-# 函式：獲取LORE提取器 Prompt (v5.0 - 強化分類)
+# 函式：獲取LORE提取器 Prompt (v5.1 - 擴展參數鐵則)
 # 更新紀錄:
-# v5.0 (2025-11-21): [災難性BUG修復] 徹底重寫了 Prompt 規則，為“NPC”提供了極其嚴格的定義（必須能獨立思考、行動或對話），並引入了反例，指導 LLM 將非 NPC 的具名實體（如“月霜果”、“老樹根”）正確分類到 `add_or_update_item_info` 或 `add_or_update_world_lore`，從根本上解決實體分類錯誤的問題。
+# v5.1 (2025-11-21): [災難性BUG修復] 將【強制參數完整性鐵則】的適用範圍從僅 create_new_npc_profile 擴展到了所有工具調用，並為 add_or_update_item_info 提供了具體範例，以從根本上解決因 LLM 遺漏參數（如 original_name）而導致的工具調用失敗問題。
+# v5.0 (2025-11-21): [災難性BUG修復] 徹底重寫了 Prompt 規則，為“NPC”提供了極其嚴格的定義。
 # v4.1 (2025-11-14): [災難性BUG修復] 根據 Pydantic ValidationError，注入了【🔩 強制參數完整性鐵則】。
-# v4.0 (2025-11-14): [災難性BUG修復] 注入了【👑 專有名稱強制原則】。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if self.lore_extraction_chain is None:
@@ -1785,9 +1785,10 @@ class AILover:
 #    - **正確行為**: 對於「老樹根」，應將其視為一個獨特的世界傳說，使用 `add_or_update_world_lore`。對於「月霜果」，應將其視為一個物品，使用 `add_or_update_item_info`。
 
 # 2. **【💡 新實體發現原則】**: 你的核心任務是找出在 [NOVEL_TEXT] 中新引入的、有名稱的、值得記錄的實體（角色、物品、傳說等）。
-#    - **範例**: 如果文本提到 "一種名為『月霜果』的植物"，你【必須】識別出這是一個新物品，並為其生成一個 `add_or_update_item_info` 的工具調用。
 
-# 3. **【🔩 強制參數完整性鐵則】**: 對於你生成的【每一個】工具調用，其 `parameters` 字典【必須包含】該工具所需的所有必需參數。特別是 `lore_key` 和 `standardized_name`。
+# 3. **【🔩 強制參數完整性鐵則 v5.1】**: 對於你生成的【任何工具調用】，其 `parameters` 字典【必須包含】該工具 Pydantic 模型所需的所有【非可選】參數。
+#    - **範例 1 (NPC)**: `create_new_npc_profile` 調用【必須包含】 `lore_key`, `standardized_name`, `original_name`, `description`。
+#    - **範例 2 (物品)**: `add_or_update_item_info` 調用【必須包含】 `lore_key`, `standardized_name`, `original_name`, `description`。
 
 # 4. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
 
@@ -1970,6 +1971,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
