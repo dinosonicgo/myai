@@ -988,9 +988,10 @@ class AILover:
         logger.info(f"[{self.user_id}] [長期記憶寫入] 安全摘要保存完畢。")
     # 更新事後處理的記憶 函式結束
 
-    # 函式：執行事後處理的LORE更新 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。
+# 函式：執行事後處理的LORE更新 (v2.0 - 安全工具過濾)
+# 更新紀錄:
+# v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。此函式現在會嚴格過濾由主模型生成的工具調用計畫，只允許執行與 LORE 創建/更新相關的、被明確列入白名單的工具。此修改從根本上阻止了主模型通過事後處理流程意外觸發改變玩家狀態（如 change_location）的工具，解決了因此導致的劇情邏輯斷裂和上下文丟失問題。
+# v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。
     async def execute_lore_updates_from_summary(self, summary_data: Dict[str, Any]):
         """(事後處理) 執行由主模型預先生成的LORE更新計畫。"""
         lore_updates = summary_data.get("lore_updates")
@@ -1000,11 +1001,40 @@ class AILover:
         
         try:
             await asyncio.sleep(2.0)
-            extraction_plan = ToolCallPlan(plan=[ToolCall.model_validate(call) for call in lore_updates])
+            
+            # [v2.0 核心修正] 安全LORE工具白名單
+            # 事後處理流程只應該被允許創建或更新世界知識，絕不能改變玩家的當前狀態。
+            SAFE_LORE_TOOLS_WHITELIST = {
+                # lore_tools.py 中的所有工具
+                "create_new_npc_profile",
+                "update_npc_profile",
+                "add_or_update_location_info",
+                "add_or_update_item_info",
+                "define_creature_type",
+                "add_or_update_quest_lore",
+                "add_or_update_world_lore",
+            }
+            
+            raw_plan = [ToolCall.model_validate(call) for call in lore_updates]
+            
+            # 過濾計畫，只保留在白名單中的工具調用
+            filtered_plan = []
+            for call in raw_plan:
+                if call.tool_name in SAFE_LORE_TOOLS_WHITELIST:
+                    filtered_plan.append(call)
+                else:
+                    logger.warning(f"[{self.user_id}] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'{call.tool_name}'。此類工具不允許在事後處理中執行。")
+
+            if not filtered_plan:
+                logger.info(f"[{self.user_id}] 背景任務：預生成的LORE計畫在安全過濾後為空。")
+                return
+
+            extraction_plan = ToolCallPlan(plan=filtered_plan)
             
             if extraction_plan and extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條預生成LORE，準備執行...")
                 
+                # 確定錨定地點
                 gs = self.profile.game_state
                 effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
                 
@@ -1013,7 +1043,10 @@ class AILover:
                 logger.info(f"[{self.user_id}] 背景任務：預生成摘要中的LORE計畫為空。")
         except Exception as e:
             logger.error(f"[{self.user_id}] 執行預生成LORE更新時發生異常: {e}", exc_info=True)
-    # 執行事後處理的LORE更新 函式結束
+# 執行事後處理的LORE更新 函式結束
+
+
+    
 
     # 函式：執行工具調用計畫 (v184.0 - 恢復核心功能)
     # 更新紀錄:
@@ -2051,6 +2084,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
