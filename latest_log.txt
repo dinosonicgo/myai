@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T21:07:16.351603 ###
+### AI Lover Log - Last updated at 2025-09-21T21:12:46.628887 ###
 
-      "name": "宗教裁判所",
-      "description": "聖光明教會的機構，負責處理異端。",
-      "faction": "聖光明教會夏卡爾"
-    },
-    {
       "name": "獵犬",
       "description": "宗教裁判所挑選的精銳，用於滲透和調查。",
       "faction": "聖光明教會夏卡爾"
@@ -100,3 +95,8 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 782, in on_message
     logger.info(f"[{self.user_id}] 本輪回應無摘要數據，跳過事後處理。")
 AttributeError: 'BotCog' object has no attribute 'user_id'
+2025-09-21 21:12:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-21 21:12:32 - [INFO] - Discord Bot is ready and commands are synced!
+2025-09-21 21:12:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-21 21:12:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-21 21:12:36 - [INFO] - 已成功發送啟動成功通知給管理員。
