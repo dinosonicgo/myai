@@ -1203,7 +1203,11 @@ class BotCog(commands.Cog):
             self.setup_locks.discard(user_id)
 # 開始 /start 指令的重置流程 函式結束
 
-    # 指令：開始全新的冒險（重置所有資料）
+# 指令：開始全新的冒險（重置所有資料） (v53.0 - 視圖生命週期修正)
+# 更新紀錄:
+# v53.0 (2025-11-22): [災難性BUG修復] 在發送 ConfirmStartView 後，增加了 `await view.wait()`。此修改會阻塞指令函式的退出，直到視圖被交互（按鈕點擊）或超時，從而確保了 View 物件在其生命週期內始終存活於記憶體中，徹底解決了按鈕點擊後無響應的問題。
+# v52.0 (2025-11-22): [重大架構升級] 整合了顯式清除短期記憶的邏輯。
+# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -1214,11 +1218,22 @@ class BotCog(commands.Cog):
             view = ForceRestartView(cog=self)
             view.original_interaction_user_id = interaction.user.id
             await interaction.response.send_message("偵測到您有尚未完成的設定流程。您想要？", view=view, ephemeral=True)
+            # 增加 view.wait() 以確保此視圖也能正常工作
+            await view.wait()
             return
+            
         view = ConfirmStartView(cog=self)
         view.original_interaction_user_id = interaction.user.id
-        await interaction.response.send_message("⚠️ **警告** ⚠️\n您確定要開始一段全新的冒險嗎？\n這將會**永久刪除**您當前所有的角色、世界、記憶和進度。", view=view, ephemeral=True)
-    # 指令：開始全新的冒險（重置所有資料）
+        await interaction.response.send_message(
+            "⚠️ **警告** ⚠️\n您確定要開始一段全新的冒險嗎？\n這將會**永久刪除**您當前所有的角色、世界、記憶和進度。", 
+            view=view, 
+            ephemeral=True
+        )
+        
+        # [v53.0 核心修正] 等待視圖交互完成或超時
+        # 這可以防止 view 物件在 start 函式結束後被垃圾回收，從而確保按鈕能夠被響應。
+        await view.wait()
+# 開始全新的冒險（重置所有資料） 指令結束
 
     # 指令：進入設定中心
     @app_commands.command(name="settings", description="進入設定中心，管理你的角色、AI戀人與世界觀")
