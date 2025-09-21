@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T22:52:42.528601 ###
+### AI Lover Log - Last updated at 2025-09-21T22:53:12.769470 ###
 
-2025-09-21 22:39:15 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-21 22:39:16 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-21 22:39:16 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-21 22:39:16 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: 'AILover' object has no attribute '_build_retriever'
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 902, in get_or_create_ai_instance
     await ai_instance._configure_pre_requisites()
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute 'process_canon_and_extract_lor
 2025-09-21 22:49:35 - [WARNING] - [512280345618546699] 在LLM輸出中未找到 ´´´summary 分隔符，本輪無事後處理數據。
 2025-09-21 22:49:35 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
 2025-09-21 22:49:35 - [INFO] - [512280345618546699] 本輪回應無摘要數據，跳過事後處理。
+2025-09-21 22:52:59 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-21 22:52:59 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-21 22:52:59 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-21 22:52:59 - [INFO] - Discord Bot is ready!
+2025-09-21 22:53:02 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-21 22:53:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-21 22:53:02 - [INFO] - 已成功發送啟動成功通知給管理員。
