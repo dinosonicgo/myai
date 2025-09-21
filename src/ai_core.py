@@ -2579,10 +2579,11 @@ class AILover:
 
 
     
-    # ai_core.py 的 parse_and_create_lore_from_canon 函式
-    # 更新紀錄:
-    # v3.0 (2025-11-14): [災難性BUG修復] 根據 TypeError 和 AttributeError，徹底重構了此函式的執行邏輯，使其完全遵循「無LangChain」的「手動格式化Prompt -> 直接調用 -> 手動解析」模式，從而解決了因向上游傳遞錯誤數據類型而導致的API和屬性訪問失敗問題。
-    # v2.0 (2025-11-22): [災難性BUG修復] 增加了對不完整數據的寬容處理。
+# ai_core.py 的 parse_and_create_lore_from_canon 函式
+# 更新紀錄:
+# v3.2 (2025-11-17): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILover 類別的成員被正確解析。
+# v3.1 (2025-11-17): [災難性BUG修復] 在內部實體解析循環中增加了防禦性的正則表達式清洗邏輯。
+# v3.0 (2025-11-14): [災難性BUG修復] 根據 TypeError 和 AttributeError，徹底重構了此函式的執行邏輯。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -2594,7 +2595,7 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本...")
         
         try:
-            # [v3.0 核心修正] 手動化流程
+            # 手動化流程
             prompt_template_obj = self.get_canon_parser_chain()
             full_prompt = prompt_template_obj.format_prompt(canon_text=content_text).to_string()
 
@@ -2625,7 +2626,6 @@ class AILover:
 
                 logger.info(f"[{self.user_id}] 正在處理 '{category}' 類別的 {len(entities)} 個實體...")
                 
-                # ... (此處的實體淨化和解析邏輯保持不變) ...
                 purified_entities = []
                 for entity in entities:
                     entity_name = entity.get(name_key) or entity.get(title_key)
@@ -2650,7 +2650,6 @@ class AILover:
                     
                     await asyncio.sleep(4.0)
 
-                    # 手動格式化解析鏈的 Prompt
                     resolution_params = {
                         "category": category,
                         "new_entity_json": json.dumps({"name": original_name}, ensure_ascii=False),
@@ -2666,11 +2665,13 @@ class AILover:
                     
                     try:
                         res_match = re.search(r'\{.*\}', resolution_json_str, re.DOTALL)
-                        if not res_match: raise ValueError("找不到JSON")
-                        resolution_plan = SingleResolutionPlan.model_validate(json.loads(res_match.group(0)))
+                        if not res_match:
+                            raise ValueError("在實體解析鏈的返回中找不到有效的JSON結構。")
+                        clean_res_json_str = res_match.group(0)
+                        resolution_plan = SingleResolutionPlan.model_validate(json.loads(clean_res_json_str))
                         res = resolution_plan.resolution
-                    except (json.JSONDecodeError, ValidationError, ValueError):
-                         logger.warning(f"[{self.user_id}] 解析實體解析JSON時失敗 for '{original_name}'。")
+                    except (json.JSONDecodeError, ValidationError, ValueError) as e:
+                         logger.warning(f"[{self.user_id}] 解析實體解析JSON時失敗 for '{original_name}'。錯誤: {e}。原始返回: '{resolution_json_str}'")
                          continue
 
                     std_name = res.standardized_name or res.original_name
@@ -2685,11 +2686,12 @@ class AILover:
                         await db_add_or_update_lore(self.user_id, category, lore_key, entity_data, source='canon')
                         logger.info(f"[{self.user_id}] 已為新實體 '{original_name}' (標準名: {std_name}) 創建了 LORE 條目，主鍵為 '{lore_key}'。")
 
+            # 注意：這裡的 .model_dump() 是 Pydantic v2 的用法
             await _resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles])
             await _resolve_and_save('locations', [loc.model_dump() for loc in parsing_result.locations])
             await _resolve_and_save('items', [item.model_dump() for item in parsing_result.items])
             await _resolve_and_save('creatures', [c.model_dump() for c in parsing_result.creatures])
-            await _resolve_and_save('quests', [q.model_dump() for q in parsing_result.quests], title_key='name')
+            await _resolve_and_save('quests', [q.model_dump() for q in parsing_result.quests], title_key='name') # Quest 使用 name 作為 title
             await _resolve_and_save('world_lores', [wl.model_dump() for wl in parsing_result.world_lores])
 
             logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
@@ -2697,12 +2699,11 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
             if interaction and not is_setup_flow:
-                # 確保 interaction 存在且有效
                 try:
                     await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
                 except Exception as ie:
                     logger.warning(f"[{self.user_id}] 無法向 interaction 發送錯誤 followup: {ie}")
-    # parse_and_create_lore_from_canon 函式結束
+# parse_and_create_lore_from_canon 函式結束
 
 
 
@@ -3089,6 +3090,7 @@ class AILover:
 
 
     
+
 
 
 
