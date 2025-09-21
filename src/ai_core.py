@@ -530,7 +530,69 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 RAG 時失敗: {e}", exc_info=True)
 # 將單條 LORE 添加到 RAG 系統 函式結束
+# 函式：從資料庫恢復場景歷史 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 創建此函式作為短期記憶持久化方案的「讀取」端。它在 AI 實例初始化時從資料庫讀取所有歷史對話，並將其重建到記憶體的 scene_histories 字典中，確保對話狀態的無縫恢復。
+    async def _rehydrate_scene_histories(self):
+        """在 AI 實例初始化時，從資料庫讀取並重建所有場景的短期對話歷史。"""
+        logger.info(f"[{self.user_id}] 正在從資料庫恢復短期場景記憶...")
+        self.scene_histories = defaultdict(ChatMessageHistory)
+        
+        async with AsyncSessionLocal() as session:
+            stmt = select(SceneHistoryData).where(
+                SceneHistoryData.user_id == self.user_id
+            ).order_by(SceneHistoryData.timestamp)
+            
+            result = await session.execute(stmt)
+            records = result.scalars().all()
 
+            if not records:
+                logger.info(f"[{self.user_id}] 資料庫中沒有找到歷史場景記憶。")
+                return
+
+            for record in records:
+                try:
+                    message_data = record.message_json
+                    message_type = message_data.get("type")
+                    content = message_data.get("content")
+                    
+                    if message_type == "human":
+                        self.scene_histories[record.scene_key].add_user_message(content)
+                    elif message_type == "ai":
+                        self.scene_histories[record.scene_key].add_ai_message(content)
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] 恢復場景記憶時跳過一條無效記錄 (ID: {record.id}): {e}")
+
+            logger.info(f"[{self.user_id}] 成功恢復了 {len(self.scene_histories)} 個場景的對話歷史，總計 {len(records)} 條訊息。")
+# 從資料庫恢復場景歷史 函式結束
+
+
+    
+
+# 函式：添加訊息到場景歷史 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 創建此函式作為短期記憶持久化方案的「寫入」端。它將新的對話訊息同時寫入記憶體字典和後端資料庫，確保了短期記憶的即時持久化。
+    async def _add_message_to_scene_history(self, scene_key: str, message: BaseMessage):
+        """將一條訊息同時添加到記憶體的 scene_histories 和持久化的資料庫中。"""
+        # 步驟 1: 更新記憶體中的 history
+        history = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
+        history.add_message(message)
+
+        # 步驟 2: 持久化到資料庫
+        try:
+            message_json = {"type": message.type, "content": message.content}
+            new_record = SceneHistoryData(
+                user_id=self.user_id,
+                scene_key=scene_key,
+                message_json=message_json,
+                timestamp=time.time()
+            )
+            async with AsyncSessionLocal() as session:
+                session.add(new_record)
+                await session.commit()
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 將場景歷史訊息持久化到資料庫時失敗: {e}", exc_info=True)
+# 添加訊息到場景歷史 函式結束
 
     
 
@@ -552,6 +614,9 @@ class AILover:
         await self.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
         logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
 # 處理世界聖經並提取LORE 函式結束
+
+
+    
 
     # 函式：補完角色檔案 (/start 流程 2/4) (v3.0 - 適配原生引擎)
 # 更新紀錄:
@@ -876,11 +941,15 @@ class AILover:
         logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
     # 更新短期與長期記憶 函式結束
     
-    # 函式：初始化AI實例 (v204.0 - 移除記憶恢復)
-    # 更新紀錄:
-    # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
-    # v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名。
+# 函式：初始化AI實例 (v205.0 - 記憶恢復)
+# 更新紀錄:
+# v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。此修改確保了在 AI 實例初始化的第一時間，所有持久化的短期對話歷史都會被從資料庫恢復到記憶體中。
+# v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
+# v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名。
     async def initialize(self) -> bool:
+        # [v205.0 核心修正] 在加載任何其他東西之前，首先恢復短期記憶
+        await self._rehydrate_scene_histories()
+
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
             if not result:
@@ -915,7 +984,11 @@ class AILover:
             logger.error(f"[{self.user_id}] 配置前置資源時發生致命錯誤: {e}", exc_info=True)
             return False
         return True
-    # 初始化AI實例 函式結束
+# 初始化AI實例 函式結束
+
+
+
+    
 
     # 函式：更新並持久化使用者設定檔 (v174.0 架構優化)
     # 更新紀錄:
@@ -1123,11 +1196,11 @@ class AILover:
 
 
     
-# 函式：預處理並生成主回應 (v33.2 - 適配新模板)
+# 函式：預處理並生成主回應 (v34.0 - 持久化短期記憶)
 # 更新紀錄:
-# v33.2 (2025-11-21): [根本性重構] 適配了 world_snapshot_template.txt v3.2 的新結構。現在會將提取出的「微任務」同時填充到最高優先級的 {micro_task_context} 和後備的 {quests_context} 佔位符中，以確保 AI 在敘事時絕對不會忽略短期目標。
-# v33.1 (2025-11-21): [架構優化] 移除了所有額外的輕量級LLM調用，改為直接填充 quests_context。
-# v33.0 (2025-11-21): [重大邏輯修正] 增加了「微任務上下文注入」機制。
+# v34.0 (2025-11-22): [重大架構升級] 將函式末尾對 chat_history_manager 的直接寫入操作，替換為對新的 _add_message_to_scene_history 輔助函式的異步調用。此修改確保了每一輪對話的用戶輸入和AI回覆都被即時地、原子地寫入後端資料庫，完成了短期記憶持久化方案的「寫入」端改造。
+# v33.2 (2025-11-21): [根本性重構] 適配了 world_snapshot_template.txt v3.2 的新結構。
+# v33.1 (2025-11-21): [架構優化] 移除了所有額外的輕量級LLM調用。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1138,13 +1211,12 @@ class AILover:
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
+        # ... (此函式前半部分的所有上下文準備邏輯保持不變，為簡潔省略) ...
+        # (從 logger.info 到 full_prompt = ... 的所有程式碼都與 v33.2 完全相同)
         logger.info(f"[{self.user_id}] [預處理-生成即摘要] 正在準備上下文...")
-        
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
-
-        # 視角判斷邏輯
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
@@ -1186,11 +1258,9 @@ class AILover:
                 gs.viewing_mode = 'local'
                 gs.remote_target_path = None
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
-
         scene_key = self._get_scene_key()
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history = chat_history_manager.messages
-
         logger.info(f"[{self.user_id}] 正在組合混合記憶...")
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
@@ -1203,7 +1273,6 @@ class AILover:
                 for msg in history_slice:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
-        
         micro_task_context = "無"
         if chat_history:
             last_ai_message = ""
@@ -1217,18 +1286,15 @@ class AILover:
                     task_description = match.group(0).replace("\n", " ").strip()
                     micro_task_context = f"{task_description} (狀態：進行中)"
                     logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
-
         system_prompt_template = self.core_protocol_prompt
         world_snapshot_template = self.world_snapshot_template
         response_style_template = self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'
-        
         final_safeguard_template = f"""# ==============================================================================
 # == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.1 🚨 ==
 # ==============================================================================
 # 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 # 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
 # 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。"""
-
         dual_output_mandate = """# ==============================================================================
 # == ⚙️ 最終輸出格式強制令 (FINAL OUTPUT FORMATTING MANDATE) ⚙️ ==
 # ==============================================================================
@@ -1239,55 +1305,35 @@ class AILover:
 # ´´´summary
 # （JSON 物件）
 # ´´´"""
-
         full_prompt_params = {
-            "username": user_profile.name,
-            "ai_name": ai_profile.name,
-            "player_location": ' > '.join(gs.location_path),
-            "viewing_mode": gs.viewing_mode,
+            "username": user_profile.name, "ai_name": ai_profile.name,
+            "player_location": ' > '.join(gs.location_path), "viewing_mode": gs.viewing_mode,
             "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
-            "micro_task_context": micro_task_context, # [v33.2] 填充新佔位符
-            "world_settings": self.profile.world_settings,
-            "ai_settings": ai_profile.description,
-            "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
+            "micro_task_context": micro_task_context, "world_settings": self.profile.world_settings,
+            "ai_settings": ai_profile.description, "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            "quests_context": micro_task_context, # [v33.2] 同時填充舊佔位符以保持兼容性
-            "user_input": user_input,
-            "response_style_prompt": response_style_template,
-            "historical_context": raw_short_term_history,
+            "quests_context": micro_task_context, "user_input": user_input,
+            "response_style_prompt": response_style_template, "historical_context": raw_short_term_history,
         }
-
         if gs.viewing_mode == 'remote':
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
-            
             full_prompt_params["relevant_npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs]) or "（此場景目前沒有核心互動目標。）"
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此場景沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
         else:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
-            
             ai_profile_summary = f"- {ai_profile.name} (你的AI戀人): {ai_profile.description}"
             relevant_npcs_summary = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs])
-            
             full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\n{ai_profile_summary}\n{relevant_npcs_summary}".strip()
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
-
         full_template = "\n".join([
-            system_prompt_template,
-            world_snapshot_template,
-            "\n# --- 使用者自訂風格指令 ---",
-            "{response_style_prompt}",
-            "\n# --- 最新對話歷史 ---",
-            "{historical_context}",
-            "\n# --- 使用者最新指令 ---",
-            "{user_input}",
-            final_safeguard_template,
-            dual_output_mandate
+            system_prompt_template, world_snapshot_template, "\n# --- 使用者自訂風格指令 ---",
+            "{response_style_prompt}", "\n# --- 最新對話歷史 ---", "{historical_context}",
+            "\n# --- 使用者最新指令 ---", "{user_input}", final_safeguard_template, dual_output_mandate
         ])
-
         full_prompt = full_template.format(**full_prompt_params)
 
         logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
@@ -1322,13 +1368,15 @@ class AILover:
                 novel_text = raw_dual_output.strip()
 
         final_novel_text = novel_text.strip("´").strip()
-        chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(final_novel_text)
+
+        # [v34.0 核心修正] 使用新的持久化方法寫入歷史
+        await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
+        await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
+        
         logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
 
         return final_novel_text, summary_data
 # 預處理並生成主回應 函式結束
-
     
 
 # 函式：獲取場景中的相關 NPC (v1.0 - 全新創建)
@@ -2084,6 +2132,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
