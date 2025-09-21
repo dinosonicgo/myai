@@ -1048,7 +1048,14 @@ class BotCog(commands.Cog):
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
 # 監聽並處理所有符合條件的訊息 函式結束
 
-    # 函式：執行 /start 流程的最終步驟（創世）
+
+    
+    
+# 函式：完成設定流程 (v51.0 - 持久化開場白)
+# 更新紀錄:
+# v51.0 (2025-11-22): [重大架構升級] 將儲存開場白到短期記憶的方式，從直接操作 ChatMessageHistory 物件改為調用新的、具備持久化能力的 ai_instance._add_message_to_scene_history 函式，確保了開場白作為第一條訊息能被正確存入資料庫。
+# v50.0 (2025-11-14): [完整性修復] 根據 NameError，提供了此檔案的完整版本。
+# v49.0 (2025-11-14): [災難性BUG修復] 增加了在開場白後將其存入歷史記錄的關鍵步驟。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
@@ -1079,10 +1086,10 @@ class BotCog(commands.Cog):
             opening_scene = await ai_instance.generate_opening_scene()
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
+            # [v51.0 核心修正] 使用新的持久化方法寫入開場白
             scene_key = ai_instance._get_scene_key()
-            chat_history_manager = ai_instance.scene_histories.setdefault(scene_key, ChatMessageHistory())
-            chat_history_manager.add_ai_message(opening_scene)
-            logger.info(f"[{user_id}] 開場白已成功作為第一條AI訊息存入場景 '{scene_key}' 的歷史記錄。")
+            await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
+            logger.info(f"[{user_id}] 開場白已成功作為第一條AI訊息存入場景 '{scene_key}' 的歷史記錄並持久化。")
 
             dm_channel = await interaction.user.create_dm()
             
@@ -1099,7 +1106,10 @@ class BotCog(commands.Cog):
                 await interaction.user.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}")
         finally:
             self.setup_locks.discard(user_id)
-    # 函式：執行 /start 流程的最終步驟（創世）
+# 完成設定流程 函式結束
+
+
+    
 
     # 函式：在背景處理世界聖經文本
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
