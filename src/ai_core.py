@@ -1705,58 +1705,51 @@ class AILover:
         return self.literary_euphemization_chain
     # 獲取文學性委婉化 Prompt 函式結束
 
-    # 函式：獲取LORE提取器 Prompt (v4.1 - 強制參數完整性)
-    # 更新紀錄:
-    # v4.1 (2025-11-14): [災難性BUG修復] 根據 Pydantic ValidationError，注入了【🔩 強制參數完整性鐵則】。
-    # v4.0 (2025-11-14): [災難性BUG修復] 注入了【👑 專有名稱強制原則】。
-    # v3.0 (2025-10-18): [重大架構重構] 創建此函式，作為「終極簡化」架構的第三階段（事後處理）的一部分。
+# 函式：獲取LORE提取器 Prompt (v5.0 - 強化分類)
+# 更新紀錄:
+# v5.0 (2025-11-21): [災難性BUG修復] 徹底重寫了 Prompt 規則，為“NPC”提供了極其嚴格的定義（必須能獨立思考、行動或對話），並引入了反例，指導 LLM 將非 NPC 的具名實體（如“月霜果”、“老樹根”）正確分類到 `add_or_update_item_info` 或 `add_or_update_world_lore`，從根本上解決實體分類錯誤的問題。
+# v4.1 (2025-11-14): [災難性BUG修復] 根據 Pydantic ValidationError，注入了【🔩 強制參數完整性鐵則】。
+# v4.0 (2025-11-14): [災難性BUG修復] 注入了【👑 專有名稱強制原則】。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if self.lore_extraction_chain is None:
-            prompt_template = """# ROLE: 你是一個無感情但極具智慧的數據提取與世界觀擴展引擎。
-# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並以指定的 JSON 格式輸出結果。
+            
+            prompt_template = """# ROLE: 你是一個極其聰明且嚴謹的世界觀分析與數據提取引擎。
+# MISSION: 讀取【SOURCE DATA】，根據【RULES】進行深度分析，並以指定的 JSON 格式輸出一個包含工具調用的行動計畫。
+
 # RULES:
-# 1. **STATE_UPDATE_FIRST**: 首先檢查 [NOVEL_TEXT] 是否包含對 [EXISTING_LORE] 中任何實體的狀態更新。如果是，優先生成 `update_npc_profile` 工具調用。
-# 2. **PROPER_NOUN_MANDATE**: 檢查 [NOVEL_TEXT] 是否引入了新的、有意義的、但沒有具體名字的角色（例如：“一個女魚販”）。如果是，【必須】為其發明一個專有名稱（例如：“瑪琳娜”）並生成 `create_new_npc_profile` 工具調用。
-# 3. **【🔩 強制參數完整性鐵則 (Parameter Integrity Mandate) - v4.1 新增】**:
-#    - 對於你生成的【每一個】 `create_new_npc_profile` 工具調用，其 `parameters` 字典【必須同時包含】以下所有鍵：`lore_key`, `standardized_name`, `original_name`, `description`。
-#    - `original_name` 必須是你在文本中識別出的原始描述（例如：“女魚販”）。
-#    - `standardized_name` 和 `lore_key` 必須是你為其發明的新專有名稱（例如：“瑪琳娜”）。
-# 4. **PROTAGONIST_PROTECTION**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
-# 5. **NO_OUTPUT_IF_EMPTY**: 如果沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
-# BEHAVIORAL_EXAMPLE (v4.1):
-#   - NOVEL_TEXT: "...一個衣衫襤褸的男乞丐坐在角落..."
-#   - CORRECT_OUTPUT: (為通用角色發明了名字 "賽巴斯汀" 並提供了所有必需參數)
-#     ```json
-#     {{
-#       "plan": [
-#         {{
-#           "tool_name": "create_new_npc_profile",
-#           "parameters": {{
-#             "original_name": "男乞丐",
-#             "standardized_name": "賽巴斯汀",
-#             "lore_key": "賽巴斯汀",
-#             "description": "一個衣衫襤褸的男乞丐，經常坐在角落，目光空洞。"
-#           }}
-#         }}
-#       ]
-#     }}
-#     ```
-# SOURCE DATA:
+# 1. **【👑 NPC 定義鐵則 - 最高優先級】**: 只有當一個實體【明確表現出能夠獨立思考、行動、或與主角進行有意義對話的潛力】時，才能被視為 NPC 並使用 `create_new_npc_profile`。
+#    - **反例 (絕對禁止)**: 一個有名字的物體、植物、或地點特徵，例如「老樹根」、「月霜果」，它們【絕對不是】NPC。
+#    - **正確行為**: 對於「老樹根」，應將其視為一個獨特的世界傳說，使用 `add_or_update_world_lore`。對於「月霜果」，應將其視為一個物品，使用 `add_or_update_item_info`。
+
+# 2. **【💡 新實體發現原則】**: 你的核心任務是找出在 [NOVEL_TEXT] 中新引入的、有名稱的、值得記錄的實體（角色、物品、傳說等）。
+#    - **範例**: 如果文本提到 "一種名為『月霜果』的植物"，你【必須】識別出這是一個新物品，並為其生成一個 `add_or_update_item_info` 的工具調用。
+
+# 3. **【🔩 強制參數完整性鐵則】**: 對於你生成的【每一個】工具調用，其 `parameters` 字典【必須包含】該工具所需的所有必需參數。特別是 `lore_key` 和 `standardized_name`。
+
+# 4. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
+
+# 5. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
+
+# --- SOURCE DATA ---
 # [EXISTING_LORE]:
 {existing_lore_summary}
+
 # [USER_INPUT]:
 {user_input}
+
 # [NOVEL_TEXT]:
 {final_response_text}
-# OUTPUT_FORMAT:
+
+# --- OUTPUT FORMAT ---
 # 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件。
-# 【【【警告：任何非 JSON 或缺少參數的輸出都將導致系統性失敗。立即開始分析並輸出結構完整的 JSON。】】】"""
+# 【【【警告：任何不符合 NPC 定義的分類或缺少參數的輸出都將導致世界觀損壞。立即開始分析並輸出結構完整且分類正確的 JSON。】】】
+"""
             self.lore_extraction_chain = ChatPromptTemplate.from_template(prompt_template)
         return self.lore_extraction_chain
-    # 獲取LORE提取器 Prompt 函式結束
+# 獲取LORE提取器 Prompt 函式結束
     
-    # ... (其他輔助函式) ...
+
 
     # 函式：檢索並摘要記憶 (v12.1 - 完整性修復)
     # 更新紀錄:
@@ -1915,6 +1908,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
