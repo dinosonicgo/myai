@@ -883,7 +883,11 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-    # 函式：獲取或創建使用者的 AI 實例
+# 函式：獲取或創建使用者的 AI 實例 (v52.0 - 按需加載記憶)
+# 更新紀錄:
+# v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。此修改確保了短期記憶只在用戶開始一個新會話、首次創建AI實例時從資料庫恢復一次，避免了在 /start 流程中錯誤地恢復舊記憶。
+# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+# v48.0 (2025-10-19): [重大架構重構] 徹底移除了對 LangGraph 的所有依賴。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
             return self.ai_instances[user_id]
@@ -893,6 +897,10 @@ class BotCog(commands.Cog):
         
         if await ai_instance.initialize():
             logger.info(f"為使用者 {user_id} 成功創建並初始化 AI 實例。")
+            
+            # [v52.0 核心修正] 在實例成功初始化後，立即為其恢復短期記憶
+            await ai_instance._rehydrate_scene_histories()
+
             self.ai_instances[user_id] = ai_instance
             return ai_instance
         elif is_setup_flow:
@@ -907,7 +915,7 @@ class BotCog(commands.Cog):
         else:
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
             return None
-    # 函式：獲取或創建使用者的 AI 實例
+# 獲取或創建使用者的 AI 實例 函式結束
 
     # 函式：安全地異步執行 Git 命令並返回結果
     async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
