@@ -304,6 +304,38 @@ class BatchResolutionResult(BaseModel):
 
         return self
 
+
+
+
+# [v17.0 新增] 用於批次實體解析的模型
+class BatchResolutionResult(BaseModel):
+    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
+    decision: Literal['EXISTING', 'NEW'] = Field(description="您的最終判斷：'EXISTING'表示此名稱指向一個已存在的實體，'NEW'表示這是一個全新的實體。")
+    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
+    matched_key: Optional[str] = Field(default=None, description="如果判斷為'EXISTING'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
+    standardized_name: Optional[str] = Field(default=None, description="如果判斷為'NEW'，請提供一個對新實體名稱進行清理和標準化後的版本。如果判斷為'EXISTING'，則返回匹配到的實體的主要名稱。")
+
+    @model_validator(mode='after')
+    def check_consistency_and_autofill(self) -> 'BatchResolutionResult':
+        if self.decision == 'NEW' and not self.standardized_name:
+            # 如果 AI 忘了提供標準名，就用原始名作為備用
+            self.standardized_name = self.original_name
+        if self.decision == 'EXISTING' and not self.matched_key:
+            raise ValueError("如果 decision 是 'EXISTING'，則 matched_key 欄位是必需的。")
+        
+        if self.decision == 'EXISTING' and not self.standardized_name:
+            if self.matched_key:
+                self.standardized_name = self.matched_key.split(' > ')[-1]
+            else:
+                self.standardized_name = self.original_name
+        
+        if not self.standardized_name:
+            self.standardized_name = self.original_name
+
+        return self
+
+
+
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
@@ -404,6 +436,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
