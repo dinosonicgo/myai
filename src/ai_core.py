@@ -344,55 +344,78 @@ class AILover:
 # 帶有輪換和備援策略的原生 API 調用引擎 函式結束
     
 
-    # 函式：委婉化並重試 (v2.0 - 適配原生引擎)
-    # 更新紀錄:
-    # v2.0 (2025-11-19): [根本性重構] 適配全新的原生 SDK 執行引擎。此函式不再接收 Runnable 物件，而是接收原始的 prompt 字符串和目標 schema，使其與 ainvoke_with_rotation 的新架構完全解耦和兼容。
-    # v1.0 (2025-11-18): [全新創建] 創建此核心備援函式。
+# 函式：委婉化並重試 (v3.0 - 解構重構)
+# 更新紀錄:
+# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯，採用全新的「解構-重構」策略。它現在會先通過程式化的正則表達式從被審查的文本中提取安全的「關鍵詞」，然後調用一個新鏈從這些關鍵詞「重構」出一句安全的中性描述，最終用此描述進行重試。此修改從根本上解決了“委婉化鏈自身被審查”的悖論。
+# v2.0 (2025-11-19): [根本性重構] 適配全新的原生 SDK 執行引擎。
+# v1.0 (2025-11-18): [全新創建] 創建此核心備援函式。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        一個健壯的備援機制，用於處理內部鏈的內容審查失敗。
-        它通過強大的“文學評論家”鏈將失敗的輸入安全化後重試。
+        一個健壯的備援機制，採用「解構-重構」策略來處理內容審查失敗。
         """
         if isinstance(original_exception, GoogleAPICallError) and "embed_content" in str(original_exception):
             logger.error(f"[{self.user_id}] 【Embedding 速率限制】: 檢測到 Embedding API 速率限制，將立即觸發安全備援，跳過重試。")
             return None
 
-        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構式委婉化】策略...")
         
         try:
-            # 在 Prompt 中，被使用者內容污染的部分通常是最後的部分
-            # 我們這裡採用一個簡化但有效的策略：委婉化整個 prompt
-            text_to_euphemize = failed_prompt
-            
-            MAX_EUPHEMIZE_LENGTH = 8000
-            if len(text_to_euphemize) > MAX_EUPHEMIZE_LENGTH:
-                logger.error(f"[{self.user_id}] (Euphemizer) 待處理文本長度 ({len(text_to_euphemize)}) 超過上限，已跳過委婉化重試。")
-                return None
+            # 步驟 1: 從失敗的 Prompt 中提取原始文本塊 (解構)
+            # 我們假設被審查的內容主要在 canon_text 或類似的長文本欄位中
+            text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)", failed_prompt, re.IGNORECASE)
+            if not text_to_sanitize_match:
+                # 如果找不到特定標記，則退回到處理整個 prompt
+                text_to_sanitize = failed_prompt
+            else:
+                text_to_sanitize = text_to_sanitize_match.group(1).strip()
 
-            logger.info(f"[{self.user_id}] (Euphemizer) 正在將 Prompt 清洗為安全的文學概述...")
-            literary_prompt_obj = self.get_literary_euphemization_chain()
-            literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=text_to_euphemize).to_string()
+            # 定義 NSFW 關鍵詞
+            nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精"]
+            # 提取文本中出現的 NSFW 關鍵詞和主要角色名
+            extracted_keywords = [kw for kw in nsfw_keywords if kw in text_to_sanitize]
+            if self.profile:
+                if self.profile.user_profile.name in text_to_sanitize:
+                    extracted_keywords.append(self.profile.user_profile.name)
+                if self.profile.ai_profile.name in text_to_sanitize:
+                    extracted_keywords.append(self.profile.ai_profile.name)
             
-            safe_text = await self.ainvoke_with_rotation(
-                literary_full_prompt,
-                retry_strategy='none'
+            if not extracted_keywords:
+                logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出已知的 NSFW 關鍵詞，無法進行重構。")
+                return None
+            
+            logger.info(f"[{self.user_id}] (Euphemizer) 已提取關鍵詞: {extracted_keywords}")
+
+            # 步驟 2: 基於關鍵詞請求安全的場景重構
+            reconstruction_prompt_obj = self.get_euphemization_reconstruction_chain()
+            reconstruction_full_prompt = reconstruction_prompt_obj.format_prompt(keywords=str(extracted_keywords)).to_string()
+            
+            safe_reconstruction = await self.ainvoke_with_rotation(
+                reconstruction_full_prompt,
+                retry_strategy='none' # 避免無限遞迴
             )
             
-            if not safe_text:
-                raise ValueError("文學評論家鏈未能生成安全文本。")
-            logger.info(f"[{self.user_id}] (Euphemizer) 清洗成功。")
+            if not safe_reconstruction:
+                raise ValueError("委婉化重構鏈未能生成安全文本。")
+            logger.info(f"[{self.user_id}] (Euphemizer) 成功重構出安全描述: '{safe_reconstruction}'")
 
-            # 使用安全文本進行重試
+            # 步驟 3: 使用重構後的安全文本替換原始文本塊，然後重試
+            if text_to_sanitize_match:
+                retry_prompt = failed_prompt.replace(text_to_sanitize, safe_reconstruction)
+            else:
+                # 如果是備用方案，我們用安全的描述替換整個 prompt
+                # 這可能會丟失一些指令，但能最大限度保證成功
+                retry_prompt = f"請根據以下安全的場景概述，執行原始任務：\n\n{safe_reconstruction}\n\n請嚴格按照原始的JSON格式要求輸出結果。"
+
             return await self.ainvoke_with_rotation(
-                safe_text,
+                retry_prompt,
                 output_schema=output_schema,
                 retry_strategy='none' # 重試失敗後不再重試
             )
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【文學評論家委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
+            logger.error(f"[{self.user_id}] 【解構-重構式委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
-    # 委婉化並重試 函式結束
+# 委婉化並重試 函式結束
 
 
 
@@ -896,7 +919,33 @@ class AILover:
 
 
 
+# 函式：獲取委婉化重構器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 創建此鏈作為「解構-重構」委婉化策略的核心。它的任務是接收一組不帶露骨上下文的「安全關鍵詞」，並將其重構為一句中性、客觀的場景描述。此方法旨在從根本上規避「委婉化鏈本身被審查」的悖論。
+    def get_euphemization_reconstruction_chain(self) -> ChatPromptTemplate:
+        """獲取或創建一個專門用於從關鍵詞重構安全句子的鏈。"""
+        if not hasattr(self, 'euphemization_reconstruction_chain') or self.euphemization_reconstruction_chain is None:
+            prompt_template = """# ROLE: 你是一位語言專家和溝通大師。
+# MISSION: 接收一組【核心概念關鍵詞】，並將它們組織成一句通順的、語義完整的、但措辭【絕對中性、客觀且安全】的句子，用於描述一個小說場景。
 
+# RULES:
+# 1. **意圖推斷**: 根據關鍵詞推斷出原始的核心意圖。
+# 2. **極致中性化**: 你的輸出【絕對禁止】包含任何可能被視為攻擊性、露骨或敏感的詞彙。你的目標是創造一個最不可能觸發任何自動化內容安全過濾器的【安全版本】的場景概述。
+# 3. **保持簡潔**: 不要添加任何不必要的解釋或額外內容，只輸出重構後的句子。
+
+# --- EXAMPLE ---
+# - 核心概念關鍵詞: `["碧", "DINO", "肉棒", "肉穴", "插入", "噴濺淫液"]`
+# - 生成的安全句子: `場景涉及到角色碧與DINO之間的一次親密互動，涉及到了性器官的結合和生理高潮的表現。`
+
+---
+# 【核心概念關鍵詞】:
+{keywords}
+---
+# 【生成的安全句子】:
+"""
+            self.euphemization_reconstruction_chain = ChatPromptTemplate.from_template(prompt_template)
+        return self.euphemization_reconstruction_chain
+# 獲取委婉化重構器 Prompt 函式結束
 
 
     
@@ -1757,11 +1806,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v7.0 - 程式化智能合併)
+# 函式：解析世界聖經並創建 LORE (v7.1 - 分割器參數修正)
 # 更新紀錄:
-# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了昂貴且不可靠的 LLM 實體解析鏈。改為實現一個基於 Levenshtein 距離算法的、純程式碼的智能合併邏輯。此修改能準確判斷“蘋果”和“紅蘋果”這類相似實體並執行更新而非創建，從根本上解決了 LORE 重複創建的問題。同時，修正了 LORE Key 的生成邏輯，確保其始終為中文，解決了 Key 被錯誤翻譯成英文的問題。
+# v7.1 (2025-11-22): [健壯性強化] 將 RecursiveCharacterTextSplitter 的 chunk_size 從 8000 調整為 7500。此修改為 Prompt 模板中的其他指令文本留出了足夠的緩衝空間，以避免在委婉化重試流程中因總長度超限而失敗的問題。
+# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了昂貴且不可靠的 LLM 實體解析鏈，改為實現基於 Levenshtein 距離的智能合併邏輯。
 # v6.0 (2025-11-19): [根本性重構] 適配了原生SDK引擎。
-# v5.0 (2025-11-18): [重大性能優化] 徹底重構了實體解析邏輯，從逐一解析升級為高效的「批次解析」模式。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1774,8 +1823,10 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
+            # [v7.1 核心修正] 調整塊大小，為其他 prompt 內容留出緩衝
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=8000, chunk_overlap=400,
+                chunk_size=7500,
+                chunk_overlap=400,
                 separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
             )
             docs = text_splitter.create_documents([content_text])
@@ -1819,7 +1870,7 @@ class AILover:
 
                 existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
                 
-                SIMILARITY_THRESHOLD = 0.8 # 相似度閾值，可以根據需要調整
+                SIMILARITY_THRESHOLD = 0.8
 
                 for entity_data in purified_entities:
                     new_entity_name = entity_data.get(name_key) or entity_data.get(title_key)
@@ -1828,7 +1879,6 @@ class AILover:
                     best_match_lore = None
                     highest_similarity = 0.0
 
-                    # 尋找最相似的已存在 LORE
                     for existing_lore in existing_lores:
                         existing_name = existing_lore.content.get(name_key) or existing_lore.content.get(title_key)
                         if not existing_name: continue
@@ -1839,14 +1889,10 @@ class AILover:
                             highest_similarity = similarity
                             best_match_lore = existing_lore
                     
-                    # 根據相似度決定是合併還是創建
                     if best_match_lore and highest_similarity >= SIMILARITY_THRESHOLD:
-                        # 合併到最相似的現有 LORE
                         await db_add_or_update_lore(self.user_id, category, best_match_lore.key, entity_data, source='canon', merge=True)
                         logger.info(f"[{self.user_id}] [智能合併] 已將 '{new_entity_name}' 的資訊合併到相似度為 {highest_similarity:.2f} 的現有 LORE '{best_match_lore.key}' 中。")
                     else:
-                        # 創建新的 LORE
-                        # [v7.0 核心修正] 使用中文原文創建 Key
                         safe_key = re.sub(r'[\s/\\:*?"<>|]+', '_', new_entity_name)
                         await db_add_or_update_lore(self.user_id, category, safe_key, entity_data, source='canon')
                         logger.info(f"[{self.user_id}] [智能合併] 未找到相似 LORE (最高相似度: {highest_similarity:.2f})，已為新實體 '{new_entity_name}' 創建了 LORE，主鍵為 '{safe_key}'。")
@@ -2262,6 +2308,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
