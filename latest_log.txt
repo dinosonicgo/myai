@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-22T00:54:11.382060 ###
+### AI Lover Log - Last updated at 2025-09-22T00:59:30.553730 ###
 
-2025-09-22 00:41:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-22 00:41:03 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-22 00:41:04 - [WARNING] - [512280345618546699] (RAG Executor) 主記憶系統 (Embedding) 失敗: GoogleGenerativeAIError
-2025-09-22 00:41:04 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-22 00:41:04 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-22 00:41:04 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
-2025-09-22 00:41:04 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
-2025-09-22 00:41:37 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
-2025-09-22 00:41:37 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-22 00:41:42 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-22 00:41:43 - [INFO] - [512280345618546699] [事後處理-LORE保險] 提取到 1 條新LORE，準備執行擴展...
-2025-09-22 00:41:43 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個LORE任务 ---
-2025-09-22 00:41:47 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
-content
-  Field required [type=missing, input_value={'lore_key': 'world_lore'...泉邊的隱士小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1204, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
-content
-  Field required [type=missing, input_value={'lore_key': 'world_lore'...泉邊的隱士小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-22 00:41:47 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-09-22 00:41:47 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
-2025-09-22 00:49:08 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 00:49:08 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 00:49:08 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 00:49:08 - [INFO] - Discord Bot is ready!
-2025-09-22 00:49:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 00:49:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 00:49:12 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-22 00:49:25 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
-2025-09-22 00:49:25 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 00:49:26 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 11 條訊息。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 臨時短期任務：聽到命令的瞬間，那探出唇外的粉嫩舌尖立刻縮了回去，雙唇也隨之輕輕合攏 (狀態：進行中)
-2025-09-22 00:49:26 - [WARNING] - [512280345618546699] (RAG Executor) 主記憶系統 (Embedding) 失敗: GoogleGenerativeAIError
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
-2025-09-22 00:49:26 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
-2025-09-22 00:50:18 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
-2025-09-22 00:50:19 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-22 00:50:24 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-22 00:50:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或解析錯誤: BlockedPromptException。
-2025-09-22 00:50:25 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【文學評論家委婉化】策略...
-2025-09-22 00:50:25 - [INFO] - [512280345618546699] (Euphemizer) 正在將 Prompt 清洗為安全的文學概述...
-2025-09-22 00:50:26 - [INFO] - [512280345618546699] (Euphemizer) 清洗成功。
-2025-09-22 00:50:29 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或解析錯誤: OutputParserException。
-2025-09-22 00:50:29 - [WARNING] - [512280345618546699] [事後處理-LORE保險] LORE提取鏈的LLM回應為空或最終失敗。
-2025-09-22 00:53:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 00:53:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 00:53:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 00:53:58 - [INFO] - Discord Bot is ready!
-2025-09-22 00:54:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 00:54:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 00:54:01 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-22 00:54:05 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
-2025-09-22 00:54:05 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 00:54:06 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 13 條訊息。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 臨時短期任務：是需要快速的吞吐，還是緩慢而深入的品嚐 (狀態：進行中)
-2025-09-22 00:54:06 - [WARNING] - [512280345618546699] (RAG Executor) 主記憶系統 (Embedding) 失敗: GoogleGenerativeAIError
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
-2025-09-22 00:54:06 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
+    result = self.client.batch_embed_contents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
+    response = rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
+    result = target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 549, in add_lore_to_rag
+    await asyncio.to_thread(self.vector_store.add_documents, [doc], ids=[doc_id])
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 288, in add_documents
+    return self.add_texts(texts, metadatas, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 606, in add_texts
+    embeddings = self._embedding_function.embed_documents(texts)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-09-22 00:59:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 00:59:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 00:59:17 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 00:59:17 - [INFO] - Discord Bot is ready!
+2025-09-22 00:59:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 00:59:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 00:59:20 - [INFO] - 已成功發送啟動成功通知給管理員。
