@@ -69,6 +69,70 @@ async def user_autocomplete(interaction: discord.Interaction, current: str) -> l
     return choices
 # 函式：使用者自動完成
 
+
+
+# discord_bot.py 的 RegenerateView 類
+# 更新紀錄:
+# v1.0 (2025-11-16): [全新功能] 創建此持久化視圖，為 AI 的回覆提供「重新生成」按鈕。
+class RegenerateView(discord.ui.View):
+    def __init__(self, *, cog: "BotCog"):
+        super().__init__(timeout=None)
+        self.cog = cog
+
+    @discord.ui.button(label="🔄 重新生成", style=discord.ButtonStyle.secondary, custom_id="persistent_regenerate_button")
+    async def regenerate(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user_id = str(interaction.user.id)
+        
+        await interaction.response.defer() # 表示正在處理
+
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+        if not ai_instance or not ai_instance.last_user_input:
+            await interaction.followup.send("❌ 錯誤：找不到上一回合的對話記錄，無法重新生成。", ephemeral=True)
+            return
+
+        try:
+            # 步驟 1: 撤銷上一回合的記憶
+            scene_key = ai_instance._get_scene_key()
+            if scene_key in ai_instance.scene_histories:
+                history = ai_instance.scene_histories[scene_key]
+                # 移除最後一對 User/AI 訊息
+                if len(history.messages) >= 2:
+                    history.messages.pop() # 移除 AI message
+                    history.messages.pop() # 移除 User message
+                    logger.info(f"[{user_id}] [重新生成] 已從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
+
+            # 步驟 2: 刪除舊的 AI 回覆訊息
+            await interaction.message.delete()
+
+            # 步驟 3: 使用儲存的輸入，重新執行生成流程
+            logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
+            input_data = {"user_input": ai_instance.last_user_input}
+            
+            # 核心生成邏輯
+            final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
+
+            if final_response and final_response.strip():
+                # 步驟 4: 發送新回覆，並再次附上按鈕
+                for i in range(0, len(final_response), 2000):
+                    # 只有最後一條訊息才附上 View
+                    view = self if i + 2000 >= len(final_response) else None
+                    await interaction.channel.send(final_response[i:i+2000], view=view)
+                
+                # 步驟 5: 觸發新的事後處理
+                if summary_data:
+                    logger.info(f"[{user_id}] [重新生成] 新回應已發送，正在啟動事後處理任務...")
+                    asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
+                    asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
+                else:
+                    logger.info(f"[{user_id}] [重新生成] 新回應無摘要數據，跳過事後處理。")
+            else:
+                await interaction.followup.send("（抱歉，我重新思考了一下，但腦海還是一片空白...）", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] [重新生成] 流程執行時發生異常: {e}", exc_info=True)
+            await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
+# RegenerateView 類結束
+
 # 函式：Lore Key 自動完成
 async def lore_key_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     target_user_id = str(interaction.namespace.target_user)
@@ -741,9 +805,9 @@ class BotCog(commands.Cog):
     
 # discord_bot.py 的 on_message 函式
 # 更新紀錄:
-# v54.2 (2025-11-15): [災難性BUG修復] 根據 AttributeError，修正了日誌記錄中對 user_id 的錯誤引用，將 self.user_id 改為局部變數 user_id。
-# v54.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-# v54.0 (2025-11-15): [災難性BUG修復] 根據【生成即摘要】架構，重寫了事後處理的觸發邏輯。
+# v55.0 (2025-11-16): [功能整合] 整合了「重新生成」功能。現在函式會儲存使用者最後的輸入，並在回覆時附上 RegenerateView 按鈕。
+# v54.2 (2025-11-15): [災難性BUG修復] 修正了日誌記錄中對 user_id 的錯誤引用。
+# v54.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
 @commands.Cog.listener()
 async def on_message(self, message: discord.Message):
     if message.author.bot: return
@@ -762,6 +826,9 @@ async def on_message(self, message: discord.Message):
     if not ai_instance:
         await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
         return
+        
+    # [v55.0 核心修正] 儲存使用者輸入以供重新生成時使用
+    ai_instance.last_user_input = user_input
 
     async with message.channel.typing():
         try:
@@ -771,8 +838,12 @@ async def on_message(self, message: discord.Message):
             final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
             
             if final_response and final_response.strip():
+                # [v55.0 核心修正] 創建視圖實例
+                view = RegenerateView(cog=self)
                 for i in range(0, len(final_response), 2000):
-                    await message.channel.send(final_response[i:i+2000])
+                    # 只有最後一條訊息才附上 View
+                    current_view = view if i + 2000 >= len(final_response) else None
+                    await message.channel.send(final_response[i:i+2000], view=current_view)
                 
                 # 將安全的摘要數據傳遞給事後處理任務
                 if summary_data:
@@ -780,7 +851,6 @@ async def on_message(self, message: discord.Message):
                     asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
                     asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
                 else:
-                    # [v54.2 核心修正] 將 self.user_id 修正為局部變數 user_id
                     logger.info(f"[{user_id}] 本輪回應無摘要數據，跳過事後處理。")
             else:
                 logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
