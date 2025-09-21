@@ -1015,11 +1015,11 @@ class AILover:
 
 
     
-# 函式：預處理並生成主回應 (v33.1 - 直接上下文注入)
+# 函式：預處理並生成主回應 (v33.2 - 適配新模板)
 # 更新紀錄:
-# v33.1 (2025-11-21): [架構優化] 根據討論，採納了更優的實現方案。移除了所有額外的輕量級LLM調用，改為直接將從歷史記錄中提取的「微任務上下文」填充到 world_snapshot_template 的 quests_context 欄位中，實現了零開銷的劇情邏輯強化。
+# v33.2 (2025-11-21): [根本性重構] 適配了 world_snapshot_template.txt v3.2 的新結構。現在會將提取出的「微任務」同時填充到最高優先級的 {micro_task_context} 和後備的 {quests_context} 佔位符中，以確保 AI 在敘事時絕對不會忽略短期目標。
+# v33.1 (2025-11-21): [架構優化] 移除了所有額外的輕量級LLM調用，改為直接填充 quests_context。
 # v33.0 (2025-11-21): [重大邏輯修正] 增加了「微任務上下文注入」機制。
-# v32.0 (2025-11-20): [重大架構升級] 引入了「互動焦點篩選」機制。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1096,8 +1096,7 @@ class AILover:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
-        # [v33.1 核心修正] 直接從對話歷史中提取微任務上下文
-        micro_task_context = "無進行中的任務"
+        micro_task_context = "無"
         if chat_history:
             last_ai_message = ""
             for msg in reversed(chat_history):
@@ -1108,7 +1107,7 @@ class AILover:
                 match = re.search(r"(需要|去|尋找|目標是|前往)[\s\S]*", last_ai_message)
                 if match:
                     task_description = match.group(0).replace("\n", " ").strip()
-                    micro_task_context = f"臨時短期任務：{task_description}"
+                    micro_task_context = f"{task_description} (狀態：進行中)"
                     logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
 
         system_prompt_template = self.core_protocol_prompt
@@ -1139,11 +1138,12 @@ class AILover:
             "player_location": ' > '.join(gs.location_path),
             "viewing_mode": gs.viewing_mode,
             "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
+            "micro_task_context": micro_task_context, # [v33.2] 填充新佔位符
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
             "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            "quests_context": micro_task_context,
+            "quests_context": micro_task_context, # [v33.2] 同時填充舊佔位符以保持兼容性
             "user_input": user_input,
             "response_style_prompt": response_style_template,
             "historical_context": raw_short_term_history,
@@ -1191,16 +1191,13 @@ class AILover:
         if raw_dual_output and raw_dual_output.strip():
             try:
                 cleaned_output = re.sub(r'\[摘要\]|\[正文\]', '', raw_dual_output.strip())
-
                 novel_match = re.search(r"´´´novel(.*?)(´´´summary|´´´$)", cleaned_output, re.DOTALL)
                 summary_match = re.search(r"´´´summary(.*?´´´)", cleaned_output, re.DOTALL)
-
                 if novel_match:
                     novel_text = novel_match.group(1).strip().strip("´").strip()
                 else:
                     novel_text = cleaned_output
                     logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´novel 分隔符，已將整個輸出視為小說。")
-
                 if summary_match:
                     summary_json_str = summary_match.group(1).strip()
                     if summary_json_str.endswith("´´´"):
@@ -1212,16 +1209,13 @@ class AILover:
                             logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {summary_json_str}")
                 else:
                     logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´summary 分隔符，本輪無事後處理數據。")
-
             except Exception as e:
                 logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤: {e}", exc_info=True)
                 novel_text = raw_dual_output.strip()
 
         final_novel_text = novel_text.strip("´").strip()
-
         chat_history_manager.add_user_message(user_input)
         chat_history_manager.add_ai_message(final_novel_text)
-        
         logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
 
         return final_novel_text, summary_data
@@ -1982,6 +1976,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
