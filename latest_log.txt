@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T00:15:01.306190 ###
+### AI Lover Log - Last updated at 2025-09-22T00:18:21.666946 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1198, in start_reset_flow
-    await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
-NameError: name 'SceneHistoryData' is not defined
-2025-09-22 00:04:42 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 00:04:42 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 00:04:43 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-09-22 00:04:43 - [INFO] - Discord Bot is ready!
 2025-09-22 00:04:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 00:04:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
@@ -100,3 +93,10 @@ NameError: name 'SceneHistoryData' is not defined
 2025-09-22 00:08:55 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
 2025-09-22 00:08:57 - [INFO] - [512280345618546699] [重新生成] 新回應已發送，正在啟動事後處理任務...
 2025-09-22 00:08:57 - [INFO] - [512280345618546699] 背景任務：預生成摘要中不包含LORE更新。
+2025-09-22 00:18:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 00:18:07 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 00:18:07 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 00:18:07 - [INFO] - Discord Bot is ready!
+2025-09-22 00:18:10 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 00:18:10 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 00:18:11 - [INFO] - 已成功發送啟動成功通知給管理員。
