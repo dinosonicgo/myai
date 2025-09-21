@@ -1754,72 +1754,124 @@ class AILover:
         return self.canon_parser_chain
     # 獲取世界聖經解析器 Prompt 函式結束
 
-    # 函式：獲取批次實體解析器 Prompt (v2.0 - 適配原生引擎)
-    # 更新紀錄:
-    # v2.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，移除了所有 LangChain 鏈的構建邏輯，現在只返回 ChatPromptTemplate。
-    # v1.0 (2025-11-18): [全新創建] 創建此鏈以支持高效的批次實體解析。
-    def get_batch_entity_resolution_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於批次實體解析的 ChatPromptTemplate 模板。"""
-        if self.batch_entity_resolution_chain is None:
-            prompt_str = """你是一位嚴謹的數據庫管理員和世界觀守護者。你的核心任務是防止世界設定中出現重複的實體。
-你將收到一個【待解析實體名稱列表】和一個【現有實體列表】。你的職責是【遍歷】待解析列表中的【每一個】名稱，並根據語意、上下文和常識，為其精確-判斷這是指向一個已存在的實體，還是一個確實全新的實體。
-**【核心判斷原則】**
-1.  **語意優先**: 不要進行簡單的字串比對。「伍德隆市場」和「伍德隆的中央市集」應被視為同一個實體。
-2.  **包容變體**: 必須考慮到錯別字、多餘的空格、不同的簡寫或全稱（例如「晨風城」vs「首都晨風城」）。
-3.  **寧可合併，不可重複**: 為了保證世界的一致性，當存在較高可能性是同一個實體時，你應傾向於判斷為'EXISTING'。只有當新名稱顯然指向一個完全不同概念的實體時，才判斷為'NEW'。
-4.  **上下文路徑**: 對於具有 `location_path` 的實體，其路徑是判斷的關鍵依據。不同路徑下的同名實體是不同實體。
-**【輸入】**
-- **實體類別**: {category}
-- **待解析實體名稱列表 (JSON)**: 
-{new_entities_json}
-- **現有同類別的實體列表 (JSON格式，包含 key 和 name)**: 
-{existing_entities_json}
-**【輸出指令】**
-你的輸出必須是一個純淨的 JSON 物件。請為【待解析實體名稱列表】中的【每一個】項目生成一個 `BatchResolutionResult`，並將所有結果彙總到 `BatchResolutionPlan` 的 `resolutions` 列表中返回。返回的列表長度必須與輸入列表的長度完全一致。"""
-            self.batch_entity_resolution_chain = ChatPromptTemplate.from_template(prompt_str)
-        return self.batch_entity_resolution_chain
-    # 獲取批次實體解析器 Prompt 函式結束
 
-    # 函式：獲取單體實體解析器 Prompt (v206.0 - 健壯性強化)
-    # 更新紀錄:
-    # v206.0 (2025-11-18): [健壯性強化] 徹底重寫了 Prompt，採用了更嚴格的數據驅動格式。
-    # v205.0 (2025-11-14): [災難性BUG修復] 移除了對話式語言，改為純粹的數據驅動格式。
-    # v204.0 (2025-11-14): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
-    def get_single_entity_resolution_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於單體實體解析的 ChatPromptTemplate 模板。"""
-        if self.single_entity_resolution_chain is None:
-            prompt_str = """# ROLE: 你是一個無感情的數據庫實體解析引擎。
-# MISSION: 讀取 SOURCE DATA，根據 RULES 進行分析，並嚴格按照 OUTPUT_FORMAT 輸出結果。
-# RULES:
-# 1. **SEMANTIC_MATCHING**: 必須進行語意比對，而非純字符串比對。"伍德隆市場" 與 "伍德隆的中央市集" 應視為同一實體。
-# 2. **MERGE_PREFERRED**: 為了世界觀一致性，當存在較高可能性是同一實體時，應傾向於判斷為 'EXISTING'。
-# 3. **CONTEXT_PATH_IS_KEY**: 對於具有 `location_path` 的實體，其路徑是判斷的關鍵依據。
-# SOURCE DATA:
-# [ENTITY_CATEGORY]: {category}
-# [ENTITY_TO_RESOLVE]:
-{new_entity_json}
-# [EXISTING_ENTITIES_IN_CATEGORY]:
-{existing_entities_json}
-# OUTPUT_FORMAT (ABSOLUTE REQUIREMENT):
-# 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件。
-# 其結構【必須】嚴格符合以下範例，包含所有必需的鍵。
-# --- EXAMPLE ---
-# ```json
-# {{
-#   "resolution": {{
-#     "original_name": "（這裡填寫 ENTITY_TO_RESOLVE 中的名字）",
-#     "decision": "（'NEW' 或 'EXISTING'）",
-#     "standardized_name": "（如果是 'NEW'，提供標準名；如果是 'EXISTING'，提供匹配到的實體名）",
-#     "matched_key": "（如果是 'EXISTING'，必須提供匹配到的實體的 key，否則為 null）",
-#     "reasoning": "（你做出此判斷的簡短理由）"
-#   }}
-# }}
-# ```
-# 【【【警告：任何非 JSON 或缺少欄位的輸出都將導致系統性失敗。立即開始分析並輸出結構完整的 JSON。】】】"""
-            self.single_entity_resolution_chain = ChatPromptTemplate.from_template(prompt_str)
-        return self.single_entity_resolution_chain
-    # 獲取單體實體解析器 Prompt 函式結束
 
+
+# 函式：解析世界聖經並創建 LORE (v7.0 - 程式化智能合併)
+# 更新紀錄:
+# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了昂貴且不可靠的 LLM 實體解析鏈。改為實現一個基於 Levenshtein 距離算法的、純程式碼的智能合併邏輯。此修改能準確判斷“蘋果”和“紅蘋果”這類相似實體並執行更新而非創建，從根本上解決了 LORE 重複創建的問題。同時，修正了 LORE Key 的生成邏輯，確保其始終為中文，解決了 Key 被錯誤翻譯成英文的問題。
+# v6.0 (2025-11-19): [根本性重構] 適配了原生SDK引擎。
+# v5.0 (2025-11-18): [重大性能優化] 徹底重構了實體解析邏輯，從逐一解析升級為高效的「批次解析」模式。
+    async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
+        """
+        解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
+        此函式採用 Levenshtein 距離算法來智能合併相似實體。
+        """
+        if not self.profile:
+            logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
+            return
+
+        logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
+        
+        try:
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=8000, chunk_overlap=400,
+                separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
+            )
+            docs = text_splitter.create_documents([content_text])
+            logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(docs)} 個文本塊進行處理。")
+
+            all_parsing_results = CanonParsingResult()
+            canon_parser_chain = self.get_canon_parser_chain()
+            
+            for i, doc in enumerate(docs):
+                logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
+                await asyncio.sleep(5.0)
+                try:
+                    full_prompt = canon_parser_chain.format_prompt(canon_text=doc.page_content).to_string()
+                    chunk_result = await self.ainvoke_with_rotation(
+                        full_prompt, output_schema=CanonParsingResult, retry_strategy='euphemize'
+                    )
+                    if not chunk_result:
+                        logger.warning(f"[{self.user_id}] 文本塊 {i+1} 在所有重試後最終解析失敗，已跳過。")
+                        continue
+                    all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
+                    all_parsing_results.locations.extend(chunk_result.locations)
+                    all_parsing_results.items.extend(chunk_result.items)
+                    all_parsing_results.creatures.extend(chunk_result.creatures)
+                    all_parsing_results.quests.extend(chunk_result.quests)
+                    all_parsing_results.world_lores.extend(chunk_result.world_lores)
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] 處理文本塊 {i+1} 時發生未知錯誤: {e}", exc_info=True)
+
+            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
+
+            user_name_lower = self.profile.user_profile.name.lower()
+            ai_name_lower = self.profile.ai_profile.name.lower()
+            protected_names = {user_name_lower, ai_name_lower}
+
+            async def _resolve_and_save(category: str, entities: List[Dict], name_key: str = 'name', title_key: str = 'title'):
+                if not entities: return
+                logger.info(f"[{self.user_id}] [程式化合併] 正在為 '{category}' 類別的 {len(entities)} 個實體進行智能合併...")
+                
+                purified_entities = [e for e in entities if (e.get(name_key) or e.get(title_key)) and (e.get(name_key) or e.get(title_key, '')).lower() not in protected_names]
+                if not purified_entities: return
+
+                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
+                
+                SIMILARITY_THRESHOLD = 0.8 # 相似度閾值，可以根據需要調整
+
+                for entity_data in purified_entities:
+                    new_entity_name = entity_data.get(name_key) or entity_data.get(title_key)
+                    if not new_entity_name: continue
+
+                    best_match_lore = None
+                    highest_similarity = 0.0
+
+                    # 尋找最相似的已存在 LORE
+                    for existing_lore in existing_lores:
+                        existing_name = existing_lore.content.get(name_key) or existing_lore.content.get(title_key)
+                        if not existing_name: continue
+                        
+                        similarity = levenshtein_ratio(new_entity_name.lower(), existing_name.lower())
+                        
+                        if similarity > highest_similarity:
+                            highest_similarity = similarity
+                            best_match_lore = existing_lore
+                    
+                    # 根據相似度決定是合併還是創建
+                    if best_match_lore and highest_similarity >= SIMILARITY_THRESHOLD:
+                        # 合併到最相似的現有 LORE
+                        await db_add_or_update_lore(self.user_id, category, best_match_lore.key, entity_data, source='canon', merge=True)
+                        logger.info(f"[{self.user_id}] [智能合併] 已將 '{new_entity_name}' 的資訊合併到相似度為 {highest_similarity:.2f} 的現有 LORE '{best_match_lore.key}' 中。")
+                    else:
+                        # 創建新的 LORE
+                        # [v7.0 核心修正] 使用中文原文創建 Key
+                        safe_key = re.sub(r'[\s/\\:*?"<>|]+', '_', new_entity_name)
+                        await db_add_or_update_lore(self.user_id, category, safe_key, entity_data, source='canon')
+                        logger.info(f"[{self.user_id}] [智能合併] 未找到相似 LORE (最高相似度: {highest_similarity:.2f})，已為新實體 '{new_entity_name}' 創建了 LORE，主鍵為 '{safe_key}'。")
+
+            await _resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
+            await _resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
+            await _resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
+            await _resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
+            await _resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
+            await _resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
+
+            logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
+            if interaction and not is_setup_flow:
+                try:
+                    await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
+                except Exception as ie:
+                    logger.warning(f"[{self.user_id}] 無法向 interaction 發送錯誤 followup: {ie}")
+# 解析世界聖經並創建 LORE 函式結束
+
+
+    
+    
     # 函式：獲取JSON修正器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。
@@ -2210,6 +2262,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
