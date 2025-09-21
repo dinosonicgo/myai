@@ -40,6 +40,7 @@ class UserData(Base):
     # [v2.3 新增] 自訂回覆風格
     response_style_prompt = Column(String, nullable=True)
     
+# v4.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，增加了 sanitized_content 欄位。此欄位將用於存儲記憶文本的、經過一次性淨化後絕對安全的版本，旨在從根本上解決RAG流程中的高頻LLM調用問題。
 class MemoryData(Base):
     __tablename__ = "memories"
     
@@ -48,6 +49,9 @@ class MemoryData(Base):
     content = Column(String)
     timestamp = Column(Float)
     importance = Column(Integer)
+    # [v4.0 核心修正] 新增淨化快取欄位
+    sanitized_content = Column(String, nullable=True)
+# MemoryData 模型結束
 
 # [v3.0 新增] Lore (衍生設定) 資料庫模型
 class Lore(Base):
@@ -71,4 +75,5 @@ async def init_db():
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
+
 # 獲取資料庫會話
