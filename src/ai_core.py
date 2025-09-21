@@ -212,11 +212,11 @@ class AILover:
         )
 # 創建 LangChain LLM 實例 函式結束
 
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v234.0 - 徹底原生化)
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v235.0 - 速率限制優化)
 # 更新紀錄:
-# v234.0 (2025-11-20): [根本性重構] 移除了對 _rebuild_agent_with_new_key 的調用，使此函式完全獨立，不再依賴任何外部模型實例，實現了徹底的原生化。
-# v233.0 (2025-11-19): [根本性重構] 徹底重寫此函式，完全拋棄 LangChain 的執行層，改為直接使用 google.generativeai SDK。
-# v232.0 (2025-11-19): [災難性BUG修復] 重構了鏈的組裝和調用邏輯。
+# v235.0 (2025-11-20): [健壯性強化] 針對 ResourceExhausted (速率限制) 等臨時性 API 錯誤，引入了帶有「指數退避」的內部重試循環。如果一個金鑰在短時間內頻繁觸發速率限制，系統會自動將其長時間「冷卻」，從而極大地提高了在高負載下的請求成功率和系統穩定性。
+# v234.0 (2025-11-20): [根本性重構] 移除了對 _rebuild_agent_with_new_key 的調用，實現了徹底的原生化。
+# v233.0 (2025-11-19): [根本性重構] 徹底重寫此函式，完全拋棄 LangChain 的執行層。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -226,14 +226,16 @@ class AILover:
     ) -> Any:
         """
         一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、模型降級、內容審查備援策略，
-        並手動處理 Pydantic 結構化輸出，完全繞開 LangChain 的執行層 BUG。
+        並手動處理 Pydantic 結構化輸出，同時內置了針對速率限制的指數退避和金鑰冷卻機制。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
         from google.api_core import exceptions as google_api_exceptions
+        import random
 
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         last_exception = None
+        IMMEDIATE_RETRY_LIMIT = 3
 
         for model_index, model_name in enumerate(models_to_try):
             for attempt in range(len(self.api_keys)):
@@ -244,66 +246,94 @@ class AILover:
                 
                 key_to_use, key_index = key_info
                 
-                try:
-                    genai.configure(api_key=key_to_use)
+                # [v235.0 核心修正] 內部重試循環，帶有指數退避
+                for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
+                    try:
+                        genai.configure(api_key=key_to_use)
+                        
+                        safety_settings_sdk = [
+                            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                        ]
+
+                        model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
+                        
+                        response = await asyncio.wait_for(
+                            model.generate_content_async(
+                                full_prompt,
+                                generation_config=genai.types.GenerationConfig(temperature=0.75)
+                            ),
+                            timeout=120.0
+                        )
+                        
+                        if response.prompt_feedback.block_reason:
+                            raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+                        if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
+                             finish_reason_name = response.candidates[0].finish_reason.name
+                             raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
+
+                        raw_text_result = response.text
+
+                        if not raw_text_result or not raw_text_result.strip():
+                            raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
+                        
+                        if output_schema:
+                            json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
+                            if not json_match:
+                                raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
+                            clean_json_str = json_match.group(0)
+                            return output_schema.model_validate(json.loads(clean_json_str))
+                        else:
+                            return raw_text_result
+
+                    except (BlockedPromptException, GoogleGenerativeAIError, OutputParserException, ValidationError, json.JSONDecodeError) as e:
+                        last_exception = e
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或解析錯誤: {type(e).__name__}。")
+                        
+                        if retry_strategy == 'euphemize':
+                            return await self._euphemize_and_retry(full_prompt, output_schema, e)
+                        elif retry_strategy == 'force':
+                            return await self._force_and_retry(full_prompt, output_schema)
+                        else:
+                            return None
+
+                    except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
+                        last_exception = e
+                        # 如果是最後一次內部重試，則記錄錯誤並跳出循環以輪換金鑰
+                        if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
+                            logger.error(f"[{self.user_id}] Key #{key_index} 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰。")
+                            break # 跳出內部重試循環
+                        
+                        # 指數退避邏輯
+                        sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
+                        logger.warning(f"[{self.user_id}] Key #{key_index} 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
+                        await asyncio.sleep(sleep_time)
+                        continue # 繼續內部重試循環
+
+                    except Exception as e:
+                        last_exception = e
+                        logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        goto_next_model = True # 標記需要切換模型
+                        break
+                
+                # [v235.0 核心修正] 金鑰冷卻機制
+                # 如果是因為臨時性錯誤而跳出內部重試循環，則觸發失敗計數
+                if isinstance(last_exception, (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError)):
+                    now = time.time()
+                    self.key_short_term_failures[key_index].append(now)
+                    # 只保留最近 RPM_FAILURE_WINDOW 秒內的失敗記錄
+                    self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
                     
-                    safety_settings_sdk = [
-                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                    ]
-
-                    model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
-                    
-                    response = await asyncio.wait_for(
-                        model.generate_content_async(
-                            full_prompt,
-                            generation_config=genai.types.GenerationConfig(temperature=0.75)
-                        ),
-                        timeout=120.0
-                    )
-                    
-                    if response.prompt_feedback.block_reason:
-                        raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-                    if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
-                         finish_reason_name = response.candidates[0].finish_reason.name
-                         raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
-
-                    raw_text_result = response.text
-
-                    if not raw_text_result or not raw_text_result.strip():
-                        raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
-                    
-                    if output_schema:
-                        json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
-                        if not json_match:
-                            raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
-                        clean_json_str = json_match.group(0)
-                        return output_schema.model_validate(json.loads(clean_json_str))
-                    else:
-                        return raw_text_result
-
-                except (BlockedPromptException, GoogleGenerativeAIError, OutputParserException, ValidationError, json.JSONDecodeError) as e:
-                    last_exception = e
-                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或解析錯誤: {type(e).__name__}。")
-                    
-                    if retry_strategy == 'euphemize':
-                        return await self._euphemize_and_retry(full_prompt, output_schema, e)
-                    elif retry_strategy == 'force':
-                        return await self._force_and_retry(full_prompt, output_schema)
-                    else:
-                        return None
-
-                except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
-                    last_exception = e
-                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇臨時性 API 錯誤: {type(e).__name__}。正在輪換金鑰...")
-                    continue
-
-                except Exception as e:
-                    last_exception = e
-                    logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                    break
+                    if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
+                        cooldown_duration = 60 * 60 * 24 # 24 小時
+                        self.key_cooldowns[key_index] = now + cooldown_duration
+                        self.key_short_term_failures[key_index] = [] # 重置計數器
+                        logger.critical(f"[{self.user_id}] [金鑰冷卻] API Key #{key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗 {self.RPM_FAILURE_THRESHOLD} 次。已將其置入冷卻狀態，持續 24 小時。")
+                
+                if 'goto_next_model' in locals() and goto_next_model:
+                    break # 跳出金鑰循環，去下一個模型
             
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
@@ -919,11 +949,15 @@ class AILover:
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
     # 執行工具調用計畫 函式結束
 
-# 函式：預處理並生成主回應 (v30.0 - 指令洩漏修正)
+
+
+
+    
+# 函式：預處理並生成主回應 (v32.0 - 互動焦點篩選)
 # 更新紀錄:
-# v30.0 (2025-11-20): [災難性BUG修復] 針對「指令洩漏」和「雙重輸出格式失敗」問題進行了雙重加固。1) 在Prompt末尾增加了強制的雙重輸出指令。2) 在解析邏輯中增加了前置清洗步驟，以移除任何意外洩漏的內部標籤（如[摘要]、[正文]），並改進了正則表達式以更穩健地分離小說和摘要。
-# v29.5 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-# v29.4 (2025-11-15): [災難性BUG修復] 根據 KeyError，徹底重構了 Prompt 的拼接與格式化邏輯。
+# v32.0 (2025-11-20): [重大架構升級] 引入了「互動焦點篩選」機制。此函式現在會調用 _get_relevant_npcs 輔助函式，將場景角色動態分類為「核心互動目標」和「背景角色」，並將此分類注入 Prompt。此修改旨在從根本上約束 AI，使其專注於與當前指令相關的角色，避免描述無關人員。
+# v31.0 (2025-11-20): [災難性BUG修復] 針對 AI 幻覺和輸出格式污染問題進行了雙重修正。
+# v30.0 (2025-11-20): [災難性BUG修復] 針對「指令洩漏」和「雙重輸出格式失敗」問題進行了雙重加固。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1003,27 +1037,24 @@ class AILover:
         system_prompt_template = self.core_protocol_prompt
         world_snapshot_template = self.world_snapshot_template
         response_style_template = self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'
+        
         final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) 🚨 ==
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.1 🚨 ==
 # ==============================================================================
-# **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
-# 你的創作【必須且只能】是世界、NPC、或 AI 角色「{ai_profile.name}」對使用者最新指令產生的【外部反應】。"""
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
+# 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。"""
 
-        # [v30.0 核心修正] 增加強制的雙重輸出指令
         dual_output_mandate = """# ==============================================================================
 # == ⚙️ 最終輸出格式強制令 (FINAL OUTPUT FORMATTING MANDATE) ⚙️ ==
 # ==============================================================================
-# 【【【警告：此為最高優先級的輸出結構指令，必須嚴格遵守，任何偏離都將導致系統性失敗！】】】
 # 你的最終輸出【必須且只能】遵循以下格式，使用 `´´´` 作為分隔符：
-#
 # ´´´novel
-# （這裡是你創作的、符合所有敘事規則的純粹小說文本。禁止包含任何 [標籤] 或元注釋。）
+# （小說文本）
 # ´´´
 # ´´´summary
-# （這裡是一個 JSON 物件，包含對本輪小說內容的事後分析，用於更新記憶和 LORE。）
-# ´´´
-#
-# 【立即開始創作，並嚴格按照上述格式輸出。】"""
+# （JSON 物件）
+# ´´´"""
 
         full_prompt_params = {
             "username": user_profile.name,
@@ -1041,16 +1072,25 @@ class AILover:
             "historical_context": raw_short_term_history,
         }
 
+        # [v32.0 核心修正] 互動焦點篩選邏輯
         if gs.viewing_mode == 'remote':
-            remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
+            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
+            relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
+            
+            full_prompt_params["relevant_npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs]) or "（此場景目前沒有核心互動目標。）"
+            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此場景沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
-            full_prompt_params["relevant_npc_context"] = "N/A"
-        else:
-            local_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in local_npcs]) or "此地目前沒有其他特定角色。"
+        else: # local 模式
+            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
+            relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
+            
+            # 在本地模式，AI 角色永遠是核心互動目標
+            ai_profile_summary = f"- {ai_profile.name} (你的AI戀人): {ai_profile.description}"
+            relevant_npcs_summary = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs])
+            
+            full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\n{ai_profile_summary}\n{relevant_npcs_summary}".strip()
+            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
-            full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
 
         full_template = "\n".join([
             system_prompt_template,
@@ -1062,7 +1102,7 @@ class AILover:
             "\n# --- 使用者最新指令 ---",
             "{user_input}",
             final_safeguard_template,
-            dual_output_mandate # [v30.0] 將強制的格式指令放在最後
+            dual_output_mandate
         ])
 
         full_prompt = full_template.format(**full_prompt_params)
@@ -1075,25 +1115,21 @@ class AILover:
 
         if raw_dual_output and raw_dual_output.strip():
             try:
-                # [v30.0 核心修正] 增加前置清洗步驟，移除洩漏的指令標籤
                 cleaned_output = re.sub(r'\[摘要\]|\[正文\]', '', raw_dual_output.strip())
 
-                # [v30.0 核心修正] 使用更穩健的正則表達式
                 novel_match = re.search(r"´´´novel(.*?)(´´´summary|´´´$)", cleaned_output, re.DOTALL)
                 summary_match = re.search(r"´´´summary(.*?´´´)", cleaned_output, re.DOTALL)
 
                 if novel_match:
-                    novel_text = novel_match.group(1).strip()
+                    novel_text = novel_match.group(1).strip().strip("´").strip()
                 else:
-                    novel_text = cleaned_output # 如果找不到分隔符，將整個清洗後的輸出視為小說
+                    novel_text = cleaned_output
                     logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´novel 分隔符，已將整個輸出視為小說。")
 
                 if summary_match:
                     summary_json_str = summary_match.group(1).strip()
-                    # 移除結尾的分隔符
                     if summary_json_str.endswith("´´´"):
                         summary_json_str = summary_json_str[:-3].strip()
-                    
                     if summary_json_str:
                         try:
                             summary_data = json.loads(summary_json_str)
@@ -1106,15 +1142,74 @@ class AILover:
                 logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤: {e}", exc_info=True)
                 novel_text = raw_dual_output.strip()
 
+        final_novel_text = novel_text.strip("´").strip()
+
         chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(novel_text)
+        chat_history_manager.add_ai_message(final_novel_text)
         
         logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
 
-        return novel_text, summary_data
+        return final_novel_text, summary_data
 # 預處理並生成主回應 函式結束
 
 
+
+    
+
+# 函式：獲取場景中的相關 NPC (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-20): [全新創建] 創建此核心上下文篩選函式。它能夠根據使用者輸入和對話歷史，智能地將場景內所有NPC區分為「核心互動目標」和「背景角色」，從根本上解決了 AI 描述與指令無關NPC的問題。
+    async def _get_relevant_npcs(self, user_input: str, chat_history: List[BaseMessage], all_scene_npcs: List[Lore]) -> Tuple[List[Lore], List[Lore]]:
+        """
+        從場景中的所有NPC裡，篩選出與當前互動直接相關的核心NPC和作為背景的NPC。
+        返回 (relevant_npcs, background_npcs) 的元組。
+        """
+        if not all_scene_npcs:
+            return [], []
+
+        relevant_keys = set()
+        
+        # 規則 1: 從使用者當前輸入中尋找明確提及的 NPC
+        for npc_lore in all_scene_npcs:
+            npc_name = npc_lore.content.get('name', '')
+            if npc_name and npc_name in user_input:
+                relevant_keys.add(npc_lore.key)
+            # 檢查別名
+            for alias in npc_lore.content.get('aliases', []):
+                if alias and alias in user_input:
+                    relevant_keys.add(npc_lore.key)
+
+        # 規則 2: 從最近的對話歷史中尋找被提及的 NPC (特別是上一輪AI的回應)
+        if chat_history:
+            last_ai_message = ""
+            # 找到最後一條 AI 訊息
+            for msg in reversed(chat_history):
+                if isinstance(msg, AIMessage):
+                    last_ai_message = msg.content
+                    break
+            
+            if last_ai_message:
+                for npc_lore in all_scene_npcs:
+                    npc_name = npc_lore.content.get('name', '')
+                    if npc_name and npc_name in last_ai_message:
+                        relevant_keys.add(npc_lore.key)
+                    for alias in npc_lore.content.get('aliases', []):
+                        if alias and alias in last_ai_message:
+                            relevant_keys.add(npc_lore.key)
+        
+        # 進行分類
+        relevant_npcs = []
+        background_npcs = []
+        for npc_lore in all_scene_npcs:
+            if npc_lore.key in relevant_keys:
+                relevant_npcs.append(npc_lore)
+            else:
+                background_npcs.append(npc_lore)
+        
+        logger.info(f"[{self.user_id}] [上下文篩選] 核心目標: {[n.content.get('name') for n in relevant_npcs]}, 背景角色: {[n.content.get('name') for n in background_npcs]}")
+        
+        return relevant_npcs, background_npcs
+# 獲取場景中的相關 NPC 函式結束
     
 
     # 函式：關閉 AI 實例並釋放資源 (v198.2 - 完成重構)
@@ -1820,6 +1915,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
