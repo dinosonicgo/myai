@@ -459,6 +459,81 @@ class AILover:
 # 背景LORE提取與擴展 函式結束
 
 
+
+
+# 函式：將單條 LORE 格式化為 RAG 文檔 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。它負責將結構化的LORE數據轉換為對RAG友好的純文本，是擴展AI知識廣度的關鍵一步。
+    def _format_lore_into_document(self, lore: Lore) -> Document:
+        """將一個 LORE 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
+        content = lore.content
+        text_parts = []
+        
+        title = content.get('name') or content.get('title') or lore.key
+        category_map = {
+            "npc_profile": "NPC 檔案", "location_info": "地點資訊",
+            "item_info": "物品資訊", "creature_info": "生物資訊",
+            "quest": "任務日誌", "world_lore": "世界傳說"
+        }
+        category_name = category_map.get(lore.category, lore.category)
+
+        text_parts.append(f"【{category_name}: {title}】")
+        
+        # 遍歷 content 字典中的所有鍵值對，並將它們格式化為文本
+        for key, value in content.items():
+            # 忽略已經在標題中使用過的鍵和空的鍵
+            if value and key not in ['name', 'title', 'aliases']:
+                key_str = key.replace('_', ' ').capitalize()
+                if isinstance(value, list) and value:
+                    value_str = ", ".join(map(str, value))
+                    text_parts.append(f"- {key_str}: {value_str}")
+                elif isinstance(value, dict) and value:
+                    dict_str = "; ".join([f"{k}: {v}" for k, v in value.items()])
+                    text_parts.append(f"- {key_str}: {dict_str}")
+                elif isinstance(value, str) and value.strip():
+                    text_parts.append(f"- {key_str}: {value}")
+
+        full_text = "\n".join(text_parts)
+        return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
+# 將單條 LORE 格式化為 RAG 文檔 函式結束
+
+# 函式：將單條 LORE 添加到 RAG 系統 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。它負責將格式化後的LORE文本即時注入到向量數據庫和BM25檢索器中。
+    async def add_lore_to_rag(self, lore: Lore):
+        """接收一個 LORE 物件，將其格式化後，即時注入到 RAG 系統中。"""
+        if not self.vector_store or not self.bm25_retriever:
+            logger.warning(f"[{self.user_id}] RAG 系統未完全初始化，跳過 LORE 即時注入。")
+            return
+
+        doc = self._format_lore_into_document(lore)
+        
+        # 使用 LORE 的唯一鍵作為 ID，這樣可以實現更新和刪除
+        doc_id = f"lore_{lore.category}_{lore.key}"
+
+        try:
+            # 注入到 ChromaDB (向量庫)，使用 add_documents 的 upsert 功能
+            await asyncio.to_thread(self.vector_store.add_documents, [doc], ids=[doc_id])
+            
+            # 注入到 BM25 (關鍵詞檢索庫)
+            # 檢查是否已存在相同的文檔，如果存在則更新
+            doc_exists = False
+            for i, existing_doc in enumerate(self.bm25_retriever.docs):
+                if existing_doc.metadata.get("key") == lore.key and existing_doc.metadata.get("category") == lore.category:
+                    self.bm25_retriever.docs[i] = doc
+                    doc_exists = True
+                    break
+            if not doc_exists:
+                self.bm25_retriever.docs.append(doc)
+
+            logger.info(f"[{self.user_id}] [Unified RAG] 已成功將 LORE '{lore.key}' 注入 RAG 知識庫。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 RAG 時失敗: {e}", exc_info=True)
+# 將單條 LORE 添加到 RAG 系統 函式結束
+
+
+    
+
 # 函式：處理世界聖經並提取LORE (/start 流程 1/4) (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第一步，取代舊的 process_canon_node。
@@ -1976,6 +2051,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
