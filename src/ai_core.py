@@ -1166,13 +1166,13 @@ class AILover:
 
     
 
-    # 函式：執行工具調用計畫 (v184.0 - 恢復核心功能)
-    # 更新紀錄:
-    # v184.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此核心 LORE 執行器函式恢復到 AILover 類中。
-    # v183.4 (2025-10-15): [健壯性] 增加了參數補全邏輯。
-    # v183.0 (2025-10-14): [災難性BUG修復] 修正了因 Pydantic 模型驗證失敗導致的 TypeError。
+# 函式：執行工具調用計畫 (v185.0 - 持久化RAG刷新)
+# 更新紀錄:
+# v185.0 (2025-11-22): [重大架構升級] 根據「持久化 RAG」架構，在此函式的末尾增加了對 `await self._build_retriever()` 的強制調用。此修改確保了在 LORE 資料庫發生任何變更後，RAG 檢索器都會被立即用最新的、持久化的數據完全重建，從根本上解決了 RAG 知識庫與 LORE 不同步的問題。
+# v184.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此核心 LORE 執行器函式恢復到 AILover 類中。
+# v183.4 (2025-10-15): [健壯性] 增加了參數補全邏輯。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务。"""
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
             return "LORE 扩展計畫為空。"
@@ -1190,7 +1190,7 @@ class AILover:
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
                 is_illegal = False
-                name_to_check = call.parameters.get('standardized_name') or call.parameters.get('original_name')
+                name_to_check = call.parameters.get('standardized_name') or call.parameters.get('original_name') or call.parameters.get('name')
                 if name_to_check and name_to_check.lower() in protected_names:
                     is_illegal = True
                     logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 創建操作 ({call.tool_name})。")
@@ -1230,12 +1230,18 @@ class AILover:
                     summaries.append(summary)
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
+
+            # [v185.0 核心修正] 在所有 LORE 操作完成後，強制重建 RAG 索引
+            logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
+            self.retriever = await self._build_retriever()
+            logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
+            
             return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。"
         
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
-    # 執行工具調用計畫 函式結束
+# 執行工具調用計畫 函式結束
 
 
 
@@ -2280,6 +2286,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
