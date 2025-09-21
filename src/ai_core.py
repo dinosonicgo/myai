@@ -54,7 +54,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, SingleResolutionPlan)
-from .database import AsyncSessionLocal, UserData, MemoryData
+from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
@@ -2161,6 +2161,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
