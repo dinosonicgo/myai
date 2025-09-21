@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T23:59:45.898908 ###
+### AI Lover Log - Last updated at 2025-09-22T00:01:18.475571 ###
 
-    result = await tool_to_execute.ainvoke(validated_args.model_dump())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 66, in ainvoke
-    return await super().ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 609, in ainvoke
-    return await self.arun(tool_input, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 996, in arun
-    raise error_to_raise
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 965, in arun
     response = await coro_with_context(coro, context)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 110, in _arun
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute 'add_lore_to_rag'
 2025-09-21 23:59:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-21 23:59:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-21 23:59:35 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 00:01:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 00:01:04 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 00:01:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 00:01:04 - [INFO] - Discord Bot is ready!
+2025-09-22 00:01:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 00:01:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 00:01:08 - [INFO] - 已成功發送啟動成功通知給管理員。
