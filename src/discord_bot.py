@@ -1166,20 +1166,20 @@ class BotCog(commands.Cog):
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
     # 函式：在背景處理世界聖經文本
     
-# 函式：開始 /start 指令的重置流程 (v52.0 - 顯式清除短期記憶)
+# 函式：開始 /start 指令的重置流程 (v52.1 - 屬性修正)
 # 更新紀錄:
-# v52.0 (2025-11-22): [重大架構升級] 在刪除用戶數據的流程中，增加了對 ai_instance._clear_scene_histories() 的顯式調用。此修改確保了 /start 指令會徹底清空所有短期對話歷史，為用戶提供一個完全乾淨的開始。
+# v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式，將錯誤的 `interaction.user_id` 改為正確的 `interaction.user.id`，以解決導致程式崩潰的 AttributeError。
+# v52.0 (2025-11-22): [重大架構升級] 在刪除用戶數據的流程中，增加了對 ai_instance._clear_scene_histories() 的顯式調用。
 # v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
-# v48.0 (2025-10-19): [重大架構重構] 徹底移除了對 LangGraph 的所有依賴。
     async def start_reset_flow(self, interaction: discord.Interaction):
-        user_id = str(interaction.user_id)
+        # [v52.1 核心修正] discord.Interaction 物件本身沒有 .user_id 屬性，需要通過 .user 屬性訪問
+        user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
             # 獲取一個臨時實例以執行清除操作
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance:
-                # 即使無法創建實例，也要嘗試從資料庫層面清除
                 logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
             
             # 關閉並移除記憶體中的實例
@@ -1188,7 +1188,7 @@ class BotCog(commands.Cog):
                 gc.collect()
                 await asyncio.sleep(1.5)
 
-            # [v52.0 核心修正] 在刪除其他數據之前，先清除短期記憶
+            # 在刪除其他數據之前，先清除短期記憶
             if ai_instance:
                 await ai_instance._clear_scene_histories()
 
@@ -1207,6 +1207,7 @@ class BotCog(commands.Cog):
                 await asyncio.to_thread(shutil.rmtree, vector_store_path)
             
             view = StartSetupView(cog=self)
+            # 使用 followup 來回應已經被 defer/edit 過的互動
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
                 view=view, 
@@ -1214,10 +1215,18 @@ class BotCog(commands.Cog):
             )
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
-            await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+            # 確保即使發生錯誤也能通知使用者
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+            else:
+                await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
 # 開始 /start 指令的重置流程 函式結束
+
+
+
+    
 
 # 指令：開始全新的冒險（重置所有資料） (v53.0 - 視圖生命週期修正)
 # 更新紀錄:
