@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T23:56:43.294084 ###
+### AI Lover Log - Last updated at 2025-09-21T23:59:45.898908 ###
 
-2025-09-21 23:28:03 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-21 23:28:08 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-21 23:28:10 - [INFO] - [512280345618546699] [事後處理-LORE保險] 提取到 3 條新LORE，準備執行擴展...
-2025-09-21 23:28:10 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 3 個LORE任务 ---
-2025-09-21 23:28:14 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for add_or_update_item_info: 'AILover' object has no attribute 'add_lore_to_rag'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 997, in _execute_tool_call_plan
     result = await tool_to_execute.ainvoke(validated_args.model_dump())
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 66, in ainvoke
     return await super().ainvoke(input, config, **kwargs)
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute 'add_lore_to_rag'
 2025-09-21 23:56:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-21 23:56:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-21 23:56:33 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-21 23:59:31 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-21 23:59:31 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-21 23:59:32 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-21 23:59:32 - [INFO] - Discord Bot is ready!
+2025-09-21 23:59:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-21 23:59:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-21 23:59:35 - [INFO] - 已成功發送啟動成功通知給管理員。
