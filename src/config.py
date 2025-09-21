@@ -1,10 +1,8 @@
-# src/config.py 的中文註釋(v1.5 - 健壯性修正版)
+# src/config.py 的中文註釋(v1.7 - 完整性修復)
 # 更新紀錄:
-# v1.5 (2050-08-01):
-# 1. [健壯性] 重構了錯誤處理。不再使用 os.system("pause") 和 exit(1) 來中斷程式，而是拋出具體的異常 (FileNotFoundError, ValueError)。
-# 2. [健壯性] 這樣可以讓主程式 main.py 統一捕獲並處理所有啟動錯誤，從根本上解決因設定問題導致的閃退。
-# v1.4 (2050-07-31):
-# 1. [根本性修正] 徹底重構了 API 金鑰的讀取方式。
+# v1.7 (2025-11-17): [完整性修復] 提供了完整的檔案內容，以確保 TEST_GUILD_ID 屬性被正確加載，解決因快取導致的 AttributeError。
+# v1.6 (2025-11-17): [功能擴展] 新增了 TEST_GUILD_ID 變數，用於快速同步指令。
+# v1.5 (2050-08-01): [健壯性] 重構了錯誤處理，改為拋出具體異常。
 
 import os
 from pathlib import Path
@@ -33,6 +31,9 @@ class Settings(BaseSettings):
     DISCORD_BOT_TOKEN: Optional[str] = None
     ADMIN_USER_ID: Optional[str] = None
     
+    # [v1.6 新增] 用於快速同步指令的測試伺服器ID
+    TEST_GUILD_ID: Optional[str] = None
+    
     # 明確定義每一個可能的 API Key 變數，Pydantic-settings 會自動尋找並賦值
     GOOGLE_API_KEYS_1: Optional[str] = None
     GOOGLE_API_KEYS_2: Optional[str] = None
@@ -46,7 +47,7 @@ class Settings(BaseSettings):
 
     COHERE_KEY: Optional[str] = None
 
-    # 在 pydantic-settings 讀取完所有變數後，手動構建 API 金鑰列表。
+    # 函式：在 pydantic-settings 讀取完所有變數後，手動構建 API 金鑰列表。
     @model_validator(mode='after')
     def build_api_keys_list(self) -> 'Settings':
         """在 pydantic-settings 讀取完所有變數後，手動構建 API 金鑰列表。"""
@@ -59,7 +60,8 @@ class Settings(BaseSettings):
         
         self.GOOGLE_API_KEYS_LIST = keys
         return self
-# 在 pydantic-settings 讀取完所有變數後，手動構建 API 金鑰列表。
+    # 函式：在 pydantic-settings 讀取完所有變數後，手動構建 API 金鑰列表。
+# 應用程式的統一設定管理類別結束
 
 # 創建一個全域唯一的設定實例
 try:
