@@ -992,7 +992,11 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # 函式：在 connection_watcher 任務首次運行前執行的設置
 
-    # 函式：監聽並處理所有符合條件的訊息
+# 函式：監聽並處理所有符合條件的訊息 (v58.0 - 雙重保險LORE提取)
+# 更新紀錄:
+# v58.0 (2025-11-21): [重大架構升級] 移除了依賴主模型摘要的LORE提取流程，改為總是無條件地創建一個獨立的 `_background_lore_extraction` 背景任務。此修改實現了「雙重保險」機制，確保即使主模型判斷失誤，專門的提取鏈也能捕獲並創建被遺漏的LORE。
+# v55.0 (2025-11-16): [功能整合] 整合了「重新生成」功能。
+# v54.2 (2025-11-15): [災難性BUG修復] 修正了日誌記錄中對 user_id 的錯誤引用。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -1006,7 +1010,7 @@ class BotCog(commands.Cog):
         if is_mentioned and not user_input:
             await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
             return
-        
+    
         ai_instance = await self.get_or_create_ai_instance(user_id)
         if not ai_instance:
             await message.channel.send("歡迎！請使用 `/start` 指令來開始或重置您的 AI 戀人。")
@@ -1026,12 +1030,15 @@ class BotCog(commands.Cog):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    if summary_data:
-                        logger.info(f"[{user_id}] 回應已發送。正在根據預生成摘要啟動事後處理任務...")
+                    logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理任務...")
+                    
+                    # 任務1: 更新長期記憶 (來自摘要)
+                    if summary_data.get("memory_summary"):
                         asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
-                        asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
-                    else:
-                        logger.info(f"[{user_id}] 本輪回應無摘要數據，跳過事後處理。")
+                    
+                    # [v58.0 核心修正] 任務2: 啟動獨立的、作為雙重保險的LORE提取流程
+                    asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
+
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
@@ -1039,7 +1046,7 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 函式：監聽並處理所有符合條件的訊息
+# 監聽並處理所有符合條件的訊息 函式結束
 
     # 函式：執行 /start 流程的最終步驟（創世）
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
