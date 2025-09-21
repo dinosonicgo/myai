@@ -1025,9 +1025,9 @@ class AILover:
 
     # ai_core.py 的 preprocess_and_generate 函式
     # 更新紀錄:
-    # v29.3 (2025-11-15): [災難性BUG修復] 根據 KeyError，在 base_params 中補全了缺失的 player_location 參數，確保 world_snapshot_template 在任何模式下都能被正確格式化。
-    # v29.2 (2025-11-15): [災難性BUG修復] 補全了缺失的 username 和 ai_name 參數。
-    # v29.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
+    # v29.5 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
+    # v29.4 (2025-11-15): [災難性BUG修復] 根據 KeyError，徹底重構了 Prompt 的拼接與格式化邏輯。
+    # v29.3 (2025-11-15): [災難性BUG修復] 補全了缺失的 player_location 參數。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -1104,60 +1104,14 @@ class AILover:
                 for msg in history_slice:
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
-        sanitized_long_term_summary = await self.retrieve_and_summarize_memories(user_input)
-        historical_context = "\n".join(["# 歷史上下文 (最近的場景互動 - 未經消毒)", raw_short_term_history, "# 背景歷史參考 (來自遙遠過去的記憶 - 經過安全處理)", sanitized_long_term_summary])
-        logger.info(f"[{self.user_id}] 混合記憶組合完畢。")
-
-        # Prompt 組合
-        world_snapshot = ""
-        system_prompt_str = ""
-        remote_target_path_str = ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點'
-        player_location_str = ' > '.join(gs.location_path)
         
-        # [v29.3 核心修正] 創建一個基礎的參數字典，確保 username, ai_name, 和 player_location 始終存在
-        base_params = {
-            "username": user_profile.name,
-            "ai_name": ai_profile.name,
-            "player_location": player_location_str,
-            "world_settings": self.profile.world_settings,
-            "ai_settings": ai_profile.description,
-            "retrieved_context": sanitized_long_term_summary,
-            "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            "quests_context": "無進行中的任務",
-        }
+        # [v29.4 核心修正] 統一參數化與格式化
         
-        if gs.viewing_mode == 'remote':
-            remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            remote_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
-            
-            remote_params = base_params.copy()
-            remote_params.update({
-                "location_context": f"當前觀察地點: {remote_target_path_str}",
-                "npc_context": remote_npc_context,
-                "relevant_npc_context": "N/A"
-            })
-            world_snapshot = self.world_snapshot_template.format(**remote_params)
-        else:
-            local_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            local_npc_context = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in local_npcs]) or "此地目前沒有其他特定角色。"
-            
-            local_params = base_params.copy()
-            local_params.update({
-                "location_context": f"當前地點: {player_location_str}",
-                "npc_context": local_npc_context,
-                "relevant_npc_context": f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
-            })
-            world_snapshot = self.world_snapshot_template.format(**local_params)
-
-        system_prompt_str = self.core_protocol_prompt.format(
-            username=user_profile.name,
-            ai_name=ai_profile.name,
-            player_location=player_location_str,
-            viewing_mode=gs.viewing_mode,
-            remote_target_path_str=remote_target_path_str
-        )
-        
-        final_safeguard_instruction = f"""
+        # 步驟 1: 準備所有模板字符串
+        system_prompt_template = self.core_protocol_prompt
+        world_snapshot_template = self.world_snapshot_template
+        response_style_template = self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。'
+        final_safeguard_template = f"""
 # ==============================================================================
 # == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) 🚨 ==
 # ==============================================================================
@@ -1167,19 +1121,51 @@ class AILover:
 # ==============================================================================
 """
 
-        full_prompt_parts = [
-            system_prompt_str,
-            "\n" + world_snapshot,
+        # 步驟 2: 準備一個包含所有可能參數的單一字典
+        full_prompt_params = {
+            "username": user_profile.name,
+            "ai_name": ai_profile.name,
+            "player_location": ' > '.join(gs.location_path),
+            "viewing_mode": gs.viewing_mode,
+            "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
+            "world_settings": self.profile.world_settings,
+            "ai_settings": ai_profile.description,
+            "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
+            "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
+            "quests_context": "無進行中的任務",
+            "user_input": user_input,
+            "response_style_prompt": response_style_template,
+            "historical_context": raw_short_term_history, # 新增歷史上下文到字典
+        }
+
+        # 根據視角模式，動態填充場景相關的參數
+        if gs.viewing_mode == 'remote':
+            remote_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
+            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in remote_npcs]) or "該地點目前沒有已知的特定角色。"
+            full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
+            full_prompt_params["relevant_npc_context"] = "N/A"
+        else:
+            local_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
+            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in local_npcs]) or "此地目前沒有其他特定角色。"
+            full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
+            full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\nAI 角色: {ai_profile.name}"
+
+        # 步驟 3: 拼接成一個巨大的模板字符串
+        full_template = "\n".join([
+            system_prompt_template,
+            world_snapshot_template,
             "\n# --- 使用者自訂風格指令 ---",
-            self.profile.response_style_prompt or '預設風格：平衡的敘事與對話。',
+            "{response_style_prompt}",
             "\n# --- 最新對話歷史 ---",
-            raw_short_term_history,
+            "{historical_context}",
             "\n# --- 使用者最新指令 ---",
-            user_input,
-            final_safeguard_instruction,
+            "{user_input}",
+            final_safeguard_template,
             "\n# --- 你的創作 (必須嚴格遵循雙重輸出格式) ---"
-        ]
-        full_prompt = "\n".join(full_prompt_parts)
+        ])
+
+        # 步驟 4: 進行一次性的、絕對安全的格式化
+        full_prompt = full_template.format(**full_prompt_params)
 
         logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
         raw_dual_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
@@ -3099,6 +3085,7 @@ class AILover:
 
 
     
+
 
 
 
