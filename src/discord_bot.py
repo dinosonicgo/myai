@@ -1150,21 +1150,42 @@ class BotCog(commands.Cog):
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
     # 函式：在背景處理世界聖經文本
     
-    # 函式：開始 /start 指令的重置流程
+# 函式：開始 /start 指令的重置流程 (v52.0 - 顯式清除短期記憶)
+# 更新紀錄:
+# v52.0 (2025-11-22): [重大架構升級] 在刪除用戶數據的流程中，增加了對 ai_instance._clear_scene_histories() 的顯式調用。此修改確保了 /start 指令會徹底清空所有短期對話歷史，為用戶提供一個完全乾淨的開始。
+# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+# v48.0 (2025-10-19): [重大架構重構] 徹底移除了對 LangGraph 的所有依賴。
     async def start_reset_flow(self, interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
+        user_id = str(interaction.user_id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
+            
+            # 獲取一個臨時實例以執行清除操作
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance:
+                # 即使無法創建實例，也要嘗試從資料庫層面清除
+                logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
+            
+            # 關閉並移除記憶體中的實例
             if user_id in self.ai_instances:
                 await self.ai_instances.pop(user_id).shutdown()
                 gc.collect()
                 await asyncio.sleep(1.5)
+
+            # [v52.0 核心修正] 在刪除其他數據之前，先清除短期記憶
+            if ai_instance:
+                await ai_instance._clear_scene_histories()
+
+            # 刪除資料庫中的所有其他數據
             async with AsyncSessionLocal() as session:
+                # 再次確保短期記憶被刪除（雙重保險）
+                await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
             
+            # 刪除向量數據庫文件
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
                 await asyncio.to_thread(shutil.rmtree, vector_store_path)
@@ -1180,7 +1201,7 @@ class BotCog(commands.Cog):
             await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
-    # 函式：開始 /start 指令的重置流程
+# 開始 /start 指令的重置流程 函式結束
 
     # 指令：開始全新的冒險（重置所有資料）
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
