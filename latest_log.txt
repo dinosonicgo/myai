@@ -1,86 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-21T22:18:27.099683 ###
+### AI Lover Log - Last updated at 2025-09-21T22:28:02.197417 ###
 
-      "name": "班恩"
-    },
-    "candidate_entities": [],
-    "resolved_entity": {
-      "name": "班恩",
-      "entity_id": "班恩"
-    },
-    "resolution_status": "RESOLVED_NEW"
-  }
-}
-```'
-2025-09-21 22:12:49 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-21 22:12:50 - [WARNING] - [512280345618546699] 解析實體解析JSON時失敗 for '里奧'。錯誤: 3 validation errors for SingleResolutionPlan
-resolution.original_name
-  Field required [type=missing, input_value={'entity': {'name': '里奧'}, 'type': 'NEW'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.decision
-  Field required [type=missing, input_value={'entity': {'name': '里奧'}, 'type': 'NEW'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.reasoning
-  Field required [type=missing, input_value={'entity': {'name': '里奧'}, 'type': 'NEW'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。原始返回: '```json
-{"resolution": {"entity": {"name": "里奧"}, "type": "NEW"}}
-```'
-2025-09-21 22:12:54 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-21 22:12:55 - [WARNING] - [512280345618546699] 解析實體解析JSON時失敗 for '賈斯伯'。錯誤: 3 validation errors for SingleResolutionPlan
-resolution.original_name
-  Field required [type=missing, input_value={'id': '賈斯伯', 'type': 'EXISTING'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.decision
-  Field required [type=missing, input_value={'id': '賈斯伯', 'type': 'EXISTING'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.reasoning
-  Field required [type=missing, input_value={'id': '賈斯伯', 'type': 'EXISTING'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。原始返回: '```json
-{
-  "query": {
-    "name": "賈斯伯"
-  },
-  "resolution": {
-    "id": "賈斯伯",
-    "type": "EXISTING"
-  }
-}
-```'
-2025-09-21 22:12:59 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-21 22:12:59 - [WARNING] - [512280345618546699] 解析實體解析JSON時失敗 for '提姆'。錯誤: 1 validation error for SingleResolutionPlan
-resolution
-  Field required [type=missing, input_value={'resolution_plan': [{'en...olution_type': 'NEW'}}]}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing。原始返回: '```json
-{
-  "resolution_plan": [
-    {
-      "entity_to_resolve": {
-        "name": "提姆"
-      },
-      "resolution": {
-        "entity_id": "提姆",
-        "entity_name": "提姆",
-        "resolution_type": "NEW"
-      }
-    }
-  ]
-}
-```'
-2025-09-21 22:13:03 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-21 22:13:04 - [WARNING] - [512280345618546699] 解析實體解析JSON時失敗 for '安東尼'。錯誤: 1 validation error for SingleResolutionPlan
-resolution
-  Input should be a valid dictionary or instance of SingleResolutionResult [type=model_type, input_value='NEW', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/model_type。原始返回: '```json
-{"name": "安東尼", "resolution": "NEW"}
-```'
-2025-09-21 22:13:08 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
-2025-09-21 22:13:12 - [WARNING] - [512280345618546699] 解析實體解析JSON時失敗 for '瑪莎'。錯誤: 3 validation errors for SingleResolutionPlan
-resolution.original_name
-  Field required [type=missing, input_value={'entity': {'name': '瑪...到匹配的實體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.decision
-  Field required [type=missing, input_value={'entity': {'name': '瑪...到匹配的實體。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolution.reasoning
   Field required [type=missing, input_value={'entity': {'name': '瑪...到匹配的實體。'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing。原始返回: '```json
 {
@@ -100,3 +19,84 @@ resolution.reasoning
 2025-09-21 22:18:15 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-21 22:18:15 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-21 22:18:16 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-21 22:18:54 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] 核心協議模板 '00_supreme_directive.txt' 已成功加載並設置。
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] 已精簡模組化提示詞加載，只保留核心協議。
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] 正在創建模型 'gemini-2.5-flash-lite' 實例 (API Key index: 0)
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 1)
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 31 條記憶。
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] (Retriever Builder) BM25 備援檢索器構建成功。
+2025-09-21 22:18:54 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
+2025-09-21 22:18:55 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
+2025-09-21 22:18:55 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-21 22:18:55 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-21 22:18:55 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 31 条旧 'canon' 记录。
+2025-09-21 22:18:55 - [INFO] - [512280345618546699] (Canon Processor) 所有 31 个世界圣经文本块均已成功处理并存入 SQL 记忆库 (BM25 備援方案)。
+2025-09-21 22:18:56 - [WARNING] - [512280345618546699] (Canon Processor) [優雅降級] 主記憶系統 (Embedding) 在處理世界聖經時失敗。程式將自動使用備援記憶系統 (BM25)。錯誤類型: GoogleGenerativeAIError
+2025-09-21 22:18:56 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本 (總長度: 24402)...
+2025-09-21 22:18:56 - [INFO] - [512280345618546699] 世界聖經已被分割成 4 個文本塊進行處理。
+2025-09-21 22:18:56 - [INFO] - [512280345618546699] 正在解析文本塊 1/4...
+2025-09-21 22:19:01 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:19:17 - [INFO] - [512280345618546699] 正在解析文本塊 2/4...
+2025-09-21 22:19:22 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:19:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查。將嘗試下一個模型。
+2025-09-21 22:19:23 - [WARNING] - [512280345618546699] 文本塊 2 的解析鏈返回空結果，已跳過。
+2025-09-21 22:19:23 - [INFO] - [512280345618546699] 正在解析文本塊 3/4...
+2025-09-21 22:19:28 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:19:39 - [INFO] - [512280345618546699] 正在解析文本塊 4/4...
+2025-09-21 22:19:44 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:19:50 - [INFO] - [512280345618546699] 所有文本塊解析完成。總共提取到 72 個NPC，20 個地點。
+2025-09-21 22:19:50 - [INFO] - [512280345618546699] 正在處理 'npc_profiles' 類別的 72 個實體...
+2025-09-21 22:19:54 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:19:55 - [INFO] - [512280345618546699] 已為新實體 '絲月' (標準名: 絲月) 創建了 LORE 條目，主鍵為 '絲月'。
+2025-09-21 22:19:59 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:00 - [INFO] - [512280345618546699] 已為新實體 '卡爾•維利爾斯勳爵' (標準名: 卡爾•維利爾斯勳爵) 創建了 LORE 條目，主鍵為 '卡爾•維利爾斯勳爵'。
+2025-09-21 22:20:04 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:05 - [INFO] - [512280345618546699] 已為新實體 '莉莉絲' (標準名: 莉莉絲) 創建了 LORE 條目，主鍵為 '莉莉絲'。
+2025-09-21 22:20:09 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:09 - [INFO] - [512280345618546699] 已為新實體 '薩格納' (標準名: 薩格納) 創建了 LORE 條目，主鍵為 '薩格納'。
+2025-09-21 22:20:13 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:14 - [INFO] - [512280345618546699] 已為新實體 '菲利普' (標準名: 菲利普) 創建了 LORE 條目，主鍵為 '菲利普'。
+2025-09-21 22:20:18 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:19 - [INFO] - [512280345618546699] 已為新實體 '米婭' (標準名: 米婭) 創建了 LORE 條目，主鍵為 '米婭'。
+2025-09-21 22:20:23 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:24 - [INFO] - [512280345618546699] 已為新實體 '克拉拉' (標準名: 克拉拉) 創建了 LORE 條目，主鍵為 '克拉拉'。
+2025-09-21 22:20:28 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:29 - [INFO] - [512280345618546699] 已為新實體 '老高' (標準名: 老高) 創建了 LORE 條目，主鍵為 '老高'。
+2025-09-21 22:20:33 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:34 - [INFO] - [512280345618546699] 已為新實體 '馬丁' (標準名: 馬丁) 創建了 LORE 條目，主鍵為 '馬丁'。
+2025-09-21 22:20:38 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:39 - [INFO] - [512280345618546699] 已為新實體 '亞瑟' (標準名: 亞瑟) 創建了 LORE 條目，主鍵為 '亞瑟'。
+2025-09-21 22:20:43 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:44 - [INFO] - [512280345618546699] 已為新實體 '朱利安' (標準名: 朱利安) 創建了 LORE 條目，主鍵為 '朱利安'。
+2025-09-21 22:20:48 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:49 - [INFO] - [512280345618546699] 已為新實體 '阿利斯特' (標準名: 阿利斯特) 創建了 LORE 條目，主鍵為 '阿利斯特'。
+2025-09-21 22:20:53 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:54 - [INFO] - [512280345618546699] 已為新實體 '瑪莉' (標準名: 瑪莉) 創建了 LORE 條目，主鍵為 '瑪莉'。
+2025-09-21 22:20:58 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:20:59 - [INFO] - [512280345618546699] 已為新實體 '安娜' (標準名: 安娜) 創建了 LORE 條目，主鍵為 '安娜'。
+2025-09-21 22:21:03 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:04 - [INFO] - [512280345618546699] 已為新實體 '老羅' (標準名: 老羅) 創建了 LORE 條目，主鍵為 '老羅'。
+2025-09-21 22:21:08 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:09 - [INFO] - [512280345618546699] 已為新實體 '馬克' (標準名: 馬克) 創建了 LORE 條目，主鍵為 '馬克'。
+2025-09-21 22:21:13 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:14 - [INFO] - [512280345618546699] 已為新實體 '費奇' (標準名: 費奇) 創建了 LORE 條目，主鍵為 '費奇'。
+2025-09-21 22:21:18 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:19 - [INFO] - [512280345618546699] 已為新實體 '湯瑪斯' (標準名: 湯瑪斯) 創建了 LORE 條目，主鍵為 '湯瑪斯'。
+2025-09-21 22:21:23 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:24 - [INFO] - [512280345618546699] 已為新實體 '愛蓮娜' (標準名: 愛蓮娜) 創建了 LORE 條目，主鍵為 '愛蓮娜'。
+2025-09-21 22:21:28 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:29 - [INFO] - [512280345618546699] 已為新實體 '埃德蒙三世' (標準名: 埃德蒙三世) 創建了 LORE 條目，主鍵為 '埃德蒙三世'。
+2025-09-21 22:21:33 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:34 - [INFO] - [512280345618546699] 已為新實體 '赫克托' (標準名: 赫克托) 創建了 LORE 條目，主鍵為 '赫克托'。
+2025-09-21 22:21:38 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:21:39 - [INFO] - [512280345618546699] 已為新實體 '阿拉里克' (標準名: 阿拉里克) 創建了 LORE 條目，主鍵為 '阿拉里克'。
+2025-09-21 22:21:43 - [INFO] - [512280345618546699] --- 開始嘗試模型: 'gemini-2.5-flash-lite' (優先級 1/1) ---
+2025-09-21 22:27:48 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-21 22:27:48 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-21 22:27:48 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-21 22:27:48 - [INFO] - Discord Bot is ready!
+2025-09-21 22:27:51 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-21 22:27:51 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-21 22:27:51 - [INFO] - 已成功發送啟動成功通知給管理員。
