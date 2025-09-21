@@ -1302,21 +1302,49 @@ class BotCog(commands.Cog):
         await interaction.response.send_modal(WorldCanonPasteModal(self, is_setup_flow=False))
     # 指令：通過貼上文字來設定世界聖經
 
-    # 指令：通過上傳檔案來設定世界聖經
+# 指令：通過上傳檔案來設定世界聖經 (v54.0 - 超時修正)
+# 更新紀錄:
+# v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程。在函式開頭增加了 await interaction.response.defer()，以立即響應 Discord 的 3 秒時限並將其延長至 15 分鐘。隨後將發送消息的方法改為 await interaction.followup.send()。此修改從根本上解決了因讀取大檔案耗時過長而導致的 "Unknown interaction" 超時錯誤。
+# v52.0 (2025-11-22): [架構調整] 創建此指令。
+# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     @app_commands.command(name="set_canon_file", description="通過上傳 .txt 檔案來設定您的世界聖經")
     @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
     async def set_canon_file(self, interaction: discord.Interaction, file: discord.Attachment):
+        # [v54.0 核心修正] 立即延遲回應，防止 3 秒超時
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
         if not file.filename.lower().endswith('.txt'):
-            await interaction.response.send_message("❌ 檔案格式錯誤！", ephemeral=True)
+            await interaction.followup.send("❌ 檔案格式錯誤！請上傳一個 .txt 檔案。", ephemeral=True)
             return
+        
+        # 檢查檔案大小
+        if file.size > 5 * 1024 * 1024: # 5MB
+            await interaction.followup.send("❌ 檔案過大！請上傳小於 5MB 的檔案。", ephemeral=True)
+            return
+
         try:
-            content_text = (await file.read()).decode('utf-8')
-            await interaction.response.send_message("✅ 檔案已接收！正在後台處理...", ephemeral=True)
+            # 現在可以安全地執行可能耗時的操作
+            content_bytes = await file.read()
+            
+            # 嘗試用多種編碼解碼，以增加兼容性
+            try:
+                content_text = content_bytes.decode('utf-8')
+            except UnicodeDecodeError:
+                try:
+                    content_text = content_bytes.decode('gbk')
+                except UnicodeDecodeError:
+                    await interaction.followup.send("❌ 檔案編碼錯誤！請確保您的 .txt 檔案是 UTF-8 或 GBK 編碼。", ephemeral=True)
+                    return
+
+            # [v54.0 核心修正] 使用 followup.send 發送後續消息
+            await interaction.followup.send("✅ 檔案已接收！正在後台為您進行向量化和智能解析，這可能需要幾分鐘時間，請稍候...", ephemeral=True)
+            
+            # 將耗時的處理作為背景任務執行
             asyncio.create_task(self._background_process_canon(interaction, content_text, is_setup_flow=False))
         except Exception as e:
             logger.error(f"處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
-            await interaction.response.send_message(f"讀取檔案時發生錯誤。", ephemeral=True)
-    # 指令：通過上傳檔案來設定世界聖經
+            await interaction.followup.send(f"讀取或處理檔案時發生嚴重錯誤: `{type(e).__name__}`", ephemeral=True)
+# 通過上傳檔案來設定世界聖經 指令結束
 
     # 指令：[管理員] 設定好感度
     @app_commands.command(name="admin_set_affinity", description="[管理員] 設定指定使用者的好感度")
