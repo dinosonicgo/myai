@@ -843,6 +843,75 @@ class AILover:
             self.core_protocol_prompt = "# 【【【警告：核心協議模板缺失！AI行為將不受約束！】】】"
     # 加載所有模板檔案 函式結束
 
+
+
+# 函式：構建混合檢索器 (v208.0 - 健壯性)
+# 更新紀錄:
+# v208.0 (2025-11-15): [健壯性] 在從 SQL 加載記憶以構建 BM25 時，明確地只 select 'content' 欄位，以增強對舊資料庫的兼容性。
+# v207.2 (2025-10-15): [災難性BUG修復] 修正了 Chroma 實例初始化時缺少 embedding_function 導致的 ValueError。
+# v207.0 (2025-09-29): [災難性BUG修復] 增加了對 self.embeddings 為 None 的情況的防禦性處理。
+    async def _build_retriever(self) -> Runnable:
+        """配置並建構 RAG 系統的檢索器，採用 Embedding 作為主方案，BM25 作為備援。"""
+        # --- 步驟 1: 從 SQL 加載所有記憶，為 BM25 做準備 ---
+        all_sql_docs = []
+        async with AsyncSessionLocal() as session:
+            stmt = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
+            result = await session.execute(stmt)
+            all_memory_contents = result.scalars().all()
+            for content in all_memory_contents:
+                all_sql_docs.append(Document(page_content=content, metadata={"source": "history"}))
+        
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載 {len(all_sql_docs)} 條記憶。")
+
+        # --- 步驟 2: 構建 BM25 備援檢索器 ---
+        if all_sql_docs:
+            self.bm25_retriever = BM25Retriever.from_documents(all_sql_docs)
+            self.bm25_retriever.k = 10
+            logger.info(f"[{self.user_id}] (Retriever Builder) BM25 備援檢索器構建成功。")
+        else:
+            # 如果沒有文檔，返回一個總是返回空列表的 Lambda 函式，以避免錯誤
+            self.bm25_retriever = RunnableLambda(lambda x: []) 
+            logger.info(f"[{self.user_id}] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。")
+
+        # --- 步驟 3: 構建 ChromaDB 主要檢索器 ---
+        if self.embeddings is None:
+            self.embeddings = self._create_embeddings_instance()
+
+        # 同步的輔助函式，以便在異步程式碼中通過 to_thread 安全地調用
+        def _create_chroma_instance_sync(path: str, embeddings_func: Optional[GoogleGenerativeAIEmbeddings]) -> Optional[Chroma]:
+            if not embeddings_func: return None
+            # 使用 PersistentClient 確保數據持久化
+            client = chromadb.PersistentClient(path=path)
+            return Chroma(client=client, embedding_function=embeddings_func)
+
+        try:
+            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
+            if self.vector_store:
+                chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
+                logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 主要檢索器構建成功。")
+                # --- 步驟 4: 組合為主/備援檢索器 ---
+                self.retriever = EnsembleRetriever(retrievers=[chroma_retriever, self.bm25_retriever], weights=[0.7, 0.3])
+            else:
+                logger.warning(f"[{self.user_id}] (Retriever Builder) Embedding 模型初始化失敗，主檢索器將不可用。")
+                self.retriever = self.bm25_retriever
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] (Retriever Builder) ChromaDB 初始化失敗: {type(e).__name__}。主檢索器將為備援模式。")
+            self.retriever = self.bm25_retriever
+
+        # Cohere Rerank 作為可選的增強層
+        if settings.COHERE_KEY and self.retriever:
+            from langchain_cohere import CohereRerank
+            from langchain.retrievers import ContextualCompressionRetriever
+            compressor = CohereRerank(cohere_api_key=settings.COHERE_KEY, model="rerank-multilingual-v3.0", top_n=5)
+            self.retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=self.retriever)
+        
+        logger.info(f"[{self.user_id}] (Retriever Builder) 混合檢索器構建成功。")
+        return self.retriever
+# 構建混合檢索器 函式結束
+
+
+    
+
     # 函式：配置前置資源 (v203.1 - 延遲加載重構)
     # 更新紀錄:
     # v203.1 (2025-09-05): [延遲加載重構] 簡化職責，不再構建任何鏈。
@@ -1406,3 +1475,4 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
