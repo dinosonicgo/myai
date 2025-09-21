@@ -110,10 +110,11 @@ class AILover:
 #"models/gemini-2.5-flash-lite"
 
 
-    # 函式：初始化AI核心 (v225.0 - 引入場景歷史)
-    # 更新紀錄:
-    # v225.0 (2025-11-20): [重大架構升級] 將 self.session_histories 升級為 self.scene_histories，以支持多場景的獨立上下文管理。
-    # v224.0 (2025-10-19): [重大架構重構] 移除了 setup_graph 屬性，標誌著對 LangGraph 的依賴被完全移除。
+# ai_core.py 的 __init__ 函式
+# 更新紀錄:
+# v225.2 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILover 類別的成員被正確解析。
+# v225.1 (2025-11-16): [功能擴展] 新增 self.last_user_input 屬性，用於儲存使用者最近一次的輸入，以支持「重新生成」功能。
+# v225.0 (2025-11-20): [重大架構升級] 將 self.session_histories 升級為 self.scene_histories。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -131,6 +132,9 @@ class AILover:
         self.RPM_FAILURE_THRESHOLD = 3
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
+        
+        # [v225.1 新增] 用於支持「重新生成」功能的狀態屬性
+        self.last_user_input: Optional[str] = None
         
         # --- 所有 get_..._chain 輔助鏈的佔位符 (保持不變) ---
         self.unified_generation_chain: Optional[Runnable] = None
@@ -182,7 +186,7 @@ class AILover:
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None 
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-    # 函式：初始化AI核心 (v225.0 - 引入場景歷史)
+# 函式：初始化AI核心 (v225.2 - 修正縮排)
     
 
 
@@ -3085,6 +3089,7 @@ class AILover:
 
 
     
+
 
 
 
