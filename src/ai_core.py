@@ -530,39 +530,40 @@ class AILover:
         return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
 # 將單條 LORE 格式化為 RAG 文檔 函式結束
 
-# 函式：將單條 LORE 添加到 RAG 系統 (v1.0 - 全新創建)
+# 函式：將單條 LORE 添加到 RAG 系統 (v3.0 - 純 BM25)
 # 更新紀錄:
-# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。它負責將格式化後的LORE文本即時注入到向量數據庫和BM25檢索器中。
+# v3.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將新生成的 LORE 文檔動態地添加到記憶體中的 BM25 檢索器文檔列表中。
+# v2.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的執行流程，改為使用 _robust_embed_documents。
+# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
     async def add_lore_to_rag(self, lore: Lore):
-        """接收一個 LORE 物件，將其格式化後，即時注入到 RAG 系統中。"""
-        if not self.vector_store or not self.bm25_retriever:
-            logger.warning(f"[{self.user_id}] RAG 系統未完全初始化，跳過 LORE 即時注入。")
+        """接收一個 LORE 物件，將其格式化後，即時注入到 BM25 RAG 系統中。"""
+        if not self.bm25_retriever:
+            logger.warning(f"[{self.user_id}] BM25 檢索器未初始化，跳過 LORE 即時注入。")
             return
 
         doc = self._format_lore_into_document(lore)
         
-        # 使用 LORE 的唯一鍵作為 ID，這樣可以實現更新和刪除
-        doc_id = f"lore_{lore.category}_{lore.key}"
-
         try:
-            # 注入到 ChromaDB (向量庫)，使用 add_documents 的 upsert 功能
-            await asyncio.to_thread(self.vector_store.add_documents, [doc], ids=[doc_id])
-            
-            # 注入到 BM25 (關鍵詞檢索庫)
-            # 檢查是否已存在相同的文檔，如果存在則更新
+            # BM25Retriever 的文檔列表是公開的，可以直接操作
             doc_exists = False
             for i, existing_doc in enumerate(self.bm25_retriever.docs):
+                # 通過 metadata 檢查是否為同一個 LORE 條目
                 if existing_doc.metadata.get("key") == lore.key and existing_doc.metadata.get("category") == lore.category:
-                    self.bm25_retriever.docs[i] = doc
+                    self.bm25_retriever.docs[i] = doc # 更新現有文檔
                     doc_exists = True
                     break
+            
             if not doc_exists:
-                self.bm25_retriever.docs.append(doc)
+                self.bm25_retriever.docs.append(doc) # 添加新文檔
 
-            logger.info(f"[{self.user_id}] [Unified RAG] 已成功將 LORE '{lore.key}' 注入 RAG 知識庫。")
+            logger.info(f"[{self.user_id}] [Unified RAG] 已成功將 LORE '{lore.key}' 的知識動態注入 BM25 檢索器。")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 RAG 時失敗: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 BM25 時發生未知錯誤: {e}", exc_info=True)
 # 將單條 LORE 添加到 RAG 系統 函式結束
+
+
+
+    
 # 函式：從資料庫恢復場景歷史 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-22): [全新創建] 創建此函式作為短期記憶持久化方案的「讀取」端。它在 AI 實例初始化時從資料庫讀取所有歷史對話，並將其重建到記憶體的 scene_histories 字典中，確保對話狀態的無縫恢復。
@@ -1585,78 +1586,55 @@ class AILover:
 
 
 
-# 函式：構建混合檢索器 (v208.0 - 健壯性)
+# 函式：構建混合檢索器 (v209.0 - 純 BM25 重構)
 # 更新紀錄:
-# v208.0 (2025-11-15): [健壯性] 在從 SQL 加載記憶以構建 BM25 時，明確地只 select 'content' 欄位，以增強對舊資料庫的兼容性。
+# v209.0 (2025-11-22): [根本性重構] 根據最新指令，徹底重寫了此函式。完全移除了所有與 ChromaDB、Embedding 和 EnsembleRetriever 相關的邏輯，將其簡化為一個純粹的 BM25 檢索器構建器。此修改使 RAG 系統不再依賴任何外部 API，從而根除了所有 Embedding 相關的錯誤。
+# v208.0 (2025-11-15): [健壯性] 在從 SQL 加載記憶以構建 BM25 時，明確地只 select 'content' 欄位。
 # v207.2 (2025-10-15): [災難性BUG修復] 修正了 Chroma 實例初始化時缺少 embedding_function 導致的 ValueError。
-# v207.0 (2025-09-29): [災難性BUG修復] 增加了對 self.embeddings 為 None 的情況的防禦性處理。
     async def _build_retriever(self) -> Runnable:
-        """配置並建構 RAG 系統的檢索器，採用 Embedding 作為主方案，BM25 作為備援。"""
-        # --- 步驟 1: 從 SQL 加載所有記憶，為 BM25 做準備 ---
-        all_sql_docs = []
+        """配置並建構一個純粹基於 BM25 的 RAG 系統檢索器。"""
+        # --- 步驟 1: 從 SQL 加載所有記憶和 LORE ---
+        all_docs_for_bm25 = []
         async with AsyncSessionLocal() as session:
-            stmt = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
-            result = await session.execute(stmt)
-            all_memory_contents = result.scalars().all()
+            # 加載對話歷史和世界聖經
+            stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
+            result_mem = await session.execute(stmt_mem)
+            all_memory_contents = result_mem.scalars().all()
             for content in all_memory_contents:
-                all_sql_docs.append(Document(page_content=content, metadata={"source": "history"}))
-        
-        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載 {len(all_sql_docs)} 條記憶。")
+                all_docs_for_bm25.append(Document(page_content=content, metadata={"source": "memory"}))
+            
+            # 加載所有結構化 LORE
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            for lore in all_lores:
+                all_docs_for_bm25.append(self._format_lore_into_document(lore))
 
-        # --- 步驟 2: 構建 BM25 備援檢索器 ---
-        if all_sql_docs:
-            self.bm25_retriever = BM25Retriever.from_documents(all_sql_docs)
-            self.bm25_retriever.k = 10
-            logger.info(f"[{self.user_id}] (Retriever Builder) BM25 備援檢索器構建成功。")
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 和 LORE 加載 {len(all_docs_for_bm25)} 條文檔用於構建 BM25。")
+
+        # --- 步驟 2: 構建 BM25 檢索器 ---
+        if all_docs_for_bm25:
+            self.bm25_retriever = BM25Retriever.from_documents(all_docs_for_bm25)
+            self.bm25_retriever.k = 15 # 可以適當增加 k 值以彌補语义搜索的缺失
+            self.retriever = self.bm25_retriever # 將主檢索器直接指向 BM25
+            logger.info(f"[{self.user_id}] (Retriever Builder) 純 BM25 檢索器構建成功。")
         else:
             # 如果沒有文檔，返回一個總是返回空列表的 Lambda 函式，以避免錯誤
-            self.bm25_retriever = RunnableLambda(lambda x: []) 
-            logger.info(f"[{self.user_id}] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。")
-
-        # --- 步驟 3: 構建 ChromaDB 主要檢索器 ---
-        if self.embeddings is None:
-            self.embeddings = self._create_embeddings_instance()
-
-        # 同步的輔助函式，以便在異步程式碼中通過 to_thread 安全地調用
-        def _create_chroma_instance_sync(path: str, embeddings_func: Optional[GoogleGenerativeAIEmbeddings]) -> Optional[Chroma]:
-            if not embeddings_func: return None
-            # 使用 PersistentClient 確保數據持久化
-            client = chromadb.PersistentClient(path=path)
-            return Chroma(client=client, embedding_function=embeddings_func)
-
-        try:
-            self.vector_store = await asyncio.to_thread(_create_chroma_instance_sync, self.vector_store_path, self.embeddings)
-            if self.vector_store:
-                chroma_retriever = self.vector_store.as_retriever(search_kwargs={'k': 10})
-                logger.info(f"[{self.user_id}] (Retriever Builder) ChromaDB 主要檢索器構建成功。")
-                # --- 步驟 4: 組合為主/備援檢索器 ---
-                self.retriever = EnsembleRetriever(retrievers=[chroma_retriever, self.bm25_retriever], weights=[0.7, 0.3])
-            else:
-                logger.warning(f"[{self.user_id}] (Retriever Builder) Embedding 模型初始化失敗，主檢索器將不可用。")
-                self.retriever = self.bm25_retriever
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] (Retriever Builder) ChromaDB 初始化失敗: {type(e).__name__}。主檢索器將為備援模式。")
+            self.bm25_retriever = RunnableLambda(lambda x: [])
             self.retriever = self.bm25_retriever
+            logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，BM25 檢索器為空。")
 
-        # Cohere Rerank 作為可選的增強層
-        if settings.COHERE_KEY and self.retriever:
-            from langchain_cohere import CohereRerank
-            from langchain.retrievers import ContextualCompressionRetriever
-            compressor = CohereRerank(cohere_api_key=settings.COHERE_KEY, model="rerank-multilingual-v3.0", top_n=5)
-            self.retriever = ContextualCompressionRetriever(base_compressor=compressor, base_retriever=self.retriever)
+        # [v209.0] 移除 Cohere Rerank，因為它通常與语义搜索配合使用效果更佳
         
-        logger.info(f"[{self.user_id}] (Retriever Builder) 混合檢索器構建成功。")
         return self.retriever
 # 構建混合檢索器 函式結束
 
 
     
 
-# 函式：配置前置資源 (v203.2 - 移除模型初始化)
+# 函式：配置前置資源 (v203.3 - 移除 Embedding)
 # 更新紀錄:
-# v203.2 (2025-11-20): [根本性重構] 徹底移除了對 _initialize_models 的調用，以完全切斷對 LangChain 執行層的依賴，確保所有 LLM 調用都通過原生 SDK 引擎。
+# v203.3 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了对 self._create_embeddings_instance() 的调用。此修改是切斷對 Embedding API 所有依賴的關鍵一步。
+# v203.2 (2025-11-20): [根本性重構] 徹底移除了對 _initialize_models 的調用。
 # v203.1 (2025-09-05): [延遲加載重構] 簡化職責，不再構建任何鏈。
-# v203.0 (2025-09-05): [災難性BUG修復] 開始對整個鏈的構建流程進行系統性重構。
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
@@ -1670,15 +1648,62 @@ class AILover:
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v203.2 核心修正] 只創建 Embedding 實例，不再初始化任何 LLM 模型
-        self.embeddings = self._create_embeddings_instance()
+        # [v203.3 核心修正] 不再創建任何 Embedding 實例
+        self.embeddings = None
         
         self.retriever = await self._build_retriever()
         
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
 # 配置前置資源 函式結束
 
+# 函式：將世界聖經添加到知識庫 (v14.0 - 純 SQL)
+# 更新紀錄:
+# v14.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將世界聖經文本分割後存入 SQL 的 MemoryData 表中，以供 BM25 檢索器使用。
+# v13.0 (2025-10-15): [健壯性] 統一了錯誤處理邏輯。
+# v12.0 (2025-10-15): [健壯性] 統一了所有 ChromaDB 相關錯誤的日誌記錄為 WARNING 級別。
+    async def add_canon_to_vector_store(self, text_content: str) -> int:
+        """將世界聖經文本處理並保存到 SQL 記憶庫，以供 BM25 檢索器使用。"""
+        if not self.profile:
+            logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下處理世界聖經。")
+            return 0
+        
+        docs = []
+        try:
+            # --- 步驟 1: 分割文本 ---
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+            docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
+            if not docs:
+                return 0
 
+            # --- 步驟 2: 保存到 SQL ---
+            async with AsyncSessionLocal() as session:
+                # 首先刪除舊的聖經記錄
+                stmt = delete(MemoryData).where(
+                    MemoryData.user_id == self.user_id,
+                    MemoryData.importance == -1 # 使用特殊值標記 canon 數據
+                )
+                result = await session.execute(stmt)
+                if result.rowcount > 0:
+                    logger.info(f"[{self.user_id}] (Canon Processor) 已从 SQL 记忆库中清理了 {result.rowcount} 条旧 'canon' 记录。")
+                
+                # 添加新的聖經記錄
+                new_memories = [
+                    MemoryData(
+                        user_id=self.user_id,
+                        content=doc.page_content,
+                        timestamp=time.time(),
+                        importance=-1
+                    ) for doc in docs
+                ]
+                session.add_all(new_memories)
+                await session.commit()
+            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库。")
+            return len(docs)
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 處理核心設定並保存到 SQL 時發生嚴重錯誤: {e}", exc_info=True)
+            raise
+# 將世界聖經添加到知識庫 函式結束
 
     
     # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
@@ -2154,19 +2179,18 @@ class AILover:
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # 檢索並摘要記憶 函式結束
 
-    # 函式：將互動記錄保存到資料庫 (v9.0 - 架構升級)
-    # 更新紀錄:
-    # v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，現在會將生成的安全摘要同時寫入 content 和 sanitized_content 欄位。
-    # v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
-    # v8.0 (2025-11-14): [災難性BUG修復] 根據 TypeError，徹底重構了此函式的執行邏輯。
+# 函式：將互動記錄保存到資料庫 (v10.0 - 純 SQL)
+# 更新紀錄:
+# v10.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將對話歷史存入 SQL 的 MemoryData 表中。
+# v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，將安全摘要同時寫入 content 和 sanitized_content 欄位。
+# v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """将单次互动的文本【消毒後】同时保存到 SQL 数据库 (为 BM25) 和 Chroma 向量库 (為 RAG)。"""
+        """将单次互动的安全文本保存到 SQL 数据库，以供 BM25 检索器使用。"""
         if not interaction_text or not self.profile:
             return
 
         user_id = self.user_id
         current_time = time.time()
-        
         sanitized_text_for_db = interaction_text
 
         try:
@@ -2180,48 +2204,13 @@ class AILover:
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫 (含快取)。")
-
+            logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。")
         except Exception as e:
             logger.error(f"[{self.user_id}] [長期記憶寫入] 將安全存檔保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
-            return
-
-        if self.vector_store:
-            key_info = self._get_next_available_key()
-            if not key_info:
-                logger.info(f"[{self.user_id}] [長期記憶寫入] 所有 Embedding API 金鑰都在冷卻中，本輪長期記憶僅保存至 SQL。")
-                return
-
-            key_to_use, key_index = key_info
-            
-            try:
-                temp_embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=key_to_use)
-                
-                await asyncio.to_thread(
-                    self.vector_store.add_texts,
-                    texts=[sanitized_text_for_db],
-                    metadatas=[{"source": "history", "timestamp": current_time}],
-                    embedding_function=temp_embeddings
-                )
-                logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功向量化並保存到 ChromaDB。")
-            
-            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                logger.warning(
-                    f"[{self.user_id}] [長期記憶寫入] "
-                    f"API Key #{key_index} 在保存安全存檔到 ChromaDB 時失敗。將觸發對其的冷卻。"
-                    f"錯誤類型: {type(e).__name__}"
-                )
-                now = time.time()
-                self.key_short_term_failures[key_index].append(now)
-                self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
-                if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                    self.key_cooldowns[key_index] = now + 60 * 60 * 24
-                    self.key_short_term_failures[key_index] = []
-            except Exception as e:
-                 logger.error(f"[{self.user_id}] [長期記憶寫入] 保存安全存檔到 ChromaDB 時發生未知的嚴重錯誤: {e}", exc_info=True)
-    # 將互動記錄保存到資料庫 函式結束
+# 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
