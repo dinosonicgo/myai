@@ -1221,21 +1221,29 @@ class AILoverBot(commands.Bot):
         self.git_lock = git_lock
         self.is_ready_once = False
     
-    # 函式：Discord 機器人設置鉤子
+# AILoverBot 類別的 setup_hook 函式
+# 更新紀錄:
+# v51.1 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILoverBot 類別的成員被正確解析。
+# v51.0 (2025-11-16): [功能擴展] 新增了對 RegenerateView 的註冊，使「重新生成」按鈕在機器人重啟後依然有效。
+# v50.0 (2025-11-14): [完整性修復] 根據 NameError，提供了此檔案的完整版本。
     async def setup_hook(self):
         cog = BotCog(self, self.git_lock)
         await self.add_cog(cog)
 
         cog.connection_watcher.start()
         
+        # 註冊所有需要持久化的 UI 視圖
         self.add_view(StartSetupView(cog=cog))
         self.add_view(ContinueToUserSetupView(cog=cog))
         self.add_view(ContinueToAiSetupView(cog=cog))
         self.add_view(ContinueToCanonSetupView(cog=cog))
+        # [v51.0 新增] 註冊重新生成視圖
+        self.add_view(RegenerateView(cog=cog))
+        
         logger.info("所有持久化 UI 視圖已成功註冊。")
         await self.tree.sync()
         logger.info("Discord Bot is ready and commands are synced!")
-    # setup_hook 函式結束
+# setup_hook 函式結束
     
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
