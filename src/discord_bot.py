@@ -28,7 +28,7 @@ from .logger import logger
 from .ai_core import AILover
 from . import lore_book
 from .lore_book import Lore
-from .database import AsyncSessionLocal, UserData, MemoryData, init_db
+from .database import AsyncSessionLocal, UserData, MemoryData, init_db, SceneHistoryData
 from .schemas import CharacterProfile, LocationInfo, WorldGenesisResult
 from .models import UserProfile, GameState
 from src.config import settings
@@ -1166,13 +1166,12 @@ class BotCog(commands.Cog):
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
     # 函式：在背景處理世界聖經文本
     
-# 函式：開始 /start 指令的重置流程 (v52.1 - 屬性修正)
+# 函式：開始 /start 指令的重置流程 (v52.2 - 導入修正)
 # 更新紀錄:
-# v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式，將錯誤的 `interaction.user_id` 改為正確的 `interaction.user.id`，以解決導致程式崩潰的 AttributeError。
+# v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
+# v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式，將錯誤的 `interaction.user_id` 改為正確的 `interaction.user.id`。
 # v52.0 (2025-11-22): [重大架構升級] 在刪除用戶數據的流程中，增加了對 ai_instance._clear_scene_histories() 的顯式調用。
-# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     async def start_reset_flow(self, interaction: discord.Interaction):
-        # [v52.1 核心修正] discord.Interaction 物件本身沒有 .user_id 屬性，需要通過 .user 屬性訪問
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
@@ -1217,13 +1216,17 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
             # 確保即使發生錯誤也能通知使用者
             if not interaction.response.is_done():
-                await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+                try:
+                    # 如果初始互動尚未回應，用它來發送錯誤
+                    await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
+                except discord.errors.InteractionResponded:
+                    # 如果在我們檢查和發送之間，有其他東西回應了互動
+                    await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
             else:
                 await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
             self.setup_locks.discard(user_id)
 # 開始 /start 指令的重置流程 函式結束
-
 
 
     
