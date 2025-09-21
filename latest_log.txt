@@ -1,25 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T00:41:05.872166 ###
+### AI Lover Log - Last updated at 2025-09-22T00:46:08.091827 ###
 
-2025-09-22 00:20:51 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-22 00:20:51 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條記憶。
-2025-09-22 00:20:51 - [INFO] - [512280345618546699] (Retriever Builder) 記憶庫為空，BM25 備援檢索器為空。
-2025-09-22 00:20:52 - [INFO] - [512280345618546699] (Retriever Builder) ChromaDB 主要檢索器構建成功。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] (Retriever Builder) 混合檢索器構建成功。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 00:20:53 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 去，挺直了背脊，雙手安靜地放在膝上。  她不再說話，只是抬起頭，用那雙清澈的金色眼眸注視著DINO，靜靜地等待著下一個指令。小屋內的空氣似乎又凝固了，只剩下壁爐中柴火的噼啪聲，以及她平穩而幾乎聽不見的呼吸。 (狀態：進行中)
-2025-09-22 00:20:53 - [WARNING] - [512280345618546699] (RAG Executor) 主記憶系統 (Embedding) 失敗: GoogleGenerativeAIError
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] (RAG Executor) [備援觸發] 正在啟動備援記憶系統 (BM25)...
-2025-09-22 00:20:53 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
 2025-09-22 00:20:53 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
 2025-09-22 00:20:53 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
 2025-09-22 00:21:30 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
@@ -100,3 +80,23 @@
 2025-09-22 00:41:04 - [INFO] - [512280345618546699] (RAG Executor) [備援成功] 備援記憶系統 (BM25) 檢索成功。
 2025-09-22 00:41:04 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['艾倫', '莉拉']
 2025-09-22 00:41:04 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-22 00:41:37 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-22 00:41:37 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-22 00:41:42 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-22 00:41:43 - [INFO] - [512280345618546699] [事後處理-LORE保險] 提取到 1 條新LORE，準備執行擴展...
+2025-09-22 00:41:43 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個LORE任务 ---
+2025-09-22 00:41:47 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for add_or_update_world_lore: 1 validation error for AddOrUpdateWorldLoreArgs
+content
+  Field required [type=missing, input_value={'lore_key': 'world_lore'...泉邊的隱士小屋']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1204, in _execute_tool_call_plan
+    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateWorldLoreArgs
+content
+  Field required [type=missing, input_value={'lore_key': 'world_lore'...泉邊的隱士小屋']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-22 00:41:47 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-09-22 00:41:47 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
