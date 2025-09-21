@@ -394,6 +394,38 @@ class AILover:
             return None
     # 委婉化並重試 函式結束
 
+
+
+
+# 函式：清除所有場景歷史 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 創建此函式作為 /start 重置流程的一部分。它負責從記憶體和後端資料庫中徹底刪除指定用戶的所有短期對話歷史，確保一個完全乾淨的開始。
+    async def _clear_scene_histories(self):
+        """在 /start 重置流程中，徹底清除一個使用者的所有短期場景記憶（記憶體和資料庫）。"""
+        logger.info(f"[{self.user_id}] 正在清除所有短期場景記憶...")
+        
+        # 步驟 1: 清空記憶體中的字典
+        self.scene_histories.clear()
+        
+        # 步驟 2: 從資料庫中刪除所有相關記錄
+        try:
+            async with AsyncSessionLocal() as session:
+                stmt = delete(SceneHistoryData).where(SceneHistoryData.user_id == self.user_id)
+                result = await session.execute(stmt)
+                await session.commit()
+                logger.info(f"[{self.user_id}] 已成功從資料庫中刪除 {result.rowcount} 條場景歷史記錄。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 從資料庫清除場景歷史時發生錯誤: {e}", exc_info=True)
+# 清除所有場景歷史 函式結束
+
+
+
+
+
+
+
+    
+
 # 函式：背景LORE提取與擴展 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。它直接分析原始對話文本，作為對主模型「生成即摘要」的雙重保險，確保任何被主模型忽略的 LORE 都能被捕獲和創建。
@@ -941,15 +973,12 @@ class AILover:
         logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
     # 更新短期與長期記憶 函式結束
     
-# 函式：初始化AI實例 (v205.0 - 記憶恢復)
+# 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
 # 更新紀錄:
-# v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。此修改確保了在 AI 實例初始化的第一時間，所有持久化的短期對話歷史都會被從資料庫恢復到記憶體中。
+# v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。記憶恢復的責任被轉移到 discord_bot.py 的 get_or_create_ai_instance 中，確保只在需要時執行一次。
+# v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
 # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
-# v203.1 (2025-09-05): [災難性BUG修復] 更新了內部呼叫，以匹配新的 `_configure_pre_requisites` 方法名。
     async def initialize(self) -> bool:
-        # [v205.0 核心修正] 在加載任何其他東西之前，首先恢復短期記憶
-        await self._rehydrate_scene_histories()
-
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
             if not result:
@@ -2132,6 +2161,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
