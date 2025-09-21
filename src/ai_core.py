@@ -394,7 +394,69 @@ class AILover:
             return None
     # 委婉化並重試 函式結束
 
+# 函式：背景LORE提取與擴展 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。它直接分析原始對話文本，作為對主模型「生成即摘要」的雙重保險，確保任何被主模型忽略的 LORE 都能被捕獲和創建。
+    async def _background_lore_extraction(self, user_input: str, final_response: str):
+        """
+        一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化，
+        作為對主模型摘要功能的補充和保險。
+        """
+        if not self.profile:
+            return
+            
+        try:
+            # 延遲執行，避免與主線程搶占資源
+            await asyncio.sleep(5.0)
 
+            # 獲取當前所有 LORE 的摘要，為提取鏈提供上下文
+            try:
+                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
+                existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] 背景LORE提取：無法加載現有 LORE 摘要: {e}")
+                existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
+
+            logger.info(f"[{self.user_id}] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...")
+            
+            prompt_template_obj = self.get_lore_extraction_chain()
+
+            extraction_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "existing_lore_summary": existing_lore_summary,
+                "user_input": user_input,
+                "final_response_text": final_response,
+            }
+            
+            full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
+            
+            # 使用原生引擎調用，並期望返回 ToolCallPlan 類型的物件
+            extraction_plan = await self.ainvoke_with_rotation(
+                full_prompt,
+                output_schema=ToolCallPlan,
+                retry_strategy='euphemize'
+            )
+            
+            if not extraction_plan or not isinstance(extraction_plan, ToolCallPlan):
+                logger.warning(f"[{self.user_id}] [事後處理-LORE保險] LORE提取鏈的LLM回應為空或最終失敗。")
+                return
+
+            if extraction_plan.plan:
+                logger.info(f"[{self.user_id}] [事後處理-LORE保險] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
+                
+                # 確定 LORE 應該錨定在哪個地點
+                gs = self.profile.game_state
+                effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                
+                await self._execute_tool_call_plan(extraction_plan, effective_location)
+            else:
+                logger.info(f"[{self.user_id}] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
+# 背景LORE提取與擴展 函式結束
 
 
 # 函式：處理世界聖經並提取LORE (/start 流程 1/4) (v1.0 - 全新創建)
@@ -1908,6 +1970,7 @@ class AILover:
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
