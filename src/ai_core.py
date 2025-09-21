@@ -344,11 +344,11 @@ class AILover:
 # 帶有輪換和備援策略的原生 API 調用引擎 函式結束
     
 
-# 函式：委婉化並重試 (v3.0 - 解構重構)
+# 函式：委婉化並重試 (v3.1 - Prompt 結構修復)
 # 更新紀錄:
-# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯，採用全新的「解構-重構」策略。它現在會先通過程式化的正則表達式從被審查的文本中提取安全的「關鍵詞」，然後調用一個新鏈從這些關鍵詞「重構」出一句安全的中性描述，最終用此描述進行重試。此修改從根本上解決了“委婉化鏈自身被審查”的悖論。
+# v3.1 (2025-11-22): [災難性BUG修復] 徹底重寫了重試 Prompt 的構建邏輯。舊邏輯在重試時會丟失原始 Prompt 中關鍵的 JSON 結構指令，導致重試必定失敗。新邏輯會重新獲取完整的 Prompt 模板，只將其中被審查的文本塊替換為安全的概述，確保了重試請求的完整性和成功率。
+# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯，採用全新的「解構-重構」策略。
 # v2.0 (2025-11-19): [根本性重構] 適配全新的原生 SDK 執行引擎。
-# v1.0 (2025-11-18): [全新創建] 創建此核心備援函式。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
         一個健壯的備援機制，採用「解構-重構」策略來處理內容審查失敗。
@@ -361,17 +361,15 @@ class AILover:
         
         try:
             # 步驟 1: 從失敗的 Prompt 中提取原始文本塊 (解構)
-            # 我們假設被審查的內容主要在 canon_text 或類似的長文本欄位中
             text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)", failed_prompt, re.IGNORECASE)
             if not text_to_sanitize_match:
-                # 如果找不到特定標記，則退回到處理整個 prompt
-                text_to_sanitize = failed_prompt
-            else:
-                text_to_sanitize = text_to_sanitize_match.group(1).strip()
-
+                logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。")
+                return None
+            
+            text_to_sanitize = text_to_sanitize_match.group(1).strip()
+            
             # 定義 NSFW 關鍵詞
             nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精"]
-            # 提取文本中出現的 NSFW 關鍵詞和主要角色名
             extracted_keywords = [kw for kw in nsfw_keywords if kw in text_to_sanitize]
             if self.profile:
                 if self.profile.user_profile.name in text_to_sanitize:
@@ -391,25 +389,24 @@ class AILover:
             
             safe_reconstruction = await self.ainvoke_with_rotation(
                 reconstruction_full_prompt,
-                retry_strategy='none' # 避免無限遞迴
+                retry_strategy='none'
             )
             
             if not safe_reconstruction:
                 raise ValueError("委婉化重構鏈未能生成安全文本。")
             logger.info(f"[{self.user_id}] (Euphemizer) 成功重構出安全描述: '{safe_reconstruction}'")
 
-            # 步驟 3: 使用重構後的安全文本替換原始文本塊，然後重試
-            if text_to_sanitize_match:
-                retry_prompt = failed_prompt.replace(text_to_sanitize, safe_reconstruction)
-            else:
-                # 如果是備用方案，我們用安全的描述替換整個 prompt
-                # 這可能會丟失一些指令，但能最大限度保證成功
-                retry_prompt = f"請根據以下安全的場景概述，執行原始任務：\n\n{safe_reconstruction}\n\n請嚴格按照原始的JSON格式要求輸出結果。"
+            # [v3.1 核心修正] 步驟 3: 使用重構後的安全文本，重新構建一個完整的、結構正確的 Prompt
+            # 這裡我們假設失敗的鏈是 canon_parser_chain，因為這是它主要被使用的地方
+            original_prompt_template = self.get_canon_parser_chain()
+            retry_prompt = original_prompt_template.format_prompt(
+                canon_text=safe_reconstruction
+            ).to_string()
 
             return await self.ainvoke_with_rotation(
                 retry_prompt,
                 output_schema=output_schema,
-                retry_strategy='none' # 重試失敗後不再重試
+                retry_strategy='none'
             )
 
         except Exception as e:
@@ -1806,15 +1803,15 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v7.1 - 分割器參數修正)
+# 函式：解析世界聖經並創建 LORE (v7.2 - 強制RAG重建)
 # 更新紀錄:
-# v7.1 (2025-11-22): [健壯性強化] 將 RecursiveCharacterTextSplitter 的 chunk_size 從 8000 調整為 7500。此修改為 Prompt 模板中的其他指令文本留出了足夠的緩衝空間，以避免在委婉化重試流程中因總長度超限而失敗的問題。
-# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了昂貴且不可靠的 LLM 實體解析鏈，改為實現基於 Levenshtein 距離的智能合併邏輯。
-# v6.0 (2025-11-19): [根本性重構] 適配了原生SDK引擎。
+# v7.2 (2025-11-22): [災難性BUG修復] 在函式執行的末尾，增加了一行對 `await self._build_retriever()` 的強制調用。此修改確保了在通過聖經解析大量創建/更新LORE之後，RAG 系統（BM25檢索器）會被立即用最新的數據完全重建，從而解決了新LORE無法被即時查詢到的問題。
+# v7.1 (2025-11-22): [健壯性強化] 調整了 RecursiveCharacterTextSplitter 的 chunk_size 以避免長度超限問題。
+# v7.0 (2025-11-22): [災難性BUG修復 & 重大性能優化] 徹底廢除了 LLM 實體解析鏈，改為實現基於 Levenshtein 距離的智能合併邏輯。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
-        此函式採用 Levenshtein 距離算法來智能合併相似實體。
+        此函式採用 Levenshtein 距離算法來智能合併相似實體，並在結束後強制重建RAG索引。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
@@ -1823,7 +1820,6 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
-            # [v7.1 核心修正] 調整塊大小，為其他 prompt 內容留出緩衝
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=7500,
                 chunk_overlap=400,
@@ -1905,6 +1901,11 @@ class AILover:
             await _resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
 
             logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
+            
+            # [v7.2 核心修正] 強制重建 RAG 檢索器，使其包含所有新創建的 LORE
+            logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
+            self.retriever = await self._build_retriever()
+            logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
@@ -2308,6 +2309,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
