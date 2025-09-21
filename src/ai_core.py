@@ -550,36 +550,7 @@ class AILover:
         return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
 # 將單條 LORE 格式化為 RAG 文檔 函式結束
 
-# 函式：將單條 LORE 添加到 RAG 系統 (v3.0 - 純 BM25)
-# 更新紀錄:
-# v3.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將新生成的 LORE 文檔動態地添加到記憶體中的 BM25 檢索器文檔列表中。
-# v2.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的執行流程，改為使用 _robust_embed_documents。
-# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
-    async def add_lore_to_rag(self, lore: Lore):
-        """接收一個 LORE 物件，將其格式化後，即時注入到 BM25 RAG 系統中。"""
-        if not self.bm25_retriever:
-            logger.warning(f"[{self.user_id}] BM25 檢索器未初始化，跳過 LORE 即時注入。")
-            return
 
-        doc = self._format_lore_into_document(lore)
-        
-        try:
-            # BM25Retriever 的文檔列表是公開的，可以直接操作
-            doc_exists = False
-            for i, existing_doc in enumerate(self.bm25_retriever.docs):
-                # 通過 metadata 檢查是否為同一個 LORE 條目
-                if existing_doc.metadata.get("key") == lore.key and existing_doc.metadata.get("category") == lore.category:
-                    self.bm25_retriever.docs[i] = doc # 更新現有文檔
-                    doc_exists = True
-                    break
-            
-            if not doc_exists:
-                self.bm25_retriever.docs.append(doc) # 添加新文檔
-
-            logger.info(f"[{self.user_id}] [Unified RAG] 已成功將 LORE '{lore.key}' 的知識動態注入 BM25 檢索器。")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [Unified RAG] 注入 LORE '{lore.key}' 到 BM25 時發生未知錯誤: {e}", exc_info=True)
-# 將單條 LORE 添加到 RAG 系統 函式結束
 
 
 
@@ -2309,6 +2280,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
