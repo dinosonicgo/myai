@@ -500,6 +500,7 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
 # 背景LORE提取與擴展 函式結束
+            
 
 
 
@@ -2365,6 +2366,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
