@@ -344,11 +344,11 @@ class AILover:
 # 帶有輪換和備援策略的原生 API 調用引擎 函式結束
     
 
-# 函式：委婉化並重試 (v3.1 - Prompt 結構修復)
+# 函式：委婉化並重試 (v4.0 - 修正BUG與重構)
 # 更新紀錄:
-# v3.1 (2025-11-22): [災難性BUG修復] 徹底重寫了重試 Prompt 的構建邏輯。舊邏輯在重試時會丟失原始 Prompt 中關鍵的 JSON 結構指令，導致重試必定失敗。新邏輯會重新獲取完整的 Prompt 模板，只將其中被審查的文本塊替換為安全的概述，確保了重試請求的完整性和成功率。
-# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯，採用全新的「解構-重構」策略。
-# v2.0 (2025-11-19): [根本性重構] 適配全新的原生 SDK 執行引擎。
+# v4.0 (2025-09-22): [災難性BUG修復] 修正了正則表達式，使其能夠正確匹配 `get_canon_parser_chain` 中定義的【世界聖經文本 (你的唯一數據來源)】: 標記，解決了備援鏈無法啟動的根本問題。同時，簡化了關鍵詞提取邏輯，使其更具通用性。
+# v3.1 (2025-11-22): [災難性BUG修復] 徹底重寫了重試 Prompt 的構建邏輯。
+# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
         一個健壯的備援機制，採用「解構-重構」策略來處理內容審查失敗。
@@ -360,8 +360,8 @@ class AILover:
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構式委婉化】策略...")
         
         try:
-            # 步驟 1: 從失敗的 Prompt 中提取原始文本塊 (解構)
-            text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)", failed_prompt, re.IGNORECASE)
+            # [v4.0 核心修正] 修正正則表達式以匹配 Prompt 模板
+            text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)---", failed_prompt, re.IGNORECASE)
             if not text_to_sanitize_match:
                 logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。")
                 return None
@@ -378,26 +378,24 @@ class AILover:
                     extracted_keywords.append(self.profile.ai_profile.name)
             
             if not extracted_keywords:
-                logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出已知的 NSFW 關鍵詞，無法進行重構。")
-                return None
-            
-            logger.info(f"[{self.user_id}] (Euphemizer) 已提取關鍵詞: {extracted_keywords}")
-
-            # 步驟 2: 基於關鍵詞請求安全的場景重構
-            reconstruction_prompt_obj = self.get_euphemization_reconstruction_chain()
-            reconstruction_full_prompt = reconstruction_prompt_obj.format_prompt(keywords=str(extracted_keywords)).to_string()
-            
-            safe_reconstruction = await self.ainvoke_with_rotation(
-                reconstruction_full_prompt,
-                retry_strategy='none'
-            )
+                logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出已知的 NSFW 關鍵詞，無法進行重構。將嘗試使用原文摘要。")
+                summary_prompt = f"請將以下文字總結為一句話的客觀概述：\n\n{text_to_sanitize[:1000]}"
+                safe_reconstruction = await self.ainvoke_with_rotation(summary_prompt, retry_strategy='none')
+            else:
+                logger.info(f"[{self.user_id}] (Euphemizer) 已提取關鍵詞: {extracted_keywords}")
+                # 步驟 2: 基於關鍵詞請求安全的場景重構
+                reconstruction_prompt_obj = self.get_euphemization_reconstruction_chain()
+                reconstruction_full_prompt = reconstruction_prompt_obj.format_prompt(keywords=str(extracted_keywords)).to_string()
+                safe_reconstruction = await self.ainvoke_with_rotation(
+                    reconstruction_full_prompt,
+                    retry_strategy='none'
+                )
             
             if not safe_reconstruction:
                 raise ValueError("委婉化重構鏈未能生成安全文本。")
             logger.info(f"[{self.user_id}] (Euphemizer) 成功重構出安全描述: '{safe_reconstruction}'")
 
-            # [v3.1 核心修正] 步驟 3: 使用重構後的安全文本，重新構建一個完整的、結構正確的 Prompt
-            # 這裡我們假設失敗的鏈是 canon_parser_chain，因為這是它主要被使用的地方
+            # 步驟 3: 使用重構後的安全文本，重新構建一個完整的、結構正確的 Prompt
             original_prompt_template = self.get_canon_parser_chain()
             retry_prompt = original_prompt_template.format_prompt(
                 canon_text=safe_reconstruction
@@ -2376,6 +2374,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
