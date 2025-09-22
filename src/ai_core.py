@@ -1824,15 +1824,15 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v8.1 - 原生模板重構)
+# 函式：解析世界聖經並創建 LORE (v9.0 - 終極備援邏輯修正)
 # 更新紀錄:
-# v8.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構了備援邏輯。當主解析鏈因內容審查失敗後，系統將完全跳過會破壞LORE細節的“消毒”備援，直接啟用更健壯的、基於原始NSFW文本的“終極備援LORE提取器”。此修改旨在從根本上解決因“消毒”導致LORE信息丟失和錯誤的問題，確保在高NSFW環境下的解析成功率和準確性。
+# v8.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
 # v8.0 (2025-09-22): [災難性BUG修復] 恢復了對 `_resolve_and_save` 函式的調用並完善了三階段降級邏輯。
-# v7.3 (2025-11-22): [災難性BUG修復] 引入了三階段 LORE 解析降級系統。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
-        此函式採用三階段降級策略（主解析 -> 委婉化重試 -> 原文提取）來應對內容審查。
+        此函式採用三階段降級策略（主解析 -> 終極備援提取）來應對內容審查。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
@@ -1856,10 +1856,10 @@ class AILover:
                 await asyncio.sleep(5.0)
                 
                 chunk_result = None
-                full_prompt = ""
                 
                 try:
-                    logger.info(f"[{self.user_id}] [階段 1/3] 嘗試主要解析鏈...")
+                    # --- 階段 1: 嘗試主解析 ---
+                    logger.info(f"[{self.user_id}] [階段 1/2] 嘗試主要解析鏈...")
                     canon_parser_template = self.get_canon_parser_chain()
                     full_prompt = canon_parser_template.format(canon_text=doc.page_content)
                     
@@ -1870,48 +1870,44 @@ class AILover:
                     if not chunk_result:
                         raise ValueError("主解析鏈返回空結果，可能已被審查。")
 
-                    logger.info(f"[{self.user_id}] [階段 1/3] 主要解析成功。")
+                    logger.info(f"[{self.user_id}] [階段 1/2] 主要解析成功。")
 
                 except Exception as e:
-                    logger.warning(f"[{self.user_id}] [階段 1/3] 主要解析失敗: {e}。進入下一階段。")
+                    logger.warning(f"[{self.user_id}] [階段 1/2] 主要解析失敗: {e}。立即啟用終極備援。")
                     
-                    logger.info(f"[{self.user_id}] [階段 2/3] 嘗試委婉化重試策略...")
-                    if full_prompt:
-                        chunk_result = await self._euphemize_and_retry(full_prompt, CanonParsingResult, e)
+                    # --- 階段 2: 終極備援 - 原文 LORE 提取 ---
+                    logger.info(f"[{self.user_id}] [階段 2/2] 啟動終極備援：原文 LORE 提取...")
+                    try:
+                        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                        lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
+                        existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
 
-                    if not chunk_result:
-                        logger.warning(f"[{self.user_id}] [階段 2/3] 委婉化重試失敗。進入終極備援。")
-                        
-                        logger.info(f"[{self.user_id}] [階段 3/3] 啟動終極備援：原文 LORE 提取...")
-                        try:
-                            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-                            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
-                            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
+                        extraction_prompt_template = self.get_lore_extraction_chain()
+                        extraction_prompt = extraction_prompt_template.format(
+                            username=self.profile.user_profile.name,
+                            ai_name=self.profile.ai_profile.name,
+                            existing_lore_summary=existing_lore_summary,
+                            user_input="（來自世界聖經的上下文）",
+                            final_response_text=doc.page_content # 直接在原始NSFW文本上操作
+                        )
 
-                            extraction_prompt_template = self.get_lore_extraction_chain()
-                            extraction_prompt = extraction_prompt_template.format(
-                                username=self.profile.user_profile.name,
-                                ai_name=self.profile.ai_profile.name,
-                                existing_lore_summary=existing_lore_summary,
-                                user_input="（來自世界聖經的上下文）",
-                                final_response_text=doc.page_content
-                            )
+                        extraction_plan = await self.ainvoke_with_rotation(
+                            extraction_prompt, output_schema=ToolCallPlan, retry_strategy='none'
+                        )
 
-                            extraction_plan = await self.ainvoke_with_rotation(
-                                extraction_prompt, output_schema=ToolCallPlan, retry_strategy='none'
-                            )
+                        if extraction_plan and extraction_plan.plan:
+                            logger.info(f"[{self.user_id}] [階段 2/2] 終極備援成功，從原文中提取到 {len(extraction_plan.plan)} 條 LORE。")
+                            await self._execute_tool_call_plan(extraction_plan, []) # 地點應為未知
+                        else:
+                            logger.warning(f"[{self.user_id}] [階段 2/2] 終極備援未能從原文中提取到任何 LORE。")
 
-                            if extraction_plan and extraction_plan.plan:
-                                logger.info(f"[{self.user_id}] [階段 3/3] 終極備援成功，從原文中提取到 {len(extraction_plan.plan)} 條 LORE。")
-                                await self._execute_tool_call_plan(extraction_plan, [])
-                            else:
-                                logger.warning(f"[{self.user_id}] [階段 3/3] 終極備援未能從原文中提取到任何 LORE。")
-
-                        except Exception as final_e:
-                            logger.error(f"[{self.user_id}] [階段 3/3] 終極備援流程執行時發生未知錯誤: {final_e}", exc_info=True)
-                        
-                        continue
+                    except Exception as final_e:
+                        logger.error(f"[{self.user_id}] [階段 2/2] 終極備援流程執行時發生未知錯誤: {final_e}", exc_info=True)
+                    
+                    # 終極備援流程結束後，跳過主結果的合併，繼續處理下一個文本塊
+                    continue
                 
+                # 如果主解析成功，則合併結果
                 if chunk_result:
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
                     all_parsing_results.locations.extend(chunk_result.locations)
@@ -1920,14 +1916,16 @@ class AILover:
                     all_parsing_results.quests.extend(chunk_result.quests)
                     all_parsing_results.world_lores.extend(chunk_result.world_lores)
 
-            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈/委婉化備援提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
+            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。（注意：備援流程提取的LORE已直接存儲，不計入此處）")
 
-            await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
-            await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
-            await self._resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
-            await self._resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
-            await self._resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
-            await self._resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
+            # 儲存由主解析鏈成功提取的LORE
+            if any([all_parsing_results.npc_profiles, all_parsing_results.locations, all_parsing_results.items, all_parsing_results.creatures, all_parsing_results.quests, all_parsing_results.world_lores]):
+                await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
+                await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
+                await self._resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
+                await self._resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
+                await self._resolve_and_save('quests', [q.model_dump() for q in all_parsing_results.quests], title_key='name')
+                await self._resolve_and_save('world_lores', [wl.model_dump() for wl in all_parsing_results.world_lores])
 
             logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。")
             
@@ -2351,6 +2349,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
