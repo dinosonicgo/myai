@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T13:29:22.275193 ###
+### AI Lover Log - Last updated at 2025-09-22T13:34:47.839640 ###
 
-    full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 727, in format_prompt
-    messages = self.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 1188, in format_messages
-    message = message_template.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
-    return [self.format(**kwargs)]
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
     text = self.prompt.format(**kwargs)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
@@ -100,3 +93,10 @@ KeyError: '\n#       "location_path"'
 2025-09-22 13:29:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 13:29:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 13:29:11 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 13:34:33 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 13:34:33 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 13:34:35 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 13:34:35 - [INFO] - Discord Bot is ready!
+2025-09-22 13:34:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 13:34:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 13:34:38 - [INFO] - 已成功發送啟動成功通知給管理員。
