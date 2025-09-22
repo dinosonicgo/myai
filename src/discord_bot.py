@@ -1309,6 +1309,11 @@ class BotCog(commands.Cog):
         await interaction.response.send_modal(WorldCanonPasteModal(self, is_setup_flow=False))
     # 指令：通過貼上文字來設定世界聖經
 
+
+
+
+
+    
 # 指令：通過上傳檔案來設定世界聖經 (v54.0 - 超時修正)
 # 更新紀錄:
 # v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程。在函式開頭增加了 await interaction.response.defer()，以立即響應 Discord 的 3 秒時限並將其延長至 15 分鐘。隨後將發送消息的方法改為 await interaction.followup.send()。此修改從根本上解決了因讀取大檔案耗時過長而導致的 "Unknown interaction" 超時錯誤。
@@ -1321,11 +1326,13 @@ class BotCog(commands.Cog):
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         if not file.filename.lower().endswith('.txt'):
+            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send("❌ 檔案格式錯誤！請上傳一個 .txt 檔案。", ephemeral=True)
             return
         
         # 檢查檔案大小
         if file.size > 5 * 1024 * 1024: # 5MB
+            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send("❌ 檔案過大！請上傳小於 5MB 的檔案。", ephemeral=True)
             return
 
@@ -1340,6 +1347,7 @@ class BotCog(commands.Cog):
                 try:
                     content_text = content_bytes.decode('gbk')
                 except UnicodeDecodeError:
+                    # [v54.0 核心修正] 使用 followup.send
                     await interaction.followup.send("❌ 檔案編碼錯誤！請確保您的 .txt 檔案是 UTF-8 或 GBK 編碼。", ephemeral=True)
                     return
 
@@ -1350,8 +1358,13 @@ class BotCog(commands.Cog):
             asyncio.create_task(self._background_process_canon(interaction, content_text, is_setup_flow=False))
         except Exception as e:
             logger.error(f"處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
+            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send(f"讀取或處理檔案時發生嚴重錯誤: `{type(e).__name__}`", ephemeral=True)
 # 通過上傳檔案來設定世界聖經 指令結束
+
+
+
+    
 
     # 指令：[管理員] 設定好感度
     @app_commands.command(name="admin_set_affinity", description="[管理員] 設定指定使用者的好感度")
