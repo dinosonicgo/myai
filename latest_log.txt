@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T20:07:00.913281 ###
+### AI Lover Log - Last updated at 2025-09-22T20:08:29.750345 ###
 
-2025-09-22 19:56:12 - [INFO] - [512280345618546699] [階段 1/3] 嘗試主要解析鏈...
-2025-09-22 19:56:12 - [WARNING] - [512280345618546699] [階段 1/3] 主要解析失敗: '"name"'。進入下一階段。
-2025-09-22 19:56:12 - [INFO] - [512280345618546699] [階段 2/3] 嘗試委婉化重試策略...
-2025-09-22 19:56:12 - [WARNING] - [512280345618546699] [階段 2/3] 委婉化重試失敗。進入終極備援。
-2025-09-22 19:56:12 - [INFO] - [512280345618546699] [階段 3/3] 啟動終極備援：原文 LORE 提取...
-2025-09-22 19:56:12 - [ERROR] - [512280345618546699] [階段 3/3] 終極備援流程執行時發生未知錯誤: '"tool_name"'
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1864, in parse_and_create_lore_from_canon
     full_prompt = canon_parser_template.format(canon_text=doc.page_content)
 KeyError: '"name"'
@@ -100,3 +93,10 @@ KeyError: '"tool_name"'
 2025-09-22 20:03:51 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 42 條文檔用於構建 BM25。
 2025-09-22 20:03:51 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
 2025-09-22 20:03:51 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
+2025-09-22 20:08:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 20:08:15 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 20:08:15 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 20:08:15 - [INFO] - Discord Bot is ready!
+2025-09-22 20:08:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 20:08:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 20:08:19 - [INFO] - 已成功發送啟動成功通知給管理員。
