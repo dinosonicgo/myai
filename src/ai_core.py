@@ -86,11 +86,11 @@ PROJ_DIR = Path(__file__).resolve().parent.parent
 # 類別：AI核心類
 # 說明：管理單一使用者的所有 AI 相關邏輯，包括模型、記憶、鏈和互動。
 class AILover:
-    # 函式：初始化AI核心 (v225.2 - 修正縮排)
+    # 函式：初始化AI核心 (v225.3 - 原生模板重構)
     # 更新紀錄:
-    # v225.2 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤，確保其作為 AILover 類別的成員被正確解析。
-    # v225.1 (2025-11-16): [功能擴展] 新增 self.last_user_input 屬性，用於儲存使用者最近一次的輸入，以支持「重新生成」功能。
-    # v225.0 (2025-11-20): [重大架構升級] 將 self.session_histories 升級為 self.scene_histories。
+    # v225.3 (2025-09-22): [根本性重構] 為了徹底拋棄 LangChain 的 Prompt 處理層，將所有 get_..._chain 輔助鏈的屬性類型從 ChatPromptTemplate 改為 str，使其只作為原生 Python 字符串模板的緩存。
+    # v225.2 (2025-11-16): [災難性BUG修復] 修正了函式定義的縮排錯誤。
+    # v225.1 (2025-11-16): [功能擴展] 新增 self.last_user_input 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -111,18 +111,19 @@ class AILover:
         self.last_user_input: Optional[str] = None
         
         # --- 所有 get_..._chain 輔助鏈的佔位符 ---
-        # 這些屬性現在只用於緩存 ChatPromptTemplate 物件
-        self.canon_parser_chain: Optional[ChatPromptTemplate] = None
-        self.batch_entity_resolution_chain: Optional[ChatPromptTemplate] = None
-        self.single_entity_resolution_chain: Optional[ChatPromptTemplate] = None
-        self.json_correction_chain: Optional[ChatPromptTemplate] = None
-        self.world_genesis_chain: Optional[ChatPromptTemplate] = None
-        self.profile_completion_prompt: Optional[ChatPromptTemplate] = None
-        self.profile_parser_prompt: Optional[ChatPromptTemplate] = None
-        self.profile_rewriting_prompt: Optional[ChatPromptTemplate] = None
-        self.rag_summarizer_chain: Optional[ChatPromptTemplate] = None
-        self.literary_euphemization_chain: Optional[ChatPromptTemplate] = None
-        self.lore_extraction_chain: Optional[ChatPromptTemplate] = None
+        # 這些屬性現在只用於緩存原生 Python 字符串模板
+        self.canon_parser_chain: Optional[str] = None
+        self.batch_entity_resolution_chain: Optional[str] = None
+        self.single_entity_resolution_chain: Optional[str] = None
+        self.json_correction_chain: Optional[str] = None
+        self.world_genesis_chain: Optional[str] = None
+        self.profile_completion_prompt: Optional[str] = None
+        self.profile_parser_prompt: Optional[str] = None
+        self.profile_rewriting_prompt: Optional[str] = None
+        self.rag_summarizer_chain: Optional[str] = None
+        self.literary_euphemization_chain: Optional[str] = None
+        self.lore_extraction_chain: Optional[str] = None
+        self.euphemization_reconstruction_chain: Optional[str] = None
         
         # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
@@ -2388,6 +2389,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
