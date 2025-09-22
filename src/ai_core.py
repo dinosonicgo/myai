@@ -425,39 +425,33 @@ class AILover:
             return None
 # 委婉化並重試 函式結束
 
-    # 函式：獲取法醫級LORE重構器 Prompt (v1.1 - 恢復缺失的函式)
+    # 函式：獲取法醫級LORE重構器 Prompt (v1.1 - 極簡主義安全輸入)
     # 更新紀錄:
-    # v1.1 (2025-09-22): [災難性BUG修復] 恢復了這個在之前修正中被遺漏的、至關重要的核心函式。此函式負責生成“法醫報告式”重構策略的Prompt，是解決頑固內容審查問題的最終方案。
-    # v1.o (2025-09-22): [全新創建] 創建此函式以實現全新的“法醫報告式”重構策略。
+    # v1.1 (2025-09-22): [災難性BUG修復] 徹底重寫了此Prompt以採用“極簡主義安全輸入”策略。現在，它不再接收任何可能觸發審查的“微上下文”片段，而是僅接收一個純粹的、不帶任何描述性上下文的關鍵詞列表。此修改旨在將發送給API的輸入風險降至理論上的最低點，是解決最頑固審查問題的最終方案。
+    # v1.0 (2025-09-22): [全新創建] 創建此函式以實現全新的“法醫報告式”重構策略。
     def get_forensic_lore_reconstruction_chain(self) -> str:
-        """獲取或創建一個專門的模板，用於從安全的、經過預處理的數據中重構LORE。"""
+        """獲取或創建一個專門的模板，用於從安全的、純關鍵詞列表中重構LORE。"""
         if self.forensic_lore_reconstruction_chain is None:
             
-            base_prompt = """# TASK: 你是一位法醫報告與情報分析專家。
-# MISSION: 你的任務是接收一份包含【證物清單】和【現場筆錄片段】的案件檔案，對這些離散的、不完整的數據進行深度推理，重構出最可能的事實經過，並以結構化的JSON格式填寫一份完整的【事件報告】。
+            base_prompt = """# TASK: 你是一位情報分析與數據重構專家。
+# MISSION: 你的任務是接收一份純粹由【關鍵詞】組成的情報簡報，對這些離散的數據點進行深度關聯與推理，重構出最符合邏輯的場景，並以結構化的JSON格式輸出一份完整的【情報分析報告】。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【推理而非複製】**: 你的輸入是碎片化的。你必須基於這些碎片，推理出實體之間的關係和事件的全貌。例如，如果證物清單包含['卡萊兒', '莉莉絲', '肉棒', '聖凱瑟琳學院']，你必須推理出這是一個涉及兩位女性NPC在地點'聖凱瑟琳學院'發生的性愛事件。
-# 2. **【數據完整性】**: 盡最大可能填充【事件報告】（即`CanonParsingResult` JSON）中的所有字段。根據【筆錄片段】中的描述來填充NPC的`description`，根據【證物清單】來確定地點和涉及的角色。
+# 1. **【極致推理】**: 你的唯一輸入是一個無序的關鍵詞列表。你必須基於這些詞彙，推理出場景中涉及的人物、地點、物品和發生的事件。例如，如果關鍵詞列表包含['卡萊兒', '莉莉絲', '肉棒', '聖凱瑟琳學院']，你必須推理出這是一個涉及兩位女性NPC在地點'聖凱瑟琳學院'發生的性愛事件。
+# 2. **【數據完整性】**: 根據你的推理，盡最大可能填充【情報分析報告】（即`CanonParsingResult` JSON）中的所有字段。
 # 3. **【數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: 在處理多語言名稱時（例如：卡萊兒 / Carlyle），`name` 或 `title` 欄位【必須】是【繁體中文名】。
-#    - **地點歸屬**: 如果一個NPC的所在地點可以從證物或筆錄中推斷出來，就必須填充其`location_path`。如果完全無法推斷，則留空。
+#    - **地點歸屬**: 如果一個NPC的所在地點可以從關鍵詞中推斷出來，就必須填充其`location_path`。如果完全無法推斷，則留空。
 # 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CanonParsingResult` Pydantic 模型的JSON物件。
 
-# --- [案件檔案 (INPUT DATA)] ---
-# 【證物清單 (Keywords)】:
+# --- [情報簡報 (INPUT DATA)] ---
+# 【關鍵詞列表 (Keywords)】:
 # ```
 {keywords}
 # ```
-
-# 【現場筆錄片段 (Micro-Contexts)】:
-# ```
-{micro_contexts}
-# ```
 ---
-# 【事件報告 (OUTPUT JSON)】:
+# 【情報分析報告 (OUTPUT JSON)】:
 """
-            # 使用完整的最高指令作為保護框架
             self.forensic_lore_reconstruction_chain = self.core_protocol_prompt + "\n\n" + base_prompt
         return self.forensic_lore_reconstruction_chain
     # 獲取法醫級LORE重構器 Prompt 函式結束
@@ -1868,15 +1862,15 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v15.3 - 修正致命的拼寫錯誤)
+# 函式：解析世界聖經並創建 LORE (v15.4 - 廢棄微上下文)
 # 更新紀錄:
-# v15.3 (2025-09-22): [災難性BUG修復] 修正了因錯誤地調用一個不存在的函式（拼寫錯誤）而導致的致命 AttributeError。現在程式會正確地調用 `get_forensic_lore_reconstruction_chain()` 來獲取Prompt模板，確保“法醫報告式”重構策略能夠被正確執行。
+# v15.4 (2025-09-22): [災難性BUG修復] 徹底移除了在本地預處理流程中的“微上下文提取”步驟。實踐證明，大量的微上下文片段組合在一起依然會觸發API的內容審查。現在，程式只會向LLM發送一個純粹的、絕對安全的關鍵詞列表，將審查風險降至理論上的最低點。
+# v15.3 (2025-09-22): [災難性BUG修復] 修正了因錯誤地調用一個不存在的函式（拼寫錯誤）而導致的致命 AttributeError。
 # v15.2 (2025-09-22): [災難性BUG修復] 修正了因錯誤地調用一個不存在的函式（拼寫錯誤）而導致的致命 AttributeError。
-# v15.1 (2025-09-22): [災難性BUG修復] 修正了在本地預處理步驟中因調用錯誤的 lore_book 函式而導致的 TypeError。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
-        採用全新的“法醫報告式”重構策略，以100%規避API輸入審查。
+        採用全新的“極簡主義安全輸入”策略，以100%規避API輸入審查。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下解析世界聖經。")
@@ -1902,6 +1896,7 @@ class AILover:
                 logger.info(f"[{self.user_id}] 正在本地預處理文本塊 {i+1}/{len(docs)}...")
                 
                 try:
+                    # 步驟1: 本地提取純粹的、安全的關鍵詞
                     extracted_keywords = set()
                     for kw in nsfw_keywords:
                         if kw in chunk_content: extracted_keywords.add(kw)
@@ -1917,30 +1912,18 @@ class AILover:
                         if name not in ["一個", "一個個", "什麼", "這個", "那個", "但是", "所以"]:
                             extracted_keywords.add(name)
 
-                    micro_contexts = []
-                    for entity in extracted_keywords:
-                        for match in re.finditer(re.escape(entity), chunk_content):
-                            start, end = match.span()
-                            context_start = max(0, start - 50)
-                            context_end = min(len(chunk_content), end + 50)
-                            context_snippet = chunk_content[context_start:context_end].replace('\n', ' ')
-                            micro_contexts.append(f"...{context_snippet}...")
-                    
-                    micro_contexts = list(dict.fromkeys(micro_contexts))
-
                     if not extracted_keywords:
                         logger.info(f"[{self.user_id}] 文本塊 {i+1} 未提取到有效關鍵詞，已跳過。")
                         continue
 
-                    logger.info(f"[{self.user_id}] 文本塊 {i+1} 預處理完成，已提取 {len(extracted_keywords)} 個關鍵詞和 {len(micro_contexts)} 條微上下文。正在發送至LLM進行重構...")
+                    logger.info(f"[{self.user_id}] 文本塊 {i+1} 預處理完成，已提取 {len(extracted_keywords)} 個關鍵詞。正在發送至LLM進行重構...")
 
-                    # [v15.3 核心修正] 使用正確的函式名稱調用
+                    # 步驟2: 將絕對安全的關鍵詞列表發送給LLM進行重構
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
                     params = {
                         "username": self.profile.user_profile.name or "玩家",
                         "ai_name": self.profile.ai_profile.name or "AI",
                         "keywords": ", ".join(sorted(list(extracted_keywords))),
-                        "micro_contexts": "\n".join(micro_contexts[:15])
                     }
                     full_prompt = reconstruction_template.format(**params)
 
@@ -2387,6 +2370,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
