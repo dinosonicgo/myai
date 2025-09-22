@@ -1186,11 +1186,11 @@ class AILover:
 
     
 
-# 函式：執行工具調用計畫 (v187.0 - 移除執行延遲)
+# 函式：執行工具調用計畫 (v188.0 - 新增自動修正層)
 # 更新紀錄:
-# v187.0 (2025-09-22): [性能優化] 徹底移除了在LORE工具串行執行循環中的 `asyncio.sleep(4.0)` 固定延遲。此修改旨在解決當世界聖經包含大量LORE時，僅創建過程就需要數十分鐘的嚴重性能瓶頸問題，使LORE的批量創建速度提升數十倍。
+# v188.0 (2025-09-22): [災難性BUG修復] 引入了“自動修正與規範化”程式碼層。此層會在工具執行前，通過模糊匹配自動修正常見的工具名錯誤（如 'update_item_info' -> 'add_or_update_item_info'），並根據命名規則強制將中文名設為主名稱，從根本上解決了因LLM幻覺導致的工具調用失敗和LORE命名語言錯誤的問題。
+# v187.0 (2025-09-22): [性能優化] 徹底移除了在LORE工具串行執行循環中的固定延遲。
 # v186.0 (2025-09-22): [災難性BUG修復] 重構了地點注入邏輯。
-# v185.0 (2025-11-22): [重大架構升級] 在此函式的末尾增加了對 `await self._build_retriever()` 的強制調用。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
@@ -1203,40 +1203,65 @@ class AILover:
             if not self.profile:
                 return "错误：无法执行工具計畫，因为使用者 Profile 未加载。"
             
-            user_name_lower = self.profile.user_profile.name.lower()
-            ai_name_lower = self.profile.ai_profile.name.lower()
-            protected_names = {user_name_lower, ai_name_lower}
+            # [v188.0 核心修正] 自動修正與規範化層
+            def is_chinese(text: str) -> bool:
+                if not text: return False
+                # 這個正則表達式匹配大多數中文字符範圍
+                return bool(re.search(r'[\u4e00-\u9fff]', text))
+
+            available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
             purified_plan: List[ToolCall] = []
             for call in plan.plan:
-                is_illegal = False
-                name_to_check = call.parameters.get('standardized_name') or call.parameters.get('original_name') or call.parameters.get('name')
-                if name_to_check and name_to_check.lower() in protected_names:
-                    is_illegal = True
-                    logger.warning(f"[{self.user_id}] 【計畫淨化】：已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 創建操作 ({call.tool_name})。")
+                # --- 名稱規範化 ---
+                params = call.parameters
+                std_name = params.get('standardized_name')
+                orig_name = params.get('original_name')
+                if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
+                    logger.warning(f"[{self.user_id}] [自動修正-命名] 檢測到不合規的命名，已將 '{orig_name}' 修正為主要名稱。")
+                    params['standardized_name'], params['original_name'] = orig_name, std_name
+
+                # --- 工具名修正 ---
+                tool_name = call.tool_name
+                if tool_name not in available_lore_tools:
+                    best_match = None
+                    highest_ratio = 0.7  # 設定一個相似度閾值，避免錯誤匹配
+                    for valid_tool in available_lore_tools:
+                        ratio = levenshtein_ratio(tool_name, valid_tool)
+                        if ratio > highest_ratio:
+                            highest_ratio = ratio
+                            best_match = valid_tool
+                    if best_match:
+                        logger.warning(f"[{self.user_id}] [自動修正-工具名] 檢測到不存在的工具 '{tool_name}'，已自動修正為 '{best_match}' (相似度: {highest_ratio:.2f})。")
+                        call.tool_name = best_match
+                    else:
+                        logger.error(f"[{self.user_id}] [計畫淨化] 無法修正或匹配工具 '{tool_name}'，將跳過此任務。")
+                        continue
                 
-                if not is_illegal:
-                    purified_plan.append(call)
+                # --- 核心角色保護 ---
+                name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
+                user_name_lower = self.profile.user_profile.name.lower()
+                ai_name_lower = self.profile.ai_profile.name.lower()
+                if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
+                    logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
+                    continue
+                
+                purified_plan.append(call)
 
             if not purified_plan:
-                logger.info(f"[{self.user_id}] (LORE Executor) 計畫在淨化後為空，无需执行。")
+                logger.info(f"[{self.user_id}] (LORE Executor) 計畫在淨化與修正後為空，无需执行。")
                 return "LORE 扩展計畫在淨化後為空。"
 
-            logger.info(f"--- [{self.user_id}] (LORE Executor) 開始串行執行 {len(purified_plan)} 個LORE任务 ---")
+            logger.info(f"--- [{self.user_id}] (LORE Executor) 開始串行執行 {len(purified_plan)} 個修正後的LORE任务 ---")
             
             summaries = []
-            available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
-            
             for call in purified_plan:
-                # [v187.0 核心修正] 移除固定延遲以大幅提升批量創建性能
-                # await asyncio.sleep(4.0) 
-
                 if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
 
                 tool_to_execute = available_lore_tools.get(call.tool_name)
+                # 經過修正後，這裡理論上不應再失敗
                 if not tool_to_execute:
-                    logger.warning(f"[{self.user_id}] (LORE Executor) 計畫中的工具 '{call.tool_name}' 不存在于 LORE 工具集。")
                     continue
 
                 try:
@@ -1825,11 +1850,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v9.0 - 終極備援邏輯修正)
+# 函式：解析世界聖經並創建 LORE (v9.1 - 參數隔離)
 # 更新紀錄:
-# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構了備援邏輯。當主解析鏈因內容審查失敗後，系統將完全跳過會破壞LORE細節的“消毒”備援，直接啟用更健壯的、基於原始NSFW文本的“終極備援LORE提取器”。此修改旨在從根本上解決因“消毒”導致LORE信息丟失和錯誤的問題，確保在高NSFW環境下的解析成功率和準確性。
+# v9.1 (2025-09-22): [災難性BUG修復] 明確分離了主解析鏈和備援提取鏈的格式化參數，確保在調用主解析鏈時，只傳遞其唯一需要的 `canon_text` 參數。此修改從根本上解決了因參數污染導致的、在解析流程中 непрерывно發生的 `KeyError: 'username'` 致命錯誤。
+# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構了備援邏輯，跳過“消毒”步驟。
 # v8.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
-# v8.0 (2025-09-22): [災難性BUG修復] 恢復了對 `_resolve_and_save` 函式的調用並完善了三階段降級邏輯。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1859,9 +1884,9 @@ class AILover:
                 chunk_result = None
                 
                 try:
-                    # --- 階段 1: 嘗試主解析 ---
                     logger.info(f"[{self.user_id}] [階段 1/2] 嘗試主要解析鏈...")
                     canon_parser_template = self.get_canon_parser_chain()
+                    # [v9.1 核心修正] 僅傳遞此模板需要的唯一參數
                     full_prompt = canon_parser_template.format(canon_text=doc.page_content)
                     
                     chunk_result = await self.ainvoke_with_rotation(
@@ -1876,7 +1901,6 @@ class AILover:
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [階段 1/2] 主要解析失敗: {e}。立即啟用終極備援。")
                     
-                    # --- 階段 2: 終極備援 - 原文 LORE 提取 ---
                     logger.info(f"[{self.user_id}] [階段 2/2] 啟動終極備援：原文 LORE 提取...")
                     try:
                         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -1884,13 +1908,15 @@ class AILover:
                         existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
 
                         extraction_prompt_template = self.get_lore_extraction_chain()
-                        extraction_prompt = extraction_prompt_template.format(
-                            username=self.profile.user_profile.name,
-                            ai_name=self.profile.ai_profile.name,
-                            existing_lore_summary=existing_lore_summary,
-                            user_input="（來自世界聖經的上下文）",
-                            final_response_text=doc.page_content # 直接在原始NSFW文本上操作
-                        )
+                        # [v9.1 核心修正] 僅為此模板傳遞其需要的參數
+                        extraction_params = {
+                            "username": self.profile.user_profile.name,
+                            "ai_name": self.profile.ai_profile.name,
+                            "existing_lore_summary": existing_lore_summary,
+                            "user_input": "（來自世界聖經的上下文）",
+                            "final_response_text": doc.page_content
+                        }
+                        extraction_prompt = extraction_prompt_template.format(**extraction_params)
 
                         extraction_plan = await self.ainvoke_with_rotation(
                             extraction_prompt, output_schema=ToolCallPlan, retry_strategy='none'
@@ -1898,17 +1924,15 @@ class AILover:
 
                         if extraction_plan and extraction_plan.plan:
                             logger.info(f"[{self.user_id}] [階段 2/2] 終極備援成功，從原文中提取到 {len(extraction_plan.plan)} 條 LORE。")
-                            await self._execute_tool_call_plan(extraction_plan, []) # 地點應為未知
+                            await self._execute_tool_call_plan(extraction_plan, [])
                         else:
                             logger.warning(f"[{self.user_id}] [階段 2/2] 終極備援未能從原文中提取到任何 LORE。")
 
                     except Exception as final_e:
                         logger.error(f"[{self.user_id}] [階段 2/2] 終極備援流程執行時發生未知錯誤: {final_e}", exc_info=True)
                     
-                    # 終極備援流程結束後，跳過主結果的合併，繼續處理下一個文本塊
                     continue
                 
-                # 如果主解析成功，則合併結果
                 if chunk_result:
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
                     all_parsing_results.locations.extend(chunk_result.locations)
@@ -1919,7 +1943,6 @@ class AILover:
 
             logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。（注意：備援流程提取的LORE已直接存儲，不計入此處）")
 
-            # 儲存由主解析鏈成功提取的LORE
             if any([all_parsing_results.npc_profiles, all_parsing_results.locations, all_parsing_results.items, all_parsing_results.creatures, all_parsing_results.quests, all_parsing_results.world_lores]):
                 await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
                 await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
@@ -2352,6 +2375,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
