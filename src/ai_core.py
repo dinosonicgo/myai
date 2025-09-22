@@ -1925,10 +1925,11 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v4.0 (2025-09-23): [根本性重構] 整合了“解構-重構”委婉化策略。當遭遇內容審查時，不再直接重試，而是：1. 在本地代碼中將高風險文本塊“解構”為一組安全的關鍵詞。2. 調用全新的“法醫級LORE重構器”鏈，讓其根據安全的關鍵詞“重構”出完整的LORE JSON。此策略旨在從根本上繞過API的前置審查。
-    # v3.0 (2025-09-23): [健壯性強化] 引入“模型升級攻堅”策略。
+    # v4.2 (2025-09-23): [成本優化] 重構了重試邏輯，實現了“逐級模型升級”。當解析失敗時，不再直接跳到最強的 pro 模型，而是嚴格按照 FUNCTIONAL_MODEL -> GENERATION_MODEL_PRIORITY 列表的順序逐級嘗試，以在保證成功率的同時最大限度地節約 API 成本。
+    # v4.1 (2025-09-23): [災難性BUG修復] 修正了 except 區塊中的 SyntaxError。
+    # v4.0 (2025-09-23): [根本性重構] 整合了“解構-重構”委婉化策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦策略繞過審查。"""
+        """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和逐級模型升級策略繞過審查。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
@@ -1943,105 +1944,67 @@ class CanonParsingResult(BaseModel):
 
         successful_chunks = 0
         total_chunks = len(text_chunks)
+        transformation_template = self.get_canon_transformation_chain()
         
+        # [v4.2 核心修正] 創建一個有序、不重複的模型嘗試列表
+        models_to_attempt = [FUNCTIONAL_MODEL]
+        for m in self.model_priority_list:
+            if m not in models_to_attempt:
+                models_to_attempt.append(m)
+
         for i, chunk in enumerate(text_chunks, 1):
             logger.info(f"[{self.user_id}] 正在處理文本塊 {i}/{total_chunks}...")
             
-            try:
-                # --- 第一層防禦：標準的、簡化的解析任務 ---
-                transformation_template = self.get_canon_transformation_chain()
-                full_prompt = transformation_template.format(canon_text=chunk)
-                
-                parsing_result = await self.ainvoke_with_rotation(
-                    full_prompt,
-                    output_schema=CanonParsingResult,
-                    retry_strategy='none', # 失敗後由我們手動處理
-                    models_to_try_override=[FUNCTIONAL_MODEL]
-                )
-                if not parsing_result: raise ValueError("標準解析返回空值。")
-
-            except (BlockedPromptException, GoogleGenerativeAIError) as e:
-                # --- 第二層防禦：觸發“解構-重構”策略 ---
-                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查 ({type(e).__name__})。啟動【解構-重構】策略...")
+            is_chunk_successful = False
+            last_error = None
+            
+            # [v4.2 核心修正] 遍歷模型列表進行逐級嘗試
+            for attempt_index, model_to_use in enumerate(models_to_attempt):
                 try:
-                    # 步驟 1: 本地“解構”，提取安全關鍵詞
-                    nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精", "臣服", "主人", "母狗", "母畜"]
-                    extracted_keywords = [kw for kw in nsfw_keywords if kw in chunk]
+                    full_prompt = transformation_template.format(canon_text=chunk)
                     
-                    # 提取所有角色名
-                    all_names = [self.profile.user_profile.name, self.profile.ai_profile.name]
-                    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-                    for lore in all_lores:
-                        if lore.category == 'npc_profile':
-                             all_names.append(lore.content.get('name', ''))
-                    
-                    # 將文本中出現的角色名也加入關鍵詞
-                    for name in all_names:
-                        if name and name in chunk and name not in extracted_keywords:
-                            extracted_keywords.append(name)
+                    # 第一次之後的所有嘗試都視為強化重試
+                    if attempt_index > 0:
+                        logger.warning(f"[{self.user_id}] 文本塊 {i} 上一嘗試失敗。正在強化並升級模型至 [{model_to_use}]...")
+                        full_prompt = self.core_protocol_prompt + "\n\n" + full_prompt
 
-                    if not extracted_keywords:
-                        logger.error(f"[{self.user_id}] [解構失敗] 未能從被審查的文本塊 {i} 中提取出任何已知關鍵詞。跳過此塊。")
-                        continue
-                    
-                    logger.info(f"[{self.user_id}] [解構成功] 已提取關鍵詞: {extracted_keywords}")
-
-                    # 步驟 2: 調用“法醫級重構器”進行安全重構
-                    reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-                    reconstruction_prompt = reconstruction_template.format(keywords=str(extracted_keywords))
-                    
-                    parsing_result = await self.ainvoke_with_rotation(
-                        reconstruction_prompt,
-                        output_schema=CanonParsingResult,
-                        retry_strategy='none', # 這是最後手段，不再重試
-                        models_to_try_override=[self.model_priority_list[0]] # 直接使用最強模型
-                    )
-                    if not parsing_result: raise ValueError("法醫級重構鏈返回空值。")
-                    logger.info(f"[{self.user_id}] [重構成功] 已成功根據關鍵詞重構 LORE。")
-
-                except Exception as recon_e:
-                    logger.error(f"[{self.user_id}] 【解構-重構】策略最終失敗: {type(recon_e).__name__}: {recon_e}", exc_info=True)
-                    continue # 處理下一個塊
-
-            except (ValueError, ValidationError, json.JSONDecodeError, OutputParserException) as e:
-                # --- 第三層防禦：處理格式錯誤，模型升級攻堅 ---
-                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
-                try:
-                    transformation_template = self.get_canon_transformation_chain()
-                    full_prompt = self.core_protocol_prompt + "\n\n" + transformation_template.format(canon_text=chunk)
-                    
                     parsing_result = await self.ainvoke_with_rotation(
                         full_prompt,
                         output_schema=CanonParsingResult,
-                        retry_strategy='none',
-                        models_to_try_override=[self.model_priority_list[0]] # 直接用最強模型
+                        retry_strategy='none', # 我們在此處手動控制重試和升級
+                        models_to_try_override=[model_to_use]
                     )
-                    if not parsing_result: raise ValueError("模型升級攻堅返回空值。")
-                    logger.info(f"[{self.user_id}] [攻堅成功] 已成功使用升級模型修復格式錯誤。")
+                    
+                    if not parsing_result: 
+                        raise ValueError(f"模型 [{model_to_use}] 返回了空值。")
 
-                except Exception as攻堅_e:
-                    logger.error(f"[{self.user_id}] 【模型升級攻堅】策略最終失敗: {type(攻堅_e).__name__}: {攻堅_e}", exc_info=True)
-                    continue
+                    # --- 統一的儲存邏輯 ---
+                    save_tasks = [
+                        self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'),
+                        self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'),
+                        self._resolve_and_save('items', [p.model_dump() for p in parsing_result.items], 'name'),
+                        self._resolve_and_save('creatures', [p.model_dump() for p in parsing_result.creatures], 'name'),
+                        self._resolve_and_save('quests', [p.model_dump() for p in parsing_result.quests], 'name'),
+                        self._resolve_and_save('world_lores', [p.model_dump() for p in parsing_result.world_lores], 'title')
+                    ]
+                    await asyncio.gather(*save_tasks)
+                    
+                    logger.info(f"[{self.user_id}] 文本塊 {i} 使用模型 [{model_to_use}] 解析並儲存成功。")
+                    successful_chunks += 1
+                    is_chunk_successful = True
+                    break # 當前塊成功，跳出模型升級循環
 
-            except Exception as e:
-                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生未知嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
-                continue
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"[{self.user_id}] 文本塊 {i} 使用模型 [{model_to_use}] 嘗試失敗: {type(e).__name__}: {str(e).splitlines()[0]}")
+                    if attempt_index < len(models_to_attempt) - 1:
+                        await asyncio.sleep(2) # 等待一下再用下一個模型重試
+                    else:
+                        logger.error(f"[{self.user_id}] 文本塊 {i} 在嘗試所有模型後最終失敗。最後錯誤: {last_error}", exc_info=False)
 
-            # --- 統一的儲存邏輯 ---
-            try:
-                save_tasks = [
-                    self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'),
-                    self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'),
-                    self._resolve_and_save('items', [p.model_dump() for p in parsing_result.items], 'name'),
-                    self._resolve_and_save('creatures', [p.model_dump() for p in parsing_result.creatures], 'name'),
-                    self._resolve_and_save('quests', [p.model_dump() for p in parsing_result.quests], 'name'),
-                    self._resolve_and_save('world_lores', [p.model_dump() for p in parsing_result.world_lores], 'title')
-                ]
-                await asyncio.gather(*save_tasks)
-                logger.info(f"[{self.user_id}] 文本塊 {i} 的 LORE 已成功儲存。")
-                successful_chunks += 1
-            except Exception as save_e:
-                logger.error(f"[{self.user_id}] 在儲存文本塊 {i} 的 LORE 時發生錯誤: {save_e}", exc_info=True)
+            if not is_chunk_successful:
+                # 這裡可以選擇性地處理最終失敗的塊，例如記錄到一個特定的日誌文件中
+                pass
 
         logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
     # 函式：解析並從世界聖經創建 LORE
@@ -2483,6 +2446,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
