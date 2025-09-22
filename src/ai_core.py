@@ -1857,11 +1857,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v9.2 - 終極參數隔離)
+# 函式：解析世界聖經並創建 LORE (v9.3 - 注入完整上下文)
 # 更新紀錄:
-# v9.2 (2025-09-22): [災難性BUG修復] 在捕獲異常後的備援流程中，嚴格地只為 extraction_prompt_template 傳遞其需要的參數，徹底解決了因參數污染導致的 KeyError: 'username' 的問題。
+# v9.3 (2025-09-22): [災難性BUG修復] 在格式化主解析鏈和備援鏈的Prompt時，注入了完整的上下文參數字典（包括 username, ai_name 等）。此修改旨在滿足因注入“最高指令”而引入的新增佔位符，從根本上解決了因此引發的 KeyError: 'username' 致命錯誤。
+# v9.2 (2025-09-22): [災難性BUG修復] 嚴格地只為 extraction_prompt_template 傳遞其需要的參數。
 # v9.1 (2025-09-22): [災難性BUG修復] 明確分離了主解析鏈和備援提取鏈的格式化參數。
-# v9.0 (2025-09-22): [災難性BUG修復] 徹底重構了備援邏輯，跳過“消毒”步驟。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1874,6 +1874,17 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
+            # [v9.3 核心修正] 預先準備好所有模板都可能需要的完整上下文參數
+            gs = self.profile.game_state
+            full_context_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "player_location": ' > '.join(gs.location_path),
+                "viewing_mode": gs.viewing_mode,
+                "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
+                "micro_task_context": "無", # 解析時無微任務
+            }
+
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=7500,
                 chunk_overlap=400,
@@ -1893,7 +1904,12 @@ class AILover:
                 try:
                     logger.info(f"[{self.user_id}] [階段 1/2] 嘗試主要解析鏈...")
                     canon_parser_template = self.get_canon_parser_chain()
-                    full_prompt = canon_parser_template.format(canon_text=doc.page_content)
+                    
+                    # 創建一個包含基礎上下文和當前文本塊內容的參數副本
+                    current_params = full_context_params.copy()
+                    current_params['canon_text'] = doc.page_content
+                    
+                    full_prompt = canon_parser_template.format(**current_params)
                     
                     chunk_result = await self.ainvoke_with_rotation(
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
@@ -1914,14 +1930,15 @@ class AILover:
                         existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
 
                         extraction_prompt_template = self.get_lore_extraction_chain()
-                        # [v9.2 核心修正] 嚴格地只為備援鏈傳遞它需要的參數
-                        extraction_params = {
-                            "username": self.profile.user_profile.name,
-                            "ai_name": self.profile.ai_profile.name,
+                        
+                        # 創建一個包含基礎上下文和備援鏈特定內容的參數副本
+                        extraction_params = full_context_params.copy()
+                        extraction_params.update({
                             "existing_lore_summary": existing_lore_summary,
                             "user_input": "（來自世界聖經的上下文）",
                             "final_response_text": doc.page_content
-                        }
+                        })
+                        
                         extraction_prompt = extraction_prompt_template.format(**extraction_params)
 
                         extraction_plan = await self.ainvoke_with_rotation(
@@ -2391,6 +2408,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
