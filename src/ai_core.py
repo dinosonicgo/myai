@@ -2250,6 +2250,7 @@ class AILover:
     # 更新紀錄:
     # v12.2 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt。
     # v12.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
+    # v12.0 (2025-11-15): [災難性BUG修復 & 性能優化] 徹底重構了此函式以實現【持久化淨化快取】。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """執行RAG檢索並將結果總結為摘要。採用【持久化淨化快取】策略以確保性能和穩定性。"""
         if not self.retriever and not self.bm25_retriever:
@@ -2371,6 +2372,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
