@@ -1187,11 +1187,11 @@ class AILover:
 
     
 
-# 函式：執行工具調用計畫 (v189.0 - 增強版自動修正層)
+# 函式：執行工具調用計畫 (v190.0 - 確認保護邏輯)
 # 更新紀錄:
-# v189.0 (2025-09-22): [災難性BUG修復] 增強了自動修正層的邏輯。現在，如果AI錯誤地使用 `update_npc_profile` 去操作一個不存在的實體，系統會自動將其攔截並轉換為一個 `create_new_npc_profile` 的請求，從根本上杜絕了因AI混淆“更新”與“創建”而導致的數據丟失問題。
+# v190.0 (2025-09-22): [健壯性] 確認程式碼層的核心角色保護邏輯存在且有效，以配合 get_lore_extraction_chain 模板的淨化，確保保護規則由更可靠的程式碼執行。
+# v189.0 (2025-09-22): [災難性BUG修復] 增強了自動修正層的邏輯，能夠自動將錯誤的“更新”操作轉換為“創建”。
 # v188.0 (2025-09-22): [災難性BUG修復] 引入了“自動修正與規範化”程式碼層。
-# v187.0 (2025-09-22): [性能優化] 徹底移除了在LORE工具串行執行循環中的固定延遲。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
@@ -1235,7 +1235,7 @@ class AILover:
                         logger.error(f"[{self.user_id}] [計畫淨化] 無法修正或匹配工具 '{tool_name}'，將跳過此任務。")
                         continue
                 
-                # --- 核心角色保護 ---
+                # --- 核心角色保護 (程式碼層) ---
                 name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
                 user_name_lower = self.profile.user_profile.name.lower()
                 ai_name_lower = self.profile.ai_profile.name.lower()
@@ -1253,13 +1253,11 @@ class AILover:
             
             summaries = []
             for call in purified_plan:
-                # [v189.0 核心修正] 更新/創建邏輯的最終防線
                 if call.tool_name == 'update_npc_profile':
                     lore_exists = await lore_book.get_lore(self.user_id, 'npc_profile', call.parameters.get('lore_key', ''))
                     if not lore_exists:
                         logger.warning(f"[{self.user_id}] [自動修正-邏輯] AI 試圖更新一個不存在的NPC (key: {call.parameters.get('lore_key')})。已自動將操作轉換為創建新NPC。")
                         call.tool_name = 'create_new_npc_profile'
-                        # 嘗試從 updates 字典中恢復創建所需的核心參數
                         updates = call.parameters.get('updates', {})
                         call.parameters['standardized_name'] = updates.get('name', call.parameters.get('lore_key', '未知NPC').split(' > ')[-1])
                         call.parameters['description'] = updates.get('description', '（由系統自動創建）')
@@ -1857,11 +1855,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v9.3 - 注入完整上下文)
+# 函式：解析世界聖經並創建 LORE (v9.4 - 順序格式化)
 # 更新紀錄:
-# v9.3 (2025-09-22): [災難性BUG修復] 在格式化主解析鏈和備援鏈的Prompt時，注入了完整的上下文參數字典（包括 username, ai_name 等）。此修改旨在滿足因注入“最高指令”而引入的新增佔位符，從根本上解決了因此引發的 KeyError: 'username' 致命錯誤。
+# v9.4 (2025-09-22): [災難性BUG修復] 徹底重構了Prompt的組合方式，採用“順序格式化”策略。現在，程式會先分別格式化“最高指令”模板和“基礎任務”模板，然後再將格式化完成的兩個字符串拼接起來。此修改從根本上解決了因“模板套模板”導致的、無法修復的 `KeyError`。
+# v9.3 (2025-09-22): [災難性BUG修復] 注入了完整的上下文參數字典。
 # v9.2 (2025-09-22): [災難性BUG修復] 嚴格地只為 extraction_prompt_template 傳遞其需要的參數。
-# v9.1 (2025-09-22): [災難性BUG修復] 明確分離了主解析鏈和備援提取鏈的格式化參數。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1874,7 +1872,6 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
-            # [v9.3 核心修正] 預先準備好所有模板都可能需要的完整上下文參數
             gs = self.profile.game_state
             full_context_params = {
                 "username": self.profile.user_profile.name,
@@ -1882,12 +1879,11 @@ class AILover:
                 "player_location": ' > '.join(gs.location_path),
                 "viewing_mode": gs.viewing_mode,
                 "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
-                "micro_task_context": "無", # 解析時無微任務
+                "micro_task_context": "無",
             }
 
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=7500,
-                chunk_overlap=400,
+                chunk_size=7500, chunk_overlap=400,
                 separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
             )
             docs = text_splitter.create_documents([content_text])
@@ -1895,6 +1891,9 @@ class AILover:
 
             all_parsing_results = CanonParsingResult()
             
+            # [v9.4 核心修正] 先格式化最高指令一次，後續重複使用
+            formatted_protocol = self.core_protocol_prompt.format(**full_context_params)
+
             for i, doc in enumerate(docs):
                 logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
                 await asyncio.sleep(5.0)
@@ -1903,13 +1902,9 @@ class AILover:
                 
                 try:
                     logger.info(f"[{self.user_id}] [階段 1/2] 嘗試主要解析鏈...")
-                    canon_parser_template = self.get_canon_parser_chain()
-                    
-                    # 創建一個包含基礎上下文和當前文本塊內容的參數副本
-                    current_params = full_context_params.copy()
-                    current_params['canon_text'] = doc.page_content
-                    
-                    full_prompt = canon_parser_template.format(**current_params)
+                    base_parser_template = self.get_canon_parser_chain()
+                    formatted_parser_task = base_parser_template.format(canon_text=doc.page_content)
+                    full_prompt = formatted_protocol + "\n\n" + formatted_parser_task
                     
                     chunk_result = await self.ainvoke_with_rotation(
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
@@ -1929,18 +1924,20 @@ class AILover:
                         lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
                         existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
 
-                        extraction_prompt_template = self.get_lore_extraction_chain()
-                        
-                        # 創建一個包含基礎上下文和備援鏈特定內容的參數副本
-                        extraction_params = full_context_params.copy()
-                        extraction_params.update({
+                        base_extraction_template = self.get_lore_extraction_chain()
+                        extraction_params = {
                             "existing_lore_summary": existing_lore_summary,
                             "user_input": "（來自世界聖經的上下文）",
                             "final_response_text": doc.page_content
-                        })
-                        
-                        extraction_prompt = extraction_prompt_template.format(**extraction_params)
+                        }
+                        # 注意：這裡的 base_extraction_template 依然有 {username} 等佔位符
+                        # 所以我們需要將 full_context_params 和 extraction_params 合併
+                        final_extraction_params = {**full_context_params, **extraction_params}
+                        formatted_extraction_task = base_extraction_template.format(**final_extraction_params)
 
+                        # 最高指令已經在外部格式化好了
+                        extraction_prompt = formatted_protocol + "\n\n" + formatted_extraction_task
+                        
                         extraction_plan = await self.ainvoke_with_rotation(
                             extraction_prompt, output_schema=ToolCallPlan, retry_strategy='none'
                         )
@@ -2214,11 +2211,11 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v8.1 - 恢復完整的最高指令注入)
+# 函式：獲取LORE提取器 Prompt (v8.2 - 移除不應存在的佔位符)
 # 更新紀錄:
-# v8.1 (2025-09-22): [災難性BUG修復] 根據使用者反饋和日誌分析，恢復了將完整的 self.core_protocol_prompt (即 00_supreme_directive.txt) 注入到Prompt最頂部的邏輯。實踐證明，完整的最高指令是規避內容審查最有效的手段，任何簡化都會削弱其保護效果。
+# v8.2 (2025-09-22): [災難性BUG修復] 徹底移除了模板中對 {username} 和 {ai_name} 的佔位符引用及其相關規則。這些參數並非在所有調用場景中都可用，導致了無法修復的 KeyError。核心角色保護邏輯已被移至 _execute_tool_call_plan 的程式碼層，確保了模板的通用性和健壯性。
+# v8.1 (2025-09-22): [災難性BUG修復] 恢復了將完整的 self.core_protocol_prompt 注入到Prompt最頂部的邏輯。
 # v8.0 (2025-09-22): [災難性BUG修復] 徹底重寫了Prompt，採用“臨床報告”和“數據提取任務”的偽裝策略。
-# v7.5 (2025-09-22): [災難性BUG修復] 在Prompt的最頂部注入了 self.core_protocol_prompt。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的字符串模板。"""
         if self.lore_extraction_chain is None:
@@ -2232,7 +2229,6 @@ class AILover:
 #    - **決策**:
 #      - 如果一個實體在 [EXISTING_ENTITY_MANIFEST] 中【已存在】，你【必須】使用 `update_...` 類別的工具來更新其資訊。
 #      - 如果一個實體在 [EXISTING_ENTITY_MANIFEST] 中【不存在】，你【必須】使用 `create_...` 或 `add_...` 類別的工具為其創建新條目。
-#    - **禁止事項**: 絕對禁止為 [PROTECTED_ENTITIES] 中列出的核心實體 "{username}" 和 "{ai_name}" 創建或更新任何條目。
 
 # 2. **【🔤 數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: 在處理多語言名稱時（例如：卡萊兒 / Carlyle），`standardized_name` 參數【必須】被賦值為【繁體中文名】。其他語言的名稱應被賦值給 `original_name`。
@@ -2257,10 +2253,6 @@ class AILover:
 # [EXISTING_ENTITY_MANIFEST]:
 {existing_lore_summary}
 
-# [PROTECTED_ENTITIES]:
-# - {username}
-# - {ai_name}
-
 # [QUERY_CONTEXT]:
 {user_input}
 
@@ -2271,7 +2263,6 @@ class AILover:
 # 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` 結構的JSON物件。
 # 立即開始數據處理。
 """
-            # [v8.1 核心修正] 恢復使用完整的 self.core_protocol_prompt 作為最強保護層
             self.lore_extraction_chain = self.core_protocol_prompt + "\n\n" + base_prompt
         return self.lore_extraction_chain
     # 獲取LORE提取器 Prompt 函式結束
@@ -2408,6 +2399,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
