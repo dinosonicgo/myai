@@ -1186,11 +1186,11 @@ class AILover:
 
     
 
-# 函式：執行工具調用計畫 (v186.0 - 修正地點注入邏輯)
+# 函式：執行工具調用計畫 (v187.0 - 移除執行延遲)
 # 更新紀錄:
-# v186.0 (2025-09-22): [災難性BUG修復] 重構了地點注入邏輯。現在，只有當工具調用計畫中完全沒有提供地點資訊時（即 `location_path` 缺失或為空），才會使用玩家的當前地點作為備用。此修改從根本上解決了從世界聖經中解析出的、應有特定地點或未知地點的NPC被錯誤地錨定在玩家當前位置的問題。
+# v187.0 (2025-09-22): [性能優化] 徹底移除了在LORE工具串行執行循環中的 `asyncio.sleep(4.0)` 固定延遲。此修改旨在解決當世界聖經包含大量LORE時，僅創建過程就需要數十分鐘的嚴重性能瓶頸問題，使LORE的批量創建速度提升數十倍。
+# v186.0 (2025-09-22): [災難性BUG修復] 重構了地點注入邏輯。
 # v185.0 (2025-11-22): [重大架構升級] 在此函式的末尾增加了對 `await self._build_retriever()` 的強制調用。
-# v184.0 (2025-11-14): [災難性BUG修復] 將此核心 LORE 執行器函式恢復到 AILover 類中。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
@@ -1228,10 +1228,9 @@ class AILover:
             available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
             for call in purified_plan:
-                await asyncio.sleep(4.0) 
+                # [v187.0 核心修正] 移除固定延遲以大幅提升批量創建性能
+                # await asyncio.sleep(4.0) 
 
-                # [v186.0 核心修正] 僅在 LORE 提取鏈完全沒有提供任何地點資訊時，才使用當前地點作為備援。
-                # .get() 會在 'location_path' 不存在時返回 None，這也會被 not 捕獲。
                 if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
 
@@ -1253,7 +1252,6 @@ class AILover:
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
 
-            # [v185.0 核心修正] 在所有 LORE 操作完成後，強制重建 RAG 索引
             logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
             self.retriever = await self._build_retriever()
             logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
@@ -2354,6 +2352,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
