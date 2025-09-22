@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T22:50:53.980432 ###
+### AI Lover Log - Last updated at 2025-09-22T22:55:36.599309 ###
 
-2025-09-22 22:21:50 - [INFO] - [512280345618546699] -> 正在嘗試解析子塊 3/4...
-2025-09-22 22:21:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或解析錯誤: BlockedPromptException。
-2025-09-22 22:21:51 - [WARNING] - [512280345618546699] -> 子塊 3 最終失敗，已跳過。
-2025-09-22 22:21:51 - [INFO] - [512280345618546699] -> 正在嘗試解析子塊 4/4...
-2025-09-22 22:21:56 - [INFO] - [512280345618546699] -> 子塊 4 搶救成功！
-2025-09-22 22:21:56 - [INFO] - [512280345618546699] 所有文本塊解析完成。總共成功提取到 0 個NPC，16 個地點。
-2025-09-22 22:21:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 0 個實體...
 2025-09-22 22:21:56 - [INFO] - [512280345618546699] (_resolve_and_save) 'npc_profile' 類別的實體處理完畢。
 2025-09-22 22:21:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 16 個實體...
 2025-09-22 22:21:57 - [INFO] - [512280345618546699] (_resolve_and_save) 'location_info' 類別的實體處理完畢。
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1855, in parse_and_create_lore_from_canon
     all_known_npcs = [lore.content.get('name') for lore in await lore_book.get_all_lores_for_user(self.user_id, 'npc_profile') if lore.content.get('name')]
 TypeError: get_all_lores_for_user() takes 1 positional argument but 2 were given
+2025-09-22 22:55:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 22:55:22 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 22:55:22 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 22:55:22 - [INFO] - Discord Bot is ready!
+2025-09-22 22:55:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 22:55:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 22:55:26 - [INFO] - 已成功發送啟動成功通知給管理員。
