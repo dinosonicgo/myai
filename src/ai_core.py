@@ -753,51 +753,42 @@ class AILover:
 
 
 
-# 函式：生成世界創世資訊 (/start 流程 3/4) (v4.0 - 適配原生引擎)
+# 函式：生成世界創世資訊 (/start 流程 3/4) (v4.1 - 原生模板重構)
 # 更新紀錄:
-# v4.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。
+# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+# v4.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
 # v3.1 (2025-11-13): [災難性BUG修復] 增加了對 LLM 輸出的防禦性清洗邏輯。
-# v3.0 (2025-11-13): [災難性BUG修復] 徹底重構了此函式的 prompt 組合與調用邏輯。
     async def generate_world_genesis(self):
         """(/start 流程 3/4) 呼叫 LLM 生成初始地點和NPC，並存入LORE。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
-        # 步驟 1: 獲取 Prompt 模板
-        genesis_prompt_obj = self.get_world_genesis_chain()
+        genesis_prompt_template = self.get_world_genesis_chain()
         
-        # 步驟 2: 準備參數並格式化為最終的 Prompt 字符串
         genesis_params = {
             "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
             "username": self.profile.user_profile.name,
             "ai_name": self.profile.ai_profile.name
         }
-        full_prompt_str = genesis_prompt_obj.format_prompt(**genesis_params).to_string()
+        full_prompt_str = genesis_prompt_template.format(**genesis_params)
         
-        # 步驟 3: 使用原生引擎調用 LLM
         genesis_result = await self.ainvoke_with_rotation(
             full_prompt_str,
-            output_schema=WorldGenesisResult, # 告知原生引擎我們期望的輸出類型
-            retry_strategy='force' # 創世是關鍵步驟，使用強制策略
+            output_schema=WorldGenesisResult,
+            retry_strategy='force'
         )
         
         if not genesis_result or not isinstance(genesis_result, WorldGenesisResult):
             raise Exception("世界創世在所有重試後最終失敗，未能返回有效的 WorldGenesisResult 物件。")
         
-        # 步驟 4: 將生成的數據持久化到資料庫
-        # 更新遊戲狀態中的當前地點
         gs = self.profile.game_state
         gs.location_path = genesis_result.location_path
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
         
-        # 將地點資訊存入 LORE
         await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
         
-        # 將初始 NPC 資訊存入 LORE
         for npc in genesis_result.initial_npcs:
-            # 創建一個唯一的 LORE key，例如 "艾瑟利亞王國 > 首都晨風城 > 鐵匠傑克"
             npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
-            # 將 NPC 的位置路徑也存入其檔案中，便於後續查詢
             npc_data = npc.model_dump()
             npc_data['location_path'] = genesis_result.location_path
             await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc_data)
@@ -2360,6 +2351,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
