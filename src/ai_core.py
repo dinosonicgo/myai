@@ -440,9 +440,10 @@ class AILover:
 
     
 
-# 函式：背景LORE提取與擴展 (v1.0 - 全新創建)
+# 函式：背景LORE提取與擴展 (v1.1 - 原生模板重構)
 # 更新紀錄:
-# v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。它直接分析原始對話文本，作為對主模型「生成即摘要」的雙重保險，確保任何被主模型忽略的 LORE 都能被捕獲和創建。
+# v1.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+# v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化，
@@ -452,10 +453,8 @@ class AILover:
             return
             
         try:
-            # 延遲執行，避免與主線程搶占資源
             await asyncio.sleep(5.0)
 
-            # 獲取當前所有 LORE 的摘要，為提取鏈提供上下文
             try:
                 all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
@@ -466,7 +465,7 @@ class AILover:
 
             logger.info(f"[{self.user_id}] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...")
             
-            prompt_template_obj = self.get_lore_extraction_chain()
+            prompt_template = self.get_lore_extraction_chain()
 
             extraction_params = {
                 "username": self.profile.user_profile.name,
@@ -476,9 +475,8 @@ class AILover:
                 "final_response_text": final_response,
             }
             
-            full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
+            full_prompt = prompt_template.format(**extraction_params)
             
-            # 使用原生引擎調用，並期望返回 ToolCallPlan 類型的物件
             extraction_plan = await self.ainvoke_with_rotation(
                 full_prompt,
                 output_schema=ToolCallPlan,
@@ -492,7 +490,6 @@ class AILover:
             if extraction_plan.plan:
                 logger.info(f"[{self.user_id}] [事後處理-LORE保險] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
                 
-                # 確定 LORE 應該錨定在哪個地點
                 gs = self.profile.game_state
                 effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
                 
@@ -503,6 +500,10 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
 # 背景LORE提取與擴展 函式結束
+
+
+
+        
 
 
 
@@ -2383,6 +2384,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
