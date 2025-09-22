@@ -2015,11 +2015,15 @@ class AILover:
         return self.json_correction_chain
     # 獲取JSON修正器 Prompt 函式結束
 
-    # 函式：獲取世界創世 Prompt (v206.0 - 強制結構)
+
+
+
+    
+    # 函式：獲取世界創世 Prompt (v207.0 - 移除轉義大括號)
     # 更新紀錄:
+    # v207.0 (2025-09-22): [災難性BUG修復] 移除了範例JSON中的雙大括號 `{{ }}` 轉義序列，改為普通的單大括號。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因混合使用真實佔位符和轉義符號而引發的 `KeyError`。
     # v206.0 (2025-11-13): [災難性BUG修復] 根據 Pydantic ValidationError，徹底重寫了此函式的 Prompt。
     # v205.0 (2025-11-13): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
-    # v203.1 (2025-09-05): [延遲加載重構] 遷移到 get 方法中。
     def get_world_genesis_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於世界創世的 ChatPromptTemplate 模板。"""
         if self.world_genesis_chain is None:
@@ -2042,24 +2046,24 @@ class AILover:
 #     - **任何**對這些鍵名的修改、增減或大小寫變動都將導致災難性系統失敗。
 # 3.  **【結構範例 (必須嚴格遵守)】**:
 #     ```json
-#     {{
+#     {
 #       "location_path": ["王國/大陸", "城市/村庄", "具体建筑/地点"],
-#       "location_info": {{
+#       "location_info": {
 #         "name": "具体建筑/地点",
 #         "aliases": ["別名1", "別名2"],
 #         "description": "對該地點的詳細描述...",
 #         "notable_features": ["顯著特徵1", "顯著特徵2"],
 #         "known_npcs": ["NPC名字1", "NPC名字2"]
-#       }},
+#       },
 #       "initial_npcs": [
-#         {{
+#         {
 #           "name": "NPC名字1",
 #           "description": "NPC的詳細描述...",
 #           "gender": "性別",
 #           "race": "種族"
-#         }}
+#         }
 #       ]
-#     }}
+#     }
 #     ```
 ---
 【核心世界觀】:
@@ -2074,8 +2078,12 @@ class AILover:
         return self.world_genesis_chain
     # 獲取世界創世 Prompt 函式結束
 
-    # ... (其他 get_..._prompt/chain 函式也應遵循此模式) ...
-    
+
+
+
+
+
+
     # 函式：獲取角色檔案解析器 Prompt (v2.0 - 移除 zero_instruction 依賴)
     # 更新紀錄:
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
@@ -2380,6 +2388,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
