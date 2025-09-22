@@ -1,7 +1,10 @@
-### AI Lover Log - Last updated at 2025-09-22T20:13:32.019862 ###
+### AI Lover Log - Last updated at 2025-09-22T20:18:59.654325 ###
 
+2025-09-22 20:15:56 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖軍的雛形' 記錄為傳說。
+2025-09-22 20:16:00 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖凱瑟琳學院 - 思想的無聲戰場' 記錄為傳說。
+2025-09-22 20:16:04 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='城鎮市集區', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖凱瑟琳學院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
@@ -10,11 +13,14 @@ Traceback (most recent call last):
     return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='城鎮市集區', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖凱瑟琳學院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:11:45 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
+2025-09-22 20:16:09 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖女的戰術' 記錄為傳說。
+2025-09-22 20:16:13 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '標誌性勝利' 記錄為傳說。
+2025-09-22 20:16:18 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '內心的痛苦' 記錄為傳說。
+2025-09-22 20:16:22 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖凱瑟琳學院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
@@ -23,11 +29,26 @@ Traceback (most recent call last):
     return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖凱瑟琳學院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:11:49 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
+2025-09-22 20:16:26 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '獵手的戰術' 記錄為傳說。
+2025-09-22 20:16:30 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '規矩派系 (光明神方)' 記錄為傳說。
+2025-09-22 20:16:34 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '快樂派系 (性神方)' 記錄為傳說。
+2025-09-22 20:16:39 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '當前最新進展：「聖露」餘波的擴散' 記錄為傳說。
+2025-09-22 20:16:43 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '莉莉絲地位的劇變' 記錄為傳說。
+2025-09-22 20:16:47 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '「快樂派系」的壯大' 記錄為傳說。
+2025-09-22 20:16:51 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '貴族與教職員的動搖' 記錄為傳說。
+2025-09-22 20:16:55 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '核心衝突：恩澤的誘惑 vs. 保密的戒律' 記錄為傳說。
+2025-09-22 20:16:59 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '衝突的結果：正在發酵的憤怒與渴望' 記錄為傳說。
+2025-09-22 20:17:04 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '信仰的種子' 記錄為傳說。
+2025-09-22 20:17:08 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '溝渠中的神祇 - 信仰的源頭' 記錄為傳說。
+2025-09-22 20:17:12 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '貴族的降臨' 記錄為傳說。
+2025-09-22 20:17:16 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖女的誕生' 記錄為傳說。
+2025-09-22 20:17:20 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '瑪莉、愛莉莎與安娜的離去' 記錄為傳說。
+2025-09-22 20:17:25 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '舞台的搭建' 記錄為傳說。
+2025-09-22 20:17:29 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖露修道院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
@@ -36,11 +57,12 @@ Traceback (most recent call last):
     return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖露修道院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:11:53 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
+2025-09-22 20:17:33 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '活神蹟的鍛造 - 米婭' 記錄為傳說。
+2025-09-22 20:17:37 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖露修道院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
@@ -49,54 +71,32 @@ Traceback (most recent call last):
     return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
 location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
+  Input should be a valid list [type=list_type, input_value='聖露修道院', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:11:57 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
-location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
-location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:12:01 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
-location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
-location_path
-  Input should be a valid list [type=list_type, input_value='貧民窟', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-22 20:12:05 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '艾蜜莉的核心慾望' 記錄為傳說。
-2025-09-22 20:12:09 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '卡萊兒的核心慾望' 記錄為傳說。
-2025-09-22 20:12:13 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '薩格納將軍皈依前狀態' 記錄為傳說。
-2025-09-22 20:12:18 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '薩格納將軍皈依過程' 記錄為傳說。
-2025-09-22 20:12:22 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '薩格納將軍當前狀態' 記錄為傳說。
-2025-09-22 20:12:26 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '艾莉諾皈依前狀態' 記錄為傳說。
-2025-09-22 20:12:30 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '艾莉諾皈依過程' 記錄為傳說。
-2025-09-22 20:12:34 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '艾莉諾當前狀態' 記錄為傳說。
-2025-09-22 20:12:38 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '菲利普•薩格納皈依過程' 記錄為傳說。
-2025-09-22 20:12:43 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '菲利普•薩格納當前狀態' 記錄為傳說。
-2025-09-22 20:12:47 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '國王埃德蒙三世皈依過程' 記錄為傳說。
-2025-09-22 20:12:51 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '國王埃德蒙三世當前狀態' 記錄為傳說。
-2025-09-22 20:12:55 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '大皇子阿拉里克皈依過程' 記錄為傳說。
-2025-09-22 20:12:59 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '大皇子阿拉里克當前狀態' 記錄為傳說。
-2025-09-22 20:13:04 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '三皇子赫克托皈依過程' 記錄為傳說。
-2025-09-22 20:13:08 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '三皇子赫克托當前狀態' 記錄為傳說。
-2025-09-22 20:13:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 20:13:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 20:13:18 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 20:13:18 - [INFO] - Discord Bot is ready!
-2025-09-22 20:13:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 20:13:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 20:13:21 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 20:17:41 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '第二個神蹟 - 卡蓮' 記錄為傳說。
+2025-09-22 20:17:45 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '狂熱的誕生' 記錄為傳說。
+2025-09-22 20:17:49 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '「掀裙風潮」與枷鎖的崩塌' 記錄為傳說。
+2025-09-22 20:17:53 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '「掘井人」理論與男性的皈依' 記錄為傳說。
+2025-09-22 20:17:58 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '禁忌的解放 - 兄妹的聖餐' 記錄為傳說。
+2025-09-22 20:18:02 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '風暴的來臨 - 與舊神的正面交鋒' 記錄為傳說。
+2025-09-22 20:18:04 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 99 條文檔用於構建 BM25。
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
+2025-09-22 20:18:04 - [INFO] - [512280345618546699] 正在解析文本塊 2/4...
+2025-09-22 20:18:09 - [INFO] - [512280345618546699] [階段 1/2] 嘗試主要解析鏈...
+2025-09-22 20:18:09 - [WARNING] - [512280345618546699] [階段 1/2] 主要解析失敗: 'username'。立即啟用終極備援。
+2025-09-22 20:18:09 - [INFO] - [512280345618546699] [階段 2/2] 啟動終極備援：原文 LORE 提取...
+2025-09-22 20:18:26 - [INFO] - [512280345618546699] [階段 2/2] 終極備援成功，從原文中提取到 5 條 LORE。
+2025-09-22 20:18:26 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 5 個LORE任务 ---
+2025-09-22 20:18:31 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '禁忌的解放 - 兄妹的聖餐' 記錄為傳說。
+2025-09-22 20:18:34 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
+2025-09-22 20:18:45 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 20:18:45 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 20:18:45 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 20:18:45 - [INFO] - Discord Bot is ready!
+2025-09-22 20:18:48 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 20:18:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 20:18:49 - [INFO] - 已成功發送啟動成功通知給管理員。
