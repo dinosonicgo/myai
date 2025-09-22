@@ -345,11 +345,11 @@ class AILover:
 # 帶有輪換和備援策略的原生 API 調用引擎 函式結束
     
 
-# 函式：委婉化並重試 (v4.0 - 修正BUG與重構)
+# 函式：委婉化並重試 (v4.1 - 原生模板重構)
 # 更新紀錄:
-# v4.0 (2025-09-22): [災難性BUG修復] 修正了正則表達式，使其能夠正確匹配 `get_canon_parser_chain` 中定義的【世界聖經文本 (你的唯一數據來源)】: 標記，解決了備援鏈無法啟動的根本問題。同時，簡化了關鍵詞提取邏輯，使其更具通用性。
+# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+# v4.0 (2025-09-22): [災難性BUG修復] 修正了正則表達式以匹配 Prompt 模板。
 # v3.1 (2025-11-22): [災難性BUG修復] 徹底重寫了重試 Prompt 的構建邏輯。
-# v3.0 (2025-11-22): [根本性重構] 徹底重寫了此函式的核心邏輯。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
         一個健壯的備援機制，採用「解構-重構」策略來處理內容審查失敗。
@@ -361,7 +361,6 @@ class AILover:
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構式委婉化】策略...")
         
         try:
-            # [v4.0 核心修正] 修正正則表達式以匹配 Prompt 模板
             text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)---", failed_prompt, re.IGNORECASE)
             if not text_to_sanitize_match:
                 logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。")
@@ -369,7 +368,6 @@ class AILover:
             
             text_to_sanitize = text_to_sanitize_match.group(1).strip()
             
-            # 定義 NSFW 關鍵詞
             nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精"]
             extracted_keywords = [kw for kw in nsfw_keywords if kw in text_to_sanitize]
             if self.profile:
@@ -384,9 +382,8 @@ class AILover:
                 safe_reconstruction = await self.ainvoke_with_rotation(summary_prompt, retry_strategy='none')
             else:
                 logger.info(f"[{self.user_id}] (Euphemizer) 已提取關鍵詞: {extracted_keywords}")
-                # 步驟 2: 基於關鍵詞請求安全的場景重構
-                reconstruction_prompt_obj = self.get_euphemization_reconstruction_chain()
-                reconstruction_full_prompt = reconstruction_prompt_obj.format_prompt(keywords=str(extracted_keywords)).to_string()
+                reconstruction_prompt_template = self.get_euphemization_reconstruction_chain()
+                reconstruction_full_prompt = reconstruction_prompt_template.format(keywords=str(extracted_keywords))
                 safe_reconstruction = await self.ainvoke_with_rotation(
                     reconstruction_full_prompt,
                     retry_strategy='none'
@@ -396,11 +393,8 @@ class AILover:
                 raise ValueError("委婉化重構鏈未能生成安全文本。")
             logger.info(f"[{self.user_id}] (Euphemizer) 成功重構出安全描述: '{safe_reconstruction}'")
 
-            # 步驟 3: 使用重構後的安全文本，重新構建一個完整的、結構正確的 Prompt
             original_prompt_template = self.get_canon_parser_chain()
-            retry_prompt = original_prompt_template.format_prompt(
-                canon_text=safe_reconstruction
-            ).to_string()
+            retry_prompt = original_prompt_template.format(canon_text=safe_reconstruction)
 
             return await self.ainvoke_with_rotation(
                 retry_prompt,
@@ -2389,6 +2383,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
