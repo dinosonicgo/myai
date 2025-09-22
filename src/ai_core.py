@@ -2192,11 +2192,11 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v7.1 - 簡化Prompt語法)
+# 函式：獲取LORE提取器 Prompt (v7.2 - 移除轉義大括號)
 # 更新紀錄:
-# v7.1 (2025-09-22): [災難性BUG修復] 簡化了【可用 LORE 工具列表】中的語法，移除了所有Python風格的類型提示（如 `: str`, `Dict[str, Any]`）。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因此引發的、導致整個備援鏈崩潰的 `KeyError`。
+# v7.2 (2025-09-22): [災難性BUG修復] 移除了範例中的雙大括號 `{{ }}` 轉義序列。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因混合使用真實佔位符和轉義符號而引發的 `KeyError`。
+# v7.1 (2025-09-22): [災難性BUG修復] 簡化了【可用 LORE 工具列表】中的語法。
 # v7.0 (2025-09-22): [災難性BUG修復] 引入了極其嚴格的【強制工具名鐵則】。
-# v6.0 (2025-09-22): [災難性BUG修復] 新增了【繁體中文優先命名鐵則】。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if self.lore_extraction_chain is None:
@@ -2224,7 +2224,7 @@ class AILover:
 
 # 5. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
 
-# 6. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
+# 6. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個JSON物件，其 `plan` 鍵的值為一個空列表，例如：`{ "plan": [] }`。
 
 # --- 【可用 LORE 工具列表 (AUTHORIZED LORE TOOLS)】 ---
 # 1. `create_new_npc_profile(lore_key, standardized_name, original_name, description, location_path)`
@@ -2380,6 +2380,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
