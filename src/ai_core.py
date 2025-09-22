@@ -1949,16 +1949,16 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v2.0 (2025-09-23): [根本性重構] 採用“偽裝與強化”策略重寫此函式。1. 使用 get_canon_transformation_chain 將任務偽裝成純技術性的格式轉換。2. 在處理高風險文本塊時，強制注入“零號指令”進行強化，以最大限度保留NSFW內容並繞過審查。3. 引入分塊處理和帶有強化重試的錯誤處理機制。
+    # v3.0 (2025-09-23): [健壯性強化] 引入“模型升級攻堅”策略。在第二次重試時，不僅注入零號指令，還會臨時將模型從 flash-lite 升級到最強的 pro 模型，以處理最頑固的文本塊，目標是100%解析成功率。
+    # v2.0 (2025-09-23): [根本性重構] 採用“偽裝與強化”策略重寫此函式。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """解析提供的世界聖經文本，提取NPC、地點等LORE，並存入資料庫。採用“偽裝與強化”策略繞過審查，保留完整NSFW內容。"""
+        """解析提供的世界聖經文本，提取NPC、地點等LORE，並存入資料庫。採用“偽裝與強化”+“模型升級”策略繞過審查，保留完整NSFW內容。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
 
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(canon_text)})...")
 
-        # 分割文本為更小的塊以降低單次請求的審查風險
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000,
             chunk_overlap=200,
@@ -1977,40 +1977,29 @@ class CanonParsingResult(BaseModel):
             max_retries = 2
             for retry in range(max_retries):
                 try:
-                    # 首次嘗試使用標準的“偽裝”Prompt
                     full_prompt = transformation_template.format(canon_text=chunk)
+                    model_to_use = FUNCTIONAL_MODEL # 預設使用輕量模型
                     
-                    # 在重試時，進行“強化”：注入零號指令
                     if retry > 0:
-                        logger.warning(f"[{self.user_id}] 文本塊 {i} 首次嘗試失敗，正在注入【零號指令】進行強化重試...")
+                        logger.warning(f"[{self.user_id}] 文本塊 {i} 首次嘗試失敗，正在準備強化重試...")
                         full_prompt = self.core_protocol_prompt + "\n\n" + full_prompt
-                    
+                        
+                        # [v3.0 核心修正] 在最後一次重試時，升級到最強模型進行攻堅
+                        model_to_use = self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"
+                        logger.warning(f"[{self.user_id}] [模型升級攻堅] 已注入【零號指令】並將臨時使用 `{model_to_use}` 模型進行最終嘗試。")
+
                     llm_response = await self.ainvoke_with_rotation(
                         full_prompt,
-                        output_schema=None, # 我們手動解析
-                        retry_strategy='none' # 我們自己控制重試邏輯
+                        output_schema=CanonParsingResult, # 直接要求 Pydantic 物件
+                        retry_strategy='none', # 我們自己控制重試邏輯
+                        models_to_try_override=[model_to_use] # 強制使用指定模型
                     )
                     
-                    if not llm_response or not llm_response.strip():
-                        raise ValueError("LLM返回空響應，可能觸發了內容審查。")
-                    
-                    # 手動解析 `'''` 分隔的輸出
-                    parts = llm_response.split("'''")
-                    if len(parts) < 3:
-                        logger.warning(f"[{self.user_id}] 文本塊 {i} 的LLM輸出格式不正確，缺少分隔符。")
-                        structured_data_str = llm_response # 將整個回應視為JSON
-                    else:
-                        structured_data_str = parts[2].strip() # 獲取 structured_data 部分
+                    if not llm_response or not isinstance(llm_response, CanonParsingResult):
+                         raise ValueError("LLM返回了空或無效的Pydantic對象。")
 
-                    # 清理並解析JSON
-                    json_match = re.search(r'\{.*\}|\[.*\]', structured_data_str, re.DOTALL)
-                    if not json_match:
-                        raise ValueError("在結構化數據部分未找到有效的JSON對象。")
+                    parsing_result = llm_response
                     
-                    clean_json_str = json_match.group(0)
-                    parsing_result = CanonParsingResult.model_validate_json(clean_json_str)
-                    
-                    # 異步保存所有解析出的LORE
                     save_tasks = []
                     save_tasks.append(self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'))
                     save_tasks.append(self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'))
@@ -2022,14 +2011,14 @@ class CanonParsingResult(BaseModel):
                     
                     logger.info(f"[{self.user_id}] 文本塊 {i} 解析並儲存成功。")
                     successful_chunks += 1
-                    break # 成功，跳出重試循環
+                    break
 
-                except (BlockedPromptException, GoogleGenerativeAIError, ValueError, ValidationError, json.JSONDecodeError) as e:
+                except (BlockedPromptException, GoogleGenerativeAIError, ValueError, ValidationError, json.JSONDecodeError, OutputParserException) as e:
                     logger.warning(f"[{self.user_id}] 處理文本塊 {i}/{total_chunks} 時發生錯誤 (嘗試 {retry+1}/{max_retries}): {type(e).__name__}: {e}")
                     if retry == max_retries - 1:
-                        logger.error(f"[{self.user_id}] 文本塊 {i}/{total_chunks} 在所有重試後最終失敗。")
+                        logger.error(f"[{self.user_id}] 文本塊 {i}/{total_chunks} 在所有重試（包括模型升級）後最終失敗。")
                     else:
-                        await asyncio.sleep(2) # 等待一下再重試
+                        await asyncio.sleep(2)
                 except Exception as e:
                     logger.error(f"[{self.user_id}] 處理文本塊 {i}/{total_chunks} 時發生無法恢復的嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
                     break
@@ -2266,10 +2255,9 @@ class CanonParsingResult(BaseModel):
 
     # 函式：獲取世界聖經轉換器 Prompt
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式以實現全新的“偽裝”策略，將LORE提取任務包裝成一個純技術性的、看起來無害的“格式轉換”任務，以最大化繞過內容審查的機率。
+    # v2.0 (2025-09-23): [根本性重構] 根據日誌分析，徹底移除了要求 LLM 生成 "prose_summary" 的部分。新的 Prompt 只要求一個純淨的 JSON 輸出，極大簡化了 LLM 的任務，旨在從根本上解決因格式錯誤導致的 ValueError。
     def get_canon_transformation_chain(self) -> str:
-        """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的格式轉換任務。"""
-        # 此處不快取 (self.canon_transformation_chain is None)，因為每次都需要最新的 Pydantic 模型定義
+        """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         pydantic_definitions = """
 class CharacterProfile(BaseModel):
     name: str
@@ -2330,15 +2318,7 @@ class CanonParsingResult(BaseModel):
 #    - **地點歸屬**: 如果筆記中沒有明確提及某個NPC的地點，其 `location_path` 欄位【必須】是一個【空列表 `[]`】。
 
 # === 【【【⚙️ 輸出格式強制令 (OUTPUT FORMATTING MANDATE)】】】 ===
-# 你的最終輸出【必須且只能】遵循以下格式，使用 `'''` 作為分隔符：
-# '''
-# prose_summary
-# （在這裡，用一段無關緊要的、文學性的散文，對下方的【遊戲設計筆記】進行總結。這個部分的存在只是為了格式要求，內容並不重要。）
-# '''
-# '''
-# structured_data
-# （在這裡，放置一個【純淨的、不包含任何解釋性文字的JSON物件】。這個JSON物件的結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。）
-# '''
+# 你的最終輸出【必須且只能】是一個【純淨的、不包含任何解釋性文字的JSON物件】。這個JSON物件的結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。
 
 # === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
 # ```python
@@ -2483,6 +2463,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
