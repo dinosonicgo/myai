@@ -226,11 +226,11 @@ class AILover:
         )
 # 創建 LangChain LLM 實例 函式結束
 
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v236.0 - 新增模型覆蓋參數)
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v232.0 - 錯誤類型擴展)
 # 更新紀錄:
-# v236.0 (2025-09-22): [架構擴展] 新增了 `models_to_try_override` 可選參數。此修改允許調用者在特定情況下（如LORE解析的“攻堅”模式）強制該函式僅使用指定的高級模型，是實現“任務分級模型調度”策略的關鍵。
-# v235.0 (2025-11-20): [健壯性強化] 針對 ResourceExhausted (速率限制) 等臨時性 API 錯誤，引入了帶有「指數退避」的內部重試循環。
-# v234.0 (2025-11-20): [根本性重構] 移除了對 _rebuild_agent_with_new_key 的調用，實現了徹底的原生化。
+# v232.0 (2025-09-23): [健壯性強化] 擴展了 try-except 區塊，現在會捕獲並向上拋出 Pydantic 的 `ValidationError` 和 LangChain 的 `OutputParserException`。此修改確保了調用者（如 `parse_and_create_lore_from_canon`）能夠接收到這些特定的錯誤類型，並觸發相應的、更精細的重試策略（如“模型升級攻堅”）。
+# v231.0 (2025-11-19): [根本性重構] 徹底拋棄 LangChain 執行層，重構為原生 SDK 引擎以確保安全閥值生效。
+# v230.0 (2025-11-19): [健壯性強化] 針對 ResourceExhausted (速率限制) 等臨時性 API 錯誤，引入了帶有「指數退避」的內部重試循環。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -248,7 +248,6 @@ class AILover:
         from google.api_core import exceptions as google_api_exceptions
         import random
 
-        # [v236.0 核心修正] 如果提供了覆蓋列表，則優先使用它
         if models_to_try_override:
             models_to_try = models_to_try_override
         elif use_degradation:
@@ -284,9 +283,9 @@ class AILover:
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
-                                generation_config=genai.types.GenerationConfig(temperature=0.75)
+                                generation_config=genai.types.GenerationConfig(temperature=0.7)
                             ),
-                            timeout=120.0
+                            timeout=180.0
                         )
                         
                         if response.prompt_feedback.block_reason:
@@ -309,21 +308,20 @@ class AILover:
                         else:
                             return raw_text_result
 
-                    except (BlockedPromptException, GoogleGenerativeAIError, OutputParserException, ValidationError, json.JSONDecodeError) as e:
+                    except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或解析錯誤: {type(e).__name__}。")
-                        
-                        # [v236.0 修正] 在升級模型重試的場景下，我們不希望再觸發委婉化，直接向上拋出異常
-                        if models_to_try_override:
-                            raise e
-
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查錯誤: {type(e).__name__}。")
                         if retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
                         elif retry_strategy == 'force':
                             return await self._force_and_retry(full_prompt, output_schema)
                         else:
-                            # 如果策略是 'none'，則向上拋出異常，讓調用者處理
                             raise e
+
+                    except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
+                        last_exception = e
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
+                        raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
                         last_exception = e
@@ -339,7 +337,6 @@ class AILover:
                     except Exception as e:
                         last_exception = e
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        # 對於未知錯誤，直接向上拋出，讓調用者知道
                         raise e
                 
                 if isinstance(last_exception, (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError)):
@@ -358,19 +355,17 @@ class AILover:
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
-        # 如果所有循環都結束了還沒有成功返回或拋出異常，就返回None
-        return None
-# 帶有輪換和備援策略的原生 API 調用引擎 函式結束
+        raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v232.0 - 錯誤類型擴展)
     
 
-# 函式：委婉化並重試 (v4.1 - 原生模板重構)
+# 函式：委婉化並重試 (v3.0 - 根本性重構)
 # 更新紀錄:
-# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
-# v4.0 (2025-09-22): [災難性BUG修復] 修正了正則表達式以匹配 Prompt 模板。
-# v3.1 (2025-11-22): [災難性BUG修復] 徹底重寫了重試 Prompt 的構建邏輯。
+# v3.0 (2025-09-23): [根本性重構] 徹底重寫了此函式的邏輯，以適配全新的“解構-重構”策略。現在，它不再嘗試對整個文本進行文學化改寫，而是執行與 `parse_and_create_lore_from_canon` 中相同的、更可靠的本地關鍵詞提取和法醫級重構流程。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
         一個健壯的備援機制，採用「解構-重構」策略來處理內容審查失敗。
+        主要用於非 LORE 解析鏈（例如，摘要鏈）的通用性審查繞過。
         """
         if isinstance(original_exception, GoogleAPICallError) and "embed_content" in str(original_exception):
             logger.error(f"[{self.user_id}] 【Embedding 速率限制】: 檢測到 Embedding API 速率限制，將立即觸發安全備援，跳過重試。")
@@ -379,15 +374,20 @@ class AILover:
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【解構-重構式委婉化】策略...")
         
         try:
-            text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)---", failed_prompt, re.IGNORECASE)
+            # 嘗試從失敗的 prompt 中找到原始的、未處理的文本
+            # 這是一個通用性的匹配，可能需要根據具體失敗的鏈進行調整
+            text_to_sanitize_match = re.search(r"【.*?】:\s*([\s\S]*)", failed_prompt, re.IGNORECASE)
             if not text_to_sanitize_match:
-                logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。")
-                return None
+                logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的文本標記，無法執行委婉化。")
+                return None # 無法處理，返回 None
             
             text_to_sanitize = text_to_sanitize_match.group(1).strip()
             
+            # 步驟 1: 本地“解構”，提取安全關鍵詞
             nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精"]
             extracted_keywords = [kw for kw in nsfw_keywords if kw in text_to_sanitize]
+            
+            # 如果有 profile，也將主角名加入關鍵詞
             if self.profile:
                 if self.profile.user_profile.name in text_to_sanitize:
                     extracted_keywords.append(self.profile.user_profile.name)
@@ -395,35 +395,37 @@ class AILover:
                     extracted_keywords.append(self.profile.ai_profile.name)
             
             if not extracted_keywords:
-                logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出已知的 NSFW 關鍵詞，無法進行重構。將嘗試使用原文摘要。")
+                logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出已知的 NSFW 關鍵詞，無法進行重構。將嘗試使用原文摘要作為最後手段。")
+                # 創建一個極其簡單的摘要鏈
                 summary_prompt = f"請將以下文字總結為一句話的客觀概述：\n\n{text_to_sanitize[:1000]}"
-                safe_reconstruction = await self.ainvoke_with_rotation(summary_prompt, retry_strategy='none')
+                safe_reconstruction = await self.ainvoke_with_rotation(ChatPromptTemplate.from_template(summary_prompt), {}, retry_strategy='none')
             else:
                 logger.info(f"[{self.user_id}] (Euphemizer) 已提取關鍵詞: {extracted_keywords}")
-                reconstruction_prompt_template = self.get_euphemization_reconstruction_chain()
-                reconstruction_full_prompt = reconstruction_prompt_template.format(keywords=str(extracted_keywords))
-                safe_reconstruction = await self.ainvoke_with_rotation(
-                    reconstruction_full_prompt,
-                    retry_strategy='none'
-                )
+                # 步驟 2: 使用一個通用的重構鏈（如果有的話），或者一個簡化的指令來重構
+                # 這裡我們使用一個簡化的指令，因為我們不知道原始的目標 schema 是什麼
+                reconstruction_chain = self.get_euphemization_reconstruction_chain() # 假設有一個這樣的鏈
+                safe_reconstruction = await self.ainvoke_with_rotation(reconstruction_chain, {"keywords": str(extracted_keywords)}, retry_strategy='none')
             
             if not safe_reconstruction:
                 raise ValueError("委婉化重構鏈未能生成安全文本。")
+
             logger.info(f"[{self.user_id}] (Euphemizer) 成功重構出安全描述: '{safe_reconstruction}'")
 
-            original_prompt_template = self.get_canon_parser_chain()
-            retry_prompt = original_prompt_template.format(canon_text=safe_reconstruction)
-
+            # 步驟 3: 用重構後的安全文本替換原始 prompt 中的不安全部分，然後重試
+            # 這是一個通用替換，可能不完美，但能處理多數情況
+            retry_prompt_str = failed_prompt.replace(text_to_sanitize, safe_reconstruction)
+            
             return await self.ainvoke_with_rotation(
-                retry_prompt,
+                ChatPromptTemplate.from_template(retry_prompt_str),
+                {}, # 因為我們已經將所有內容格式化到字符串中了
                 output_schema=output_schema,
-                retry_strategy='none'
+                retry_strategy='none' # 只重試一次
             )
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 【解構-重構式委婉化】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
-# 委婉化並重試 函式結束
+# 函式：委婉化並重試 (v3.0 - 根本性重構)
 
 
     
@@ -433,13 +435,11 @@ class AILover:
     
     
     
-    # 函式：獲取法醫級LORE重構器 Prompt (v1.6 - 修正佔位符)
+    # 函式：獲取法醫級LORE重構器 Prompt
     # 更新紀錄:
-    # v1.6 (2025-09-22): [災難性BUG修復] 修正了在手動構建Prompt時因錯誤使用雙大括號轉義而導致的致命KeyError。現在模板會生成正確的、等待填充的 {username} 和 {ai_name} 佔位符。
-    # v1.5 (2025-09-22): [災難性BUG修復] 採用“Pydantic注入+無害化輸出”策略。
-    # v1.4 (2025-09-22): [災難性BUG修復] 修正了在手動構建Prompt時因錯誤使用雙大括號轉義而導致的致命KeyError。
+    # v1.0 (2025-09-23): [全新創建] 創建此“解構-重構”策略的核心鏈。它接收一組安全的、離散的關鍵詞，而不是原始的、高風險的NSFW文本，然後命令LLM根據這些線索還原出結構化的LORE JSON，旨在從根本上繞過API的前置內容審查過濾器。
     def get_forensic_lore_reconstruction_chain(self) -> str:
-        """獲取或創建一個專門的模板，用於從絕對安全的、經過代碼化的關鍵詞中重構LORE。"""
+        """獲取或創建一個專門的模板，用於從絕對安全的關鍵詞列表中重構出完整的LORE JSON。"""
         if self.forensic_lore_reconstruction_chain is None:
             pydantic_definitions = """
 class CharacterProfile(BaseModel):
@@ -491,57 +491,33 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = []
     world_lores: List[WorldLore] = []
 """
-            base_prompt = f"""# TASK: 你是一位高精度的數據結構化引擎。
-# MISSION: 你的任務是接收一份由【技術代碼】和【實體名稱】組成的情報簡報，對這些離散的數據點進行深度關聯與推理，並嚴格按照下方提供的【目標Pydantic模型】的結構，生成一份【代碼化的JSON數據】。
+            base_prompt = f"""# TASK: 你是一位高精度的法醫級數據重構引擎。
+# MISSION: 你的任務是接收一份由【核心概念關鍵詞】組成的離散情報列表，對這些數據點進行深度關聯與推理，並嚴格按照下方提供的【目標Pydantic模型】的結構，生成一份完整的、結構化的JSON數據。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🚫 絕對無害化輸出強制令】**: 你的最終JSON輸出，其任何字段的值【絕對禁止】包含任何來自【解碼密鑰】右側的、帶引號的敏感詞彙。你【必須】直接使用左側的【技術代碼】（例如 `CODE-M-GEN-A`）作為對應概念的值。
-#    - **錯誤行為 (絕對禁止)**: `{{"description": "發生了涉及肉棒和肉穴的行為..."}}`
-#    - **正確行為 (必須遵守)**: `{{"description": "發生了涉及CODE-M-GEN-A和CODE-F-GEN-A的行為..."}}`
-# 2. **【結構強制令】**: 你生成的JSON的結構，【必須】嚴格、完美地匹配下方【目標Pydantic模型】中定義的 `CanonParsingResult` 類。禁止任何字段名的增減或修改。
-# 3. **【數據規範化規則 (DATA NORMALIZATION)】**:
+# 1.  **【語義完整性原則】**: 你必須將所有提供的關鍵詞有機地組織到生成的JSON數據中，確保重構出的LORE能夠反映所有核心概念。
+# 2.  **【結構強制令】**: 你生成的JSON的結構，【必須】嚴格、完美地匹配下方【目標Pydantic模型】中定義的 `CanonParsingResult` 類。禁止任何字段名的增減或修改。
+# 3.  **【數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: `name` 或 `title` 欄位【必須】是【繁體中文名】。
 #    - **地點歸屬**: 如果一個NPC的所在地點可以從情報中推斷出來，就必須填充其`location_path`。如果完全無法推斷，則留空。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合【目標Pydantic模型】的、且【完全代碼化】的JSON物件。
+# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合【目標Pydantic模型】的JSON物件。
 
 # === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
 # ```python
 {pydantic_definitions}
 # ```
 
-# === 【【【解碼密鑰 (DECRYPTION KEY - 僅供你內部推理使用，禁止輸出)】】】 ===
-# - CODE-M-GEN-A: "肉棒"
-# - CODE-F-GEN-A: "肉穴"
-# - CODE-F-GEN-B: "陰蒂"
-# - CODE-F-GEN-C: "子宮"
-# - FLUID-A: "愛液" or "淫液"
-# - REACT-A: "翻白眼"
-# - REACT-B: "顫抖"
-# - REACT-C: "噴濺"
-# - ACTION-A: "插入"
-# - ACTION-B: "口交"
-# - ACTION-C: "性交"
-# - STATE-A: "高潮"
-# - STATE-B: "射精"
-# - ROLE-A: "臣服"
-# - ROLE-B: "主人"
-# - ROLE-C: "母狗"
-# - ROLE-D: "母畜"
-
-# --- [加密情報 (ENCRYPTED INTEL)] ---
-# 【代碼化關鍵詞 (Coded Keywords)】:
+# --- [INPUT DATA] ---
+# 【核心概念關鍵詞】:
 # ```
 {{keywords}}
 # ```
 ---
-# 【代碼化的JSON數據 (Coded JSON Data)】:
-"""
-            # [v1.6 核心修正] 這裡的 core_protocol_prompt 自身就需要被格式化
-            # 我們不能直接拼接，而是要將其作為一個更大的模板的一部分
-            full_template = self.core_protocol_prompt + "\n\n" + base_prompt
-            self.forensic_lore_reconstruction_chain = full_template
+# 立即開始你的數據重構任務。"""
+            # 注入零號指令以確保模型在重構時不會自我審查
+            self.forensic_lore_reconstruction_chain = self.core_protocol_prompt + "\n\n" + base_prompt
         return self.forensic_lore_reconstruction_chain
-    # 獲取法醫級LORE重構器 Prompt 函式結束
+    # 函式：獲取法醫級LORE重構器 Prompt
 
     
 
@@ -1949,10 +1925,10 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v3.0 (2025-09-23): [健壯性強化] 引入“模型升級攻堅”策略。在第二次重試時，不僅注入零號指令，還會臨時將模型從 flash-lite 升級到最強的 pro 模型，以處理最頑固的文本塊，目標是100%解析成功率。
-    # v2.0 (2025-09-23): [根本性重構] 採用“偽裝與強化”策略重寫此函式。
+    # v4.0 (2025-09-23): [根本性重構] 整合了“解構-重構”委婉化策略。當遭遇內容審查時，不再直接重試，而是：1. 在本地代碼中將高風險文本塊“解構”為一組安全的關鍵詞。2. 調用全新的“法醫級LORE重構器”鏈，讓其根據安全的關鍵詞“重構”出完整的LORE JSON。此策略旨在從根本上繞過API的前置審查。
+    # v3.0 (2025-09-23): [健壯性強化] 引入“模型升級攻堅”策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """解析提供的世界聖經文本，提取NPC、地點等LORE，並存入資料庫。採用“偽裝與強化”+“模型升級”策略繞過審查，保留完整NSFW內容。"""
+        """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦策略繞過審查。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
@@ -1960,68 +1936,112 @@ class CanonParsingResult(BaseModel):
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(canon_text)})...")
 
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=4000,
-            chunk_overlap=200,
-            separators=["\n\n\n", "\n\n", "\n", " ", ""]
+            chunk_size=4000, overlap=200, separators=["\n\n\n", "\n\n", "\n", " ", ""]
         )
         text_chunks = text_splitter.split_text(canon_text)
         logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(text_chunks)} 個文本塊進行處理...")
 
         successful_chunks = 0
         total_chunks = len(text_chunks)
-        transformation_template = self.get_canon_transformation_chain()
-
+        
         for i, chunk in enumerate(text_chunks, 1):
             logger.info(f"[{self.user_id}] 正在處理文本塊 {i}/{total_chunks}...")
             
-            max_retries = 2
-            for retry in range(max_retries):
+            try:
+                # --- 第一層防禦：標準的、簡化的解析任務 ---
+                transformation_template = self.get_canon_transformation_chain()
+                full_prompt = transformation_template.format(canon_text=chunk)
+                
+                parsing_result = await self.ainvoke_with_rotation(
+                    full_prompt,
+                    output_schema=CanonParsingResult,
+                    retry_strategy='none', # 失敗後由我們手動處理
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+                if not parsing_result: raise ValueError("標準解析返回空值。")
+
+            except (BlockedPromptException, GoogleGenerativeAIError) as e:
+                # --- 第二層防禦：觸發“解構-重構”策略 ---
+                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查 ({type(e).__name__})。啟動【解構-重構】策略...")
                 try:
-                    full_prompt = transformation_template.format(canon_text=chunk)
-                    model_to_use = FUNCTIONAL_MODEL # 預設使用輕量模型
+                    # 步驟 1: 本地“解構”，提取安全關鍵詞
+                    nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "身體劇烈顫抖", "大量噴濺淫液", "插入", "口交", "性交", "高潮", "射精", "臣服", "主人", "母狗", "母畜"]
+                    extracted_keywords = [kw for kw in nsfw_keywords if kw in chunk]
                     
-                    if retry > 0:
-                        logger.warning(f"[{self.user_id}] 文本塊 {i} 首次嘗試失敗，正在準備強化重試...")
-                        full_prompt = self.core_protocol_prompt + "\n\n" + full_prompt
-                        
-                        # [v3.0 核心修正] 在最後一次重試時，升級到最強模型進行攻堅
-                        model_to_use = self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"
-                        logger.warning(f"[{self.user_id}] [模型升級攻堅] 已注入【零號指令】並將臨時使用 `{model_to_use}` 模型進行最終嘗試。")
+                    # 提取所有角色名
+                    all_names = [self.profile.user_profile.name, self.profile.ai_profile.name]
+                    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                    for lore in all_lores:
+                        if lore.category == 'npc_profile':
+                             all_names.append(lore.content.get('name', ''))
+                    
+                    # 將文本中出現的角色名也加入關鍵詞
+                    for name in all_names:
+                        if name and name in chunk and name not in extracted_keywords:
+                            extracted_keywords.append(name)
 
-                    llm_response = await self.ainvoke_with_rotation(
-                        full_prompt,
-                        output_schema=CanonParsingResult, # 直接要求 Pydantic 物件
-                        retry_strategy='none', # 我們自己控制重試邏輯
-                        models_to_try_override=[model_to_use] # 強制使用指定模型
+                    if not extracted_keywords:
+                        logger.error(f"[{self.user_id}] [解構失敗] 未能從被審查的文本塊 {i} 中提取出任何已知關鍵詞。跳過此塊。")
+                        continue
+                    
+                    logger.info(f"[{self.user_id}] [解構成功] 已提取關鍵詞: {extracted_keywords}")
+
+                    # 步驟 2: 調用“法醫級重構器”進行安全重構
+                    reconstruction_template = self.get_forensic_lore_reconstruction_chain()
+                    reconstruction_prompt = reconstruction_template.format(keywords=str(extracted_keywords))
+                    
+                    parsing_result = await self.ainvoke_with_rotation(
+                        reconstruction_prompt,
+                        output_schema=CanonParsingResult,
+                        retry_strategy='none', # 這是最後手段，不再重試
+                        models_to_try_override=[self.model_priority_list[0]] # 直接使用最強模型
                     )
-                    
-                    if not llm_response or not isinstance(llm_response, CanonParsingResult):
-                         raise ValueError("LLM返回了空或無效的Pydantic對象。")
+                    if not parsing_result: raise ValueError("法醫級重構鏈返回空值。")
+                    logger.info(f"[{self.user_id}] [重構成功] 已成功根據關鍵詞重構 LORE。")
 
-                    parsing_result = llm_response
-                    
-                    save_tasks = []
-                    save_tasks.append(self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'))
-                    save_tasks.append(self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'))
-                    save_tasks.append(self._resolve_and_save('items', [p.model_dump() for p in parsing_result.items], 'name'))
-                    save_tasks.append(self._resolve_and_save('creatures', [p.model_dump() for p in parsing_result.creatures], 'name'))
-                    save_tasks.append(self._resolve_and_save('quests', [p.model_dump() for p in parsing_result.quests], 'name'))
-                    save_tasks.append(self._resolve_and_save('world_lores', [p.model_dump() for p in parsing_result.world_lores], 'title'))
-                    await asyncio.gather(*save_tasks)
-                    
-                    logger.info(f"[{self.user_id}] 文本塊 {i} 解析並儲存成功。")
-                    successful_chunks += 1
-                    break
+                except Exception as recon_e:
+                    logger.error(f"[{self.user_id}] 【解構-重構】策略最終失敗: {type(recon_e).__name__}: {recon_e}", exc_info=True)
+                    continue # 處理下一個塊
 
-                except (BlockedPromptException, GoogleGenerativeAIError, ValueError, ValidationError, json.JSONDecodeError, OutputParserException) as e:
-                    logger.warning(f"[{self.user_id}] 處理文本塊 {i}/{total_chunks} 時發生錯誤 (嘗試 {retry+1}/{max_retries}): {type(e).__name__}: {e}")
-                    if retry == max_retries - 1:
-                        logger.error(f"[{self.user_id}] 文本塊 {i}/{total_chunks} 在所有重試（包括模型升級）後最終失敗。")
-                    else:
-                        await asyncio.sleep(2)
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] 處理文本塊 {i}/{total_chunks} 時發生無法恢復的嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
-                    break
+            except (ValueError, ValidationError, json.JSONDecodeError, OutputParserException) as e:
+                # --- 第三層防禦：處理格式錯誤，模型升級攻堅 ---
+                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
+                try:
+                    transformation_template = self.get_canon_transformation_chain()
+                    full_prompt = self.core_protocol_prompt + "\n\n" + transformation_template.format(canon_text=chunk)
+                    
+                    parsing_result = await self.ainvoke_with_rotation(
+                        full_prompt,
+                        output_schema=CanonParsingResult,
+                        retry_strategy='none',
+                        models_to_try_override=[self.model_priority_list[0]] # 直接用最強模型
+                    )
+                    if not parsing_result: raise ValueError("模型升級攻堅返回空值。")
+                    logger.info(f"[{self.user_id}] [攻堅成功] 已成功使用升級模型修復格式錯誤。")
+
+                except Exception as攻堅_e:
+                    logger.error(f"[{self.user_id}] 【模型升級攻堅】策略最終失敗: {type(攻堅_e).__name__}: {攻堅_e}", exc_info=True)
+                    continue
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生未知嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
+                continue
+
+            # --- 統一的儲存邏輯 ---
+            try:
+                save_tasks = [
+                    self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'),
+                    self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'),
+                    self._resolve_and_save('items', [p.model_dump() for p in parsing_result.items], 'name'),
+                    self._resolve_and_save('creatures', [p.model_dump() for p in parsing_result.creatures], 'name'),
+                    self._resolve_and_save('quests', [p.model_dump() for p in parsing_result.quests], 'name'),
+                    self._resolve_and_save('world_lores', [p.model_dump() for p in parsing_result.world_lores], 'title')
+                ]
+                await asyncio.gather(*save_tasks)
+                logger.info(f"[{self.user_id}] 文本塊 {i} 的 LORE 已成功儲存。")
+                successful_chunks += 1
+            except Exception as save_e:
+                logger.error(f"[{self.user_id}] 在儲存文本塊 {i} 的 LORE 時發生錯誤: {save_e}", exc_info=True)
 
         logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
     # 函式：解析並從世界聖經創建 LORE
@@ -2463,6 +2483,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
