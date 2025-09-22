@@ -92,11 +92,11 @@ class AILover:
     
     
     
-# 函式：初始化AI核心 (v227.0 - 引入法醫重構鏈)
+    # 函式：初始化AI核心 (v227.1 - 統一命名規範)
     # 更新紀錄:
-    # v227.0 (2025-09-22): [架構擴展] 新增 self.forensic_lore_reconstruction_chain 屬性，用於緩存全新的“法醫報告式”重構策略Prompt，並移除了所有已被廢棄的LORE解析鏈緩存。
+    # v227.1 (2025-09-22): [健壯性] 統一了所有Prompt鏈緩存屬性的命名規範（統一為 `..._chain`），以修正因命名不一致導致的 AttributeError。
+    # v227.0 (2025-09-22): [架構擴展] 新增 self.forensic_lore_reconstruction_chain 屬性。
     # v226.0 (2025-09-22): [架構簡化] 移除了多餘的協議屬性。
-    # v225.6 (2025-09-22): [架構擴展] 新增 self.lore_reconstruction_chain 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -117,14 +117,14 @@ class AILover:
         self.last_user_input: Optional[str] = None
         
         # --- 所有 get_..._chain 輔助鏈的佔位符 ---
-        self.forensic_lore_reconstruction_chain: Optional[str] = None # [v227.0 新增]
+        self.forensic_lore_reconstruction_chain: Optional[str] = None
         self.batch_entity_resolution_chain: Optional[str] = None
         self.single_entity_resolution_chain: Optional[str] = None
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
-        self.profile_completion_prompt: Optional[str] = None
-        self.profile_parser_prompt: Optional[str] = None
-        self.profile_rewriting_prompt: Optional[str] = None
+        self.profile_completion_chain: Optional[str] = None # 原名 profile_completion_prompt
+        self.profile_parser_chain: Optional[str] = None # 原名 profile_parser_prompt
+        self.profile_rewriting_chain: Optional[str] = None # 原名 profile_rewriting_prompt
         self.rag_summarizer_chain: Optional[str] = None
         self.literary_euphemization_chain: Optional[str] = None
         self.euphemization_reconstruction_chain: Optional[str] = None
@@ -1833,11 +1833,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v15.1 - 修正API調用錯誤)
+# 函式：解析世界聖經並創建 LORE (v15.2 - 修正函式調用名稱)
 # 更新紀錄:
-# v15.1 (2025-09-22): [災難性BUG修復] 修正了在本地預處理步驟中因調用錯誤的 lore_book 函式而導致的 TypeError。現在程式會正確地使用 `get_lores_by_category_and_filter` 來按類別獲取已知的NPC和地點列表，確保“法醫報告式”重構策略能夠正常啟動。
+# v15.2 (2025-09-22): [災難性BUG修復] 修正了因拼寫錯誤導致的 AttributeError，現在程式會正確地調用 `get_forensic_lore_reconstruction_chain()` 函式來獲取Prompt模板。
+# v15.1 (2025-09-22): [災難性BUG修復] 修正了在本地預處理步驟中因調用錯誤的 lore_book 函式而導致的 TypeError。
 # v15.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式的核心架構，採用全新的“法醫報告式”重構策略。
-# v14.0 (2025-09-22): [災難性BUG修復] 引入了“任務分級模型調度”機制。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1850,10 +1850,7 @@ class AILover:
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(content_text)})...")
         
         try:
-            # 準備關鍵詞列表
             nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "顫抖", "噴濺", "插入", "口交", "性交", "高潮", "射精", "臣服", "主人", "母狗", "母畜"]
-            
-            # [v15.1 核心修正] 使用正確的API來按類別獲取LORE
             all_known_npcs = [lore.content.get('name') for lore in await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile') if lore.content.get('name')]
             all_known_locations = [lore.content.get('name') for lore in await lore_book.get_lores_by_category_and_filter(self.user_id, 'location_info') if lore.content.get('name')]
             
@@ -1870,7 +1867,6 @@ class AILover:
                 logger.info(f"[{self.user_id}] 正在本地預處理文本塊 {i+1}/{len(docs)}...")
                 
                 try:
-                    # 步驟1: 本地提取安全關鍵詞
                     extracted_keywords = set()
                     for kw in nsfw_keywords:
                         if kw in chunk_content: extracted_keywords.add(kw)
@@ -1886,7 +1882,6 @@ class AILover:
                         if name not in ["一個", "一個個", "什麼", "這個", "那個", "但是", "所以"]:
                             extracted_keywords.add(name)
 
-                    # 步驟2: 本地提取安全的微上下文
                     micro_contexts = []
                     for entity in extracted_keywords:
                         for match in re.finditer(re.escape(entity), chunk_content):
@@ -1904,7 +1899,7 @@ class AILover:
 
                     logger.info(f"[{self.user_id}] 文本塊 {i+1} 預處理完成，已提取 {len(extracted_keywords)} 個關鍵詞和 {len(micro_contexts)} 條微上下文。正在發送至LLM進行重構...")
 
-                    # 步驟3: 將安全數據包發送給LLM進行重構
+                    # [v15.2 核心修正] 使用正確的函式名稱
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
                     params = {
                         "username": self.profile.user_profile.name or "玩家",
@@ -2357,6 +2352,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
