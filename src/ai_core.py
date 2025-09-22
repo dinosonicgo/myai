@@ -1978,15 +1978,15 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v5.2 (2025-09-23): [健壯性強化] 簡化了“代碼化解構”策略中的 Prompt 格式化步驟。由於 get_forensic_lore_reconstruction_chain 現在返回一個已淨化的、只包含 {keywords} 佔位符的模板，此處不再需要傳遞一個包含 username/ai_name 的複雜字典，從而使程式碼更簡潔、更不易出錯。
-    # v5.1 (2025-09-23): [災難性BUG修復] 修正了因缺少格式化參數導致的 KeyError。
+    # v5.3 (2025-09-23): [架構升級] 引入“兩階段精煉”策略。此函式現在作為第一階段（粗提取），負責確保100%的安全解析並生成LORE骨架。在執行完畢後，它會異步觸發一個全新的背景任務 `_background_lore_refinement`，由後者負責對LORE進行細節補充。
+    # v5.2 (2025-09-23): [健壯性強化] 簡化了 Prompt 格式化步驟。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“代碼化解構”策略繞過審查。"""
+        """[第一階段：粗提取] 解析提供的世界聖經文本，提取LORE骨架，並存入資料庫。採用多層防禦策略確保100%安全通過。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
 
-        logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(canon_text)})...")
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...")
         
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000, chunk_overlap=200, separators=["\n\n\n", "\n\n", "\n", " ", ""]
@@ -2043,8 +2043,6 @@ class CanonParsingResult(BaseModel):
                     logger.info(f"[{self.user_id}] [解構成功] 已提取情報關鍵詞: {final_keywords}")
 
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-                    
-                    # [v5.2 核心修正] 呼叫格式化現在極其簡單和安全
                     reconstruction_prompt = reconstruction_template.format(keywords=str(final_keywords))
                     
                     parsing_result = await self.ainvoke_with_rotation(
@@ -2094,11 +2092,111 @@ class CanonParsingResult(BaseModel):
                 except Exception as save_e:
                     logger.error(f"[{self.user_id}] 在儲存文本塊 {i} 的 LORE 時發生錯誤: {save_e}", exc_info=True)
 
-        logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 粗提取完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
+
+        # [v5.3 核心修正] 觸發背景精煉任務
+        if successful_chunks > 0:
+            logger.info(f"[{self.user_id}] 正在啟動背景任務以進行 LORE 細節精煉...")
+            asyncio.create_task(self._background_lore_refinement(canon_text))
     # 函式：解析並從世界聖經創建 LORE
                 
 
+    # 函式：背景LORE細節精煉
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“兩階段精煉”策略的第二階段。它會在粗提取成功後啟動，遍歷所有新生成的LORE骨架，返回原始聖經文本中查找相關細節，並調用一個專門的精煉鏈來填充這些細節，極大提升LORE的資訊密度。
+    async def _background_lore_refinement(self, canon_text: str):
+        """[第二階段：細節精煉] 遍歷由 canon_parser 創建的 LORE 骨架，並使用一個專門的鏈來從原始文本中填充缺失的細節。"""
+        await asyncio.sleep(5) # 稍微延遲，等待資料庫寫入完成
+        logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。")
 
+        try:
+            # 1. 獲取所有由第一階段生成的 LORE
+            lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
+            if not lores_to_refine:
+                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 LORE 條目。")
+                return
+
+            logger.info(f"[{self.user_id}] [LORE精煉] 發現 {len(lores_to_refine)} 條LORE骨架需要精煉。")
+            refinement_template = self.get_lore_refinement_chain()
+
+            for lore in lores_to_refine:
+                try:
+                    entity_name = lore.content.get('name') or lore.content.get('title')
+                    if not entity_name:
+                        continue
+
+                    # 2. 在原始文本中找到所有相關段落
+                    # 這裡使用一個簡單的正則表達式來查找包含實體名稱的句子或段落
+                    relevant_paragraphs = re.findall(r'([^.!?\n]*' + re.escape(entity_name) + r'[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
+                    if not relevant_paragraphs:
+                        continue
+                    
+                    relevant_context = "\n".join(relevant_paragraphs).strip()
+                    
+                    # 3. 調用精煉鏈
+                    refinement_prompt = refinement_template.format(
+                        existing_lore_json=json.dumps(lore.content, ensure_ascii=False, indent=2),
+                        original_text_context=relevant_context
+                    )
+                    
+                    # 使用最強的模型來確保細節提取的質量
+                    refined_lore_data = await self.ainvoke_with_rotation(
+                        refinement_prompt,
+                        output_schema=type(lore.content), # 動態使用對應的 Pydantic 模型
+                        retry_strategy='none',
+                        models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
+                    )
+
+                    if refined_lore_data:
+                        # 4. 更新資料庫
+                        await lore_book.add_or_update_lore(
+                            user_id=self.user_id,
+                            category=lore.category,
+                            key=lore.key,
+                            content=refined_lore_data,
+                            source='canon_refiner' # 將來源更新為精煉器
+                        )
+                        logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新 '{entity_name}' 的 LORE。")
+                    
+                    await asyncio.sleep(1) # 防止 API 速率過快
+
+                except Exception as e:
+                    entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
+                    logger.warning(f"[{self.user_id}] [LORE精煉] 在精煉 '{entity_name}' 時發生錯誤: {e}", exc_info=False)
+
+            logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務完成。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 背景LORE精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
+    # 函式：背景LORE細節精煉
+    
+    # 函式：獲取LORE細節精煉器 Prompt
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式，提供“兩階段精煉”策略第二階段所需的核心Prompt。它指導LLM扮演一個細心的數據校對員，專注於從原始文本中提取並補充缺失的細節到一個已有的LORE骨架中。
+    def get_lore_refinement_chain(self) -> str:
+        """獲取或創建一個專門用於LORE細節精煉的字符串模板。"""
+        prompt = """# TASK: 你是一位極其細心的數據校對與補充專員。
+# MISSION: 你的任務是接收一份【不完整的數據記錄JSON】和一份【相關原始文檔】，然後從原始文檔中提取所有缺失的細節（如年齡、外貌、種族、技能、物品效果等），將它們補充到數據記錄中，並返回一個更新後的、更完整的JSON。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🚫 禁止刪改原則】**: 你【絕對禁止】刪除或修改【不完整的數據記錄JSON】中任何已經存在值的欄位。你的任務是【補充】，不是【覆蓋】。
+# 2. **【🔎 細節挖掘原則】**: 你必須仔細閱讀【相關原始文檔】，並從中挖掘出所有可以用來填充JSON中 `null`, `""`, `[]`, `{}`, `"未知"` 等空值欄位的具體信息。
+# 3. **【結構一致性】**: 你返回的JSON的結構【必須】與輸入的【不完整的數據記錄JSON】完全一致。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、更新後的JSON物件。
+
+# --- [INPUT DATA] ---
+
+# 【不完整的數據記錄JSON】:
+{existing_lore_json}
+
+# 【相關原始文檔】:
+{original_text_context}
+
+---
+# 【更新並補完後的JSON數據】:
+"""
+        return prompt
+    # 函式：獲取LORE細節精煉器 Prompt
 
 
 
@@ -2534,6 +2632,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
