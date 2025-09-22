@@ -425,11 +425,11 @@ class AILover:
             return None
 # 委婉化並重試 函式結束
 
-    # 函式：獲取法醫級LORE重構器 Prompt (v1.3 - 新增解碼密鑰)
+    # 函式：獲取法醫級LORE重構器 Prompt (v1.4 - 修正佔位符)
     # 更新紀錄:
+    # v1.4 (2025-09-22): [災難性BUG修復] 修正了在手動構建Prompt時因錯誤使用雙大括號轉義而導致的致命KeyError。現在模板會生成正確的、等待填充的 {username} 和 {ai_name} 佔位符。
     # v1.3 (2025-09-22): [功能擴展] 根據使用者要求，在解碼密鑰中新增了 "母畜" -> "ROLE-D" 的映射。
-    # v1.2 (2025-09-22): [災難性BUG修復] 最終的、釜底抽薪的修正。此Prompt採用“無害化輸入，雲端還原”策略。
-    # v1.1 (2025-09-22): [災難性BUG修復] 採用“極簡主義安全輸入”策略。
+    # v1.2 (2025-09-22): [災難性BUG修復] 採用“無害化輸入，雲端還原”策略。
     def get_forensic_lore_reconstruction_chain(self) -> str:
         """獲取或創建一個專門的模板，用於從絕對安全的、經過代碼化的關鍵詞中重構LORE。"""
         if self.forensic_lore_reconstruction_chain is None:
@@ -475,10 +475,18 @@ class AILover:
 ---
 # 【情報分析報告 (OUTPUT JSON)】:
 """
-            self.forensic_lore_reconstruction_chain = self.core_protocol_prompt + "\n\n" + base_prompt
+            # [v1.4 核心修正] 使用單大括號，確保它們是真正的佔位符
+            self.forensic_lore_reconstruction_chain = self.core_protocol_prompt.format(
+                username="{username}", 
+                ai_name="{ai_name}",
+                # 為其他可能的佔位符提供安全的、靜態的預設值
+                player_location="未知",
+                viewing_mode="local",
+                remote_target_path_str="無",
+                micro_task_context="數據分析"
+            ) + "\n\n" + base_prompt
         return self.forensic_lore_reconstruction_chain
     # 獲取法醫級LORE重構器 Prompt 函式結束
-
 
 
     
@@ -1888,11 +1896,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v15.6 - 新增關鍵詞)
+# 函式：解析世界聖經並創建 LORE (v15.7 - 修正參數傳遞)
 # 更新紀錄:
+# v15.7 (2025-09-22): [災難性BUG修復] 修正了參數傳遞邏輯，確保在格式化Prompt時，能夠為 `core_protocol_prompt` 中存在的 {username} 和 {ai_name} 佔位符提供正確的值，從而徹底解決了 `KeyError` 問題。
 # v15.6 (2025-09-22): [功能擴展] 根據使用者要求，在本地無害化代碼映射中新增了“母畜” -> “ROLE-D”的轉換規則。
 # v15.5 (2025-09-22): [災難性BUG修復] 最終的、釜底抽薪的修正。此函式現在會在本地將所有NSFW關鍵詞替換為一組絕對安全的技術代碼。
-# v15.4 (2025-09-22): [災難性BUG修復] 徹底移除了在本地預處理流程中的“微上下文提取”步驟。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1911,7 +1919,7 @@ class AILover:
                 "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
                 "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
                 "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
-                "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D" # [v15.6 新增]
+                "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
             }
             
             all_known_npcs = [lore.content.get('name') for lore in await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile') if lore.content.get('name')]
@@ -1954,7 +1962,13 @@ class AILover:
                     logger.info(f"[{self.user_id}] 文本塊 {i+1} 預處理完成，已生成 {len(sanitized_keywords)} 個無害化代碼。正在發送至LLM進行解碼與重構...")
 
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-                    params = { "keywords": ", ".join(sorted(list(sanitized_keywords))) }
+                    
+                    # [v15.7 核心修正] 將 username 和 ai_name 添加到參數字典中
+                    params = {
+                        "username": self.profile.user_profile.name or "玩家",
+                        "ai_name": self.profile.ai_profile.name or "AI",
+                        "keywords": ", ".join(sorted(list(sanitized_keywords))),
+                    }
                     full_prompt = reconstruction_template.format(**params)
 
                     chunk_result = await self.ainvoke_with_rotation(
@@ -1997,7 +2011,7 @@ class AILover:
             logger.error(f"[{self.user_id}] 在解析世界聖經並創建 LORE 時發生嚴重錯誤: {e}", exc_info=True)
             if interaction and not is_setup_flow:
                 try:
-                    await interaction.followup.send("❌ 在後台處理您的世界觀檔案時發生了嚴重錯誤。", ephemeral=True)
+                    await interaction.followup.send("❌ 在後台處理您的世界聖經檔案時發生了嚴重錯誤。", ephemeral=True)
                 except Exception as ie:
                     logger.warning(f"[{self.user_id}] 無法向 interaction 發送錯誤 followup: {ie}")
 # 解析世界聖經並創建 LORE 函式結束
@@ -2400,6 +2414,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
