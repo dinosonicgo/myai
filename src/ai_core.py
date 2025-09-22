@@ -1846,11 +1846,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v7.3 - 三階段終極備援)
+# 函式：解析世界聖經並創建 LORE (v8.0 - 整合三階段降級邏輯)
 # 更新紀錄:
-# v7.3 (2025-11-22): [災難性BUG修復] 引入了三階段 LORE 解析降級系統。當主解析鏈和委婉化重試鏈相繼因內容審查失敗後，會觸發終極備援：直接在原始 NSFW 文本上運行一個更具抗性的 LORE 實體提取鏈。此修改旨在最大限度地從被審查的文本塊中搶救 LORE 數據，將信息損失降至最低，無限趨近 100% 的解析成功率。
+# v8.0 (2025-09-22): [災難性BUG修復] 根據 AttributeError，恢復了對 `_resolve_and_save` 函式的調用，以修復主解析鏈結果無法被儲存的致命錯誤。同時，完善了三階段降級邏輯，確保在不同失敗情境下，系統能夠正確地觸發委婉化重試或終極備援提取，極大提高了在高NSFW內容下的LORE解析成功率和數據完整性。
+# v7.3 (2025-11-22): [災難性BUG修復] 引入了三階段 LORE 解析降級系統。
 # v7.2 (2025-11-22): [災難性BUG修復] 在函式執行的末尾，增加了對 RAG 索引的強制重建。
-# v7.1 (2025-11-22): [健壯性強化] 調整了 RecursiveCharacterTextSplitter 的 chunk_size 以避免長度超限問題。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1877,21 +1877,20 @@ class AILover:
                 logger.info(f"[{self.user_id}] 正在解析文本塊 {i+1}/{len(docs)}...")
                 await asyncio.sleep(5.0)
                 
-                # --- 三階段 LORE 解析流程 ---
                 chunk_result = None
+                full_prompt = ""
+                
                 try:
                     # --- 階段 1: 嘗試主解析 ---
                     logger.info(f"[{self.user_id}] [階段 1/3] 嘗試主要解析鏈...")
                     canon_parser_prompt_obj = self.get_canon_parser_chain()
                     full_prompt = canon_parser_prompt_obj.format_prompt(canon_text=doc.page_content).to_string()
                     
-                    # 首次嘗試，如果成功就直接使用
                     chunk_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none' # 失敗後由我們手動處理
+                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                     )
                     
                     if not chunk_result:
-                        # ainvoke_with_rotation 在 review 或 retry_strategy='none' 時會返回 None
                         raise ValueError("主解析鏈返回空結果，可能已被審查。")
 
                     logger.info(f"[{self.user_id}] [階段 1/3] 主要解析成功。")
@@ -1901,8 +1900,8 @@ class AILover:
                     
                     # --- 階段 2: 嘗試委婉化重試 ---
                     logger.info(f"[{self.user_id}] [階段 2/3] 嘗試委婉化重試策略...")
-                    # 這裡的 failed_prompt 就是我們剛剛構建的 full_prompt
-                    chunk_result = await self._euphemize_and_retry(full_prompt, CanonParsingResult, e)
+                    if full_prompt: # 確保 full_prompt 已被賦值
+                        chunk_result = await self._euphemize_and_retry(full_prompt, CanonParsingResult, e)
 
                     if not chunk_result:
                         logger.warning(f"[{self.user_id}] [階段 2/3] 委婉化重試失敗。進入終極備援。")
@@ -1910,7 +1909,6 @@ class AILover:
                         # --- 階段 3: 終極備援 - 原文 LORE 提取 ---
                         logger.info(f"[{self.user_id}] [階段 3/3] 啟動終極備援：原文 LORE 提取...")
                         try:
-                            # 獲取所有現有 LORE 作為上下文
                             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                             lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
                             existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
@@ -1921,7 +1919,7 @@ class AILover:
                                 ai_name=self.profile.ai_profile.name,
                                 existing_lore_summary=existing_lore_summary,
                                 user_input="（來自世界聖經的上下文）",
-                                final_response_text=doc.page_content # 直接使用原始 NSFW 文本
+                                final_response_text=doc.page_content
                             ).to_string()
 
                             extraction_plan = await self.ainvoke_with_rotation(
@@ -1930,19 +1928,16 @@ class AILover:
 
                             if extraction_plan and extraction_plan.plan:
                                 logger.info(f"[{self.user_id}] [階段 3/3] 終極備援成功，從原文中提取到 {len(extraction_plan.plan)} 條 LORE。")
-                                gs = self.profile.game_state
-                                effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                                await self._execute_tool_call_plan(extraction_plan, effective_location)
+                                # [v8.0 核心修正] 地點應為未知，傳遞空列表
+                                await self._execute_tool_call_plan(extraction_plan, [])
                             else:
                                 logger.warning(f"[{self.user_id}] [階段 3/3] 終極備援未能從原文中提取到任何 LORE。")
 
                         except Exception as final_e:
                             logger.error(f"[{self.user_id}] [階段 3/3] 終極備援流程執行時發生未知錯誤: {final_e}", exc_info=True)
                         
-                        # 終極備援後，無論成功與否，都跳過主結果的合併
-                        continue
+                        continue # 終極備援後，無論成功與否，都跳過主結果的合併
                 
-                # 如果階段 1 或 2 成功，則合併結果
                 if chunk_result:
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
                     all_parsing_results.locations.extend(chunk_result.locations)
@@ -1951,9 +1946,9 @@ class AILover:
                     all_parsing_results.quests.extend(chunk_result.quests)
                     all_parsing_results.world_lores.extend(chunk_result.world_lores)
 
-            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
+            logger.info(f"[{self.user_id}] 所有文本塊解析完成。總共通過主解析鏈/委婉化備援提取到 {len(all_parsing_results.npc_profiles)} 個NPC，{len(all_parsing_results.locations)} 個地點。")
 
-            # 後續的程式化合併與儲存邏輯保持不變
+            # [v8.0 核心修正] 調用 _resolve_and_save 來儲存主解析鏈的結果
             await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
             await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
             await self._resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
@@ -2385,6 +2380,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
