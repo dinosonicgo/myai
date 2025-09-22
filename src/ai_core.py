@@ -1995,13 +1995,13 @@ class AILover:
 
 
     
-    # 函式：獲取世界創世 Prompt (v207.0 - 移除轉義大括號)
+    # 函式：獲取世界創世 Prompt (v207.1 - 原生模板重構)
     # 更新紀錄:
-    # v207.0 (2025-09-22): [災難性BUG修復] 移除了範例JSON中的雙大括號 `{{ }}` 轉義序列，改為普通的單大括號。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因混合使用真實佔位符和轉義符號而引發的 `KeyError`。
+    # v207.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
+    # v207.0 (2025-09-22): [災難性BUG修復] 移除了範例JSON中的雙大括號 `{{ }}` 轉義序列。
     # v206.0 (2025-11-13): [災難性BUG修復] 根據 Pydantic ValidationError，徹底重寫了此函式的 Prompt。
-    # v205.0 (2025-11-13): [災難性BUG修復] 將此函式簡化為純粹的 Prompt 模板提供者。
-    def get_world_genesis_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於世界創世的 ChatPromptTemplate 模板。"""
+    def get_world_genesis_chain(self) -> str:
+        """獲取或創建一個專門用於世界創世的字符串模板。"""
         if self.world_genesis_chain is None:
             genesis_prompt_str = """你现在扮演一位富有想像力的世界构建师和开场导演。
 你的任务是根据使用者提供的【核心世界觀】，为他和他的AI角色创造一个独一-无二的、充满细节和故事潜力的【初始出生点】。
@@ -2050,7 +2050,7 @@ class AILover:
 *   AI角色: {ai_name}
 ---
 请严格遵循【結構化輸出強制令】，开始你的创世。"""
-            self.world_genesis_chain = ChatPromptTemplate.from_template(genesis_prompt_str)
+            self.world_genesis_chain = genesis_prompt_str
         return self.world_genesis_chain
     # 獲取世界創世 Prompt 函式結束
 
@@ -2369,6 +2369,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
