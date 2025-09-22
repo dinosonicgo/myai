@@ -36,13 +36,17 @@ class BaseToolArgs(BaseModel):
 
 # --- NPC 相關工具 ---
 
-# 類別：創建新 NPC 檔案參數
+# 類別：創建新 NPC 檔案參數 (v3.4 - 地點可選)
+# 更新紀錄:
+# v3.4 (2025-09-22): [災難性BUG修復] 將 location_path 欄位從必填改為可選，並提供一個空的工廠函數作為預設值。此修改允許 LORE 解析鏈在無法從文本中確定 NPC 的確切位置時，也能成功創建一個「地點未知」的 NPC 檔案，從根本上解決了因地點驗證失敗導致的 LORE 創建中斷問題。
+# v3.3 (2025-11-22): [根本性重構] 移除了所有對 ai_core.add_lore_to_rag 的異步任務調用。
+# v3.2 (2025-11-22): [災難性BUG修復] 對所有 Pydantic 參數模型進行了全面的健壯性升級。
 class CreateNewNpcProfileArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化名稱。")
     original_name: Optional[str] = Field(default=None, description="原始 NPC 名稱。")
     description: str = Field(description="對 NPC 的詳細描述。")
-    location_path: List[str] = Field(description="該 NPC 所在的完整地點路徑列表。")
+    location_path: Optional[List[str]] = Field(default_factory=list, description="該 NPC 所在的完整地點路徑列表。如果未知，則留空。")
     status: Optional[str] = Field(default="閒置", description="NPC 當前的簡短狀態。")
     equipment: Optional[List[str]] = Field(default_factory=list, description="NPC 當前穿戴的裝備列表。")
 
@@ -53,12 +57,27 @@ class CreateNewNpcProfileArgs(BaseToolArgs):
         return v
 # 創建新 NPC 檔案參數 類別結束
 
-# 工具：創建新 NPC 檔案
+
+
+# 工具：創建新 NPC 檔案 (v3.4 - 地點可選)
+# 更新紀錄:
+# v3.4 (2025-09-22): [災難性BUG修復] 更新了函式簽名，將 location_path 設為可選參數，以匹配 Pydantic 模型的變更。
+# v3.3 (2025-11-22): [根本性重構] 移除了所有對 ai_core.add_lore_to_rag 的異步任務調用。
+# v3.2 (2025-11-22): [災難性BUG修復] 對所有 Pydantic 參數模型進行了全面的健壯性升級。
 @tool(args_schema=CreateNewNpcProfileArgs)
-async def create_new_npc_profile(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: List[str], status: Optional[str] = "閒置", equipment: Optional[List[str]] = None) -> str:
+async def create_new_npc_profile(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: Optional[List[str]] = None, status: Optional[str] = "閒置", equipment: Optional[List[str]] = None) -> str:
     """【只在】你需要創造一個【全新的、不存在的】NPC 時使用此工具。它會在世界中永久記錄一個新的角色檔案。"""
     user_id = tool_context.get_user_id()
-    profile_data = {"name": standardized_name, "description": description, "location_path": location_path, "status": status, "equipment": equipment or [], "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    # [v3.4 修正] 確保 location_path 永遠是一個列表
+    final_location_path = location_path if location_path is not None else []
+    profile_data = {
+        "name": standardized_name, 
+        "description": description, 
+        "location_path": final_location_path, 
+        "status": status, 
+        "equipment": equipment or [], 
+        "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []
+    }
     await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
     return f"已成功為新 NPC '{standardized_name}' 創建了檔案 (主鍵: '{lore_key}')。"
 # 創建新 NPC 檔案 工具結束
@@ -226,3 +245,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
     ]
 # 獲取所有 LORE 工具 函式結束
+
