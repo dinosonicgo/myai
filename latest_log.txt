@@ -1,58 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T01:43:26.289767 ###
+### AI Lover Log - Last updated at 2025-09-23T01:48:28.535258 ###
 
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '靈光戰斧' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普•薩格納' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '國王埃德蒙三世' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '大皇子阿拉里克' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇子赫克托' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '二公主塞拉菲娜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇女伊索爾德' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林勳爵' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '克拉拉' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '高爾' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '翠絲' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '貴族母畜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '性神教' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '北境戰線' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '迪茜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿利斯特' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '麥可' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '費奇' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '神學課' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '思想戰爭' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '規矩派系' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '快樂派系' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '聖潔果實' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '費奇' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '性神教義' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老羅' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬克' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '活神蹟' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '第二部分：城鎮市集區' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪倫' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '索菲亞' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '露比' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '泰莎' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老漢姆' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '葛瑞塔' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '神恩灌頂' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '芬恩' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛蓮娜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絕對忠誠' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '連恩' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '提姆' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯神父' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '神學理論' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '活教典' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '母畜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莊園' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '臭魚巷' 時發生錯誤: Replacement index 0 out of range for positional args tuple
@@ -100,3 +47,56 @@
 2025-09-23 01:43:25 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
 2025-09-23 01:43:25 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
 2025-09-23 01:43:26 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
+2025-09-23 01:43:26 - [INFO] - [512280345618546699] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...
+2025-09-23 01:43:26 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
+2025-09-23 01:43:26 - [INFO] - [512280345618546699] 正在處理文本塊 1/7...
+2025-09-23 01:43:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 19 個實體...
+2025-09-23 01:43:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 6 個實體...
+2025-09-23 01:43:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
+2025-09-23 01:43:43 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
+2025-09-23 01:43:43 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
+2025-09-23 01:44:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
+2025-09-23 01:44:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 7 個實體...
+2025-09-23 01:44:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 34 個實體...
+2025-09-23 01:44:06 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
+2025-09-23 01:44:06 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
+2025-09-23 01:44:15 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 9 個實體...
+2025-09-23 01:44:15 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 2 個實體...
+2025-09-23 01:44:15 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
+2025-09-23 01:44:15 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 1 個實體...
+2025-09-23 01:44:15 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
+2025-09-23 01:44:16 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
+2025-09-23 01:44:16 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
+2025-09-23 01:44:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 01:44:17 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【代碼化解構】策略...
+2025-09-23 01:44:17 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['ACTION-C', 'ROLE-B', 'CODE-F-GEN-A', 'FLUID-A', 'ROLE-D', 'CODE-F-GEN-C', 'STATE-A', '絲月', '莉莉絲', '薩格納', '菲利普', '米婭', '艾莉諾', '瑪莉', '安娜', '愛莉莎', '維利爾斯勳爵', '凱薩‧維利爾斯', '菲利普•薩格納', '提姆']
+2025-09-23 01:44:47 - [INFO] - [512280345618546699] [重構成功] 已成功根據代碼化關鍵詞重構出無害化 LORE。
+2025-09-23 01:44:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
+2025-09-23 01:44:48 - [INFO] - [512280345618546699] 文本塊 4 的 LORE 已成功儲存。
+2025-09-23 01:44:48 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
+2025-09-23 01:44:59 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 16 個實體...
+2025-09-23 01:44:59 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 4 個實體...
+2025-09-23 01:44:59 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
+2025-09-23 01:44:59 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 21 個實體...
+2025-09-23 01:45:02 - [INFO] - [512280345618546699] 文本塊 5 的 LORE 已成功儲存。
+2025-09-23 01:45:02 - [INFO] - [512280345618546699] 正在處理文本塊 6/7...
+2025-09-23 01:45:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 23 個實體...
+2025-09-23 01:45:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 6 個實體...
+2025-09-23 01:45:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 7 個實體...
+2025-09-23 01:45:16 - [INFO] - [512280345618546699] 文本塊 6 的 LORE 已成功儲存。
+2025-09-23 01:45:16 - [INFO] - [512280345618546699] 正在處理文本塊 7/7...
+2025-09-23 01:45:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 01:45:17 - [WARNING] - [512280345618546699] 文本塊 7 遭遇內容審查 (BlockedPromptException)。啟動【代碼化解構】策略...
+2025-09-23 01:45:17 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['CODE-M-GEN-A', 'ACTION-B', 'ROLE-D', 'CODE-F-GEN-A', 'STATE-A', '薩格納', '菲利普', '米婭', '艾莉諾', '卡蓮', '瓦勒留斯', '索菲亞']
+2025-09-23 01:45:49 - [INFO] - [512280345618546699] [重構成功] 已成功根據代碼化關鍵詞重構出無害化 LORE。
+2025-09-23 01:45:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 7 個實體...
+2025-09-23 01:45:50 - [INFO] - [512280345618546699] 文本塊 7 的 LORE 已成功儲存。
+2025-09-23 01:45:50 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 7 個。
+2025-09-23 01:45:50 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
+2025-09-23 01:45:55 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。
+2025-09-23 01:45:55 - [INFO] - [512280345618546699] [LORE精煉] 發現 253 條LORE骨架需要精煉。
+2025-09-23 01:45:55 - [ERROR] - [512280345618546699] 背景LORE精煉任務主循環發生嚴重錯誤: name 'LocationInfo' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2129, in _background_lore_refinement
+    "location_info": LocationInfo,
+NameError: name 'LocationInfo' is not defined
