@@ -640,7 +640,62 @@ class AILover:
         logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
 # 處理世界聖經並提取LORE 函式結束
 
+    # 函式：解析並儲存LORE實體 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-22): [災難性BUG修復] 根據 AttributeError Log，重新創建此核心輔助函式。此函式負責將主解析鏈 (get_canon_parser_chain) 產生的結構化實體列表，逐一轉換並持久化到 LORE 資料庫中，是修復世界聖經解析流程的關鍵。
+    async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
+        """
+        一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
+        並將它們逐一、安全地儲存到 Lore 資料庫中。
+        """
+        if not self.profile:
+            return
+        
+        category_map = {
+            "npc_profiles": "npc_profile",
+            "locations": "location_info",
+            "items": "item_info",
+            "creatures": "creature_info",
+            "quests": "quest",
+            "world_lores": "world_lore"
+        }
+        
+        actual_category = category_map.get(category_str)
+        if not actual_category:
+            logger.warning(f"[{self.user_id}] (_resolve_and_save) 遇到了未知的LORE類別: {category_str}")
+            return
 
+        logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
+        
+        for item_data in items:
+            try:
+                # 提取名稱或標題
+                name = item_data.get(title_key)
+                if not name:
+                    logger.warning(f"[{self.user_id}] (_resolve_and_save) 跳過一個在類別 '{actual_category}' 中缺少 '{title_key}' 的實體。")
+                    continue
+                
+                # 構造 lore_key
+                # 如果實體數據中包含有效的地點路徑，則使用它來創建層級式key
+                # 否則，直接使用實體名稱作為key
+                location_path = item_data.get('location_path')
+                if location_path and isinstance(location_path, list) and len(location_path) > 0:
+                    lore_key = " > ".join(location_path) + f" > {name}"
+                else:
+                    lore_key = name
+
+                await lore_book.add_or_update_lore(
+                    user_id=self.user_id,
+                    category=actual_category,
+                    key=lore_key,
+                    content=item_data,
+                    source='canon_parser' # 標記來源
+                )
+            except Exception as e:
+                logger.error(f"[{self.user_id}] (_resolve_and_save) 在儲存 '{item_data.get(title_key, '未知實體')}' 到 LORE 時發生錯誤: {e}", exc_info=True)
+
+        logger.info(f"[{self.user_id}] (_resolve_and_save) '{actual_category}' 類別的實體處理完畢。")
+    # 解析並儲存LORE實體 函式結束
     
 
     # 函式：補完角色檔案 (/start 流程 2/4) (v3.0 - 適配原生引擎)
@@ -1166,11 +1221,11 @@ class AILover:
 
     
 
-# 函式：執行工具調用計畫 (v185.0 - 持久化RAG刷新)
+# 函式：執行工具調用計畫 (v186.0 - 修正地點注入邏輯)
 # 更新紀錄:
-# v185.0 (2025-11-22): [重大架構升級] 根據「持久化 RAG」架構，在此函式的末尾增加了對 `await self._build_retriever()` 的強制調用。此修改確保了在 LORE 資料庫發生任何變更後，RAG 檢索器都會被立即用最新的、持久化的數據完全重建，從根本上解決了 RAG 知識庫與 LORE 不同步的問題。
-# v184.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此核心 LORE 執行器函式恢復到 AILover 類中。
-# v183.4 (2025-10-15): [健壯性] 增加了參數補全邏輯。
+# v186.0 (2025-09-22): [災難性BUG修復] 重構了地點注入邏輯。現在，只有當工具調用計畫中完全沒有提供地點資訊時（即 `location_path` 缺失或為空），才會使用玩家的當前地點作為備用。此修改從根本上解決了從世界聖經中解析出的、應有特定地點或未知地點的NPC被錯誤地錨定在玩家當前位置的問題。
+# v185.0 (2025-11-22): [重大架構升級] 在此函式的末尾增加了對 `await self._build_retriever()` 的強制調用。
+# v184.0 (2025-11-14): [災難性BUG修復] 將此核心 LORE 執行器函式恢復到 AILover 類中。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
@@ -1210,7 +1265,9 @@ class AILover:
             for call in purified_plan:
                 await asyncio.sleep(4.0) 
 
-                if 'location_path' not in call.parameters:
+                # [v186.0 核心修正] 僅在 LORE 提取鏈完全沒有提供任何地點資訊時，才使用當前地點作為備援。
+                # .get() 會在 'location_path' 不存在時返回 None，這也會被 not 捕獲。
+                if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
 
                 tool_to_execute = available_lore_tools.get(call.tool_name)
@@ -2303,6 +2360,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
