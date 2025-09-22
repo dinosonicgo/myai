@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T10:40:13.938448 ###
+### AI Lover Log - Last updated at 2025-09-22T10:45:40.716465 ###
 
-2025-09-22 01:38:08 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Crown Prince Alaric' 創建了檔案 (主鍵: 'npc_crown_prince_alaric')。
-2025-09-22 01:38:12 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Hector' 創建了檔案 (主鍵: 'npc_hector')。
-2025-09-22 01:38:17 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Seraphina' 創建了檔案 (主鍵: 'npc_seraphina')。
-2025-09-22 01:38:21 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Isolde' 創建了檔案 (主鍵: 'npc_isolde')。
-2025-09-22 01:38:25 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Lord Borin' 創建了檔案 (主鍵: 'npc_lord_borin')。
-2025-09-22 01:38:29 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Klara' 創建了檔案 (主鍵: 'npc_klara')。
-2025-09-22 01:38:33 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Gore' 創建了檔案 (主鍵: 'npc_gore')。
 2025-09-22 01:38:37 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Triss' 創建了檔案 (主鍵: 'npc_triss')。
 2025-09-22 01:38:42 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Dixie' 創建了檔案 (主鍵: 'npc_dixie')。
 2025-09-22 01:38:46 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Arthur & Martin' 創建了檔案 (主鍵: 'npc_arthur_martin')。
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute '_resolve_and_save'
 2025-09-22 08:44:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 08:44:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 08:44:13 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 10:45:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 10:45:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 10:45:26 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 10:45:26 - [INFO] - Discord Bot is ready!
+2025-09-22 10:45:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 10:45:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 10:45:30 - [INFO] - 已成功發送啟動成功通知給管理員。
