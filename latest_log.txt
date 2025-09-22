@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T23:56:38.188432 ###
+### AI Lover Log - Last updated at 2025-09-22T23:58:51.827790 ###
 
-2025-09-22 23:37:27 - [INFO] - [512280345618546699] 正在本地預處理文本塊 1/4...
-2025-09-22 23:37:27 - [INFO] - [512280345618546699] 文本塊 1 預處理完成，已生成 44 個無害化代碼。正在發送至LLM進行解碼與重構...
-2025-09-22 23:37:27 - [ERROR] - [512280345618546699] 處理文本塊 1/4 時發生無法恢復的錯誤: '"description"'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2026, in parse_and_create_lore_from_canon
-    full_prompt = reconstruction_template.format(**params)
-KeyError: '"description"'
 2025-09-22 23:37:27 - [INFO] - [512280345618546699] 正在本地預處理文本塊 2/4...
 2025-09-22 23:37:27 - [INFO] - [512280345618546699] 文本塊 2 預處理完成，已生成 65 個無害化代碼。正在發送至LLM進行解碼與重構...
 2025-09-22 23:37:27 - [ERROR] - [512280345618546699] 處理文本塊 2/4 時發生無法恢復的錯誤: '"description"'
@@ -100,3 +93,10 @@ KeyError: '"description"'
 2025-09-22 23:56:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 23:56:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 23:56:28 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 23:58:37 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 23:58:37 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 23:58:38 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 23:58:38 - [INFO] - Discord Bot is ready!
+2025-09-22 23:58:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 23:58:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 23:58:42 - [INFO] - 已成功發送啟動成功通知給管理員。
