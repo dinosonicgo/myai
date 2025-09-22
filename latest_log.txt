@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T08:38:57.585453 ###
+### AI Lover Log - Last updated at 2025-09-22T08:44:23.062504 ###
 
-2025-09-22 01:37:39 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 26 個LORE任务 ---
-2025-09-22 01:37:43 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Emily' 創建了檔案 (主鍵: 'npc_emily')。
-2025-09-22 01:37:47 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Carlyle' 創建了檔案 (主鍵: 'npc_carlyle')。
-2025-09-22 01:37:51 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'General Sagnac' 創建了檔案 (主鍵: 'npc_general_sagnac')。
-2025-09-22 01:37:56 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Eleonora' 創建了檔案 (主鍵: 'npc_eleonora')。
-2025-09-22 01:38:00 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Philip Sagnac' 創建了檔案 (主鍵: 'npc_philip_sagnac')。
-2025-09-22 01:38:04 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'King Edmund III' 創建了檔案 (主鍵: 'npc_king_edmund_iii')。
 2025-09-22 01:38:08 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Crown Prince Alaric' 創建了檔案 (主鍵: 'npc_crown_prince_alaric')。
 2025-09-22 01:38:12 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Hector' 創建了檔案 (主鍵: 'npc_hector')。
 2025-09-22 01:38:17 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Seraphina' 創建了檔案 (主鍵: 'npc_seraphina')。
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute '_resolve_and_save'
 2025-09-22 08:08:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 08:08:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 08:08:33 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 08:44:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 08:44:09 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 08:44:09 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 08:44:09 - [INFO] - Discord Bot is ready!
+2025-09-22 08:44:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 08:44:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 08:44:13 - [INFO] - 已成功發送啟動成功通知給管理員。
