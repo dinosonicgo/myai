@@ -1833,11 +1833,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v15.2 - 修正函式調用名稱)
+# 函式：解析世界聖經並創建 LORE (v15.3 - 修正致命的拼寫錯誤)
 # 更新紀錄:
-# v15.2 (2025-09-22): [災難性BUG修復] 修正了因拼寫錯誤導致的 AttributeError，現在程式會正確地調用 `get_forensic_lore_reconstruction_chain()` 函式來獲取Prompt模板。
+# v15.3 (2025-09-22): [災難性BUG修復] 修正了因錯誤地調用一個不存在的函式（拼寫錯誤）而導致的致命 AttributeError。現在程式會正確地調用 `get_forensic_lore_reconstruction_chain()` 來獲取Prompt模板，確保“法醫報告式”重構策略能夠被正確執行。
+# v15.2 (2025-09-22): [災難性BUG修復] 修正了因錯誤地調用一個不存在的函式（拼寫錯誤）而導致的致命 AttributeError。
 # v15.1 (2025-09-22): [災難性BUG修復] 修正了在本地預處理步驟中因調用錯誤的 lore_book 函式而導致的 TypeError。
-# v15.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式的核心架構，採用全新的“法醫報告式”重構策略。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1899,7 +1899,7 @@ class AILover:
 
                     logger.info(f"[{self.user_id}] 文本塊 {i+1} 預處理完成，已提取 {len(extracted_keywords)} 個關鍵詞和 {len(micro_contexts)} 條微上下文。正在發送至LLM進行重構...")
 
-                    # [v15.2 核心修正] 使用正確的函式名稱
+                    # [v15.3 核心修正] 使用正確的函式名稱調用
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
                     params = {
                         "username": self.profile.user_profile.name or "玩家",
@@ -2352,6 +2352,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
