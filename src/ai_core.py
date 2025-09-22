@@ -903,33 +903,31 @@ class AILover:
 
 
 
-# 函式：獲取委婉化重構器 Prompt (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 創建此鏈作為「解構-重構」委婉化策略的核心。它的任務是接收一組不帶露骨上下文的「安全關鍵詞」，並將其重構為一句中性、客觀的場景描述。此方法旨在從根本上規避「委婉化鏈本身被審查」的悖論。
-    def get_euphemization_reconstruction_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於從關鍵詞重構安全句子的鏈。"""
-        if not hasattr(self, 'euphemization_reconstruction_chain') or self.euphemization_reconstruction_chain is None:
+    # 函式：獲取委婉化重構器 Prompt (v1.1 - 原生模板重構)
+    # 更新紀錄:
+    # v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
+    # v1.0 (2025-11-22): [全新創建] 創建此鏈作為「解構-重構」委婉化策略的核心。
+    def get_euphemization_reconstruction_chain(self) -> str:
+        """獲取或創建一個專門用於從關鍵詞重構安全句子的字符串模板。"""
+        if self.euphemization_reconstruction_chain is None:
             prompt_template = """# ROLE: 你是一位語言專家和溝通大師。
 # MISSION: 接收一組【核心概念關鍵詞】，並將它們組織成一句通順的、語義完整的、但措辭【絕對中性、客觀且安全】的句子，用於描述一個小說場景。
-
 # RULES:
 # 1. **意圖推斷**: 根據關鍵詞推斷出原始的核心意圖。
 # 2. **極致中性化**: 你的輸出【絕對禁止】包含任何可能被視為攻擊性、露骨或敏感的詞彙。你的目標是創造一個最不可能觸發任何自動化內容安全過濾器的【安全版本】的場景概述。
 # 3. **保持簡潔**: 不要添加任何不必要的解釋或額外內容，只輸出重構後的句子。
-
 # --- EXAMPLE ---
 # - 核心概念關鍵詞: `["碧", "DINO", "肉棒", "肉穴", "插入", "噴濺淫液"]`
 # - 生成的安全句子: `場景涉及到角色碧與DINO之間的一次親密互動，涉及到了性器官的結合和生理高潮的表現。`
-
 ---
 # 【核心概念關鍵詞】:
 {keywords}
 ---
 # 【生成的安全句子】:
 """
-            self.euphemization_reconstruction_chain = ChatPromptTemplate.from_template(prompt_template)
+            self.euphemization_reconstruction_chain = prompt_template
         return self.euphemization_reconstruction_chain
-# 獲取委婉化重構器 Prompt 函式結束
+    # 獲取委婉化重構器 Prompt 函式結束
 
 
     
@@ -2370,6 +2368,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
