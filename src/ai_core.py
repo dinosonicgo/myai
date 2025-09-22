@@ -1833,11 +1833,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v15.0 - 採用「法醫報告」策略)
+# 函式：解析世界聖經並創建 LORE (v15.1 - 修正API調用錯誤)
 # 更新紀錄:
-# v15.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式的核心架構，採用全新的“法醫報告式”重構策略。此策略不再將任何原始NSFW文本發送給LLM，而是在本地代碼層通過正則表達式提取安全的“關鍵詞”和“微上下文”，然後將這些“安全證據包”發送給一個全新的、專門用於推理和重構的LLM鏈。這從根本上規避了API對輸入內容的審查，是解決頑固審查問題的最終、最可靠的方案。
+# v15.1 (2025-09-22): [災難性BUG修復] 修正了在本地預處理步驟中因調用錯誤的 lore_book 函式而導致的 TypeError。現在程式會正確地使用 `get_lores_by_category_and_filter` 來按類別獲取已知的NPC和地點列表，確保“法醫報告式”重構策略能夠正常啟動。
+# v15.0 (2025-09-22): [災難性BUG修復] 徹底重構了此函式的核心架構，採用全新的“法醫報告式”重構策略。
 # v14.0 (2025-09-22): [災難性BUG修復] 引入了“任務分級模型調度”機制。
-# v13.0 (2025-09-22): [災難性BUG修復] 引入了“遞歸分解重試”的終極備援機制。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1852,8 +1852,10 @@ class AILover:
         try:
             # 準備關鍵詞列表
             nsfw_keywords = ["肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "顫抖", "噴濺", "插入", "口交", "性交", "高潮", "射精", "臣服", "主人", "母狗", "母畜"]
-            all_known_npcs = [lore.content.get('name') for lore in await lore_book.get_all_lores_for_user(self.user_id, 'npc_profile') if lore.content.get('name')]
-            all_known_locations = [lore.content.get('name') for lore in await lore_book.get_all_lores_for_user(self.user_id, 'location_info') if lore.content.get('name')]
+            
+            # [v15.1 核心修正] 使用正確的API來按類別獲取LORE
+            all_known_npcs = [lore.content.get('name') for lore in await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile') if lore.content.get('name')]
+            all_known_locations = [lore.content.get('name') for lore in await lore_book.get_lores_by_category_and_filter(self.user_id, 'location_info') if lore.content.get('name')]
             
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=7500, chunk_overlap=400, separators=["\n\n\n", "\n\n", "\n"]
@@ -1870,40 +1872,30 @@ class AILover:
                 try:
                     # 步驟1: 本地提取安全關鍵詞
                     extracted_keywords = set()
-                    # 提取NSFW關鍵詞
                     for kw in nsfw_keywords:
-                        if kw in chunk_content:
-                            extracted_keywords.add(kw)
-                    # 提取已知NPC和地點
+                        if kw in chunk_content: extracted_keywords.add(kw)
                     for name in all_known_npcs + all_known_locations:
-                        if name in chunk_content:
-                            extracted_keywords.add(name)
-                    # 提取潛在的新NPC（大寫字母開頭的詞）
+                        if name in chunk_content: extracted_keywords.add(name)
+                    
                     potential_new_names = re.findall(r'\b[A-Z][a-zA-Z\']+\b', chunk_content)
                     for name in potential_new_names:
                         if len(name) > 2: extracted_keywords.add(name)
-                    # 提取潛在的中文名 (這裡的正則比較簡單，可以後續優化)
+                    
                     potential_cn_names = re.findall(r'[\u4e00-\u9fff]{2,4}', chunk_content)
                     for name in potential_cn_names:
-                        # 簡單過濾常見詞
                         if name not in ["一個", "一個個", "什麼", "這個", "那個", "但是", "所以"]:
                             extracted_keywords.add(name)
 
-
                     # 步驟2: 本地提取安全的微上下文
                     micro_contexts = []
-                    # 圍繞找到的實體名提取上下文
                     for entity in extracted_keywords:
-                        # 使用正則表達式找到所有出現的位置
                         for match in re.finditer(re.escape(entity), chunk_content):
                             start, end = match.span()
-                            # 提取前後50個字符作為上下文
                             context_start = max(0, start - 50)
                             context_end = min(len(chunk_content), end + 50)
                             context_snippet = chunk_content[context_start:context_end].replace('\n', ' ')
                             micro_contexts.append(f"...{context_snippet}...")
                     
-                    # 去重
                     micro_contexts = list(dict.fromkeys(micro_contexts))
 
                     if not extracted_keywords:
@@ -1918,15 +1910,13 @@ class AILover:
                         "username": self.profile.user_profile.name or "玩家",
                         "ai_name": self.profile.ai_profile.name or "AI",
                         "keywords": ", ".join(sorted(list(extracted_keywords))),
-                        "micro_contexts": "\n".join(micro_contexts[:15]) # 限制數量防止過長
+                        "micro_contexts": "\n".join(micro_contexts[:15])
                     }
                     full_prompt = reconstruction_template.format(**params)
 
                     chunk_result = await self.ainvoke_with_rotation(
-                        full_prompt, 
-                        output_schema=CanonParsingResult, 
-                        retry_strategy='none',
-                        use_degradation=True # 使用最好的模型進行推理
+                        full_prompt, output_schema=CanonParsingResult, 
+                        retry_strategy='none', use_degradation=True
                     )
                     
                     if not chunk_result:
@@ -2367,6 +2357,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
