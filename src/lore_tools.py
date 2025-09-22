@@ -36,11 +36,11 @@ class BaseToolArgs(BaseModel):
 
 # --- NPC 相關工具 ---
 
-# 類別：創建新 NPC 檔案參數 (v3.4 - 地點可選)
+# 類別：創建新 NPC 檔案參數 (v3.5 - 增加地點路徑自動修復)
 # 更新紀錄:
-# v3.4 (2025-09-22): [災難性BUG修復] 將 location_path 欄位從必填改為可選，並提供一個空的工廠函數作為預設值。此修改允許 LORE 解析鏈在無法從文本中確定 NPC 的確切位置時，也能成功創建一個「地點未知」的 NPC 檔案，從根本上解決了因地點驗證失敗導致的 LORE 創建中斷問題。
+# v3.5 (2025-09-22): [災難性BUG修復] 為 location_path 欄位新增了一個 field_validator。此驗證器能夠自動將LLM可能生成的單一地點字符串（如 '聖凱瑟琳學院'）轉換為模型期望的列表格式（如 ['聖凱瑟琳學院']），從根本上解決了因數據類型不匹配而導致的 ValidationError。
+# v3.4 (2025-09-22): [災難性BUG修復] 將 location_path 欄位從必填改為可選。
 # v3.3 (2025-11-22): [根本性重構] 移除了所有對 ai_core.add_lore_to_rag 的異步任務調用。
-# v3.2 (2025-11-22): [災難性BUG修復] 對所有 Pydantic 參數模型進行了全面的健壯性升級。
 class CreateNewNpcProfileArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化名稱。")
@@ -54,6 +54,20 @@ class CreateNewNpcProfileArgs(BaseToolArgs):
     @classmethod
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
+        return v
+
+    # [v3.5 核心修正] 增加一個前置驗證器，自動修復地點路徑的數據類型
+    @field_validator('location_path', mode='before')
+    @classmethod
+    def validate_location_path(cls, v):
+        """在正式驗證前，嘗試將單一字符串的地點轉換為列表。"""
+        if isinstance(v, str):
+            # 如果傳入的是一個非空的字符串，將其轉換為單元素的列表
+            if v.strip():
+                return [v.strip()]
+            # 如果是空字符串，返回一個空列表
+            return []
+        # 如果傳入的已經是列表或其他類型，則保持不變
         return v
 # 創建新 NPC 檔案參數 類別結束
 
@@ -245,5 +259,6 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
     ]
 # 獲取所有 LORE 工具 函式結束
+
 
 
