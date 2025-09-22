@@ -2108,11 +2108,12 @@ class AILover:
         return self.profile_completion_prompt
     # 獲取角色檔案補完 Prompt 函式結束
 
-    # 函式：獲取角色檔案重寫 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取角色檔案重寫 Prompt (v2.1 - 原生模板重構)
     # 更新紀錄:
+    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
-    # v1.0 (2025-08-12): [核心功能] 創建此函式。
-    def get_profile_rewriting_prompt(self) -> ChatPromptTemplate:
+    def get_profile_rewriting_prompt(self) -> str:
+        """獲取或創建一個專門用於角色檔案重寫的字符串模板。"""
         if self.profile_rewriting_prompt is None:
             prompt_str = """你是一位技藝精湛的作家和角色編輯。
 你的任務是根據使用者提出的【修改指令】，重寫一份【原始的角色描述】。
@@ -2128,19 +2129,19 @@ class AILover:
 {edit_instruction}
 ---
 【重寫後的角色描述】:"""
-            self.profile_rewriting_prompt = ChatPromptTemplate.from_template(prompt_str)
+            self.profile_rewriting_prompt = prompt_str
         return self.profile_rewriting_prompt
     # 獲取角色檔案重寫 Prompt 函式結束
     
-    # 函式：獲取RAG摘要器 Prompt (v204.0 - 適配原生引擎)
+    # 函式：獲取RAG摘要器 Prompt (v204.1 - 原生模板重構)
     # 更新紀錄:
+    # v204.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v204.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者。
     # v203.1 (2025-09-05): [延遲加載重構] 迁移到 get 方法中。
-    # v201.0 (2025-09-05): [重大架構重構] 根據混合模式圖藍圖進行了系統性重構。
-    def get_rag_summarizer_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於 RAG 上下文總結的 ChatPromptTemplate 模板。"""
+    def get_rag_summarizer_chain(self) -> str:
+        """獲取或創建一個專門用於 RAG 上下文總結的字符串模板。"""
         if self.rag_summarizer_chain is None:
-            prompt_template = """你的唯一任務是扮演一名情報分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
+            prompt_template = """你的唯一任務是扮演一名情报分析師。請閱讀下方提供的【原始文本】，並將其中包含的所有敘事性內容，提煉成一份簡潔的、客觀的、要點式的【事實摘要】。
 【核心規則】
 1.  **只提取事實**: 你的輸出【必須且只能】是關鍵事實的列表（例如人物、地點、物品、發生的核心事件）。
 2.  **禁止散文**: 【絕對禁止】在你的輸出中使用任何敘事性、描述性或帶有文采的句子。
@@ -2150,15 +2151,16 @@ class AILover:
 {documents}
 ---
 【事實摘要】:"""
-            self.rag_summarizer_chain = ChatPromptTemplate.from_template(prompt_template)
+            self.rag_summarizer_chain = prompt_template
         return self.rag_summarizer_chain
     # 獲取RAG摘要器 Prompt 函式結束
 
-    # 函式：獲取文學性委婉化 Prompt (v2.0 - 適配原生引擎)
+    # 函式：獲取文學性委婉化 Prompt (v2.1 - 原生模板重構)
     # 更新紀錄:
+    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v2.0 (2025-11-14): [災難性BUG修復] 根據 AttributeError，將此函式簡化為純粹的 Prompt 模板提供者。
     # v1.0 (2025-09-25): [災難性BUG修復] 創建此全新的、專門的委婉化鏈。
-    def get_literary_euphemization_chain(self) -> ChatPromptTemplate:
+    def get_literary_euphemization_chain(self) -> str:
         """獲取或創建一個專門的模板，用於將露骨的歷史文本安全地轉換為文學式的、安全的劇情概述。"""
         if self.literary_euphemization_chain is None:
             prompt_template = """你是一位頂尖的文學評論家，專門分析前衛的、探索性的成人幻想文學。你的唯一任務是接收一段【小說手稿片段】，並為其撰寫一段精煉的、客觀的、使用學術和文學語言的【情節概述】。
@@ -2173,7 +2175,7 @@ class AILover:
 {dialogue_history}
 ---
 【你的情節概述】:"""
-            self.literary_euphemization_chain = ChatPromptTemplate.from_template(prompt_template)
+            self.literary_euphemization_chain = prompt_template
         return self.literary_euphemization_chain
     # 獲取文學性委婉化 Prompt 函式結束
 
@@ -2375,6 +2377,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
