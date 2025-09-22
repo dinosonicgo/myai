@@ -426,29 +426,25 @@ class AILover:
     
     
     
-    # 函式：獲取法醫級LORE重構器 Prompt (v1.6 - 修正佔位符)
+    # 函式：獲取法醫級LORE重構器 Prompt (v1.7 - 終極轉義修正)
     # 更新紀錄:
-    # v1.6 (2025-09-23): [災難性BUG修復] 修正了在手動構建Prompt時因錯誤地將包含 {username} 等佔位符的 core_protocol_prompt 直接拼接到模板字符串而導致的致命KeyError。現在，此函式會先用實例的 profile 數據預先格式化 core_protocol_prompt，從而移除這些佔位符，確保最終模板只包含 {keywords} 一個待填充變數。
-    # v1.5 (2025-09-23): [災難性BUG修復] 採用“Pydantic注入+無害化輸出”策略。
+    # v1.7 (2025-09-23): [災難性BUG修復] 徹底重構了模板的拼接和格式化邏輯，以根除所有潛在的 KeyError。現在，在拼接 core_protocol_prompt 之前，會先使用正則表達式將其中所有非目標佔位符（即除了 {username} 和 {ai_name} 之外的所有 {...}）的大括號進行雙重轉義（例如 {description} -> {{description}}）。這可以防止 Python 的 .format() 方法錯誤地解析模板中的 JSON 範例，從而徹底解決 KeyError: '\"description\"' 的問題。
+    # v1.6 (2025-09-23): [災難性BUG修復] 修正了因缺少 username 等參數導致的 KeyError。
     def get_forensic_lore_reconstruction_chain(self) -> str:
         """獲取或創建一個專門的模板，用於從絕對安全的、經過代碼化的關鍵詞中重構LORE。"""
-        # 此處不進行快取，因為每次都可能需要最新的 Pydantic 定義和 profile 名稱
         
-        # [v1.6 核心修正] 預先格式化 core_protocol_prompt，填入當前的 username 和 ai_name
-        # 這樣可以移除這些佔位符，防止後續的 .format(keywords=...) 產生 KeyError
-        if not self.profile:
-            # 創建一個備用的、不含佔位符的協議
-            formatted_protocol = "# WARNING: Profile not loaded. Operating in a generic context.\n" + re.sub(r'\{.*?\}', '[GENERIC]', self.core_protocol_prompt)
-        else:
-            # 創建一個參數字典，只包含 core_protocol_prompt 需要的鍵
-            protocol_params = {
-                "username": self.profile.user_profile.name,
-                "ai_name": self.profile.ai_profile.name
-            }
-            # 使用一個輔助函式來安全地格式化，忽略模板中不存在的佔位符
-            # 這可以防止因為模板文件變動（例如移除了 {username}）而導致的錯誤
-            pattern = re.compile(r'\{(' + '|'.join(protocol_params.keys()) + r')\}')
-            formatted_protocol = pattern.sub(lambda m: protocol_params[m.group(1)], self.core_protocol_prompt)
+        # [v1.7 核心修正]
+        # 首先定義我們真正想要替換的佔位符
+        keys_to_format = {"username", "ai_name"}
+        
+        # 創建一個經過安全轉義的協議字符串
+        # 這個正則表達式會找到所有不在 keys_to_format 列表中的佔位符
+        # 然後將它們的大括號替換為雙大括號，以進行轉義
+        escaped_protocol = re.sub(
+            r'\{(?!(' + '|'.join(keys_to_format) + r')\b)[^{}]+\}',
+            lambda m: m.group(0).replace('{', '{{').replace('}', '}}'),
+            self.core_protocol_prompt
+        )
 
         pydantic_definitions = """
 class CharacterProfile(BaseModel):
@@ -545,8 +541,9 @@ class CanonParsingResult(BaseModel):
 ---
 # 【代碼化的JSON數據 (Coded JSON Data)】:
 """
-        # 拼接預先格式化好的協議和基礎模板
-        return formatted_protocol + "\n\n" + base_prompt
+        # 拼接經過安全轉義的協議和基礎模板
+        # 現在這個返回的模板字符串只包含 {username}, {ai_name}, 和 {keywords} 三個有效的佔位符
+        return escaped_protocol + "\n\n" + base_prompt
     # 函式：獲取法醫級LORE重構器 Prompt
 
 
@@ -2519,6 +2516,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
