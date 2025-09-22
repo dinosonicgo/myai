@@ -708,6 +708,7 @@ class AILover:
             try:
                 prompt_template = self.get_profile_completion_prompt()
                 safe_profile_data = original_profile.model_dump()
+                
                 full_prompt = prompt_template.format(
                     profile_json=json.dumps(safe_profile_data, ensure_ascii=False, indent=2)
                 )
@@ -750,6 +751,8 @@ class AILover:
             'ai_profile': completed_ai_profile.model_dump()
         })
     # 補完角色檔案 函式結束
+
+                
                     
 
 
@@ -2366,6 +2369,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
