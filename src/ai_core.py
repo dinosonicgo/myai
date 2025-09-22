@@ -2060,11 +2060,12 @@ class AILover:
 
 
 
-    # 函式：獲取角色檔案解析器 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取角色檔案解析器 Prompt (v2.1 - 原生模板重構)
     # 更新紀錄:
+    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
-    # v1.0 (2025-08-12): [核心功能] 創建此函式。
-    def get_profile_parser_prompt(self) -> ChatPromptTemplate:
+    def get_profile_parser_prompt(self) -> str:
+        """獲取或創建一個專門用於角色檔案解析的字符串模板。"""
         if self.profile_parser_prompt is None:
             prompt_str = """你是一位精確的數據分析師。你的任務是將【原始角色JSON】與【使用者的自然語言輸入】相結合，生成一個更新后的、結構化的角色JSON。
 【核心規則】
@@ -2079,9 +2080,13 @@ class AILover:
 【使用者的自然語言輸入】:
 {user_text_input}
 ---"""
-            self.profile_parser_prompt = ChatPromptTemplate.from_template(prompt_str)
+            self.profile_parser_prompt = prompt_str
         return self.profile_parser_prompt
     # 獲取角色檔案解析器 Prompt 函式結束
+
+
+
+    
 
     # 函式：獲取角色檔案補完 Prompt (v2.0 - 移除 zero_instruction 依賴)
     # 更新紀錄:
@@ -2369,6 +2374,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
