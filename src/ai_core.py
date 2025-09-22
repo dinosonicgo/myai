@@ -1949,11 +1949,12 @@ class AILover:
 
     
     
-    # 函式：獲取JSON修正器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
     # 更新紀錄:
+    # v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。
-    def get_json_correction_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於修正格式錯誤的 JSON 的 ChatPromptTemplate 模板。"""
+    def get_json_correction_chain(self) -> str:
+        """獲取或創建一個專門用於修正格式錯誤的 JSON 的字符串模板。"""
         if self.json_correction_chain is None:
             prompt_template = """# ROLE: 你是一個精確的數據結構修正引擎。
 # MISSION: 讀取一段【格式錯誤的原始 JSON】和【目標 Pydantic 模型】，並將其轉換為一個【結構完全正確】的純淨 JSON 物件。
@@ -1986,7 +1987,7 @@ class AILover:
 # 【上下文提示：正在處理的原始實體名稱是】:
 {context_name}
 # --- YOUR OUTPUT (Must be a pure, valid JSON object matching SingleResolutionPlan) ---"""
-            self.json_correction_chain = ChatPromptTemplate.from_template(prompt_template)
+            self.json_correction_chain = prompt_template
         return self.json_correction_chain
     # 獲取JSON修正器 Prompt 函式結束
 
@@ -2368,6 +2369,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
