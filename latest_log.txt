@@ -1,5 +1,12 @@
-### AI Lover Log - Last updated at 2025-09-22T11:47:47.402159 ###
+### AI Lover Log - Last updated at 2025-09-22T11:52:49.571658 ###
 
+    message = message_template.format_messages(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
+    return [self.format(**kwargs)]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
+    text = self.prompt.format(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
+    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
     return self.vformat(format_string, args, kwargs)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
@@ -13,13 +20,13 @@
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
     return kwargs[key]
 KeyError: '"tool_name"'
-2025-09-22 11:28:26 - [INFO] - [512280345618546699] 正在解析文本塊 4/4...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] [階段 1/3] 嘗試主要解析鏈...
-2025-09-22 11:28:31 - [WARNING] - [512280345618546699] [階段 1/3] 主要解析失敗: '"name"'。進入下一階段。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] [階段 2/3] 嘗試委婉化重試策略...
-2025-09-22 11:28:31 - [WARNING] - [512280345618546699] [階段 2/3] 委婉化重試失敗。進入終極備援。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] [階段 3/3] 啟動終極備援：原文 LORE 提取...
-2025-09-22 11:28:31 - [ERROR] - [512280345618546699] [階段 3/3] 終極備援流程執行時發生未知錯誤: '"tool_name"'
+2025-09-22 11:48:22 - [INFO] - [512280345618546699] 正在解析文本塊 4/4...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 1/3] 嘗試主要解析鏈...
+2025-09-22 11:48:27 - [WARNING] - [512280345618546699] [階段 1/3] 主要解析失敗: '"name"'。進入下一階段。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 2/3] 嘗試委婉化重試策略...
+2025-09-22 11:48:27 - [WARNING] - [512280345618546699] [階段 2/3] 委婉化重試失敗。進入終極備援。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 3/3] 啟動終極備援：原文 LORE 提取...
+2025-09-22 11:48:27 - [ERROR] - [512280345618546699] [階段 3/3] 終極備援流程執行時發生未知錯誤: '"tool_name"'
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1887, in parse_and_create_lore_from_canon
     full_prompt = canon_parser_prompt_obj.format_prompt(canon_text=doc.page_content).to_string()
@@ -75,28 +82,21 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
     return kwargs[key]
 KeyError: '"tool_name"'
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] 所有文本塊解析完成。總共通過主解析鏈/委婉化備援提取到 0 個NPC，0 個地點。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'npc_profile' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'location_info' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'item_info' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'creature_info' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'quest' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 0 個實體...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (_resolve_and_save) 'world_lore' 類別的實體處理完畢。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 36 條文檔用於構建 BM25。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 11:28:31 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
-2025-09-22 11:47:33 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 11:47:33 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 11:47:33 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 11:47:33 - [INFO] - Discord Bot is ready!
-2025-09-22 11:47:36 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 11:47:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 11:47:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] 所有文本塊解析完成。總共通過主解析鏈/委婉化備援提取到 0 個NPC，0 個地點。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'npc_profile' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'location_info' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'item_info' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'creature_info' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'quest' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 0 個實體...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'world_lore' 類別的實體處理完畢。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 36 條文檔用於構建 BM25。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 11:48:27 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
