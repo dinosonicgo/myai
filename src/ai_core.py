@@ -54,6 +54,11 @@ from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfil
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
+                      ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
+                      SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
+                      CreatureInfo, Quest, WorldLore)CallPlan, CanonParsingResult, 
+                      BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
+                      UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, SingleResolutionPlan)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
@@ -2107,8 +2112,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v1.1 (2025-09-23): [災難性BUG修復] 修正了因向 ainvoke_with_rotation 傳遞了錯誤的 output_schema (<class 'dict'>) 而導致的嚴重錯誤。新增了一個 category 到 Pydantic 模型的映射字典，確保在調用時能為不同類型的 LORE 動態地提供正確的、可驗證的 Pydantic 模型類，從而解決了精煉流程完全失敗的問題。
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“兩階段精煉”策略的第二階段。
+    # v1.2 (2025-09-23): [灾难性BUG修复] 修正了因忘记导入 Pydantic LORE 模型（如 LocationInfo）而导致的致命 NameError。
+    # v1.1 (2025-09-23): [灾难性BUG修复] 修正了 output_schema 传递错误类型的问题，引入了动态模型映射。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 遍歷由 canon_parser 創建的 LORE 骨架，並使用一個專門的鏈來從原始文本中填充缺失的細節。"""
         await asyncio.sleep(5) # 稍微延遲，等待資料庫寫入完成
@@ -2123,7 +2128,7 @@ class CanonParsingResult(BaseModel):
             logger.info(f"[{self.user_id}] [LORE精煉] 發現 {len(lores_to_refine)} 條LORE骨架需要精煉。")
             refinement_template = self.get_lore_refinement_chain()
 
-            # [v1.1 核心修正] 創建一個從 category 字符串到 Pydantic 模型的映射
+            # [v1.2 核心修正] 确保这些模型类已在文件顶部导入
             model_map = {
                 "npc_profile": CharacterProfile,
                 "location_info": LocationInfo,
@@ -2139,7 +2144,6 @@ class CanonParsingResult(BaseModel):
                     if not entity_name:
                         continue
                     
-                    # 從映射中獲取對應的 Pydantic 模型
                     TargetModel = model_map.get(lore.category)
                     if not TargetModel:
                         logger.warning(f"[{self.user_id}] [LORE精煉] 找不到類別 '{lore.category}' 對應的 Pydantic 模型，跳過精煉。")
@@ -2156,10 +2160,9 @@ class CanonParsingResult(BaseModel):
                         original_text_context=relevant_context
                     )
                     
-                    # [v1.1 核心修正] 傳遞正確的 Pydantic 模型類
                     refined_lore_data = await self.ainvoke_with_rotation(
                         refinement_prompt,
-                        output_schema=TargetModel, # <--- 修正點
+                        output_schema=TargetModel,
                         retry_strategy='none',
                         models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
                     )
@@ -2169,7 +2172,7 @@ class CanonParsingResult(BaseModel):
                             user_id=self.user_id,
                             category=lore.category,
                             key=lore.key,
-                            content=refined_lore_data.model_dump(), # <-- 使用 .model_dump() 獲取字典
+                            content=refined_lore_data.model_dump(),
                             source='canon_refiner'
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新 '{entity_name}' 的 LORE。")
@@ -2652,6 +2655,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
