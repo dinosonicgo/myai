@@ -2088,22 +2088,23 @@ class AILover:
 
     
 
-    # 函式：獲取角色檔案補完 Prompt (v2.0 - 移除 zero_instruction 依賴)
+    # 函式：獲取角色檔案補完 Prompt (v2.1 - 原生模板重構)
     # 更新紀錄:
+    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
-    # v1.0 (2025-08-12): [核心功能] 創建此函式。
-    def get_profile_completion_prompt(self) -> ChatPromptTemplate:
+    def get_profile_completion_prompt(self) -> str:
+        """獲取或創建一個專門用於角色檔案補完的字符串模板。"""
         if self.profile_completion_prompt is None:
             prompt_str = """你是一位资深的角色扮演游戏设定师。你的任务是接收一个不完整的角色 JSON，并将其补完为一个细节豐富、符合逻辑的完整角色。
 【核心規則】
 1.  **絕對保留原則**: 对于輸入JSON中【任何已經存在值】的欄位（特别是 `appearance_details` 字典內的鍵值對），你【絕對必須】原封不動地保留它們，【絕對禁止】修改或覆蓋。
-2.  **增量補完原則**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{{}}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
+2.  **增量補完原則**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
 3.  **細節豐富化**: 对于 `appearance_details`，如果缺少身高、体重、三围等細節，請基於角色描述進行合理的創造。
 4.  **初始裝備**: 对于 `equipment`，如果該欄位為空，請生成一套符合角色背景和描述的初始服裝或裝備。
 5.  **輸出格式**: 你的最終輸出【必須且只能】是一個符合 CharacterProfile Pydantic 格式的、補完後的完整 JSON 物件。
 【不完整的角色 JSON】:
 {profile_json}"""
-            self.profile_completion_prompt = ChatPromptTemplate.from_template(prompt_str)
+            self.profile_completion_prompt = prompt_str
         return self.profile_completion_prompt
     # 獲取角色檔案補完 Prompt 函式結束
 
@@ -2374,6 +2375,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
