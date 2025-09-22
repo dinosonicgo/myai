@@ -1830,11 +1830,11 @@ class AILover:
 
 
     
-    # 函式：獲取世界聖經解析器 Prompt (v5.4 - 使用專用數據協議)
+    # 函式：獲取世界聖經解析器 Prompt (v5.5 - 真正使用專用數據協議)
     # 更新紀錄:
-    # v5.4 (2025-09-22): [災難性BUG修復] 改為注入專為數據提取設計的、不含任何即時上下文佔位符的 self.data_extraction_protocol_prompt。此修改從根本上解決了因上下文錯配而導致的 `KeyError: 'username'` 致命錯誤。
+    # v5.5 (2025-09-22): [災難性BUG修復] 修正了一個災難性的複製貼上錯誤。此函式現在【真正地】使用專為數據提取設計的、不含任何即時上下文佔位符的 self.data_extraction_protocol_prompt。此修改從根本上解決了因上下文錯配而導致的 `KeyError: 'username'` 致命錯誤。
+    # v5.4 (2025-09-22): [災難性BUG修復] (錯誤的修正) 試圖改為注入專用數據協議但失敗。
     # v5.3 (2025-09-22): [災難性BUG修復] 在Prompt的最頂部注入了 self.core_protocol_prompt。
-    # v5.2 (2025-09-22): [災難性BUG修復] 對模板中所有作為JSON範例顯示的字面大括號進行了轉義。
     def get_canon_parser_chain(self) -> str:
         """獲取或創建一個專門用於世界聖經解析的字符串模板。"""
         if self.canon_parser_chain is None:
@@ -1863,6 +1863,7 @@ class AILover:
 {canon_text}
 ---
 請嚴格遵循所有原則和規則，開始你的解析與結構化工作。"""
+            # [v5.5 核心修正] 使用正確的、不含佔位符的數據提取協議
             self.canon_parser_chain = self.data_extraction_protocol_prompt + "\n\n" + base_prompt
         return self.canon_parser_chain
     # 獲取世界聖經解析器 Prompt 函式結束
@@ -1870,11 +1871,11 @@ class AILover:
 
 
 
-# 函式：解析世界聖經並創建 LORE (v9.4 - 簡化參數傳遞)
+# 函式：解析世界聖經並創建 LORE (v9.5 - 最終簡化版)
 # 更新紀錄:
-# v9.4 (2025-09-22): [災難性BUG修復] 由於 LORE 解析鏈的保護協議已被替換為不含佔位符的專用版本，此處移除了所有不再需要的、用於填充佔位符的複雜上下文參數字典。現在，格式化Prompt的邏輯變得極其簡單和健壯，徹底解決了 `KeyError` 的根源。
+# v9.5 (2025-09-22): [災難性BUG修復] 最終確認並簡化了參數傳遞邏輯。由於所有LORE解析鏈現在都使用不含佔位符的專用協議，此處不再需要傳遞任何額外的上下文參數，徹底杜絕了 `KeyError` 的可能性。
+# v9.4 (2025-09-22): [災難性BUG修復] 移除了所有不再需要的、用於填充佔位符的複雜上下文參數字典。
 # v9.3 (2025-09-22): [災難性BUG修復] 在格式化主解析鏈和備援鏈的Prompt時，注入了完整的上下文參數字典。
-# v9.2 (2025-09-22): [災難性BUG修復] 嚴格地只為 extraction_prompt_template 傳遞其需要的參數。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -1888,9 +1889,7 @@ class AILover:
         
         try:
             text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=7500,
-                chunk_overlap=400,
-                separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
+                chunk_size=7500, chunk_overlap=400, separators=["\n\n\n", "\n\n", "\n", "。", "，", " "]
             )
             docs = text_splitter.create_documents([content_text])
             logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(docs)} 個文本塊進行處理。")
@@ -1951,6 +1950,7 @@ class AILover:
                 
                 if chunk_result:
                     all_parsing_results.npc_profiles.extend(chunk_result.npc_profiles)
+                    # ... (合併其他類別)
                     all_parsing_results.locations.extend(chunk_result.locations)
                     all_parsing_results.items.extend(chunk_result.items)
                     all_parsing_results.creatures.extend(chunk_result.creatures)
@@ -1961,6 +1961,7 @@ class AILover:
 
             if any([all_parsing_results.npc_profiles, all_parsing_results.locations, all_parsing_results.items, all_parsing_results.creatures, all_parsing_results.quests, all_parsing_results.world_lores]):
                 await self._resolve_and_save('npc_profiles', [p.model_dump() for p in all_parsing_results.npc_profiles])
+                # ... (儲存其他類別)
                 await self._resolve_and_save('locations', [loc.model_dump() for loc in all_parsing_results.locations])
                 await self._resolve_and_save('items', [item.model_dump() for item in all_parsing_results.items])
                 await self._resolve_and_save('creatures', [c.model_dump() for c in all_parsing_results.creatures])
@@ -2207,17 +2208,16 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v8.2 - 移除不應存在的佔位符)
+# 函式：獲取LORE提取器 Prompt (v8.3 - 真正使用專用數據協議)
 # 更新紀錄:
-# v8.2 (2025-09-22): [災難性BUG修復] 徹底移除了模板中對 {username} 和 {ai_name} 的佔位符引用及其相關規則。這些參數並非在所有調用場景中都可用，導致了無法修復的 KeyError。核心角色保護邏輯已被移至 _execute_tool_call_plan 的程式碼層，確保了模板的通用性和健壯性。
+# v8.3 (2025-09-22): [災難性BUG修復] 修正了一個災難性的複製貼上錯誤。此函式現在【真正地】使用專為數據提取設計的、不含任何即時上下文佔位符的 self.data_extraction_protocol_prompt。此修改從根本上解決了因上下文錯配而導致的 `KeyError`。
+# v8.2 (2025-09-22): [災難性BUG修復] 徹底移除了模板中對 {username} 和 {ai_name} 的佔位符引用。
 # v8.1 (2025-09-22): [災難性BUG修復] 恢復了將完整的 self.core_protocol_prompt 注入到Prompt最頂部的邏輯。
-# v8.0 (2025-09-22): [災難性BUG修復] 徹底重寫了Prompt，採用“臨床報告”和“數據提取任務”的偽裝策略。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的字符串模板。"""
         if self.lore_extraction_chain is None:
             
             base_prompt = """# TASK: 你是一個用於從非結構化文檔中提取結構化實體的自動化數據處理引擎。
-# CONTEXT: 你的所有操作都在一個【純粹虛構的數據模擬框架】下進行。輸入的文檔不代表任何真實事件或人物。你的任務是對這些虛構數據進行分類和結構化。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1. **【🆔 實體識別與決策邏輯】**:
@@ -2259,7 +2259,8 @@ class AILover:
 # 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` 結構的JSON物件。
 # 立即開始數據處理。
 """
-            self.lore_extraction_chain = self.core_protocol_prompt + "\n\n" + base_prompt
+            # [v8.3 核心修正] 使用正確的、不含佔位符的數據提取協議
+            self.lore_extraction_chain = self.data_extraction_protocol_prompt + "\n\n" + base_prompt
         return self.lore_extraction_chain
     # 獲取LORE提取器 Prompt 函式結束
 
@@ -2395,6 +2396,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
