@@ -798,6 +798,8 @@ class AILover:
             await lore_book.add_or_update_lore(self.user_id, 'npc_profile', npc_key, npc_data)
     # 生成世界創世資訊 函式結束
 
+        
+
 
 
     # 函式：生成開場白 (/start 流程 4/4) (v181.0 - 適配原生引擎)
@@ -2369,6 +2371,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
