@@ -1135,40 +1135,43 @@ class BotCog(commands.Cog):
 
     
 
-# src/discord_bot.py 的 _background_process_canon 函式 (v1.0 - 參數修正)
-# 更新紀錄:
-# v1.0 (2025-09-23): [災難性BUG修復] 修正了對 ai_instance.parse_and_create_lore_from_canon 的呼叫，移除了多餘的參數（interaction, is_setup_flow），使其符合函式定義，解決了 TypeError 崩潰問題。
-# 函式：在背景處理世界聖經文本
-async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
-    user_id = str(interaction.user.id)
-    user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
-    try:
-        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
-        if not ai_instance:
-            await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
-            return
-        if len(content_text) > 5000:
-            await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
-        if not ai_instance.vector_store:
-            await ai_instance._configure_pre_requisites()
-        
-        chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-        
-        if is_setup_flow:
-            await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
-            asyncio.create_task(self.finalize_setup(interaction, content_text))
-            return
+    # 函式：在背景處理世界聖經文本
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [災難性BUG修復] 修正了對 ai_instance.parse_and_create_lore_from_canon 的呼叫，移除了多餘的參數，以解決 TypeError: takes 2 positional arguments but 4 were given 的問題。
+    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+        user_id = str(interaction.user.id)
+        user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
+        try:
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
+            if not ai_instance:
+                await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
+                return
+            if len(content_text) > 5000:
+                await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
+            if not ai_instance.vector_store:
+                await ai_instance._configure_pre_requisites()
+            
+            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
+            
+            if is_setup_flow:
+                await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
+                asyncio.create_task(self.finalize_setup(interaction, content_text))
+                return
 
-        await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段，現在AI可以在對話中回憶起這些內容了。\n\n🧠 接下來，AI 正在進行更深層的智能解析，將其轉化為結構化的 LORE 數據庫...")
-        
-        # [v1.0 核心修正] 修正了函式呼叫，只傳遞必要的 content_text 參數
-        await ai_instance.parse_and_create_lore_from_canon(content_text)
-        
-        await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
-    except Exception as e:
-        logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
-        await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
-# 在背景處理世界聖經文本 函式結束
+            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段，現在AI可以在對話中回憶起這些內容了。\n\n🧠 接下來，AI 正在進行更深層的智能解析，將其轉化為結構化的 LORE 數據庫...")
+            
+            # [v1.0 核心修正] 修正了此處的函式呼叫，只傳遞必要的 content_text 參數。
+            await ai_instance.parse_and_create_lore_from_canon(content_text)
+            
+            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+        except Exception as e:
+            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
+    # 函式：在背景處理世界聖經文本
+
+
+
+    
     
 # 函式：開始 /start 指令的重置流程 (v52.2 - 導入修正)
 # 更新紀錄:
