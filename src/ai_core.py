@@ -94,7 +94,7 @@ class AILover:
     
     # 函式：初始化AI核心 (v227.1 - 統一命名規範)
     # 更新紀錄:
-    # v227.1 (2025-09-22): [健壯性] 統一了所有Prompt鏈緩存屬性的命名規範（統一為 `..._chain`），以修正因命名不一致導致的 AttributeError。
+    # v227.1 (2025-09-23): [災難性BUG修復] 根據 AttributeError Log，補全了所有在 get_... 方法中用作快取的屬性（如 profile_completion_prompt）在 __init__ 中的初始化定義，確保屬性存在性檢查不會失敗。同時統一了所有Prompt鏈緩存屬性的命名規範。
     # v227.0 (2025-09-22): [架構擴展] 新增 self.forensic_lore_reconstruction_chain 屬性。
     # v226.0 (2025-09-22): [架構簡化] 移除了多餘的協議屬性。
     def __init__(self, user_id: str):
@@ -116,18 +116,22 @@ class AILover:
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
         
-        # --- 所有 get_..._chain 輔助鏈的佔位符 ---
+        # --- 所有 get_..._chain/prompt 輔助鏈的佔位符 ---
+        # [v227.1 核心修正] 確保所有用作快取的屬性都在此處初始化
         self.forensic_lore_reconstruction_chain: Optional[str] = None
         self.batch_entity_resolution_chain: Optional[str] = None
         self.single_entity_resolution_chain: Optional[str] = None
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
-        self.profile_completion_chain: Optional[str] = None # 原名 profile_completion_prompt
-        self.profile_parser_chain: Optional[str] = None # 原名 profile_parser_prompt
-        self.profile_rewriting_chain: Optional[str] = None # 原名 profile_rewriting_prompt
+        self.profile_completion_prompt: Optional[str] = None # <-- 修正點
+        self.profile_parser_prompt: Optional[str] = None # <-- 修正點
+        self.profile_rewriting_prompt: Optional[str] = None # <-- 修正點
         self.rag_summarizer_chain: Optional[str] = None
         self.literary_euphemization_chain: Optional[str] = None
         self.euphemization_reconstruction_chain: Optional[str] = None
+        self.canon_transformation_chain: Optional[str] = None # <-- 修正點
+        self.lore_refinement_chain: Optional[str] = None # <-- 修正點
+        self.lore_extraction_chain: Optional[str] = None # <-- 修正點
         
         # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
@@ -2632,6 +2636,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
