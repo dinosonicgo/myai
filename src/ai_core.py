@@ -1925,9 +1925,9 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v4.2 (2025-09-23): [成本優化] 重構了重試邏輯，實現了“逐級模型升級”。當解析失敗時，不再直接跳到最強的 pro 模型，而是嚴格按照 FUNCTIONAL_MODEL -> GENERATION_MODEL_PRIORITY 列表的順序逐級嘗試，以在保證成功率的同時最大限度地節約 API 成本。
+    # v4.3 (2025-09-23): [災難性BUG修復] 根據 TypeError Log，修正了 RecursiveCharacterTextSplitter 的初始化參數，將已過時的 `overlap` 替換為當前版本所需的 `chunk_overlap`，以解決因 LangChain 函式庫 API 變更而導致的啟動崩潰問題。
+    # v4.2 (2025-09-23): [成本優化] 重構了重試邏輯，實現了“逐級模型升級”。
     # v4.1 (2025-09-23): [災難性BUG修復] 修正了 except 區塊中的 SyntaxError。
-    # v4.0 (2025-09-23): [根本性重構] 整合了“解構-重構”委婉化策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和逐級模型升級策略繞過審查。"""
         if not canon_text or not self.profile:
@@ -1936,8 +1936,9 @@ class CanonParsingResult(BaseModel):
 
         logger.info(f"[{self.user_id}] 開始智能解析世界聖經文本 (總長度: {len(canon_text)})...")
 
+        # [v4.3 核心修正] 將 `overlap` 參數更名為 `chunk_overlap`
         text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=4000, overlap=200, separators=["\n\n\n", "\n\n", "\n", " ", ""]
+            chunk_size=4000, chunk_overlap=200, separators=["\n\n\n", "\n\n", "\n", " ", ""]
         )
         text_chunks = text_splitter.split_text(canon_text)
         logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(text_chunks)} 個文本塊進行處理...")
@@ -1946,7 +1947,6 @@ class CanonParsingResult(BaseModel):
         total_chunks = len(text_chunks)
         transformation_template = self.get_canon_transformation_chain()
         
-        # [v4.2 核心修正] 創建一個有序、不重複的模型嘗試列表
         models_to_attempt = [FUNCTIONAL_MODEL]
         for m in self.model_priority_list:
             if m not in models_to_attempt:
@@ -1958,12 +1958,10 @@ class CanonParsingResult(BaseModel):
             is_chunk_successful = False
             last_error = None
             
-            # [v4.2 核心修正] 遍歷模型列表進行逐級嘗試
             for attempt_index, model_to_use in enumerate(models_to_attempt):
                 try:
                     full_prompt = transformation_template.format(canon_text=chunk)
                     
-                    # 第一次之後的所有嘗試都視為強化重試
                     if attempt_index > 0:
                         logger.warning(f"[{self.user_id}] 文本塊 {i} 上一嘗試失敗。正在強化並升級模型至 [{model_to_use}]...")
                         full_prompt = self.core_protocol_prompt + "\n\n" + full_prompt
@@ -1971,14 +1969,13 @@ class CanonParsingResult(BaseModel):
                     parsing_result = await self.ainvoke_with_rotation(
                         full_prompt,
                         output_schema=CanonParsingResult,
-                        retry_strategy='none', # 我們在此處手動控制重試和升級
+                        retry_strategy='none',
                         models_to_try_override=[model_to_use]
                     )
                     
                     if not parsing_result: 
                         raise ValueError(f"模型 [{model_to_use}] 返回了空值。")
 
-                    # --- 統一的儲存邏輯 ---
                     save_tasks = [
                         self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'),
                         self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'),
@@ -1992,18 +1989,17 @@ class CanonParsingResult(BaseModel):
                     logger.info(f"[{self.user_id}] 文本塊 {i} 使用模型 [{model_to_use}] 解析並儲存成功。")
                     successful_chunks += 1
                     is_chunk_successful = True
-                    break # 當前塊成功，跳出模型升級循環
+                    break
 
                 except Exception as e:
                     last_error = e
                     logger.warning(f"[{self.user_id}] 文本塊 {i} 使用模型 [{model_to_use}] 嘗試失敗: {type(e).__name__}: {str(e).splitlines()[0]}")
                     if attempt_index < len(models_to_attempt) - 1:
-                        await asyncio.sleep(2) # 等待一下再用下一個模型重試
+                        await asyncio.sleep(2)
                     else:
                         logger.error(f"[{self.user_id}] 文本塊 {i} 在嘗試所有模型後最終失敗。最後錯誤: {last_error}", exc_info=False)
 
             if not is_chunk_successful:
-                # 這裡可以選擇性地處理最終失敗的塊，例如記錄到一個特定的日誌文件中
                 pass
 
         logger.info(f"[{self.user_id}] 世界聖經智能解析與 LORE 創建完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
@@ -2446,6 +2442,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
