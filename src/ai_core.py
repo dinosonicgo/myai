@@ -2233,11 +2233,10 @@ class AILover:
     
 
 
-    # 函式：檢索並摘要記憶 (v12.1 - 完整性修復)
+    # 函式：檢索並摘要記憶 (v12.2 - 原生模板重構)
     # 更新紀錄:
-    # v12.1 (2025-11-15): [完整性修復] 根據使用者要求，提供了此函式的完整、未省略的版本。
-    # v12.0 (2025-11-15): [災難性BUG修復 & 性能優化] 徹底重構了此函式以實現【持久化淨化快取】。
-    # v11.0 (2025-11-15): [災難性BUG修復] 改為“逐一淨化，安全拼接”策略。
+    # v12.2 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt。
+    # v12.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
         """執行RAG檢索並將結果總結為摘要。採用【持久化淨化快取】策略以確保性能和穩定性。"""
         if not self.retriever and not self.bm25_retriever:
@@ -2269,7 +2268,7 @@ class AILover:
         
         safely_sanitized_parts = []
         docs_to_update_in_db = {}
-        literary_prompt_obj = self.get_literary_euphemization_chain()
+        literary_prompt_template = self.get_literary_euphemization_chain()
 
         async with AsyncSessionLocal() as session:
             for i, doc in enumerate(retrieved_docs):
@@ -2285,7 +2284,7 @@ class AILover:
 
                 logger.info(f"[{self.user_id}] (RAG Cache) 快取未命中 for Memory ID #{memory_entry.id}，執行一次性淨化...")
                 try:
-                    literary_full_prompt = literary_prompt_obj.format_prompt(dialogue_history=doc.page_content).to_string()
+                    literary_full_prompt = literary_prompt_template.format(dialogue_history=doc.page_content)
                     sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none')
                     if sanitized_part and sanitized_part.strip():
                         sanitized_text = sanitized_part.strip()
@@ -2310,8 +2309,8 @@ class AILover:
         safe_overview_of_all_docs = "\n\n---\n\n".join(safely_sanitized_parts)
         logger.info(f"[{self.user_id}] (RAG Summarizer) 成功淨化 {len(safely_sanitized_parts)}/{len(retrieved_docs)} 份文檔，正在進行最終摘要...")
         
-        summarizer_prompt_obj = self.get_rag_summarizer_chain()
-        summarizer_full_prompt = summarizer_prompt_obj.format_prompt(documents=safe_overview_of_all_docs).to_string()
+        summarizer_prompt_template = self.get_rag_summarizer_chain()
+        summarizer_full_prompt = summarizer_prompt_template.format(documents=safe_overview_of_all_docs)
         summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='none')
 
         if not summarized_context or not summarized_context.strip():
@@ -2321,6 +2320,12 @@ class AILover:
         logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # 檢索並摘要記憶 函式結束
+            
+
+
+
+
+    
 
 # 函式：將互動記錄保存到資料庫 (v10.0 - 純 SQL)
 # 更新紀錄:
@@ -2353,6 +2358,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
