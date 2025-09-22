@@ -2184,40 +2184,32 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v7.2 - 移除轉義大括號)
-# 更新紀錄:
-# v7.2 (2025-09-22): [災難性BUG修復] 移除了範例中的雙大括號 `{{ }}` 轉義序列。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因混合使用真實佔位符和轉義符號而引發的 `KeyError`。
-# v7.1 (2025-09-22): [災難性BUG修復] 簡化了【可用 LORE 工具列表】中的語法。
-# v7.0 (2025-09-22): [災難性BUG修復] 引入了極其嚴格的【強制工具名鐵則】。
-    def get_lore_extraction_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
+    # 函式：獲取LORE提取器 Prompt (v7.3 - 原生模板重構)
+    # 更新紀錄:
+    # v7.3 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
+    # v7.2 (2025-09-22): [災難性BUG修復] 移除了範例中的雙大括號 `{{ }}` 轉義序列。
+    # v7.1 (2025-09-22): [災難性BUG修復] 簡化了【可用 LORE 工具列表】中的語法。
+    def get_lore_extraction_chain(self) -> str:
+        """獲取或創建一個專門用於從最終回應中提取新 LORE 的字符串模板。"""
         if self.lore_extraction_chain is None:
-            
             prompt_template = """# ROLE: 你是一個極其聰明且嚴謹的世界觀分析與數據提取引擎。
 # MISSION: 讀取【SOURCE DATA】，根據【RULES】進行深度分析，並以指定的 JSON 格式輸出一個包含工具調用的行動計畫。
-
 # === 【【【🚨 核心規則 (CORE RULES) - 絕對鐵則】】】 ===
 # 1. **【🛠️ 強制工具名鐵則 (TOOL NAME MANDATE) - 最高優先級】**:
 #    - 你在生成 `tool_name` 時，【必須且只能】從下方【可用 LORE 工具列表】中選擇一個【完全匹配】的名稱。
 #    - 【絕對禁止】自己發明、修改、或縮寫任何工具名稱。
 #    - **錯誤行為**: `add_or_update_npc_profile` (這是錯的!)
 #    - **正確行為**: `create_new_npc_profile` (這是對的!)
-
 # 2. **【👑 NPC 定義鐵則】**: 只有當一個實體【明確表現出能夠獨立思考、行動、或與主角進行有意義對話的潛力】時，才能被視為 NPC 並使用 `create_new_npc_profile`。
 #    - **反例 (絕對禁止)**: 一個有名字的物體、植物、或地點特徵，例如「老樹根」、「月霜果」，它們【絕對不是】NPC。
 #    - **正確行為**: 對於「老樹根」，應將其視為一個獨特的世界傳說，使用 `add_or_update_world_lore`。對於「月霜果」，應將其視為一個物品，使用 `add_or_update_item_info`。
-
 # 3. **【📝 繁體中文優先命名鐵則 (Traditional Chinese First Mandate)】**:
 #    - 在生成任何工具調用時，如果一個新實體同時具有繁體中文名和外文名，你【絕對必須】將【繁體中文名】賦值給 `standardized_name` 參數。
 #    - 外文名則應賦值給 `original_name` 參數（如果適用）。
 #    - **範例**: 對於「卡萊兒 (Carlyle)」，工具調用應為 `{"tool_name": "create_new_npc_profile", "parameters": {"standardized_name": "卡萊兒", "original_name": "Carlyle", ...}}`
-
 # 4. **【🔩 強制參數完整性鐵則】**: 對於你生成的【任何工具調用】，其 `parameters` 字典【必須包含】該工具 Pydantic 模型所需的所有【非可選】參數。
-
 # 5. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
-
 # 6. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個JSON物件，其 `plan` 鍵的值為一個空列表，例如：`{ "plan": [] }`。
-
 # --- 【可用 LORE 工具列表 (AUTHORIZED LORE TOOLS)】 ---
 # 1. `create_new_npc_profile(lore_key, standardized_name, original_name, description, location_path)`
 # 2. `update_npc_profile(lore_key, updates)`
@@ -2226,24 +2218,20 @@ class AILover:
 # 5. `define_creature_type(lore_key, standardized_name, original_name, description)`
 # 6. `add_or_update_quest_lore(lore_key, standardized_name, original_name, description)`
 # 7. `add_or_update_world_lore(lore_key, standardized_name, original_name, content)`
-
 # --- SOURCE DATA ---
 # [EXISTING_LORE]:
 {existing_lore_summary}
-
 # [USER_INPUT]:
 {user_input}
-
 # [NOVEL_TEXT]:
 {final_response_text}
-
 # --- OUTPUT FORMAT ---
 # 你的唯一輸出【必須】是一個純淨的、不包含任何其他文字的 JSON 物件。
 # 【【【警告：任何違反【強制工具名鐵則】的輸出都將導致世界觀損壞。立即開始分析並輸出結構完整且分類正確的 JSON。】】】
 """
-            self.lore_extraction_chain = ChatPromptTemplate.from_template(prompt_template)
+            self.lore_extraction_chain = prompt_template
         return self.lore_extraction_chain
-# 獲取LORE提取器 Prompt 函式結束
+    # 獲取LORE提取器 Prompt 函式結束
 
 
 
@@ -2377,6 +2365,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
