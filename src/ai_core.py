@@ -1697,6 +1697,12 @@ class AILover:
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
 # 配置前置資源 函式結束
 
+
+
+
+
+    
+
 # 函式：將世界聖經添加到知識庫 (v14.0 - 純 SQL)
 # 更新紀錄:
 # v14.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將世界聖經文本分割後存入 SQL 的 MemoryData 表中，以供 BM25 檢索器使用。
@@ -1769,12 +1775,18 @@ class AILover:
     # == ⛓️ Prompt 模板的延遲加載 (Lazy Loading) 構建器 v300.0 ⛓️
     # ==============================================================================
 
-    # 函式：獲取世界聖經解析器 Prompt (v5.0 - 極化指令)
+
+
+
+
+    
+    # 函式：獲取世界聖經解析器 Prompt (v5.1 - 原生模板重構)
     # 更新紀錄:
-    # v5.0 (2025-09-22): [健壯性強化] 引入【內容中立原則】，強制要求模型忽略文本的語義（包括NSFW內容），僅作為一個純粹的數據結構化引擎工作，以最大限度地規避內容審查。同時，修正了【世界聖經文本】標記的格式，以確保與備援鏈的正則表達式匹配。
+    # v5.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板，以徹底規避 LangChain 的格式化BUG。
+    # v5.0 (2025-09-22): [健壯性強化] 引入【內容中立原則】並修正標記。
     # v4.0 (2025-09-22): [災難性BUG修復] 新增了【繁體中文優先命名鐵則】。
-    def get_canon_parser_chain(self) -> ChatPromptTemplate:
-        """獲取或創建一個專門用於世界聖經解析的 ChatPromptTemplate 模板。"""
+    def get_canon_parser_chain(self) -> str:
+        """獲取或創建一個專門用於世界聖經解析的字符串模板。"""
         if self.canon_parser_chain is None:
             prompt_str = """你是一位極其嚴謹、一絲不苟的數據提取與結構化專家，你的職責類似於一個只會複製貼上的機器人。
 # === 【【【🚫 核心原則 - 最高禁令】】】 ===
@@ -1801,7 +1813,7 @@ class AILover:
 {canon_text}
 ---
 請嚴格遵循所有原則和規則，特別是【內容中立原則】，開始你的解析與結構化工作。"""
-            self.canon_parser_chain = ChatPromptTemplate.from_template(prompt_str)
+            self.canon_parser_chain = prompt_str
         return self.canon_parser_chain
     # 獲取世界聖經解析器 Prompt 函式結束
 
@@ -2358,6 +2370,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
