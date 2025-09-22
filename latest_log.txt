@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T20:18:59.654325 ###
+### AI Lover Log - Last updated at 2025-09-22T20:24:25.033042 ###
 
-2025-09-22 20:15:56 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖軍的雛形' 記錄為傳說。
-2025-09-22 20:16:00 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 '聖凱瑟琳學院 - 思想的無聲戰場' 記錄為傳說。
-2025-09-22 20:16:04 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for create_new_npc_profile: 1 validation error for CreateNewNpcProfileArgs
-location_path
-  Input should be a valid list [type=list_type, input_value='聖凱瑟琳學院', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1244, in _execute_tool_call_plan
     validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
@@ -100,3 +93,10 @@ location_path
 2025-09-22 20:18:48 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 20:18:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 20:18:49 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 20:24:11 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 20:24:11 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 20:24:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 20:24:11 - [INFO] - Discord Bot is ready!
+2025-09-22 20:24:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 20:24:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 20:24:14 - [INFO] - 已成功發送啟動成功通知給管理員。
