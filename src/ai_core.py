@@ -2200,11 +2200,11 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v5.2 - 擴展範例)
+# 函式：獲取LORE提取器 Prompt (v6.0 - 新增中文命名鐵則)
 # 更新紀錄:
-# v5.2 (2025-11-22): [災難性BUG修復] 在【強制參數完整性鐵則】中，為 add_or_update_world_lore 新增了一個明確的範例，確保 LLM 知道 content 是必需參數，以解決相關的 ValidationError。
+# v6.0 (2025-09-22): [災難性BUG修復] 新增了【繁體中文優先命名鐵則】，強制要求模型在生成工具調用計畫時，必須將繁體中文名賦值給 `standardized_name` 參數，以確保備援流程也能生成正確的中文 LORE。
+# v5.2 (2025-11-22): [災難性BUG修復] 在【強制參數完整性鐵則】中，為 add_or_update_world_lore 新增了一個明確的範例。
 # v5.1 (2025-11-21): [災難性BUG修復] 將【強制參數完整性鐵則】的適用範圍擴展到了所有工具調用。
-# v5.0 (2025-11-21): [災難性BUG修復] 徹底重寫了 Prompt 規則，為“NPC”提供了極其嚴格的定義。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if self.lore_extraction_chain is None:
@@ -2217,16 +2217,21 @@ class AILover:
 #    - **反例 (絕對禁止)**: 一個有名字的物體、植物、或地點特徵，例如「老樹根」、「月霜果」，它們【絕對不是】NPC。
 #    - **正確行為**: 對於「老樹根」，應將其視為一個獨特的世界傳說，使用 `add_or_update_world_lore`。對於「月霜果」，應將其視為一個物品，使用 `add_or_update_item_info`。
 
-# 2. **【💡 新實體發現原則】**: 你的核心任務是找出在 [NOVEL_TEXT] 中新引入的、有名稱的、值得記錄的實體（角色、物品、傳說等）。
+# 2. **【📝 繁體中文優先命名鐵則 (Traditional Chinese First Mandate)】**:
+#    - 在生成任何工具調用時，如果一個新實體同時具有繁體中文名和外文名，你【絕對必須】將【繁體中文名】賦值給 `standardized_name` 參數。
+#    - 外文名則應賦值給 `original_name` 參數（如果適用）。
+#    - **範例**: 對於「卡萊兒 (Carlyle)」，工具調用應為 `{"tool_name": "create_new_npc_profile", "parameters": {"standardized_name": "卡萊兒", "original_name": "Carlyle", ...}}`
 
-# 3. **【🔩 強制參數完整性鐵則 v5.2】**: 對於你生成的【任何工具調用】，其 `parameters` 字典【必須包含】該工具 Pydantic 模型所需的所有【非可選】參數。
+# 3. **【💡 新實體發現原則】**: 你的核心任務是找出在 [NOVEL_TEXT] 中新引入的、有名稱的、值得記錄的實體（角色、物品、傳說等）。
+
+# 4. **【🔩 強制參數完整性鐵則 v5.2】**: 對於你生成的【任何工具調用】，其 `parameters` 字典【必須包含】該工具 Pydantic 模型所需的所有【非可選】參數。
 #    - **範例 1 (NPC)**: `create_new_npc_profile` 調用【必須包含】 `lore_key`, `standardized_name`, `original_name`, `description`。
 #    - **範例 2 (物品)**: `add_or_update_item_info` 調用【必須包含】 `lore_key`, `standardized_name`, `original_name`, `description`。
 #    - **範例 3 (世界傳說)**: `add_or_update_world_lore` 調用【必須包含】 `lore_key`, `standardized_name`, `original_name`, `content`。
 
-# 4. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
+# 5. **【🚫 核心角色保護原則】**: 嚴禁為核心主角 "{username}" 或 "{ai_name}" 創建或更新任何 LORE。
 
-# 5. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
+# 6. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
 
 # --- SOURCE DATA ---
 # [EXISTING_LORE]:
@@ -2372,6 +2377,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
