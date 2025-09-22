@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T10:45:40.716465 ###
+### AI Lover Log - Last updated at 2025-09-22T10:51:06.313662 ###
 
-2025-09-22 01:38:37 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Triss' 創建了檔案 (主鍵: 'npc_triss')。
-2025-09-22 01:38:42 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Dixie' 創建了檔案 (主鍵: 'npc_dixie')。
-2025-09-22 01:38:46 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Arthur & Martin' 創建了檔案 (主鍵: 'npc_arthur_martin')。
-2025-09-22 01:38:50 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Mr. Alistair' 創建了檔案 (主鍵: 'npc_alistair')。
-2025-09-22 01:38:54 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Father Michael' 創建了檔案 (主鍵: 'npc_michael')。
-2025-09-22 01:38:58 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Fitch' 創建了檔案 (主鍵: 'npc_fitch')。
-2025-09-22 01:39:02 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功將 'Market Frustration' 記錄為傳說。
 2025-09-22 01:39:07 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Mrs. Gable' 創建了檔案 (主鍵: 'npc_gable')。
 2025-09-22 01:39:11 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Mia' 創建了檔案 (主鍵: 'npc_mia')。
 2025-09-22 01:39:15 - [INFO] - [512280345618546699] (LORE Executor) 任務成功: 已成功為新 NPC 'Karen' 創建了檔案 (主鍵: 'npc_karen')。
@@ -100,3 +93,10 @@ AttributeError: 'AILover' object has no attribute '_resolve_and_save'
 2025-09-22 10:45:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 10:45:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 10:45:30 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 10:50:52 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 10:50:52 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 10:50:52 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 10:50:52 - [INFO] - Discord Bot is ready!
+2025-09-22 10:50:55 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 10:50:55 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 10:50:55 - [INFO] - 已成功發送啟動成功通知給管理員。
