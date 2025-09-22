@@ -1,85 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T23:25:40.562492 ###
+### AI Lover Log - Last updated at 2025-09-22T23:30:42.755954 ###
 
-2025-09-22 23:13:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或解析錯誤: BlockedPromptException。
-2025-09-22 23:13:01 - [ERROR] - [512280345618546699] 處理文本塊 2/4 時發生無法恢復的錯誤: Prompt blocked due to PROHIBITED_CONTENT
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1930, in parse_and_create_lore_from_canon
-    chunk_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 326, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 293, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-22 23:13:01 - [INFO] - [512280345618546699] 正在本地預處理文本塊 3/4...
-2025-09-22 23:13:01 - [INFO] - [512280345618546699] 文本塊 3 預處理完成，已提取 1179 個關鍵詞。正在發送至LLM進行重構...
-2025-09-22 23:14:45 - [INFO] - [512280345618546699] 文本塊 3 重構成功！
-2025-09-22 23:14:45 - [INFO] - [512280345618546699] 正在本地預處理文本塊 4/4...
-2025-09-22 23:14:45 - [INFO] - [512280345618546699] 文本塊 4 預處理完成，已提取 948 個關鍵詞。正在發送至LLM進行重構...
-2025-09-22 23:15:52 - [INFO] - [512280345618546699] 文本塊 4 重構成功！
-2025-09-22 23:15:52 - [INFO] - [512280345618546699] 所有文本塊處理完成。總共成功重構出 0 個NPC，7 個地點。
-2025-09-22 23:15:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 0 個實體...
-2025-09-22 23:15:52 - [INFO] - [512280345618546699] (_resolve_and_save) 'npc_profile' 類別的實體處理完畢。
-2025-09-22 23:15:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 7 個實體...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 'location_info' 類別的實體處理完畢。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 0 個實體...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 'item_info' 類別的實體處理完畢。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 0 個實體...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 'creature_info' 類別的實體處理完畢。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 0 個實體...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 'quest' 類別的實體處理完畢。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 0 個實體...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (_resolve_and_save) 'world_lore' 類別的實體處理完畢。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:15:54 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
-2025-09-22 23:19:31 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 23:19:31 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 23:19:32 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 23:19:32 - [INFO] - Discord Bot is ready!
-2025-09-22 23:19:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 23:19:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 23:19:35 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-22 23:19:57 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 23:19:57 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 23:19:57 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本 (總長度: 26456)...
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 世界聖經已被分割成 4 個文本塊進行本地預處理...
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 正在本地預處理文本塊 1/4...
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 文本塊 1 預處理完成，已生成 1314 個無害化代碼。正在發送至LLM進行解碼與重構...
-2025-09-22 23:19:58 - [ERROR] - [512280345618546699] 處理文本塊 1/4 時發生無法恢復的錯誤: 'username'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1958, in parse_and_create_lore_from_canon
-    full_prompt = reconstruction_template.format(**params)
-KeyError: 'username'
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 正在本地預處理文本塊 2/4...
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 文本塊 2 預處理完成，已生成 1135 個無害化代碼。正在發送至LLM進行解碼與重構...
-2025-09-22 23:19:58 - [ERROR] - [512280345618546699] 處理文本塊 2/4 時發生無法恢復的錯誤: 'username'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1958, in parse_and_create_lore_from_canon
-    full_prompt = reconstruction_template.format(**params)
-KeyError: 'username'
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 正在本地預處理文本塊 3/4...
-2025-09-22 23:19:58 - [INFO] - [512280345618546699] 文本塊 3 預處理完成，已生成 1179 個無害化代碼。正在發送至LLM進行解碼與重構...
-2025-09-22 23:19:58 - [ERROR] - [512280345618546699] 處理文本塊 3/4 時發生無法恢復的錯誤: 'username'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1958, in parse_and_create_lore_from_canon
-    full_prompt = reconstruction_template.format(**params)
-KeyError: 'username'
 2025-09-22 23:19:58 - [INFO] - [512280345618546699] 正在本地預處理文本塊 4/4...
 2025-09-22 23:19:58 - [INFO] - [512280345618546699] 文本塊 4 預處理完成，已生成 948 個無害化代碼。正在發送至LLM進行解碼與重構...
 2025-09-22 23:19:58 - [ERROR] - [512280345618546699] 處理文本塊 4/4 時發生無法恢復的錯誤: 'username'
@@ -100,3 +20,83 @@ KeyError: 'username'
 2025-09-22 23:25:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-22 23:25:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-22 23:25:30 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-22 23:26:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-22 23:26:20 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-22 23:26:20 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
+2025-09-22 23:26:21 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
+2025-09-22 23:26:22 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本 (總長度: 26456)...
+2025-09-22 23:26:22 - [INFO] - [512280345618546699] 世界聖經已被分割成 4 個文本塊進行本地預處理...
+2025-09-22 23:26:22 - [INFO] - [512280345618546699] 正在本地預處理文本塊 1/4...
+2025-09-22 23:26:22 - [INFO] - [512280345618546699] 文本塊 1 預處理完成，已生成 1314 個無害化代碼。正在發送至LLM進行解碼與重構...
+2025-09-22 23:27:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或解析錯誤: ValidationError。
+2025-09-22 23:27:43 - [ERROR] - [512280345618546699] 處理文本塊 1/4 時發生無法恢復的錯誤: 4 validation errors for CanonParsingResult
+locations.0.name
+  Field required [type=missing, input_value={'location_id': 'LOC_VERI...新秩序的建立。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.1.name
+  Field required [type=missing, input_value={'location_id': 'LOC_ACAD...戰爭的最前線。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.2.name
+  Field required [type=missing, input_value={'location_id': 'LOC_SLUM...生的神蹟見證。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.3.name
+  Field required [type=missing, input_value={'location_id': 'LOC_ROYA...了絕佳的機會。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1974, in parse_and_create_lore_from_canon
+    chunk_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 326, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 308, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 4 validation errors for CanonParsingResult
+locations.0.name
+  Field required [type=missing, input_value={'location_id': 'LOC_VERI...新秩序的建立。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.1.name
+  Field required [type=missing, input_value={'location_id': 'LOC_ACAD...戰爭的最前線。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.2.name
+  Field required [type=missing, input_value={'location_id': 'LOC_SLUM...生的神蹟見證。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+locations.3.name
+  Field required [type=missing, input_value={'location_id': 'LOC_ROYA...了絕佳的機會。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-22 23:27:43 - [INFO] - [512280345618546699] 正在本地預處理文本塊 2/4...
+2025-09-22 23:27:43 - [INFO] - [512280345618546699] 文本塊 2 預處理完成，已生成 1135 個無害化代碼。正在發送至LLM進行解碼與重構...
+2025-09-22 23:27:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或解析錯誤: BlockedPromptException。
+2025-09-22 23:27:45 - [ERROR] - [512280345618546699] 處理文本塊 2/4 時發生無法恢復的錯誤: Prompt blocked due to PROHIBITED_CONTENT
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1974, in parse_and_create_lore_from_canon
+    chunk_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 326, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 293, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-22 23:27:45 - [INFO] - [512280345618546699] 正在本地預處理文本塊 3/4...
+2025-09-22 23:27:45 - [INFO] - [512280345618546699] 文本塊 3 預處理完成，已生成 1179 個無害化代碼。正在發送至LLM進行解碼與重構...
+2025-09-22 23:28:49 - [INFO] - [512280345618546699] 文本塊 3 重構成功！
+2025-09-22 23:28:49 - [INFO] - [512280345618546699] 正在本地預處理文本塊 4/4...
+2025-09-22 23:28:49 - [INFO] - [512280345618546699] 文本塊 4 預處理完成，已生成 948 個無害化代碼。正在發送至LLM進行解碼與重構...
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] 文本塊 4 重構成功！
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] 所有文本塊處理完成。總共成功重構出 0 個NPC，0 個地點。
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-22 23:29:57 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
