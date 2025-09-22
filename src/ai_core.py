@@ -2192,11 +2192,11 @@ class AILover:
 
     
 
-# 函式：獲取LORE提取器 Prompt (v7.0 - 終極備援強化)
+# 函式：獲取LORE提取器 Prompt (v7.1 - 簡化Prompt語法)
 # 更新紀錄:
-# v7.0 (2025-09-22): [災難性BUG修復] 引入了極其嚴格的【強制工具名鐵則】，並提供了所有可用LORE工具的明確列表和Pydantic模型定義。此修改旨在從根本上杜絕AI幻覺出不存在的工具名稱（如 'add_or_update_npc_profile'），確保備援鏈生成的工具調用計畫100%可執行。
+# v7.1 (2025-09-22): [災難性BUG修復] 簡化了【可用 LORE 工具列表】中的語法，移除了所有Python風格的類型提示（如 `: str`, `Dict[str, Any]`）。此修改旨在避免與LangChain底層的字符串格式化引擎發生衝突，從根本上解決了因此引發的、導致整個備援鏈崩潰的 `KeyError`。
+# v7.0 (2025-09-22): [災難性BUG修復] 引入了極其嚴格的【強制工具名鐵則】。
 # v6.0 (2025-09-22): [災難性BUG修復] 新增了【繁體中文優先命名鐵則】。
-# v5.2 (2025-11-22): [災難性BUG修復] 在【強制參數完整性鐵則】中新增了範例。
     def get_lore_extraction_chain(self) -> ChatPromptTemplate:
         """獲取或創建一個專門用於從最終回應中提取新 LORE 的 ChatPromptTemplate 模板。"""
         if self.lore_extraction_chain is None:
@@ -2227,13 +2227,13 @@ class AILover:
 # 6. **【🗑️ 空計畫原則】**: 如果分析後沒有發現任何新的或需要更新的LORE，則返回一個空的 plan: `{{ "plan": [] }}`。
 
 # --- 【可用 LORE 工具列表 (AUTHORIZED LORE TOOLS)】 ---
-# 1. `create_new_npc_profile(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: Optional[List[str]] = [])`
-# 2. `update_npc_profile(lore_key: str, updates: Dict[str, Any])`
-# 3. `add_or_update_location_info(lore_key: str, standardized_name: str, original_name: str, description: str)`
-# 4. `add_or_update_item_info(lore_key: str, standardized_name: str, original_name: str, description: str, ...)`
-# 5. `define_creature_type(lore_key: str, standardized_name: str, original_name: str, description: str)`
-# 6. `add_or_update_quest_lore(lore_key: str, standardized_name: str, original_name: str, description: str, ...)`
-# 7. `add_or_update_world_lore(lore_key: str, standardized_name: str, original_name: str, content: str)`
+# 1. `create_new_npc_profile(lore_key, standardized_name, original_name, description, location_path)`
+# 2. `update_npc_profile(lore_key, updates)`
+# 3. `add_or_update_location_info(lore_key, standardized_name, original_name, description)`
+# 4. `add_or_update_item_info(lore_key, standardized_name, original_name, description)`
+# 5. `define_creature_type(lore_key, standardized_name, original_name, description)`
+# 6. `add_or_update_quest_lore(lore_key, standardized_name, original_name, description)`
+# 7. `add_or_update_world_lore(lore_key, standardized_name, original_name, content)`
 
 # --- SOURCE DATA ---
 # [EXISTING_LORE]:
@@ -2380,6 +2380,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
