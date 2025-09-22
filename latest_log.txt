@@ -1,102 +1,102 @@
-### AI Lover Log - Last updated at 2025-09-22T12:43:11.593798 ###
+### AI Lover Log - Last updated at 2025-09-22T12:48:13.812229 ###
 
-    message = message_template.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
-    return [self.format(**kwargs)]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
-    text = self.prompt.format(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
-    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
-    return self.vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
-    return super().vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 165, in vformat
-    result, _ = self._vformat(format_string, args, kwargs, used_args, 2)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 205, in _vformat
-    obj, arg_used = self.get_field(field_name, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 270, in get_field
-    obj = self.get_value(first, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
-    return kwargs[key]
-KeyError: '"tool_name"'
-2025-09-22 11:48:22 - [INFO] - [512280345618546699] 正在解析文本塊 4/4...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 1/3] 嘗試主要解析鏈...
-2025-09-22 11:48:27 - [WARNING] - [512280345618546699] [階段 1/3] 主要解析失敗: '"name"'。進入下一階段。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 2/3] 嘗試委婉化重試策略...
-2025-09-22 11:48:27 - [WARNING] - [512280345618546699] [階段 2/3] 委婉化重試失敗。進入終極備援。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] [階段 3/3] 啟動終極備援：原文 LORE 提取...
-2025-09-22 11:48:27 - [ERROR] - [512280345618546699] [階段 3/3] 終極備援流程執行時發生未知錯誤: '"tool_name"'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1887, in parse_and_create_lore_from_canon
-    full_prompt = canon_parser_prompt_obj.format_prompt(canon_text=doc.page_content).to_string()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 727, in format_prompt
-    messages = self.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 1188, in format_messages
-    message = message_template.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
-    return [self.format(**kwargs)]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
-    text = self.prompt.format(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
-    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
-    return self.vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
-    return super().vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 165, in vformat
-    result, _ = self._vformat(format_string, args, kwargs, used_args, 2)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 205, in _vformat
-    obj, arg_used = self.get_field(field_name, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 270, in get_field
-    obj = self.get_value(first, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
-    return kwargs[key]
-KeyError: '"name"'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1917, in parse_and_create_lore_from_canon
-    extraction_prompt = extraction_prompt_obj.format_prompt(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 727, in format_prompt
-    messages = self.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 1188, in format_messages
-    message = message_template.format_messages(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
-    return [self.format(**kwargs)]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
-    text = self.prompt.format(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
-    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
-    return self.vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
-    return super().vformat(format_string, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 165, in vformat
-    result, _ = self._vformat(format_string, args, kwargs, used_args, 2)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 205, in _vformat
-    obj, arg_used = self.get_field(field_name, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 270, in get_field
-    obj = self.get_value(first, args, kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
-    return kwargs[key]
-KeyError: '"tool_name"'
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] 所有文本塊解析完成。總共通過主解析鏈/委婉化備援提取到 0 個NPC，0 個地點。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'npc_profile' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'location_info' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'item_info' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'creature_info' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'quest' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 0 個實體...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (_resolve_and_save) 'world_lore' 類別的實體處理完畢。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] 世界聖經智能解析與 LORE 創建完成。
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
-2025-09-22 11:48:27 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 36 條文檔用於構建 BM25。
 2025-09-22 11:48:27 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
 2025-09-22 11:48:27 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 15 份文檔，正在檢查淨化快取...
+2025-09-22 12:44:28 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #16，執行一次性淨化...
+2025-09-22 12:44:31 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #15，執行一次性淨化...
+2025-09-22 12:44:34 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #14，執行一次性淨化...
+2025-09-22 12:44:36 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #13，執行一次性淨化...
+2025-09-22 12:44:37 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #12，執行一次性淨化...
+2025-09-22 12:44:39 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #11，執行一次性淨化...
+2025-09-22 12:44:42 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #10，執行一次性淨化...
+2025-09-22 12:44:44 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #9，執行一次性淨化...
+2025-09-22 12:44:46 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #8，執行一次性淨化...
+2025-09-22 12:44:48 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #7，執行一次性淨化...
+2025-09-22 12:44:50 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #6，執行一次性淨化...
+2025-09-22 12:44:52 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #5，執行一次性淨化...
+2025-09-22 12:44:54 - [INFO] - [512280345618546699] (RAG Cache) 快取未命中 for Memory ID #4，執行一次性淨化...
+2025-09-22 12:44:55 - [INFO] - [512280345618546699] (RAG Cache) 已成功將 13 條新淨化的記憶寫回快取。
+2025-09-22 12:44:55 - [INFO] - [512280345618546699] (RAG Summarizer) 成功淨化 13/15 份文檔，正在進行最終摘要...
+2025-09-22 12:45:00 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
+2025-09-22 12:45:00 - [INFO] - [512280345618546699] [上下文篩選] 核心目標: [], 背景角色: ['埃爾文', '莉莉絲']
+2025-09-22 12:45:00 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-22 12:45:40 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-22 12:45:40 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-22 12:45:45 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-22 12:45:45 - [ERROR] - [512280345618546699] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: '"tool_name"'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 484, in _background_lore_extraction
+    full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 727, in format_prompt
+    messages = self.format_messages(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 1188, in format_messages
+    message = message_template.format_messages(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
+    return [self.format(**kwargs)]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
+    text = self.prompt.format(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
+    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
+    return self.vformat(format_string, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
+    return super().vformat(format_string, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 165, in vformat
+    result, _ = self._vformat(format_string, args, kwargs, used_args, 2)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 205, in _vformat
+    obj, arg_used = self.get_field(field_name, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 270, in get_field
+    obj = self.get_value(first, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
+    return kwargs[key]
+KeyError: '"tool_name"'
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] [導演視角] 遠程觀察目標設定為: ['米婭在聖露修道院', '日常']
+2025-09-22 12:46:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-22 12:47:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-22 12:47:00 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-22 12:47:00 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 15 份文檔，正在檢查淨化快取...
+2025-09-22 12:47:00 - [INFO] - [512280345618546699] (RAG Summarizer) 成功淨化 13/15 份文檔，正在進行最終摘要...
+2025-09-22 12:47:04 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
+2025-09-22 12:47:04 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-22 12:47:46 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-22 12:47:46 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-22 12:47:51 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-22 12:47:51 - [ERROR] - [512280345618546699] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: '"tool_name"'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 484, in _background_lore_extraction
+    full_prompt = prompt_template_obj.format_prompt(**extraction_params).to_string()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 727, in format_prompt
+    messages = self.format_messages(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 1188, in format_messages
+    message = message_template.format_messages(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 560, in format_messages
+    return [self.format(**kwargs)]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\chat.py", line 593, in format
+    text = self.prompt.format(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\prompts\prompt.py", line 186, in format
+    return DEFAULT_FORMATTER_MAPPING[self.template_format](self.template, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 161, in format
+    return self.vformat(format_string, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\utils\formatting.py", line 33, in vformat
+    return super().vformat(format_string, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 165, in vformat
+    result, _ = self._vformat(format_string, args, kwargs, used_args, 2)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 205, in _vformat
+    obj, arg_used = self.get_field(field_name, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 270, in get_field
+    obj = self.get_value(first, args, kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\string.py", line 227, in get_value
+    return kwargs[key]
+KeyError: '"tool_name"'
