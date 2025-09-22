@@ -2107,14 +2107,14 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“兩階段精煉”策略的第二階段。它會在粗提取成功後啟動，遍歷所有新生成的LORE骨架，返回原始聖經文本中查找相關細節，並調用一個專門的精煉鏈來填充這些細節，極大提升LORE的資訊密度。
+    # v1.1 (2025-09-23): [災難性BUG修復] 修正了因向 ainvoke_with_rotation 傳遞了錯誤的 output_schema (<class 'dict'>) 而導致的嚴重錯誤。新增了一個 category 到 Pydantic 模型的映射字典，確保在調用時能為不同類型的 LORE 動態地提供正確的、可驗證的 Pydantic 模型類，從而解決了精煉流程完全失敗的問題。
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“兩階段精煉”策略的第二階段。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 遍歷由 canon_parser 創建的 LORE 骨架，並使用一個專門的鏈來從原始文本中填充缺失的細節。"""
         await asyncio.sleep(5) # 稍微延遲，等待資料庫寫入完成
         logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。")
 
         try:
-            # 1. 獲取所有由第一階段生成的 LORE
             lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
             if not lores_to_refine:
                 logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 LORE 條目。")
@@ -2123,46 +2123,58 @@ class CanonParsingResult(BaseModel):
             logger.info(f"[{self.user_id}] [LORE精煉] 發現 {len(lores_to_refine)} 條LORE骨架需要精煉。")
             refinement_template = self.get_lore_refinement_chain()
 
+            # [v1.1 核心修正] 創建一個從 category 字符串到 Pydantic 模型的映射
+            model_map = {
+                "npc_profile": CharacterProfile,
+                "location_info": LocationInfo,
+                "item_info": ItemInfo,
+                "creature_info": CreatureInfo,
+                "quest": Quest,
+                "world_lore": WorldLore
+            }
+
             for lore in lores_to_refine:
                 try:
                     entity_name = lore.content.get('name') or lore.content.get('title')
                     if not entity_name:
                         continue
+                    
+                    # 從映射中獲取對應的 Pydantic 模型
+                    TargetModel = model_map.get(lore.category)
+                    if not TargetModel:
+                        logger.warning(f"[{self.user_id}] [LORE精煉] 找不到類別 '{lore.category}' 對應的 Pydantic 模型，跳過精煉。")
+                        continue
 
-                    # 2. 在原始文本中找到所有相關段落
-                    # 這裡使用一個簡單的正則表達式來查找包含實體名稱的句子或段落
                     relevant_paragraphs = re.findall(r'([^.!?\n]*' + re.escape(entity_name) + r'[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
                     if not relevant_paragraphs:
                         continue
                     
                     relevant_context = "\n".join(relevant_paragraphs).strip()
                     
-                    # 3. 調用精煉鏈
                     refinement_prompt = refinement_template.format(
                         existing_lore_json=json.dumps(lore.content, ensure_ascii=False, indent=2),
                         original_text_context=relevant_context
                     )
                     
-                    # 使用最強的模型來確保細節提取的質量
+                    # [v1.1 核心修正] 傳遞正確的 Pydantic 模型類
                     refined_lore_data = await self.ainvoke_with_rotation(
                         refinement_prompt,
-                        output_schema=type(lore.content), # 動態使用對應的 Pydantic 模型
+                        output_schema=TargetModel, # <--- 修正點
                         retry_strategy='none',
                         models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
                     )
 
                     if refined_lore_data:
-                        # 4. 更新資料庫
                         await lore_book.add_or_update_lore(
                             user_id=self.user_id,
                             category=lore.category,
                             key=lore.key,
-                            content=refined_lore_data,
-                            source='canon_refiner' # 將來源更新為精煉器
+                            content=refined_lore_data.model_dump(), # <-- 使用 .model_dump() 獲取字典
+                            source='canon_refiner'
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新 '{entity_name}' 的 LORE。")
                     
-                    await asyncio.sleep(1) # 防止 API 速率過快
+                    await asyncio.sleep(1)
 
                 except Exception as e:
                     entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
@@ -2173,6 +2185,10 @@ class CanonParsingResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
+
+
+
+    
     
     # 函式：獲取LORE細節精煉器 Prompt
     # 更新紀錄:
@@ -2636,6 +2652,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
