@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T01:48:28.535258 ###
+### AI Lover Log - Last updated at 2025-09-23T01:53:18.264112 ###
 
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '母畜' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莊園' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '臭魚巷' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '聖胎儀式' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '輪姦治療' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '掀裙祈禱' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '民間神學理論' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '聖光明教會夏卡爾' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '舊世界秩序' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 01:33:35 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生錯誤: Replacement index 0 out of range for positional args tuple
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2129, in _background_lore_refinement
     "location_info": LocationInfo,
 NameError: name 'LocationInfo' is not defined
+2025-09-23 01:53:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 01:53:04 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 01:53:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 01:53:04 - [INFO] - Discord Bot is ready!
+2025-09-23 01:53:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 01:53:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 01:53:07 - [INFO] - 已成功發送啟動成功通知給管理員。
