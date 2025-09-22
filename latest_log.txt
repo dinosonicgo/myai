@@ -1,36 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T00:00:43.147813 ###
+### AI Lover Log - Last updated at 2025-09-23T00:03:40.328842 ###
 
-2025-09-22 23:37:27 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:37:27 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
-2025-09-22 23:40:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-22 23:40:54 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-22 23:40:54 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-22 23:40:54 - [INFO] - Discord Bot is ready!
-2025-09-22 23:40:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-22 23:40:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-22 23:40:57 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-22 23:42:01 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 23:42:01 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-22 23:42:01 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-22 23:42:02 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-22 23:42:02 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-22 23:42:02 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
-2025-09-22 23:42:02 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-22 23:42:02 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-22 23:42:03 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-22 23:42:04 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-22 23:42:04 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本 (總長度: 26456)...
-2025-09-22 23:42:04 - [INFO] - [512280345618546699] 世界聖經已被分割成 4 個文本塊進行本地預處理...
-2025-09-22 23:42:04 - [INFO] - [512280345618546699] 正在本地預處理文本塊 1/4...
-2025-09-22 23:42:04 - [INFO] - [512280345618546699] 文本塊 1 預處理完成，已生成 44 個無害化代碼。正在發送至LLM進行解碼與重構...
-2025-09-22 23:42:04 - [ERROR] - [512280345618546699] 處理文本塊 1/4 時發生無法恢復的錯誤: '"description"'
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2026, in parse_and_create_lore_from_canon
     full_prompt = reconstruction_template.format(**params)
 KeyError: '"description"'
@@ -100,3 +69,34 @@ TypeError: AILover.parse_and_create_lore_from_canon() takes 2 positional argumen
 2025-09-23 00:00:28 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
 2025-09-23 00:00:29 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-09-23 00:00:29 - [INFO] - Discord Bot is ready!
+2025-09-23 00:01:21 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 00:01:21 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 00:01:24 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-23 00:01:28 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-23 00:01:28 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-23 00:01:28 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 57 條文檔用於構建 BM25。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
+2025-09-23 00:01:29 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
+2025-09-23 00:01:30 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: AILover.parse_and_create_lore_from_canon() takes 2 positional arguments but 4 were given
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1161, in _background_process_canon
+    await ai_instance.parse_and_create_lore_from_canon(interaction, content_text, is_setup_flow)
+TypeError: AILover.parse_and_create_lore_from_canon() takes 2 positional arguments but 4 were given
+2025-09-23 00:03:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 00:03:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 00:03:27 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 00:03:27 - [INFO] - Discord Bot is ready!
+2025-09-23 00:03:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 00:03:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 00:03:30 - [INFO] - 已成功發送啟動成功通知給管理員。
