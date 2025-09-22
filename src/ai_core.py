@@ -2001,11 +2001,11 @@ class AILover:
 
 
     
-    # 函式：獲取世界創世 Prompt (v207.1 - 原生模板重構)
+    # 函式：獲取世界創世 Prompt (v207.2 - 轉義大括號)
     # 更新紀錄:
+    # v207.2 (2025-09-22): [災難性BUG修復] 對模板中作為JSON範例顯示的所有字面大括號 `{` 和 `}` 進行了轉義（改為 `{{` 和 `}}`），以防止其被 Python 的 `.format()` 方法錯誤地解析為佔位符，從而解決了因此引發的 `KeyError`。
     # v207.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
-    # v207.0 (2025-09-22): [災難性BUG修復] 移除了範例JSON中的雙大括號 `{{ }}` 轉義序列。
-    # v206.0 (2025-11-13): [災難性BUG修復] 根據 Pydantic ValidationError，徹底重寫了此函式的 Prompt。
+    # v207.0 (2025-09-22): [災難性BUG修復] 移除了範例JSON中的雙大括號。
     def get_world_genesis_chain(self) -> str:
         """獲取或創建一個專門用於世界創世的字符串模板。"""
         if self.world_genesis_chain is None:
@@ -2028,24 +2028,24 @@ class AILover:
 #     - **任何**對這些鍵名的修改、增減或大小寫變動都將導致災難性系統失敗。
 # 3.  **【結構範例 (必須嚴格遵守)】**:
 #     ```json
-#     {
+#     {{
 #       "location_path": ["王國/大陸", "城市/村庄", "具体建筑/地点"],
-#       "location_info": {
+#       "location_info": {{
 #         "name": "具体建筑/地点",
 #         "aliases": ["別名1", "別名2"],
 #         "description": "對該地點的詳細描述...",
 #         "notable_features": ["顯著特徵1", "顯著特徵2"],
 #         "known_npcs": ["NPC名字1", "NPC名字2"]
-#       },
+#       }},
 #       "initial_npcs": [
-#         {
+#         {{
 #           "name": "NPC名字1",
 #           "description": "NPC的詳細描述...",
 #           "gender": "性別",
 #           "race": "種族"
-#         }
+#         }}
 #       ]
-#     }
+#     }}
 #     ```
 ---
 【核心世界觀】:
@@ -2059,7 +2059,6 @@ class AILover:
             self.world_genesis_chain = genesis_prompt_str
         return self.world_genesis_chain
     # 獲取世界創世 Prompt 函式結束
-
 
 
 
@@ -2094,8 +2093,9 @@ class AILover:
 
     
 
-    # 函式：獲取角色檔案補完 Prompt (v2.1 - 原生模板重構)
+    # 函式：獲取角色檔案補完 Prompt (v2.2 - 轉義大括號)
     # 更新紀錄:
+    # v2.2 (2025-09-22): [災難性BUG修復] 對模板中的字面大括號 `{}` 進行了轉義（改為 `{{}}`），以防止其被 Python 的 `.format()` 方法錯誤地解析為佔位符，從而解決了因此引發的 `IndexError`。
     # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
     def get_profile_completion_prompt(self) -> str:
@@ -2104,7 +2104,7 @@ class AILover:
             prompt_str = """你是一位资深的角色扮演游戏设定师。你的任务是接收一个不完整的角色 JSON，并将其补完为一个细节豐富、符合逻辑的完整角色。
 【核心規則】
 1.  **絕對保留原則**: 对于輸入JSON中【任何已經存在值】的欄位（特别是 `appearance_details` 字典內的鍵值對），你【絕對必須】原封不動地保留它們，【絕對禁止】修改或覆蓋。
-2.  **增量補完原則**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
+2.  **增量補完原則**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{{}}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
 3.  **細節豐富化**: 对于 `appearance_details`，如果缺少身高、体重、三围等細節，請基於角色描述進行合理的創造。
 4.  **初始裝備**: 对于 `equipment`，如果該欄位為空，請生成一套符合角色背景和描述的初始服裝或裝備。
 5.  **輸出格式**: 你的最終輸出【必須且只能】是一個符合 CharacterProfile Pydantic 格式的、補完後的完整 JSON 物件。
@@ -2114,30 +2114,9 @@ class AILover:
         return self.profile_completion_prompt
     # 獲取角色檔案補完 Prompt 函式結束
 
-    # 函式：獲取角色檔案重寫 Prompt (v2.1 - 原生模板重構)
-    # 更新紀錄:
-    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
-    # v2.0 (2025-09-02): [重大架構重構] 徹底移除了對已被廢棄的 `{zero_instruction}` 變數的依賴。
-    def get_profile_rewriting_prompt(self) -> str:
-        """獲取或創建一個專門用於角色檔案重寫的字符串模板。"""
-        if self.profile_rewriting_prompt is None:
-            prompt_str = """你是一位技藝精湛的作家和角色編輯。
-你的任務是根據使用者提出的【修改指令】，重寫一份【原始的角色描述】。
-【核心規則】
-1.  **理解並融合**: 你必須深刻理解【修改指令】的核心意圖，並將其無縫地、創造性地融合進【原始的角色描述】中。
-2.  **保留精髓**: 在修改的同時，盡力保留角色原有的核心身份和關鍵背景，除非指令明確要求改變它們。你的目標是「演進」角色，而不是「替換」角色。
-3.  **輸出純淨**: 你的最終輸出【必須且只能】是重寫後得到的、全新的角色描述文字。禁止包含任何額外的解釋、標題或評論。
----
-【原始的角色描述】:
-{original_description}
----
-【使用者的修改指令】:
-{edit_instruction}
----
-【重寫後的角色描述】:"""
-            self.profile_rewriting_prompt = prompt_str
-        return self.profile_rewriting_prompt
-    # 獲取角色檔案重寫 Prompt 函式結束
+
+
+    
     
     # 函式：獲取RAG摘要器 Prompt (v204.1 - 原生模板重構)
     # 更新紀錄:
@@ -2372,6 +2351,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
