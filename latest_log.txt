@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-22T19:48:45.750041 ###
+### AI Lover Log - Last updated at 2025-09-22T19:53:06.939305 ###
 
-2025-09-22 14:13:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-22 14:13:38 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-22 14:13:38 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-22 14:13:40 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-22 14:13:50 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-22 14:13:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-22 14:13:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-22 14:13:52 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
 2025-09-22 14:14:07 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
 2025-09-22 14:14:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 777, in generate_world_genesis
     full_prompt_str = genesis_prompt_template.format(**genesis_params)
 KeyError: '\n#       "location_path"'
+2025-09-22 19:52:52 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-22 19:52:52 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-22 19:52:53 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-22 19:52:53 - [INFO] - Discord Bot is ready!
+2025-09-22 19:52:56 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-22 19:52:56 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-22 19:52:56 - [INFO] - 已成功發送啟動成功通知給管理員。
