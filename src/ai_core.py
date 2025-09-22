@@ -692,48 +692,28 @@ class AILover:
     # 解析並儲存LORE實體 函式結束
     
 
-    # 函式：補完角色檔案 (/start 流程 2/4) (v3.0 - 適配原生引擎)
-# 更新紀錄:
-# v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。
-# v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
-# v2.0 (2025-09-05): [重大架構重構] 創建此函式，作為 /start 流程的一部分。
+    # 函式：補完角色檔案 (/start 流程 2/4) (v3.1 - 原生模板重構)
+    # 更新紀錄:
+    # v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+    # v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
+    # v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
     async def complete_character_profiles(self):
         """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
         if not self.profile:
             logger.error(f"[{self.user_id}] [/start] ai_core.profile 為空，無法補完角色檔案。")
             return
 
-        # 輔助函式，用於安全地解析可能帶有 Markdown 標籤的 JSON 字符串
-        def _safe_json_parse(json_string: str) -> Optional[CharacterProfile]:
-            try:
-                # 移除常見的 Markdown 代碼塊標籤
-                if json_string.strip().startswith("```json"):
-                    json_string = json_string.strip()[7:-3].strip()
-                elif json_string.strip().startswith("```"):
-                     json_string = json_string.strip()[3:-3].strip()
-                
-                data = json.loads(json_string)
-                return CharacterProfile.model_validate(data)
-            except (json.JSONDecodeError, ValidationError) as e:
-                logger.error(f"[{self.user_id}] [/start] 解析角色檔案JSON時失敗: {e}")
-                return None
-
-        # 異步輔助函式，處理單個角色檔案的補完
         async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
             try:
-                prompt_template_obj = self.get_profile_completion_prompt()
-                
-                # 確保傳遞給 Prompt 的是純淨的 JSON 數據
+                prompt_template = self.get_profile_completion_prompt()
                 safe_profile_data = original_profile.model_dump()
-                
-                full_prompt = prompt_template_obj.format_prompt(
+                full_prompt = prompt_template.format(
                     profile_json=json.dumps(safe_profile_data, ensure_ascii=False, indent=2)
-                ).to_string()
+                )
                 
-                # 使用原生引擎調用 LLM，並期望返回 CharacterProfile 類型的物件
                 completed_safe_profile = await self.ainvoke_with_rotation(
                     full_prompt,
-                    output_schema=CharacterProfile, # 告知原生引擎我們期望的輸出類型
+                    output_schema=CharacterProfile,
                     retry_strategy='euphemize'
                 )
                 
@@ -741,17 +721,14 @@ class AILover:
                     logger.warning(f"[{self.user_id}] [/start] 角色 '{original_profile.name}' 的檔案補完返回了無效的數據，將使用原始檔案。")
                     return original_profile
 
-                # 將 LLM 生成的新數據與原始數據進行合併
                 original_data = original_profile.model_dump()
                 completed_data = completed_safe_profile.model_dump()
 
-                # 只更新原始數據中為空或預設值的欄位
                 for key, value in completed_data.items():
                     if not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]:
                         if value: 
                             original_data[key] = value
                 
-                # 強制保留使用者明確設定的核心資訊，防止被 AI 覆蓋
                 original_data['description'] = original_profile.description
                 original_data['appearance'] = original_profile.appearance
                 original_data['name'] = original_profile.name
@@ -762,18 +739,17 @@ class AILover:
                 logger.error(f"[{self.user_id}] [/start] 為角色 '{original_profile.name}' 進行安全補完時發生錯誤: {e}", exc_info=True)
                 return original_profile
 
-        # 並行處理使用者和 AI 的角色檔案
         completed_user_profile, completed_ai_profile = await asyncio.gather(
             _safe_complete_profile(self.profile.user_profile),
             _safe_complete_profile(self.profile.ai_profile)
         )
         
-        # 將更新後的檔案持久化到資料庫
         await self.update_and_persist_profile({
             'user_profile': completed_user_profile.model_dump(), 
             'ai_profile': completed_ai_profile.model_dump()
         })
     # 補完角色檔案 函式結束
+                    
 
 
 
@@ -2384,6 +2360,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
