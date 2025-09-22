@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T00:45:12.846151 ###
+### AI Lover Log - Last updated at 2025-09-23T00:48:37.323952 ###
 
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 195 條文檔用於構建 BM25。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 00:25:31 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
 2025-09-23 00:25:31 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
 2025-09-23 00:25:32 - [INFO] - [512280345618546699] 開始智能解析世界聖經文本 (總長度: 26456)...
 2025-09-23 00:25:32 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
@@ -100,3 +93,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_text_splitters\character.py", line 94, in __init__
     super().__init__(keep_separator=keep_separator, **kwargs)
 TypeError: TextSplitter.__init__() got an unexpected keyword argument 'overlap'
+2025-09-23 00:48:23 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 00:48:23 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 00:48:23 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 00:48:23 - [INFO] - Discord Bot is ready!
+2025-09-23 00:48:26 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 00:48:26 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 00:48:27 - [INFO] - 已成功發送啟動成功通知給管理員。
