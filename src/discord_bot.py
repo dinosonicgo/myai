@@ -1137,7 +1137,8 @@ class BotCog(commands.Cog):
 
     # 函式：在背景處理世界聖經文本
     # 更新紀錄:
-    # v1.0 (2025-09-23): [災難性BUG修復] 修正了對 ai_instance.parse_and_create_lore_from_canon 的呼叫，移除了多餘的參數，以解決 TypeError: takes 2 positional arguments but 4 were given 的問題。
+    # v2.0 (2025-09-23): [使用者體驗優化] 根據“兩階段精煉”策略，修改了最終的成功訊息，告知使用者AI正在後台進行更深度的細節補充，以更好地管理使用者預期。
+    # v1.0 (2025-09-23): [災難性BUG修復] 修正了對 ai_instance.parse_and_create_lore_from_canon 的呼叫。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -1158,12 +1159,12 @@ class BotCog(commands.Cog):
                 asyncio.create_task(self.finalize_setup(interaction, content_text))
                 return
 
-            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段，現在AI可以在對話中回憶起這些內容了。\n\n🧠 接下來，AI 正在進行更深層的智能解析，將其轉化為結構化的 LORE 數據庫...")
+            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行第一階段的智能解析，建立核心LORE骨架...")
             
-            # [v1.0 核心修正] 修正了此處的函式呼叫，只傳遞必要的 content_text 參數。
             await ai_instance.parse_and_create_lore_from_canon(content_text)
             
-            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+            # [v2.0 核心修正] 更新成功訊息
+            await user.send("✅ **核心LORE骨架已建立！**\nAI 現已啟動第二階段的背景任務，將在接下來的幾分鐘內對所有LORE進行深度掃描與細節補充，此過程無需您操作。")
         except Exception as e:
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
