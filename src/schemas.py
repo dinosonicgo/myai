@@ -99,7 +99,8 @@ class Quest(BaseModel):
     status: str = Field(default="active", description="任務的當前狀態，例如 'active', 'completed', 'failed'。")
     quest_giver: Optional[str] = Field(default=None, description="此任務的發布者（NPC名字）。")
     suggested_level: Optional[int] = Field(default=None, description="建議執行此任務的角色等級。")
-    rewards: Dict[str, Any] = Field(default_factory=dict, description="完成任務的獎勵，例如 {'金錢': 100, '物品': ['治療藥水']}。")
+    # [v1.0 核心修正] 轉義了 description 字符串中的大括號，以防止底層庫進行 .format() 操作時引發 IndexError。
+    rewards: Dict[str, Any] = Field(default_factory=dict, description="完成任務的獎勵，例如 {{'金錢': 100, '物品': ['治療藥水']}}。")
 
     @field_validator('aliases', mode='before')
     @classmethod
@@ -447,6 +448,7 @@ class StyleAnalysisResult(BaseModel):
 
 # 更新 forward-references
 CharacterAction.model_rebuild()
+
 
 
 
