@@ -1824,11 +1824,11 @@ class AILover:
 
 
 
-
 # 函式：解析世界聖經並創建 LORE (v8.1 - 原生模板重構)
 # 更新紀錄:
 # v8.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
 # v8.0 (2025-09-22): [災難性BUG修復] 恢復了對 `_resolve_and_save` 函式的調用並完善了三階段降級邏輯。
+# v7.3 (2025-11-22): [災難性BUG修復] 引入了三階段 LORE 解析降級系統。
     async def parse_and_create_lore_from_canon(self, interaction: Optional[Any], content_text: str, is_setup_flow: bool = False):
         """
         解析世界聖經文本，智能解析實體，並將其作為結構化的 LORE 存入資料庫。
@@ -2371,6 +2371,7 @@ class AILover:
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
