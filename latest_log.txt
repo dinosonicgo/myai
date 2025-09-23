@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T09:04:20.014255 ###
+### AI Lover Log - Last updated at 2025-09-23T09:15:13.301163 ###
 
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '巨斧' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '青春永駐' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '赫克托' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '埃德蒙三世' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿拉里克' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '聖軍' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '伊索爾德' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林' 時發生錯誤: Replacement index 0 out of range for positional args tuple
-2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '魔女狩獵' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '兄妹的聖餐' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '神學的勝利' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 08:05:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '人心的勝利' 時發生錯誤: Replacement index 0 out of range for positional args tuple
@@ -100,3 +91,12 @@
 2025-09-23 08:05:23 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 08:05:23 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '服從度測試' 時發生錯誤: Replacement index 0 out of range for positional args tuple
 2025-09-23 08:05:23 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任務完成。
+2025-09-23 09:14:35 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 09:14:35 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 09:14:36 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 09:14:36 - [INFO] - Discord Bot is ready!
+2025-09-23 09:14:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 09:14:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 09:14:39 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-23 09:14:59 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 09:14:59 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
