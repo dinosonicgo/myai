@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-23T12:15:18.566543 ###
+### AI Lover Log - Last updated at 2025-09-23T12:20:20.679289 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:48:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦萊麗 (Valerie)' 的 LORE。
-2025-09-23 11:48:15 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普 (Philip)' 的 LORE。
-2025-09-23 11:48:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '布魯諾 (Bruno)' 的 LORE。
-2025-09-23 11:48:36 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '巴納比 (Barnaby)' 的 LORE。
-2025-09-23 11:48:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:48:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '奧斯華 (Oswald)' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:48:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾諾拉 (Eleanor)' 的 LORE。
-2025-09-23 11:49:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '漢德瑞克師傅 (Master Hendrick)' 的 LORE。
-2025-09-23 11:49:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:49:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:49:27 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 11:49:27 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 11:49:28 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 11:49:28 - [INFO] - Discord Bot is ready!
-2025-09-23 11:49:30 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 11:49:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 11:49:31 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 11:54:55 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 11:54:55 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 11:54:56 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 11:54:56 - [INFO] - Discord Bot is ready!
-2025-09-23 11:54:58 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 11:54:58 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 11:54:59 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 11:56:19 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 365 條文檔用於構建 BM25。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 11:56:19 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 365 條文檔用於構建 BM25。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-23 11:56:19 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 11:56:21 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-23 11:56:21 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-23 11:56:22 - [INFO] - [512280345618546699] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...
-2025-09-23 11:56:22 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
-2025-09-23 11:56:22 - [INFO] - [512280345618546699] 正在處理文本塊 1/7...
-2025-09-23 11:56:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 19 個實體...
-2025-09-23 11:56:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 5 個實體...
-2025-09-23 11:56:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
-2025-09-23 11:56:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 11:56:36 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
-2025-09-23 11:56:36 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
-2025-09-23 11:56:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
-2025-09-23 11:56:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 7 個實體...
-2025-09-23 11:56:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 69 個實體...
-2025-09-23 11:57:01 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
-2025-09-23 11:57:01 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
-2025-09-23 11:57:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
-2025-09-23 11:57:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 2 個實體...
-2025-09-23 11:57:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 7 個實體...
-2025-09-23 11:57:09 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
-2025-09-23 11:57:09 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
-2025-09-23 11:57:10 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:57:10 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【上下文保留式代碼替換】策略...
-2025-09-23 11:57:10 - [INFO] - [512280345618546699] [上下文保留成功] 已生成無害化文本塊進行重構。
-2025-09-23 11:58:24 - [INFO] - [512280345618546699] [重構成功] 已成功根據無害化文本重構出 LORE。
-2025-09-23 11:58:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
-2025-09-23 11:58:28 - [INFO] - [512280345618546699] 文本塊 4 的 LORE 已成功儲存。
-2025-09-23 11:58:28 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
-2025-09-23 11:58:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 15 個實體...
-2025-09-23 11:58:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
-2025-09-23 11:58:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 10 個實體...
-2025-09-23 11:58:43 - [INFO] - [512280345618546699] 文本塊 5 的 LORE 已成功儲存。
-2025-09-23 11:58:43 - [INFO] - [512280345618546699] 正在處理文本塊 6/7...
-2025-09-23 11:59:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:59:02 - [WARNING] - [512280345618546699] 文本塊 6 遭遇格式或驗證錯誤 (ValidationError)。啟動【模型升級攻堅】...
-2025-09-23 12:00:55 - [INFO] - [512280345618546699] [攻堅成功] 已成功使用升級模型修復格式錯誤。
-2025-09-23 12:00:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 25 個實體...
-2025-09-23 12:00:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 4 個實體...
-2025-09-23 12:00:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 12:01:00 - [INFO] - [512280345618546699] 文本塊 6 的 LORE 已成功儲存。
-2025-09-23 12:01:00 - [INFO] - [512280345618546699] 正在處理文本塊 7/7...
-2025-09-23 12:01:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:01:00 - [WARNING] - [512280345618546699] 文本塊 7 遭遇內容審查 (BlockedPromptException)。啟動【上下文保留式代碼替換】策略...
-2025-09-23 12:01:00 - [INFO] - [512280345618546699] [上下文保留成功] 已生成無害化文本塊進行重構。
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] [重構成功] 已成功根據無害化文本重構出 LORE。
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 14 個實體...
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 4 個實體...
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 2 個實體...
-2025-09-23 12:02:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
-2025-09-23 12:02:09 - [INFO] - [512280345618546699] 文本塊 7 的 LORE 已成功儲存。
-2025-09-23 12:02:09 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 7 個。
-2025-09-23 12:02:09 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
-2025-09-23 12:02:14 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。
-2025-09-23 12:02:14 - [INFO] - [512280345618546699] [LORE精煉] 发现 404 條LORE骨架需要精煉。
-2025-09-23 12:02:16 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:02:16 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:02:49 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡爾•維利爾斯' 的 LORE。
-2025-09-23 12:03:17 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
-2025-09-23 12:03:38 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '薩格納' 的 LORE。
-2025-09-23 12:04:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普' 的 LORE。
-2025-09-23 12:04:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:04:04 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:04:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
-2025-09-23 12:04:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '埃德蒙三世' 的 LORE。
-2025-09-23 12:05:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿拉里克' 的 LORE。
-2025-09-23 12:05:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '赫克托' 的 LORE。
-2025-09-23 12:05:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:05:20 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '伊索爾德' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:05:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '博林' 的 LORE。
-2025-09-23 12:05:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:05:49 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=80, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:05:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:05:50 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:06:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '亞瑟' 的 LORE。
-2025-09-23 12:06:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '克拉拉' 的 LORE。
-2025-09-23 12:06:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:06:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '高爾' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 12:06:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '翠絲' 的 LORE。
-2025-09-23 12:06:57 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '迪茜' 的 LORE。
-2025-09-23 12:07:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
-2025-09-23 12:07:38 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '朱利安' 的 LORE。
-2025-09-23 12:07:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿利斯特' 的 LORE。
-2025-09-23 12:07:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:07:51 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:07:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:07:52 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:08:05 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
-2025-09-23 12:08:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬克' 的 LORE。
-2025-09-23 12:08:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
-2025-09-23 12:08:42 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯瑪斯' 的 LORE。
-2025-09-23 12:08:53 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛蓮娜' 的 LORE。
-2025-09-23 12:08:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:08:56 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:08:56 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.30 秒後進行第 2 次嘗試...
-2025-09-23 12:08:58 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.33 秒後進行第 3 次嘗試...
-2025-09-23 12:09:01 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:09:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:02 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:05 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:06 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:07 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:08 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.17 秒後進行第 2 次嘗試...
-2025-09-23 12:09:09 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.26 秒後進行第 3 次嘗試...
-2025-09-23 12:09:12 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:09:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:13 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:14 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪倫' 的 LORE。
-2025-09-23 12:09:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:09:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:09:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:09:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:09:45 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.13 秒後進行第 2 次嘗試...
-2025-09-23 12:09:46 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.31 秒後進行第 3 次嘗試...
-2025-09-23 12:09:49 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:09:49 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #4 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
-2025-09-23 12:10:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:10:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:10:23 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡蓮' 的 LORE。
-2025-09-23 12:10:45 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
-2025-09-23 12:10:47 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.22 秒後進行第 2 次嘗試...
-2025-09-23 12:10:48 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.22 秒後進行第 3 次嘗試...
-2025-09-23 12:10:51 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:10:52 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.48 秒後進行第 2 次嘗試...
-2025-09-23 12:10:53 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.41 秒後進行第 3 次嘗試...
-2025-09-23 12:10:56 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:10:56 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86333 秒)。
-2025-09-23 12:10:58 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:10:58 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱薩‧維利爾斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:11:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
-2025-09-23 12:11:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '班恩' 的 LORE。
-2025-09-23 12:11:21 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.20 秒後進行第 2 次嘗試...
-2025-09-23 12:11:23 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.18 秒後進行第 3 次嘗試...
-2025-09-23 12:11:25 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:11:25 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.48 秒後進行第 2 次嘗試...
-2025-09-23 12:11:27 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.37 秒後進行第 3 次嘗試...
-2025-09-23 12:11:30 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:11:30 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86299 秒)。
-2025-09-23 12:11:36 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '里奧' 的 LORE。
-2025-09-23 12:11:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '賈斯伯' 的 LORE。
-2025-09-23 12:12:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '提姆' 的 LORE。
-2025-09-23 12:12:02 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.43 秒後進行第 2 次嘗試...
-2025-09-23 12:12:04 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.14 秒後進行第 3 次嘗試...
-2025-09-23 12:12:06 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:12:07 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.45 秒後進行第 2 次嘗試...
-2025-09-23 12:12:08 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.23 秒後進行第 3 次嘗試...
-2025-09-23 12:12:11 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:12:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86258 秒)。
-2025-09-23 12:12:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:12:21 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安東尼' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:12:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:12:24 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:12:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莎' 的 LORE。
-2025-09-23 12:12:33 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.21 秒後進行第 2 次嘗試...
-2025-09-23 12:12:35 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.13 秒後進行第 3 次嘗試...
-2025-09-23 12:12:37 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:12:37 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.11 秒後進行第 2 次嘗試...
-2025-09-23 12:12:39 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.38 秒後進行第 3 次嘗試...
-2025-09-23 12:12:42 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:12:42 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86227 秒)。
-2025-09-23 12:12:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:12:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:12:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:12:45 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:12:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉娜' 的 LORE。
-2025-09-23 12:12:53 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.15 秒後進行第 2 次嘗試...
-2025-09-23 12:12:54 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.23 秒後進行第 3 次嘗試...
-2025-09-23 12:12:57 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:12:57 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #2 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
-2025-09-23 12:12:57 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
-2025-09-23 12:12:59 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.28 秒後進行第 3 次嘗試...
-2025-09-23 12:13:01 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:13:01 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #3 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
-2025-09-23 12:13:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86208 秒)。
-2025-09-23 12:13:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '諾拉' 的 LORE。
-2025-09-23 12:13:12 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.28 秒後進行第 2 次嘗試...
-2025-09-23 12:13:14 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.45 秒後進行第 3 次嘗試...
-2025-09-23 12:13:17 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:13:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:13:25 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡萊兒' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86371 秒)。
-2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86376 秒)。
-2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86184 秒)。
-2025-09-23 12:13:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:13:42 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: 1 validation error for CharacterProfile
-status
-  Input should be a valid string [type=string_type, input_value=['已隱退', '已皈依...'虔誠的性神教徒'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:13:42 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.13 秒後進行第 2 次嘗試...
-2025-09-23 12:13:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
-2025-09-23 12:14:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '國王埃德蒙三世' 的 LORE。
-2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86327 秒)。
-2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86331 秒)。
-2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86139 秒)。
-2025-09-23 12:14:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:14:11 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇女伊索爾德' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:14:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 12:14:20 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林勳爵' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 12:14:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:14:21 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86316 秒)。
-2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86321 秒)。
-2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86128 秒)。
-2025-09-23 12:14:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 12:14:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 12:14:22 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.27 秒後進行第 2 次嘗試...
-2025-09-23 12:14:24 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.17 秒後進行第 3 次嘗試...
-2025-09-23 12:14:27 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:14:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦勒留斯神父' 的 LORE。
-2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86298 秒)。
-2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86303 秒)。
-2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86110 秒)。
-2025-09-23 12:14:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
-2025-09-23 12:14:50 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.42 秒後進行第 2 次嘗試...
-2025-09-23 12:14:52 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.44 秒後進行第 3 次嘗試...
-2025-09-23 12:14:55 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:14:55 - [WARNING] - [512280345618546699] Key #1 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.20 秒後進行第 2 次嘗試...
-2025-09-23 12:14:57 - [WARNING] - [512280345618546699] Key #1 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.36 秒後進行第 3 次嘗試...
-2025-09-23 12:14:59 - [ERROR] - [512280345618546699] Key #1 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86277 秒)。
-2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86282 秒)。
-2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86090 秒)。
-2025-09-23 12:15:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
-2025-09-23 12:15:13 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.37 秒後進行第 2 次嘗試...
-2025-09-23 12:15:15 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.26 秒後進行第 3 次嘗試...
-2025-09-23 12:15:18 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
-2025-09-23 12:15:18 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #0 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86234 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '迪茜' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86234 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86234 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿利斯特' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '麥可' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '提姆' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86389 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪倫' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86375 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '露比' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '泰莎' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛莉莎' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86046 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86398 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '澤拉' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '蘇菲' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '貝拉' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉娜' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾蜜莉' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡萊兒' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納將軍' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛蓮娜' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '連恩' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [LORE精煉] 未能在原文中找到 '蓋博太太' 的额外上下文，跳过精炼。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86238 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86237 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老漢姆' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86237 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '勳爵' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86237 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安布羅斯' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86237 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86374 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86388 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86233 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86237 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86045 秒)。
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86397 秒)。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 12:15:44 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 12:15:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬庫斯' 時發生错误: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 12:15:44 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任务完成。
