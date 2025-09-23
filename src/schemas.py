@@ -30,10 +30,10 @@ def _validate_string_to_dict(value: Any) -> Any:
 
 
 
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.1 - 轉義描述)
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.2 - 防禦性默認值)
 # 更新紀錄:
-# v2.1 (2025-09-23): [災難性BUG修復] 為 `relationships` 欄位的 description 新增了轉義後的大括號範例，以防止 LORE 精煉流程中的底層格式化錯誤。
-# v2.0 (2025-09-05): [災難性BUG修復] 將 `appearance_details` 的類型修改為 `Dict[str, Any]`。
+# v2.2 (2025-09-23): [災難性BUG修復] 為多個容易被LLM省略的字段（如 appearance, description, skills 等）提供了空的默認值（例如 `default=""` 或 `default_factory=list`）。這使得 Pydantic 模型更具防禦性，即使LLM返回的JSON中缺少這些鍵，模型也能成功驗證並使用安全的空值填充，從根本上解決了大量的 ValidationError。
+# v2.1 (2025-09-23): [災難性BUG修復] 為 `relationships` 欄位的 description 新增了轉義。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -51,10 +51,9 @@ class CharacterProfile(BaseModel):
     location: Optional[str] = Field(default=None, description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
-    # [v2.1 核心修正] 轉義範例中的大括號
     relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
-    current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。例如：'站著', '坐著', '跪著', '正在進行口交', '正在戰鬥'。")
+    current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
     @field_validator('aliases', 'likes', 'dislikes', 'equipment', 'skills', 'location_path', 'alternative_names', mode='before')
     @classmethod
@@ -84,7 +83,13 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.1 - 轉義描述)
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.2 - 防禦性默認值)
+
+
+
+
+
+
 
 
 
@@ -373,3 +378,4 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
