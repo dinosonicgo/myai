@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T01:39:56.796801 ###
+### AI Lover Log - Last updated at 2025-09-24T07:49:00.611889 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.36.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.37.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.38.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.39.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.40.decision
@@ -300,3 +289,14 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2673, in parse_and_create_lore_from_canon
     self.retriever = await self._load_or_build_rag_retriever(force_rebuild=True)
 TypeError: AILover._load_or_build_rag_retriever() got an unexpected keyword argument 'force_rebuild'
+2025-09-24 01:42:46 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 01:42:46 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 01:42:47 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 01:42:47 - [INFO] - Discord Bot is ready!
+2025-09-24 07:48:44 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 07:48:44 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 07:48:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 07:48:44 - [INFO] - Discord Bot is ready!
+2025-09-24 07:48:47 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 07:48:47 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 07:48:48 - [INFO] - 已成功發送啟動成功通知給管理員。
