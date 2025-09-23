@@ -17,6 +17,7 @@ from pathlib import Path
 from sqlalchemy import select, or_, delete, update
 from collections import defaultdict
 import functools
+import pickle
 
 import spacy
 from spacy.tokens import Doc
@@ -3073,6 +3074,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
