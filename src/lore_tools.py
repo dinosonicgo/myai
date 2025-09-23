@@ -1,8 +1,8 @@
-# src/lore_tools.py 的中文註釋(v3.3 - 職責分離)
+# src/lore_tools.py 的中文註釋(v3.4 - RAG增量更新)
 # 更新紀錄:
-# v3.3 (2025-11-22): [根本性重構] 根據「持久化 RAG」架構，移除了此檔案中所有對 ai_core.add_lore_to_rag 的異步任務調用。現在，工具的職責被嚴格限定為僅與資料庫交互，而觸發 RAG 索引重建的責任被統一上移到 ai_core.py 的工具執行器層，確保了職責的清晰分離和 RAG 數據的持久性。
+# v3.4 (2025-09-23): [根本性重構] 根據“RAG增量更新”架構，在每個成功修改資料庫的工具末尾，都增加了對 `ai_core._update_rag_for_single_lore` 的調用。此修改將RAG索引更新的觸發器從一個集中的、全量的位置，下放到了各個具體的、增量的工具中，是實現高效RAG的關鍵一步。
+# v3.3 (2025-11-22): [根本性重構] 根據「持久化 RAG」架構，移除了此檔案中所有對 ai_core.add_lore_to_rag 的異步任務調用。
 # v3.2 (2025-11-22): [災難性BUG修復] 對所有 Pydantic 參數模型進行了全面的健壯性升級。
-# v3.0 (2025-11-21): [災難性BUG修復] 對 Pydantic 參數模型增加了全面的自我修復驗證器。
 
 import time
 import re
@@ -18,29 +18,20 @@ from .tool_context import tool_context
 
 # --- Pydantic 模型與配置 ---
 
-# 函式：從 schema 中移除 Pydantic 自動生成的 title
 def remove_title_from_schema(schema: Dict[str, Any], model: Type['BaseModel']) -> None:
     if 'title' in schema:
         del schema['title']
     for prop in schema.get('properties', {}).values():
         if 'title' in prop:
             del prop['title']
-# 從 schema 中移除 Pydantic 自動生成的 title 函式結束
 
-# 類別：基礎工具參數模型
 class BaseToolArgs(BaseModel):
     model_config = ConfigDict(
         json_schema_extra=remove_title_from_schema
     )
-# 基礎工具參數模型 類別結束
 
 # --- NPC 相關工具 ---
 
-# 類別：創建新 NPC 檔案參數 (v3.5 - 增加地點路徑自動修復)
-# 更新紀錄:
-# v3.5 (2025-09-22): [災難性BUG修復] 為 location_path 欄位新增了一個 field_validator。此驗證器能夠自動將LLM可能生成的單一地點字符串（如 '聖凱瑟琳學院'）轉換為模型期望的列表格式（如 ['聖凱瑟琳學院']），從根本上解決了因數據類型不匹配而導致的 ValidationError。
-# v3.4 (2025-09-22): [災難性BUG修復] 將 location_path 欄位從必填改為可選。
-# v3.3 (2025-11-22): [根本性重構] 移除了所有對 ai_core.add_lore_to_rag 的異步任務調用。
 class CreateNewNpcProfileArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符，由實體解析鏈生成。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化名稱。")
@@ -56,65 +47,48 @@ class CreateNewNpcProfileArgs(BaseToolArgs):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
 
-    # [v3.5 核心修正] 增加一個前置驗證器，自動修復地點路徑的數據類型
     @field_validator('location_path', mode='before')
     @classmethod
     def validate_location_path(cls, v):
-        """在正式驗證前，嘗試將單一字符串的地點轉換為列表。"""
         if isinstance(v, str):
-            # 如果傳入的是一個非空的字符串，將其轉換為單元素的列表
-            if v.strip():
-                return [v.strip()]
-            # 如果是空字符串，返回一個空列表
+            if v.strip(): return [v.strip()]
             return []
-        # 如果傳入的已經是列表或其他類型，則保持不變
         return v
-# 創建新 NPC 檔案參數 類別結束
 
-
-
-# 工具：創建新 NPC 檔案 (v3.5 - 修正日誌)
-# 更新紀錄:
-# v3.5 (2025-09-22): [品質改進] 在返回的成功訊息中增加了地點資訊，使日誌和前端反饋更清晰。
-# v3.4 (2025-09-22): [災難性BUG修復] 更新了函式簽名，將 location_path 設為可選參數。
-# v3.3 (2025-11-22): [根本性重構] 移除了所有對 ai_core.add_lore_to_rag 的異步任務調用。
 @tool(args_schema=CreateNewNpcProfileArgs)
 async def create_new_npc_profile(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: Optional[List[str]] = None, status: Optional[str] = "閒置", equipment: Optional[List[str]] = None) -> str:
     """【只在】你需要創造一個【全新的、不存在的】NPC 時使用此工具。它會在世界中永久記錄一個新的角色檔案。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     final_location_path = location_path if location_path is not None else []
     profile_data = {
-        "name": standardized_name, 
-        "description": description, 
-        "location_path": final_location_path, 
-        "status": status, 
-        "equipment": equipment or [], 
+        "name": standardized_name, "description": description, "location_path": final_location_path, 
+        "status": status, "equipment": equipment or [], 
         "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []
     }
-    await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
+    lore_entry = await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     location_str = " > ".join(final_location_path) if final_location_path else "未知地點"
     return f"已成功為新 NPC '{standardized_name}' 創建了檔案 (主鍵: '{lore_key}')，地點: '{location_str}'。"
-# 創建新 NPC 檔案 工具結束
 
-# 類別：更新 NPC 檔案參數
 class UpdateNpcProfileArgs(BaseToolArgs):
     lore_key: str = Field(description="要更新的 NPC 的【精確】主鍵（lore_key）。")
     updates: Dict[str, Any] = Field(description="一個包含要更新欄位和新值的字典。")
-# 更新 NPC 檔案參數 類別結束
 
-# 工具：更新 NPC 檔案
 @tool(args_schema=UpdateNpcProfileArgs)
 async def update_npc_profile(lore_key: str, updates: Dict[str, Any]) -> str:
     """當你需要更新一個【已存在】NPC 的狀態或資訊時使用此工具。你必須提供其精確的 `lore_key`。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     updated_lore = await add_or_update_lore(user_id, 'npc_profile', lore_key, updates, merge=True)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(updated_lore)
     npc_name = updated_lore.content.get('name', lore_key.split(' > ')[-1])
     return f"已成功更新 NPC '{npc_name}' 的檔案。"
-# 更新 NPC 檔案 工具結束
 
 # --- 地點相關工具 ---
 
-# 類別：新增或更新地點資訊參數
 class AddOrUpdateLocationInfoArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化地點名稱。")
@@ -126,21 +100,20 @@ class AddOrUpdateLocationInfoArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 新增或更新地點資訊參數 類別結束
 
-# 工具：新增或更新地點資訊
 @tool(args_schema=AddOrUpdateLocationInfoArgs)
 async def add_or_update_location_info(lore_key: str, standardized_name: str, original_name: str, description: str) -> str:
     """用於創建一個新的地點條目，或用全新的描述覆蓋一個已有的地點條目。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     location_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
+    lore_entry = await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為地點 '{standardized_name}' 記錄了資訊。"
-# 新增或更新地點資訊 工具結束
 
 # --- 物品相關工具 ---
 
-# 類別：新增或更新物品資訊參數
 class AddOrUpdateItemInfoArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化物品名稱。")
@@ -154,21 +127,20 @@ class AddOrUpdateItemInfoArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 新增或更新物品資訊參數 類別結束
 
-# 工具：新增或更新物品資訊
 @tool(args_schema=AddOrUpdateItemInfoArgs)
 async def add_or_update_item_info(lore_key: str, standardized_name: str, original_name: str, description: str, effect: Optional[str] = None, visual_description: Optional[str] = None) -> str:
     """用於創建一個新的物品條目，或用全新的描述覆蓋一個已有的物品條目。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     item_data = {"name": standardized_name, "description": description, "effect": effect, "visual_description": visual_description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
+    lore_entry = await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物品 '{standardized_name}' 記錄了詳細資訊。"
-# 新增或更新物品資訊 工具結束
 
 # --- 生物相關工具 ---
 
-# 類別：定義生物類型參數
 class DefineCreatureTypeArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'name'), description="標準化生物名稱。")
@@ -180,21 +152,20 @@ class DefineCreatureTypeArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 定義生物類型參數 類別結束
 
-# 工具：定義生物類型
 @tool(args_schema=DefineCreatureTypeArgs)
 async def define_creature_type(lore_key: str, standardized_name: str, original_name: str, description: str) -> str:
     """用於在世界百科全書中創建一個全新的生物/物種詞條。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     creature_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
+    lore_entry = await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物種 '{standardized_name}' 創建了百科詞條。"
-# 定義生物類型 工具結束
 
 # --- 任務與世界傳說相關工具 ---
 
-# 類別：新增或更新任務傳說參數
 class AddOrUpdateQuestLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'title', 'name'), description="標準化任務標題。")
@@ -208,19 +179,18 @@ class AddOrUpdateQuestLoreArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 新增或更新任務傳說參數 類別結束
 
-# 工具：新增或更新任務傳說
 @tool(args_schema=AddOrUpdateQuestLoreArgs)
 async def add_or_update_quest_lore(lore_key: str, standardized_name: str, original_name: str, description: str, location_path: List[str], status: str = "可用") -> str:
     """用於創建一個新的任務，或用全新的描述覆蓋一個已有的任務。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     quest_data = {"title": standardized_name, "description": description, "location_path": location_path, "status": status, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
+    lore_entry = await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
-# 新增或更新任務傳說 工具結束
 
-# 類別：新增或更新世界傳說參數
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
     lore_key: str = Field(description="系統內部使用的唯一標識符。")
     standardized_name: Optional[str] = Field(default=None, validation_alias=AliasChoices('standardized_name', 'title', 'name'), description="標準化傳說標題。")
@@ -232,21 +202,20 @@ class AddOrUpdateWorldLoreArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 新增或更新世界傳說參數 類別結束
 
-# 工具：新增或更新世界傳說
 @tool(args_schema=AddOrUpdateWorldLoreArgs)
 async def add_or_update_world_lore(lore_key: str, standardized_name: str, original_name: str, content: str) -> str:
     """用於在世界歷史或傳說中記錄一個新的故事、事件或背景設定。"""
     user_id = tool_context.get_user_id()
+    ai_core = tool_context.get_ai_core()
     lore_data = {"title": standardized_name, "content": content, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
+    lore_entry = await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
+    # [v3.4 核心修正] 觸發RAG增量更新
+    await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功將 '{standardized_name}' 記錄為傳說。"
-# 新增或更新世界傳說 工具結束
 
 # --- 工具列表導出 ---
 
-# 函式：獲取所有 LORE 工具
 def get_lore_tools() -> List[Tool]:
     """返回一個列表，包含所有用於管理世界 LORE 的工具。"""
     return [
@@ -258,7 +227,3 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_quest_lore,
         add_or_update_world_lore,
     ]
-# 獲取所有 LORE 工具 函式結束
-
-
-
