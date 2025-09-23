@@ -219,7 +219,10 @@ class ContinueToCanonSetupView(discord.ui.View):
     # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
 
-# 類別：重新生成回覆的視圖
+# 類別：重新生成或撤銷回覆的視圖
+# 更新紀錄:
+# v1.1 (2025-09-23): [功能擴展] 新增了“撤銷”按鈕。此按鈕允許使用者徹底移除上一回合的對話（包括使用者的輸入和AI的回覆），並將短期記憶回滾到上一個狀態，從而實現了類似網頁版AI的“刪除回合”功能。
+# v1.0 (2025-11-17): [全新創建] 創建此視圖以支持重新生成功能。
 class RegenerateView(discord.ui.View):
     # 函式：初始化 RegenerateView
     def __init__(self, *, cog: "BotCog"):
@@ -244,10 +247,12 @@ class RegenerateView(discord.ui.View):
             if scene_key in ai_instance.scene_histories:
                 history = ai_instance.scene_histories[scene_key]
                 if len(history.messages) >= 2:
+                    # 移除 AI 的回覆和使用者的輸入
                     history.messages.pop()
                     history.messages.pop()
                     logger.info(f"[{user_id}] [重新生成] 已從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
+            # 刪除觸發此操作的 AI 回覆訊息
             await interaction.message.delete()
 
             logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
@@ -274,7 +279,57 @@ class RegenerateView(discord.ui.View):
             logger.error(f"[{user_id}] [重新生成] 流程執行時發生異常: {e}", exc_info=True)
             await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
     # 函式：處理「重新生成」按鈕點擊事件
-# 類別：重新生成回覆的視圖
+
+    # [v1.1 新增] 函式：處理「撤銷」按鈕點擊事件
+    @discord.ui.button(label="🗑️ 撤銷", style=discord.ButtonStyle.danger, custom_id="persistent_undo_button")
+    async def undo(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user_id = str(interaction.user.id)
+        
+        await interaction.response.defer(ephemeral=True)
+
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+        if not ai_instance:
+            await interaction.followup.send("❌ 錯誤：找不到您的 AI 實例。", ephemeral=True)
+            return
+
+        try:
+            scene_key = ai_instance._get_scene_key()
+            history = ai_instance.scene_histories.get(scene_key)
+
+            if not history or len(history.messages) < 2:
+                await interaction.followup.send("❌ 錯誤：沒有足夠的歷史記錄可供撤銷。", ephemeral=True)
+                return
+
+            # 步驟 1: 從短期記憶中移除上一回合
+            history.messages.pop()  # 移除 AI 的回覆
+            last_user_message = history.messages.pop() # 移除使用者的輸入
+            logger.info(f"[{user_id}] [撤銷] 已成功從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
+
+            # 步驟 2: 刪除 Discord 上的訊息
+            # 刪除觸發此操作的 AI 回覆訊息
+            await interaction.message.delete()
+            
+            # 嘗試尋找並刪除使用者的上一條訊息
+            # 注意：這在私訊中可能無法完美工作，但在頻道中通常有效
+            try:
+                async for msg in interaction.channel.history(limit=10):
+                    if msg.author.id == interaction.user.id and msg.content == last_user_message.content:
+                        await msg.delete()
+                        logger.info(f"[{user_id}] [撤銷] 已成功刪除使用者的上一條指令訊息。")
+                        break
+            except (discord.errors.Forbidden, discord.errors.NotFound) as e:
+                logger.warning(f"[{user_id}] [撤銷] 刪除使用者訊息時發生非致命錯誤: {e}")
+            
+            # 步驟 3: 更新 last_user_input 為空，防止重新生成出錯
+            ai_instance.last_user_input = None
+
+            await interaction.followup.send("✅ 上一回合已成功撤銷。", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] [撤銷] 流程執行時發生異常: {e}", exc_info=True)
+            await interaction.followup.send(f"撤銷時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
+    # [v1.1 新增] 函式：處理「撤銷」按鈕點擊事件
+# 類別：重新生成或撤銷回覆的視圖
 
 # 類別：貼上世界聖經的 Modal
 class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文本"):
