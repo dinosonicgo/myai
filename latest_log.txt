@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T23:25:20.131642 ###
+### AI Lover Log - Last updated at 2025-09-23T23:28:26.902801 ###
 
-lore_key
-  Field required [type=missing, input_value={'npc_name': '碧', 'desc...溪谷的隱士小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1621, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CreateNewNpcProfileArgs
-lore_key
-  Field required [type=missing, input_value={'npc_name': '碧', 'desc...溪谷的隱士小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-23 22:41:36 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-09-23 22:41:36 - [INFO] - [512280345618546699] LORE 數據已更新，正在強制重建 RAG 知識庫索引...
-2025-09-23 22:41:36 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 2 條文檔用於構建 BM25。
-2025-09-23 22:41:36 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-23 22:41:36 - [INFO] - [512280345618546699] RAG 知識庫索引已成功更新。
-2025-09-23 22:41:36 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
-2025-09-23 22:46:21 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 22:46:21 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 22:46:21 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 22:46:21 - [INFO] - Discord Bot is ready!
-2025-09-23 22:46:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 22:46:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 22:46:24 - [INFO] - 已成功發送啟動成功通知給管理員。
 2025-09-23 22:55:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-23 22:55:04 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
 2025-09-23 22:55:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
@@ -300,3 +275,28 @@ lore_key
 2025-09-23 23:25:19 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 臨時短期任務：或者……您有什麼新的指令要吩咐碧去完成 (狀態：進行中)
 2025-09-23 23:25:19 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 2 份文檔，正在檢查淨化快取...
 2025-09-23 23:25:19 - [INFO] - [512280345618546699] (RAG Summarizer) 成功淨化 1/2 份文檔，正在進行最終摘要...
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82943 秒)。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82948 秒)。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82952 秒)。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82958 秒)。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82973 秒)。
+2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82938 秒)。
+2025-09-23 23:25:20 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-23 23:25:20 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 23:25:20 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-23 23:25:28 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-23 23:25:29 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。
+2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-09-23 23:25:34 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-23 23:25:34 - [INFO] - [512280345618546699] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。
+2025-09-23 23:28:12 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 23:28:12 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 23:28:13 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 23:28:13 - [INFO] - Discord Bot is ready!
+2025-09-23 23:28:15 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 23:28:15 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 23:28:16 - [INFO] - 已成功發送啟動成功通知給管理員。
