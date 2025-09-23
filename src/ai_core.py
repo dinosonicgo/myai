@@ -1535,11 +1535,11 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行工具調用計畫 (v190.0 - 確認保護邏輯)
+# 函式：執行工具調用計畫
 # 更新紀錄:
+# v190.1 (2025-09-23): [災難性BUG修復] 徹底重構了“更新轉創建”的自動修正邏輯。現在，當檢測到對不存在NPC的更新時，會根據上下文信息（地點、名稱）為其動態生成一個符合規範的、必需的`lore_key`，從根本上解決了因此導致的 `ValidationError`。
 # v190.0 (2025-09-22): [健壯性] 確認程式碼層的核心角色保護邏輯存在且有效，以配合 get_lore_extraction_chain 模板的淨化，確保保護規則由更可靠的程式碼執行。
 # v189.0 (2025-09-22): [災難性BUG修復] 增強了自動修正層的邏輯，能夠自動將錯誤的“更新”操作轉換為“創建”。
-# v188.0 (2025-09-22): [災難性BUG修復] 引入了“自動修正與規範化”程式碼層。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
         if not plan or not plan.plan:
@@ -1585,11 +1585,12 @@ class ExtractionResult(BaseModel):
                 
                 # --- 核心角色保護 (程式碼層) ---
                 name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
-                user_name_lower = self.profile.user_profile.name.lower()
-                ai_name_lower = self.profile.ai_profile.name.lower()
-                if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
-                    logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
-                    continue
+                if self.profile:
+                    user_name_lower = self.profile.user_profile.name.lower()
+                    ai_name_lower = self.profile.ai_profile.name.lower()
+                    if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
+                        logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
+                        continue
                 
                 purified_plan.append(call)
 
@@ -1602,14 +1603,27 @@ class ExtractionResult(BaseModel):
             summaries = []
             for call in purified_plan:
                 if call.tool_name == 'update_npc_profile':
-                    lore_exists = await lore_book.get_lore(self.user_id, 'npc_profile', call.parameters.get('lore_key', ''))
+                    # [v190.1 核心修正] 檢查 lore_key 是否有效
+                    lore_key_to_check = call.parameters.get('lore_key')
+                    lore_exists = False
+                    if lore_key_to_check:
+                        lore_exists = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_check)
+
                     if not lore_exists:
-                        logger.warning(f"[{self.user_id}] [自動修正-邏輯] AI 試圖更新一個不存在的NPC (key: {call.parameters.get('lore_key')})。已自動將操作轉換為創建新NPC。")
+                        logger.warning(f"[{self.user_id}] [自動修正-邏輯] AI 試圖更新一個不存在的NPC (key: {lore_key_to_check})。已自動將操作轉換為創建新NPC。")
                         call.tool_name = 'create_new_npc_profile'
+                        
                         updates = call.parameters.get('updates', {})
-                        call.parameters['standardized_name'] = updates.get('name', call.parameters.get('lore_key', '未知NPC').split(' > ')[-1])
+                        # 確保 name 和 description 存在
+                        call.parameters['standardized_name'] = updates.get('name', call.parameters.get('npc_name', '未知NPC'))
                         call.parameters['description'] = updates.get('description', '（由系統自動創建）')
-                        call.parameters['original_name'] = ''
+                        
+                        # [v190.1 核心修正] 動態生成 lore_key
+                        effective_location = call.parameters.get('location_path', current_location_path)
+                        new_lore_key = " > ".join(effective_location) + f" > {call.parameters['standardized_name']}"
+                        call.parameters['lore_key'] = new_lore_key
+                        logger.info(f"[{self.user_id}] [自動修正-邏輯] 已為新NPC '{call.parameters['standardized_name']}' 動態生成 lore_key: '{new_lore_key}'")
+
 
                 if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
@@ -1640,7 +1654,6 @@ class ExtractionResult(BaseModel):
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
 # 執行工具調用計畫 函式結束
-
 
 
     
@@ -2993,6 +3006,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
