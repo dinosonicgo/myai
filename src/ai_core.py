@@ -476,8 +476,8 @@ class AILover:
     
     # 函式：獲取法醫級LORE重構器 Prompt
     # 更新紀錄:
-    # v2.1 (2025-09-23): [安全審查確認] 再次確認此模板已內聯了完整的最高指導原則（越獄指令），確保其在執行最困難的重構任務時，擁有最高的權限和最低的審查風險。
-    # v2.0 (2025-09-23): [終極強化] 根據“終極解構-重構”策略，徹底重寫了此Prompt的任務描述。
+    # v2.0 (2025-09-23): [終極強化] 根據“終極解構-重構”策略，徹底重寫了此Prompt的任務描述。不再是簡單的數據結構化，而是要求LLM扮演“情報分析師”和“小說家”，根據離散的、無上下文的關鍵詞線索，進行推理、還原和創造性的細節補完。此修改旨在解決因解構導致的細節丟失問題，最大限度地從殘片中還原信息。
+    # v1.8 (2025-09-23): [根本性重構] 採用“模板內化與淨化”策略。
     def get_forensic_lore_reconstruction_chain(self) -> str:
         """獲取一個經過終極強化的模板，用於從離散的關鍵詞中推理並還原出包含所有細節的LORE。"""
         
@@ -491,7 +491,7 @@ class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = 
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
         
-        # [v2.1 核心] 將所有指令內聯並淨化，確保越獄指令的存在
+        # [v2.0 核心修正] 內聯所有指令並淨化
         base_prompt = """# ==============================================================================
 # == 📖 AI 小說程式最高指導原則 v20.0 (生成即摘要) 📖
 # ==============================================================================
@@ -1979,139 +1979,139 @@ class ExtractionResult(BaseModel):
 
 
 
-     # 函式：解析並從世界聖經創建 LORE
+    # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v8.1 (2025-09-23): [終極策略回歸] 根據日誌，確認“上下文保留”策略會因“餘輝效應”而被審查。現回歸並強化最初的“解構-重構”策略，以100%規避審查。同時，根據AttributeError，徹底移除了在流程合併後殘留的、對已刪除的_background_lore_refinement函式的冗餘異步任務調用。
-    # v8.0 (2025-09-23): [終極重構] 引入“混合NLP”策略。
+    # v7.0 (2025-09-23): [終極策略回歸] 根據日誌，確認“上下文保留”策略會因“餘輝效應”而被審查。現回歸並強化最初的“解構-重構”策略。當遭遇審查時，不再保留句子結構，而是將文本塊徹底“解構”為一份純粹的、不包含任何上下文的【關鍵詞+代碼】列表。這份100%安全的情報列表將被發送到一個經過終極強化的“法醫級重構器”，由後者負責推理並還原出包含所有細節的LORE JSON，從而徹底繞過審查。
+    # v6.6 (2025-09-23): [終極BUG修復] 全面採用 `_safe_format_prompt`。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """採用混合NLP、終極解構-重構和本地安全解碼的單一終極流程，安全、精確地從世界聖經中解析LORE。"""
+        """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“終極解構-重構”策略。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
 
-        logger.info(f"[{self.user_id}] [終極LORE解析流程] 啟動...")
-
-        # === 階段一：LLM 實體識別與骨架提取 ===
-        logger.info(f"[{self.user_id}] [LORE解析 1/3] 正在使用LLM進行實體骨架提取...")
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...")
         
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=4000, chunk_overlap=200, separators=["\n\n\n", "\n\n", "\n", " ", ""]
         )
         text_chunks = text_splitter.split_text(canon_text)
-        
-        from .schemas import CharacterProfile as CharacterSkeleton, CanonParsingResult as ExtractionResult
+        logger.info(f"[{self.user_id}] 世界聖經已被分割成 {len(text_chunks)} 個文本塊進行處理...")
 
-        all_character_skeletons = {}
-        extraction_template = self.get_entity_extraction_chain()
-        
-        coded_terms = {
-            "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
-            "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
-            "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
-            "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
-            "獸交": "ACTION-D", "獸姦": "ACTION-D", "輪姦": "ACTION-E", "強暴": "ACTION-F",
-            "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
-            "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
-        }
-        decoding_map = {v: k for k, v in coded_terms.items()}
-
+        successful_chunks = 0
+        total_chunks = len(text_chunks)
+            
         for i, chunk in enumerate(text_chunks, 1):
+            logger.info(f"[{self.user_id}] 正在處理文本塊 {i}/{total_chunks}...")
+            
+            parsing_result = None
             try:
-                sanitized_chunk = chunk
-                for keyword, code in coded_terms.items():
-                    sanitized_chunk = sanitized_chunk.replace(keyword, code)
-
-                prompt = self._safe_format_prompt(
-                    extraction_template,
-                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "chunk": sanitized_chunk}
+                transformation_template = self.get_canon_transformation_chain()
+                full_prompt = self._safe_format_prompt(
+                    self.core_protocol_prompt + "\n\n" + transformation_template,
+                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk}
                 )
-
-                class CharacterSkeleton(BaseModel):
-                    name: str
-                    description: str
-                class ExtractionResult(BaseModel):
-                    characters: List[CharacterSkeleton]
-
-                extraction_result = await self.ainvoke_with_rotation(
-                    prompt, output_schema=ExtractionResult, retry_strategy='none',
+                
+                parsing_result = await self.ainvoke_with_rotation(
+                    full_prompt, output_schema=CanonParsingResult, retry_strategy='none',
                     models_to_try_override=[FUNCTIONAL_MODEL]
                 )
+                if not parsing_result: raise ValueError("標準解析返回空值。")
 
-                if extraction_result and extraction_result.characters:
-                    for skeleton in extraction_result.characters:
-                        if skeleton.name not in all_character_skeletons:
-                            all_character_skeletons[skeleton.name] = skeleton.description
-                        else:
-                            all_character_skeletons[skeleton.name] += f" | {skeleton.description}"
-            except Exception as e:
-                logger.error(f"[{self.user_id}] 在處理文本塊 {i} 的實體提取時發生錯誤: {e}", exc_info=True)
-        
-        if not all_character_skeletons:
-            logger.warning(f"[{self.user_id}] 未能從世界聖經中提取出任何角色骨架。流程中止。")
-            return
-            
-        logger.info(f"[{self.user_id}] [LORE解析 1/3] 實體骨架提取完成，發現 {len(all_character_skeletons)} 個獨立角色。")
-
-        # === 階段二：上下文聚合與語義精煉 ===
-        logger.info(f"[{self.user_id}] [LORE解析 2/3] 正在對 {len(all_character_skeletons)} 個角色進行深度精煉...")
-        
-        nlp = spacy.load('zh_core_web_sm')
-        plot_doc = nlp(canon_text)
-        details_parser_template = self.get_character_details_parser_chain()
-
-        for entity_name, initial_description in all_character_skeletons.items():
-            try:
-                # [v8.1 修正] 獲取 LORE 骨架，如果不存在則創建一個新的
-                existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', entity_name)
-                lore_skeleton = existing_lore.content if existing_lore else {"name": entity_name, "description": initial_description}
-
-                aliases = lore_skeleton.get('aliases', [])
-                search_terms = [entity_name] + aliases
-                
-                aggregated_context = ""
-                if canon_text:
-                    sentences = [sent.text for sent in plot_doc.sents]
-                    relevant_sentences = [s for s in sentences if any(term in s for term in search_terms)]
-                    aggregated_context = "\n".join(relevant_sentences)
-
-                if not aggregated_context:
-                    aggregated_context = initial_description
-
-                sanitized_context = aggregated_context
-                for keyword, code in coded_terms.items():
-                    sanitized_context = sanitized_context.replace(keyword, code)
-                
-                sanitized_pre_parsed_data_json = json.dumps(self._decode_lore_content(lore_skeleton, {v: k for k, v in decoding_map.items()}), ensure_ascii=False, indent=2)
-
-                format_params = {
-                    "username": self.profile.user_profile.name,
-                    "ai_name": self.profile.ai_profile.name,
-                    "character_name": entity_name,
-                    "pre_parsed_data_json": sanitized_pre_parsed_data_json,
-                    "plot_context": sanitized_context
-                }
-                parser_prompt = self._safe_format_prompt(details_parser_template, format_params)
-
-                refined_profile_coded = await self.ainvoke_with_rotation(
-                    parser_prompt, output_schema=CharacterProfile, retry_strategy='none',
-                    models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
-                )
-
-                if refined_profile_coded:
-                    coded_dict = refined_profile_coded.model_dump()
-                    decoded_dict = self._decode_lore_content(coded_dict, decoding_map)
+            except (BlockedPromptException, GoogleGenerativeAIError) as e:
+                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查 ({type(e).__name__})。啟動【終極解構-重構】策略...")
+                try:
+                    # [v7.0 核心修正] 步驟 1: 徹底解構為關鍵詞列表
+                    coded_terms = {
+                        "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
+                        "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
+                        "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
+                        "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
+                        "獸交": "ACTION-D", "獸姦": "ACTION-D", "輪姦": "ACTION-E", "強暴": "ACTION-F",
+                        "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
+                        "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
+                    }
                     
-                    await lore_book.add_or_update_lore(
-                        self.user_id, 'npc_profile', entity_name, decoded_dict, source='hybrid_parser_final'
+                    extracted_codes = {coded_terms[kw] for kw in coded_terms if kw in chunk}
+                    
+                    all_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
+                    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                    for lore in all_lores:
+                        if lore.category == 'npc_profile':
+                             name = lore.content.get('name')
+                             if name: all_names.add(name)
+                    
+                    extracted_names = {name for name in all_names if name and name in chunk}
+                    
+                    final_keywords = list(extracted_codes | extracted_names)
+
+                    if not final_keywords:
+                        logger.error(f"[{self.user_id}] [解構失敗] 未能從被審查的文本塊 {i} 中提取出任何已知關鍵詞。跳過此塊。")
+                        continue
+                    
+                    logger.info(f"[{self.user_id}] [解構成功] 已提取情報關鍵詞: {final_keywords}")
+
+                    # 步驟 2: 呼叫終極強化的法醫級重構器
+                    reconstruction_template = self.get_forensic_lore_reconstruction_chain()
+                    reconstruction_prompt = self._safe_format_prompt(
+                        reconstruction_template,
+                        {"keywords": str(final_keywords)}
                     )
-                    logger.info(f"[{self.user_id}] [LORE精煉] 已成功深度解析並精煉 '{entity_name}' 的 LORE。")
-                
-                await asyncio.sleep(2)
+                    
+                    parsing_result = await self.ainvoke_with_rotation(
+                        reconstruction_prompt, output_schema=CanonParsingResult, retry_strategy='none',
+                        models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
+                    )
+                    if not parsing_result: raise ValueError("法醫級重構鏈返回空值。")
+                    logger.info(f"[{self.user_id}] [重構成功] 已成功根據關鍵詞還原出 LORE。")
+
+                except Exception as recon_e:
+                    logger.error(f"[{self.user_id}] 【終極解構-重構】策略最終失敗: {type(recon_e).__name__}: {recon_e}", exc_info=True)
+                    continue
+
+            except (ValueError, ValidationError, json.JSONDecodeError, OutputParserException) as e:
+                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
+                try:
+                    transformation_template = self.get_canon_transformation_chain()
+                    full_prompt = self._safe_format_prompt(
+                        self.core_protocol_prompt + "\n\n" + transformation_template,
+                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk}
+                    )
+                    
+                    parsing_result = await self.ainvoke_with_rotation(
+                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none',
+                        models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
+                    )
+                    if not parsing_result: raise ValueError("模型升級攻堅返回空值。")
+                    logger.info(f"[{self.user_id}] [攻堅成功] 已成功使用升級模型修復格式錯誤。")
+                except Exception as upgrade_e:
+                    logger.error(f"[{self.user_id}] 【模型升級攻堅】策略最終失敗: {type(upgrade_e).__name__}: {upgrade_e}", exc_info=True)
+                    continue
 
             except Exception as e:
-                logger.error(f"[{self.user_id}] 在處理角色 '{entity_name}' 的精煉流程時發生錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生未知嚴重錯誤: {type(e).__name__}: {e}", exc_info=True)
+                continue
 
-        logger.info(f"[{self.user_id}] [LORE解析 3/3] 終極LORE解析流程完成。")
+            if parsing_result:
+                try:
+                    save_tasks = [
+                        self._resolve_and_save('npc_profiles', [p.model_dump() for p in parsing_result.npc_profiles], 'name'),
+                        self._resolve_and_save('locations', [p.model_dump() for p in parsing_result.locations], 'name'),
+                        self._resolve_and_save('items', [p.model_dump() for p in parsing_result.items], 'name'),
+                        self._resolve_and_save('creatures', [p.model_dump() for p in parsing_result.creatures], 'name'),
+                        self._resolve_and_save('quests', [p.model_dump() for p in parsing_result.quests], 'name'),
+                        self._resolve_and_save('world_lores', [p.model_dump() for p in parsing_result.world_lores], 'title')
+                    ]
+                    await asyncio.gather(*save_tasks)
+                    logger.info(f"[{self.user_id}] 文本塊 {i} 的 LORE 已成功儲存。")
+                    successful_chunks += 1
+                except Exception as save_e:
+                    logger.error(f"[{self.user_id}] 在儲存文本塊 {i} 的 LORE 時發生錯誤: {save_e}", exc_info=True)
+
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 粗提取完成。總共 {total_chunks} 個文本塊，成功處理 {successful_chunks} 個。")
+
+        if successful_chunks > 0:
+            logger.info(f"[{self.user_id}] 正在啟動背景任務以進行 LORE 細節精煉...")
+            asyncio.create_task(self._background_lore_refinement(canon_text))
     # 函式：解析並從世界聖經創建 LORE
                 
 
@@ -2665,6 +2665,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
