@@ -1,8 +1,8 @@
-# src/database.py 的中文註釋(v5.0 - 短期記憶持久化)
+# src/database.py 的中文註釋(v5.1 - LORE繼承支持)
 # 更新紀錄:
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。此欄位用於實現LORE的繼承和模板化，允許一個LORE條目（如一個具體NPC）繼承另一個概念LORE（如一個角色職業）的屬性，是解決角色設定不一致問題的關鍵數據庫層支持。
 # v5.0 (2025-11-22): [重大架構升級] 新增了 SceneHistoryData 模型。此修改旨在將之前純記憶體的短期場景對話歷史進行資料庫持久化，從根本上解決因程式重啟或實例重建導致的上下文丟失和劇情斷裂問題。
 # v4.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，增加了 sanitized_content 欄位。
-# v3.0 (2025-08-16): [重大架構重構] 將 Lore 資料庫模型的定義從 lore_book.py 移動到此檔案中。
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -57,6 +57,7 @@ class Lore(Base):
     content = Column(JSON, nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
+    template_keys = Column(JSON, nullable=True) # [v5.1 核心新增]
 # LORE (世界設定) 數據模型 類別結束
 
 # 類別：短期場景歷史數據模型 (v5.0 新增)
