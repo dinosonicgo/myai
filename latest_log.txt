@@ -1,23 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T00:27:26.456746 ###
+### AI Lover Log - Last updated at 2025-09-24T00:34:56.275824 ###
 
-FROM lore_book 
-WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
-[parameters: ('512280345618546699', 'location_info', '維利爾斯莊園')]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-09-24 00:26:30 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 00:26:30 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
-2025-09-24 00:26:30 - [ERROR] - [512280345618546699] 【終極解構-重構】策略最終失敗: OperationalError: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
     self._adapt_connection._handle_exception(error)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
     raise error
@@ -300,3 +282,21 @@ WHERE lore_book.user_id = ?]
 2025-09-24 00:27:23 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
 2025-09-24 00:27:23 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
 2025-09-24 00:27:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-24 00:34:42 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 00:34:42 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 00:34:42 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 00:34:42 - [INFO] - Discord Bot is ready!
+2025-09-24 00:34:45 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 00:34:45 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 00:34:46 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-24 00:34:54 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-24 00:34:54 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-24 00:34:55 - [INFO] - [512280345618546699] AI 實例資源已釋放。
