@@ -1,13 +1,14 @@
-# src/database.py 的中文註釋(v5.1 - LORE繼承支持)
+# src/database.py 的中文註釋(v5.3 - 導入修正)
 # 更新紀錄:
-# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。此欄位用於實現LORE的繼承和模板化，允許一個LORE條目（如一個具體NPC）繼承另一個概念LORE（如一個角色職業）的屬性，是解決角色設定不一致問題的關鍵數據庫層支持。
-# v5.0 (2025-11-22): [重大架構升級] 新增了 SceneHistoryData 模型。此修改旨在將之前純記憶體的短期場景對話歷史進行資料庫持久化，從根本上解決因程式重啟或實例重建導致的上下文丟失和劇情斷裂問題。
-# v4.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，增加了 sanitized_content 欄位。
+# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`，以解決因在 `init_db` 函式簽名中使用 `asyncio.Event` 類型提示而導致的 `NameError`。
+# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持，以解決啟動時的競爭條件問題。
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy import Column, String, Integer, Float, JSON, TEXT
 import time
+import asyncio
 
 from src.config import settings
 
@@ -16,21 +17,6 @@ DATABASE_URL = settings.DATABASE_URL
 engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
-
-
-# 函式：初始化資料庫
-# 更新紀錄:
-# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。在完成數據庫表創建後，此函式會設置一個事件，向應用程序的其他部分發出信號，表明數據庫已完全準備就緒，從而解決了啟動時的競爭條件問題。
-# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。
-# v5.0 (2025-11-22): [重大架構升級] 新增了 SceneHistoryData 模型。
-async def init_db(db_ready_event: asyncio.Event):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    # [v5.2 核心修正] 設置事件，通知其他任務數據庫已就緒
-    db_ready_event.set()
-    print("✅ 數據庫初始化完成，並已發出就緒信號。")
-# 初始化資料庫 函式結束
 
 # 類別：用戶核心數據模型
 class UserData(Base):
@@ -72,10 +58,10 @@ class Lore(Base):
     content = Column(JSON, nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
-    template_keys = Column(JSON, nullable=True) # [v5.1 核心新增]
+    template_keys = Column(JSON, nullable=True)
 # LORE (世界設定) 數據模型 類別結束
 
-# 類別：短期場景歷史數據模型 (v5.0 新增)
+# 類別：短期場景歷史數據模型
 class SceneHistoryData(Base):
     __tablename__ = "scene_history"
 
@@ -87,9 +73,12 @@ class SceneHistoryData(Base):
 # 短期場景歷史數據模型 類別結束
 
 # 函式：初始化資料庫
-async def init_db():
+async def init_db(db_ready_event: asyncio.Event):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    db_ready_event.set()
+    print("✅ 數據庫初始化完成，並已發出就緒信號。")
 # 初始化資料庫 函式結束
         
 # 函式：獲取資料庫會話
@@ -97,4 +86,3 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
-
