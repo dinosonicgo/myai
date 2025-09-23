@@ -2150,29 +2150,11 @@ class CanonParsingResult(BaseModel):
 
     # 函式：獲取無害化文本解析器 Prompt
     # 更新紀錄:
-    # v1.3 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，以解決LLM在某些情況下省略`name`或`title`字段的問題。
+    # v1.5 (2025-09-23): [終極BUG修復] 再次徹底重構此函式，移除了所有運行時的協議拼接。現在，它返回一個完全獨立、自包含的模板字符串，其中包含了所有必要的指令和淨化後的Pydantic定義，並且只留下唯一的 {sanitized_canon_text} 佔位符。這從根本上杜絕了所有因模板拼接和多重格式化而導致的KeyError。
+    # v1.4 (2025-09-23): [終極BUG修復] 移除了 F-string 定義。
     def get_sanitized_text_parser_chain(self) -> str:
         """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
-        pydantic_definitions = "..." # 省略與之前版本相同的 Pydantic 定義
-        final_template = f"""... (省略最高指導原則) ...
-# TASK: 你是一位高精度的數據結構化引擎。
-# MISSION: 你的任務是接收一份【經過代碼化的無害化遊戲設計筆記】，理解其中的技術代碼，並將其包含的完整信息提取為結構化的【代碼化JSON數據】。
-# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🎯 必需欄位強制令】**: 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest) 或 `title` (適用於 WorldLore) 字段。
-# 2. **【🚫 絕對無害化輸出強制令】**: 你的最終JSON輸出，其任何字段的值【也必須】使用輸入文本中的【技術代碼】...
-# ... (省略與之前版本相同的其他規則) ...
-# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
-# ```python
-{pydantic_definitions}
-# ```
-# --- [INPUT DATA] ---
-# 【經過代碼化的無害化遊戲設計筆記】:
-{{sanitized_canon_text}}
----
-# 【代碼化的JSON數據】:
-"""
-        # 為了避免超長，這裡只展示了修改點。請將此邏輯應用到您的完整函式中。
-        # 為了確保您能直接複製貼上，我將提供完整的版本：
+        
         pydantic_definitions = """
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
@@ -2182,7 +2164,8 @@ class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = "
 class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
-        final_template = f"""# ==============================================================================
+        # [v1.5 核心修正] 將所有指令內聯並淨化，不再依賴外部的 core_protocol_prompt
+        base_prompt = """# ==============================================================================
 # == 📖 AI 小說程式最高指導原則 v20.0 (生成即摘要) 📖
 # ==============================================================================
 # 【【【元指令：操作框架定義】】】
@@ -2201,18 +2184,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 3. **【上下文理解】**: 你必須將技術代碼理解為其所代表的概念來進行解析。例如，看到 `「絲月這頭下賤的ROLE-D...」`，你應該理解 `ROLE-D` 是對角色 `絲月` 的一種描述或狀態，並將這層關係記錄在 `description` 中。
 # 4. **【細節完整性】**: 你必須從文本中提取所有可用的細節，包括但不限於：姓名、別名、年齡、種族、外貌、性格、技能、地點、物品效果等，並填充到對應的JSON字段中。
 
-# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
+# === 【【【目標Pydantic模型 (TARGET PYDantic MODELS)】】】 ===
 # ```python
-{pydantic_definitions}
+""" + pydantic_definitions + """
 # ```
 
 # --- [INPUT DATA] ---
 # 【經過代碼化的無害化遊戲設計筆記】:
-{{sanitized_canon_text}}
+{sanitized_canon_text}
 ---
 # 【代碼化的JSON數據】:
 """
-        return self.core_protocol_prompt + "\n\n" + final_template
+        return base_prompt
     # 函式：獲取無害化文本解析器 Prompt
 
 
@@ -2811,6 +2794,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
