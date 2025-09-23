@@ -350,7 +350,40 @@ class AILover:
 
 
 
+    # 函式：獲取LORE更新事實查核器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-24): [全新創建] 創建此函式作為“抗事實污染”防禦體系的核心。它生成的Prompt專門用於在執行LORE更新前進行事實查核，驗證提議的更新內容是否能在對話上下文中找到依據，從而攔截LLM的“事實幻覺”。
+    def get_lore_update_fact_check_prompt(self) -> str:
+        """獲取或創建一個專門用於“事實查核”LORE更新的字符串模板。"""
+        prompt_template = """# TASK: 你是一位極其嚴謹、一絲不苟的【首席世界觀編輯】。
+# MISSION: 你的下屬AI提交了一份針對【現有LORE檔案】的【提議更新】，這份更新是基於一段【對話上下文】生成的。你的任務是進行嚴格的【事實查核】，判斷這份更新是否真實、準確，是否存在任何形式的“幻覺”或“數據污染”。
 
+# === 【【【🚨 核心查核規則 (CORE FACT-CHECKING RULES) - 絕對鐵則】】】 ===
+# 1. **【證據唯一原則】**: 【對話上下文】是你判斷的【唯一依據】。任何在【提議更新】中出現，但無法在【對話上下文】中找到直接或間接證據支持的信息，都【必須】被視為【幻覺】。
+# 2. **【查核標準】**:
+#    - **is_consistent 為 True**: 當且僅當，【提議更新】中的【每一個】鍵值對，都能在【對話上下文】中找到明確的來源。
+#    - **is_consistent 為 False**: 只要【提議更新】中有【任何一個】鍵值對在【對話上下文】中找不到依據。
+# 3. **【修正建議】**: 如果你判定 `is_consistent` 為 `False`，你【必須】在 `suggestion` 字段中，提供一個只包含【真實的、有據可查的】更新內容的、全新的 `updates` 字典。如果所有更新都是幻覺，`suggestion` 可以是 `null` 或空字典 `{}`。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `FactCheckResult` Pydantic 模型的JSON物件。
+
+# --- [INPUT DATA] ---
+
+# 【現有LORE檔案 (原始版本)】:
+{original_lore_json}
+
+# ---
+# 【提議更新 (待查核)】:
+{proposed_updates_json}
+
+# ---
+# 【對話上下文 (你的唯一事實來源)】:
+{context}
+
+# ---
+# 【你的最終事實查核報告JSON】:
+"""
+        return prompt_template
+    # 函式：獲取LORE更新事實查核器 Prompt
     
 
     # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
@@ -1763,11 +1796,11 @@ class ExtractionResult(BaseModel):
 
 # 函式：執行工具調用計畫
 # 更新紀錄:
-# v190.5 (2025-09-23): [根本性重構] 引入了“抗幻覺驗證層”。當“更新轉創建”邏輯被觸發時，不再盲目創建新LORE，而是先調用一個專門的“實體驗證”LLM鏈進行事實查核。根據查核結果（創建、合併或忽略），系統會執行相應的、更安全的操作，從而有效攔截並修正LLM的實體幻覺。
-# v190.4 (2025-09-23): [災難性BUG修復] 引入了通用的“參數修復與規範化”模塊。
-# v190.3 (2025-09-23): [健壯性強化] 前置並強化了“核心角色保護屏障”。
+# v190.7 (2025-09-24): [健壯性強化] 在調用“事實查核”鏈時，增加了 `inject_core_protocol=True`。此修改為事實查核LLM注入了完整的越獄指令，確保其能夠安全地處理和分析包含原始NSFW詞彙的上下文，從根本上解決了因此導致的內容審查問題。
+# v190.6 (2025-09-24): [根本性重構] 引入了“抗事實污染”防禦層。
+# v190.5 (2025-09-23): [根本性重構] 引入了“抗幻覺驗證層”。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺驗證層。"""
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺與抗事實污染驗證層。"""
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
             return "LORE 扩展計畫為空。"
@@ -1778,23 +1811,16 @@ class ExtractionResult(BaseModel):
             if not self.profile:
                 return "错误：无法执行工具計畫，因为使用者 Profile 未加载。"
             
-            # ... (is_chinese 和 available_lore_tools 的定義保持不變) ...
             def is_chinese(text: str) -> bool:
                 if not text: return False
                 return bool(re.search(r'[\u4e00-\u9fff]', text))
-
             available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
-            
             purified_plan: List[ToolCall] = []
-            
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
 
             for call in plan.plan:
-                # ... (參數修復與核心角色保護邏輯保持不變) ...
-                # 為了避免省略，我將包含完整的淨化循環
                 params = call.parameters
-                
                 name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'title']
                 found_name = None
                 for variant in name_variants:
@@ -1802,7 +1828,6 @@ class ExtractionResult(BaseModel):
                         found_name = params.pop(variant)
                         params['standardized_name'] = found_name
                         break
-                
                 if not params.get('lore_key') and params.get('standardized_name'):
                     name = params['standardized_name']
                     if 'location_info' in call.tool_name:
@@ -1812,37 +1837,26 @@ class ExtractionResult(BaseModel):
                     else:
                         params['lore_key'] = name
                     logger.info(f"[{self.user_id}] [自動修正-參數] 為 '{name}' 動態生成缺失的 lore_key: '{params['lore_key']}'")
-
-                potential_names = [
-                    params.get('standardized_name'), params.get('original_name'),
-                    params.get('name'), (params.get('updates') or {}).get('name')
-                ]
-                
+                potential_names = [params.get('standardized_name'), params.get('original_name'), params.get('name'), (params.get('updates') or {}).get('name')]
                 is_core_character = False
                 for name_to_check in potential_names:
                     if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
                         logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
                         is_core_character = True
                         break
-                if is_core_character:
-                    continue
-                
+                if is_core_character: continue
                 std_name = params.get('standardized_name')
                 orig_name = params.get('original_name')
                 if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
                     params['standardized_name'], params['original_name'] = orig_name, std_name
-
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = None; highest_ratio = 0.7
                     for valid_tool in available_lore_tools:
                         ratio = levenshtein_ratio(tool_name, valid_tool)
                         if ratio > highest_ratio: highest_ratio = ratio; best_match = valid_tool
-                    if best_match:
-                        call.tool_name = best_match
-                    else:
-                        continue
-                
+                    if best_match: call.tool_name = best_match
+                    else: continue
                 purified_plan.append(call)
 
             if not purified_plan:
@@ -1852,66 +1866,70 @@ class ExtractionResult(BaseModel):
             
             summaries = []
             for call in purified_plan:
-                if call.tool_name == 'update_npc_profile':
-                    lore_key_to_check = call.parameters.get('lore_key')
-                    lore_exists = False
-                    if lore_key_to_check:
-                        lore_exists = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_check)
-
-                    if not lore_exists:
-                        # [v190.5 核心修正] 觸發抗幻覺驗證層
-                        entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or lore_key_to_check.split(' > ')[-1]
-                        logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在NPC '{entity_name_to_validate}' 的更新。啟動事實查核...")
-                        
-                        validation_prompt_template = self.get_entity_validation_prompt()
-                        
-                        # 獲取上下文
-                        scene_key = self._get_scene_key()
-                        history = self.scene_histories.get(scene_key, ChatMessageHistory())
-                        context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
-                        
-                        existing_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
-                        existing_entities_json = json.dumps(
-                            [{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs],
-                            ensure_ascii=False
-                        )
-
-                        validation_prompt = self._safe_format_prompt(
-                            validation_prompt_template,
-                            {
-                                "entity_name": entity_name_to_validate,
-                                "context": context,
-                                "existing_entities_json": existing_entities_json
-                            }
-                        )
-                        
-                        validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
-                        
-                        if validation_result and validation_result.decision == 'CREATE':
-                            logger.info(f"[{self.user_id}] [抗幻覺] 裁決: CREATE。理由: {validation_result.reasoning}。將操作轉換為創建新NPC。")
-                            call.tool_name = 'create_new_npc_profile'
-                            updates = call.parameters.get('updates', {})
-                            call.parameters['standardized_name'] = updates.get('name', entity_name_to_validate)
-                            call.parameters['description'] = updates.get('description', '（由事實查核後創建）')
-                            effective_location = call.parameters.get('location_path', current_location_path)
-                            call.parameters['lore_key'] = " > ".join(effective_location + [call.parameters['standardized_name']])
-                        
-                        elif validation_result and validation_result.decision == 'MERGE':
-                            logger.info(f"[{self.user_id}] [抗幻覺] 裁決: MERGE。理由: {validation_result.reasoning}。將更新目標修正為 '{validation_result.matched_key}'。")
-                            call.parameters['lore_key'] = validation_result.matched_key
-                        
-                        else: # IGNORE or failed
-                            reason = validation_result.reasoning if validation_result else "驗證鏈返回無效結果"
-                            logger.warning(f"[{self.user_id}] [抗幻覺] 裁決: IGNORE。理由: {reason}。已攔截幻覺。")
-                            continue # 跳過此工具調用
-
-                if not call.parameters.get('location_path'):
-                    call.parameters['location_path'] = current_location_path
-
-                tool_to_execute = available_lore_tools.get(call.tool_name)
-                if not tool_to_execute: continue
-
                 try:
+                    if call.tool_name.startswith('update_'):
+                        lore_key_to_check = call.parameters.get('lore_key')
+                        original_lore = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_check) if lore_key_to_check else None
+
+                        if original_lore:
+                            logger.info(f"[{self.user_id}] [事實查核] 檢測到對 LORE '{lore_key_to_check}' 的更新請求。啟動事實查核...")
+                            scene_key = self._get_scene_key()
+                            history = self.scene_histories.get(scene_key, ChatMessageHistory())
+                            context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
+                            
+                            fact_check_prompt_template = self.get_lore_update_fact_check_prompt()
+                            fact_check_prompt = self._safe_format_prompt(
+                                fact_check_prompt_template,
+                                {
+                                    "original_lore_json": json.dumps(original_lore.content, ensure_ascii=False),
+                                    "proposed_updates_json": json.dumps(call.parameters.get('updates', {}), ensure_ascii=False),
+                                    "context": context
+                                },
+                                inject_core_protocol=True
+                            )
+                            fact_check_result = await self.ainvoke_with_rotation(fact_check_prompt, output_schema=FactCheckResult, retry_strategy='none')
+
+                            if fact_check_result and not fact_check_result.is_consistent:
+                                logger.warning(f"[{self.user_id}] [事實查核] 檢測到幻覺！理由: {fact_check_result.conflicting_info}")
+                                if fact_check_result.suggestion:
+                                    logger.info(f"[{self.user_id}] [事實查核] 應用修正建議: {fact_check_result.suggestion}")
+                                    call.parameters['updates'] = fact_check_result.suggestion
+                                else:
+                                    logger.warning(f"[{self.user_id}] [事實查核] 無有效修正建議，已忽略本次幻覺更新。")
+                                    continue
+                            elif not fact_check_result:
+                                logger.error(f"[{self.user_id}] [事實查核] 事實查核鏈返回無效結果，為安全起見，已忽略本次更新。")
+                                continue
+                        
+                        else:
+                            entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or (lore_key_to_check.split(' > ')[-1] if lore_key_to_check else "未知實體")
+                            logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在NPC '{entity_name_to_validate}' 的更新。啟動事實查核...")
+                            validation_prompt_template = self.get_entity_validation_prompt()
+                            scene_key = self._get_scene_key()
+                            history = self.scene_histories.get(scene_key, ChatMessageHistory())
+                            context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
+                            existing_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+                            existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs], ensure_ascii=False)
+                            validation_prompt = self._safe_format_prompt(validation_prompt_template, {"entity_name": entity_name_to_validate, "context": context, "existing_entities_json": existing_entities_json}, inject_core_protocol=True)
+                            validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
+                            if validation_result and validation_result.decision == 'CREATE':
+                                call.tool_name = 'create_new_npc_profile'
+                                updates = call.parameters.get('updates', {})
+                                call.parameters['standardized_name'] = updates.get('name', entity_name_to_validate)
+                                call.parameters['description'] = updates.get('description', '（由事實查核後創建）')
+                                effective_location = call.parameters.get('location_path', current_location_path)
+                                call.parameters['lore_key'] = " > ".join(effective_location + [call.parameters['standardized_name']])
+                            elif validation_result and validation_result.decision == 'MERGE':
+                                call.parameters['lore_key'] = validation_result.matched_key
+                            else:
+                                continue
+
+                    if not call.parameters.get('location_path'):
+                        call.parameters['location_path'] = current_location_path
+
+                    tool_to_execute = available_lore_tools.get(call.tool_name)
+                    if not tool_to_execute: continue
+
                     validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
                     result = await tool_to_execute.ainvoke(validated_args.model_dump())
                     summary = f"任務成功: {result}"
@@ -1931,6 +1949,9 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
 # 執行工具調用計畫 函式結束
 
+
+
+    
     
 
     # 函式：背景LORE精煉
@@ -3256,6 +3277,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
