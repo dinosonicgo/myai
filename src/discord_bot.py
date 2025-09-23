@@ -1137,8 +1137,8 @@ class BotCog(commands.Cog):
 
     # 函式：在背景處理世界聖經文本
     # 更新紀錄:
-    # v2.0 (2025-09-23): [使用者體驗優化] 根據“兩階段精煉”策略，修改了最終的成功訊息，告知使用者AI正在後台進行更深度的細節補充，以更好地管理使用者預期。
-    # v1.0 (2025-09-23): [災難性BUG修復] 修正了對 ai_instance.parse_and_create_lore_from_canon 的呼叫。
+    # v3.0 (2025-09-23): [架構簡化] 根據 LORE 解析流程合併為單一終極流程的變更，恢復了原始的、表示處理完成的成功訊息。
+    # v2.0 (2025-09-23): [使用者體驗優化] 修改了成功訊息以適配兩階段流程。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -1149,9 +1149,8 @@ class BotCog(commands.Cog):
                 return
             if len(content_text) > 5000:
                 await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
-            if not ai_instance.vector_store:
-                await ai_instance._configure_pre_requisites()
             
+            # [v3.0 修正] 移除了對 vector_store 的檢查，因為它在 add_canon_to_vector_store 中處理
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
             
             if is_setup_flow:
@@ -1159,14 +1158,14 @@ class BotCog(commands.Cog):
                 asyncio.create_task(self.finalize_setup(interaction, content_text))
                 return
 
-            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行第一階段的智能解析，建立核心LORE骨架...")
+            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行終極智能解析，將其轉化為結構化的 LORE 數據庫...")
             
             await ai_instance.parse_and_create_lore_from_canon(content_text)
             
-            # [v2.0 核心修正] 更新成功訊息
-            await user.send("✅ **核心LORE骨架已建立！**\nAI 現已啟動第二階段的背景任務，將在接下來的幾分鐘內對所有LORE進行深度掃描與細節補充，此過程無需您操作。")
+            # [v3.0 核心修正] 恢復原始成功訊息
+            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
         except Exception as e:
-            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
     # 函式：在背景處理世界聖經文本
 
