@@ -690,42 +690,61 @@ class AILover:
 
     
 
-# 函式：委婉化並重試 (v4.0 - 適配代碼化解構)
-# 更新紀錄:
-# v4.0 (2025-09-23): [根本性重構] 為了與主 LORE 解析器保持一致，此函式現在也採用了更可靠的“代碼化解構”策略。它不再嘗試對整個文本進行文學化改寫，而是執行本地關鍵詞提取和法醫級重構，以處理通用的審查問題。
-# v3.0 (2025-09-23): [根本性重構] 徹底重寫了此函式的邏輯。
+    # 函式：委婉化並重試
+    # 更新紀錄:
+    # v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。它現在能夠識別並處理多種不同鏈（如LORE解析、LORE提取）的Prompt結構，通過遍歷一個正則表達式列表來提取需要被消毒的文本，使其成為一個可被廣泛應用的、健壯的抗審查備援函式。
+    # v4.0 (2025-09-23): [根本性重構] 採用了更可靠的“代碼化解構”策略。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        一個健壯的備援機制，採用「代碼化解構-無害化重構」策略來處理內容審查失敗。
+        一個健壯的、通用的備援機制，採用「代碼化解構-無害化重構」策略來處理內容審查失敗。
         """
         if isinstance(original_exception, GoogleAPICallError) and "embed_content" in str(original_exception):
             logger.error(f"[{self.user_id}] 【Embedding 速率限制】: 檢測到 Embedding API 速率限制，將立即觸發安全備援，跳過重試。")
             return None
 
-        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【代碼化解構-無害化重構】策略...")
+        logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...")
         
         try:
-            text_to_sanitize_match = re.search(r"【世界聖經文本 \(你的唯一數據來源\)】:\s*([\s\S]*)---", failed_prompt, re.IGNORECASE)
-            if not text_to_sanitize_match:
-                logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。")
+            # [v4.1 核心修正] 通用化標記提取
+            text_to_sanitize = None
+            # 定義一個正則表達式列表，按可能性排序
+            patterns_to_try = [
+                r"【遊戲設計筆記】:\s*([\s\S]*?)---", # for get_canon_transformation_chain
+                r"【劇情上下文 \(可能經過代碼化處理\)】:\s*([\s\S]*?)---", # for get_character_details_parser_chain
+                r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---", # for get_lore_update_fact_check_prompt
+                r"【本回合的完整對話】:\s*([\s\S]*?)---", # for get_lore_extraction_chain
+                r"【小說手稿片段】:\s*([\s\S]*?)---" # for get_literary_euphemization_chain
+            ]
+            
+            for pattern in patterns_to_try:
+                match = re.search(pattern, failed_prompt, re.IGNORECASE)
+                if match:
+                    text_to_sanitize = match.group(1).strip()
+                    break
+            
+            if not text_to_sanitize:
+                logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。")
                 return None
             
-            text_to_sanitize = text_to_sanitize_match.group(1).strip()
-            
-            # 步驟 1: 本地“代碼化解構”
             coded_terms = {
                 "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
                 "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
                 "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
                 "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
+                "獸交": "ACTION-D", "獸姦": "ACTION-D", "輪姦": "ACTION-E", "強暴": "ACTION-F",
                 "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
                 "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
             }
             extracted_codes = {coded_terms[kw] for kw in coded_terms if kw in text_to_sanitize}
-            final_keywords = list(extracted_codes)
+            
+            all_names = set()
             if self.profile:
-                if self.profile.user_profile.name in text_to_sanitize: final_keywords.append(self.profile.user_profile.name)
-                if self.profile.ai_profile.name in text_to_sanitize: final_keywords.append(self.profile.ai_profile.name)
+                all_names.add(self.profile.user_profile.name)
+                all_names.add(self.profile.ai_profile.name)
+            
+            extracted_names = {name for name in all_names if name and name in text_to_sanitize}
+            
+            final_keywords = list(extracted_codes | extracted_names)
 
             if not final_keywords:
                 logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出任何已知關鍵詞，無法進行重構。")
@@ -733,21 +752,24 @@ class AILover:
 
             logger.info(f"[{self.user_id}] (Euphemizer) 已提取情報關鍵詞: {final_keywords}")
 
-            # 步驟 2: 調用“法醫級重構器”
             reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-            reconstruction_prompt = reconstruction_template.format(keywords=str(final_keywords))
+            reconstruction_prompt = self._safe_format_prompt(
+                reconstruction_template,
+                {"keywords": str(final_keywords)},
+                inject_core_protocol=True
+            )
             
             return await self.ainvoke_with_rotation(
                 reconstruction_prompt,
-                output_schema=output_schema, # 使用原始調用者期望的 schema
+                output_schema=output_schema,
                 retry_strategy='none',
-                models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
+                use_degradation=True
             )
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 【代碼化解構】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
+            logger.error(f"[{self.user_id}] 【通用化解構】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
             return None
-# 函式：委婉化並重試 (v4.0 - 適配代碼化解構)
+    # 函式：委婉化並重試
 
 
     
@@ -3187,6 +3209,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
