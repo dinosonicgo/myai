@@ -2229,8 +2229,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.3 (2025-09-23): [災難性安全漏洞修復] 引入“雙重無害化”策略。修正了之前只對 aggregated_context 進行無害化，卻忽略了對 existing_lore_json 本身進行處理的致命漏洞。現在，在構建精煉Prompt之前，會對從數據庫讀取的LORE骨架也進行一次代碼化替換，確保傳遞給LLM的所有用戶生成內容都是100%安全的，從而徹底解決精煉階段的BlockedPromptException。
-    # v2.2 (2025-09-23): [功能擴展] 同步更新了術語代碼表。
+    # v2.4 (2025-09-23): [災難性BUG修復] 修正了在 except 塊中因不安全地使用 f-string 記錄異常日誌而導致的終極 `IndexError`。異常對象 `e` 的字符串表示可能包含 `{}`，當被 f-string 二次格式化時會引發錯誤。現已改為使用 logging 模塊推薦的安全參數化格式 `logger.warning("...", var1, var2)`，從而徹底解決此問題。
+    # v2.3 (2025-09-23): [災難性安全漏洞修復] 引入“雙重無害化”策略。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
@@ -2267,8 +2267,8 @@ class CanonParsingResult(BaseModel):
             }
 
             for lore in lores_to_refine:
+                entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
                 try:
-                    entity_name = lore.content.get('name') or lore.content.get('title')
                     if not entity_name: continue
                     
                     TargetModel = model_map.get(lore.category)
@@ -2284,16 +2284,14 @@ class CanonParsingResult(BaseModel):
                     aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs if match[0].strip()]).strip()
                     
                     if not aggregated_context:
+                        # 這不是一個錯誤，只是說明原文中沒有更多細節了，所以我們用 INFO 級別記錄
                         logger.info(f"[{self.user_id}] [LORE精煉] 未能在原文中找到 '{entity_name}' 的额外上下文，跳过精炼。")
                         continue
                     
-                    # [v2.3 核心修正] 執行雙重無害化
-                    # 1. 無害化從聖經原文提取的上下文
                     sanitized_context = aggregated_context
                     for keyword, code in coded_terms.items():
                         sanitized_context = sanitized_context.replace(keyword, code)
                     
-                    # 2. 無害化從數據庫讀取的 LORE 骨架
                     existing_lore_str = json.dumps(lore.content, ensure_ascii=False, indent=2)
                     sanitized_existing_lore_json = existing_lore_str
                     for keyword, code in coded_terms.items():
@@ -2303,7 +2301,7 @@ class CanonParsingResult(BaseModel):
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
                         "character_name": entity_name,
-                        "existing_lore_json": sanitized_existing_lore_json, # <-- 使用無害化版本
+                        "existing_lore_json": sanitized_existing_lore_json,
                         "aggregated_context": sanitized_context
                     }
                     parser_prompt = details_parser_template.format(**format_params)
@@ -2332,8 +2330,8 @@ class CanonParsingResult(BaseModel):
                     await asyncio.sleep(1.5)
 
                 except Exception as e:
-                    entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
-                    logger.warning(f"[{self.user_id}] [LORE精煉] 在精煉 '{entity_name}' 時發生错误: {e}", exc_info=False)
+                    # [v2.4 核心修正] 使用安全的日誌記錄方式
+                    logger.warning("[%s] [LORE精煉] 在精煉 '%s' 時發生错误: %s", self.user_id, entity_name, e, exc_info=False)
 
             logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任务完成。")
 
@@ -2845,6 +2843,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
