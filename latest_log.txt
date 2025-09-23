@@ -1,55 +1,92 @@
-### AI Lover Log - Last updated at 2025-09-24T01:34:54.499633 ###
+### AI Lover Log - Last updated at 2025-09-24T01:39:56.796801 ###
 
-resolutions.3.decision
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.36.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.37.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.38.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.39.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.40.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.41.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.4.decision
+resolutions.42.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.43.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.44.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.5.decision
+resolutions.45.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.6.decision
+resolutions.46.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.7.decision
+resolutions.47.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.8.decision
+resolutions.48.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.9.decision
+resolutions.49.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.10.decision
+resolutions.50.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.51.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.52.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.53.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.11.decision
+resolutions.54.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.12.decision
+resolutions.55.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.13.decision
+resolutions.56.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.14.decision
+resolutions.57.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.58.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.15.decision
+resolutions.59.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.16.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+resolutions.60.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.17.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+resolutions.61.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.18.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+resolutions.62.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.63.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1178, in _resolve_and_save
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2577, in parse_and_create_lore_from_canon
     resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
     raise e
@@ -57,7 +94,7 @@ Traceback (most recent call last):
     return output_schema.model_validate(json.loads(clean_json_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 19 validation errors for BatchResolutionPlan
+pydantic_core._pydantic_core.ValidationError: 64 validation errors for BatchResolutionPlan
 resolutions.0.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
@@ -115,188 +152,151 @@ resolutions.17.decision
 resolutions.18.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-2025-09-24 01:14:57 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
-2025-09-24 01:14:59 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
-2025-09-24 01:14:59 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
-2025-09-24 01:18:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 01:18:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 01:18:27 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 01:18:27 - [INFO] - Discord Bot is ready!
-2025-09-24 01:18:30 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 01:18:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 01:18:30 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 01:18:40 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 67 條文檔到 RAG 語料庫。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-24 01:18:40 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-24 01:18:40 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-24 01:18:41 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 開始初步解析所有文本塊...
-2025-09-24 01:18:41 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
-2025-09-24 01:19:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-09-24 01:19:56 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
-2025-09-24 01:19:56 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 86048 秒)。
-2025-09-24 01:19:56 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86053 秒)。
-2025-09-24 01:19:56 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86059 秒)。
-2025-09-24 01:19:56 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.45 秒後進行第 2 次嘗試...
-2025-09-24 01:19:58 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.13 秒後進行第 3 次嘗試...
-2025-09-24 01:20:01 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-24 01:20:01 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #4 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
-2025-09-24 01:20:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 85821 秒)。
-2025-09-24 01:20:01 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.17 秒後進行第 2 次嘗試...
-2025-09-24 01:20:03 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.24 秒後進行第 3 次嘗試...
-2025-09-24 01:20:05 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-24 01:20:05 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #0 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 86039 秒)。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86044 秒)。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86049 秒)。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 86395 秒)。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 85817 秒)。
-2025-09-24 01:20:05 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 86400 秒)。
-2025-09-24 01:20:05 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 01:20:05 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 01:20:05 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 85929 秒)。
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 85935 秒)。
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 86281 秒)。
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 85703 秒)。
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 86286 秒)。
-2025-09-24 01:21:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 85925 秒)。
-2025-09-24 01:21:59 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 01:21:59 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 01:21:59 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 01:24:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 01:24:06 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 01:24:06 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 01:24:06 - [INFO] - Discord Bot is ready!
-2025-09-24 01:24:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 01:24:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 01:24:10 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 01:24:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 67 條文檔到 RAG 語料庫。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-24 01:24:20 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-24 01:24:20 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-24 01:24:21 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 開始初步解析所有文本塊...
-2025-09-24 01:24:21 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
-2025-09-24 01:24:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-24 01:24:44 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
-2025-09-24 01:24:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-24 01:24:55 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
-2025-09-24 01:25:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-24 01:25:05 - [INFO] - [512280345618546699] 正在初步解析文本塊 4/7...
-2025-09-24 01:25:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:25:05 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【代碼化解構-無害化重構】策略...
-2025-09-24 01:25:05 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。
-2025-09-24 01:25:05 - [INFO] - [512280345618546699] 正在初步解析文本塊 5/7...
-2025-09-24 01:25:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-24 01:25:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-24 01:25:21 - [ERROR] - [512280345618546699] 處理文本塊 5 時發生錯誤，已跳過此塊: 2 validation errors for CanonParsingResult
-npc_profiles.14.appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-npc_profiles.15.appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+resolutions.19.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.20.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.21.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.22.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.23.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.24.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.25.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.26.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.27.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.28.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.29.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.30.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.31.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.32.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.33.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.34.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.35.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.36.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.37.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.38.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.39.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.40.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.41.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.42.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.43.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.44.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.45.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.46.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.47.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.48.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.49.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.50.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.51.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.52.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.53.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.54.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.55.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.56.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.57.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.58.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.59.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.60.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.61.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.62.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.63.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 實體解析完成。決策: 64 創建, 0 合併。
+2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 開始批量描述合成...
+2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
+2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
+2025-09-24 01:38:48 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
+2025-09-24 01:39:00 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
+2025-09-24 01:39:00 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: AILover._load_or_build_rag_retriever() got an unexpected keyword argument 'force_rebuild'
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2513, in parse_and_create_lore_from_canon
-    parsing_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 600, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for CanonParsingResult
-npc_profiles.14.appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-npc_profiles.15.appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-24 01:25:21 - [INFO] - [512280345618546699] 正在初步解析文本塊 6/7...
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【代碼化解構-無害化重構】策略...
-2025-09-24 01:25:22 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] 正在初步解析文本塊 7/7...
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【代碼化解構-無害化重構】策略...
-2025-09-24 01:25:22 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到可供消毒的 '世界聖經文本' 標記，無法執行委婉化。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 初步解析完成。收集到 44 個潛在NPC條目和其他 31 條LORE。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 開始批量實體解析...
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 85722 秒)。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 85727 秒)。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 85732 秒)。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 86079 秒)。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 85500 秒)。
-2025-09-24 01:25:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 86083 秒)。
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 01:25:22 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 01:28:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 01:28:32 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 01:28:32 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 01:28:32 - [INFO] - Discord Bot is ready!
-2025-09-24 01:28:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 01:28:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 01:28:36 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 01:28:47 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 67 條文檔到 RAG 語料庫。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-24 01:28:47 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-24 01:28:47 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-24 01:28:48 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 開始初步解析所有文本塊...
-2025-09-24 01:28:48 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
-2025-09-24 01:29:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-24 01:29:09 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
-2025-09-24 01:29:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-24 01:29:24 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
-2025-09-24 01:29:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-24 01:29:32 - [INFO] - [512280345618546699] 正在初步解析文本塊 4/7...
-2025-09-24 01:29:32 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:29:32 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查，已跳過此塊。錯誤: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-24 01:29:32 - [INFO] - [512280345618546699] 正在初步解析文本塊 5/7...
-2025-09-24 01:29:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-24 01:29:43 - [INFO] - [512280345618546699] 正在初步解析文本塊 6/7...
-2025-09-24 01:29:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:29:43 - [WARNING] - [512280345618546699] 文本塊 6 遭遇內容審查，已跳過此塊。錯誤: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-24 01:29:43 - [INFO] - [512280345618546699] 正在初步解析文本塊 7/7...
-2025-09-24 01:29:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 01:29:44 - [WARNING] - [512280345618546699] 文本塊 7 遭遇內容審查，已跳過此塊。錯誤: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 初步解析完成。收集到 59 個潛在NPC條目和其他 34 條LORE。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 開始批量實體解析...
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 85460 秒)。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 85465 秒)。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 85470 秒)。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 85817 秒)。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 85238 秒)。
-2025-09-24 01:29:44 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 85822 秒)。
-2025-09-24 01:29:44 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 01:29:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 01:29:44 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 01:34:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 01:34:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 01:34:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 01:34:41 - [INFO] - Discord Bot is ready!
-2025-09-24 01:34:43 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 01:34:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 01:34:44 - [INFO] - 已成功發送啟動成功通知給管理員。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1323, in _background_process_canon
+    await ai_instance.parse_and_create_lore_from_canon(content_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2673, in parse_and_create_lore_from_canon
+    self.retriever = await self._load_or_build_rag_retriever(force_rebuild=True)
+TypeError: AILover._load_or_build_rag_retriever() got an unexpected keyword argument 'force_rebuild'
