@@ -30,17 +30,18 @@ def _validate_string_to_dict(value: Any) -> Any:
 
 
 
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.2 - 防禦性默認值)
+# 函式：基础 LORE 數據模型 - CharacterProfile
 # 更新紀錄:
-# v2.2 (2025-09-23): [災難性BUG修復] 為多個容易被LLM省略的字段（如 appearance, description, skills 等）提供了空的默認值（例如 `default=""` 或 `default_factory=list`）。這使得 Pydantic 模型更具防禦性，即使LLM返回的JSON中缺少這些鍵，模型也能成功驗證並使用安全的空值填充，從根本上解決了大量的 ValidationError。
+# v2.3 (2025-09-24): [健壯性強化] 將所有 Optional[str] 類型的字段全部修改為 str，並提供空的字符串 "" 作為默認值。此修改強制要求LLM即使在信息不足時也必須返回一個空字符串而不是null，從而徹底解決了因類型不匹配導致的 ValidationError。
+# v2.2 (2025-09-23): [災難性BUG修復] 為多個容易被LLM省略的字段提供了空的默認值。
 # v2.1 (2025-09-23): [災難性BUG修復] 為 `relationships` 欄位的 description 新增了轉義。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
     alternative_names: List[str] = Field(default_factory=list, description="一个由AI预先生成的、用于在主名称冲突时备用的名称列表。")
-    gender: Optional[str] = Field(default="未設定", description="角色的性別。")
-    age: Optional[str] = Field(default="未知", description="角色的年齡或年齡段。")
-    race: Optional[str] = Field(default="未知", description="角色的種族。")
+    gender: str = Field(default="未設定", description="角色的性別。")
+    age: str = Field(default="未知", description="角色的年齡或年齡段。")
+    race: str = Field(default="未知", description="角色的種族。")
     appearance: str = Field(default="", description="角色的外貌特徵的總體描述。")
     appearance_details: Dict[str, Any] = Field(default_factory=dict, description="角色的具體外貌細節，值可以是字串或列表。")
     likes: List[str] = Field(default_factory=list, description="角色喜歡的事物列表。")
@@ -48,7 +49,7 @@ class CharacterProfile(BaseModel):
     equipment: List[str] = Field(default_factory=list, description="角色【當前穿戴或持有】的裝備列表。")
     skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
     description: str = Field(default="", description="角色的性格、背景故事、行為模式等綜合簡介。")
-    location: Optional[str] = Field(default=None, description="角色當前所在的城市或主要區域。")
+    location: str = Field(default="", description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
     relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
@@ -83,7 +84,10 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.2 - 防禦性默認值)
+# 函式：基础 LORE 數據模型 - CharacterProfile
+
+
+
 
 # [v1.0 新增] 用於批量LORE精煉的包裹模型
 class BatchRefinementResult(BaseModel):
@@ -486,6 +490,7 @@ SynthesisTask.model_rebuild()
 SynthesizedDescription.model_rebuild()
 BatchSynthesisResult.model_rebuild()
 FactCheckResult.model_rebuild()
+
 
 
 
