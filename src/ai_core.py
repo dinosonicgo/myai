@@ -1886,11 +1886,12 @@ class ExtractionResult(BaseModel):
     
     
     
+    
 # 函式：預處理並生成主回應
 # 更新紀錄:
+# v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯，以解決“系統洩漏”問題。新邏輯不再依賴`´´´novel`標籤，而是以`´´´summary`作為唯一分隔符，優先將其剝離，確保任何情況下內部摘要數據都不會洩漏給用戶。
 # v33.10 (2025-09-23): [災難性BUG修復] 對 `summary_schema_mandate` Prompt 模板中的JSON範例大括號進行了轉義（`{}` -> `{{}}`），以解決因字符串格式化導致的 `KeyError`。
-# v33.9 (2025-09-23): [災難性BUG修復] 引入了“摘要JSON結構強制令”，在主Prompt中明確定義了summary部分的輸出Schema，以根除LLM生成錯誤結構JSON的問題。同時，升級了JSON解析邏輯，使其能夠智能剝離Markdown代碼塊標籤，解決了json.JSONDecodeError。
-# v33.8 (2025-11-22): [災難性BUG修復] 引入了極其嚴厲的【開場強制令】。
+# v33.9 (2025-09-23): [災難性BUG修復] 引入了“摘要JSON結構強制令”，並升級了JSON解析邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2021,7 +2022,6 @@ class ExtractionResult(BaseModel):
 # 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。
 """
         
-        # [v33.10 核心修正] 轉義所有大括號
         summary_schema_mandate = """# ==============================================================================
 # == ⚙️ 摘要JSON結構強制令 (SUMMARY JSON STRUCTURE MANDATE) ⚙️ ==
 # ==============================================================================
@@ -2112,37 +2112,37 @@ class ExtractionResult(BaseModel):
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         summary_data = {}
 
+        # [v33.11 核心修正] 採用更健壯的分割解析邏輯
         if raw_dual_output and raw_dual_output.strip():
             try:
-                cleaned_output = re.sub(r'\[摘要\]|\[正文\]', '', raw_dual_output.strip())
-                novel_match = re.search(r"´´´novel(.*?)(´´´summary|´´´$)", cleaned_output, re.DOTALL)
-                summary_match = re.search(r"´´´summary(.*?´´´)", cleaned_output, re.DOTALL)
-                if novel_match:
-                    novel_text = novel_match.group(1).strip().strip("´").strip()
-                else:
-                    novel_text = cleaned_output
-                    logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´novel 分隔符，已將整個輸出視為小說。")
-                if summary_match:
-                    summary_json_str = summary_match.group(1).strip()
-                    if summary_json_str.endswith("´´´"):
-                        summary_json_str = summary_json_str[:-3].strip()
-                    if summary_json_str:
+                # 步驟 1: 以 ´´´summary 作為絕對分隔符
+                parts = raw_dual_output.split("´´´summary")
+                potential_novel_text = parts[0]
+                
+                # 步驟 2: 如果分割成功，處理摘要部分
+                if len(parts) > 1:
+                    summary_part = parts[1]
+                    json_object_match = re.search(r'\{.*\}|\[.*\]', summary_part, re.DOTALL)
+                    if json_object_match:
+                        clean_json_str = json_object_match.group(0)
                         try:
-                            json_object_match = re.search(r'\{.*\}|\[.*\]', summary_json_str, re.DOTALL)
-                            if json_object_match:
-                                clean_json_str = json_object_match.group(0)
-                                summary_data = json.loads(clean_json_str)
-                            else:
-                                logger.error(f"[{self.user_id}] 在 ´´´summary 區塊中未找到有效的 JSON 物件。內容: {summary_json_str}")
+                            summary_data = json.loads(clean_json_str)
                         except json.JSONDecodeError:
-                            logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {summary_json_str}")
-                else:
-                    logger.warning(f"[{self.user_id}] 在LLM輸出中未找到 ´´´summary 分隔符，本輪無事後處理數據。")
+                             logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {clean_json_str}")
+                    else:
+                        logger.warning(f"[{self.user_id}] 在 ´´´summary 區塊中未找到有效的 JSON 物件。內容: {summary_part}")
+
+                # 步驟 3: 清理小說文本部分
+                cleaned_novel_text = potential_novel_text.replace("´´´novel", "").strip("´ \n")
+                
+                if cleaned_novel_text:
+                    novel_text = cleaned_novel_text
+                
             except Exception as e:
-                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤，將返回原始輸出: {e}", exc_info=True)
                 novel_text = raw_dual_output.strip()
 
-        final_novel_text = novel_text.strip("´").strip()
+        final_novel_text = novel_text
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
         logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
@@ -3074,6 +3074,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
