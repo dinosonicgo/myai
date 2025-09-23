@@ -1995,8 +1995,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v6.3 (2025-09-23): [災難性BUG修復] 修正了在“模型升級攻堅”的 except 塊中，因使用未格式化的 core_protocol_prompt 進行字符串拼接而導致的潛在 KeyError 漏洞。現在所有分支都使用安全的格式化方法。
-    # v6.2 (2025-09-23): [功能擴展] 擴展了術語代碼表。
+    # v6.4 (2025-09-23): [終極KeyError修復] 徹底修正了所有分支中的 Prompt 格式化邏輯。現在，無論是標準流程、代碼化替換，還是模型升級攻堅，都使用安全的、預先格式化好的 Prompt 模板，從而完全杜絕了所有潛在的 KeyError。
+    # v6.3 (2025-09-23): [災難性BUG修復] 堵上了模型升級攻堅分支中的 KeyError 漏洞。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“上下文保留式代碼替換”策略。"""
         if not canon_text or not self.profile:
@@ -2020,7 +2020,12 @@ class CanonParsingResult(BaseModel):
             parsing_result = None
             try:
                 transformation_template = self.get_canon_transformation_chain()
-                full_prompt = transformation_template.format(canon_text=chunk)
+                # [v6.4 核心修正] 確保所有分支都使用安全的、預格式化的協議
+                protocol_formatted = self.core_protocol_prompt.format(
+                    username=self.profile.user_profile.name, 
+                    ai_name=self.profile.ai_profile.name
+                )
+                full_prompt = protocol_formatted + "\n\n" + transformation_template.format(canon_text=chunk)
                 
                 parsing_result = await self.ainvoke_with_rotation(
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none',
@@ -2048,6 +2053,7 @@ class CanonParsingResult(BaseModel):
                     logger.info(f"[{self.user_id}] [上下文保留成功] 已生成無害化文本塊進行重構。")
 
                     reconstruction_template = self.get_sanitized_text_parser_chain()
+                    # [v6.4 核心修正] 此處的 reconstruction_template 已經內聯並預格式化了協議，所以可以直接格式化
                     reconstruction_prompt = reconstruction_template.format(sanitized_canon_text=sanitized_chunk)
                     
                     parsing_result = await self.ainvoke_with_rotation(
@@ -2065,8 +2071,6 @@ class CanonParsingResult(BaseModel):
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
                 try:
                     transformation_template = self.get_canon_transformation_chain()
-                    
-                    # [v6.3 核心修正] 確保在攻堅分支中也使用淨化和預格式化的最高指令
                     protocol_formatted = self.core_protocol_prompt.format(
                         username=self.profile.user_profile.name, 
                         ai_name=self.profile.ai_profile.name
@@ -2852,6 +2856,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
