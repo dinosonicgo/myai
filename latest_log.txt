@@ -1,123 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T12:10:16.405768 ###
+### AI Lover Log - Last updated at 2025-09-23T12:15:18.566543 ###
 
-2025-09-23 11:38:30 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛莉莎' 的 LORE。
-2025-09-23 11:38:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:38:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:38:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '澤拉' 的 LORE。
-2025-09-23 11:39:04 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '蘇菲' 的 LORE。
-2025-09-23 11:39:16 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '貝拉' 的 LORE。
-2025-09-23 11:39:30 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:39:30 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉娜' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:39:41 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '諾拉' 的 LORE。
-2025-09-23 11:40:05 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾蜜莉' 的 LORE。
-2025-09-23 11:40:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:40:14 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡萊兒' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:40:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '薩格納將軍' 的 LORE。
-2025-09-23 11:40:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:40:50 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: 1 validation error for CharacterProfile
-status
-  Input should be a valid string [type=string_type, input_value=['表面上『隱退』', '虔誠的性神教徒'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:41:02 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
-2025-09-23 11:41:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
-2025-09-23 11:41:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:41:24 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '國王埃德蒙三世' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:41:39 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '大皇子阿拉里克' 的 LORE。
-2025-09-23 11:41:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '三皇子赫克托' 的 LORE。
-2025-09-23 11:42:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '二公主塞拉菲娜' 的 LORE。
-2025-09-23 11:42:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:42:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇女伊索爾德' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:42:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:42:11 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林勳爵' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:42:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:42:12 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:42:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:42:14 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:42:36 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿利斯特' 的 LORE。
-2025-09-23 11:42:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '麥可' 的 LORE。
-2025-09-23 11:42:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦勒留斯神父' 的 LORE。
-2025-09-23 11:43:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
-2025-09-23 11:43:22 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯瑪斯' 的 LORE。
-2025-09-23 11:43:33 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛蓮娜' 的 LORE。
-2025-09-23 11:43:45 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '連恩' 的 LORE。
-2025-09-23 11:43:57 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
-2025-09-23 11:44:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬克' 的 LORE。
-2025-09-23 11:44:12 - [INFO] - [512280345618546699] [LORE精煉] 未能在原文中找到 '蓋博 太太' 的额外上下文，跳过精炼。
-2025-09-23 11:44:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:44:13 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:44:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:44:14 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '勳爵' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:44:16 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:44:16 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:44:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '凱爾' 的 LORE。
-2025-09-23 11:44:40 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:44:40 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:44:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:44:41 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:44:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪倫' 的 LORE。
-2025-09-23 11:45:03 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '索菲亞' 的 LORE。
-2025-09-23 11:45:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
-2025-09-23 11:45:35 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '露比' 的 LORE。
-2025-09-23 11:45:46 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '泰莎' 的 LORE。
-2025-09-23 11:45:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:45:56 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老漢姆' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:46:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:46:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '葛瑞塔' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:46:10 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:46:10 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '芬恩' 時發生错误: 3 validation errors for CharacterProfile
-aliases
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:46:39 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '夏卡爾' 的 LORE。
-2025-09-23 11:46:53 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老高' 的 LORE。
-2025-09-23 11:47:10 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安布羅斯 (Ambrose)' 的 LORE。
-2025-09-23 11:47:30 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦勒留斯 (Valerius)' 的 LORE。
-2025-09-23 11:47:38 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬庫斯 (Marcus)' 的 LORE。
-2025-09-23 11:47:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:47:50 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾 (Eleanor)' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:47:58 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:47:58 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '布里奇特 (Bridget)' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
     For further information visit https://errors.pydantic.dev/2.11/v/list_type
 2025-09-23 11:48:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦萊麗 (Valerie)' 的 LORE。
 2025-09-23 11:48:15 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普 (Philip)' 的 LORE。
@@ -300,3 +182,121 @@ appearance
 appearance
   Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
     For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:10:23 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡蓮' 的 LORE。
+2025-09-23 12:10:45 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
+2025-09-23 12:10:47 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.22 秒後進行第 2 次嘗試...
+2025-09-23 12:10:48 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.22 秒後進行第 3 次嘗試...
+2025-09-23 12:10:51 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:10:52 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.48 秒後進行第 2 次嘗試...
+2025-09-23 12:10:53 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.41 秒後進行第 3 次嘗試...
+2025-09-23 12:10:56 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:10:56 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86333 秒)。
+2025-09-23 12:10:58 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:10:58 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱薩‧維利爾斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:11:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
+2025-09-23 12:11:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '班恩' 的 LORE。
+2025-09-23 12:11:21 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.20 秒後進行第 2 次嘗試...
+2025-09-23 12:11:23 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.18 秒後進行第 3 次嘗試...
+2025-09-23 12:11:25 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:11:25 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.48 秒後進行第 2 次嘗試...
+2025-09-23 12:11:27 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.37 秒後進行第 3 次嘗試...
+2025-09-23 12:11:30 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:11:30 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86299 秒)。
+2025-09-23 12:11:36 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '里奧' 的 LORE。
+2025-09-23 12:11:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '賈斯伯' 的 LORE。
+2025-09-23 12:12:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '提姆' 的 LORE。
+2025-09-23 12:12:02 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.43 秒後進行第 2 次嘗試...
+2025-09-23 12:12:04 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.14 秒後進行第 3 次嘗試...
+2025-09-23 12:12:06 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:12:07 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.45 秒後進行第 2 次嘗試...
+2025-09-23 12:12:08 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.23 秒後進行第 3 次嘗試...
+2025-09-23 12:12:11 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:12:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86258 秒)。
+2025-09-23 12:12:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:12:21 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安東尼' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:12:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:12:24 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:12:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莎' 的 LORE。
+2025-09-23 12:12:33 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.21 秒後進行第 2 次嘗試...
+2025-09-23 12:12:35 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.13 秒後進行第 3 次嘗試...
+2025-09-23 12:12:37 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:12:37 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.11 秒後進行第 2 次嘗試...
+2025-09-23 12:12:39 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.38 秒後進行第 3 次嘗試...
+2025-09-23 12:12:42 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:12:42 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86227 秒)。
+2025-09-23 12:12:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:12:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:12:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:12:45 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:12:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉娜' 的 LORE。
+2025-09-23 12:12:53 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.15 秒後進行第 2 次嘗試...
+2025-09-23 12:12:54 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.23 秒後進行第 3 次嘗試...
+2025-09-23 12:12:57 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:12:57 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #2 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
+2025-09-23 12:12:57 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
+2025-09-23 12:12:59 - [WARNING] - [512280345618546699] Key #3 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.28 秒後進行第 3 次嘗試...
+2025-09-23 12:13:01 - [ERROR] - [512280345618546699] Key #3 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:13:01 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #3 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
+2025-09-23 12:13:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86208 秒)。
+2025-09-23 12:13:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '諾拉' 的 LORE。
+2025-09-23 12:13:12 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.28 秒後進行第 2 次嘗試...
+2025-09-23 12:13:14 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.45 秒後進行第 3 次嘗試...
+2025-09-23 12:13:17 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:13:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:13:25 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡萊兒' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86371 秒)。
+2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86376 秒)。
+2025-09-23 12:13:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86184 秒)。
+2025-09-23 12:13:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:13:42 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: 1 validation error for CharacterProfile
+status
+  Input should be a valid string [type=string_type, input_value=['已隱退', '已皈依...'虔誠的性神教徒'], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:13:42 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.13 秒後進行第 2 次嘗試...
+2025-09-23 12:13:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
+2025-09-23 12:14:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '國王埃德蒙三世' 的 LORE。
+2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86327 秒)。
+2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86331 秒)。
+2025-09-23 12:14:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86139 秒)。
+2025-09-23 12:14:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:14:11 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇女伊索爾德' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:14:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:14:20 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林勳爵' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:14:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:14:21 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86316 秒)。
+2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86321 秒)。
+2025-09-23 12:14:21 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86128 秒)。
+2025-09-23 12:14:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:14:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:14:22 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.27 秒後進行第 2 次嘗試...
+2025-09-23 12:14:24 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.17 秒後進行第 3 次嘗試...
+2025-09-23 12:14:27 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:14:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦勒留斯神父' 的 LORE。
+2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86298 秒)。
+2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86303 秒)。
+2025-09-23 12:14:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86110 秒)。
+2025-09-23 12:14:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
+2025-09-23 12:14:50 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.42 秒後進行第 2 次嘗試...
+2025-09-23 12:14:52 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.44 秒後進行第 3 次嘗試...
+2025-09-23 12:14:55 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:14:55 - [WARNING] - [512280345618546699] Key #1 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.20 秒後進行第 2 次嘗試...
+2025-09-23 12:14:57 - [WARNING] - [512280345618546699] Key #1 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.36 秒後進行第 3 次嘗試...
+2025-09-23 12:14:59 - [ERROR] - [512280345618546699] Key #1 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86277 秒)。
+2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86282 秒)。
+2025-09-23 12:14:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86090 秒)。
+2025-09-23 12:15:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
+2025-09-23 12:15:13 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.37 秒後進行第 2 次嘗試...
+2025-09-23 12:15:15 - [WARNING] - [512280345618546699] Key #0 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.26 秒後進行第 3 次嘗試...
+2025-09-23 12:15:18 - [ERROR] - [512280345618546699] Key #0 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:15:18 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #0 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
