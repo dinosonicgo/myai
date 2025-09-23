@@ -484,9 +484,9 @@ class AILover:
 
 # 函式：帶有輪換和備援策略的原生 API 調用引擎
 # 更新紀錄:
-# v231.1 (2025-09-23): [健壯性強化] 全面整合了持久化的API冷卻機制。現在，當檢測到 ResourceExhausted 錯誤時，會將特定的“金鑰+模型”組合寫入持久化存儲中，並在24小時內阻止其被再次使用，從根本上解決了因API速率超限導致的無效重試循環問題。
-# v231.0 (2025-09-23): [根本性重構] 為徹底解決因 LangChain 底層對 Prompt 字符串進行不可控的自動格式化而導致的頑固 IndexError/KeyError，此函式被完全重寫。它現在徹底拋棄了 LangChain 的 `ChatGoogleGenerativeAI` 執行層，改為直接使用 Google 官方的 `google.generativeai` 原生 SDK 進行 API 調用。
-# v230.0 (2025-11-19): [健壯性強化] 引入了指數退避重試。
+# v231.2 (2025-09-23): [可觀測性升級] 在成功生成結果後，增加一條日誌記錄，明確指出所使用的模型和API金鑰，以解決日誌中成功信息缺失的問題。
+# v231.1 (2025-09-23): [健壯性強化] 全面整合了持久化的API冷卻機制。
+# v231.0 (2025-09-23): [根本性重構] 徹底拋棄了 LangChain 的執行層，改為使用 Google 官方原生 SDK。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -516,7 +516,6 @@ class AILover:
 
         for model_index, model_name in enumerate(models_to_try):
             for attempt in range(len(self.api_keys)):
-                # [v231.1 核心修正] _get_next_available_key 現在也考慮模型
                 key_info = self._get_next_available_key(model_name)
                 if not key_info:
                     logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
@@ -556,6 +555,9 @@ class AILover:
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
+                        # [v231.2 核心修正] 在成功後記錄所用模型
+                        logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
+                        
                         if output_schema:
                             json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
                             if not json_match:
@@ -584,7 +586,6 @@ class AILover:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
-                            # [v231.1 核心修正] 觸發持久化冷卻
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
                                 cooldown_key = f"{key_index}_{model_name}"
                                 cooldown_duration = 24 * 60 * 60 
@@ -3173,6 +3174,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
