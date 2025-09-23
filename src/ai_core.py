@@ -2210,14 +2210,33 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
+    # 函式：本地安全解碼LORE內容
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，作為“本地安全解碼”策略的執行者。它接收一個可能包含技術代碼的LORE字典，並一個“反向代碼表”，然後遞歸地遍歷字典的所有值，將所有技術代碼安全地、在本地替換回原始的NSFW詞彙。這是確保最終存儲的LORE信息完整且可用的關鍵一步。
+    def _decode_lore_content(self, content: Any, decoding_map: Dict[str, str]) -> Any:
+        """
+        遞歸地遍歷一個LORE內容結構（字典、列表、字符串），並將所有技術代碼替換回原始詞彙。
+        """
+        if isinstance(content, str):
+            for code, word in decoding_map.items():
+                content = content.replace(code, word)
+            return content
+        elif isinstance(content, dict):
+            return {key: self._decode_lore_content(value, decoding_map) for key, value in content.items()}
+        elif isinstance(content, list):
+            return [self._decode_lore_content(item, decoding_map) for item in content]
+        else:
+            return content
+    # 函式：本地安全解碼LORE內容
+
     
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.6 (2025-09-23): [終極BUG修復] 全面採用新的 `_safe_format_prompt` 輔助函式來構建精煉Prompt。此修改將協議拼接和格式化操作集中到一個絕對安全的地方，徹底解決了因模板或用戶輸入中包含意外`{}`而引發的頑固IndexError。
-    # v2.5 (2025-09-23): [終極健壯性修正] 加固了正則表達式邏輯。
+    # v2.4 (2025-09-23): [終極策略閉環] 引入了“本地安全解碼”步驟。在從LLM接收到安全的、代碼化的JSON之後，調用新的 `_decode_lore_content` 輔助函式，在本地將所有技術代碼還原為原始的NSFW詞彙，然後再將這個包含完整細節的“明文”LORE存入數據庫。這完成了從“無害化輸入”到“無害化輸出”再到“明文存儲”的完整、安全的閉環。
+    # v2.3 (2025-09-23): [災難性安全漏洞修復] 引入“雙重無害化”策略。
     async def _background_lore_refinement(self, canon_text: str):
-        """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
+        """[第二階段：細節精煉] 通過上下文聚合、無害化精煉和本地安全解碼，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
         logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。")
 
@@ -2250,6 +2269,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
                 "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
             }
+            # [v2.4 核心修正] 創建反向代碼表用於本地解碼
+            decoding_map = {v: k for k, v in coded_terms.items()}
 
             for lore in lores_to_refine:
                 entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
@@ -2285,7 +2306,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     for keyword, code in coded_terms.items():
                         sanitized_existing_lore_json = sanitized_existing_lore_json.replace(keyword, code)
 
-                    # [v2.6 核心修正] 使用安全格式化
                     format_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
@@ -2295,26 +2315,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     }
                     parser_prompt = self._safe_format_prompt(details_parser_template, format_params)
                     
-                    refined_details = await self.ainvoke_with_rotation(
+                    refined_details_coded = await self.ainvoke_with_rotation(
                         parser_prompt,
                         output_schema=TargetModel,
                         retry_strategy='none',
                         models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
                     )
 
-                    if refined_details:
-                        updated_content = lore.content.copy()
-                        refined_dict = refined_details.model_dump(exclude_unset=True)
+                    if refined_details_coded:
+                        # [v2.4 核心修正] 執行本地安全解碼
+                        coded_dict = refined_details_coded.model_dump()
+                        decoded_dict = self._decode_lore_content(coded_dict, decoding_map)
                         
-                        for key, value in refined_dict.items():
-                            if value and (key not in updated_content or not updated_content[key] or updated_content[key] in ["未知", "", [], {}]):
-                                updated_content[key] = value
-
                         await lore_book.add_or_update_lore(
                             user_id=self.user_id, category=lore.category, key=lore.key,
-                            content=updated_content, source='canon_refiner'
+                            content=decoded_dict, # <-- 儲存已解碼的明文版本
+                            source='canon_refiner_decoded'
                         )
-                        logger.info(f"[{self.user_id}] [LORE精煉] 已成功深度解析並精煉 '{entity_name}' 的 LORE。")
+                        logger.info(f"[{self.user_id}] [LORE精煉] 已成功深度解析、解碼並精煉 '{entity_name}' 的 LORE。")
                     
                     await asyncio.sleep(1.5)
 
@@ -2326,6 +2344,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE精煉任务主循環发生严重错误: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
+
+            
+                    
                     
                     
                         
@@ -2787,6 +2808,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
