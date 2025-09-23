@@ -17,6 +17,21 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
+
+# 函式：初始化資料庫
+# 更新紀錄:
+# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。在完成數據庫表創建後，此函式會設置一個事件，向應用程序的其他部分發出信號，表明數據庫已完全準備就緒，從而解決了啟動時的競爭條件問題。
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。
+# v5.0 (2025-11-22): [重大架構升級] 新增了 SceneHistoryData 模型。
+async def init_db(db_ready_event: asyncio.Event):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # [v5.2 核心修正] 設置事件，通知其他任務數據庫已就緒
+    db_ready_event.set()
+    print("✅ 數據庫初始化完成，並已發出就緒信號。")
+# 初始化資料庫 函式結束
+
 # 類別：用戶核心數據模型
 class UserData(Base):
     __tablename__ = "users"
@@ -82,3 +97,4 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
