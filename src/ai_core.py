@@ -1984,8 +1984,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v6.1 (2025-09-23): [健壯性強化] 更新了備援策略的函式呼叫，從 get_forensic_lore_reconstruction_chain 改為呼叫新的、經過徹底淨化的 get_sanitized_text_parser_chain，以確保與終極淨化策略保持一致。
-    # v6.0 (2025-09-23): [終極策略升級] 引入“上下文保留式代碼替換”策略。
+    # v6.2 (2025-09-23): [功能擴展] 根據使用者需求，在“代碼化解構”的術語代碼表中增加了對“獸交”、“輪姦”、“強暴”等新詞彙的識別與代碼化處理。
+    # v6.1 (2025-09-23): [健壯性強化] 更新了備援策略的函式呼叫。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“上下文保留式代碼替換”策略。"""
         if not canon_text or not self.profile:
@@ -2021,11 +2021,13 @@ class CanonParsingResult(BaseModel):
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查 ({type(e).__name__})。啟動【上下文保留式代碼替換】策略...")
                 try:
                     sanitized_chunk = chunk
+                    # [v6.2 核心修正] 擴展代碼表
                     coded_terms = {
                         "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
                         "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
                         "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
                         "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
+                        "獸交": "ACTION-D", "獸姦": "ACTION-D", "輪姦": "ACTION-E", "強暴": "ACTION-F",
                         "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
                         "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
                     }
@@ -2035,7 +2037,6 @@ class CanonParsingResult(BaseModel):
                     
                     logger.info(f"[{self.user_id}] [上下文保留成功] 已生成無害化文本塊進行重構。")
 
-                    # [v6.1 核心修正] 呼叫新的、淨化後的 Prompt 模板
                     reconstruction_template = self.get_sanitized_text_parser_chain()
                     reconstruction_prompt = reconstruction_template.format(sanitized_canon_text=sanitized_chunk)
                     
@@ -2054,7 +2055,6 @@ class CanonParsingResult(BaseModel):
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
                 try:
                     transformation_template = self.get_canon_transformation_chain()
-                    # [v6.1 修正] 確保這裡也傳遞了必要的參數
                     protocol_formatted = self.core_protocol_prompt.format(username=self.profile.user_profile.name, ai_name=self.profile.ai_profile.name)
                     full_prompt = protocol_formatted + "\n\n" + transformation_template.format(canon_text=chunk)
                     
@@ -2801,6 +2801,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
