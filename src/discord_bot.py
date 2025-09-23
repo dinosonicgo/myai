@@ -168,6 +168,8 @@ class ContinueToAiSetupView(discord.ui.View):
 # 類別：繼續到 AI 角色設定的視圖
 
 # 類別：繼續到世界聖經設定的視圖
+# 更新紀錄:
+# v1.1 (2025-09-23): [功能擴展] 新增了“上傳世界聖經”按鈕，允許使用者在 /start 流程中直接通過檔案上傳來提供世界觀，提升了用戶體驗的靈活性。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -184,13 +186,35 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：處理「貼上世界聖經」按鈕點擊事件
 
+    # [v1.1 新增] 處理「上傳世界聖經」按鈕點擊事件
+    @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
+    async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user_id = str(interaction.user.id)
+        logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' upload button clicked.")
+        # 這裡我們不直接處理上傳，而是引導使用者使用斜線指令
+        # 這是因為按鈕互動無法直接觸發檔案上傳介面
+        await interaction.response.send_message(
+            "請在此頻道中，直接使用 `/set_canon_file` 指令來上傳您的 `.txt` 世界聖經檔案。\n"
+            "**重要提示：** 上傳成功後，創世流程將會自動繼續。",
+            ephemeral=True
+        )
+    # [v1.1 新增] 處理「上傳世界聖經」按鈕點擊事件
+
     # 函式：處理「完成設定」按鈕點擊事件
     @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.")
         for item in self.children: item.disabled = True
-        await interaction.response.edit_message(content="✅ 基礎設定完成！正在為您啟動創世...", view=self)
+        
+        # 確保原始訊息也被更新
+        if interaction.message:
+            try:
+                await interaction.message.edit(view=self)
+            except discord.errors.NotFound:
+                pass # 如果訊息已被刪除，則忽略
+
+        await interaction.response.send_message("✅ 基礎設定完成！正在為您啟動創世...", ephemeral=True)
         asyncio.create_task(self.cog.finalize_setup(interaction, canon_text=None))
     # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
