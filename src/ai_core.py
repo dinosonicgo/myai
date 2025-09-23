@@ -2031,11 +2031,11 @@ class ExtractionResult(BaseModel):
     
     
     
-# 函式：預處理並生成主回應
-# 更新紀錄:
-# v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯，以解決“系統洩漏”問題。新邏輯不再依賴`´´´novel`標籤，而是以`´´´summary`作為唯一分隔符，優先將其剝離，確保任何情況下內部摘要數據都不會洩漏給用戶。
-# v33.10 (2025-09-23): [災難性BUG修復] 對 `summary_schema_mandate` Prompt 模板中的JSON範例大括號進行了轉義（`{}` -> `{{}}`），以解決因字符串格式化導致的 `KeyError`。
-# v33.9 (2025-09-23): [災難性BUG修復] 引入了“摘要JSON結構強制令”，並升級了JSON解析邏輯。
+    # 函式：預處理並生成主回應
+    # 更新紀錄:
+    # v33.12 (2025-09-24): [架構升級] 引入了“LORE繼承”機制。在構建上下文時，會檢查NPC是否繼承了模板（如“母畜”），並將模板內容動態注入到角色描述中，確保LLM能獲取到完整的、繼承後的人物設定，從根本上解決了因LORE設定分散導致的角色行為不一致問題。
+    # v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯，以解決“系統洩漏”問題。
+    # v33.10 (2025-09-23): [災難性BUG修復] 對 `summary_schema_mandate` Prompt 模板中的JSON範例大括號進行了轉義。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2094,6 +2094,7 @@ class ExtractionResult(BaseModel):
                 gs.viewing_mode = 'local'
                 gs.remote_target_path = None
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
+
 
         scene_key = self._get_scene_key()
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
@@ -2204,6 +2205,7 @@ class ExtractionResult(BaseModel):
 # （JSON 物件）
 # ´´´"""
 
+        
         full_prompt_params = {
             "username": user_profile.name,
             "ai_name": ai_profile.name,
@@ -2220,32 +2222,53 @@ class ExtractionResult(BaseModel):
             "historical_context": raw_short_term_history,
         }
 
+        # [v33.12 核心修正] LORE 繼承邏輯
+        async def get_npc_context_with_inheritance(npcs: List[Lore]) -> str:
+            npc_summaries = []
+            for npc_lore in npcs:
+                # 創建內容的深拷貝以避免修改原始緩存
+                content = npc_lore.content.copy()
+                description = content.get('description', '無描述')
+                
+                # 從 LORE 條目本身讀取 template_keys
+                template_keys = npc_lore.template_keys
+                
+                # 如果沒有，再嘗試從 content 字典中讀取（為了兼容舊數據）
+                if not template_keys:
+                    template_keys = content.get('template_keys')
+
+                if template_keys and isinstance(template_keys, list):
+                    logger.info(f"[{self.user_id}] [LORE繼承] 檢測到NPC '{content.get('name')}' 繼承模板: {template_keys}")
+                    for key in template_keys:
+                        # 模板通常是 world_lore 類別
+                        template_lore = await lore_book.get_lore(self.user_id, 'world_lore', key)
+                        if template_lore and template_lore.content.get('content'):
+                            description += f"\n\n[繼承設定: {key}]\n{template_lore.content['content']}"
+                
+                npc_summaries.append(f"- {content.get('name', '未知NPC')}: {description}")
+            return "\n".join(npc_summaries)
+
         if gs.viewing_mode == 'remote':
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
-            full_prompt_params["relevant_npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs]) or "（此場景目前沒有核心互動目標。）"
+            full_prompt_params["relevant_npc_context"] = await get_npc_context_with_inheritance(relevant_npcs) or "（此場景目前沒有核心互動目標。）"
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此場景沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
         else:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
             ai_profile_summary = f"- {ai_profile.name} (你的AI戀人): {ai_profile.description}"
-            relevant_npcs_summary = "\n".join([f"- {npc.content.get('name', '未知NPC')}: {npc.content.get('description', '無描述')}" for npc in relevant_npcs])
+            relevant_npcs_summary = await get_npc_context_with_inheritance(relevant_npcs)
             full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\n{ai_profile_summary}\n{relevant_npcs_summary}".strip()
             full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
             full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
 
         full_template = "\n".join([
-            system_prompt_template,
-            world_snapshot_template,
-            "\n# --- 最新對話歷史 ---",
-            "{historical_context}",
-            "\n# --- 使用者最新指令 ---",
-            "{user_input}",
-            style_mandate,
-            final_safeguard_template,
-            summary_schema_mandate,
-            dual_output_mandate
+            system_prompt_template, world_snapshot_template,
+            "\n# --- 最新對話歷史 ---", "{historical_context}",
+            "\n# --- 使用者最新指令 ---", "{user_input}",
+            style_mandate, final_safeguard_template,
+            summary_schema_mandate, dual_output_mandate
         ])
 
         full_prompt = full_template.format(**full_prompt_params)
@@ -2255,15 +2278,10 @@ class ExtractionResult(BaseModel):
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         summary_data = {}
-
-        # [v33.11 核心修正] 採用更健壯的分割解析邏輯
         if raw_dual_output and raw_dual_output.strip():
             try:
-                # 步驟 1: 以 ´´´summary 作為絕對分隔符
                 parts = raw_dual_output.split("´´´summary")
                 potential_novel_text = parts[0]
-                
-                # 步驟 2: 如果分割成功，處理摘要部分
                 if len(parts) > 1:
                     summary_part = parts[1]
                     json_object_match = re.search(r'\{.*\}|\[.*\]', summary_part, re.DOTALL)
@@ -2275,13 +2293,9 @@ class ExtractionResult(BaseModel):
                              logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {clean_json_str}")
                     else:
                         logger.warning(f"[{self.user_id}] 在 ´´´summary 區塊中未找到有效的 JSON 物件。內容: {summary_part}")
-
-                # 步驟 3: 清理小說文本部分
                 cleaned_novel_text = potential_novel_text.replace("´´´novel", "").strip("´ \n")
-                
                 if cleaned_novel_text:
                     novel_text = cleaned_novel_text
-                
             except Exception as e:
                 logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤，將返回原始輸出: {e}", exc_info=True)
                 novel_text = raw_dual_output.strip()
@@ -3218,6 +3232,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
