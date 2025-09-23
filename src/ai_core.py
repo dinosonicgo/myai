@@ -232,11 +232,16 @@ class AILover:
         )
 # 創建 LangChain LLM 實例 函式結束
 
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v232.0 - 錯誤類型擴展)
+
+
+
+
+    
+
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v231.0 - 根本性重構)
 # 更新紀錄:
-# v232.0 (2025-09-23): [健壯性強化] 擴展了 try-except 區塊，現在會捕獲並向上拋出 Pydantic 的 `ValidationError` 和 LangChain 的 `OutputParserException`。此修改確保了調用者（如 `parse_and_create_lore_from_canon`）能夠接收到這些特定的錯誤類型，並觸發相應的、更精細的重試策略（如“模型升級攻堅”）。
-# v231.0 (2025-11-19): [根本性重構] 徹底拋棄 LangChain 執行層，重構為原生 SDK 引擎以確保安全閥值生效。
-# v230.0 (2025-11-19): [健壯性強化] 針對 ResourceExhausted (速率限制) 等臨時性 API 錯誤，引入了帶有「指數退避」的內部重試循環。
+# v231.0 (2025-09-23): [根本性重構] 為徹底解決因 LangChain 底層對 Prompt 字符串進行不可控的自動格式化而導致的頑固 IndexError/KeyError，此函式被完全重寫。它現在徹底拋棄了 LangChain 的 `ChatGoogleGenerativeAI` 執行層，改為直接使用 Google 官方的 `google.generativeai` 原生 SDK 進行 API 調用。這給予了我們對 Prompt 內容的100%控制權，從根本上杜絕了所有因用戶輸入中包含意外 `{}` 而引發的錯誤，並確保了安全閥值的嚴格應用。
+# v230.0 (2025-11-19): [健壯性強化] 引入了指數退避重試。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -277,6 +282,7 @@ class AILover:
                     try:
                         genai.configure(api_key=key_to_use)
                         
+                        # [v231.0 核心修正] 使用原生 SDK 的安全設定
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -286,6 +292,7 @@ class AILover:
 
                         model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
                         
+                        # [v231.0 核心修正] 直接調用原生 SDK 的異步方法
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
@@ -294,6 +301,7 @@ class AILover:
                             timeout=180.0
                         )
                         
+                        # 手動檢查審查和其他錯誤
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
@@ -305,6 +313,7 @@ class AILover:
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
+                        # 手動解析 JSON 並用 Pydantic 驗證
                         if output_schema:
                             json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
                             if not json_match:
@@ -362,7 +371,12 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v232.0 - 錯誤類型擴展)
+# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v231.0 - 根本性重構)
+
+
+
+
+
     
 
 # 函式：委婉化並重試 (v4.0 - 適配代碼化解構)
@@ -2833,6 +2847,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
