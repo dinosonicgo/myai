@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T22:09:05.034402 ###
+### AI Lover Log - Last updated at 2025-09-23T22:13:19.140052 ###
 
-2025-09-23 21:48:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 21:48:06 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '湯姆' (Key: 貧民窟 > 湯姆)。正在合併信息...
-2025-09-23 21:48:07 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
-2025-09-23 21:48:07 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
-2025-09-23 21:48:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 21:48:07 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
-2025-09-23 21:48:07 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['STATE-A', '米婭', '莉莉絲', '薩格納', 'FLUID-A', 'ROLE-D', 'ACTION-C', 'CODE-F-GEN-C', 'CODE-F-GEN-A', '艾莉諾', '菲利普', 'ROLE-B', 'ACTION-E', '瑪莉', '安娜', '愛莉莎', '絲月']
 2025-09-23 21:48:15 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.13 秒後進行第 2 次嘗試...
 2025-09-23 21:48:17 - [WARNING] - [512280345618546699] Key #2 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.40 秒後進行第 3 次嘗試...
 2025-09-23 21:48:20 - [ERROR] - [512280345618546699] Key #2 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
@@ -300,3 +293,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 620, in _background_lore_extraction
     prompt_template = self.get_lore_extraction_chain()
 AttributeError: 'AILover' object has no attribute 'get_lore_extraction_chain'. Did you mean: 'lore_extraction_chain'?
+2025-09-23 22:13:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 22:13:04 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 22:13:05 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 22:13:05 - [INFO] - Discord Bot is ready!
+2025-09-23 22:13:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 22:13:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 22:13:08 - [INFO] - 已成功發送啟動成功通知給管理員。
