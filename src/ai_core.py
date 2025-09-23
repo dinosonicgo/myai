@@ -2599,8 +2599,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：獲取世界聖經轉換器 Prompt
+    # 函式：獲取世界聖經轉換器 Prompt
     # 更新紀錄:
+    # v2.3 (2025-09-23): [架構簡化] 移除了模板內部硬編碼的指令頭。現在，核心指令由 `_safe_format_prompt(inject_core_protocol=True)` 統一、可靠地注入，避免了指令重複和維護困難的問題。
     # v2.2 (2025-09-23): [健壯性強化] 為「必需欄位強制令」增加了【後果警告】，以加重語氣，提升初級模型對此規則的遵守率，從根本上解決 ValidationError。
     # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，強制LLM在輸出中必須包含`name`或`title`字段，以減少ValidationError。
     def get_canon_transformation_chain(self) -> str:
@@ -2772,6 +2773,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
