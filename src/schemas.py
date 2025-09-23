@@ -379,3 +379,4 @@ class StyleAnalysisResult(BaseModel):
 
 CharacterAction.model_rebuild()
 
+
