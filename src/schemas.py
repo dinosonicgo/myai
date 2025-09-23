@@ -1,9 +1,3 @@
-# src/schemas.py 的中文註釋(v13.0 - TurnPlan 自我修復)
-# 更新紀錄:
-# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。此驗證器會自動檢測並修復 LLM 在生成 character_actions 列表時常見的「省略連續角色名稱」的錯誤。它會將缺失的 character_name 用前一個動作的角色名稱來填補，從根本上解決了因 Pydantic ValidationError 導致整個圖崩潰的問題，極大增強了系統的健壯性。
-# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
-# v11.0 (2025-09-03): [重大邏輯升級] 新增了 `ExpansionDecision` Pydantic 模型。
-
 import json
 import re
 from typing import Optional, Dict, List, Any, Literal
@@ -36,9 +30,10 @@ def _validate_string_to_dict(value: Any) -> Any:
 
 
 
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.0 - 靈活性增強)
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.1 - 轉義描述)
 # 更新紀錄:
-# v2.0 (2025-09-05): [災難性BUG修復] 根據 Pydantic ValidationError Log，將 `appearance_details` 的類型從 `Dict[str, str]` 修改為 `Dict[str, Any]`。此修改使模型能夠接受 AI 在“補完檔案”時生成的、值為列表或其他非字串類型的數據（例如 `{"特徵": ["蛇鱗", "尖牙"]}`），從根本上解決了因資料模型過於嚴格而導致的啟動崩潰問題。
+# v2.1 (2025-09-23): [災難性BUG修復] 為 `relationships` 欄位的 description 新增了轉義後的大括號範例，以防止 LORE 精煉流程中的底層格式化錯誤。
+# v2.0 (2025-09-05): [災難性BUG修復] 將 `appearance_details` 的類型修改為 `Dict[str, Any]`。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -56,7 +51,8 @@ class CharacterProfile(BaseModel):
     location: Optional[str] = Field(default=None, description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
-    relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。")
+    # [v2.1 核心修正] 轉義範例中的大括號
+    relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。例如：'站著', '坐著', '跪著', '正在進行口交', '正在戰鬥'。")
 
@@ -88,7 +84,7 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile (v2.0 - 靈活性增強)
+# 函式：基础 LORE 數據模型 - CharacterProfile (v2.1 - 轉義描述)
 
 
 
@@ -99,7 +95,7 @@ class Quest(BaseModel):
     status: str = Field(default="active", description="任務的當前狀態，例如 'active', 'completed', 'failed'。")
     quest_giver: Optional[str] = Field(default=None, description="此任務的發布者（NPC名字）。")
     suggested_level: Optional[int] = Field(default=None, description="建議執行此任務的角色等級。")
-    # [v1.0 核心修正] 轉義了 description 字符串中的大括號，以防止底層庫進行 .format() 操作時引發 IndexError。
+    # [v1.0 核心修正] 轉義了 description 字符串中的大括號
     rewards: Dict[str, Any] = Field(default_factory=dict, description="完成任務的獎勵，例如 {{'金錢': 100, '物品': ['治療藥水']}}。")
 
     @field_validator('aliases', mode='before')
@@ -136,11 +132,6 @@ class LocationInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
-# 類別：物品資訊 (v14.0 - 新增外觀描述)
-# 更新紀錄:
-# v14.0 (2025-09-08): [功能擴展] 根據使用者對 LORE 細節的要求，新增了 `visual_description` 欄位，用於儲存對物品外觀的詳細文字描寫。
-# v13.0 (2025-09-06): [災難性BUG修復] 為 TurnPlan 模型新增了一個帶有「自我修復」邏輯的 `@model_validator`。
-# v12.0 (2025-09-06): [重大架構升級] 新增了 `IntentClassificationResult` Pydantic 模型。
 class ItemInfo(BaseModel):
     name: str = Field(description="道具的標準化、唯一的官方名稱。")
     aliases: List[str] = Field(default_factory=list, description="此物品的其他已知稱呼或別名。")
@@ -155,7 +146,6 @@ class ItemInfo(BaseModel):
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
-# 類別：物品資訊 (v14.0 - 新增外觀描述)
 
 class CreatureInfo(BaseModel):
     name: str = Field(description="生物/魔物的標準化、唯一的官方種類名稱（例如 '水晶雞'）。")
@@ -188,33 +178,18 @@ class ActionIntent(BaseModel):
     primary_target: Optional[str] = Field(default=None, description="動作的主要目標是誰或什麼？（例如 NPC 的名字）")
     action_summary_for_status: str = Field(description="用一句話總結這個動作，以便將其記錄為角色的 `current_action` 狀態。例如：'正在與碧進行口交'、'坐下'、'正在攻擊哥布林'。")
 
-
-
-# 類別：行動意圖分析結果
-class ActionIntent(BaseModel):
-    action_type: Literal['physical', 'verbal', 'mixed', 'observation', 'question'] = Field(description="將使用者指令的核心意圖分類。'physical'：純物理動作指令。'verbal'：純對話或陳述。'mixed'：同時包含動作和對話。'observation'：觀察或感知。'question'：提出一個明確的問題。")
-    reasoning: str = Field(description="做出此分類的簡短理由。")
-    requires_dialogue_response: bool = Field(description="根據 action_type 判斷，此指令是否強烈暗示需要一個包含對話的回應。通常 'verbal', 'mixed', 'question' 為 true，'physical', 'observation' 為 false。")
-# 行動意圖分析結果 類別結束
-
-
-
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名稱。")
     parameters: Dict[str, Any] = Field(..., description="要傳遞給工具的參數字典。")
 
-    # [v37.0 核心修正] 增加一個前置驗證器，用於處理 LLM 可能返回字符串格式的參數
     @field_validator('parameters', mode='before')
     @classmethod
     def parse_parameters_from_string(cls, value):
         if isinstance(value, str):
             try:
-                # 替換可能由 LLM 生成的單引號為雙引號，以符合 JSON 規範
                 corrected_string = value.replace("'", '"')
                 return json.loads(corrected_string)
             except json.JSONDecodeError:
-                # 如果解析失敗，返回原始字符串，讓後續的 Pydantic 驗證來處理錯誤
-                # 這有助於生成更清晰的錯誤訊息
                 return value
         return value
 
@@ -232,11 +207,6 @@ class CharacterAction(BaseModel):
             raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
         return self
 
-# 類別：回合計劃 (v16.0 - 電影式場景設定)
-# 更新紀錄:
-# v16.0 (2025-09-22): [重大品質提升] 根據“電影式敘事”架構，重新定義了 `narration` 欄位的核心職責。它現在被明確為“導演的場景設定 (Director's Scene Setting)”，用於搭建整個場景的舞台（氛圍、光影、背景活動），為後續的電影式渲染提供結構基礎。
-# v15.0 (2025-09-22): [災難性BUG修復] 升級了 `check_plan_logic` 驗證器，使其具備“自我修復”能力。
-# v14.0 (2025-09-08): [功能擴展] ItemInfo 新增了 `visual_description` 欄位。
 class TurnPlan(BaseModel):
     """一回合行動的完整結構化計畫。"""
     thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
@@ -273,7 +243,6 @@ class TurnPlan(BaseModel):
             raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'narration'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
             
         return self
-# 類別：回合計劃 (v16.0 - 電影式場景設定)
 
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
@@ -301,36 +270,6 @@ class BatchResolutionResult(BaseModel):
     @model_validator(mode='after')
     def check_consistency_and_autofill(self) -> 'BatchResolutionResult':
         if self.decision == 'NEW' and not self.standardized_name:
-            raise ValueError("如果 decision 是 'NEW'，則 standardized_name 欄位是必需的。")
-        if self.decision == 'EXISTING' and not self.matched_key:
-            raise ValueError("如果 decision 是 'EXISTING'，則 matched_key 欄位是必需的。")
-        
-        if self.decision == 'EXISTING' and not self.standardized_name:
-            if self.matched_key:
-                self.standardized_name = self.matched_key.split(' > ')[-1]
-            else:
-                self.standardized_name = self.original_name
-        
-        if not self.standardized_name:
-            self.standardized_name = self.original_name
-
-        return self
-
-
-
-
-# [v17.0 新增] 用於批次實體解析的模型
-class BatchResolutionResult(BaseModel):
-    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
-    decision: Literal['EXISTING', 'NEW'] = Field(description="您的最終判斷：'EXISTING'表示此名稱指向一個已存在的實體，'NEW'表示這是一個全新的實體。")
-    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
-    matched_key: Optional[str] = Field(default=None, description="如果判斷為'EXISTING'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
-    standardized_name: Optional[str] = Field(default=None, description="如果判斷為'NEW'，請提供一個對新實體名稱進行清理和標準化後的版本。如果判斷為'EXISTING'，則返回匹配到的實體的主要名稱。")
-
-    @model_validator(mode='after')
-    def check_consistency_and_autofill(self) -> 'BatchResolutionResult':
-        if self.decision == 'NEW' and not self.standardized_name:
-            # 如果 AI 忘了提供標準名，就用原始名作為備用
             self.standardized_name = self.original_name
         if self.decision == 'EXISTING' and not self.matched_key:
             raise ValueError("如果 decision 是 'EXISTING'，則 matched_key 欄位是必需的。")
@@ -345,8 +284,6 @@ class BatchResolutionResult(BaseModel):
             self.standardized_name = self.original_name
 
         return self
-
-
 
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
@@ -379,7 +316,6 @@ class SceneCastingResult(BaseModel):
         description="一個為核心角色創造的、用於互動的臨時配角列表（例如顧客、同伴等）。",
         default_factory=list
     )
-    # [v15.0 核心修正] 增加場景錨點欄位
     implied_location: Optional[LocationInfo] = Field(
         default=None,
         description="如果能從上下文中推斷出一個合理的、符合世界觀的場景地點，則在此處提供該地點的詳細信息。"
@@ -399,13 +335,10 @@ class SceneAnalysisResult(BaseModel):
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
 
-
-# [v15.0 新增] 用於角色量化步驟的模型
 class CharacterQuantificationResult(BaseModel):
     """用於結構化地表示從使用者輸入中量化出的角色描述列表。"""
     character_descriptions: List[str] = Field(description="一個包含所有需要被創建的角色的具體描述的列表。例如：['男性獸人戰士', '男性獸人戰士', '女性精靈法師']。")
 
-# [v14.0 新增] 用於安全接收 LLM 原始場景分析結果的寬鬆模型
 class RawSceneAnalysis(BaseModel):
     """一個沒有複雜內部驗證的 Pydantic 模型，專門用於安全地接收來自 LLM 的、可能存在邏輯矛盾的初步場景分析結果。"""
     viewing_mode: Literal['local', 'remote'] = Field(description="對視角的初步判斷。")
@@ -413,8 +346,6 @@ class RawSceneAnalysis(BaseModel):
     target_location_path: Optional[List[str]] = Field(default=None, description="初步提取的地點路徑。")
     focus_entity: Optional[str] = Field(default=None, description="初步提取的核心實體。")
     action_summary: str = Field(description="對使用者意圖的摘要。")
-
-
 
 class ValidationResult(BaseModel):
     is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
@@ -427,7 +358,6 @@ class ExpansionDecision(BaseModel):
     should_expand: bool = Field(description="如果当前对话轮次适合进行世界构建和LORE扩展，则为 true；如果对话是简单的、重复的或与已知实体的互动，则为 false。")
     reasoning: str = Field(description="做出此决定的简短理由。")
 
-# [v12.0 新增] 用于智能路由的模型
 class IntentClassificationResult(BaseModel):
     """用於結構化地表示對使用者輸入意圖的語意分類結果。"""
     intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="""對使用者意圖的最終分類：
@@ -436,24 +366,10 @@ class IntentClassificationResult(BaseModel):
 - 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。""")
     reasoning: str = Field(description="做出此分類的簡短理由。")
 
-
-
-# [v13.0 新增] 用於將風格指令結構化的模型
 class StyleAnalysisResult(BaseModel):
     """用於結構化地表示對使用者自訂風格的分析結果，以便為規劃器提供具體指令。"""
     dialogue_requirement: str = Field(description="根據風格指令，對本回合對話的具體要求。例如：'AI角色必須說話' 或 '無需對話'。")
     narration_level: str = Field(description="對旁白詳細程度的要求。例如：'低', '中等', '高'。")
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
-
-# 更新 forward-references
 CharacterAction.model_rebuild()
-
-
-
-
-
-
-
-
-
