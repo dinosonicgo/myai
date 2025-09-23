@@ -225,11 +225,13 @@ class WorldLore(BaseModel):
     title: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。")
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
     content: str = Field(default="", description="詳細的內容描述。")
-    category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景'。")
+    category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
     key_elements: List[str] = Field(default_factory=list, description="與此 Lore 相關的關鍵詞或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="與此 Lore 相關的角色、地點或物品的名稱列表。")
+    # [v1.1 核心新增] 新增 template_keys 欄位以支持 LORE 繼承
+    template_keys: Optional[List[str]] = Field(default=None, description="一個可選的鍵列表，表示此LORE條目繼承了哪些模板LORE的屬性。")
 
-    @field_validator('aliases', 'key_elements', 'related_entities', mode='before')
+    @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
@@ -438,6 +440,7 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
 
