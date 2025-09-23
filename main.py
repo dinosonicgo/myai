@@ -216,14 +216,18 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
             print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
             await asyncio.sleep(600)
 
-async def start_discord_bot_task(lock: asyncio.Lock):
-    """啟動Discord Bot的核心服務。內建錯誤處理以防止其崩潰影響其他任務。"""
+async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event):
+    """啟動Discord Bot的核心服務。內建錯誤處理和啟動依賴等待。"""
     try:
+        # [v10.0 核心修正] 等待數據庫準備就緒的信號
+        print("🔵 [Discord Bot] 正在等待數據庫初始化完成...")
+        await db_ready_event.wait()
+        print("✅ [Discord Bot] 數據庫已就緒，開始啟動核心服務...")
+
         if not settings.DISCORD_BOT_TOKEN:
             print("🔥 [Discord Bot] 錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。服務無法啟動。")
             return
 
-        print("🚀 [Discord Bot] 正在嘗試啟動核心服務...")
         bot = AILoverBot(shutdown_event=shutdown_event, git_lock=lock)
         
         bot_task = asyncio.create_task(bot.start(settings.DISCORD_BOT_TOKEN))
@@ -247,49 +251,28 @@ async def start_discord_bot_task(lock: asyncio.Lock):
     finally:
         print("🔴 [Discord Bot] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
-async def start_web_server_task():
-    """啟動 FastAPI Web 伺服器並監聽關閉信號，內建錯誤隔離。"""
-    try:
-        config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
-        server = uvicorn.Server(config)
-        
-        web_task = asyncio.create_task(server.serve())
-        shutdown_waiter = asyncio.create_task(shutdown_event.wait())
-
-        done, pending = await asyncio.wait(
-            {web_task, shutdown_waiter},
-            return_when=asyncio.FIRST_COMPLETED
-        )
-
-        if shutdown_waiter in done:
-            print("🔵 [Web Server] 收到外部關閉信號，正在優雅關閉...")
-            server.should_exit = True
-        
-        for task in pending:
-            task.cancel()
-
-    except Exception as e:
-        print(f"🔥 [Web Server] 核心服務在啟動或運行時發生致命錯誤: {e}")
-        traceback.print_exc()
-    finally:
-        print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
-
 async def main():
-    MAIN_PY_VERSION = "v9.0"
+    MAIN_PY_VERSION = "v10.0" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
-    # 依賴檢查已在頂層執行
+    _clear_pycache()
+    _check_and_install_dependencies()
     
     try:
+        # [v10.0 核心修正] 創建啟動事件
+        db_ready_event = asyncio.Event()
+
         print("初始化資料庫...")
-        await init_db()
+        # 將事件傳遞給 init_db
+        await init_db(db_ready_event)
         
         core_services = []
         guardian_tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
         if mode in ["all", "discord"]:
-            core_services.append(start_discord_bot_task(git_lock))
+            # 將事件傳遞給 bot 任務
+            core_services.append(start_discord_bot_task(git_lock, db_ready_event))
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
 
