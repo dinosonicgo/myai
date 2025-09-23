@@ -235,7 +235,120 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
+    # 函式：解析並儲存LORE實體
+    # 更新紀錄:
+    # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。這與 schemas.py v1.2 的修改相配套，使系統能夠容忍LLM輸出的微小變化（如大小寫）和頑固的環境快取問題。
+    # v1.7 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使其能夠同時處理LLM可能返回的同義詞。
+    # v1.6 (2025-09-23): [根本性重構] 引入了由LLM驅動的“批量實體解析”中間件。
+    async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
+        """
+        一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
+        並將它們逐一、安全地儲存到 Lore 資料庫中。
+        內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
+        """
+        if not self.profile:
+            return
+        
+        category_map = { "npc_profiles": "npc_profile", "locations": "location_info", "items": "item_info", "creatures": "creature_info", "quests": "quest", "world_lores": "world_lore" }
+        actual_category = category_map.get(category_str)
+        if not actual_category or not items:
+            return
 
+        logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
+        
+        if actual_category == 'npc_profile':
+            new_npcs_from_parser = items
+            existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+            
+            resolution_plan = None
+            if new_npcs_from_parser:
+                try:
+                    resolution_prompt_template = self.get_batch_entity_resolution_prompt()
+                    resolution_prompt = self._safe_format_prompt(
+                        resolution_prompt_template,
+                        {
+                            "new_entities_json": json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False),
+                            "existing_entities_json": json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
+                        },
+                        inject_core_protocol=True
+                    )
+                    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行失敗: {e}", exc_info=True)
+            
+            items_to_create = []
+            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+            if resolution_plan and resolution_plan.resolutions:
+                logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
+                for resolution in resolution_plan.resolutions:
+                    original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
+                    if not original_item: continue
+
+                    # [v1.8 核心修正] 使用更具彈性的意圖判斷
+                    if resolution.decision.upper() in ['CREATE', 'NEW']:
+                        items_to_create.append(original_item)
+                    elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
+                        updates_to_merge[resolution.matched_key].append(original_item)
+            else:
+                logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
+                items_to_create = new_npcs_from_parser
+
+            synthesis_tasks: List[SynthesisTask] = []
+            if updates_to_merge:
+                for matched_key, contents_to_merge in updates_to_merge.items():
+                    existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
+                    if not existing_lore: continue
+                    
+                    for new_content in contents_to_merge:
+                        new_description = new_content.get('description')
+                        if new_description and new_description not in existing_lore.content.get('description', ''):
+                            synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
+                        
+                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
+                            existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
+                        for key, value in new_content.items():
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
+                                existing_lore.content[key] = value
+                    
+                    await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
+
+            if synthesis_tasks:
+                logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
+                try:
+                    synthesis_prompt_template = self.get_description_synthesis_prompt()
+                    batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
+                    synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
+                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='euphemize', use_degradation=True)
+
+                    if synthesis_result and synthesis_result.synthesized_descriptions:
+                        logger.info(f"[{self.user_id}] [LORE合併] 批量合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
+                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
+                        
+                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in results_dict)
+                        for lore in all_merged_lores:
+                            char_name = lore.content.get('name')
+                            if char_name in results_dict:
+                                lore.content['description'] = results_dict[char_name]
+                                final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                                await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
+
+            items = items_to_create
+
+        for item_data in items:
+            try:
+                name = item_data.get(title_key)
+                if not name: continue
+                location_path = item_data.get('location_path')
+                lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
+                final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+            except Exception as e:
+                item_name_for_log = item_data.get(title_key, '未知實體')
+                logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
+    # 函式：解析並儲存LORE實體
 
 
 
@@ -301,13 +414,12 @@ class AILover:
 
 # 函式：加載或構建 RAG 檢索器
 # 更新紀錄:
-# v210.0 (2025-09-23): [根本性重構] 此函式從 `_build_retriever` 重構而來，實現了持久化索引的啟動邏輯。它首先嘗試從磁碟的 pickle 檔案快速加載索引，僅在檔案不存在（即首次啟動）時，才執行一次性的、昂貴的從資料庫全量構建流程。
-# v209.0 (2025-11-22): [根本性重構] 根據最新指令，徹底重寫了此函式。完全移除了所有與 ChromaDB、Embedding 和 EnsembleRetriever 相關的邏輯，將其簡化為一個純粹的 BM25 檢索器構建器。
-    async def _load_or_build_rag_retriever(self) -> Runnable:
-        """在啟動時，從持久化檔案加載RAG索引，或在首次啟動時從資料庫全量構建它。"""
-        # 步驟 1: 嘗試從磁碟快速加載
-        if self._load_bm25_corpus():
-            # 如果成功從檔案加載了語料庫，直接基於它構建檢索器
+# v210.1 (2025-09-24): [災難性BUG修復] 恢復了 force_rebuild 參數，並增加了相應的處理邏輯。此修改旨在修復因移除該參數而導致的 TypeError，並確保在需要時（如解析完世界聖經後）能夠強制觸發RAG索引的全量重建。
+# v210.0 (2025-09-23): [根本性重構] 此函式從 `_build_retriever` 重構而來，實現了持久化索引的啟動邏輯。
+    async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
+        """在啟動時，從持久化檔案加載RAG索引，或在首次啟動/強制要求時從資料庫全量構建它。"""
+        # [v210.1 核心修正] 增加強制重建的判斷
+        if not force_rebuild and self._load_bm25_corpus():
             if self.bm25_corpus:
                 self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
                 self.bm25_retriever.k = 15
@@ -318,8 +430,10 @@ class AILover:
                 logger.info(f"[{self.user_id}] (Retriever Builder) 持久化語料庫為空，RAG 檢索器為空。")
             return self.retriever
 
-        # 步驟 2: 如果加載失敗（例如首次啟動），則執行一次性的全量構建
-        logger.info(f"[{self.user_id}] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...")
+        # 如果強制重建或加載失敗，則執行全量構建
+        log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
+        logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行全量創始構建...")
+        
         all_docs_for_bm25 = []
         async with AsyncSessionLocal() as session:
             stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
@@ -339,7 +453,7 @@ class AILover:
             self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
             self.bm25_retriever.k = 15
             self.retriever = self.bm25_retriever
-            self._save_bm25_corpus() # 將首次構建的結果持久化
+            self._save_bm25_corpus()
             logger.info(f"[{self.user_id}] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。")
         else:
             self.retriever = RunnableLambda(lambda x: [])
@@ -3206,6 +3320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
