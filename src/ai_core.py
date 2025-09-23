@@ -377,17 +377,24 @@ class AILover:
 
     # 函式：安全地格式化Prompt模板
     # 更新紀錄:
+    # v1.1 (2025-09-23): [架構升級] 新增了 inject_core_protocol 參數。此修改創建了一個統一、可靠的“最高指導原則”注入點，確保所有創造性LLM調用都能以越獄指令作為絕對前提，從根本上提升了NSFW內容生成的穩定性和成功率。
     # v1.0 (2025-09-23): [終極BUG修復] 創建此核心輔助函式，以徹底解決所有因模板中包含未轉義`{}`而引發的頑固IndexError/KeyError。此函式採用“先轉義，後還原”的策略：首先將模板中所有大括號`{}`臨時替換為唯一的、不可能衝突的佔位符，然後只對我們明確指定的變數進行格式化，最後再將臨時佔位符還原為單大括號。這確保了只有我們想要的佔位符會被格式化，從根本上杜絕了所有格式化錯誤。
-    def _safe_format_prompt(self, template: str, params: Dict[str, Any]) -> str:
+    def _safe_format_prompt(self, template: str, params: Dict[str, Any], inject_core_protocol: bool = False) -> str:
         """
         一個絕對安全的Prompt格式化函式，用於防止因模板中包含意外的`{}`而導致的錯誤。
+        可以選擇性地在模板最頂部注入核心的“最高指導原則”。
         """
+        # [v1.1 核心修正] 如果需要，則在模板最頂部注入核心協議
+        final_template = template
+        if inject_core_protocol and self.core_protocol_prompt:
+            final_template = self.core_protocol_prompt + "\n\n" + template
+
         # 獨特且不可能在文本中出現的佔位符
         L_BRACE_PLACEHOLDER = "___LEFT_BRACE_PLACEHOLDER___"
         R_BRACE_PLACEHOLDER = "___RIGHT_BRACE_PLACEHOLDER___"
 
         # 步驟 1: 將模板中所有的大括號替換為臨時佔位符
-        escaped_template = template.replace("{", L_BRACE_PLACEHOLDER).replace("}", R_BRACE_PLACEHOLDER)
+        escaped_template = final_template.replace("{", L_BRACE_PLACEHOLDER).replace("}", R_BRACE_PLACEHOLDER)
 
         # 步驟 2: 將我們真正想要格式化的變數的佔位符還原
         for key in params.keys():
@@ -1459,8 +1466,9 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
 # 執行工具調用計畫 函式結束
 
-    # 函式：背景LORE精煉 (v1.0 - 全新創建)
+    # 函式：背景LORE精煉
     # 更新紀錄:
+    # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則，確保精煉過程中的 NSFW 上下文能被正確理解。
     # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式作為 LORE 解析的第二階段，負責對第一階段粗提取出的 NPC 檔案進行深度分析和細節補完，實現了“混合 NLP”策略的後半部分。
     async def _background_lore_refinement(self, canon_text: str):
         """
@@ -1512,13 +1520,15 @@ class ExtractionResult(BaseModel):
                     # 2. 準備 Prompt 並調用 LLM
                     pre_parsed_data_json = json.dumps(lore.content, ensure_ascii=False, indent=2)
                     
+                    # [v1.1 核心修正] 使用新的注入機制
                     full_prompt = self._safe_format_prompt(
                         details_parser_template,
                         {
                             "character_name": character_name,
                             "pre_parsed_data_json": pre_parsed_data_json,
                             "plot_context": plot_context
-                        }
+                        },
+                        inject_core_protocol=True
                     )
                     
                     refined_profile = await self.ainvoke_with_rotation(
@@ -1561,8 +1571,7 @@ class ExtractionResult(BaseModel):
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-    # 函式：背景LORE精煉 (v1.0 - 全新創建)
-
+    # 函式：背景LORE精煉
 
     
 # 函式：預處理並生成主回應 (v33.8 - 開場強制令)
@@ -2085,9 +2094,9 @@ class ExtractionResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
+    # v7.2 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，移除了手動拼接 `core_protocol_prompt` 的邏輯，改為使用 `inject_core_protocol=True` 參數，使指令注入更可靠、更簡潔。
     # v7.1 (2025-09-23): [驗證] 確認對 `_background_lore_refinement` 的呼叫邏輯正確無誤，該函式現已在本檔案中實現。
     # v7.0 (2025-09-23): [終極策略回歸] 根據日誌，確認“上下文保留”策略會因“餘輝效應”而被審查。現回歸並強化最初的“解構-重構”策略。當遭遇審查時，不再保留句子結構，而是將文本塊徹底“解構”為一份純粹的、不包含任何上下文的【關鍵詞+代碼】列表。這份100%安全的情報列表將被發送到一個經過終極強化的“法醫級重構器”，由後者負責推理並還原出包含所有細節的LORE JSON，從而徹底繞過審查。
-    # v6.6 (2025-09-23): [終極BUG修復] 全面採用 `_safe_format_prompt`。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“終極解構-重構”策略。"""
         if not canon_text or not self.profile:
@@ -2111,9 +2120,11 @@ class ExtractionResult(BaseModel):
             parsing_result = None
             try:
                 transformation_template = self.get_canon_transformation_chain()
+                # [v7.2 核心修正] 使用新的注入機制
                 full_prompt = self._safe_format_prompt(
-                    self.core_protocol_prompt + "\n\n" + transformation_template,
-                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk}
+                    transformation_template,
+                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+                    inject_core_protocol=True
                 )
                 
                 parsing_result = await self.ainvoke_with_rotation(
@@ -2157,9 +2168,11 @@ class ExtractionResult(BaseModel):
 
                     # 步驟 2: 呼叫終極強化的法醫級重構器
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
+                    # [v7.2 核心修正] 法醫級重構器也需要最高指令來理解上下文
                     reconstruction_prompt = self._safe_format_prompt(
                         reconstruction_template,
-                        {"keywords": str(final_keywords)}
+                        {"keywords": str(final_keywords)},
+                        inject_core_protocol=True
                     )
                     
                     parsing_result = await self.ainvoke_with_rotation(
@@ -2177,9 +2190,11 @@ class ExtractionResult(BaseModel):
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
                 try:
                     transformation_template = self.get_canon_transformation_chain()
+                    # [v7.2 核心修正] 升級攻堅同樣使用新的注入機制
                     full_prompt = self._safe_format_prompt(
-                        self.core_protocol_prompt + "\n\n" + transformation_template,
-                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk}
+                        transformation_template,
+                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+                        inject_core_protocol=True
                     )
                     
                     parsing_result = await self.ainvoke_with_rotation(
@@ -2317,8 +2332,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-    # 函式：獲取角色細節深度解析器 Prompt
+     # 函式：獲取角色細節深度解析器 Prompt
     # 更新紀錄:
+    # v2.2 (2025-09-23): [架構簡化] 移除了模板內部硬編碼的指令頭。現在，核心指令由 `_safe_format_prompt(inject_core_protocol=True)` 統一、可靠地注入，避免了指令重複和維護困難的問題。
+    # v2.1 (2025-09-23): [災難性BUG修復] 根據 AttributeError Log，補全了所有在 get_... 方法中用作快取的屬性（如 profile_completion_prompt）在 __init__ 中的初始化定義，確保屬性存在性檢查不會失敗。同時統一了所有Prompt鏈緩存屬性的命名規範。
     # v2.0 (2025-09-23): [終極重構] 根據“混合NLP”策略，徹底重寫此Prompt。它不再接收LORE骨架和原始文本，而是接收一份由本地正則表達式預解析出的【初步數據字典】和一份僅包含相關劇情的【劇情上下文】。其任務被重新定義為：將初步數據字典的鍵值對（如'年齡/外貌'）正確地拆分並映射到Pydantic模型的字段中，同時從劇情上下文中提煉深層次的性格和背景信息。
     def get_character_details_parser_chain(self) -> str:
         """獲取一個為“混合NLP”策略的最後一步——語義精煉——而專門設計的字符串模板。"""
@@ -2355,7 +2372,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 ---
 # 【最終生成的完整角色檔案JSON】:
 """
-        return self.core_protocol_prompt + "\n\n" + base_prompt
+        return base_prompt
     # 函式：獲取角色細節深度解析器 Prompt
 
 
@@ -2755,6 +2772,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
