@@ -2276,8 +2276,8 @@ class CanonParsingResult(BaseModel):
     
     # 函式：獲取角色細節深度解析器 Prompt
     # 更新紀錄:
-    # v1.1 (2025-09-23): [終極健壯性修正] 引入了“雙重強化”指令。1. 新增【無害化輸出強制令】和【解碼密鑰】，嚴格禁止LLM在輸出的JSON中將技術代碼翻譯回原始敏感詞，從根本上解決了因輸出被審查而導致的 BlockedPromptException。2. 新增【必需欄位強制令】，強制LLM必須在其JSON輸出中包含'name'字段，解決了因LLM“自作聰明”省略該字段而導致的ValidationError。
-    # v1.0 (2025-09-23): [全新創建] 創建此高度专业化的Prompt。
+    # v1.2 (2025-09-23): [功能擴展] 在“解碼密鑰”部分增加了對新詞彙的定義，確保LLM在精煉階段也能正確理解新的技術代碼。
+    # v1.1 (2025-09-23): [終極健壯性修正] 引入了“雙重強化”指令。
     def get_character_details_parser_chain(self) -> str:
         """獲取一個為解析“角色描述页”這類半結構化自然語言而專門優化的、經過雙重強化的字符串模板。"""
         
@@ -2304,6 +2304,9 @@ class CanonParsingResult(BaseModel):
 # - ACTION-A: "插入"
 # - ACTION-B: "口交"
 # - ACTION-C: "性交"
+# - ACTION-D: "獸交" or "獸姦"
+# - ACTION-E: "輪姦"
+# - ACTION-F: "強暴"
 # - STATE-A: "高潮"
 # - STATE-B: "射精"
 # - ROLE-A: "臣服"
@@ -2759,6 +2762,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
