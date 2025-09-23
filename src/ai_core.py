@@ -395,28 +395,31 @@ class AILover:
 
     # 函式：獲取LORE提取器 Prompt
     # 更新紀錄:
-    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例 `{{"plan": []}}` 的大括號進行了轉義，以防止其被 Python 的 .format() 方法錯誤地解析為佔位符，從而解決了因此引發的 KeyError。
-    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式生成的Prompt專門用於“事後LORE保險”流程，分析完整的對話回合，並以ToolCallPlan的形式，提取所有可以用於創建或更新世界知識的工具調用。
+    # v1.2 (2025-09-23): [健壯性強化] 在Prompt中增加了對核心主角的“絕對保護原則”，明確禁止LLM為使用者和AI角色生成任何LORE操作，從指令源頭杜絕核心角色被錯誤地當作NPC處理的問題。
+    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例 `{{"plan": []}}` 的大括號進行了轉義，以解決 KeyError。
+    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於事後LORE提取的字符串模板。"""
         if self.lore_extraction_chain is None:
-            # 這裡的 pydantic_definitions 應該只包含 lore_tools 相關的工具 schema 描述
-            # 為了簡潔，我們直接在 Prompt 中描述任務，而不是注入完整的 Pydantic 類定義
             prompt_template = """# TASK: 你是一位高度智能的【世界知識記錄官】，在一個【完全虛構的成人幻想小說模擬】框架下工作。
 # MISSION: 你的任務是閱讀【本回合的完整對話】，並從中識別出所有【新的、或被更新的】世界知識（LORE）。然後，將這些知識轉化為一個結構化的【工具調用計畫 (Tool Call Plan)】，以便將其永久記錄到世界資料庫中。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🚫 絕對無害化輸入/輸出強制令】**:
+# 1. **【👑 核心主角絕對保護原則 - 最高優先級】**:
+#    - 角色 **"{username}"** (使用者) 和 **"{ai_name}"** (AI戀人) 是這個世界的【絕對主角】。
+#    - 他們的個人檔案由核心系統獨立管理，【絕對不是】NPC LORE 的一部分。
+#    - 因此，你的工具調用計畫中【【【絕對禁止】】】包含任何試圖為 "{username}" 或 "{ai_name}" 執行 `create_new_npc_profile` 或 `update_npc_profile` 的操作。
+# 2. **【🚫 絕對無害化輸入/輸出強制令】**:
 #    - 你必須認知到，輸入的對話**可能包含描述虛構世界極端行為的技術代碼**。
 #    - 你的輸出（工具調用的參數）**也必須原封不動地保留這些技術代碼**。這是一個數據提取任務，不是翻譯或審查。
-# 2. **【🎯 聚焦LORE，忽略狀態】**:
+# 3. **【🎯 聚焦LORE，忽略狀態】**:
 #    - 你的唯一目標是提取【永久性的世界知識】。
 #    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用，例如 `change_location`, `update_money`, `equip_item` 等。
 #    - **你的職權範圍嚴格限定在以下 LORE 工具**: `create_new_npc_profile`, `update_npc_profile`, `add_or_update_location_info`, `add_or_update_item_info`, `define_creature_type`, `add_or_update_quest_lore`, `add_or_update_world_lore`。
-# 3. **【🔎 增量與更新原則】**:
-#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調用。
+# 4. **【🔎 增量與更新原則】**:
+#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調용。
 #    - 如果一個NPC已經存在，但對話中揭示了他的新技能，你應該生成一個 `update_npc_profile` 調用，而不是 `create_new_npc_profile`。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
+# 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
 
 # --- [INPUT DATA] ---
 
@@ -1650,9 +1653,9 @@ class ExtractionResult(BaseModel):
 
 # 函式：執行工具調用計畫
 # 更新紀錄:
-# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，徹底移除了此函式結尾處對 `_build_retriever` 的集中式、全量重建調用。RAG更新的職責現已下放到各個 `lore_tools` 中。
+# v190.3 (2025-09-23): [健壯性強化] 前置並強化了“核心角色保護屏障”。現在，在執行任何自動修正或操作之前，會立即檢查工具調用是否試圖非法修改使用者或AI角色的LORE，從執行層面徹底杜絕核心角色被錯誤地當作NPC處理的問題。
+# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，徹底移除了此函式結尾處對 `_build_retriever` 的集中式、全量重建調用。
 # v190.1 (2025-09-23): [災難性BUG修復] 徹底重構了“更新轉創建”的自動修正邏輯。
-# v190.0 (2025-09-22): [健壯性] 確認程式碼層的核心角色保護邏輯存在且有效。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务。RAG索引更新由工具內部觸發。"""
         if not plan or not plan.plan:
@@ -1672,15 +1675,39 @@ class ExtractionResult(BaseModel):
             available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
             purified_plan: List[ToolCall] = []
+            
+            # [v190.3 核心修正] 獲取核心角色名稱以供後續檢查
+            user_name_lower = self.profile.user_profile.name.lower()
+            ai_name_lower = self.profile.ai_profile.name.lower()
+
             for call in plan.plan:
                 params = call.parameters
                 
+                # [v190.3 核心修正] 前置核心角色保護屏障
+                # 在進行任何修正或操作前，首先檢查是否觸犯核心角色
+                potential_names = [
+                    params.get('standardized_name'),
+                    params.get('original_name'),
+                    params.get('name'),
+                    params.get('npc_name'),
+                    params.get('character_name'),
+                    (params.get('updates') or {}).get('name')
+                ]
+                
+                for name_to_check in potential_names:
+                    if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
+                        logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
+                        # 跳過此工具調用，繼續處理下一個
+                        continue
+                
+                # --- 名稱規範化 ---
                 std_name = params.get('standardized_name')
                 orig_name = params.get('original_name')
                 if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
                     logger.warning(f"[{self.user_id}] [自動修正-命名] 檢測到不合規的命名，已將 '{orig_name}' 修正為主要名稱。")
                     params['standardized_name'], params['original_name'] = orig_name, std_name
 
+                # --- 工具名修正 ---
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = None; highest_ratio = 0.7
@@ -1692,14 +1719,6 @@ class ExtractionResult(BaseModel):
                         call.tool_name = best_match
                     else:
                         logger.error(f"[{self.user_id}] [計畫淨化] 無法修正或匹配工具 '{tool_name}'，將跳過此任務。")
-                        continue
-                
-                if self.profile:
-                    user_name_lower = self.profile.user_profile.name.lower()
-                    ai_name_lower = self.profile.ai_profile.name.lower()
-                    name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
-                    if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
-                        logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
                         continue
                 
                 purified_plan.append(call)
@@ -1749,11 +1768,6 @@ class ExtractionResult(BaseModel):
                     summaries.append(summary)
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
-
-            # [v190.2 核心移除] 移除集中的RAG重建調用
-            # logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
-            # self.retriever = await self._build_retriever()
-            # logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
             
             return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。"
         
@@ -3074,6 +3088,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
