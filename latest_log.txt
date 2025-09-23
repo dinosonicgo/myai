@@ -1,79 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T12:05:14.220798 ###
+### AI Lover Log - Last updated at 2025-09-23T12:10:16.405768 ###
 
-2025-09-23 11:31:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:31:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:31:23 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:31:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
-2025-09-23 11:31:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬克' 的 LORE。
-2025-09-23 11:32:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老高' 的 LORE。
-2025-09-23 11:32:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
-2025-09-23 11:32:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:32:23 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:32:35 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛蓮娜' 的 LORE。
-2025-09-23 11:32:37 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:32:37 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:32:39 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:32:39 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:32:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛莉莎' 的 LORE。
-2025-09-23 11:33:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:02 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:05 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:06 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:08 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:08 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:09 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:33:09 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:33:22 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪倫' 的 LORE。
-2025-09-23 11:33:35 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瓦勒留斯' 的 LORE。
-2025-09-23 11:33:50 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
-2025-09-23 11:34:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡爾•維利爾斯勳爵' 的 LORE。
-2025-09-23 11:34:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
-2025-09-23 11:35:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '米婭' 的 LORE。
-2025-09-23 11:35:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:35:25 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: 1 validation error for CharacterProfile
-status
-  Input should be a valid string [type=string_type, input_value={'current_role': 'ROLE-D'...ersion': '重獲光明'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:36:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
-2025-09-23 11:36:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:36:04 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱薩‧維利爾斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:36:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯姆' 的 LORE。
-2025-09-23 11:36:33 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:36:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '班恩' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:36:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:36:47 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里奧' 時發生错误: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 11:36:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '賈斯伯' 的 LORE。
-2025-09-23 11:37:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '提姆' 的 LORE。
-2025-09-23 11:37:19 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 11:37:19 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安東尼' 時發生错误: 2 validation errors for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-skills
-  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/list_type
-2025-09-23 11:37:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:37:20 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 11:37:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
-2025-09-23 11:37:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莎' 的 LORE。
-2025-09-23 11:38:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 11:38:02 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
 2025-09-23 11:38:30 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛莉莎' 的 LORE。
 2025-09-23 11:38:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
 2025-09-23 11:38:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
@@ -300,3 +226,77 @@ appearance
 2025-09-23 12:04:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
 2025-09-23 12:04:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '埃德蒙三世' 的 LORE。
 2025-09-23 12:05:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿拉里克' 的 LORE。
+2025-09-23 12:05:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '赫克托' 的 LORE。
+2025-09-23 12:05:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:05:20 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '伊索爾德' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:05:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '博林' 的 LORE。
+2025-09-23 12:05:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:05:49 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 1 validation error for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=80, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:05:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:05:50 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:06:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '亞瑟' 的 LORE。
+2025-09-23 12:06:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '克拉拉' 的 LORE。
+2025-09-23 12:06:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:06:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '高爾' 時發生错误: 2 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 12:06:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '翠絲' 的 LORE。
+2025-09-23 12:06:57 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '迪茜' 的 LORE。
+2025-09-23 12:07:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
+2025-09-23 12:07:38 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '朱利安' 的 LORE。
+2025-09-23 12:07:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿利斯特' 的 LORE。
+2025-09-23 12:07:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:07:51 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:07:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:07:52 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:08:05 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
+2025-09-23 12:08:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬克' 的 LORE。
+2025-09-23 12:08:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
+2025-09-23 12:08:42 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯瑪斯' 的 LORE。
+2025-09-23 12:08:53 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛蓮娜' 的 LORE。
+2025-09-23 12:08:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:08:56 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:08:56 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.30 秒後進行第 2 次嘗試...
+2025-09-23 12:08:58 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.33 秒後進行第 3 次嘗試...
+2025-09-23 12:09:01 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:09:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:02 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:03 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:05 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:06 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:07 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:08 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.17 秒後進行第 2 次嘗試...
+2025-09-23 12:09:09 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.26 秒後進行第 3 次嘗試...
+2025-09-23 12:09:12 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:09:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:13 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:14 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪倫' 的 LORE。
+2025-09-23 12:09:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:09:43 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 12:09:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 12:09:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 12:09:45 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.13 秒後進行第 2 次嘗試...
+2025-09-23 12:09:46 - [WARNING] - [512280345618546699] Key #4 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.31 秒後進行第 3 次嘗試...
+2025-09-23 12:09:49 - [ERROR] - [512280345618546699] Key #4 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰。
+2025-09-23 12:09:49 - [CRITICAL] - [512280345618546699] [金鑰冷卻] API Key #4 在 60 秒內失敗 3 次。已將其置入冷卻狀態，持續 24 小時。
+2025-09-23 12:10:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 12:10:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
