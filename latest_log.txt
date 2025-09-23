@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T21:35:10.368336 ###
+### AI Lover Log - Last updated at 2025-09-23T21:40:42.869167 ###
 
-2025-09-23 20:38:24 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 23/29...
-2025-09-23 20:38:24 - [ERROR] - [512280345618546699] [LORE精煉] 在處理批次 23 時發生嚴重錯誤: name 'BatchRefinementResult' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1549, in _background_lore_refinement
-    output_schema=BatchRefinementResult,
-NameError: name 'BatchRefinementResult' is not defined
-2025-09-23 20:38:24 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 24/29...
 2025-09-23 20:38:24 - [ERROR] - [512280345618546699] [LORE精煉] 在處理批次 24 時發生嚴重錯誤: name 'BatchRefinementResult' is not defined
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1549, in _background_lore_refinement
@@ -300,3 +293,10 @@ NameError: name 'settings' is not defined
 2025-09-23 21:12:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇女伊索爾德' 的檔案。
 2025-09-23 21:12:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '博林勳爵' 的檔案。
 2025-09-23 21:12:28 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。
+2025-09-23 21:40:28 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 21:40:28 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 21:40:29 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 21:40:29 - [INFO] - Discord Bot is ready!
+2025-09-23 21:40:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 21:40:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 21:40:32 - [INFO] - 已成功發送啟動成功通知給管理員。
