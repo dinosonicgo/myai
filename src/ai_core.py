@@ -280,8 +280,9 @@ class AILover:
 # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 
 
-    # 函式：獲取LORE提取器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取LORE提取器 Prompt
     # 更新紀錄:
+    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例 `{{"plan": []}}` 的大括號進行了轉義，以防止其被 Python 的 .format() 方法錯誤地解析為佔位符，從而解決了因此引發的 KeyError。
     # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式生成的Prompt專門用於“事後LORE保險”流程，分析完整的對話回合，並以ToolCallPlan的形式，提取所有可以用於創建或更新世界知識的工具調用。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於事後LORE提取的字符串模板。"""
@@ -302,7 +303,7 @@ class AILover:
 # 3. **【🔎 增量與更新原則】**:
 #    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調用。
 #    - 如果一個NPC已經存在，但對話中揭示了他的新技能，你應該生成一個 `update_npc_profile` 調用，而不是 `create_new_npc_profile`。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{"plan": []}`。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
 
 # --- [INPUT DATA] ---
 
@@ -319,7 +320,7 @@ class AILover:
 """
             self.lore_extraction_chain = prompt_template
         return self.lore_extraction_chain
-    # 函式：獲取LORE提取器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取LORE提取器 Prompt
 
 
     
@@ -2992,6 +2993,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
