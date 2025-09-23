@@ -2483,9 +2483,9 @@ class ExtractionResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v7.5 (2025-09-24): [災難性BUG修復] 修正了初步解析階段的LLM調用策略。現在，此階段被強制只使用最高效、配額最高的功能性模型（FUNCTIONAL_MODEL），並禁用了模型降級。此修改旨在避免在處理多個文本塊時，因並行任務爭搶昂貴模型的高額配額而導致的邏輯死鎖和性能雪崩。
-    # v7.4 (2025-09-24): [根本性重構] 廢棄了單體的 `_resolve_and_save` 函式，採用“先收集，後處理”的策略以避免競爭條件。
-    # v7.3 (2025-09-23): [API濫用修復] 移除了備援重構鏈中對 `models_to_try_override` 的使用。
+    # v7.6 (2025-09-24): [災難性BUG修復] 移除了在初步解析階段對不兼容的 `_euphemize_and_retry` 備援鏈的錯誤調用。現在，當一個文本塊遭遇內容審查時，系統會記錄警告並直接跳過該塊，而不是因調用錯誤的備援鏈而崩潰，確保了整個解析流程的健壯性。
+    # v7.5 (2025-09-24): [災難性BUG修復] 修正了初步解析階段的LLM調用策略，強制其只使用功能性模型並禁用模型降級。
+    # v7.4 (2025-09-24): [根本性重構] 廢棄了單體的 `_resolve_and_save` 函式，採用“先收集，後處理”的策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“先收集，後處理”的策略以避免競爭條件。"""
         if not canon_text or not self.profile:
@@ -2502,6 +2502,7 @@ class ExtractionResult(BaseModel):
 
         for i, chunk in enumerate(text_chunks, 1):
             logger.info(f"[{self.user_id}] 正在初步解析文本塊 {i}/{len(text_chunks)}...")
+            parsing_result = None
             try:
                 transformation_template = self.get_canon_transformation_chain()
                 full_prompt = self._safe_format_prompt(
@@ -2509,23 +2510,28 @@ class ExtractionResult(BaseModel):
                     {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
                     inject_core_protocol=True
                 )
-                # [v7.5 核心修正] 強制使用功能性模型並禁用降級
                 parsing_result = await self.ainvoke_with_rotation(
                     full_prompt, 
                     output_schema=CanonParsingResult, 
                     use_degradation=False,
+                    retry_strategy='none', # 初步解析失敗直接跳過
                     models_to_try_override=[FUNCTIONAL_MODEL]
                 )
-
-                if parsing_result:
-                    all_new_npcs.extend([p.model_dump() for p in parsing_result.npc_profiles])
-                    all_other_lores['location_info'].extend([p.model_dump() for p in parsing_result.locations])
-                    all_other_lores['item_info'].extend([p.model_dump() for p in parsing_result.items])
-                    all_other_lores['creature_info'].extend([p.model_dump() for p in parsing_result.creatures])
-                    all_other_lores['quest'].extend([p.model_dump() for p in parsing_result.quests])
-                    all_other_lores['world_lore'].extend([p.model_dump() for p in parsing_result.world_lores])
+            # [v7.6 核心修正] 簡化錯誤處理
+            except BlockedPromptException as e:
+                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查，已跳過此塊。錯誤: {e}")
+                continue # 直接跳到下一個文本塊
             except Exception as e:
-                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生錯誤，已跳過此塊: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生無法恢復的錯誤，已跳過此塊: {e}", exc_info=True)
+                continue # 直接跳到下一個文本塊
+
+            if parsing_result:
+                all_new_npcs.extend([p.model_dump() for p in parsing_result.npc_profiles])
+                all_other_lores['location_info'].extend([p.model_dump() for p in parsing_result.locations])
+                all_other_lores['item_info'].extend([p.model_dump() for p in parsing_result.items])
+                all_other_lores['creature_info'].extend([p.model_dump() for p in parsing_result.creatures])
+                all_other_lores['quest'].extend([p.model_dump() for p in parsing_result.quests])
+                all_other_lores['world_lore'].extend([p.model_dump() for p in parsing_result.world_lores])
         
         logger.info(f"[{self.user_id}] [LORE解析階段 1/4] 初步解析完成。收集到 {len(all_new_npcs)} 個潛在NPC條目和其他 {sum(len(v) for v in all_other_lores.values())} 條LORE。")
 
@@ -2643,7 +2649,6 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。")
 
-        # 觸發一次性的RAG重建
         logger.info(f"[{self.user_id}] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...")
         self.retriever = await self._load_or_build_rag_retriever(force_rebuild=True)
         logger.info(f"[{self.user_id}] RAG 知識庫已成功重建。")
@@ -3182,6 +3187,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
