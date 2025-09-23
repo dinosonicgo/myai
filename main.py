@@ -98,11 +98,11 @@ async def read_root(request: Request):
 
 
 
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.0 - 靜默模式)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.1 - 调整日志行数并实现静默成功)
 # 更新紀錄:
-# v7.0 (2025-10-20): [健壯性] 根據使用者回饋，徹底重構了日誌推送邏輯。現在只有在成功推送新的日誌內容時，才會打印單條簡潔的確認訊息，移除了所有冗餘的過程性日誌，實現了「靜默成功」。
-# v6.0 (2025-10-15): [健壯性] 增加了「靜默模式」，只有在檢測到新的日誌內容時，才會打印詳細的 Git 操作日誌。
-# v5.0 (2025-10-15): [健壯性] 整合了 asyncio.Lock，以防止與自動更新任務發生 Git 競態條件。
+# v7.1 (2025-09-23): [功能优化] 1. 将截取的日志行数从 100 行增加到 300 行，以提供更丰富的远程调试上下文。 2. 移除了成功推送到仓库时的 print() 确认消息，实现了“静默成功”，以避免在控制台中刷掉重要的错误日志。
+# v7.0 (2025-10-20): [健壯性] 重构了日志推送逻辑，实现了“静默成功”的初步版本。
+# v6.0 (2025-10-15): [健壯性] 增加了“静默模式”。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -120,7 +120,8 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
             if not log_file_path.is_file(): return False
             with open(log_file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            latest_lines = lines[-100:]
+            # [v7.1 核心修正] 将截取的行数从 -100 修改为 -300
+            latest_lines = lines[-300:]
             log_content_to_write = "".join(latest_lines)
             with open(upload_log_path, 'w', encoding='utf-8') as f:
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
@@ -153,10 +154,8 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
     while not shutdown_event.is_set():
         try:
             async with lock:
-                # [v7.0 核心修正] 只有在成功推送新日誌時才打印日誌
-                pushed_new_log = await asyncio.to_thread(run_git_commands_sync)
-                if pushed_new_log:
-                    print("✅ [LOG Pusher] 檢測到新的日誌內容，並已成功推送到遠程倉庫。")
+                # [v7.1 核心修正] 移除了成功时的 print() 消息
+                await asyncio.to_thread(run_git_commands_sync)
             
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
@@ -165,7 +164,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
-# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.0 - 靜默模式)
+# 函式：[守護任務] 自動推送LOG到GitHub倉庫 (v7.1 - 调整日志行数并实现静默成功)
 
 
 
