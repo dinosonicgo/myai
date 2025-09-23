@@ -2149,11 +2149,21 @@ class CanonParsingResult(BaseModel):
 
     # 函式：獲取無害化文本解析器 Prompt
     # 更新紀錄:
-    # v1.4 (2025-09-23): [終極BUG修復] 徹底移除了使用 F-string (`f"""..."""`) 來定義模板字符串的錯誤做法。現在改為使用標準字符串拼接，確保返回的模板是純淨的，從而根除所有底層格式化錯誤。
-    # v1.3 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】。
+    # v1.5 (2025-09-23): [職責分離] 移除了所有協議拼接和預格式化邏輯。此函式現在只負責返回其自身的、純淨的模板字符串。所有格式化操作都將在調用點通過新的 `_safe_format_prompt` 輔助函式來安全地完成。
     def get_sanitized_text_parser_chain(self) -> str:
         """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
+        pydantic_definitions = "..." # 省略 Pydantic 定義...
         
+        # [v1.5 核心修正] 只返回基礎模板，不進行任何拼接
+        base_prompt = """# TASK: 你是一位高精度的數據結構化引擎...
+# ... (省略與之前版本相同的模板內容) ...
+# --- [INPUT DATA] ---
+# 【經過代碼化的無害化遊戲設計筆記】:
+{sanitized_canon_text}
+---
+# 【代碼化的JSON數據】:
+"""
+        # 為了讓您能直接複製貼上，我將提供完整的版本：
         pydantic_definitions = """
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
@@ -2163,8 +2173,6 @@ class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = "
 class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
-        
-        # [v1.4 核心修正] 使用標準字符串拼接，而不是 F-string
         base_prompt = """# TASK: 你是一位高精度的數據結構化引擎。
 # MISSION: 你的任務是接收一份【經過代碼化的無害化遊戲設計筆記】，理解其中的技術代碼，並將其包含的完整信息提取為結構化的【代碼化JSON數據】。
 
@@ -2185,16 +2193,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 ---
 # 【代碼化的JSON數據】:
 """
-            
-        if not self.profile:
-            protocol_formatted = re.sub(r'\{.*?\}', '[GENERIC]', self.core_protocol_prompt)
-        else:
-            protocol_formatted = self.core_protocol_prompt.format(
-                username=self.profile.user_profile.name, 
-                ai_name=self.profile.ai_profile.name
-            )
-            
-        return protocol_formatted + "\n\n" + base_prompt
+        return base_prompt
     # 函式：獲取無害化文本解析器 Prompt
 
 
@@ -2783,6 +2782,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
