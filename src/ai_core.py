@@ -1982,10 +1982,10 @@ class CanonParsingResult(BaseModel):
 
 
 
-       # 函式：解析並從世界聖經創建 LORE
+    # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v6.0 (2025-09-23): [終極策略升級] 引入“上下文保留式代碼替換”策略。當遭遇審查時，不再將文本“解構”為離散的關鍵詞列表（這會導致上下文丟失），而是直接在原始文本塊的副本上進行字符串替換，將NSFW術語替換為技術代碼。這個保留了100%上下文的“無害化文本塊”將被發送到重構器，從根本上解決了LORE細節丟失和角色關係錯誤的問題。
-    # v5.2 (2025-09-23): [健壯性強化] 簡化了 Prompt 格式化步驟。
+    # v6.1 (2025-09-23): [健壯性強化] 更新了備援策略的函式呼叫，從 get_forensic_lore_reconstruction_chain 改為呼叫新的、經過徹底淨化的 get_sanitized_text_parser_chain，以確保與終極淨化策略保持一致。
+    # v6.0 (2025-09-23): [終極策略升級] 引入“上下文保留式代碼替換”策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“上下文保留式代碼替換”策略。"""
         if not canon_text or not self.profile:
@@ -2020,7 +2020,6 @@ class CanonParsingResult(BaseModel):
             except (BlockedPromptException, GoogleGenerativeAIError) as e:
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查 ({type(e).__name__})。啟動【上下文保留式代碼替換】策略...")
                 try:
-                    # [v6.0 核心修正] 步驟 1: 直接在原始文本上進行查找與替換
                     sanitized_chunk = chunk
                     coded_terms = {
                         "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
@@ -2036,8 +2035,8 @@ class CanonParsingResult(BaseModel):
                     
                     logger.info(f"[{self.user_id}] [上下文保留成功] 已生成無害化文本塊進行重構。")
 
-                    # 步驟 2: 將無害化的完整文本塊發送到修改後的解析器
-                    reconstruction_template = self.get_sanitized_text_parser_chain() # 使用一個新的、為此優化的Prompt
+                    # [v6.1 核心修正] 呼叫新的、淨化後的 Prompt 模板
+                    reconstruction_template = self.get_sanitized_text_parser_chain()
                     reconstruction_prompt = reconstruction_template.format(sanitized_canon_text=sanitized_chunk)
                     
                     parsing_result = await self.ainvoke_with_rotation(
@@ -2055,7 +2054,9 @@ class CanonParsingResult(BaseModel):
                 logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇格式或驗證錯誤 ({type(e).__name__})。啟動【模型升級攻堅】...")
                 try:
                     transformation_template = self.get_canon_transformation_chain()
-                    full_prompt = self.core_protocol_prompt + "\n\n" + transformation_template.format(canon_text=chunk)
+                    # [v6.1 修正] 確保這裡也傳遞了必要的參數
+                    protocol_formatted = self.core_protocol_prompt.format(username=self.profile.user_profile.name, ai_name=self.profile.ai_profile.name)
+                    full_prompt = protocol_formatted + "\n\n" + transformation_template.format(canon_text=chunk)
                     
                     parsing_result = await self.ainvoke_with_rotation(
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none',
@@ -2093,7 +2094,6 @@ class CanonParsingResult(BaseModel):
             logger.info(f"[{self.user_id}] 正在啟動背景任務以進行 LORE 細節精煉...")
             asyncio.create_task(self._background_lore_refinement(canon_text))
     # 函式：解析並從世界聖經創建 LORE
-
 
 
 
@@ -2750,6 +2750,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
