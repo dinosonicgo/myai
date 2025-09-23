@@ -1459,7 +1459,109 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
 # 執行工具調用計畫 函式結束
 
+    # 函式：背景LORE精煉 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式作為 LORE 解析的第二階段，負責對第一階段粗提取出的 NPC 檔案進行深度分析和細節補完，實現了“混合 NLP”策略的後半部分。
+    async def _background_lore_refinement(self, canon_text: str):
+        """
+        (背景任務) 對第一階段解析出的 LORE 進行第二階段的深度精煉。
+        此函式會遍歷所有新創建的 NPC，聚合相關上下文，並使用 LLM 補完更詳細的角色檔案。
+        """
+        try:
+            # 給予主線程一些時間完成資料庫寫入
+            await asyncio.sleep(10.0)
+            logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景 LORE 精煉任務已啟動...")
 
+            # 獲取所有由第一階段解析器創建的 LORE
+            lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
+            npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
+
+            if not npc_lores:
+                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 NPC 檔案。任務結束。")
+                return
+
+            logger.info(f"[{self.user_id}] [LORE精煉] 找到 {len(npc_lores)} 個待精煉的 NPC 檔案。")
+
+            details_parser_template = self.get_character_details_parser_chain()
+
+            for lore in npc_lores:
+                try:
+                    character_name = lore.content.get('name')
+                    if not character_name:
+                        continue
+
+                    # 1. 聚合相關上下文
+                    aliases = [character_name] + lore.content.get('aliases', [])
+                    # 創建一個正則表達式來匹配任何一個名字或別名
+                    name_pattern = re.compile('|'.join(re.escape(name) for name in set(aliases) if name))
+                    
+                    plot_context_parts = []
+                    # 遍歷所有匹配項，並提取前後文
+                    for match in name_pattern.finditer(canon_text):
+                        start, end = match.span()
+                        context_start = max(0, start - 200)
+                        context_end = min(len(canon_text), end + 200)
+                        plot_context_parts.append(f"...{canon_text[context_start:context_end]}...")
+                    
+                    if not plot_context_parts:
+                        logger.info(f"[{self.user_id}] [LORE精煉] 未能在聖經中找到角色 '{character_name}' 的額外上下文，跳過精煉。")
+                        continue
+                    
+                    plot_context = "\n\n".join(plot_context_parts)
+
+                    # 2. 準備 Prompt 並調用 LLM
+                    pre_parsed_data_json = json.dumps(lore.content, ensure_ascii=False, indent=2)
+                    
+                    full_prompt = self._safe_format_prompt(
+                        details_parser_template,
+                        {
+                            "character_name": character_name,
+                            "pre_parsed_data_json": pre_parsed_data_json,
+                            "plot_context": plot_context
+                        }
+                    )
+                    
+                    refined_profile = await self.ainvoke_with_rotation(
+                        full_prompt,
+                        output_schema=CharacterProfile,
+                        retry_strategy='none' # 精煉失敗就算了，不進入複雜的重試
+                    )
+
+                    if not refined_profile:
+                        logger.warning(f"[{self.user_id}] [LORE精煉] 角色 '{character_name}' 的細節精煉返回了空結果。")
+                        continue
+
+                    # 3. 合併並更新 LORE
+                    # 以原始數據為基礎，用精煉後的非空數據進行更新
+                    original_data = lore.content
+                    refined_data = refined_profile.model_dump(exclude_unset=True)
+
+                    for key, value in refined_data.items():
+                        # 只有當精煉出的值非空/None時才更新
+                        if value not in [None, "", [], {}]:
+                            original_data[key] = value
+                    
+                    # 確保核心標識符不變
+                    original_data['name'] = character_name
+
+                    await lore_book.add_or_update_lore(
+                        user_id=self.user_id,
+                        category='npc_profile',
+                        key=lore.key,
+                        content=original_data,
+                        source='canon_refiner' # 將來源更新為精煉器
+                    )
+                    logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新角色 '{character_name}' 的檔案。")
+
+                except Exception as e:
+                    character_name_for_log = lore.content.get('name', '未知NPC')
+                    logger.error(f"[{self.user_id}] [LORE精煉] 在精煉角色 '{character_name_for_log}' 時發生錯誤: {e}", exc_info=True)
+            
+            logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
+    # 函式：背景LORE精煉 (v1.0 - 全新創建)
 
 
     
@@ -1983,6 +2085,7 @@ class ExtractionResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
+    # v7.1 (2025-09-23): [驗證] 確認對 `_background_lore_refinement` 的呼叫邏輯正確無誤，該函式現已在本檔案中實現。
     # v7.0 (2025-09-23): [終極策略回歸] 根據日誌，確認“上下文保留”策略會因“餘輝效應”而被審查。現回歸並強化最初的“解構-重構”策略。當遭遇審查時，不再保留句子結構，而是將文本塊徹底“解構”為一份純粹的、不包含任何上下文的【關鍵詞+代碼】列表。這份100%安全的情報列表將被發送到一個經過終極強化的“法醫級重構器”，由後者負責推理並還原出包含所有細節的LORE JSON，從而徹底繞過審查。
     # v6.6 (2025-09-23): [終極BUG修復] 全面採用 `_safe_format_prompt`。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
@@ -2652,6 +2755,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
