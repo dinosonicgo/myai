@@ -2505,9 +2505,9 @@ class ExtractionResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v7.6 (2025-09-24): [災難性BUG修復] 移除了在初步解析階段對不兼容的 `_euphemize_and_retry` 備援鏈的錯誤調用。現在，當一個文本塊遭遇內容審查時，系統會記錄警告並直接跳過該塊，而不是因調用錯誤的備援鏈而崩潰，確保了整個解析流程的健壯性。
+    # v7.7 (2025-09-24): [健壯性強化] 重新為初步解析鏈啟用了 `euphemize` 備援策略。隨著 `_euphemize_and_retry` 函式被重構為通用化工具，現在可以安全地調用它來處理初步解析中遭遇的內容審查，從而最大限度地從困難文本塊中搶救LORE數據，而不是直接跳過。
+    # v7.6 (2025-09-24): [災難性BUG修復] 移除了在初步解析階段對不兼容的 `_euphemize_and_retry` 備援鏈的錯誤調用。
     # v7.5 (2025-09-24): [災難性BUG修復] 修正了初步解析階段的LLM調用策略，強制其只使用功能性模型並禁用模型降級。
-    # v7.4 (2025-09-24): [根本性重構] 廢棄了單體的 `_resolve_and_save` 函式，採用“先收集，後處理”的策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“先收集，後處理”的策略以避免競爭條件。"""
         if not canon_text or not self.profile:
@@ -2532,20 +2532,18 @@ class ExtractionResult(BaseModel):
                     {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
                     inject_core_protocol=True
                 )
+                # [v7.7 核心修正] 重新啟用兼容的備援策略
                 parsing_result = await self.ainvoke_with_rotation(
                     full_prompt, 
                     output_schema=CanonParsingResult, 
                     use_degradation=False,
-                    retry_strategy='none', # 初步解析失敗直接跳過
+                    retry_strategy='euphemize', # <-- 重新啟用
                     models_to_try_override=[FUNCTIONAL_MODEL]
                 )
-            # [v7.6 核心修正] 簡化錯誤處理
-            except BlockedPromptException as e:
-                logger.warning(f"[{self.user_id}] 文本塊 {i} 遭遇內容審查，已跳過此塊。錯誤: {e}")
-                continue # 直接跳到下一個文本塊
             except Exception as e:
-                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時發生無法恢復的錯誤，已跳過此塊: {e}", exc_info=True)
-                continue # 直接跳到下一個文本塊
+                # 現在 ainoke_with_rotation 會處理 BlockedPromptException，如果最終還是失敗，才記錄錯誤
+                logger.error(f"[{self.user_id}] 處理文本塊 {i} 時遭遇無法恢復的錯誤，已跳過此塊: {e}", exc_info=True)
+                continue
 
             if parsing_result:
                 all_new_npcs.extend([p.model_dump() for p in parsing_result.npc_profiles])
@@ -2675,7 +2673,6 @@ class ExtractionResult(BaseModel):
         self.retriever = await self._load_or_build_rag_retriever(force_rebuild=True)
         logger.info(f"[{self.user_id}] RAG 知識庫已成功重建。")
     # 函式：解析並從世界聖經創建 LORE
-
 
 
 
@@ -3209,6 +3206,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
