@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T22:32:34.340931 ###
+### AI Lover Log - Last updated at 2025-09-23T22:35:45.403467 ###
 
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-, retry_delay {
-  seconds: 3
-}
-]
 2025-09-23 21:49:57 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
 2025-09-23 21:50:17 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 16 個實體...
 2025-09-23 21:50:17 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
@@ -300,3 +293,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 697, in _background_lore_extraction
     full_prompt = prompt_template.format(**extraction_params)
 KeyError: '"plan"'
+2025-09-23 22:35:31 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 22:35:31 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 22:35:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 22:35:31 - [INFO] - Discord Bot is ready!
+2025-09-23 22:35:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 22:35:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 22:35:34 - [INFO] - 已成功發送啟動成功通知給管理員。
