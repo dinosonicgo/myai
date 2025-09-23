@@ -1,35 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T16:07:24.278873 ###
+### AI Lover Log - Last updated at 2025-09-23T16:12:26.528752 ###
 
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2088, in parse_and_create_lore_from_canon
-    parsing_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 332, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 304, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 15:19:12 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 6 個。
-2025-09-23 15:19:12 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
-2025-09-23 15:19:17 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。
-2025-09-23 15:19:17 - [INFO] - [512280345618546699] [LORE精煉] 发现 749 條LORE骨架需要精煉。
-2025-09-23 15:20:08 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '絲月' 的 LORE。
-2025-09-23 15:20:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 15:20:12 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 15:20:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 15:20:15 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 15:20:43 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '薩格納' 的 LORE。
-2025-09-23 15:21:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普' 的 LORE。
-2025-09-23 15:21:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 15:21:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 15:21:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
-2025-09-23 15:22:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '埃德蒙三世' 的 LORE。
-2025-09-23 15:22:55 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿拉里克' 的 LORE。
-2025-09-23 15:23:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '赫克托' 的 LORE。
-2025-09-23 15:24:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '伊索爾德' 的 LORE。
-2025-09-23 15:24:33 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '博林' 的 LORE。
 2025-09-23 15:24:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老高' 的 LORE。
 2025-09-23 15:25:46 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬丁' 的 LORE。
 2025-09-23 15:26:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '亞瑟' 的 LORE。
@@ -300,3 +270,33 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-23 16:05:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
 2025-09-23 16:06:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬丁' 的 LORE。
 2025-09-23 16:06:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '亞瑟' 的 LORE。
+2025-09-23 16:07:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '克拉拉' 的 LORE。
+2025-09-23 16:07:54 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '高爾' 的 LORE。
+2025-09-23 16:08:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '翠絲' 的 LORE。
+2025-09-23 16:08:41 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '迪茜' 的 LORE。
+2025-09-23 16:08:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:44 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:45 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:47 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:48 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:49 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:50 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱薩‧維利爾斯' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:51 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '提姆' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:52 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:53 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:08:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 16:08:55 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '澤拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 16:09:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '薩格納將軍' 的 LORE。
+2025-09-23 16:10:13 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
+2025-09-23 16:10:45 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
+2025-09-23 16:11:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '菲利普•薩格納' 的 LORE。
+2025-09-23 16:11:43 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '國王埃德蒙三世' 的 LORE。
+2025-09-23 16:12:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '大皇子阿拉里克' 的 LORE。
