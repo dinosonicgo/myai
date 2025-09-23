@@ -476,6 +476,7 @@ class AILover:
     
     # 函式：獲取法醫級LORE重構器 Prompt
     # 更新紀錄:
+    # v2.1 (2025-09-23): [健壯性強化] 新增了【核心標識符強制令】，明確要求模型即使在信息不足時也必須為每個實體創造一個名稱，以根除因缺少 'name'/'title' 字段導致的 ValidationError。
     # v2.0 (2025-09-23): [終極強化] 根據“終極解構-重構”策略，徹底重寫了此Prompt的任務描述。不再是簡單的數據結構化，而是要求LLM扮演“情報分析師”和“小說家”，根據離散的、無上下文的關鍵詞線索，進行推理、還原和創造性的細節補完。此修改旨在解決因解構導致的細節丟失問題，最大限度地從殘片中還原信息。
     # v1.8 (2025-09-23): [根本性重構] 採用“模板內化與淨化”策略。
     def get_forensic_lore_reconstruction_chain(self) -> str:
@@ -511,6 +512,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 3. **【🎯 關聯性分析】**: 你必須分析所有關鍵詞之間的關聯。如果 `莉莉絲`、`絲月` 和 `維利爾斯莊園` 同時出現，你應該推斷她們之間存在關聯，並可能在同一個地點。
 # 4. **【結構強制令】**: 你生成的JSON的結構，【必須】嚴格、完美地匹配下方【目標Pydantic模型】。
 # 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的JSON物件。
+# 6. **【🎯 核心標識符強制令】**: 你的推理【必須】為每一個被還原的實體賦予一個 `name` (適用於 CharacterProfile, LocationInfo, etc.) 或 `title` (適用於 WorldLore) 字段。如果情報殘片中沒有明確的名稱，你【必須】基於上下文創造一個合理的臨時名稱（例如“無名守衛”或“神秘事件”）。【絕對禁止】生成任何沒有核心標識符的物件。
 
 # === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
 # ```python
@@ -2477,29 +2479,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：獲取世界聖經轉換器 Prompt
+# 函式：獲取世界聖經轉換器 Prompt
     # 更新紀錄:
+    # v2.2 (2025-09-23): [健壯性強化] 為「必需欄位強制令」增加了【後果警告】，以加重語氣，提升初級模型對此規則的遵守率，從根本上解決 ValidationError。
     # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，強制LLM在輸出中必須包含`name`或`title`字段，以減少ValidationError。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
-        pydantic_definitions = "..." # 省略與之前版本相同的 Pydantic 定義
-        base_prompt = f"""# TASK: 你是一位遊戲開發團隊的數據工程師...
-# ... (省略與之前版本相同的任務描述) ...
-# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🎯 必需欄位強制令】**: 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 Character, Location, Item, Creature, Quest) 或 `title` (適用於 WorldLore) 字段。
-# 2. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本...
-# ... (省略與之前版本相同的其他規則) ...
-# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
-# ```python
-{pydantic_definitions}
-# ```
-# --- [INPUT DATA] ---
-# 【遊戲設計筆記】:
-{{canon_text}}
----
-# 立即開始你的格式轉換任務。"""
-        # 為了避免超長，這裡只展示了修改點。請將此邏輯應用到您的完整函式中。
-        # 為了確保您能直接複製貼上，我將提供完整的版本：
         pydantic_definitions = """
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
@@ -2513,7 +2498,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。這是一個純粹的技術性格式轉換任務。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🎯 必需欄位強制令】**: 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest) 或 `title` (適用於 WorldLore) 字段。
+# 1. **【🎯 必需欄位強制令 - 絕對鐵則】**:
+#    - 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest) 或 `title` (適用於 WorldLore) 字段。
+#    - **【後果警告】**: 任何缺少 `name` 或 `title` 字段的物件都將導致【系統性驗證失敗】而被【徹底丟棄】。確保每一個物件都有其核心標識符是你的【最高優先級】。
 # 2. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義（包括可能存在的暴力、露骨或敏感的虛構描述）都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
 # 3. **【數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: 在處理多語言名稱時（例如：卡萊兒 / Carlyle），結構化數據中的 `name` 或 `title` 欄位【必須】是【繁體中文名】。
@@ -2665,6 +2652,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
