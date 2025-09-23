@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T11:49:41.918198 ###
+### AI Lover Log - Last updated at 2025-09-23T11:55:09.869704 ###
 
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2041, in parse_and_create_lore_from_canon
-    reconstruction_prompt = reconstruction_template.format(sanitized_canon_text=sanitized_chunk)
-KeyError: 'username'
-2025-09-23 11:24:50 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
 2025-09-23 11:25:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 15 個實體...
 2025-09-23 11:25:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 6 個實體...
 2025-09-23 11:25:00 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
@@ -300,3 +293,10 @@ appearance
 2025-09-23 11:49:30 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-23 11:49:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-23 11:49:31 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-23 11:54:55 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 11:54:55 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 11:54:56 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 11:54:56 - [INFO] - Discord Bot is ready!
+2025-09-23 11:54:58 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 11:54:58 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 11:54:59 - [INFO] - 已成功發送啟動成功通知給管理員。
