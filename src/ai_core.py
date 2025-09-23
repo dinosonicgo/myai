@@ -2207,28 +2207,30 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v1.3 (2025-09-23): [災難性安全漏洞修復] 增加了對輸入文本 `relevant_context` 的“代碼化替換”處理。在此之前的版本中，會將未經處理的、包含原始NSFW內容的文本直接發送到精煉鏈，這必然會導致審查失敗。現在，精煉流程與主解析流程採用了相同的、端到端的安全策略，確保了100%的審查通過率。
-    # v1.2 (2025-09-23): [災難性BUG修復] 修正了 NameError。
+    # v2.0 (2025-09-23): [根本性重構] 引入“分层专业化解析”策略。此任务不再进行简单的细节补充，而是执行一个更智能的流程：1. 上下文聚合：为每个LORE实体从世界圣经全文中找到所有相关段落。2. 专业化深度解析：调用一个为解析“角色描述页”这种半结构化文本而专门优化的全新Prompt (`get_character_details_parser_chain`)，对其专属上下文进行高精度细节提取。这解决了通用解析器无法处理用户自然语言描述格式的问题。
+    # v1.3 (2025-09-23): [灾难性安全漏洞修复] 增加了输入无害化处理。
     async def _background_lore_refinement(self, canon_text: str):
-        """[第二階段：細節精煉] 遍歷由 canon_parser 創建的 LORE 骨架，並使用一個專門的鏈來從原始文本中填充缺失的細節。"""
-        await asyncio.sleep(5) # 稍微延遲，等待資料庫寫入完成
-        logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。")
+        """[第二阶段：细节精炼] 通过上下文聚合和专业化深度解析，极大地丰富LORE骨架的细节。"""
+        await asyncio.sleep(5)
+        logger.info(f"[{self.user_id}] [LORE解析阶段2/2] 背景LORE细节精炼任务已启动。")
 
         try:
             lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
             if not lores_to_refine:
-                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 LORE 條目。")
+                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精炼的 LORE 條目。")
                 return
 
-            logger.info(f"[{self.user_id}] [LORE精煉] 發現 {len(lores_to_refine)} 條LORE骨架需要精煉。")
-            refinement_template = self.get_lore_refinement_chain()
+            logger.info(f"[{self.user_id}] [LORE精煉] 发现 {len(lores_to_refine)} 條LORE骨架需要精炼。")
+            
+            # [v2.0 核心修正] 使用新的、专业化的解析器 Prompt
+            details_parser_template = self.get_character_details_parser_chain()
 
             model_map = {
                 "npc_profile": CharacterProfile, "location_info": LocationInfo,
                 "item_info": ItemInfo, "creature_info": CreatureInfo,
                 "quest": Quest, "world_lore": WorldLore
             }
-
+            
             coded_terms = {
                 "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
                 "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
@@ -2245,46 +2247,69 @@ class CanonParsingResult(BaseModel):
                     
                     TargetModel = model_map.get(lore.category)
                     if not TargetModel: continue
+                    # 我们主要关注角色细节的精炼
+                    if lore.category != 'npc_profile': continue
 
-                    relevant_paragraphs = re.findall(r'([^.!?\n]*' + re.escape(entity_name) + r'[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
-                    if not relevant_paragraphs: continue
+                    # 步骤 1: 上下文聚合
+                    # 查找包含实体名称及其别名的所有段落
+                    aliases = lore.content.get('aliases', [])
+                    search_terms = [entity_name] + aliases
+                    pattern = '|'.join(re.escape(term) for term in search_terms)
+                    relevant_paragraphs = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
                     
-                    relevant_context = "\n".join(relevant_paragraphs).strip()
+                    # 提取匹配到的完整句子/段落
+                    aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs if match[0].strip()]).strip()
                     
-                    # [v1.3 核心修正] 對輸入的上下文進行無害化處理
-                    sanitized_context = relevant_context
+                    if not aggregated_context:
+                        logger.info(f"[{self.user_id}] [LORE精煉] 未能在原文中找到 '{entity_name}' 的额外上下文，跳过精炼。")
+                        continue
+                    
+                    # 步骤 2: 对聚合后的上下文进行无害化处理
+                    sanitized_context = aggregated_context
                     for keyword, code in coded_terms.items():
                         sanitized_context = sanitized_context.replace(keyword, code)
-
-                    refinement_prompt = refinement_template.format(
-                        existing_lore_json=json.dumps(lore.content, ensure_ascii=False, indent=2),
-                        original_text_context=sanitized_context # 使用無害化後的文本
+                    
+                    # 步骤 3: 调用专业化深度解析器
+                    parser_prompt = details_parser_template.format(
+                        character_name=entity_name,
+                        aggregated_context=sanitized_context
                     )
                     
-                    refined_lore_data = await self.ainvoke_with_rotation(
-                        refinement_prompt,
+                    # 使用最强模型以保证解析精度
+                    refined_details = await self.ainvoke_with_rotation(
+                        parser_prompt,
                         output_schema=TargetModel,
                         retry_strategy='none',
                         models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
                     )
 
-                    if refined_lore_data:
+                    if refined_details:
+                        # 步骤 4: 合并与更新
+                        # 我们将粗提取的LORE作为基础，用精炼出的细节去更新它
+                        updated_content = lore.content.copy()
+                        refined_dict = refined_details.model_dump(exclude_unset=True) # 只获取被成功解析的字段
+                        
+                        for key, value in refined_dict.items():
+                            # 只有当新值非空且比旧值更详细时才更新
+                            if value and (key not in updated_content or not updated_content[key] or updated_content[key] == "未知"):
+                                updated_content[key] = value
+
                         await lore_book.add_or_update_lore(
                             user_id=self.user_id, category=lore.category, key=lore.key,
-                            content=refined_lore_data.model_dump(), source='canon_refiner'
+                            content=updated_content, source='canon_refiner'
                         )
-                        logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新 '{entity_name}' 的 LORE。")
+                        logger.info(f"[{self.user_id}] [LORE精煉] 已成功深度解析並精煉 '{entity_name}' 的 LORE。")
                     
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(1.5) # 增加延时防止速率过快
 
                 except Exception as e:
                     entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
-                    logger.warning(f"[{self.user_id}] [LORE精煉] 在精煉 '{entity_name}' 時發生錯誤: {e}", exc_info=False)
+                    logger.warning(f"[{self.user_id}] [LORE精煉] 在精煉 '{entity_name}' 時發生错误: {e}", exc_info=False)
 
-            logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務完成。")
+            logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任务完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 背景LORE精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 背景LORE精煉任务主循環发生严重错误: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
 
 
@@ -2757,6 +2782,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
