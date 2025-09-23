@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T18:36:45.502432 ###
+### AI Lover Log - Last updated at 2025-09-23T18:41:34.745256 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2057, in parse_and_create_lore_from_canon
-    parsing_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 332, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 304, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
 
 During handling of the above exception, another exception occurred:
 
@@ -300,3 +293,10 @@ current_action
 2025-09-23 18:32:14 - [WARNING] - [512280345618546699] 未在世界聖經中找到明確的 'PART 2' 分隔符，將嘗試將整個文本作為角色資訊處理。
 2025-09-23 18:32:14 - [INFO] - [512280345618546699] [LORE解析] 本地預處理完成，提取到 0 個角色的初步數據。
 2025-09-23 18:32:14 - [WARNING] - [512280345618546699] 未能從世界聖經中預解析出任何角色資訊。
+2025-09-23 18:41:20 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 18:41:20 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 18:41:20 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 18:41:20 - [INFO] - Discord Bot is ready!
+2025-09-23 18:41:23 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 18:41:23 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 18:41:24 - [INFO] - 已成功發送啟動成功通知給管理員。
