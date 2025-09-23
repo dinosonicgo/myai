@@ -1057,9 +1057,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：解析並儲存LORE實體
     # 更新紀錄:
-    # v1.3 (2025-09-23): [健壯性強化] 在調用描述合成器時，增加了 `inject_core_protocol=True`，為其提供完整的最高指令集作為雙重保險，以最大限度地避免內容審查。
-    # v1.2 (2025-09-23): [質量重構] 引入了“描述智能合成”和“最終解碼”兩個關鍵步驟。現在，合併NPC描述時不再是簡單拼接，而是調用LLM進行智能重寫；在所有LORE存入數據庫前，會強制執行一次逆向解碼，將所有技術代碼還原為原始NSFW詞彙，確保數據庫信息的最終質量和可用性。
-    # v1.1 (2025-09-23): [根本性重構] 引入了“實體解析與智能合併”機制。
+    # v1.4 (2025-09-23): [根本性重構] 為“描述智能合成”鏈啟用了完整的抗審查備援策略。現在，當描述合併因內容審查失敗時，系統會自動觸發“委婉化重試”(`euphemize`)並啟用模型降級，確保即使是處理高密度NSFW信息的LORE合併操作也能成功完成，從根本上解決了相關的BlockedPromptException。
+    # v1.3 (2025-09-23): [健壯性強化] 在調用描述合成器時，增加了 `inject_core_protocol=True`。
+    # v1.2 (2025-09-23): [質量重構] 引入了“描述智能合成”和“最終解碼”兩個關鍵步驟。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -1114,12 +1114,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                     "original_description": existing_content.get('description', '(無原始描述)'),
                                     "new_information": new_description
                                 },
-                                inject_core_protocol=True # [v1.3 核心修正]
+                                inject_core_protocol=True
                             )
-                            synthesized_description = await self.ainvoke_with_rotation(synthesis_prompt, retry_strategy='none')
+                            # [v1.4 核心修正] 啟用完整的抗審查備援策略
+                            synthesized_description = await self.ainvoke_with_rotation(
+                                synthesis_prompt, 
+                                retry_strategy='euphemize', 
+                                use_degradation=True
+                            )
                             if synthesized_description and synthesized_description.strip():
                                 existing_content['description'] = synthesized_description.strip()
                             else:
+                                logger.warning(f"[{self.user_id}] [LORE合併] 描述合成鏈最終失敗，退回為簡單拼接。")
                                 existing_content['description'] = f"{existing_content.get('description', '')}\n\n[補充資訊] {new_description}".strip()
 
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
@@ -3174,6 +3180,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
