@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T23:49:42.162655 ###
+### AI Lover Log - Last updated at 2025-09-23T23:55:15.219675 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
-    task = SynthesisTask(
-NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
-2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '亞瑟'，已將其加入描述合成批處理隊列。
-2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '亞瑟' 時發生錯誤: name 'SynthesisTask' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
-    task = SynthesisTask(
-NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
-2025-09-23 23:41:57 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '馬丁'，已將其加入描述合成批處理隊列。
-2025-09-23 23:41:57 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '馬丁' 時發生錯誤: name 'SynthesisTask' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
-    task = SynthesisTask(
-NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
-2025-09-23 23:41:57 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '費奇'，已將其加入描述合成批處理隊列。
-2025-09-23 23:41:57 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '費奇' 時發生錯誤: name 'SynthesisTask' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
-    task = SynthesisTask(
-NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
-2025-09-23 23:41:58 - [INFO] - [512280345618546699] 文本塊 5 的 LORE 已成功儲存。
-2025-09-23 23:41:58 - [INFO] - [512280345618546699] 正在處理文本塊 6/7...
-2025-09-23 23:41:59 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 23:41:59 - [WARNING] - [512280345618546699] 文本塊 6 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
 2025-09-23 23:41:59 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['老羅', '卡蓮', '米婭', '馬克', '湯瑪斯', '老高', '瓦勒留斯', '凱爾', '費奇', '里斯', '當前狀態', 'ROLE-D', 'ACTION-E', '瑪倫', '愛蓮娜', '莉莉絲', '湯姆', '艾拉']
 2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 81945 秒)。
 2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81950 秒)。
@@ -300,3 +275,28 @@ NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
 2025-09-23 23:49:40 - [INFO] - [512280345618546699] 文本塊 7 的 LORE 已成功儲存。
 2025-09-23 23:49:40 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 7 個。
 2025-09-23 23:49:40 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
+2025-09-23 23:49:50 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已啟動...
+2025-09-23 23:49:50 - [INFO] - [512280345618546699] [LORE精煉] 找到 11 個待精煉的 NPC 檔案。開始批量處理...
+2025-09-23 23:49:50 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 1/2...
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '朱利安' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '當前狀態' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '國王埃德蒙三世' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '大皇子阿拉里克' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇子赫克托' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '二公主塞拉菲娜' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇女伊索爾德' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '博林勳爵' 的檔案。
+2025-09-23 23:49:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '阿利斯特 先生' 的檔案。
+2025-09-23 23:49:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '麥可 神父' 的檔案。
+2025-09-23 23:49:59 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 2/2...
+2025-09-23 23:50:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-23 23:50:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '麥可' 的檔案。
+2025-09-23 23:50:00 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。
+2025-09-23 23:55:01 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 23:55:01 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 23:55:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 23:55:01 - [INFO] - Discord Bot is ready!
+2025-09-23 23:55:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 23:55:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 23:55:05 - [INFO] - 已成功發送啟動成功通知給管理員。
