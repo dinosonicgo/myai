@@ -1140,9 +1140,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：解析並儲存LORE實體
     # 更新紀錄:
-    # v1.6 (2025-09-23): [根本性重構] 引入了由LLM驅動的“批量實體解析”中間件。在處理NPC檔案前，此版本會先將所有新解析出的NPC與整個數據庫進行一次批量比對，智能地判斷每個NPC應被創建還是合併。這從根本上解決了因別名、頭銜、部分名稱等造成的LORE重複問題，是實現知識圖譜化管理的關鍵一步。
+    # v1.7 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使其能夠同時處理LLM可能返回的同義詞（如 'CREATE'/'NEW' 和 'MERGE'/'EXISTING'），以匹配 schemas.py 中的模型更新，增強了系統的容錯能力。
+    # v1.6 (2025-09-23): [根本性重構] 引入了由LLM驅動的“批量實體解析”中間件。
     # v1.5 (2025-09-23): [效率重構] 徹底重構了描述合併的邏輯，從“逐一處理”升級為“批量處理”。
-    # v1.4 (2025-09-23): [根本性重構] 為“描述智能合成”鏈啟用了完整的抗審查備援策略。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -1159,7 +1159,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
-        # [v1.6 核心修正] 批量實體解析邏輯
         if actual_category == 'npc_profile':
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
@@ -1181,7 +1180,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行失敗: {e}", exc_info=True)
             
             items_to_create = []
-            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list) # key: matched_key, value: list of new_content dicts
+            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
             if resolution_plan and resolution_plan.resolutions:
                 logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
@@ -1189,15 +1188,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
                     if not original_item: continue
 
-                    if resolution.decision == 'CREATE':
+                    # [v1.7 核心修正] 使用 'in' 來處理同義詞
+                    if resolution.decision in ['CREATE', 'NEW']:
                         items_to_create.append(original_item)
-                    elif resolution.decision == 'MERGE' and resolution.matched_key:
+                    elif resolution.decision in ['MERGE', 'EXISTING'] and resolution.matched_key:
                         updates_to_merge[resolution.matched_key].append(original_item)
             else:
                 logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
                 items_to_create = new_npcs_from_parser
 
-            # 處理需要合併的實體
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
                 for matched_key, contents_to_merge in updates_to_merge.items():
@@ -1209,18 +1208,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         if new_description and new_description not in existing_lore.content.get('description', ''):
                             synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
                         
-                        # 合併其他非描述字段
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
-                            # 使用 setdefault 確保列表存在
                             existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
                         for key, value in new_content.items():
                             if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
                                 existing_lore.content[key] = value
                     
-                    # 更新合併後的 LORE (描述除外)
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
-            # 批量合成描述
             if synthesis_tasks:
                 logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
                 try:
@@ -1243,10 +1238,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
 
-            # 將解析後確認為全新的實體，賦值回 items 以便後續統一處理
             items = items_to_create
 
-        # --- 對於全新LORE或非NPC類別，執行標準創建流程 ---
         for item_data in items:
             try:
                 name = item_data.get(title_key)
@@ -3277,6 +3270,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
