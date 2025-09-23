@@ -1,115 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T11:13:09.463300 ###
+### AI Lover Log - Last updated at 2025-09-23T11:18:36.964054 ###
 
-2025-09-23 10:32:54 - [INFO] - [512280345618546699] [上下文保留成功] 已生成無害化文本塊進行重構。
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] [重構成功] 已成功根據無害化文本重構出 LORE。
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 12 個實體...
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 2 個實體...
-2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 3 個實體...
-2025-09-23 10:33:54 - [INFO] - [512280345618546699] 文本塊 7 的 LORE 已成功儲存。
-2025-09-23 10:33:54 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 7 個。
-2025-09-23 10:33:54 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
-2025-09-23 10:33:59 - [INFO] - [512280345618546699] [LORE解析阶段2/2] 背景LORE细节精炼任务已启动。
-2025-09-23 10:33:59 - [INFO] - [512280345618546699] [LORE精煉] 发现 169 條LORE骨架需要精炼。
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '埃德蒙三世' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿拉里克' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '赫克托' 時發生错误: 'username'
-2025-09-23 10:33:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '伊索爾德' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '克拉拉' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '高爾' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '翠絲' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '迪茜' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '朱利安' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿利斯特' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老羅' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬克' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '費奇' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛蓮娜' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛莉莎' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪倫' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱薩‧維利爾斯' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '班恩' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里奧' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '賈斯伯' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '提姆' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安東尼' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莎' 時發生错误: 'username'
-2025-09-23 10:34:00 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛莉莎' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '澤拉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '蘇菲' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '貝拉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉娜' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '諾拉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾蜜莉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡萊兒' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納將軍' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普•薩格納' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普•薩格納' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '國王埃德蒙三世' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '大皇子阿拉里克' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇子赫克托' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '二公主塞拉菲娜' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '三皇女伊索爾德' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '博林勳爵' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '亞瑟' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬丁' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿利斯特' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '麥可' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯神父' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '費奇' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛蓮娜' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '連恩' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老羅' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬克' 時發生错误: 'username'
-2025-09-23 10:34:01 - [INFO] - [512280345618546699] [LORE精煉] 未能在原文中找到 '蓋博 太太' 的额外上下文，跳过精炼。
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '勳爵' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪倫' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '索菲亞' 時發生错误: 'username'
-2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 'username'
 2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '露比' 時發生错误: 'username'
 2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '泰莎' 時發生错误: 'username'
 2025-09-23 10:34:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老漢姆' 時發生错误: 'username'
@@ -300,3 +190,113 @@ name
   Field required [type=missing, input_value={'name_cn': '瑪莉', 'na...', '勳爵': '主人'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 2025-09-23 11:13:02 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安娜' 的 LORE。
+2025-09-23 11:13:14 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '老羅' 的 LORE。
+2025-09-23 11:13:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:13:27 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '馬克' 時發生错误: 3 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:13:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:13:47 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 2 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:13:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
+2025-09-23 11:14:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:14:11 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯瑪斯' 時發生错误: 4 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:14:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:14:25 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛蓮娜' 時發生错误: 4 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:14:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:14:51 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Generation stopped due to finish_reason: PROHIBITED_CONTENT
+2025-09-23 11:15:26 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莉' 的 LORE。
+2025-09-23 11:15:37 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:15:37 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛莉莎' 時發生错误: 2 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:15:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安娜' 的 LORE。
+2025-09-23 11:16:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:16:01 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:16:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡蓮' 的 LORE。
+2025-09-23 11:16:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:16:22 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:16:35 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾拉' 的 LORE。
+2025-09-23 11:16:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '里斯' 的 LORE。
+2025-09-23 11:17:09 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:17:09 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪倫' 時發生错误: 2 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:17:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:17:24 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯' 時發生错误: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'name_en': 'Valerius', '...與王室的真相。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-23 11:17:39 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:17:39 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 3 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:17:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:17:41 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:17:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:17:56 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:17:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:17:57 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:17:59 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:17:59 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡蓮' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:18:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 11:18:22 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 11:18:23 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 11:18:23 - [INFO] - Discord Bot is ready!
+2025-09-23 11:18:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 11:18:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 11:18:26 - [INFO] - 已成功發送啟動成功通知給管理員。
