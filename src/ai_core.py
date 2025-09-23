@@ -2207,8 +2207,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.1 (2025-09-23): [災難性BUG修復] 修正了在格式化 "角色細節深度解析器" Prompt 時，因缺少傳遞 username 和 ai_name 參數而導致的、系統性的致命 KeyError。現在會從 self.profile 中讀取這些必要資訊並一併傳入。
-    # v2.0 (2025-09-23): [根本性重構] 引入“分层专业化解析”策略。
+    # v2.2 (2025-09-23): [功能擴展] 同步更新了術語代碼表，增加了對“獸交”、“輪姦”、“強暴”等新詞彙的無害化處理能力。
+    # v2.1 (2025-09-23): [災難性BUG修復] 修正了因缺少格式化參數導致的 KeyError。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
@@ -2234,11 +2234,13 @@ class CanonParsingResult(BaseModel):
                 "quest": Quest, "world_lore": WorldLore
             }
             
+            # [v2.2 核心修正] 擴展代碼表
             coded_terms = {
                 "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
                 "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
                 "翻白眼": "REACT-A", "顫抖": "REACT-B", "噴濺": "REACT-C",
                 "插入": "ACTION-A", "口交": "ACTION-B", "性交": "ACTION-C",
+                "獸交": "ACTION-D", "獸姦": "ACTION-D", "輪姦": "ACTION-E", "強暴": "ACTION-F",
                 "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
                 "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
             }
@@ -2254,7 +2256,7 @@ class CanonParsingResult(BaseModel):
 
                     aliases = lore.content.get('aliases', [])
                     search_terms = [entity_name] + aliases
-                    pattern = '|'.join(re.escape(term) for term in search_terms if term) # 增加 if term 判斷
+                    pattern = '|'.join(re.escape(term) for term in search_terms if term)
                     if not pattern: continue
                     
                     relevant_paragraphs = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
@@ -2269,7 +2271,6 @@ class CanonParsingResult(BaseModel):
                     for keyword, code in coded_terms.items():
                         sanitized_context = sanitized_context.replace(keyword, code)
                     
-                    # [v2.1 核心修正] 創建一個包含所有必要參數的字典
                     format_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
@@ -2801,6 +2802,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
