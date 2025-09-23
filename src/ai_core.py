@@ -62,6 +62,10 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
+from src.config import settings
+from .logger import logger
+from .tool_context import tool_context
+
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -95,11 +99,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.1 - 統一命名規範)
+     # 函式：初始化AI核心 (v227.2 - 導入修正)
     # 更新紀錄:
+    # v227.2 (2025-09-23): [災難性BUG修復] 增加了對 `settings` 模組的導入，以解決因 `NameError` 導致的實例化失敗問題。
     # v227.1 (2025-09-23): [災難性BUG修復] 根據 AttributeError Log，補全了所有在 get_... 方法中用作快取的屬性（如 profile_completion_prompt）在 __init__ 中的初始化定義，確保屬性存在性檢查不會失敗。同時統一了所有Prompt鏈緩存屬性的命名規範。
     # v227.0 (2025-09-22): [架構擴展] 新增 self.forensic_lore_reconstruction_chain 屬性。
-    # v226.0 (2025-09-22): [架構簡化] 移除了多餘的協議屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -2781,6 +2785,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
