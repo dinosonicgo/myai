@@ -2229,8 +2229,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.4 (2025-09-23): [災難性BUG修復] 修正了在 except 塊中因不安全地使用 f-string 記錄異常日誌而導致的終極 `IndexError`。異常對象 `e` 的字符串表示可能包含 `{}`，當被 f-string 二次格式化時會引發錯誤。現已改為使用 logging 模塊推薦的安全參數化格式 `logger.warning("...", var1, var2)`，從而徹底解決此問題。
-    # v2.3 (2025-09-23): [災難性安全漏洞修復] 引入“雙重無害化”策略。
+    # v2.5 (2025-09-23): [終極健壯性修正] 徹底重構並加固了正則表達式的構建和執行邏輯。1. 增加了對 `search_terms` 的嚴格過濾，確保其中不包含任何可能導致空 `pattern` 的無效條目。2. 在 `re.findall` 之前增加了對 `pattern` 的顯式空值檢查。這兩項修改旨在從根本上解決因正則表達式行為異常而間接引發的、難以追蹤的 `IndexError`。
+    # v2.4 (2025-09-23): [災難性BUG修復] 修正了日誌記錄中的 f-string 漏洞。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
@@ -2269,22 +2269,31 @@ class CanonParsingResult(BaseModel):
             for lore in lores_to_refine:
                 entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
                 try:
-                    if not entity_name: continue
+                    if not entity_name or not isinstance(entity_name, str): continue
                     
                     TargetModel = model_map.get(lore.category)
                     if not TargetModel: continue
                     if lore.category != 'npc_profile': continue
 
+                    # [v2.5 核心修正] 步驟 1: 嚴格過濾 search_terms
                     aliases = lore.content.get('aliases', [])
-                    search_terms = [entity_name] + aliases
-                    pattern = '|'.join(re.escape(term) for term in search_terms if term)
-                    if not pattern: continue
+                    # 確保所有條目都是非空的字符串
+                    raw_search_terms = [entity_name] + ([a for a in aliases if a and isinstance(a, str)])
+                    # 去重並確保安全
+                    search_terms = sorted(list(set(raw_search_terms)), key=len, reverse=True)
+
+                    if not search_terms: continue
+
+                    # [v2.5 核心修正] 步驟 2: 構建 pattern 並進行顯式檢查
+                    pattern = '|'.join(re.escape(term) for term in search_terms)
+                    if not pattern:
+                        continue
                     
-                    relevant_paragraphs = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
-                    aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs if match[0].strip()]).strip()
+                    # [v2.5 核心修正] 步驟 3: 安全地執行 findall
+                    relevant_paragraphs_matches = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
+                    aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs_matches if match and match[0].strip()]).strip()
                     
                     if not aggregated_context:
-                        # 這不是一個錯誤，只是說明原文中沒有更多細節了，所以我們用 INFO 級別記錄
                         logger.info(f"[{self.user_id}] [LORE精煉] 未能在原文中找到 '{entity_name}' 的额外上下文，跳过精炼。")
                         continue
                     
@@ -2330,7 +2339,6 @@ class CanonParsingResult(BaseModel):
                     await asyncio.sleep(1.5)
 
                 except Exception as e:
-                    # [v2.4 核心修正] 使用安全的日誌記錄方式
                     logger.warning("[%s] [LORE精煉] 在精煉 '%s' 時發生错误: %s", self.user_id, entity_name, e, exc_info=False)
 
             logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任务完成。")
@@ -2338,6 +2346,7 @@ class CanonParsingResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE精煉任务主循環发生严重错误: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
+                    
                     
                         
 
@@ -2843,6 +2852,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
