@@ -2483,9 +2483,9 @@ class ExtractionResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v7.4 (2025-09-24): [根本性重構] 廢棄了單體的 `_resolve_and_save` 函式，將其邏輯拆分並重構到本函式中，採用“先收集，後處理”的策略。現在，本函式會先在一個無I/O的循環中收集所有文本塊的初步解析結果，然後在循環結束後，一次性地、分階段地執行批量實體解析、批量描述合成和最終的數據庫寫入。此修改徹底解決了因異步I/O操作導致的狀態污染和競爭條件問題。
+    # v7.5 (2025-09-24): [災難性BUG修復] 修正了初步解析階段的LLM調用策略。現在，此階段被強制只使用最高效、配額最高的功能性模型（FUNCTIONAL_MODEL），並禁用了模型降級。此修改旨在避免在處理多個文本塊時，因並行任務爭搶昂貴模型的高額配額而導致的邏輯死鎖和性能雪崩。
+    # v7.4 (2025-09-24): [根本性重構] 廢棄了單體的 `_resolve_and_save` 函式，採用“先收集，後處理”的策略以避免競爭條件。
     # v7.3 (2025-09-23): [API濫用修復] 移除了備援重構鏈中對 `models_to_try_override` 的使用。
-    # v7.2 (2025-09-23): [架構重構] 改為使用 `inject_core_protocol=True` 參數。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """解析提供的世界聖經文本，提取LORE，並存入資料庫。採用多層防禦和“先收集，後處理”的策略以避免競爭條件。"""
         if not canon_text or not self.profile:
@@ -2503,14 +2503,19 @@ class ExtractionResult(BaseModel):
         for i, chunk in enumerate(text_chunks, 1):
             logger.info(f"[{self.user_id}] 正在初步解析文本塊 {i}/{len(text_chunks)}...")
             try:
-                # ... (此處的初步解析邏輯與之前版本類似，但只收集數據，不寫入)
                 transformation_template = self.get_canon_transformation_chain()
                 full_prompt = self._safe_format_prompt(
                     transformation_template,
                     {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
                     inject_core_protocol=True
                 )
-                parsing_result = await self.ainvoke_with_rotation(full_prompt, output_schema=CanonParsingResult, use_degradation=True)
+                # [v7.5 核心修正] 強制使用功能性模型並禁用降級
+                parsing_result = await self.ainvoke_with_rotation(
+                    full_prompt, 
+                    output_schema=CanonParsingResult, 
+                    use_degradation=False,
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
 
                 if parsing_result:
                     all_new_npcs.extend([p.model_dump() for p in parsing_result.npc_profiles])
@@ -2591,23 +2596,24 @@ class ExtractionResult(BaseModel):
         # --- 階段 4: 應用所有數據庫更新 ---
         logger.info(f"[{self.user_id}] [LORE解析階段 4/4] 開始應用所有數據庫更新...")
         # 4a: 應用合併更新
-        for matched_key, contents_to_merge in updates_to_merge.items():
-            try:
-                existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
-                if not existing_lore: continue
-                char_name = existing_lore.content.get('name')
-                if char_name in synthesized_descriptions:
-                    existing_lore.content['description'] = synthesized_descriptions[char_name]
-                for new_content in contents_to_merge:
-                    for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
-                        existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
-                    for key, value in new_content.items():
-                        if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
-                            existing_lore.content[key] = value
-                final_content = self._decode_lore_content(existing_lore.content, self.DECODING_MAP)
-                await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, final_content, source='canon_parser_merged')
-            except Exception as e:
-                logger.error(f"[{self.user_id}] 在應用合併更新到 '{matched_key}' 時發生錯誤: {e}", exc_info=True)
+        if updates_to_merge:
+            for matched_key, contents_to_merge in updates_to_merge.items():
+                try:
+                    existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
+                    if not existing_lore: continue
+                    char_name = existing_lore.content.get('name')
+                    if char_name in synthesized_descriptions:
+                        existing_lore.content['description'] = synthesized_descriptions[char_name]
+                    for new_content in contents_to_merge:
+                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
+                            existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
+                        for key, value in new_content.items():
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
+                                existing_lore.content[key] = value
+                    final_content = self._decode_lore_content(existing_lore.content, self.DECODING_MAP)
+                    await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, final_content, source='canon_parser_merged')
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] 在應用合併更新到 '{matched_key}' 時發生錯誤: {e}", exc_info=True)
 
         # 4b: 創建新實體
         for item_data in items_to_create:
@@ -3176,6 +3182,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
