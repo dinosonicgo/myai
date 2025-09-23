@@ -99,11 +99,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.4 - 引入持久化冷卻)
+    # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
     # 更新紀錄:
-    # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。現在，冷卻狀態會從 data/api_cooldown.json 讀取和寫入，確保在應用重啟後，已達到速率限制的“金鑰+模型”組合不會被立即重試，從根本上解決了 ResourceExhausted 的循環失敗問題。
+    # v227.5 (2025-09-23): [架構升級] 為實現RAG增量更新，新增了 bm25_index_path 和 bm25_corpus 屬性，用於管理持久化的RAG索引。
+    # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。
     # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。
-    # v227.2 (2025-09-23): [災難性BUG修復] 增加了對 `settings` 模組的導入。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -115,7 +115,6 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v227.4 核心新增] 持久化冷卻機制
         self.cooldown_file_path = PROJ_DIR / "data" / "api_cooldown.json"
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
@@ -163,6 +162,10 @@ class AILover:
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
+
+        # [v227.5 核心新增] RAG 持久化屬性
+        self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
+        self.bm25_corpus: List[Document] = []
     # 初始化AI核心 函式結束
 
     
@@ -233,6 +236,115 @@ class AILover:
 
 
 
+
+    # 函式：保存 BM25 語料庫到磁碟 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的一部分，負責將記憶體中的文檔語料庫持久化到 pickle 檔案。
+    def _save_bm25_corpus(self):
+        """將當前的 BM25 語料庫（文檔列表）保存到 pickle 檔案。"""
+        try:
+            with open(self.bm25_index_path, 'wb') as f:
+                pickle.dump(self.bm25_corpus, f)
+        except (IOError, pickle.PicklingError) as e:
+            logger.error(f"[{self.user_id}] [RAG持久化] 保存 BM25 語料庫失敗: {e}", exc_info=True)
+
+    # 函式：從磁碟加載 BM25 語料庫 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的一部分，負責在啟動時從 pickle 檔案加載持久化的文檔語料庫。
+    def _load_bm25_corpus(self) -> bool:
+        """從 pickle 檔案加載 BM25 語料庫。如果成功返回 True，否則 False。"""
+        if self.bm25_index_path.exists():
+            try:
+                with open(self.bm25_index_path, 'rb') as f:
+                    self.bm25_corpus = pickle.load(f)
+                logger.info(f"[{self.user_id}] [RAG持久化] 成功從磁碟加載了 {len(self.bm25_corpus)} 條文檔到 RAG 語料庫。")
+                return True
+            except (IOError, pickle.UnpicklingError, EOFError) as e:
+                logger.error(f"[{self.user_id}] [RAG持久化] 加載 BM25 語料庫失敗: {e}。將觸發全量重建。", exc_info=True)
+                return False
+        return False
+
+    # 函式：增量更新 RAG 索引 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。它負責處理單條LORE的新增或更新，在記憶體中對語料庫進行操作，然後觸發索引的輕量級重建和持久化。
+    async def _update_rag_for_single_lore(self, lore: Lore):
+        """為單個LORE條目增量更新RAG索引。"""
+        new_doc = self._format_lore_into_document(lore)
+        key_to_update = lore.key
+        
+        # 在記憶體語料庫中查找並替換或追加
+        found = False
+        for i, doc in enumerate(self.bm25_corpus):
+            if doc.metadata.get("key") == key_to_update:
+                self.bm25_corpus[i] = new_doc
+                found = True
+                break
+        
+        if not found:
+            self.bm25_corpus.append(new_doc)
+
+        # 從更新後的記憶體語料庫輕量級重建檢索器
+        if self.bm25_corpus:
+            self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+            self.bm25_retriever.k = 15
+            self.retriever = self.bm25_retriever
+        
+        # 將更新後的語料庫持久化到磁碟
+        self._save_bm25_corpus()
+        action = "更新" if found else "添加"
+        logger.info(f"[{self.user_id}] [RAG增量更新] 已成功 {action} LORE '{key_to_update}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
+
+
+
+
+# 函式：加載或構建 RAG 檢索器
+# 更新紀錄:
+# v210.0 (2025-09-23): [根本性重構] 此函式從 `_build_retriever` 重構而來，實現了持久化索引的啟動邏輯。它首先嘗試從磁碟的 pickle 檔案快速加載索引，僅在檔案不存在（即首次啟動）時，才執行一次性的、昂貴的從資料庫全量構建流程。
+# v209.0 (2025-11-22): [根本性重構] 根據最新指令，徹底重寫了此函式。完全移除了所有與 ChromaDB、Embedding 和 EnsembleRetriever 相關的邏輯，將其簡化為一個純粹的 BM25 檢索器構建器。
+    async def _load_or_build_rag_retriever(self) -> Runnable:
+        """在啟動時，從持久化檔案加載RAG索引，或在首次啟動時從資料庫全量構建它。"""
+        # 步驟 1: 嘗試從磁碟快速加載
+        if self._load_bm25_corpus():
+            # 如果成功從檔案加載了語料庫，直接基於它構建檢索器
+            if self.bm25_corpus:
+                self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+                self.bm25_retriever.k = 15
+                self.retriever = self.bm25_retriever
+                logger.info(f"[{self.user_id}] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。")
+            else:
+                self.retriever = RunnableLambda(lambda x: [])
+                logger.info(f"[{self.user_id}] (Retriever Builder) 持久化語料庫為空，RAG 檢索器為空。")
+            return self.retriever
+
+        # 步驟 2: 如果加載失敗（例如首次啟動），則執行一次性的全量構建
+        logger.info(f"[{self.user_id}] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...")
+        all_docs_for_bm25 = []
+        async with AsyncSessionLocal() as session:
+            stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
+            result_mem = await session.execute(stmt_mem)
+            all_memory_contents = result_mem.scalars().all()
+            for content in all_memory_contents:
+                all_docs_for_bm25.append(Document(page_content=content, metadata={"source": "memory"}))
+            
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            for lore in all_lores:
+                all_docs_for_bm25.append(self._format_lore_into_document(lore))
+        
+        self.bm25_corpus = all_docs_for_bm25
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 和 LORE 加載 {len(self.bm25_corpus)} 條文檔用於創始構建。")
+
+        if self.bm25_corpus:
+            self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+            self.bm25_retriever.k = 15
+            self.retriever = self.bm25_retriever
+            self._save_bm25_corpus() # 將首次構建的結果持久化
+            logger.info(f"[{self.user_id}] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。")
+        else:
+            self.retriever = RunnableLambda(lambda x: [])
+            logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，創始構建為空。")
+
+        return self.retriever
+# 函式：加載或構建 RAG 檢索器
 
 
 
@@ -1537,11 +1649,11 @@ class ExtractionResult(BaseModel):
 
 # 函式：執行工具調用計畫
 # 更新紀錄:
-# v190.1 (2025-09-23): [災難性BUG修復] 徹底重構了“更新轉創建”的自動修正邏輯。現在，當檢測到對不存在NPC的更新時，會根據上下文信息（地點、名稱）為其動態生成一個符合規範的、必需的`lore_key`，從根本上解決了因此導致的 `ValidationError`。
-# v190.0 (2025-09-22): [健壯性] 確認程式碼層的核心角色保護邏輯存在且有效，以配合 get_lore_extraction_chain 模板的淨化，確保保護規則由更可靠的程式碼執行。
-# v189.0 (2025-09-22): [災難性BUG修復] 增強了自動修正層的邏輯，能夠自動將錯誤的“更新”操作轉換為“創建”。
+# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，徹底移除了此函式結尾處對 `_build_retriever` 的集中式、全量重建調用。RAG更新的職責現已下放到各個 `lore_tools` 中。
+# v190.1 (2025-09-23): [災難性BUG修復] 徹底重構了“更新轉創建”的自動修正邏輯。
+# v190.0 (2025-09-22): [健壯性] 確認程式碼層的核心角色保護邏輯存在且有效。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务，并在结束后刷新RAG索引。"""
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。RAG索引更新由工具內部觸發。"""
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
             return "LORE 扩展計畫為空。"
@@ -1562,14 +1674,12 @@ class ExtractionResult(BaseModel):
             for call in plan.plan:
                 params = call.parameters
                 
-                # --- 名稱規範化 ---
                 std_name = params.get('standardized_name')
                 orig_name = params.get('original_name')
                 if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
                     logger.warning(f"[{self.user_id}] [自動修正-命名] 檢測到不合規的命名，已將 '{orig_name}' 修正為主要名稱。")
                     params['standardized_name'], params['original_name'] = orig_name, std_name
 
-                # --- 工具名修正 ---
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = None; highest_ratio = 0.7
@@ -1583,11 +1693,10 @@ class ExtractionResult(BaseModel):
                         logger.error(f"[{self.user_id}] [計畫淨化] 無法修正或匹配工具 '{tool_name}'，將跳過此任務。")
                         continue
                 
-                # --- 核心角色保護 (程式碼層) ---
-                name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
                 if self.profile:
                     user_name_lower = self.profile.user_profile.name.lower()
                     ai_name_lower = self.profile.ai_profile.name.lower()
+                    name_to_check = params.get('standardized_name') or params.get('original_name') or params.get('name')
                     if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
                         logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
                         continue
@@ -1603,7 +1712,6 @@ class ExtractionResult(BaseModel):
             summaries = []
             for call in purified_plan:
                 if call.tool_name == 'update_npc_profile':
-                    # [v190.1 核心修正] 檢查 lore_key 是否有效
                     lore_key_to_check = call.parameters.get('lore_key')
                     lore_exists = False
                     if lore_key_to_check:
@@ -1614,16 +1722,13 @@ class ExtractionResult(BaseModel):
                         call.tool_name = 'create_new_npc_profile'
                         
                         updates = call.parameters.get('updates', {})
-                        # 確保 name 和 description 存在
                         call.parameters['standardized_name'] = updates.get('name', call.parameters.get('npc_name', '未知NPC'))
                         call.parameters['description'] = updates.get('description', '（由系統自動創建）')
                         
-                        # [v190.1 核心修正] 動態生成 lore_key
                         effective_location = call.parameters.get('location_path', current_location_path)
                         new_lore_key = " > ".join(effective_location) + f" > {call.parameters['standardized_name']}"
                         call.parameters['lore_key'] = new_lore_key
                         logger.info(f"[{self.user_id}] [自動修正-邏輯] 已為新NPC '{call.parameters['standardized_name']}' 動態生成 lore_key: '{new_lore_key}'")
-
 
                 if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
@@ -1644,9 +1749,10 @@ class ExtractionResult(BaseModel):
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
 
-            logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
-            self.retriever = await self._build_retriever()
-            logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
+            # [v190.2 核心移除] 移除集中的RAG重建調用
+            # logger.info(f"[{self.user_id}] LORE 數據已更新，正在強制重建 RAG 知識庫索引...")
+            # self.retriever = await self._build_retriever()
+            # logger.info(f"[{self.user_id}] RAG 知識庫索引已成功更新。")
             
             return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。"
         
@@ -2217,11 +2323,11 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：配置前置資源 (v203.3 - 移除 Embedding)
-# 更新紀錄:
-# v203.3 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了对 self._create_embeddings_instance() 的调用。此修改是切斷對 Embedding API 所有依賴的關鍵一步。
-# v203.2 (2025-11-20): [根本性重構] 徹底移除了對 _initialize_models 的調用。
-# v203.1 (2025-09-05): [延遲加載重構] 簡化職責，不再構建任何鏈。
+    # 函式：配置前置資源
+    # 更新紀錄:
+    # v203.4 (2025-09-23): [架構重構] 將對 `_build_retriever` 的調用更新為新的 `_load_or_build_rag_retriever`，以適配持久化RAG索引的啟動流程。
+    # v203.3 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了对 self._create_embeddings_instance() 的调用。
+    # v203.2 (2025-11-20): [根本性重構] 徹底移除了對 _initialize_models 的調用。
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，但不實際構建鏈。
@@ -2235,10 +2341,10 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v203.3 核心修正] 不再創建任何 Embedding 實例
         self.embeddings = None
         
-        self.retriever = await self._build_retriever()
+        # [v203.4 核心修正] 調用新的RAG啟動函式
+        self.retriever = await self._load_or_build_rag_retriever()
         
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
 # 配置前置資源 函式結束
@@ -3006,6 +3112,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
