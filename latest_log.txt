@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T15:46:26.871058 ###
+### AI Lover Log - Last updated at 2025-09-23T15:51:29.034825 ###
 
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '巴納比' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '奧斯華' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾諾拉' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '漢德瑞克師傅' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:33 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '埃德蒙三世' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '阿拉里克' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '赫克托' 時發生错误: Replacement index 0 out of range for positional args tuple
@@ -300,3 +289,14 @@ KeyError: 'username'
 2025-09-23 15:45:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '費奇' 的 LORE。
 2025-09-23 15:45:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '湯瑪斯' 的 LORE。
 2025-09-23 15:46:15 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛蓮娜' 的 LORE。
+2025-09-23 15:46:53 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '絲月' 的 LORE。
+2025-09-23 15:47:24 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莉' 的 LORE。
+2025-09-23 15:48:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛莉莎' 的 LORE。
+2025-09-23 15:48:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安娜' 的 LORE。
+2025-09-23 15:48:32 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 15:48:32 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 15:48:58 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡蓮' 的 LORE。
+2025-09-23 15:49:25 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '凱爾' 的 LORE。
+2025-09-23 15:50:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾拉' 的 LORE。
+2025-09-23 15:50:49 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '里斯' 的 LORE。
+2025-09-23 15:51:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪倫' 的 LORE。
