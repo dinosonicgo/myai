@@ -1653,9 +1653,9 @@ class ExtractionResult(BaseModel):
 
 # 函式：執行工具調用計畫
 # 更新紀錄:
-# v190.3 (2025-09-23): [健壯性強化] 前置並強化了“核心角色保護屏障”。現在，在執行任何自動修正或操作之前，會立即檢查工具調用是否試圖非法修改使用者或AI角色的LORE，從執行層面徹底杜絕核心角色被錯誤地當作NPC處理的問題。
-# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，徹底移除了此函式結尾處對 `_build_retriever` 的集中式、全量重建調用。
-# v190.1 (2025-09-23): [災難性BUG修復] 徹底重構了“更新轉創建”的自動修正邏輯。
+# v190.4 (2025-09-23): [災難性BUG修復] 引入了通用的“參數修復與規範化”模塊。在Pydantic驗證前，此版本會主動檢查並修復LLM生成的常見參數錯誤，例如將非標準的`location_name`映射到`standardized_name`，並根據上下文為缺失的`lore_key`動態生成一個有效值，從根本上解決了因此類結構漂移導致的ValidationError。
+# v190.3 (2025-09-23): [健壯性強化] 前置並強化了“核心角色保護屏障”。
+# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，移除了集中的RAG重建調用。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务。RAG索引更新由工具內部觸發。"""
         if not plan or not plan.plan:
@@ -1676,38 +1676,59 @@ class ExtractionResult(BaseModel):
             
             purified_plan: List[ToolCall] = []
             
-            # [v190.3 核心修正] 獲取核心角色名稱以供後續檢查
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
 
             for call in plan.plan:
                 params = call.parameters
                 
-                # [v190.3 核心修正] 前置核心角色保護屏障
-                # 在進行任何修正或操作前，首先檢查是否觸犯核心角色
+                # [v190.4 核心修正] 參數修復與規範化模塊
+                # 在驗證前，嘗試修復 LLM 可能生成的非標準參數
+                name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'title']
+                found_name = None
+                for variant in name_variants:
+                    if variant in params:
+                        found_name = params.pop(variant)
+                        params['standardized_name'] = found_name
+                        break
+                
+                if not params.get('lore_key') and params.get('standardized_name'):
+                    name = params['standardized_name']
+                    # 根據工具類型決定 lore_key 生成策略
+                    if 'location_info' in call.tool_name:
+                        # 對於地點，其自身路徑就是key的一部分
+                        params['lore_key'] = " > ".join(current_location_path + [name])
+                    elif 'npc_profile' in call.tool_name or 'item_info' in call.tool_name:
+                        # 對於NPC和物品，它們存在於當前地點之下
+                        params['lore_key'] = " > ".join(current_location_path + [name])
+                    else:
+                        # 對於其他全局LORE，直接使用其名稱作為key
+                        params['lore_key'] = name
+                    logger.info(f"[{self.user_id}] [自動修正-參數] 為 '{name}' 動態生成缺失的 lore_key: '{params['lore_key']}'")
+
+
                 potential_names = [
                     params.get('standardized_name'),
                     params.get('original_name'),
                     params.get('name'),
-                    params.get('npc_name'),
-                    params.get('character_name'),
                     (params.get('updates') or {}).get('name')
                 ]
                 
+                is_core_character = False
                 for name_to_check in potential_names:
                     if name_to_check and name_to_check.lower() in {user_name_lower, ai_name_lower}:
                         logger.warning(f"[{self.user_id}] [計畫淨化] 已攔截一個試圖對核心主角 '{name_to_check}' 執行的非法 LORE 操作 ({call.tool_name})。")
-                        # 跳過此工具調用，繼續處理下一個
-                        continue
+                        is_core_character = True
+                        break
+                if is_core_character:
+                    continue
                 
-                # --- 名稱規範化 ---
                 std_name = params.get('standardized_name')
                 orig_name = params.get('original_name')
                 if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
                     logger.warning(f"[{self.user_id}] [自動修正-命名] 檢測到不合規的命名，已將 '{orig_name}' 修正為主要名稱。")
                     params['standardized_name'], params['original_name'] = orig_name, std_name
 
-                # --- 工具名修正 ---
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = None; highest_ratio = 0.7
@@ -3088,6 +3109,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
