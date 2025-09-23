@@ -105,6 +105,22 @@ class EntityValidationResult(BaseModel):
             raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
         return self
 
+# [v1.0 新增] 用於批量描述合成的模型
+class SynthesisTask(BaseModel):
+    """封裝單個描述合成任務的數據。"""
+    name: str
+    original_description: str
+    new_information: str
+
+class SynthesizedDescription(BaseModel):
+    """封裝單個合成描述的結果。"""
+    name: str = Field(description="與輸入任務完全相同的角色名稱。")
+    description: str = Field(description="由LLM重寫並整合後的全新描述文本。")
+
+class BatchSynthesisResult(BaseModel):
+    """用於包裹批量描述合成的結果。"""
+    synthesized_descriptions: List[SynthesizedDescription] = Field(description="一個包含所有被成功合成描述的角色的結果列表。")
+
 
 
 
@@ -401,6 +417,7 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
 
