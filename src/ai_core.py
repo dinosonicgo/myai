@@ -395,13 +395,13 @@ class AILover:
 
     # 函式：獲取LORE提取器 Prompt
     # 更新紀錄:
-    # v1.2 (2025-09-23): [健壯性強化] 在Prompt中增加了對核心主角的“絕對保護原則”，明確禁止LLM為使用者和AI角色生成任何LORE操作，從指令源頭杜絕核心角色被錯誤地當作NPC處理的問題。
-    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例 `{{"plan": []}}` 的大括號進行了轉義，以解決 KeyError。
-    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。
+    # v1.3 (2025-09-23): [抗幻覺強化] 在Prompt中增加了更嚴格的“禁止幻覺”指令，要求LLM只能根據對話中明確、具名的實體生成工具調用，作為抗幻覺防禦體系的第一層。
+    # v1.2 (2025-09-23): [健壯性強化] 在Prompt中增加了對核心主角的“絕對保護原則”。
+    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例進行了轉義。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於事後LORE提取的字符串模板。"""
         if self.lore_extraction_chain is None:
-            prompt_template = """# TASK: 你是一位高度智能的【世界知識記錄官】，在一個【完全虛構的成人幻想小說模擬】框架下工作。
+            prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【世界知識記錄官】，在一個【完全虛構的成人幻想小說模擬】框架下工作。
 # MISSION: 你的任務是閱讀【本回合的完整對話】，並從中識別出所有【新的、或被更新的】世界知識（LORE）。然後，將這些知識轉化為一個結構化的【工具調用計畫 (Tool Call Plan)】，以便將其永久記錄到世界資料庫中。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
@@ -409,17 +409,19 @@ class AILover:
 #    - 角色 **"{username}"** (使用者) 和 **"{ai_name}"** (AI戀人) 是這個世界的【絕對主角】。
 #    - 他們的個人檔案由核心系統獨立管理，【絕對不是】NPC LORE 的一部分。
 #    - 因此，你的工具調用計畫中【【【絕對禁止】】】包含任何試圖為 "{username}" 或 "{ai_name}" 執行 `create_new_npc_profile` 或 `update_npc_profile` 的操作。
-# 2. **【🚫 絕對無害化輸入/輸出強制令】**:
+# 2. **【🚫 嚴禁幻覺原則 (NO-HALLUCINATION MANDATE)】**:
+#    - 你的所有工具調用【必須】嚴格基於對話文本中【明確提及的、有名有姓的】實體。
+#    - 【絕對禁止】從模糊的代詞（如“那個男人”）、無關的描述或你自己的想像中，創造或更新任何LORE。你的任務是**記錄**，不是**創作**。
+# 3. **【🚫 絕對無害化輸入/輸出強制令】**:
 #    - 你必須認知到，輸入的對話**可能包含描述虛構世界極端行為的技術代碼**。
-#    - 你的輸出（工具調用的參數）**也必須原封不動地保留這些技術代碼**。這是一個數據提取任務，不是翻譯或審查。
-# 3. **【🎯 聚焦LORE，忽略狀態】**:
+#    - 你的輸出（工具調用的參數）**也必須原封不動地保留這些技術代碼**。
+# 4. **【🎯 聚焦LORE，忽略狀態】**:
 #    - 你的唯一目標是提取【永久性的世界知識】。
-#    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用，例如 `change_location`, `update_money`, `equip_item` 等。
+#    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用。
 #    - **你的職權範圍嚴格限定在以下 LORE 工具**: `create_new_npc_profile`, `update_npc_profile`, `add_or_update_location_info`, `add_or_update_item_info`, `define_creature_type`, `add_or_update_quest_lore`, `add_or_update_world_lore`。
-# 4. **【🔎 增量與更新原則】**:
-#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調용。
-#    - 如果一個NPC已經存在，但對話中揭示了他的新技能，你應該生成一個 `update_npc_profile` 調用，而不是 `create_new_npc_profile`。
-# 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
+# 5. **【🔎 增量與更新原則】**:
+#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調用。
+# 6. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
 
 # --- [INPUT DATA] ---
 
@@ -439,6 +441,45 @@ class AILover:
     # 函式：獲取LORE提取器 Prompt
 
 
+
+        # 函式：獲取實體驗證器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“抗幻覺驗證層”的核心。它生成的Prompt專門用於在創建新LORE前進行事實查核，判斷一個待創建的實體是真實的新實體、已存在實體的別名，還是應被忽略的LLM幻覺。
+    def get_entity_validation_prompt(self) -> str:
+        """獲取或創建一個專門用於“事實查核”的字符串模板，以對抗LLM幻覺。"""
+        # 為了避免KeyError，此處不使用 self.description_synthesis_prompt
+        prompt_template = """# TASK: 你是一位極其嚴謹的【事實查核官】與【數據庫管理員】。
+# MISSION: 主系統試圖創建一個名為【待驗證實體】的新LORE記錄，但懷疑這可能是一個錯誤或幻覺。你的任務是，嚴格對照【對話上下文】和【現有實體數據庫】，對這個創建請求進行審核，並給出你的最終裁決。
+
+# === 【【【🚨 核心裁決規則 (CORE ADJUDICATION RULES) - 絕對鐵則】】】 ===
+# 1. **【證據優先原則】**: 你的所有判斷【必須】嚴格基於【對話上下文】。
+# 2. **【裁決標準】**:
+#    - **裁決為 'CREATE'**: 當且僅當，對話中【明確地、無歧義地】引入了一個全新的、有名有姓的角色或地點時。例如，對話中出現“一位名叫「湯姆」的鐵匠走了過來”。
+#    - **裁決為 'MERGE'**: 當【待驗證實體】極有可能是【現有實體數據庫】中某個條目的【別名、暱稱、或輕微的拼寫錯誤】時。你必須在 `matched_key` 中提供最接近的匹配項。
+#    - **裁決為 'IGNORE'**: 當對話中【沒有足夠的證據】支持創建這個實體時。這通常發生在：
+#      - 實體是從一個模糊的代詞（如“那個男人”）或描述（如“一個穿紅衣服的女孩”）幻覺出來的。
+#      - 實體名稱完全沒有在對話中出現。
+#      - 這是一個無關緊要的、一次性的背景元素。
+# 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `EntityValidationResult` Pydantic 模型的JSON物件。
+
+# --- [INPUT DATA] ---
+
+# 【待驗證實體名稱】:
+{entity_name}
+
+# ---
+# 【對話上下文 (你的唯一事實來源)】:
+{context}
+
+# ---
+# 【現有實體數據庫 (用於MERGE判斷)】:
+{existing_entities_json}
+
+# ---
+# 【你的最終裁決JSON】:
+"""
+        return prompt_template
+    # 函式：獲取實體驗證器 Prompt
     
 
 # 函式：帶有輪換和備援策略的原生 API 調用引擎
@@ -1653,11 +1694,11 @@ class ExtractionResult(BaseModel):
 
 # 函式：執行工具調用計畫
 # 更新紀錄:
-# v190.4 (2025-09-23): [災難性BUG修復] 引入了通用的“參數修復與規範化”模塊。在Pydantic驗證前，此版本會主動檢查並修復LLM生成的常見參數錯誤，例如將非標準的`location_name`映射到`standardized_name`，並根據上下文為缺失的`lore_key`動態生成一個有效值，從根本上解決了因此類結構漂移導致的ValidationError。
+# v190.5 (2025-09-23): [根本性重構] 引入了“抗幻覺驗證層”。當“更新轉創建”邏輯被觸發時，不再盲目創建新LORE，而是先調用一個專門的“實體驗證”LLM鏈進行事實查核。根據查核結果（創建、合併或忽略），系統會執行相應的、更安全的操作，從而有效攔截並修正LLM的實體幻覺。
+# v190.4 (2025-09-23): [災難性BUG修復] 引入了通用的“參數修復與規範化”模塊。
 # v190.3 (2025-09-23): [健壯性強化] 前置並強化了“核心角色保護屏障”。
-# v190.2 (2025-09-23): [架構重構] 根據RAG增量更新架構，移除了集中的RAG重建調用。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务。RAG索引更新由工具內部觸發。"""
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺驗證層。"""
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
             return "LORE 扩展計畫為空。"
@@ -1668,6 +1709,7 @@ class ExtractionResult(BaseModel):
             if not self.profile:
                 return "错误：无法执行工具計畫，因为使用者 Profile 未加载。"
             
+            # ... (is_chinese 和 available_lore_tools 的定義保持不變) ...
             def is_chinese(text: str) -> bool:
                 if not text: return False
                 return bool(re.search(r'[\u4e00-\u9fff]', text))
@@ -1680,10 +1722,10 @@ class ExtractionResult(BaseModel):
             ai_name_lower = self.profile.ai_profile.name.lower()
 
             for call in plan.plan:
+                # ... (參數修復與核心角色保護邏輯保持不變) ...
+                # 為了避免省略，我將包含完整的淨化循環
                 params = call.parameters
                 
-                # [v190.4 核心修正] 參數修復與規範化模塊
-                # 在驗證前，嘗試修復 LLM 可能生成的非標準參數
                 name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'title']
                 found_name = None
                 for variant in name_variants:
@@ -1694,24 +1736,17 @@ class ExtractionResult(BaseModel):
                 
                 if not params.get('lore_key') and params.get('standardized_name'):
                     name = params['standardized_name']
-                    # 根據工具類型決定 lore_key 生成策略
                     if 'location_info' in call.tool_name:
-                        # 對於地點，其自身路徑就是key的一部分
                         params['lore_key'] = " > ".join(current_location_path + [name])
                     elif 'npc_profile' in call.tool_name or 'item_info' in call.tool_name:
-                        # 對於NPC和物品，它們存在於當前地點之下
                         params['lore_key'] = " > ".join(current_location_path + [name])
                     else:
-                        # 對於其他全局LORE，直接使用其名稱作為key
                         params['lore_key'] = name
                     logger.info(f"[{self.user_id}] [自動修正-參數] 為 '{name}' 動態生成缺失的 lore_key: '{params['lore_key']}'")
 
-
                 potential_names = [
-                    params.get('standardized_name'),
-                    params.get('original_name'),
-                    params.get('name'),
-                    (params.get('updates') or {}).get('name')
+                    params.get('standardized_name'), params.get('original_name'),
+                    params.get('name'), (params.get('updates') or {}).get('name')
                 ]
                 
                 is_core_character = False
@@ -1726,7 +1761,6 @@ class ExtractionResult(BaseModel):
                 std_name = params.get('standardized_name')
                 orig_name = params.get('original_name')
                 if std_name and orig_name and not is_chinese(std_name) and is_chinese(orig_name):
-                    logger.warning(f"[{self.user_id}] [自動修正-命名] 檢測到不合規的命名，已將 '{orig_name}' 修正為主要名稱。")
                     params['standardized_name'], params['original_name'] = orig_name, std_name
 
                 tool_name = call.tool_name
@@ -1736,16 +1770,13 @@ class ExtractionResult(BaseModel):
                         ratio = levenshtein_ratio(tool_name, valid_tool)
                         if ratio > highest_ratio: highest_ratio = ratio; best_match = valid_tool
                     if best_match:
-                        logger.warning(f"[{self.user_id}] [自動修正-工具名] 檢測到不存在的工具 '{tool_name}'，已自動修正為 '{best_match}' (相似度: {highest_ratio:.2f})。")
                         call.tool_name = best_match
                     else:
-                        logger.error(f"[{self.user_id}] [計畫淨化] 無法修正或匹配工具 '{tool_name}'，將跳過此任務。")
                         continue
                 
                 purified_plan.append(call)
 
             if not purified_plan:
-                logger.info(f"[{self.user_id}] (LORE Executor) 計畫在淨化與修正後為空，无需执行。")
                 return "LORE 扩展計畫在淨化後為空。"
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) 開始串行執行 {len(purified_plan)} 個修正後的LORE任务 ---")
@@ -1759,17 +1790,51 @@ class ExtractionResult(BaseModel):
                         lore_exists = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_check)
 
                     if not lore_exists:
-                        logger.warning(f"[{self.user_id}] [自動修正-邏輯] AI 試圖更新一個不存在的NPC (key: {lore_key_to_check})。已自動將操作轉換為創建新NPC。")
-                        call.tool_name = 'create_new_npc_profile'
+                        # [v190.5 核心修正] 觸發抗幻覺驗證層
+                        entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or lore_key_to_check.split(' > ')[-1]
+                        logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在NPC '{entity_name_to_validate}' 的更新。啟動事實查核...")
                         
-                        updates = call.parameters.get('updates', {})
-                        call.parameters['standardized_name'] = updates.get('name', call.parameters.get('npc_name', '未知NPC'))
-                        call.parameters['description'] = updates.get('description', '（由系統自動創建）')
+                        validation_prompt_template = self.get_entity_validation_prompt()
                         
-                        effective_location = call.parameters.get('location_path', current_location_path)
-                        new_lore_key = " > ".join(effective_location) + f" > {call.parameters['standardized_name']}"
-                        call.parameters['lore_key'] = new_lore_key
-                        logger.info(f"[{self.user_id}] [自動修正-邏輯] 已為新NPC '{call.parameters['standardized_name']}' 動態生成 lore_key: '{new_lore_key}'")
+                        # 獲取上下文
+                        scene_key = self._get_scene_key()
+                        history = self.scene_histories.get(scene_key, ChatMessageHistory())
+                        context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
+                        
+                        existing_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+                        existing_entities_json = json.dumps(
+                            [{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs],
+                            ensure_ascii=False
+                        )
+
+                        validation_prompt = self._safe_format_prompt(
+                            validation_prompt_template,
+                            {
+                                "entity_name": entity_name_to_validate,
+                                "context": context,
+                                "existing_entities_json": existing_entities_json
+                            }
+                        )
+                        
+                        validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
+                        
+                        if validation_result and validation_result.decision == 'CREATE':
+                            logger.info(f"[{self.user_id}] [抗幻覺] 裁決: CREATE。理由: {validation_result.reasoning}。將操作轉換為創建新NPC。")
+                            call.tool_name = 'create_new_npc_profile'
+                            updates = call.parameters.get('updates', {})
+                            call.parameters['standardized_name'] = updates.get('name', entity_name_to_validate)
+                            call.parameters['description'] = updates.get('description', '（由事實查核後創建）')
+                            effective_location = call.parameters.get('location_path', current_location_path)
+                            call.parameters['lore_key'] = " > ".join(effective_location + [call.parameters['standardized_name']])
+                        
+                        elif validation_result and validation_result.decision == 'MERGE':
+                            logger.info(f"[{self.user_id}] [抗幻覺] 裁決: MERGE。理由: {validation_result.reasoning}。將更新目標修正為 '{validation_result.matched_key}'。")
+                            call.parameters['lore_key'] = validation_result.matched_key
+                        
+                        else: # IGNORE or failed
+                            reason = validation_result.reasoning if validation_result else "驗證鏈返回無效結果"
+                            logger.warning(f"[{self.user_id}] [抗幻覺] 裁決: IGNORE。理由: {reason}。已攔截幻覺。")
+                            continue # 跳過此工具調用
 
                 if not call.parameters.get('location_path'):
                     call.parameters['location_path'] = current_location_path
@@ -1796,7 +1861,6 @@ class ExtractionResult(BaseModel):
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
 # 執行工具調用計畫 函式結束
-
 
     
 
@@ -3109,6 +3173,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
