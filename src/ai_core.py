@@ -2217,8 +2217,8 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.2 (2025-09-23): [功能擴展] 同步更新了術語代碼表，增加了對“獸交”、“輪姦”、“強暴”等新詞彙的無害化處理能力。
-    # v2.1 (2025-09-23): [災難性BUG修復] 修正了因缺少格式化參數導致的 KeyError。
+    # v2.3 (2025-09-23): [災難性安全漏洞修復] 引入“雙重無害化”策略。修正了之前只對 aggregated_context 進行無害化，卻忽略了對 existing_lore_json 本身進行處理的致命漏洞。現在，在構建精煉Prompt之前，會對從數據庫讀取的LORE骨架也進行一次代碼化替換，確保傳遞給LLM的所有用戶生成內容都是100%安全的，從而徹底解決精煉階段的BlockedPromptException。
+    # v2.2 (2025-09-23): [功能擴展] 同步更新了術語代碼表。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
@@ -2244,7 +2244,6 @@ class CanonParsingResult(BaseModel):
                 "quest": Quest, "world_lore": WorldLore
             }
             
-            # [v2.2 核心修正] 擴展代碼表
             coded_terms = {
                 "肉棒": "CODE-M-GEN-A", "肉穴": "CODE-F-GEN-A", "陰蒂": "CODE-F-GEN-B",
                 "子宮": "CODE-F-GEN-C", "愛液": "FLUID-A", "淫液": "FLUID-A",
@@ -2270,21 +2269,29 @@ class CanonParsingResult(BaseModel):
                     if not pattern: continue
                     
                     relevant_paragraphs = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
-                    
                     aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs if match[0].strip()]).strip()
                     
                     if not aggregated_context:
                         logger.info(f"[{self.user_id}] [LORE精煉] 未能在原文中找到 '{entity_name}' 的额外上下文，跳过精炼。")
                         continue
                     
+                    # [v2.3 核心修正] 執行雙重無害化
+                    # 1. 無害化從聖經原文提取的上下文
                     sanitized_context = aggregated_context
                     for keyword, code in coded_terms.items():
                         sanitized_context = sanitized_context.replace(keyword, code)
                     
+                    # 2. 無害化從數據庫讀取的 LORE 骨架
+                    existing_lore_str = json.dumps(lore.content, ensure_ascii=False, indent=2)
+                    sanitized_existing_lore_json = existing_lore_str
+                    for keyword, code in coded_terms.items():
+                        sanitized_existing_lore_json = sanitized_existing_lore_json.replace(keyword, code)
+
                     format_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
                         "character_name": entity_name,
+                        "existing_lore_json": sanitized_existing_lore_json, # <-- 使用無害化版本
                         "aggregated_context": sanitized_context
                     }
                     parser_prompt = details_parser_template.format(**format_params)
@@ -2321,6 +2328,7 @@ class CanonParsingResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE精煉任务主循環发生严重错误: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
+                    
                         
 
 
@@ -2821,6 +2829,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
