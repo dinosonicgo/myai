@@ -61,7 +61,8 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
                       SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
-                      CreatureInfo, Quest, WorldLore, BatchRefinementResult)
+                      CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
+                      EntityValidationResult, SynthesisTask, BatchSynthesisResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -3199,6 +3200,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
