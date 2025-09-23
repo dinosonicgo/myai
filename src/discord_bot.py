@@ -302,6 +302,66 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
     # 函式：處理 Modal 提交事件
 # 類別：貼上世界聖經的 Modal
 
+
+
+
+# 類別：LORE 瀏覽器分頁視圖 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-23): [全新創建] 創建此類別以支持 /admin_browse_lores 指令。它提供了一個帶有“上一頁”和“下一頁”按鈕的交互式界面，用於分頁顯示大量的LORE條目，解決了Discord自動完成最多只能顯示25個選項的限制。
+class LorePaginatorView(discord.ui.View):
+    def __init__(self, *, lores: List[Lore], user_id: str, category: str, items_per_page: int = 10):
+        super().__init__(timeout=300.0)
+        self.lores = lores
+        self.user_id = user_id
+        self.category = category
+        self.items_per_page = items_per_page
+        self.current_page = 0
+        self.total_pages = (len(self.lores) - 1) // self.items_per_page
+
+    async def _create_embed(self) -> Embed:
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        page_lores = self.lores[start_index:end_index]
+
+        embed = Embed(
+            title=f"📜 LORE 瀏覽器: {self.category}",
+            description=f"正在顯示使用者 `{self.user_id}` 的 LORE 條目。",
+            color=discord.Color.gold()
+        )
+
+        for lore in page_lores:
+            name = lore.content.get('name', lore.content.get('title', lore.key.split(' > ')[-1]))
+            description = lore.content.get('description', '無描述。')
+            value = (description[:70] + '...') if len(description) > 70 else description
+            embed.add_field(name=f"`{name}`", value=f"```{value}```\n🔑 **Key:** `{lore.key}`", inline=False)
+
+        embed.set_footer(text=f"第 {self.current_page + 1} / {self.total_pages + 1} 頁 | 總計 {len(self.lores)} 條")
+        return embed
+
+    async def update_message(self, interaction: discord.Interaction):
+        self.prev_page.disabled = self.current_page == 0
+        self.next_page.disabled = self.current_page == self.total_pages
+        embed = await self._create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="⬅️ 上一頁", style=discord.ButtonStyle.secondary)
+    async def prev_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page > 0:
+            self.current_page -= 1
+            await self.update_message(interaction)
+
+    @discord.ui.button(label="下一頁 ➡️", style=discord.ButtonStyle.secondary)
+    async def next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.current_page < self.total_pages:
+            self.current_page += 1
+            await self.update_message(interaction)
+# 類別：LORE 瀏覽器分頁視圖 結束
+
+
+
+
+
+
 # 類別：設定角色檔案的 Modal
 class CharacterSettingsModal(discord.ui.Modal):
     # 函式：初始化 CharacterSettingsModal
@@ -1156,7 +1216,29 @@ class BotCog(commands.Cog):
             self.setup_locks.discard(user_id)
 # 完成設定流程 函式結束
 
+    # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
+    @app_commands.command(name="admin_browse_lores", description="[管理員] 分頁瀏覽指定使用者的 LORE 資料庫。")
+    @app_commands.check(is_admin)
+    @app_commands.describe(target_user="要瀏覽其 LORE 的目標使用者。", category="要瀏覽的 LORE 類別。")
+    @app_commands.autocomplete(target_user=user_autocomplete)
+    @app_commands.choices(category=LORE_CATEGORIES)
+    async def admin_browse_lores(self, interaction: discord.Interaction, target_user: str, category: str):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        all_lores = await lore_book.get_lores_by_category_and_filter(target_user, category)
+        
+        if not all_lores:
+            await interaction.followup.send(f"❌ 在類別 `{category}` 中找不到使用者 `{target_user}` 的任何 LORE 條目。", ephemeral=True)
+            return
 
+        view = LorePaginatorView(lores=all_lores, user_id=target_user, category=category)
+        embed = await view._create_embed()
+        view.prev_page.disabled = True # 初始禁用上一頁
+        if view.total_pages == 0:
+             view.next_page.disabled = True # 如果只有一頁，也禁用下一頁
+
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+    # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
     
 
     # 函式：在背景處理世界聖經文本
