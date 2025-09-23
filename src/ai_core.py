@@ -2207,22 +2207,25 @@ class CanonParsingResult(BaseModel):
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.0 (2025-09-23): [根本性重構] 引入“分层专业化解析”策略。此任务不再进行简单的细节补充，而是执行一个更智能的流程：1. 上下文聚合：为每个LORE实体从世界圣经全文中找到所有相关段落。2. 专业化深度解析：调用一个为解析“角色描述页”这种半结构化文本而专门优化的全新Prompt (`get_character_details_parser_chain`)，对其专属上下文进行高精度细节提取。这解决了通用解析器无法处理用户自然语言描述格式的问题。
-    # v1.3 (2025-09-23): [灾难性安全漏洞修复] 增加了输入无害化处理。
+    # v2.1 (2025-09-23): [災難性BUG修復] 修正了在格式化 "角色細節深度解析器" Prompt 時，因缺少傳遞 username 和 ai_name 參數而導致的、系統性的致命 KeyError。現在會從 self.profile 中讀取這些必要資訊並一併傳入。
+    # v2.0 (2025-09-23): [根本性重構] 引入“分层专业化解析”策略。
     async def _background_lore_refinement(self, canon_text: str):
-        """[第二阶段：细节精炼] 通过上下文聚合和专业化深度解析，极大地丰富LORE骨架的细节。"""
+        """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
-        logger.info(f"[{self.user_id}] [LORE解析阶段2/2] 背景LORE细节精炼任务已启动。")
+        logger.info(f"[{self.user_id}] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。")
 
         try:
-            lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
-            if not lores_to_refine:
-                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精炼的 LORE 條目。")
+            if not self.profile:
+                logger.error(f"[{self.user_id}] [LORE精煉] 任務因 profile 未載入而中止。")
                 return
 
-            logger.info(f"[{self.user_id}] [LORE精煉] 发现 {len(lores_to_refine)} 條LORE骨架需要精炼。")
+            lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
+            if not lores_to_refine:
+                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 LORE 條目。")
+                return
+
+            logger.info(f"[{self.user_id}] [LORE精煉] 发现 {len(lores_to_refine)} 條LORE骨架需要精煉。")
             
-            # [v2.0 核心修正] 使用新的、专业化的解析器 Prompt
             details_parser_template = self.get_character_details_parser_chain()
 
             model_map = {
@@ -2247,35 +2250,34 @@ class CanonParsingResult(BaseModel):
                     
                     TargetModel = model_map.get(lore.category)
                     if not TargetModel: continue
-                    # 我们主要关注角色细节的精炼
                     if lore.category != 'npc_profile': continue
 
-                    # 步骤 1: 上下文聚合
-                    # 查找包含实体名称及其别名的所有段落
                     aliases = lore.content.get('aliases', [])
                     search_terms = [entity_name] + aliases
-                    pattern = '|'.join(re.escape(term) for term in search_terms)
+                    pattern = '|'.join(re.escape(term) for term in search_terms if term) # 增加 if term 判斷
+                    if not pattern: continue
+                    
                     relevant_paragraphs = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
                     
-                    # 提取匹配到的完整句子/段落
                     aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs if match[0].strip()]).strip()
                     
                     if not aggregated_context:
                         logger.info(f"[{self.user_id}] [LORE精煉] 未能在原文中找到 '{entity_name}' 的额外上下文，跳过精炼。")
                         continue
                     
-                    # 步骤 2: 对聚合后的上下文进行无害化处理
                     sanitized_context = aggregated_context
                     for keyword, code in coded_terms.items():
                         sanitized_context = sanitized_context.replace(keyword, code)
                     
-                    # 步骤 3: 调用专业化深度解析器
-                    parser_prompt = details_parser_template.format(
-                        character_name=entity_name,
-                        aggregated_context=sanitized_context
-                    )
+                    # [v2.1 核心修正] 創建一個包含所有必要參數的字典
+                    format_params = {
+                        "username": self.profile.user_profile.name,
+                        "ai_name": self.profile.ai_profile.name,
+                        "character_name": entity_name,
+                        "aggregated_context": sanitized_context
+                    }
+                    parser_prompt = details_parser_template.format(**format_params)
                     
-                    # 使用最强模型以保证解析精度
                     refined_details = await self.ainvoke_with_rotation(
                         parser_prompt,
                         output_schema=TargetModel,
@@ -2284,14 +2286,11 @@ class CanonParsingResult(BaseModel):
                     )
 
                     if refined_details:
-                        # 步骤 4: 合并与更新
-                        # 我们将粗提取的LORE作为基础，用精炼出的细节去更新它
                         updated_content = lore.content.copy()
-                        refined_dict = refined_details.model_dump(exclude_unset=True) # 只获取被成功解析的字段
+                        refined_dict = refined_details.model_dump(exclude_unset=True)
                         
                         for key, value in refined_dict.items():
-                            # 只有当新值非空且比旧值更详细时才更新
-                            if value and (key not in updated_content or not updated_content[key] or updated_content[key] == "未知"):
+                            if value and (key not in updated_content or not updated_content[key] or updated_content[key] in ["未知", "", [], {}]):
                                 updated_content[key] = value
 
                         await lore_book.add_or_update_lore(
@@ -2300,7 +2299,7 @@ class CanonParsingResult(BaseModel):
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功深度解析並精煉 '{entity_name}' 的 LORE。")
                     
-                    await asyncio.sleep(1.5) # 增加延时防止速率过快
+                    await asyncio.sleep(1.5)
 
                 except Exception as e:
                     entity_name = lore.content.get('name') or lore.content.get('title', '未知實體')
@@ -2311,6 +2310,7 @@ class CanonParsingResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景LORE精煉任务主循環发生严重错误: {e}", exc_info=True)
     # 函式：背景LORE細節精煉
+                        
 
 
 
@@ -2782,6 +2782,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
