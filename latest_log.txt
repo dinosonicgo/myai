@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T20:53:56.824456 ###
+### AI Lover Log - Last updated at 2025-09-23T20:56:18.129707 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
-    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-Exception: ainvoke_with_rotation failed without a specific exception.
-2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
-2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
-2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
-2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
 2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
 2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
 2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
@@ -300,3 +293,10 @@ Traceback (most recent call last):
     output_schema=BatchRefinementResult,
 NameError: name 'BatchRefinementResult' is not defined
 2025-09-23 20:38:24 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。
+2025-09-23 20:56:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 20:56:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 20:56:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 20:56:04 - [INFO] - Discord Bot is ready!
+2025-09-23 20:56:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 20:56:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 20:56:07 - [INFO] - 已成功發送啟動成功通知給管理員。
