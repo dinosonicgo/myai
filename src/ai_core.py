@@ -2279,46 +2279,7 @@ class ExtractionResult(BaseModel):
     # 加載所有模板檔案 函式結束
 
 
-# 函式：構建混合檢索器 (v209.0 - 純 BM25 重構)
-# 更新紀錄:
-# v209.0 (2025-11-22): [根本性重構] 根據最新指令，徹底重寫了此函式。完全移除了所有與 ChromaDB、Embedding 和 EnsembleRetriever 相關的邏輯，將其簡化為一個純粹的 BM25 檢索器構建器。此修改使 RAG 系統不再依賴任何外部 API，從而根除了所有 Embedding 相關的錯誤。
-# v208.0 (2025-11-15): [健壯性] 在從 SQL 加載記憶以構建 BM25 時，明確地只 select 'content' 欄位。
-# v207.2 (2025-10-15): [災難性BUG修復] 修正了 Chroma 實例初始化時缺少 embedding_function 導致的 ValueError。
-    async def _build_retriever(self) -> Runnable:
-        """配置並建構一個純粹基於 BM25 的 RAG 系統檢索器。"""
-        # --- 步驟 1: 從 SQL 加載所有記憶和 LORE ---
-        all_docs_for_bm25 = []
-        async with AsyncSessionLocal() as session:
-            # 加載對話歷史和世界聖經
-            stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
-            result_mem = await session.execute(stmt_mem)
-            all_memory_contents = result_mem.scalars().all()
-            for content in all_memory_contents:
-                all_docs_for_bm25.append(Document(page_content=content, metadata={"source": "memory"}))
-            
-            # 加載所有結構化 LORE
-            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            for lore in all_lores:
-                all_docs_for_bm25.append(self._format_lore_into_document(lore))
 
-        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 和 LORE 加載 {len(all_docs_for_bm25)} 條文檔用於構建 BM25。")
-
-        # --- 步驟 2: 構建 BM25 檢索器 ---
-        if all_docs_for_bm25:
-            self.bm25_retriever = BM25Retriever.from_documents(all_docs_for_bm25)
-            self.bm25_retriever.k = 15 # 可以適當增加 k 值以彌補语义搜索的缺失
-            self.retriever = self.bm25_retriever # 將主檢索器直接指向 BM25
-            logger.info(f"[{self.user_id}] (Retriever Builder) 純 BM25 檢索器構建成功。")
-        else:
-            # 如果沒有文檔，返回一個總是返回空列表的 Lambda 函式，以避免錯誤
-            self.bm25_retriever = RunnableLambda(lambda x: [])
-            self.retriever = self.bm25_retriever
-            logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，BM25 檢索器為空。")
-
-        # [v209.0] 移除 Cohere Rerank，因為它通常與语义搜索配合使用效果更佳
-        
-        return self.retriever
-# 構建混合檢索器 函式結束
 
 
     
@@ -3112,6 +3073,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
