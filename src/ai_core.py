@@ -18,6 +18,9 @@ from sqlalchemy import select, or_, delete, update
 from collections import defaultdict
 import functools
 
+import spacy
+from spacy.tokens import Doc
+
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
 from langchain_google_genai._common import GoogleGenerativeAIError
 from google.generativeai.types.generation_types import BlockedPromptException
@@ -2792,6 +2795,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
