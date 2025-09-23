@@ -2608,11 +2608,27 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：獲取世界聖經轉換器 Prompt
     # 更新紀錄:
-    # v2.2 (2025-09-23): [終極BUG修復] 徹底移除了使用 F-string (`f"""..."""`) 來定義模板字符串的錯誤做法。F-string會立即對模板進行求值並錯誤地處理雙大括號轉義。現在改為使用標準字符串拼接，確保返回的模板是純淨的、未經任何預處理的，從而根除所有底層格式化錯誤。
-    # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】。
+    # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，強制LLM在輸出中必須包含`name`或`title`字段，以減少ValidationError。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
-        
+        pydantic_definitions = "..." # 省略與之前版本相同的 Pydantic 定義
+        base_prompt = f"""# TASK: 你是一位遊戲開發團隊的數據工程師...
+# ... (省略與之前版本相同的任務描述) ...
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 必需欄位強制令】**: 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 Character, Location, Item, Creature, Quest) 或 `title` (適用於 WorldLore) 字段。
+# 2. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本...
+# ... (省略與之前版本相同的其他規則) ...
+# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
+# ```python
+{pydantic_definitions}
+# ```
+# --- [INPUT DATA] ---
+# 【遊戲設計筆記】:
+{{canon_text}}
+---
+# 立即開始你的格式轉換任務。"""
+        # 為了避免超長，這裡只展示了修改點。請將此邏輯應用到您的完整函式中。
+        # 為了確保您能直接複製貼上，我將提供完整的版本：
         pydantic_definitions = """
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
@@ -2622,8 +2638,7 @@ class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = "
 class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
-        # [v2.2 核心修正] 使用標準字符串拼接，而不是 F-string
-        base_prompt = """# TASK: 你是一位遊戲開發團隊的數據工程師。
+        base_prompt = f"""# TASK: 你是一位遊戲開發團隊的數據工程師。
 # MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。這是一個純粹的技術性格式轉換任務。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
@@ -2638,12 +2653,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 # === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
 # ```python
-""" + pydantic_definitions + """
+{pydantic_definitions}
 # ```
 
 # --- [INPUT DATA] ---
 # 【遊戲設計筆記】:
-{canon_text}
+{{canon_text}}
 ---
 # 立即開始你的格式轉換任務。"""
         return base_prompt
@@ -2779,6 +2794,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
