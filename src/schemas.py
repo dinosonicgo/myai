@@ -121,6 +121,27 @@ class BatchSynthesisResult(BaseModel):
     """用於包裹批量描述合成的結果。"""
     synthesized_descriptions: List[SynthesizedDescription] = Field(description="一個包含所有被成功合成描述的角色的結果列表。")
 
+# [v1.0 新增] 用於批量實體解析的模型
+class BatchResolutionResult(BaseModel):
+    """用於結構化地表示對單個待處理實體的解析結果。"""
+    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
+    decision: Literal['CREATE', 'MERGE'] = Field(description="""您的最終判斷：
+- 'CREATE': 確認這是一個全新的實體，應予以創建。
+- 'MERGE': 確認此名稱指向一個已存在的實體，應與之合併。""")
+    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
+    matched_key: Optional[str] = Field(default=None, description="如果判斷為'MERGE'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
+    standardized_name: str = Field(description="最終應使用的標準化名稱。如果為'CREATE'，這是新名稱；如果為'MERGE'，這是匹配到的實體的主名稱。")
+
+    @model_validator(mode='after')
+    def check_consistency(self) -> 'BatchResolutionResult':
+        if self.decision == 'MERGE' and not self.matched_key:
+            raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
+        return self
+
+class BatchResolutionPlan(BaseModel):
+    """用於包裹批量實體解析的完整計畫。"""
+    resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
+
 
 
 
@@ -417,6 +438,7 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
 
