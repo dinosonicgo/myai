@@ -1137,8 +1137,8 @@ class BotCog(commands.Cog):
 
     # 函式：在背景處理世界聖經文本
     # 更新紀錄:
-    # v3.0 (2025-09-23): [架構簡化] 根據 LORE 解析流程合併為單一終極流程的變更，恢復了原始的、表示處理完成的成功訊息。
-    # v2.0 (2025-09-23): [使用者體驗優化] 修改了成功訊息以適配兩階段流程。
+    # v3.1 (2025-09-23): [災難性BUG修復] 修正了 except 塊中，因嘗試訪問 `self.user_id`（一個不存在的屬性）而導致的 AttributeError。現在，它會正確地使用從 interaction 中獲取的局部變數 `user_id` 來記錄錯誤日誌。
+    # v3.0 (2025-09-23): [架構簡化] 恢復了原始的成功訊息。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -1150,7 +1150,6 @@ class BotCog(commands.Cog):
             if len(content_text) > 5000:
                 await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
             
-            # [v3.0 修正] 移除了對 vector_store 的檢查，因為它在 add_canon_to_vector_store 中處理
             chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
             
             if is_setup_flow:
@@ -1162,10 +1161,10 @@ class BotCog(commands.Cog):
             
             await ai_instance.parse_and_create_lore_from_canon(content_text)
             
-            # [v3.0 核心修正] 恢復原始成功訊息
             await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
         except Exception as e:
-            logger.error(f"[{self.user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            # [v3.1 核心修正] 使用局部變數 user_id 而不是 self.user_id
+            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
     # 函式：在背景處理世界聖經文本
 
