@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-24T00:34:56.275824 ###
+### AI Lover Log - Last updated at 2025-09-24T00:49:55.275068 ###
 
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlite3.OperationalError: no such column: lore_book.template_keys
-
-The above exception was the direct cause of the following exception:
-
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.13.original_name
+  Field required [type=missing, input_value={'mention': {'name': '安...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.13.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.13.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '安...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.14.original_name
+  Field required [type=missing, input_value={'mention': {'name': '湯...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.14.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.14.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '湯...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.15.original_name
+  Field required [type=missing, input_value={'mention': {'name': '米... 'target_key': '米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.15.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.15.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '米... 'target_key': '米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.16.original_name
+  Field required [type=missing, input_value={'mention': {'name': '卡...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.16.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.16.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '卡...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.17.original_name
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.17.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.17.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.18.original_name
+  Field required [type=missing, input_value={'mention': {'name': '艾...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.18.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.18.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '艾...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.19.original_name
+  Field required [type=missing, input_value={'mention': {'name': '里...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.19.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.19.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '里...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.20.original_name
+  Field required [type=missing, input_value={'mention': {'name': '瑪...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.20.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.20.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '瑪...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.21.original_name
+  Field required [type=missing, input_value={'mention': {'name': '瓦...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.21.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.21.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '瓦...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-24 00:37:09 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 00:37:11 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
+2025-09-24 00:37:11 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
+2025-09-24 00:37:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
+2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
+2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
+2025-09-24 00:37:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-09-24 00:37:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-24 00:37:55 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 30 validation errors for BatchResolutionPlan
+resolutions.0.original_name
+  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.0.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.1.original_name
+  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.2.original_name
+  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.2.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.2.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.3.original_name
+  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.3.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.3.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.4.original_name
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.4.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.4.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.5.original_name
+  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.5.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.5.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.6.original_name
+  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.6.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.6.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.7.original_name
+  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.7.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.7.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.8.original_name
+  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.8.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.8.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.9.original_name
+  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.9.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.9.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2615, in parse_and_create_lore_from_canon
-    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 165, in get_all_lores_for_user
-    result = await session.execute(stmt)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 452, in execute
-    result = await greenlet_spawn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 197, in greenlet_spawn
-    result = context.throw(*sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
-    return self._execute_internal(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2191, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
-    result = conn.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1408, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 513, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1630, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1839, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1979, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2335, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-09-24 00:26:30 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
-2025-09-24 00:27:12 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 00:27:12 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 00:27:12 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 00:27:12 - [INFO] - Discord Bot is ready!
-2025-09-24 00:27:15 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 00:27:15 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 00:27:16 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-24 00:27:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...
-2025-09-24 00:27:20 - [ERROR] - [512280345618546699] 配置前置資源時發生致命錯誤: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlite3.OperationalError: no such column: lore_book.template_keys
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1598, in initialize
-    await self._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2467, in _configure_pre_requisites
-    self.retriever = await self._load_or_build_rag_retriever()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 331, in _load_or_build_rag_retriever
-    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 165, in get_all_lores_for_user
-    result = await session.execute(stmt)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 452, in execute
-    result = await greenlet_spawn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 197, in greenlet_spawn
-    result = context.throw(*sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
-    return self._execute_internal(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2191, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
-    result = conn.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1408, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 513, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1630, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1839, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1979, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2335, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...
-2025-09-24 00:27:20 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlite3.OperationalError: no such column: lore_book.template_keys
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1065, in get_or_create_ai_instance
-    await ai_instance._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2467, in _configure_pre_requisites
-    self.retriever = await self._load_or_build_rag_retriever()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 331, in _load_or_build_rag_retriever
-    all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 165, in get_all_lores_for_user
-    result = await session.execute(stmt)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 452, in execute
-    result = await greenlet_spawn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 197, in greenlet_spawn
-    result = context.throw(*sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
-    return self._execute_internal(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2191, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
-    result = conn.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1408, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 513, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1630, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1839, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1979, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2335, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: lore_book.template_keys
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-09-24 00:27:20 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-24 00:27:21 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-24 00:27:23 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-24 00:27:23 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-24 00:27:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-24 00:34:42 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 00:34:42 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 00:34:42 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 00:34:42 - [INFO] - Discord Bot is ready!
-2025-09-24 00:34:45 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 00:34:45 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 00:34:46 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-24 00:34:54 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-24 00:34:54 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-24 00:34:55 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1122, in _resolve_and_save
+    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 584, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 567, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 30 validation errors for BatchResolutionPlan
+resolutions.0.original_name
+  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.0.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.1.original_name
+  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.2.original_name
+  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.2.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.2.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.3.original_name
+  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.3.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.3.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.4.original_name
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.4.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.4.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.5.original_name
+  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.5.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.5.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.6.original_name
+  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.6.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.6.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.7.original_name
+  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.7.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.7.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.8.original_name
+  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.8.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.8.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.9.original_name
+  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.9.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.9.reasoning
+  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-24 00:37:55 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 00:37:56 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
+2025-09-24 00:37:56 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
+2025-09-24 00:37:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 00:37:57 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
+2025-09-24 00:37:57 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['ACTION-C', '薩格納', 'ROLE-B', 'ACTION-E', '瑪莉', 'CODE-F-GEN-C', '莉莉絲', 'CODE-F-GEN-A', '凱薩‧維利爾斯', '絲月', 'STATE-A', '愛莉莎', '菲利普', '安娜', '米婭', '艾莉諾', 'FLUID-A', 'ROLE-D']
+2025-09-24 00:38:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-09-24 00:38:56 - [INFO] - [512280345618546699] [重構成功] 已成功根據關鍵詞還原出 LORE。
+2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
+2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
+2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
+2025-09-24 00:49:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 00:49:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 00:49:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 00:49:41 - [INFO] - Discord Bot is ready!
+2025-09-24 00:49:44 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 00:49:44 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 00:49:44 - [INFO] - 已成功發送啟動成功通知給管理員。
