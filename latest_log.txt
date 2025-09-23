@@ -1,21 +1,41 @@
-### AI Lover Log - Last updated at 2025-09-24T07:49:00.611889 ###
+### AI Lover Log - Last updated at 2025-09-24T07:54:03.147702 ###
 
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.33.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.34.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.35.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.36.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.37.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.38.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.39.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.40.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.41.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.42.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.43.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.44.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.45.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -33,13 +53,13 @@ resolutions.49.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.50.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.51.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.52.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.53.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -54,7 +74,7 @@ resolutions.56.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.57.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.58.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -63,7 +83,7 @@ resolutions.59.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.60.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.61.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
@@ -71,19 +91,16 @@ resolutions.61.decision
 resolutions.62.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.63.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2577, in parse_and_create_lore_from_canon
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2691, in parse_and_create_lore_from_canon
     resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 731, in ainvoke_with_rotation
     raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 600, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 714, in ainvoke_with_rotation
     return output_schema.model_validate(json.loads(clean_json_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 64 validation errors for BatchResolutionPlan
+pydantic_core._pydantic_core.ValidationError: 63 validation errors for BatchResolutionPlan
 resolutions.0.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
@@ -145,79 +162,79 @@ resolutions.19.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.20.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.21.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.22.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.23.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.24.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.25.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.26.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.27.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.28.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.29.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.30.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.31.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.32.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.33.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.34.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.35.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.36.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.37.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.38.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.39.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.40.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.41.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.42.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.43.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.44.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.45.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -235,13 +252,13 @@ resolutions.49.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.50.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.51.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.52.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.53.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -256,7 +273,7 @@ resolutions.56.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.57.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.58.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
@@ -265,7 +282,7 @@ resolutions.59.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.60.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.61.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
@@ -273,30 +290,13 @@ resolutions.61.decision
 resolutions.62.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.63.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 實體解析完成。決策: 64 創建, 0 合併。
-2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 開始批量描述合成...
-2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
-2025-09-24 01:38:37 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
-2025-09-24 01:38:48 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
-2025-09-24 01:39:00 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
-2025-09-24 01:39:00 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: AILover._load_or_build_rag_retriever() got an unexpected keyword argument 'force_rebuild'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1323, in _background_process_canon
-    await ai_instance.parse_and_create_lore_from_canon(content_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2673, in parse_and_create_lore_from_canon
-    self.retriever = await self._load_or_build_rag_retriever(force_rebuild=True)
-TypeError: AILover._load_or_build_rag_retriever() got an unexpected keyword argument 'force_rebuild'
-2025-09-24 01:42:46 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 01:42:46 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 01:42:47 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 01:42:47 - [INFO] - Discord Bot is ready!
-2025-09-24 07:48:44 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 07:48:44 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 07:48:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 07:48:44 - [INFO] - Discord Bot is ready!
-2025-09-24 07:48:47 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 07:48:47 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 07:48:48 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-24 07:53:28 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 實體解析完成。決策: 63 創建, 0 合併。
+2025-09-24 07:53:28 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 開始批量描述合成...
+2025-09-24 07:53:28 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
+2025-09-24 07:53:28 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 188 條文檔用於創始構建。
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-24 07:53:37 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
