@@ -190,11 +190,10 @@ class AILover:
 
     
 
-    # 函式：創建 LangChain LLM 實例 (v4.0 - 健壯性)
-# 更新紀錄:
-# v4.0 (2025-11-19): [功能恢復] 根據 AttributeError Log，將此核心輔助函式恢復到 AILover 類中。在原生SDK重構後，此函式仍然為 Embedding 等需要 LangChain 模型的輔助功能提供支持。
-# v3.3 (2025-10-15): [健壯性] 設置 max_retries=1 來禁用內部重試。
-# v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
+    # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
+    # 更新紀錄:
+    # v3.3 (2025-09-23): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例。
+    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
         [輔助功能專用] 創建並返回一個 ChatGoogleGenerativeAI 實例。
@@ -213,7 +212,6 @@ class AILover:
         
         generation_config = {"temperature": temperature}
         
-        # 獲取 LangChain 格式的安全設定
         safety_settings_langchain = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -228,9 +226,9 @@ class AILover:
             google_api_key=key_to_use,
             safety_settings=safety_settings_langchain,
             generation_config=generation_config,
-            max_retries=1 # 禁用 LangChain 的內部重試，由我們自己的 ainvoke_with_rotation 處理
+            max_retries=1 # 禁用 LangChain 的內部重試
         )
-# 創建 LangChain LLM 實例 函式結束
+# 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 
 
 
@@ -2847,6 +2845,7 @@ class CanonParsingResult(BaseModel):
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
