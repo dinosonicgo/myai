@@ -53,10 +53,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 app.include_router(web_router)
 
+# 函式：檢查並安裝缺失的 Python 依賴項
+# 更新紀錄:
+# v1.0 (2025-09-23): [功能擴展] 根據全新的“混合NLP”策略，增加了對 `spacy` 函式庫及其 `zh_core_web_sm` 中文模型的自動檢查與安裝功能。
 def _check_and_install_dependencies():
-    """檢查並安裝缺失的 Python 依賴項。"""
-    # ... 此函式內容保持不變，為簡潔此處省略 ...
+    """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
+    import subprocess
+    
     required_packages = {
         'uvicorn': 'uvicorn', 'fastapi': 'fastapi', 'SQLAlchemy': 'sqlalchemy',
         'aiosqlite': 'aiosqlite', 'discord.py': 'discord', 'langchain': 'langchain',
@@ -65,29 +69,55 @@ def _check_and_install_dependencies():
         'langchain-cohere': 'langchain_cohere', 'google-generativeai': 'google.generativeai',
         'chromadb': 'chromadb', 'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
-        'python-Levenshtein': 'Levenshtein'
+        'python-Levenshtein': 'Levenshtein',
+        'spacy': 'spacy' # [v1.0 新增]
     }
+    
     missing_packages = []
     for package_name, import_name in required_packages.items():
         try:
             if importlib.util.find_spec(import_name) is None:
-                importlib.metadata.version(package_name)
-        except importlib.metadata.PackageNotFoundError:
+                raise ImportError
+            # spacy 是一個特例，即使導入成功，也可能只是 spacy-legacy
+            if package_name == 'spacy':
+                 importlib.metadata.version(package_name)
+        except (ImportError, importlib.metadata.PackageNotFoundError):
             missing_packages.append(package_name)
-    if not missing_packages:
-        print("✅ 所有依賴項均已安裝。")
+
     if missing_packages:
-        print("\n⏳ 正在自動安裝缺失的依賴項...")
+        print("\n⏳ 正在自動安裝缺失的 Python 依賴項...")
         for package in missing_packages:
             try:
+                print(f"   - 正在安裝 {package}...")
                 subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", package])
+                print(f"   ✅ {package} 安裝成功。")
             except subprocess.CalledProcessError:
                 print(f"   🔥 {package} 安裝失敗！請手動執行 'pip install {package}'。")
                 if os.name == 'nt': os.system("pause")
                 sys.exit(1)
-        print("\n🔄 所有依賴項已安裝完畢。正在重啟以應用變更...")
-        time.sleep(3)
-        os.execv(sys.executable, [sys.executable] + sys.argv)
+        print("\n🔄 依賴項安裝完畢。")
+
+    # [v1.0 新增] 檢查 spaCy 中文模型
+    try:
+        import spacy
+        spacy.load('zh_core_web_sm')
+        print("✅ spaCy 中文模型已安裝。")
+    except OSError:
+        print("\n⏳ spaCy 中文模型未找到，正在自動下載...")
+        try:
+            subprocess.check_call([sys.executable, "-m", "spacy", "download", "zh_core_web_sm", "--quiet"])
+            print("✅ spaCy 中文模型下載成功。")
+            print("\n🔄 正在重啟以應用變更...")
+            time.sleep(3)
+            os.execv(sys.executable, [sys.executable] + sys.argv)
+        except subprocess.CalledProcessError:
+            print("   🔥 spaCy 中文模型下載失敗！請手動執行 'python -m spacy download zh_core_web_sm'。")
+            if os.name == 'nt': os.system("pause")
+            sys.exit(1)
+            
+    if not missing_packages:
+        print("✅ 所有依賴項和模型均已準備就緒。")
+# 函式：檢查並安裝缺失的 Python 依賴項
 
 
 @app.get("/", response_class=HTMLResponse)
