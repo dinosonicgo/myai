@@ -85,6 +85,10 @@ class CharacterProfile(BaseModel):
         return normalized_dict
 # 函式：基础 LORE 數據模型 - CharacterProfile (v2.2 - 防禦性默認值)
 
+# [v1.0 新增] 用於批量LORE精煉的包裹模型
+class BatchRefinementResult(BaseModel):
+    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
+
 
 
 
@@ -378,5 +382,6 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
