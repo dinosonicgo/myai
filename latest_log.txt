@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T15:56:31.288117 ###
+### AI Lover Log - Last updated at 2025-09-23T16:02:22.077826 ###
 
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '愛莉莎' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '維利爾斯勳爵' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯勳爵' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '湯姆' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '班恩' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里奧' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '賈斯伯' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安東尼' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莎' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '諾拉' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾拉' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '凱爾' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '里斯' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '索菲亞' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老漢姆' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [INFO] - [512280345618546699] [LORE精煉] 未能在原文中找到 '蓋博 太太' 的额外上下文，跳过精炼。
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '勳爵' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '巴納比' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '奧斯華' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾諾拉' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '漢德瑞克師傅' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Replacement index 0 out of range for positional args tuple
@@ -300,3 +275,28 @@ KeyError: 'username'
 2025-09-23 15:55:32 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
 2025-09-23 15:55:32 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '提姆' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
 2025-09-23 15:55:55 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安東尼' 的 LORE。
+2025-09-23 15:56:36 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '絲月' 的 LORE。
+2025-09-23 15:56:40 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 15:56:40 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 15:57:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莎' 的 LORE。
+2025-09-23 15:57:46 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '瑪莉' 的 LORE。
+2025-09-23 15:58:08 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '愛莉莎' 的 LORE。
+2025-09-23 15:58:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 15:58:11 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '安娜' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 15:58:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 15:58:12 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '澤拉' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 15:58:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '蘇菲' 的 LORE。
+2025-09-23 15:59:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '貝拉' 的 LORE。
+2025-09-23 15:59:45 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉娜' 的 LORE。
+2025-09-23 16:00:13 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '諾拉' 的 LORE。
+2025-09-23 16:00:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾蜜莉' 的 LORE。
+2025-09-23 16:01:32 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '卡萊兒' 的 LORE。
+2025-09-23 16:01:44 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 16:01:44 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 16:01:45 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 16:01:45 - [INFO] - Discord Bot is ready!
+2025-09-23 16:01:47 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 16:01:47 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 16:01:48 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-23 16:02:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 16:02:07 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
