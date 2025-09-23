@@ -1,84 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T11:08:07.186256 ###
+### AI Lover Log - Last updated at 2025-09-23T11:13:09.463300 ###
 
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於構建 BM25。
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，BM25 檢索器為空。
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-23 10:27:07 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-23 10:27:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 10:27:09 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-23 10:27:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-23 10:27:21 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-23 10:27:21 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 10:27:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-23 10:27:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-23 10:27:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-23 10:27:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 10:27:41 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.
-2025-09-23 10:27:41 - [INFO] - [512280345618546699] (UI Event) finalize_setup 被觸發。Canon provided: False
-2025-09-23 10:27:41 - [INFO] - [512280345618546699] [/start 流程 1/4] 正在處理世界聖經...
-2025-09-23 10:27:41 - [INFO] - [512280345618546699] [/start] 未提供世界聖經文本，跳過處理。
-2025-09-23 10:27:43 - [INFO] - [512280345618546699] [/start 流程 2/4] 正在補完角色檔案...
-2025-09-23 10:27:47 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-23 10:27:47 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 10:27:49 - [INFO] - [512280345618546699] [/start 流程 3/4] 正在生成世界創世資訊...
-2025-09-23 10:27:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-23 10:27:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 10:27:54 - [INFO] - [512280345618546699] [/start 流程 4/4] 正在生成開場白...
-2025-09-23 10:28:22 - [INFO] - [512280345618546699] [/start 流程 4/4] 開場白生成完畢。
-2025-09-23 10:28:22 - [INFO] - [512280345618546699] 開場白已成功作為第一條AI訊息存入場景 '512280345618546699_local_艾歐尼亞大陸_低語森林_月光溪谷的隱士小屋' 的歷史記錄並持久化。
-2025-09-23 10:28:22 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
-2025-09-23 10:28:23 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
-2025-09-23 10:29:57 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 10:29:57 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 10:29:57 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 3 條文檔用於構建 BM25。
-2025-09-23 10:29:57 - [INFO] - [512280345618546699] (Retriever Builder) 純 BM25 檢索器構建成功。
-2025-09-23 10:29:57 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 10:29:59 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-23 10:30:00 - [INFO] - [512280345618546699] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...
-2025-09-23 10:30:00 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
-2025-09-23 10:30:00 - [INFO] - [512280345618546699] 正在處理文本塊 1/7...
-2025-09-23 10:30:14 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 19 個實體...
-2025-09-23 10:30:14 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 7 個實體...
-2025-09-23 10:30:14 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 5 個實體...
-2025-09-23 10:30:17 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
-2025-09-23 10:30:17 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
-2025-09-23 10:30:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 23 個實體...
-2025-09-23 10:30:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 5 個實體...
-2025-09-23 10:30:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 8 個實體...
-2025-09-23 10:30:29 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
-2025-09-23 10:30:29 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
-2025-09-23 10:30:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 9 個實體...
-2025-09-23 10:30:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
-2025-09-23 10:30:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
-2025-09-23 10:30:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 1 個實體...
-2025-09-23 10:30:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
-2025-09-23 10:30:47 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
-2025-09-23 10:30:47 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
-2025-09-23 10:30:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 10:30:47 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【上下文保留式代碼替換】策略...
-2025-09-23 10:30:47 - [INFO] - [512280345618546699] [上下文保留成功] 已生成無害化文本塊進行重構。
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] [重構成功] 已成功根據無害化文本重構出 LORE。
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 3 個實體...
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
-2025-09-23 10:32:24 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 10:32:26 - [INFO] - [512280345618546699] 文本塊 4 的 LORE 已成功儲存。
-2025-09-23 10:32:26 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
-2025-09-23 10:32:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 15 個實體...
-2025-09-23 10:32:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 2 個實體...
-2025-09-23 10:32:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
-2025-09-23 10:32:37 - [INFO] - [512280345618546699] 文本塊 5 的 LORE 已成功儲存。
-2025-09-23 10:32:37 - [INFO] - [512280345618546699] 正在處理文本塊 6/7...
-2025-09-23 10:32:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 26 個實體...
-2025-09-23 10:32:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 6 個實體...
-2025-09-23 10:32:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 12 個實體...
-2025-09-23 10:32:53 - [INFO] - [512280345618546699] 文本塊 6 的 LORE 已成功儲存。
-2025-09-23 10:32:53 - [INFO] - [512280345618546699] 正在處理文本塊 7/7...
-2025-09-23 10:32:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 10:32:54 - [WARNING] - [512280345618546699] 文本塊 7 遭遇內容審查 (BlockedPromptException)。啟動【上下文保留式代碼替換】策略...
 2025-09-23 10:32:54 - [INFO] - [512280345618546699] [上下文保留成功] 已生成無害化文本塊進行重構。
 2025-09-23 10:33:51 - [INFO] - [512280345618546699] [重構成功] 已成功根據無害化文本重構出 LORE。
 2025-09-23 10:33:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 12 個實體...
@@ -300,3 +221,82 @@
 name
   Field required [type=missing, input_value={'name_cn': '莉莉絲', ...戰略目標昇華。']}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-23 11:08:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:08:12 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value={'physique': '身形魁...久經戰火的堡壘'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:08:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:08:13 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:08:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 11:08:15 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-23 11:08:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '艾莉諾' 的 LORE。
+2025-09-23 11:08:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:08:57 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '埃德蒙三世' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:09:13 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿拉里克' 的 LORE。
+2025-09-23 11:09:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '赫克托' 的 LORE。
+2025-09-23 11:09:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '伊索爾德' 的 LORE。
+2025-09-23 11:10:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '博林' 的 LORE。
+2025-09-23 11:10:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:10:15 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '老高' 時發生错误: 1 validation error for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=80, input_type=int]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:10:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '馬丁' 的 LORE。
+2025-09-23 11:10:40 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '亞瑟' 的 LORE。
+2025-09-23 11:10:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '克拉拉' 的 LORE。
+2025-09-23 11:11:09 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:11:09 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '高爾' 時發生错误: 2 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+status
+  Input should be a valid string [type=string_type, input_value=[], input_type=list]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:11:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:11:21 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '翠絲' 時發生错误: 5 validation errors for CharacterProfile
+name
+  Field required [type=missing, input_value={'name_cn': '翠絲', 'na... '活躍', 'code': None}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:11:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:11:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '迪茜' 時發生错误: 1 validation error for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+2025-09-23 11:12:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '莉莉絲' 的 LORE。
+2025-09-23 11:12:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:12:15 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '朱利安' 時發生错误: 4 validation errors for CharacterProfile
+appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+likes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+dislikes
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/list_type
+2025-09-23 11:12:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '阿利斯特' 的 LORE。
+2025-09-23 11:12:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-23 11:12:48 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瑪莉' 時發生错误: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'name_cn': '瑪莉', 'na...', '勳爵': '主人'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-23 11:13:02 - [INFO] - [512280345618546699] [LORE精煉] 已成功深度解析並精煉 '安娜' 的 LORE。
