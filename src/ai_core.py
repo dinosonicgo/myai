@@ -54,16 +54,14 @@ from Levenshtein import ratio as levenshtein_ratio
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
+# [v1.0 核心修正] 在此處導入 BatchRefinementResult
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
                       SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
-                      CreatureInfo, Quest, WorldLore)
+                      CreatureInfo, Quest, WorldLore, BatchRefinementResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
-from src.config import settings
-from .logger import logger
-from .tool_context import tool_context
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -1470,7 +1468,7 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：背景LORE精煉
+     # 函式：背景LORE精煉
     # 更新紀錄:
     # v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。現在，函式會將待處理的 LORE 分組，每次為一整組生成單一的 Prompt 並進行一次 LLM 調用，將數百次 API 調用大幅減少至數十次，極大地提升了效率並降低了觸發速率限制的風險。
     # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則，確保精煉過程中的 NSFW 上下文能被正確理解。
@@ -2783,6 +2781,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
