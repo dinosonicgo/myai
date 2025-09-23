@@ -89,6 +89,22 @@ class CharacterProfile(BaseModel):
 class BatchRefinementResult(BaseModel):
     refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
 
+# [v1.0 新增] 用於抗幻覺實體驗證的模型
+class EntityValidationResult(BaseModel):
+    """用於結構化地表示對一個待創建實體的“事實查核”結果。"""
+    decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="""驗證後的最終決定：
+- 'CREATE': 確認這是一個在對話中被明確引入的、全新的實體，應予以創建。
+- 'MERGE': 確認這其實是某個已存在實體的別名或拼寫錯誤，應與之合併。
+- 'IGNORE': 確認這完全是LLM的幻覺，對話中沒有足夠證據支持，應直接忽略。""")
+    reasoning: str = Field(description="做出此判斷的簡短、清晰的理由。")
+    matched_key: Optional[str] = Field(default=None, description="如果判斷為'MERGE'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
+
+    @model_validator(mode='after')
+    def check_consistency(self) -> 'EntityValidationResult':
+        if self.decision == 'MERGE' and not self.matched_key:
+            raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
+        return self
+
 
 
 
@@ -385,6 +401,7 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
 
