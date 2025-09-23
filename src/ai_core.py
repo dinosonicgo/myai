@@ -372,7 +372,34 @@ class AILover:
 # 函式：帶有輪換和備援策略的原生 API 調用引擎 (v231.0 - 根本性重構)
 
 
+    # 函式：安全地格式化Prompt模板
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [終極BUG修復] 創建此核心輔助函式，以徹底解決所有因模板中包含未轉義`{}`而引發的頑固IndexError/KeyError。此函式採用“先轉義，後還原”的策略：首先將模板中所有大括號`{}`臨時替換為唯一的、不可能衝突的佔位符，然後只對我們明確指定的變數進行格式化，最後再將臨時佔位符還原為單大括號。這確保了只有我們想要的佔位符會被格式化，從根本上杜絕了所有格式化錯誤。
+    def _safe_format_prompt(self, template: str, params: Dict[str, Any]) -> str:
+        """
+        一個絕對安全的Prompt格式化函式，用於防止因模板中包含意外的`{}`而導致的錯誤。
+        """
+        # 獨特且不可能在文本中出現的佔位符
+        L_BRACE_PLACEHOLDER = "___LEFT_BRACE_PLACEHOLDER___"
+        R_BRACE_PLACEHOLDER = "___RIGHT_BRACE_PLACEHOLDER___"
 
+        # 步驟 1: 將模板中所有的大括號替換為臨時佔位符
+        escaped_template = template.replace("{", L_BRACE_PLACEHOLDER).replace("}", R_BRACE_PLACEHOLDER)
+
+        # 步驟 2: 將我們真正想要格式化的變數的佔位符還原
+        for key in params.keys():
+            placeholder_to_restore = f"{L_BRACE_PLACEHOLDER}{key}{R_BRACE_PLACEHOLDER}"
+            actual_placeholder = f"{{{key}}}"
+            escaped_template = escaped_template.replace(placeholder_to_restore, actual_placeholder)
+        
+        # 步驟 3: 現在，模板中只有我們想要的佔位符是有效的，可以安全地進行格式化
+        formatted_template = escaped_template.format(**params)
+
+        # 步驟 4: 最後，將所有剩餘的臨時佔位符還原為普通的大括號
+        final_prompt = formatted_template.replace(L_BRACE_PLACEHOLDER, "{").replace(R_BRACE_PLACEHOLDER, "}")
+
+        return final_prompt
+    # 函式：安全地格式化Prompt模板
 
 
     
@@ -2756,6 +2783,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
