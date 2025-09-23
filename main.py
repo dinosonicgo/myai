@@ -55,11 +55,13 @@ app.include_router(web_router)
 
 # 函式：檢查並安裝缺失的 Python 依賴項
 # 更新紀錄:
-# v1.0 (2025-09-23): [功能擴展] 根據全新的“混合NLP”策略，增加了對 `spacy` 函式庫及其 `zh_core_web_sm` 中文模型的自動檢查與安裝功能。
+# v1.1 (2025-09-23): [災難性BUG修復] 根據 ModuleNotFoundError，補全了在 v1.0 中遺漏的、對 `spacy` 函式庫及其 `zh_core_web_sm` 中文模型的自動檢查與安裝功能。
+# v1.0 (2025-09-23): [功能擴展] 引入“混合NLP”策略，但遺漏了實際的安裝邏輯。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
     import subprocess
+    import importlib.metadata
     
     required_packages = {
         'uvicorn': 'uvicorn', 'fastapi': 'fastapi', 'SQLAlchemy': 'sqlalchemy',
@@ -70,17 +72,15 @@ def _check_and_install_dependencies():
         'chromadb': 'chromadb', 'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
         'python-Levenshtein': 'Levenshtein',
-        'spacy': 'spacy' # [v1.0 新增]
+        'spacy': 'spacy' # [v1.1 新增]
     }
     
     missing_packages = []
     for package_name, import_name in required_packages.items():
         try:
             if importlib.util.find_spec(import_name) is None:
-                raise ImportError
-            # spacy 是一個特例，即使導入成功，也可能只是 spacy-legacy
-            if package_name == 'spacy':
-                 importlib.metadata.version(package_name)
+                # 再次檢查，因為 find_spec 對某些包可能不準確
+                importlib.metadata.version(package_name)
         except (ImportError, importlib.metadata.PackageNotFoundError):
             missing_packages.append(package_name)
 
@@ -97,15 +97,22 @@ def _check_and_install_dependencies():
                 sys.exit(1)
         print("\n🔄 依賴項安裝完畢。")
 
-    # [v1.0 新增] 檢查 spaCy 中文模型
+    # [v1.1 新增] 檢查 spaCy 中文模型
     try:
         import spacy
         spacy.load('zh_core_web_sm')
         print("✅ spaCy 中文模型已安裝。")
-    except OSError:
-        print("\n⏳ spaCy 中文模型未找到，正在自動下載...")
+    except (ImportError, OSError):
+        # 如果 spacy 剛裝好，可能需要重新加載，或者模型不存在
+        print("\n⏳ spaCy 中文模型未找到或未加載，正在自動下載...")
         try:
-            subprocess.check_call([sys.executable, "-m", "spacy", "download", "zh_core_web_sm", "--quiet"])
+            # 確保 spacy 本身已安裝
+            if 'spacy' in missing_packages:
+                 print("   - spacy 剛安裝，請重啟啟動器以加載模型。")
+                 if os.name == 'nt': os.system("pause")
+                 sys.exit(0) # 正常退出，讓啟動器重啟
+            
+            subprocess.check_call([sys.executable, "-m", "spacy", "download", "zh_core_web_sm"])
             print("✅ spaCy 中文模型下載成功。")
             print("\n🔄 正在重啟以應用變更...")
             time.sleep(3)
