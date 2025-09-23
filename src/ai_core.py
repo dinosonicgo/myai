@@ -775,11 +775,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：解析並儲存LORE實體
     # 更新紀錄:
+    # v1.1 (2025-09-23): [根本性重構] 引入了“實體解析與智能合併”機制。在創建新的NPC前，此版本會先按名稱搜索數據庫。如果找到同名NPC，則不再創建重複條目，而是將新舊信息智能合併到單一的LORE記錄中，從根本上解決了因角色在不同地點出現而導致LORE重複的問題。
     # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，負責將主解析鏈產生的結構化實體列表，逐一轉換並持久化到 LORE 資料庫中，作為新版世界聖經解析流程的關鍵部分。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
+        內建針對 NPC 的實體解析與合併邏輯。
         """
         if not self.profile:
             return
@@ -801,15 +803,54 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         for item_data in items:
             try:
-                # 提取名稱或標題
                 name = item_data.get(title_key)
                 if not name:
                     logger.warning(f"[{self.user_id}] (_resolve_and_save) 跳過一個在類別 '{actual_category}' 中缺少 '{title_key}' 的實體。")
                     continue
-                
-                # 構造 lore_key
-                # 如果實體數據中包含有效的地點路徑，則使用它來創建層級式key
-                # 否則，直接使用實體名稱作為key
+
+                # [v1.1 核心修正] 僅對 NPC 執行實體解析與合併
+                if actual_category == 'npc_profile':
+                    existing_lores = await lore_book.get_lores_by_category_and_filter(
+                        self.user_id, 
+                        'npc_profile', 
+                        lambda c: c.get('name', '').lower() == name.lower()
+                    )
+
+                    if existing_lores:
+                        # --- 找到已存在的NPC，執行合併邏輯 ---
+                        existing_lore = existing_lores[0]
+                        logger.info(f"[{self.user_id}] [LORE合併] 檢測到已存在的NPC '{name}' (Key: {existing_lore.key})。正在合併信息...")
+                        
+                        existing_content = existing_lore.content
+                        new_content = item_data
+
+                        # 智能合併描述
+                        if new_content.get('description') and new_content['description'] not in existing_content.get('description', ''):
+                            existing_content['description'] = f"{existing_content.get('description', '')}\n\n[補充資訊] {new_content['description']}".strip()
+
+                        # 合併列表類型的字段 (如 aliases, skills)
+                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
+                            existing_list = existing_content.get(list_key, [])
+                            new_list = new_content.get(list_key, [])
+                            merged_list = list(set(existing_list + new_list))
+                            if merged_list:
+                                existing_content[list_key] = merged_list
+
+                        # 更新其他非空字段
+                        for key, value in new_content.items():
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
+                                existing_content[key] = value
+
+                        await lore_book.add_or_update_lore(
+                            user_id=self.user_id,
+                            category=actual_category,
+                            key=existing_lore.key, # 使用舊的 key
+                            content=existing_content,
+                            source='canon_parser_merged'
+                        )
+                        continue # 處理完合併後，跳到下一個 item
+
+                # --- 未找到NPC或非NPC類別，執行創建邏輯 ---
                 location_path = item_data.get('location_path')
                 if location_path and isinstance(location_path, list) and len(location_path) > 0:
                     lore_key = " > ".join(location_path) + f" > {name}"
@@ -821,10 +862,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     category=actual_category,
                     key=lore_key,
                     content=item_data,
-                    source='canon_parser' # 標記來源
+                    source='canon_parser'
                 )
             except Exception as e:
-                logger.error(f"[{self.user_id}] (_resolve_and_save) 在儲存 '{item_data.get(title_key, '未知實體')}' 到 LORE 時發生錯誤: {e}", exc_info=True)
+                item_name_for_log = item_data.get(title_key, '未知實體')
+                logger.error(f"[{self.user_id}] (_resolve_and_save) 在儲存 '{item_name_for_log}' 到 LORE 時發生錯誤: {e}", exc_info=True)
     # 函式：解析並儲存LORE實體
     
 
@@ -2785,6 +2827,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
