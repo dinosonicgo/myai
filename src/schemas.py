@@ -256,11 +256,14 @@ class TurnPlan(BaseModel):
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
 
+# 類別：世界創世結果
+# 更新紀錄:
+# v1.1 (2025-09-23): [架構調整] 根據“按需生成”原則，將 initial_npcs 欄位設為可選，因為創世階段現在只專注於生成地點。
 class WorldGenesisResult(BaseModel):
     location_path: List[str] = Field(description="新生成的出生點的層級式路徑。例如：['艾瑟利亞王國', '首都晨風城', '城南的寧靜小巷']。")
     location_info: LocationInfo = Field(description="對該出生點的詳細描述，符合 LocationInfo 模型。")
-    initial_npcs: List[CharacterProfile] = Field(description="伴隨出生點生成的一到兩位初始NPC的完整角色檔案列表。")
-
+    initial_npcs: List[CharacterProfile] = Field(default_factory=list, description="伴隨出生點生成的一到兩位初始NPC的完整角色檔案列表。")
+# 類別：世界創世結果
 class CanonParsingResult(BaseModel):
     npc_profiles: List[CharacterProfile] = Field(default_factory=list, description="從文本中解析出的所有 NPC 的完整個人檔案列表。")
     locations: List[LocationInfo] = Field(default_factory=list, description="從文本中解析出的所有地點的詳細資訊列表。")
@@ -382,6 +385,7 @@ class StyleAnalysisResult(BaseModel):
     proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
 
 CharacterAction.model_rebuild()
+
 
 
 
