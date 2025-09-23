@@ -1048,9 +1048,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取描述合成器 Prompt
 
 
-    # 函式：獲取批量實體解析器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取批量實體解析器 Prompt
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。它生成的Prompt專門用於批量比對新舊實體，智能判斷一個新提及的名稱（如“卡爾”）是否應被合併到一個已有的實體（如“卡爾‧維利爾斯”）中，從而解決因別名、頭銜等造成的LORE重複問題。
+    # v1.1 (2025-09-24): [健壯性強化] 在Prompt中增加了一個詳細的、結構完美的“輸出結構範例”。此修改為LLM提供了一個清晰的模仿目標，旨在通過範例教學的方式，根除因LLM自由發揮、創造錯誤鍵名（如 'input_name'）而導致的ValidationError。
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。
     def get_batch_entity_resolution_prompt(self) -> str:
         """獲取或創建一個專門用於批量實體解析的字符串模板。"""
         if self.batch_entity_resolution_chain is None:
@@ -1063,6 +1064,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 3. **【別名與頭銜】**: 將頭銜（勳爵、國王、神父）、暱稱、別名視為強烈的 'MERGE' 信號。
 # 4. **【保守創建原則】**: 只有當一個新名稱與現有檔案庫中的任何條目都【沒有明顯關聯】時，才裁決為 'CREATE'。
 # 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchResolutionPlan` Pydantic 模型的JSON物件。`resolutions` 列表必須包含對【新情報中提及的每一個人物】的裁決。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# 你的輸出JSON的結構【必須】與下方範例完全一致。特別注意，每個決策物件的鍵名【必須】是 "original_name", "decision", "reasoning", "matched_key", "standardized_name"。
+# ```json
+# {{
+#   "resolutions": [
+#     {{
+#       "original_name": "勳爵",
+#       "decision": "MERGE",
+#       "reasoning": "「勳爵」是現有角色「卡爾•維利爾斯」的頭銜，指代的是同一個人。",
+#       "matched_key": "王都 > 維利爾斯莊園 > 卡爾•維利爾斯",
+#       "standardized_name": "卡爾•維利爾斯"
+#     }},
+#     {{
+#       "original_name": "湯姆",
+#       "decision": "CREATE",
+#       "reasoning": "「湯姆」是一個全新的名字，在現有數據庫中沒有任何相似或相關的條目。",
+#       "matched_key": null,
+#       "standardized_name": "湯姆"
+#     }}
+#   ]
+# }}
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -3232,6 +3256,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
