@@ -2025,37 +2025,33 @@ class CanonParsingResult(BaseModel):
 
     # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v8.0 (2025-09-23): [終極重構] 引入“混合NLP”策略，徹底重寫整個LORE解析流程。1. 本地預處理：使用正則表達式精確分離“劇情摘要”和“角色資訊”部分，並對角色資訊進行結構化預解析。2. 上下文聚合：為每個預解析出的角色，從劇情摘要中聚合所有相關的上下文句子。3. 無害化處理：對聚合的上下文進行“代碼化”替換。4. LLM語義精煉：將預解析的結構化數據和無害化的上下文發送給一個高度專業化的LLM，由其完成最終的語義理解、細節填充和JSON生成。此策略從根本上解決了審查和信息丟失的所有問題。
+    # v9.0 (2025-09-23): [終極架構重構] 將“兩階段精煉”合併為一個單一的、線性的終極解析流程。此函式現在獨立完成：1. 本地NLP預處理；2. 上下文聚合；3. 端到端無害化；4. LLM語義精煉；5. 本地安全解碼；6. 存儲。這徹底移除了所有冗餘的背景任務，極大提升了效率和程式碼的簡潔性，並確保了數據處理的一致性。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """採用混合NLP策略，安全、精確地從世界聖經中解析和精煉LORE。"""
+        """採用混合NLP、端到端無害化和本地安全解碼的單一終極流程，安全、精確地從世界聖經中解析LORE。"""
         if not canon_text or not self.profile:
             logger.warning(f"[{self.user_id}] 世界聖經解析被跳過：無效輸入或設定檔未載入。")
             return
 
-        logger.info(f"[{self.user_id}] [混合NLP流程 1/4] 開始本地預處理...")
+        logger.info(f"[{self.user_id}] [終極LORE解析流程] 啟動...")
 
-        # 步驟 1: 結構分離
+        # 步驟 1: 本地 NLP 預處理 - 結構分離
         plot_summary = ""
         character_info_text = ""
-        # 使用正則表達式尋找明確的分隔符
         match = re.search(r'# =+ PART 2: NARRATIVE & PLOT SYNOPSIS =+', canon_text, re.IGNORECASE)
         if match:
             character_info_text = canon_text[:match.start()]
             plot_summary = canon_text[match.start():]
         else:
-            # 如果沒有找到分隔符，則假設整個文本都是混合的
             logger.warning(f"[{self.user_id}] 未在世界聖經中找到明確的 'PART 2' 分隔符，將嘗試將整個文本作為角色資訊處理。")
             character_info_text = canon_text
-            plot_summary = canon_text # 也將全文作為劇情上下文
+            plot_summary = canon_text
 
-        # 步驟 2: 角色資訊的精確提取 (Regex)
-        # 正則表達式匹配以 '### CHARACTER:' 開頭的角色塊
+        # 步驟 2: 本地 NLP 預處理 - 角色資訊精確提取 (Regex)
         character_blocks = re.findall(r'### CHARACTER: (.*?)\n(.*?)(?=\n### CHARACTER:|\Z)', character_info_text, re.DOTALL)
         
         pre_parsed_characters = []
         for block_header, block_content in character_blocks:
             char_dict = {}
-            # 從標題行提取主要名稱和別名
             name_match = re.match(r'([^(\s]+)\s*\(([^)]+)\)', block_header)
             if name_match:
                 char_dict['name'] = name_match.group(1).strip()
@@ -2063,7 +2059,6 @@ class CanonParsingResult(BaseModel):
             else:
                 char_dict['name'] = block_header.strip()
             
-            # 從內容行提取鍵值對
             lines = block_content.strip().split('\n')
             for line in lines:
                 line_match = re.match(r'\s*\*\s*([^:]+):\s*(.*)', line)
@@ -2073,9 +2068,8 @@ class CanonParsingResult(BaseModel):
                     char_dict[key] = value
             pre_parsed_characters.append(char_dict)
         
-        logger.info(f"[{self.user_id}] [混合NLP流程 2/4] 本地預處理完成，提取到 {len(pre_parsed_characters)} 個角色的初步數據。")
+        logger.info(f"[{self.user_id}] [LORE解析] 本地預處理完成，提取到 {len(pre_parsed_characters)} 個角色的初步數據。")
 
-        # 步驟 3: LLM 語義精煉
         if not pre_parsed_characters:
             logger.warning(f"[{self.user_id}] 未能從世界聖經中預解析出任何角色資訊。")
             return
@@ -2093,13 +2087,14 @@ class CanonParsingResult(BaseModel):
             "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
             "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
         }
+        decoding_map = {v: k for k, v in coded_terms.items()}
 
         for char_data in pre_parsed_characters:
             entity_name = char_data.get('name')
             if not entity_name: continue
 
             try:
-                # 步驟 3a: 上下文聚合
+                # 步驟 3: 上下文聚合
                 aliases = char_data.get('aliases', [])
                 search_terms = [entity_name] + aliases
                 
@@ -2109,47 +2104,49 @@ class CanonParsingResult(BaseModel):
                     relevant_sentences = [s for s in sentences if any(term in s for term in search_terms)]
                     aggregated_context = "\n".join(relevant_sentences)
 
-                # 步驟 3b: 無害化處理
+                # 步驟 4: 端到端無害化
                 sanitized_context = aggregated_context
                 for keyword, code in coded_terms.items():
                     sanitized_context = sanitized_context.replace(keyword, code)
                 
-                # 步驟 3c: 調用LLM進行最終精煉
+                sanitized_pre_parsed_data_json = json.dumps(self._decode_lore_content(char_data, {v: k for k, v in decoding_map.items()}), ensure_ascii=False, indent=2)
+
+                # 步驟 5: LLM 語義精煉
                 format_params = {
                     "username": self.profile.user_profile.name,
                     "ai_name": self.profile.ai_profile.name,
                     "character_name": entity_name,
-                    "pre_parsed_data_json": json.dumps(char_data, ensure_ascii=False, indent=2),
+                    "pre_parsed_data_json": sanitized_pre_parsed_data_json,
                     "plot_context": sanitized_context
                 }
                 parser_prompt = self._safe_format_prompt(details_parser_template, format_params)
 
-                refined_profile = await self.ainvoke_with_rotation(
-                    parser_prompt,
-                    output_schema=CharacterProfile,
-                    retry_strategy='none',
+                refined_profile_coded = await self.ainvoke_with_rotation(
+                    parser_prompt, output_schema=CharacterProfile, retry_strategy='none',
                     models_to_try_override=[self.model_priority_list[0] if self.model_priority_list else "gemini-1.5-pro-latest"]
                 )
 
-                if refined_profile:
-                    # 使用角色名作為 LORE 的 key
-                    lore_key = refined_profile.name
+                if refined_profile_coded:
+                    # 步驟 6: 本地安全解碼
+                    coded_dict = refined_profile_coded.model_dump()
+                    decoded_dict = self._decode_lore_content(coded_dict, decoding_map)
+                    
+                    # 步驟 7: 儲存
+                    lore_key = decoded_dict.get("name", entity_name)
                     await lore_book.add_or_update_lore(
-                        user_id=self.user_id,
-                        category='npc_profile',
-                        key=lore_key,
-                        content=refined_profile.model_dump(),
-                        source='hybrid_parser'
+                        user_id=self.user_id, category='npc_profile', key=lore_key,
+                        content=decoded_dict, source='hybrid_parser_final'
                     )
-                    logger.info(f"[{self.user_id}] [混合NLP流程 3/4] 已成功深度解析並儲存 '{entity_name}' 的 LORE。")
+                    logger.info(f"[{self.user_id}] [LORE解析] 已成功解析、精煉、解碼並儲存 '{entity_name}' 的 LORE。")
                 
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(2)
 
             except Exception as e:
-                logger.error(f"[{self.user_id}] 在處理角色 '{entity_name}' 的精煉流程時發生錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 在處理角色 '{entity_name}' 的終極解析流程時發生錯誤: {e}", exc_info=True)
 
-        logger.info(f"[{self.user_id}] [混合NLP流程 4/4] LORE 解析與精煉任務完成。")
+        logger.info(f"[{self.user_id}] [終極LORE解析流程] 所有角色處理完成。")
     # 函式：解析並從世界聖經創建 LORE
+                
 
 
 
@@ -2696,6 +2693,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
