@@ -2204,8 +2204,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：背景LORE細節精煉
     # 更新紀錄:
-    # v2.5 (2025-09-23): [終極健壯性修正] 徹底重構並加固了正則表達式的構建和執行邏輯。1. 增加了對 `search_terms` 的嚴格過濾，確保其中不包含任何可能導致空 `pattern` 的無效條目。2. 在 `re.findall` 之前增加了對 `pattern` 的顯式空值檢查。這兩項修改旨在從根本上解決因正則表達式行為異常而間接引發的、難以追蹤的 `IndexError`。
-    # v2.4 (2025-09-23): [災難性BUG修復] 修正了日誌記錄中的 f-string 漏洞。
+    # v2.6 (2025-09-23): [終極BUG修復] 全面採用新的 `_safe_format_prompt` 輔助函式來構建精煉Prompt。此修改將協議拼接和格式化操作集中到一個絕對安全的地方，徹底解決了因模板或用戶輸入中包含意外`{}`而引發的頑固IndexError。
+    # v2.5 (2025-09-23): [終極健壯性修正] 加固了正則表達式邏輯。
     async def _background_lore_refinement(self, canon_text: str):
         """[第二階段：細節精煉] 通過上下文聚合和專業化深度解析，極大地豐富LORE骨架的細節。"""
         await asyncio.sleep(5)
@@ -2250,21 +2250,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     if not TargetModel: continue
                     if lore.category != 'npc_profile': continue
 
-                    # [v2.5 核心修正] 步驟 1: 嚴格過濾 search_terms
                     aliases = lore.content.get('aliases', [])
-                    # 確保所有條目都是非空的字符串
                     raw_search_terms = [entity_name] + ([a for a in aliases if a and isinstance(a, str)])
-                    # 去重並確保安全
                     search_terms = sorted(list(set(raw_search_terms)), key=len, reverse=True)
 
                     if not search_terms: continue
 
-                    # [v2.5 核心修正] 步驟 2: 構建 pattern 並進行顯式檢查
                     pattern = '|'.join(re.escape(term) for term in search_terms)
-                    if not pattern:
-                        continue
+                    if not pattern: continue
                     
-                    # [v2.5 核心修正] 步驟 3: 安全地執行 findall
                     relevant_paragraphs_matches = re.findall(r'([^.!?\n]*(' + pattern + r')[^.!?\n]*[.!?\n])', canon_text, re.IGNORECASE)
                     aggregated_context = "\n".join([match[0].strip() for match in relevant_paragraphs_matches if match and match[0].strip()]).strip()
                     
@@ -2281,6 +2275,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     for keyword, code in coded_terms.items():
                         sanitized_existing_lore_json = sanitized_existing_lore_json.replace(keyword, code)
 
+                    # [v2.6 核心修正] 使用安全格式化
                     format_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
@@ -2288,7 +2283,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         "existing_lore_json": sanitized_existing_lore_json,
                         "aggregated_context": sanitized_context
                     }
-                    parser_prompt = details_parser_template.format(**format_params)
+                    parser_prompt = self._safe_format_prompt(details_parser_template, format_params)
                     
                     refined_details = await self.ainvoke_with_rotation(
                         parser_prompt,
@@ -2784,6 +2779,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
