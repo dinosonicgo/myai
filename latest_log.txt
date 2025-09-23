@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-24T00:49:55.275068 ###
+### AI Lover Log - Last updated at 2025-09-24T01:00:36.121703 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.13.original_name
-  Field required [type=missing, input_value={'mention': {'name': '安...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.13.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.13.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '安...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.14.original_name
-  Field required [type=missing, input_value={'mention': {'name': '湯...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.14.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.14.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '湯...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.15.original_name
-  Field required [type=missing, input_value={'mention': {'name': '米... 'target_key': '米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.15.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.15.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '米... 'target_key': '米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.16.original_name
-  Field required [type=missing, input_value={'mention': {'name': '卡...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.16.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.16.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '卡...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.17.original_name
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.17.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.17.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.18.original_name
-  Field required [type=missing, input_value={'mention': {'name': '艾...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.18.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.18.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '艾...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.19.original_name
-  Field required [type=missing, input_value={'mention': {'name': '里...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-24 00:51:34 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 00:51:37 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
+2025-09-24 00:51:37 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
+2025-09-24 00:51:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-09-24 00:51:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
+2025-09-24 00:51:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 4 個實體...
+2025-09-24 00:51:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 8 個實體...
+2025-09-24 00:52:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
+2025-09-24 00:52:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-24 00:52:25 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 22 validation errors for BatchResolutionPlan
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.2.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.3.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.4.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.5.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.6.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.7.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.8.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.9.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.10.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.11.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.12.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.13.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.14.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.15.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.16.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.17.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.18.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.19.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.19.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '里...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.20.original_name
-  Field required [type=missing, input_value={'mention': {'name': '瑪...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.20.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.20.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '瑪...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.21.original_name
-  Field required [type=missing, input_value={'mention': {'name': '瓦...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.21.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.21.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '瓦...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-24 00:37:09 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
-2025-09-24 00:37:11 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
-2025-09-24 00:37:11 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
-2025-09-24 00:37:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
-2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
-2025-09-24 00:37:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
-2025-09-24 00:37:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-09-24 00:37:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-24 00:37:55 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 30 validation errors for BatchResolutionPlan
-resolutions.0.original_name
-  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.0.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.0.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.1.original_name
-  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.1.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.1.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.2.original_name
-  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.2.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.2.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.3.original_name
-  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.3.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.3.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.4.original_name
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.4.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.4.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.5.original_name
-  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.5.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.5.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.6.original_name
-  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.6.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.6.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.7.original_name
-  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.7.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.7.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.8.original_name
-  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.8.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.8.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.9.original_name
-  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.9.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.9.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1122, in _resolve_and_save
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1179, in _resolve_and_save
     resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 584, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
     raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 567, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 600, in ainvoke_with_rotation
     return output_schema.model_validate(json.loads(clean_json_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 30 validation errors for BatchResolutionPlan
-resolutions.0.original_name
-  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+pydantic_core._pydantic_core.ValidationError: 22 validation errors for BatchResolutionPlan
 resolutions.0.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.0.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '卡...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.1.original_name
-  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.1.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.1.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '湯...': '貧民窟 > 湯姆'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.2.original_name
-  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.2.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.2.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '米...露修道院 > 米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.3.original_name
-  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.3.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.3.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '卡...露修道院 > 卡蓮'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.4.original_name
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.4.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.4.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '凱...TE', 'target_key': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.5.original_name
-  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+resolutions.5.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.6.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.7.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.8.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.9.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.10.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.11.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.12.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.13.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.14.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.15.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.16.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.17.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.18.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.19.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.20.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.21.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+2025-09-24 00:52:25 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 00:52:29 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
+2025-09-24 00:52:29 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 2 個實體...
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 85413 秒)。
+2025-09-24 00:52:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86304 秒)。
+2025-09-24 00:52:42 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.49 秒後進行第 2 次嘗試...
+2025-09-24 00:52:43 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.34 秒後進行第 3 次嘗試...
+2025-09-24 00:52:46 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-24 00:52:46 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #3 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
+2025-09-24 00:53:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-09-24 00:53:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-24 00:53:02 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 2 validation errors for BatchResolutionPlan
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1179, in _resolve_and_save
+    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 600, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for BatchResolutionPlan
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+2025-09-24 00:53:02 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 00:53:02 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
+2025-09-24 00:53:02 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
+2025-09-24 00:53:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 00:53:03 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
+2025-09-24 00:53:03 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['薩格納', 'ROLE-D', '米婭', '莉莉絲', '愛莉莎', 'ACTION-E', 'CODE-F-GEN-A', 'STATE-A', 'FLUID-A', '安娜', '瑪莉', '菲利普', 'ROLE-B', '絲月', 'CODE-F-GEN-C', 'ACTION-C', '艾莉諾']
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] [重構成功] 已成功根據關鍵詞還原出 LORE。
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 9 個實體...
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 85355 秒)。
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86245 秒)。
+2025-09-24 00:53:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86347 秒)。
+2025-09-24 00:53:39 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.37 秒後進行第 2 次嘗試...
+2025-09-24 00:53:41 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.36 秒後進行第 3 次嘗試...
+2025-09-24 00:53:43 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-24 00:53:43 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #4 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
+2025-09-24 00:54:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
+2025-09-24 00:54:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-24 00:54:18 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 9 validation errors for BatchResolutionPlan
+resolutions.0.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.2.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.3.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.4.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.5.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.5.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '菲...arget_key': '菲利普'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.6.original_name
-  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.6.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.6.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '阿...et_key': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.7.original_name
-  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.7.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.7.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '薩...arget_key': '薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.8.original_name
-  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 resolutions.8.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.8.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '絲...爾斯莊園 > 絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.9.original_name
-  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-resolutions.9.decision
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1179, in _resolve_and_save
+    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 617, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 600, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 9 validation errors for BatchResolutionPlan
+resolutions.0.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.9.reasoning
-  Field required [type=missing, input_value={'mention': {'name': '莉...琳學院 > 莉莉絲'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-24 00:37:55 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
-2025-09-24 00:37:56 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
-2025-09-24 00:37:56 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
-2025-09-24 00:37:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 00:37:57 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
-2025-09-24 00:37:57 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['ACTION-C', '薩格納', 'ROLE-B', 'ACTION-E', '瑪莉', 'CODE-F-GEN-C', '莉莉絲', 'CODE-F-GEN-A', '凱薩‧維利爾斯', '絲月', 'STATE-A', '愛莉莎', '菲利普', '安娜', '米婭', '艾莉諾', 'FLUID-A', 'ROLE-D']
-2025-09-24 00:38:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-09-24 00:38:56 - [INFO] - [512280345618546699] [重構成功] 已成功根據關鍵詞還原出 LORE。
-2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
-2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
-2025-09-24 00:38:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
-2025-09-24 00:49:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 00:49:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 00:49:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 00:49:41 - [INFO] - Discord Bot is ready!
-2025-09-24 00:49:44 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 00:49:44 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 00:49:44 - [INFO] - 已成功發送啟動成功通知給管理員。
+resolutions.1.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.2.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.3.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.4.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.5.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.6.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.7.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+resolutions.8.decision
+  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+2025-09-24 00:54:18 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-24 01:00:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 01:00:22 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 01:00:22 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 01:00:22 - [INFO] - Discord Bot is ready!
+2025-09-24 01:00:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 01:00:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 01:00:25 - [INFO] - 已成功發送啟動成功通知給管理員。
