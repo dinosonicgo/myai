@@ -14,17 +14,8 @@ import importlib.metadata
 import datetime
 import traceback
 
-# [v1.0 核心修正] 將依賴檢查和安裝邏輯提升到所有 src 導入之前
-# 這確保了在 Python 嘗試導入 src 中的模組（如 ai_core.py）之前，
-# 所有必需的函式庫（如 spacy）都已經被安裝。
-
-# 全局的關閉事件，用於協調所有任務的優雅退出
-shutdown_event = asyncio.Event()
-
-# 全局的異步鎖，用於保護 Git 操作
-git_lock = asyncio.Lock()
-
-# 將 PROJ_DIR 定义提升到全局作用域
+# [v10.1 核心修正] 將 PROJ_DIR 和快取清理邏輯提升到所有 src 導入之前
+# 這確保了在 Python 嘗試導入任何可能被快取的模組之前，舊快取已被徹底清除。
 PROJ_DIR = Path(__file__).resolve().parent
 
 def _clear_pycache():
@@ -36,6 +27,17 @@ def _clear_pycache():
                 shutil.rmtree(path)
             except OSError as e:
                 print(f"🔥 清理快取失敗: {e}")
+
+# 在啟動時立即執行快取清理
+_clear_pycache()
+
+
+# 全局的關閉事件，用於協調所有任務的優雅退出
+shutdown_event = asyncio.Event()
+
+# 全局的異步鎖，用於保護 Git 操作
+git_lock = asyncio.Lock()
+
 
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
@@ -75,11 +77,8 @@ def _check_and_install_dependencies():
                 if os.name == 'nt': os.system("pause")
                 sys.exit(1)
         print("\n🔄 依賴項安裝完畢。需要重啟以加載新模組。")
-        # 觸發一個重啟
-        # 在 launcher.py 的循環中，這會被捕獲並重新啟動
         sys.exit(0)
 
-    # 檢查 spaCy 中文模型
     try:
         import spacy
         spacy.load('zh_core_web_sm')
@@ -97,8 +96,6 @@ def _check_and_install_dependencies():
     print("✅ 所有依賴項和模型均已準備就緒。")
 
 # --- 執行依賴檢查 ---
-# [v1.0 核心修正] 在此處立即執行檢查
-_clear_pycache()
 _check_and_install_dependencies()
 
 # --- 現在可以安全地導入我們自己的模組了 ---
@@ -116,7 +113,6 @@ app.include_router(web_router)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# ... (start_git_log_pusher_task, start_github_update_checker_task, start_discord_bot_task, start_web_server_task 保持不變) ...
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -126,10 +122,6 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
     upload_log_path = PROJ_DIR / "latest_log.txt"
 
     def run_git_commands_sync() -> bool:
-        """
-        同步執行Git指令的輔助函式，設計為在背景線程中運行。
-        返回 True 表示有新的 commit 被推送，返回 False 表示沒有變化。
-        """
         try:
             if not log_file_path.is_file(): return False
             with open(log_file_path, 'r', encoding='utf-8') as f:
@@ -183,7 +175,6 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
     print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
     
     def run_git_command_sync(command: list) -> tuple[int, str, str]:
-        """在背景線程中安全地執行同步的 git 命令。"""
         process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
         return process.returncode, process.stdout, process.stderr
         
@@ -219,7 +210,6 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
 async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event):
     """啟動Discord Bot的核心服務。內建錯誤處理和啟動依賴等待。"""
     try:
-        # [v10.0 核心修正] 等待數據庫準備就緒的信號
         print("🔵 [Discord Bot] 正在等待數據庫初始化完成...")
         await db_ready_event.wait()
         print("✅ [Discord Bot] 數據庫已就緒，開始啟動核心服務...")
@@ -251,19 +241,41 @@ async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Eve
     finally:
         print("🔴 [Discord Bot] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
+async def start_web_server_task():
+    """啟動 FastAPI Web 伺服器並監聽關閉信號，內建錯誤隔離。"""
+    try:
+        config = uvicorn.Config(app, host="localhost", port=8000, log_level="info")
+        server = uvicorn.Server(config)
+        
+        web_task = asyncio.create_task(server.serve())
+        shutdown_waiter = asyncio.create_task(shutdown_event.wait())
+
+        done, pending = await asyncio.wait(
+            {web_task, shutdown_waiter},
+            return_when=asyncio.FIRST_COMPLETED
+        )
+
+        if shutdown_waiter in done:
+            print("🔵 [Web Server] 收到外部關閉信號，正在優雅關閉...")
+            server.should_exit = True
+        
+        for task in pending:
+            task.cancel()
+
+    except Exception as e:
+        print(f"🔥 [Web Server] 核心服務在啟動或運行時發生致命錯誤: {e}")
+        traceback.print_exc()
+    finally:
+        print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
+
 async def main():
-    MAIN_PY_VERSION = "v10.0" # 版本號更新
+    MAIN_PY_VERSION = "v10.1" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
-    _clear_pycache()
-    _check_and_install_dependencies()
-    
     try:
-        # [v10.0 核心修正] 創建啟動事件
         db_ready_event = asyncio.Event()
 
         print("初始化資料庫...")
-        # 將事件傳遞給 init_db
         await init_db(db_ready_event)
         
         core_services = []
@@ -271,7 +283,6 @@ async def main():
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
         if mode in ["all", "discord"]:
-            # 將事件傳遞給 bot 任務
             core_services.append(start_discord_bot_task(git_lock, db_ready_event))
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
