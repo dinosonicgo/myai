@@ -819,9 +819,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景LORE提取與擴展 (v1.1 - 原生模板重構)
+# 函式：背景LORE提取與擴展
 # 更新紀錄:
-# v1.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
+# v1.1 (2025-09-24): [備援鏈修復] 將備援策略從不兼容的 'euphemize' 修改為 'force'。此鏈的輸入是安全的對話記錄，不應觸發審查；如果意外觸發，強制重試是比調用錯誤備援鏈更合理的選擇。
 # v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
@@ -859,7 +859,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             extraction_plan = await self.ainvoke_with_rotation(
                 full_prompt,
                 output_schema=ToolCallPlan,
-                retry_strategy='euphemize'
+                retry_strategy='force' # [v1.1 核心修正]
             )
             
             if not extraction_plan or not isinstance(extraction_plan, ToolCallPlan):
@@ -3218,6 +3218,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
