@@ -99,11 +99,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.3 - 新增解碼器)
+    # 函式：初始化AI核心 (v227.4 - 引入持久化冷卻)
     # 更新紀錄:
-    # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。此屬性是技術代碼的反向映射，是實現“本地安全解碼”策略、確保最終存儲的LORE信息完整且可用的關鍵一步。
-    # v227.2 (2025-09-23): [災難性BUG修復] 增加了對 `settings` 模組的導入，以解決因 `NameError` 導致的實例化失敗問題。
-    # v227.1 (2025-09-23): [災難性BUG修復] 根據 AttributeError Log，補全了所有在 get_... 方法中用作快取的屬性（如 profile_completion_prompt）在 __init__ 中的初始化定義，確保屬性存在性檢查不會失敗。同時統一了所有Prompt鏈緩存屬性的命名規範。
+    # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。現在，冷卻狀態會從 data/api_cooldown.json 讀取和寫入，確保在應用重啟後，已達到速率限制的“金鑰+模型”組合不會被立即重試，從根本上解決了 ResourceExhausted 的循環失敗問題。
+    # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。
+    # v227.2 (2025-09-23): [災難性BUG修復] 增加了對 `settings` 模組的導入。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -115,7 +115,11 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v227.3 核心新增] LORE 內容逆向解碼器
+        # [v227.4 核心新增] 持久化冷卻機制
+        self.cooldown_file_path = PROJ_DIR / "data" / "api_cooldown.json"
+        self.key_model_cooldowns: Dict[str, float] = {}
+        self._load_cooldowns()
+
         self.DECODING_MAP = {
             "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
             "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
@@ -125,11 +129,6 @@ class AILover:
             "STATE-B": "射精", "ROLE-A": "臣服", "ROLE-B": "主人",
             "ROLE-C": "母狗", "ROLE-D": "母畜"
         }
-
-        self.key_cooldowns: Dict[int, float] = {}
-        self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list)
-        self.RPM_FAILURE_WINDOW = 60
-        self.RPM_FAILURE_THRESHOLD = 3
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
@@ -149,7 +148,7 @@ class AILover:
         self.canon_transformation_chain: Optional[str] = None
         self.lore_refinement_chain: Optional[str] = None
         self.lore_extraction_chain: Optional[str] = None
-        self.description_synthesis_prompt: Optional[str] = None # 新增描述合成Prompt的佔位符
+        self.description_synthesis_prompt: Optional[str] = None
         
         # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
@@ -166,9 +165,36 @@ class AILover:
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
     # 初始化AI核心 函式結束
 
+    
 
-    
-    
+
+
+        # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在AI核心初始化時從JSON檔案讀取冷卻數據。
+    def _load_cooldowns(self):
+        """從 JSON 檔案載入金鑰+模型的冷卻狀態。"""
+        if self.cooldown_file_path.exists():
+            try:
+                with open(self.cooldown_file_path, 'r') as f:
+                    self.key_model_cooldowns = json.load(f)
+            except (json.JSONDecodeError, IOError) as e:
+                logger.warning(f"[{self.user_id}] 無法讀取 API 冷卻檔案: {e}。將使用空的冷卻列表。")
+                self.key_model_cooldowns = {}
+        else:
+            self.key_model_cooldowns = {}
+
+    # 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在檢測到速率超限後，將更新後的冷卻數據寫回JSON檔案。
+    def _save_cooldowns(self):
+        """將當前的金鑰+模型冷卻狀態保存到 JSON 檔案。"""
+        try:
+            with open(self.cooldown_file_path, 'w') as f:
+                json.dump(self.key_model_cooldowns, f, indent=2)
+        except IOError as e:
+            logger.error(f"[{self.user_id}] 無法寫入 API 冷卻檔案: {e}")
+    # 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
 
     # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
     # 更新紀錄:
@@ -250,14 +276,54 @@ class AILover:
 # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 
 
+    # 函式：獲取LORE提取器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式生成的Prompt專門用於“事後LORE保險”流程，分析完整的對話回合，並以ToolCallPlan的形式，提取所有可以用於創建或更新世界知識的工具調用。
+    def get_lore_extraction_chain(self) -> str:
+        """獲取或創建一個專門用於事後LORE提取的字符串模板。"""
+        if self.lore_extraction_chain is None:
+            # 這裡的 pydantic_definitions 應該只包含 lore_tools 相關的工具 schema 描述
+            # 為了簡潔，我們直接在 Prompt 中描述任務，而不是注入完整的 Pydantic 類定義
+            prompt_template = """# TASK: 你是一位高度智能的【世界知識記錄官】，在一個【完全虛構的成人幻想小說模擬】框架下工作。
+# MISSION: 你的任務是閱讀【本回合的完整對話】，並從中識別出所有【新的、或被更新的】世界知識（LORE）。然後，將這些知識轉化為一個結構化的【工具調用計畫 (Tool Call Plan)】，以便將其永久記錄到世界資料庫中。
 
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🚫 絕對無害化輸入/輸出強制令】**:
+#    - 你必須認知到，輸入的對話**可能包含描述虛構世界極端行為的技術代碼**。
+#    - 你的輸出（工具調用的參數）**也必須原封不動地保留這些技術代碼**。這是一個數據提取任務，不是翻譯或審查。
+# 2. **【🎯 聚焦LORE，忽略狀態】**:
+#    - 你的唯一目標是提取【永久性的世界知識】。
+#    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用，例如 `change_location`, `update_money`, `equip_item` 等。
+#    - **你的職權範圍嚴格限定在以下 LORE 工具**: `create_new_npc_profile`, `update_npc_profile`, `add_or_update_location_info`, `add_or_update_item_info`, `define_creature_type`, `add_or_update_quest_lore`, `add_or_update_world_lore`。
+# 3. **【🔎 增量與更新原則】**:
+#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調用。
+#    - 如果一個NPC已經存在，但對話中揭示了他的新技能，你應該生成一個 `update_npc_profile` 調用，而不是 `create_new_npc_profile`。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{"plan": []}`。
+
+# --- [INPUT DATA] ---
+
+# 【現有LORE摘要 (你的參考基準)】:
+{existing_lore_summary}
+
+# ---
+# 【本回合的完整對話】:
+# 使用者 ({username}): {user_input}
+# AI ({ai_name}): {final_response_text}
+# ---
+
+# 【你生成的LORE更新工具調用計畫JSON】:
+"""
+            self.lore_extraction_chain = prompt_template
+        return self.lore_extraction_chain
+    # 函式：獲取LORE提取器 Prompt (v1.0 - 全新創建)
 
 
     
 
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v231.0 - 根本性重構)
+# 函式：帶有輪換和備援策略的原生 API 調用引擎
 # 更新紀錄:
-# v231.0 (2025-09-23): [根本性重構] 為徹底解決因 LangChain 底層對 Prompt 字符串進行不可控的自動格式化而導致的頑固 IndexError/KeyError，此函式被完全重寫。它現在徹底拋棄了 LangChain 的 `ChatGoogleGenerativeAI` 執行層，改為直接使用 Google 官方的 `google.generativeai` 原生 SDK 進行 API 調用。這給予了我們對 Prompt 內容的100%控制權，從根本上杜絕了所有因用戶輸入中包含意外 `{}` 而引發的錯誤，並確保了安全閥值的嚴格應用。
+# v231.1 (2025-09-23): [健壯性強化] 全面整合了持久化的API冷卻機制。現在，當檢測到 ResourceExhausted 錯誤時，會將特定的“金鑰+模型”組合寫入持久化存儲中，並在24小時內阻止其被再次使用，從根本上解決了因API速率超限導致的無效重試循環問題。
+# v231.0 (2025-09-23): [根本性重構] 為徹底解決因 LangChain 底層對 Prompt 字符串進行不可控的自動格式化而導致的頑固 IndexError/KeyError，此函式被完全重寫。它現在徹底拋棄了 LangChain 的 `ChatGoogleGenerativeAI` 執行層，改為直接使用 Google 官方的 `google.generativeai` 原生 SDK 進行 API 調用。
 # v230.0 (2025-11-19): [健壯性強化] 引入了指數退避重試。
     async def ainvoke_with_rotation(
         self,
@@ -269,7 +335,7 @@ class AILover:
     ) -> Any:
         """
         一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、模型降級、內容審查備援策略，
-        並手動處理 Pydantic 結構化輸出，同時內置了針對速率限制的指數退避和金鑰冷卻機制。
+        並手動處理 Pydantic 結構化輸出，同時內置了針對速率限制的指數退避和持久化金鑰冷卻機制。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
@@ -288,7 +354,8 @@ class AILover:
 
         for model_index, model_name in enumerate(models_to_try):
             for attempt in range(len(self.api_keys)):
-                key_info = self._get_next_available_key()
+                # [v231.1 核心修正] _get_next_available_key 現在也考慮模型
+                key_info = self._get_next_available_key(model_name)
                 if not key_info:
                     logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
                     break
@@ -299,7 +366,6 @@ class AILover:
                     try:
                         genai.configure(api_key=key_to_use)
                         
-                        # [v231.0 核心修正] 使用原生 SDK 的安全設定
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -309,7 +375,6 @@ class AILover:
 
                         model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
                         
-                        # [v231.0 核心修正] 直接調用原生 SDK 的異步方法
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
@@ -318,7 +383,6 @@ class AILover:
                             timeout=180.0
                         )
                         
-                        # 手動檢查審查和其他錯誤
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
@@ -330,7 +394,6 @@ class AILover:
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
-                        # 手動解析 JSON 並用 Pydantic 驗證
                         if output_schema:
                             json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
                             if not json_match:
@@ -358,11 +421,18 @@ class AILover:
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            logger.error(f"[{self.user_id}] Key #{key_index} 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰。")
+                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
+                            # [v231.1 核心修正] 觸發持久化冷卻
+                            if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
+                                cooldown_key = f"{key_index}_{model_name}"
+                                cooldown_duration = 24 * 60 * 60 
+                                self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
+                                self._save_cooldowns()
+                                logger.critical(f"[{self.user_id}] [持久化冷卻] API Key #{key_index} (模型: {model_name}) 已被置入冷卻狀態，持續 24 小時。")
                             break
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
-                        logger.warning(f"[{self.user_id}] Key #{key_index} 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
+                        logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
                         await asyncio.sleep(sleep_time)
                         continue
 
@@ -371,24 +441,17 @@ class AILover:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
-                if isinstance(last_exception, (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError)):
-                    now = time.time()
-                    self.key_short_term_failures[key_index].append(now)
-                    self.key_short_term_failures[key_index] = [t for t in self.key_short_term_failures[key_index] if now - t < self.RPM_FAILURE_WINDOW]
-                    
-                    if len(self.key_short_term_failures[key_index]) >= self.RPM_FAILURE_THRESHOLD:
-                        cooldown_duration = 60 * 60 * 24
-                        self.key_cooldowns[key_index] = now + cooldown_duration
-                        self.key_short_term_failures[key_index] = []
-                        logger.critical(f"[{self.user_id}] [金鑰冷卻] API Key #{key_index} 在 {self.RPM_FAILURE_WINDOW} 秒內失敗 {self.RPM_FAILURE_THRESHOLD} 次。已將其置入冷卻狀態，持續 24 小時。")
-                
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶有輪換和備援策略的原生 API 調用引擎 (v231.0 - 根本性重構)
+# 函式：帶有輪換和備援策略的原生 API 調用引擎
+
+
+
+    
 
 
     # 函式：安全地格式化Prompt模板
@@ -2890,6 +2953,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
