@@ -1048,141 +1048,159 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取描述合成器 Prompt
 
 
+    # 函式：獲取批量實體解析器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。它生成的Prompt專門用於批量比對新舊實體，智能判斷一個新提及的名稱（如“卡爾”）是否應被合併到一個已有的實體（如“卡爾‧維利爾斯”）中，從而解決因別名、頭銜等造成的LORE重複問題。
+    def get_batch_entity_resolution_prompt(self) -> str:
+        """獲取或創建一個專門用於批量實體解析的字符串模板。"""
+        if self.batch_entity_resolution_chain is None:
+            prompt_template = """# TASK: 你是一位資深的【傳記作者】與【數據庫情報分析師】。
+# MISSION: 你的任務是接收一份【新情報中提及的人物列表】，並將其與【現有的人物檔案數據庫】進行交叉比對。對於新列表中的【每一個人物】，你需要做出一個關鍵決策：這是一個需要創建檔案的【全新人物(CREATE)】，還是對一個【已存在人物(MERGE)】的補充情報。
 
+# === 【【【🚨 核心裁決規則 (CORE ADJUDICATION RULES) - 絕對鐵則】】】 ===
+# 1. **【上下文關聯性優先】**: 你必須理解名稱的上下文。如果新情報是「勳爵下令了」，而現有檔案中有「卡爾‧維利爾斯 勳爵」，你應將兩者關聯，裁決為 'MERGE'。
+# 2. **【名稱包含原則】**: 如果一個短名稱（如「卡爾」）被一個更完整的長名稱（如「卡爾‧維利爾斯」）所包含，通常應裁決為 'MERGE'。
+# 3. **【別名與頭銜】**: 將頭銜（勳爵、國王、神父）、暱稱、別名視為強烈的 'MERGE' 信號。
+# 4. **【保守創建原則】**: 只有當一個新名稱與現有檔案庫中的任何條目都【沒有明顯關聯】時，才裁決為 'CREATE'。
+# 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchResolutionPlan` Pydantic 模型的JSON物件。`resolutions` 列表必須包含對【新情報中提及的每一個人物】的裁決。
+
+# --- [INPUT DATA] ---
+
+# 【新情報中提及的人物列表 (待處理)】:
+{new_entities_json}
+
+# ---
+# 【現有的人物檔案數據庫 (你的參考基準)】:
+{existing_entities_json}
+
+# ---
+# 【你的最終批量解析計畫JSON】:
+"""
+            self.batch_entity_resolution_chain = prompt_template
+        return self.batch_entity_resolution_chain
+    # 函式：獲取批量實體解析器 Prompt
     
 
     # 函式：解析並儲存LORE實體
     # 更新紀錄:
-    # v1.5 (2025-09-23): [效率重構] 徹底重構了描述合併的邏輯，從“逐一處理”升級為“批量處理”。現在，函式會先收集所有需要合併的NPC，然後通過一次性的批量LLM調用來合成所有描述，最後再統一更新數據庫。這將數十次API調用壓縮為一次，極大地提升了性能並解決了日誌冗餘問題。
+    # v1.6 (2025-09-23): [根本性重構] 引入了由LLM驅動的“批量實體解析”中間件。在處理NPC檔案前，此版本會先將所有新解析出的NPC與整個數據庫進行一次批量比對，智能地判斷每個NPC應被創建還是合併。這從根本上解決了因別名、頭銜、部分名稱等造成的LORE重複問題，是實現知識圖譜化管理的關鍵一步。
+    # v1.5 (2025-09-23): [效率重構] 徹底重構了描述合併的邏輯，從“逐一處理”升級為“批量處理”。
     # v1.4 (2025-09-23): [根本性重構] 為“描述智能合成”鏈啟用了完整的抗審查備援策略。
-    # v1.3 (2025-09-23): [健壯性強化] 在調用描述合成器時，增加了 `inject_core_protocol=True`。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
-        內建針對 NPC 的實體解析、批量描述合成與最終解碼邏輯。
+        內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
         """
         if not self.profile:
             return
         
-        category_map = {
-            "npc_profiles": "npc_profile", "locations": "location_info",
-            "items": "item_info", "creatures": "creature_info",
-            "quests": "quest", "world_lores": "world_lore"
-        }
-        
+        category_map = { "npc_profiles": "npc_profile", "locations": "location_info", "items": "item_info", "creatures": "creature_info", "quests": "quest", "world_lores": "world_lore" }
         actual_category = category_map.get(category_str)
         if not actual_category or not items:
             return
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
-        # [v1.5 核心修正] 批量處理邏輯
-        synthesis_tasks: List[SynthesisTask] = []
-        existing_lores_to_update: Dict[str, Lore] = {} # key: lore_key, value: Lore object
+        # [v1.6 核心修正] 批量實體解析邏輯
+        if actual_category == 'npc_profile':
+            new_npcs_from_parser = items
+            existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+            
+            resolution_plan = None
+            if new_npcs_from_parser:
+                try:
+                    resolution_prompt_template = self.get_batch_entity_resolution_prompt()
+                    resolution_prompt = self._safe_format_prompt(
+                        resolution_prompt_template,
+                        {
+                            "new_entities_json": json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False),
+                            "existing_entities_json": json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
+                        },
+                        inject_core_protocol=True
+                    )
+                    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行失敗: {e}", exc_info=True)
+            
+            items_to_create = []
+            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list) # key: matched_key, value: list of new_content dicts
 
+            if resolution_plan and resolution_plan.resolutions:
+                logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
+                for resolution in resolution_plan.resolutions:
+                    original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
+                    if not original_item: continue
+
+                    if resolution.decision == 'CREATE':
+                        items_to_create.append(original_item)
+                    elif resolution.decision == 'MERGE' and resolution.matched_key:
+                        updates_to_merge[resolution.matched_key].append(original_item)
+            else:
+                logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
+                items_to_create = new_npcs_from_parser
+
+            # 處理需要合併的實體
+            synthesis_tasks: List[SynthesisTask] = []
+            if updates_to_merge:
+                for matched_key, contents_to_merge in updates_to_merge.items():
+                    existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
+                    if not existing_lore: continue
+                    
+                    for new_content in contents_to_merge:
+                        new_description = new_content.get('description')
+                        if new_description and new_description not in existing_lore.content.get('description', ''):
+                            synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
+                        
+                        # 合併其他非描述字段
+                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
+                            # 使用 setdefault 確保列表存在
+                            existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
+                        for key, value in new_content.items():
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
+                                existing_lore.content[key] = value
+                    
+                    # 更新合併後的 LORE (描述除外)
+                    await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
+
+            # 批量合成描述
+            if synthesis_tasks:
+                logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
+                try:
+                    synthesis_prompt_template = self.get_description_synthesis_prompt()
+                    batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
+                    synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
+                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='euphemize', use_degradation=True)
+
+                    if synthesis_result and synthesis_result.synthesized_descriptions:
+                        logger.info(f"[{self.user_id}] [LORE合併] 批量合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
+                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
+                        
+                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in results_dict)
+                        for lore in all_merged_lores:
+                            char_name = lore.content.get('name')
+                            if char_name in results_dict:
+                                lore.content['description'] = results_dict[char_name]
+                                final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                                await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
+
+            # 將解析後確認為全新的實體，賦值回 items 以便後續統一處理
+            items = items_to_create
+
+        # --- 對於全新LORE或非NPC類別，執行標準創建流程 ---
         for item_data in items:
             try:
                 name = item_data.get(title_key)
-                if not name:
-                    logger.warning(f"[{self.user_id}] (_resolve_and_save) 跳過一個在類別 '{actual_category}' 中缺少 '{title_key}' 的實體。")
-                    continue
-
-                if actual_category == 'npc_profile':
-                    existing_lores = await lore_book.get_lores_by_category_and_filter(
-                        self.user_id, 'npc_profile', lambda c: c.get('name', '').lower() == name.lower()
-                    )
-
-                    if existing_lores:
-                        existing_lore = existing_lores[0]
-                        new_description = item_data.get('description')
-                        
-                        if new_description and new_description not in existing_lore.content.get('description', ''):
-                            logger.info(f"[{self.user_id}] [LORE合併] 檢測到已存在的NPC '{name}'，已將其加入描述合成批處理隊列。")
-                            task = SynthesisTask(
-                                name=name,
-                                original_description=existing_lore.content.get('description', '(無原始描述)'),
-                                new_information=new_description
-                            )
-                            synthesis_tasks.append(task)
-                            # 將其他非描述信息先合併
-                            existing_content = existing_lore.content
-                            for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
-                                existing_list = existing_content.get(list_key, [])
-                                new_list = item_data.get(list_key, [])
-                                merged_list = list(set(existing_list + new_list))
-                                if merged_list: existing_content[list_key] = merged_list
-                            for key, value in item_data.items():
-                                if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
-                                    existing_content[key] = value
-                            existing_lores_to_update[existing_lore.key] = existing_lore
-                        continue
-
-                # --- 對於不需要合併的LORE，直接處理 ---
+                if not name: continue
                 location_path = item_data.get('location_path')
-                lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) else name
+                lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
                 final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
-                await lore_book.add_or_update_lore(
-                    user_id=self.user_id, category=actual_category,
-                    key=lore_key, content=final_content_to_save,
-                    source='canon_parser'
-                )
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
-                logger.error(f"[{self.user_id}] (_resolve_and_save) 在初步處理 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
-
-        # [v1.5 核心修正] 執行批量描述合成
-        if synthesis_tasks:
-            logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
-            try:
-                synthesis_prompt_template = self.get_description_synthesis_prompt()
-                batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
-                
-                synthesis_prompt = self._safe_format_prompt(
-                    synthesis_prompt_template,
-                    {"batch_input_json": batch_input_json},
-                    inject_core_protocol=True
-                )
-                
-                synthesis_result = await self.ainvoke_with_rotation(
-                    synthesis_prompt,
-                    output_schema=BatchSynthesisResult,
-                    retry_strategy='euphemize',
-                    use_degradation=True
-                )
-
-                if synthesis_result and synthesis_result.synthesized_descriptions:
-                    logger.info(f"[{self.user_id}] [LORE合併] 批量合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
-                    results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
-                    
-                    for lore in existing_lores_to_update.values():
-                        char_name = lore.content.get('name')
-                        if char_name in results_dict:
-                            lore.content['description'] = results_dict[char_name]
-                else:
-                    logger.warning(f"[{self.user_id}] [LORE合併] 批量描述合成鏈最終失敗，本批次將退回為簡單拼接。")
-                    # 退回邏輯：在 task 中找到對應的 lore 並拼接
-                    for lore in existing_lores_to_update.values():
-                        task = next((t for t in synthesis_tasks if t.name == lore.content.get('name')), None)
-                        if task:
-                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊] {task.new_information}".strip()
-
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
-
-        # [v1.5 核心修正] 統一更新所有合併後的LORE
-        if existing_lores_to_update:
-            logger.info(f"[{self.user_id}] [LORE合併] 正在將 {len(existing_lores_to_update)} 個合併後的NPC檔案寫回數據庫...")
-            for key, lore in existing_lores_to_update.items():
-                try:
-                    final_content_to_save = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                    await lore_book.add_or_update_lore(
-                        user_id=self.user_id, category='npc_profile',
-                        key=key, content=final_content_to_save,
-                        source='canon_parser_merged'
-                    )
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] (_resolve_and_save) 在更新合併後的NPC '{lore.content.get('name')}' 時發生錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
     # 函式：解析並儲存LORE實體
 
     
@@ -3200,6 +3218,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
