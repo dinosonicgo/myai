@@ -468,6 +468,24 @@ CharacterAction.model_rebuild()
 
 
 
+# --- 確保所有模型都已更新 ---
+CharacterProfile.model_rebuild()
+Quest.model_rebuild()
+LocationInfo.model_rebuild()
+ItemInfo.model_rebuild()
+CreatureInfo.model_rebuild()
+WorldLore.model_rebuild()
+ToolCall.model_rebuild()
+WorldGenesisResult.model_rebuild()
+CanonParsingResult.model_rebuild()
+BatchResolutionResult.model_rebuild()
+BatchResolutionPlan.model_rebuild()
+BatchRefinementResult.model_rebuild()
+EntityValidationResult.model_rebuild()
+SynthesisTask.model_rebuild()
+SynthesizedDescription.model_rebuild()
+BatchSynthesisResult.model_rebuild()
+FactCheckResult.model_rebuild()
 
 
 
