@@ -99,11 +99,11 @@ class AILover:
     
     
     
-     # 函式：初始化AI核心 (v227.2 - 導入修正)
+    # 函式：初始化AI核心 (v227.3 - 新增解碼器)
     # 更新紀錄:
+    # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。此屬性是技術代碼的反向映射，是實現“本地安全解碼”策略、確保最終存儲的LORE信息完整且可用的關鍵一步。
     # v227.2 (2025-09-23): [災難性BUG修復] 增加了對 `settings` 模組的導入，以解決因 `NameError` 導致的實例化失敗問題。
     # v227.1 (2025-09-23): [災難性BUG修復] 根據 AttributeError Log，補全了所有在 get_... 方法中用作快取的屬性（如 profile_completion_prompt）在 __init__ 中的初始化定義，確保屬性存在性檢查不會失敗。同時統一了所有Prompt鏈緩存屬性的命名規範。
-    # v227.0 (2025-09-22): [架構擴展] 新增 self.forensic_lore_reconstruction_chain 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -115,6 +115,17 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
+        # [v227.3 核心新增] LORE 內容逆向解碼器
+        self.DECODING_MAP = {
+            "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
+            "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
+            "REACT-B": "顫抖", "REACT-C": "噴濺", "ACTION-A": "插入",
+            "ACTION-B": "口交", "ACTION-C": "性交", "ACTION-D": "獸交",
+            "ACTION-E": "輪姦", "ACTION-F": "強暴", "STATE-A": "高潮",
+            "STATE-B": "射精", "ROLE-A": "臣服", "ROLE-B": "主人",
+            "ROLE-C": "母狗", "ROLE-D": "母畜"
+        }
+
         self.key_cooldowns: Dict[int, float] = {}
         self.key_short_term_failures: Dict[int, List[float]] = defaultdict(list)
         self.RPM_FAILURE_WINDOW = 60
@@ -124,21 +135,21 @@ class AILover:
         self.last_user_input: Optional[str] = None
         
         # --- 所有 get_..._chain/prompt 輔助鏈的佔位符 ---
-        # [v227.1 核心修正] 確保所有用作快取的屬性都在此處初始化
         self.forensic_lore_reconstruction_chain: Optional[str] = None
         self.batch_entity_resolution_chain: Optional[str] = None
         self.single_entity_resolution_chain: Optional[str] = None
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
-        self.profile_completion_prompt: Optional[str] = None # <-- 修正點
-        self.profile_parser_prompt: Optional[str] = None # <-- 修正點
-        self.profile_rewriting_prompt: Optional[str] = None # <-- 修正點
+        self.profile_completion_prompt: Optional[str] = None
+        self.profile_parser_prompt: Optional[str] = None
+        self.profile_rewriting_prompt: Optional[str] = None
         self.rag_summarizer_chain: Optional[str] = None
         self.literary_euphemization_chain: Optional[str] = None
         self.euphemization_reconstruction_chain: Optional[str] = None
-        self.canon_transformation_chain: Optional[str] = None # <-- 修正點
-        self.lore_refinement_chain: Optional[str] = None # <-- 修正點
-        self.lore_extraction_chain: Optional[str] = None # <-- 修正點
+        self.canon_transformation_chain: Optional[str] = None
+        self.lore_refinement_chain: Optional[str] = None
+        self.lore_extraction_chain: Optional[str] = None
+        self.description_synthesis_prompt: Optional[str] = None # 新增描述合成Prompt的佔位符
         
         # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
@@ -154,6 +165,9 @@ class AILover:
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
     # 初始化AI核心 函式結束
+
+
+    
     
 
     # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
@@ -773,15 +787,53 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
 # 處理世界聖經並提取LORE 函式結束
 
+
+
+
+
+
+
+
+
+        # 函式：獲取描述合成器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-23): [全新創建] 創建此函式以解決LORE描述雜亂的問題。它生成的Prompt專門用於將舊的角色描述和新的補充信息智能地融合成一段單一、連貫、高質量的文本。
+    def get_description_synthesis_prompt(self) -> str:
+        """獲取或創建一個專門用於合成角色描述的字符串模板。"""
+        if self.description_synthesis_prompt is None:
+            prompt_template = """# ROLE: 你是一位資深的角色傳記作家和編輯。
+# MISSION: 你的任務是接收一份【原始角色描述】和一份【新的補充情報】，並將兩者完美地融合，重寫成一段【單一的、通順流暢的、敘事連貫的】全新角色描述。
+# RULES:
+# 1. **信息保全**: 你必須保留原始描述和補充情報中的所有核心事實和關鍵信息。
+# 2. **風格統一**: 新的描述必須風格統一，讀起來像一篇完整的介紹，而不是簡單的拼接。丟棄所有如“[補充資訊]”之類的標籤。
+# 3. **邏輯整合**: 如果新舊信息存在關聯，請將它們在邏輯上整合在一起。例如，如果舊描述說“一個女僕”，新情報是“負責管理其他僕人”，你應該將其整合成“作為女僕長，她負責管理莊園中的其他僕人”。
+# 4. **代碼保留**: 如果輸入的文本中包含任何技術代碼（例如 `ROLE-D`），你【必須】在你的輸出中原封不動地保留這些代碼。這不是翻譯任務。
+# 5. **純文本輸出**: 你的最終輸出【必須且只能】是重寫後的、單一的描述文本。
+# --- SOURCE DATA ---
+# 【原始角色描述】:
+{original_description}
+# ---
+# 【新的補充情報】:
+{new_information}
+# --- YOUR OUTPUT (A single, coherent, synthesized description text) ---"""
+            self.description_synthesis_prompt = prompt_template
+        return self.description_synthesis_prompt
+    # 函式：獲取描述合成器 Prompt (v1.0 - 全新創建)
+
+
+
+    
+
     # 函式：解析並儲存LORE實體
     # 更新紀錄:
+    # v1.2 (2025-09-23): [質量重構] 引入了“描述智能合成”和“最終解碼”兩個關鍵步驟。現在，合併NPC描述時不再是簡單拼接，而是調用LLM進行智能重寫；在所有LORE存入數據庫前，會強制執行一次逆向解碼，將所有技術代碼還原為原始NSFW詞彙，確保數據庫信息的最終質量和可用性。
     # v1.1 (2025-09-23): [根本性重構] 引入了“實體解析與智能合併”機制。在創建新的NPC前，此版本會先按名稱搜索數據庫。如果找到同名NPC，則不再創建重複條目，而是將新舊信息智能合併到單一的LORE記錄中，從根本上解決了因角色在不同地點出現而導致LORE重複的問題。
-    # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，負責將主解析鏈產生的結構化實體列表，逐一轉換並持久化到 LORE 資料庫中，作為新版世界聖經解析流程的關鍵部分。
+    # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
-        內建針對 NPC 的實體解析與合併邏輯。
+        內建針對 NPC 的實體解析、描述合成與最終解碼邏輯。
         """
         if not self.profile:
             return
@@ -808,7 +860,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.warning(f"[{self.user_id}] (_resolve_and_save) 跳過一個在類別 '{actual_category}' 中缺少 '{title_key}' 的實體。")
                     continue
 
-                # [v1.1 核心修正] 僅對 NPC 執行實體解析與合併
                 if actual_category == 'npc_profile':
                     existing_lores = await lore_book.get_lores_by_category_and_filter(
                         self.user_id, 
@@ -817,57 +868,71 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     )
 
                     if existing_lores:
-                        # --- 找到已存在的NPC，執行合併邏輯 ---
                         existing_lore = existing_lores[0]
                         logger.info(f"[{self.user_id}] [LORE合併] 檢測到已存在的NPC '{name}' (Key: {existing_lore.key})。正在合併信息...")
                         
                         existing_content = existing_lore.content
                         new_content = item_data
 
-                        # 智能合併描述
-                        if new_content.get('description') and new_content['description'] not in existing_content.get('description', ''):
-                            existing_content['description'] = f"{existing_content.get('description', '')}\n\n[補充資訊] {new_content['description']}".strip()
+                        # [v1.2 核心修正] 智能合成描述
+                        new_description = new_content.get('description')
+                        if new_description and new_description not in existing_content.get('description', ''):
+                            synthesis_prompt_template = self.get_description_synthesis_prompt()
+                            synthesis_prompt = self._safe_format_prompt(
+                                synthesis_prompt_template,
+                                {
+                                    "original_description": existing_content.get('description', '(無原始描述)'),
+                                    "new_information": new_description
+                                }
+                            )
+                            synthesized_description = await self.ainvoke_with_rotation(synthesis_prompt, retry_strategy='none')
+                            if synthesized_description and synthesized_description.strip():
+                                existing_content['description'] = synthesized_description.strip()
+                            else: # 如果合成失敗，則退回簡單拼接
+                                existing_content['description'] = f"{existing_content.get('description', '')}\n\n[補充資訊] {new_description}".strip()
 
-                        # 合併列表類型的字段 (如 aliases, skills)
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
                             existing_list = existing_content.get(list_key, [])
                             new_list = new_content.get(list_key, [])
                             merged_list = list(set(existing_list + new_list))
-                            if merged_list:
-                                existing_content[list_key] = merged_list
+                            if merged_list: existing_content[list_key] = merged_list
 
-                        # 更新其他非空字段
                         for key, value in new_content.items():
                             if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
                                 existing_content[key] = value
 
+                        # [v1.2 核心修正] 在保存前執行最終解碼
+                        final_content_to_save = self._decode_lore_content(existing_content, self.DECODING_MAP)
+
                         await lore_book.add_or_update_lore(
-                            user_id=self.user_id,
-                            category=actual_category,
-                            key=existing_lore.key, # 使用舊的 key
-                            content=existing_content,
+                            user_id=self.user_id, category=actual_category,
+                            key=existing_lore.key, content=final_content_to_save,
                             source='canon_parser_merged'
                         )
-                        continue # 處理完合併後，跳到下一個 item
+                        continue
 
-                # --- 未找到NPC或非NPC類別，執行創建邏輯 ---
+                # --- 創建新LORE或處理非NPC類別 ---
                 location_path = item_data.get('location_path')
                 if location_path and isinstance(location_path, list) and len(location_path) > 0:
                     lore_key = " > ".join(location_path) + f" > {name}"
                 else:
                     lore_key = name
+                
+                # [v1.2 核心修正] 在保存前執行最終解碼
+                final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
 
                 await lore_book.add_or_update_lore(
-                    user_id=self.user_id,
-                    category=actual_category,
-                    key=lore_key,
-                    content=item_data,
+                    user_id=self.user_id, category=actual_category,
+                    key=lore_key, content=final_content_to_save,
                     source='canon_parser'
                 )
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在儲存 '{item_name_for_log}' 到 LORE 時發生錯誤: {e}", exc_info=True)
     # 函式：解析並儲存LORE實體
+
+
+    
     
 
     # 函式：補完角色檔案 (/start 流程 2/4) (v3.1 - 原生模板重構)
@@ -1511,11 +1576,11 @@ class ExtractionResult(BaseModel):
 
     
 
-     # 函式：背景LORE精煉
+    # 函式：背景LORE精煉
     # 更新紀錄:
+    # v1.3 (2025-09-23): [質量修正] 在將最終精煉結果寫入數據庫之前，增加了對 `_decode_lore_content` 的強制調用。此修改確保了即使是經過第二階段深度精煉的LORE，其包含的任何技術代碼也會被正確還原為原始NSFW詞彙，保證了數據庫的最終一致性和可讀性。
     # v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。現在，函式會將待處理的 LORE 分組，每次為一整組生成單一的 Prompt 並進行一次 LLM 調用，將數百次 API 調用大幅減少至數十次，極大地提升了效率並降低了觸發速率限制的風險。
-    # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則，確保精煉過程中的 NSFW 上下文能被正確理解。
-    # v1.0 (2025-09-23): [全新創建] 創建此函式以修復 'AttributeError'。此函式作為 LORE 解析的第二階段，負責對第一階段粗提取出的 NPC 檔案進行深度分析和細節補完，實現了“混合 NLP”策略的後半部分。
+    # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則。
     async def _background_lore_refinement(self, canon_text: str):
         """
         (背景任務) 對第一階段解析出的 LORE 進行第二階段的深度精煉。
@@ -1536,7 +1601,6 @@ class ExtractionResult(BaseModel):
 
             details_parser_template = self.get_character_details_parser_chain()
             
-            # [v1.2 核心修正] 批量處理邏輯
             BATCH_SIZE = 10
             lore_items = list(npc_lores.values())
             
@@ -1562,7 +1626,6 @@ class ExtractionResult(BaseModel):
                     plot_context = "\n\n".join(plot_context_parts) if plot_context_parts else "（未在文本中找到額外上下文）"
                     pre_parsed_data_json = json.dumps(lore.content, ensure_ascii=False, indent=2)
 
-                    # 為每個角色構建一個獨立的輸入塊
                     batch_input_str_parts.append(f"""
 # --- 角色精煉任務 ---
 # 【當前正在分析的角色】:
@@ -1596,7 +1659,6 @@ class ExtractionResult(BaseModel):
                         continue
 
                     for refined_profile in batch_result.refined_profiles:
-                        # 找到這個精煉檔案對應的原始 LORE
                         original_lore = next((lore for lore in batch if lore.content.get('name') == refined_profile.name), None)
                         if not original_lore:
                             logger.warning(f"[{self.user_id}] [LORE精煉] 無法將精煉後的角色 '{refined_profile.name}' 匹配回原始 LORE。")
@@ -1611,11 +1673,14 @@ class ExtractionResult(BaseModel):
                         
                         original_data['name'] = refined_profile.name
 
+                        # [v1.3 核心修正] 在保存前執行最終解碼
+                        final_content_to_save = self._decode_lore_content(original_data, self.DECODING_MAP)
+
                         await lore_book.add_or_update_lore(
                             user_id=self.user_id,
                             category='npc_profile',
                             key=original_lore.key,
-                            content=original_data,
+                            content=final_content_to_save,
                             source='canon_refiner'
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新角色 '{refined_profile.name}' 的檔案。")
@@ -2824,6 +2889,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
