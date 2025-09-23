@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-23T23:39:48.338615 ###
+### AI Lover Log - Last updated at 2025-09-23T23:44:39.874708 ###
 
-2025-09-23 23:13:06 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:13:06 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:13:32 - [INFO] - [512280345618546699] [/start 流程 4/4] 開場白生成完畢。
-2025-09-23 23:13:32 - [INFO] - [512280345618546699] 開場白已成功作為第一條AI訊息存入場景 '512280345618546699_local_艾瑟瑞亞大陸_靜謐森林_月語者小屋' 的歷史記錄並持久化。
-2025-09-23 23:13:32 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
-2025-09-23 23:13:33 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 83620 秒)。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 83635 秒)。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 83601 秒)。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 83605 秒)。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 83610 秒)。
-2025-09-23 23:14:18 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 83615 秒)。
-2025-09-23 23:14:18 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:14:18 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:14:18 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:14:25 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
-2025-09-23 23:14:26 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-23 23:14:26 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-09-23 23:14:26 - [INFO] - [512280345618546699] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。
-2025-09-23 23:14:26 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-09-23 23:14:31 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-23 23:14:32 - [INFO] - [512280345618546699] [事後處理-LORE保險] 提取到 1 條新LORE，準備執行擴展...
-2025-09-23 23:14:32 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
-2025-09-23 23:14:32 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for add_or_update_location_info: 1 validation error for AddOrUpdateLocationInfoArgs
-lore_key
-  Field required [type=missing, input_value={'location_name': '月語...', '月語者小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:12 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '馬丁'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:12 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '馬丁' 時發生錯誤: name 'SynthesisTask' is not defined
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1760, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for AddOrUpdateLocationInfoArgs
-lore_key
-  Field required [type=missing, input_value={'location_name': '月語...', '月語者小屋']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-23 23:14:32 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-09-23 23:14:32 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
-2025-09-23 23:17:18 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 23:17:18 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 23:17:19 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 23:17:19 - [INFO] - Discord Bot is ready!
-2025-09-23 23:17:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 23:17:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 23:17:22 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 23:25:05 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 23:25:05 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 23:25:06 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 23:25:06 - [INFO] - Discord Bot is ready!
-2025-09-23 23:25:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 23:25:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 23:25:09 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 23:25:19 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行一次性全量創始構建...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 2 條文檔用於創始構建。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 23:25:19 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 3 條訊息。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] 正在組合混合記憶...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] [微任務檢測] 已注入上下文: 臨時短期任務：或者……您有什麼新的指令要吩咐碧去完成 (狀態：進行中)
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 2 份文檔，正在檢查淨化快取...
-2025-09-23 23:25:19 - [INFO] - [512280345618546699] (RAG Summarizer) 成功淨化 1/2 份文檔，正在進行最終摘要...
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] 已成功將 RAG 上下文提煉為事實要點。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82943 秒)。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82948 秒)。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82952 秒)。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82958 秒)。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82973 秒)。
-2025-09-23 23:25:20 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82938 秒)。
-2025-09-23 23:25:20 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:25:20 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:25:20 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:25:28 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
-2025-09-23 23:25:29 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。
-2025-09-23 23:25:29 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-09-23 23:25:34 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-23 23:25:34 - [INFO] - [512280345618546699] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。
-2025-09-23 23:28:12 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 23:28:12 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 23:28:13 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 23:28:13 - [INFO] - Discord Bot is ready!
-2025-09-23 23:28:15 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 23:28:15 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 23:28:16 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 23:29:16 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 2 條文檔到 RAG 語料庫。
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 23:29:16 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-23 23:29:16 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
-2025-09-23 23:29:17 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-23 23:29:18 - [INFO] - [512280345618546699] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...
-2025-09-23 23:29:18 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
-2025-09-23 23:29:18 - [INFO] - [512280345618546699] 正在處理文本塊 1/7...
-2025-09-23 23:29:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-23 23:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 19 個實體...
-2025-09-23 23:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
-2025-09-23 23:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 23:29:36 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
-2025-09-23 23:29:36 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 23 個實體...
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 6 個實體...
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 2 個實體...
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 10 個實體...
-2025-09-23 23:29:49 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '莉莉絲' (Key: 王都 > 聖凱瑟琳學院 > 莉莉絲)。正在合併信息...
-2025-09-23 23:29:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 23:29:55 - [ERROR] - [512280345618546699] (_resolve_and_save) 在儲存 '莉莉絲' 到 LORE 時發生錯誤: Generation stopped due to finish_reason: PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:12 - [INFO] - [512280345618546699] 文本塊 1 的 LORE 已成功儲存。
+2025-09-23 23:40:12 - [INFO] - [512280345618546699] 正在處理文本塊 2/7...
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 22 個實體...
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 5 個實體...
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 11 個實體...
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '莉莉絲'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '莉莉絲' 時發生錯誤: name 'SynthesisTask' is not defined
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1119, in _resolve_and_save
-    synthesized_description = await self.ainvoke_with_rotation(synthesis_prompt, retry_strategy='none')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 578, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 551, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
-google.generativeai.types.generation_types.BlockedPromptException: Generation stopped due to finish_reason: PROHIBITED_CONTENT
-2025-09-23 23:29:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '絲月' (Key: 王都 > 維利爾斯莊園 > 絲月)。正在合併信息...
-2025-09-23 23:29:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-23 23:29:58 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瑪莉' (Key: 王都 > 城鎮市集區 > 莊園 > 瑪莉)。正在合併信息...
-2025-09-23 23:29:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-23 23:29:59 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '安娜' (Key: 王都 > 城鎮市集區 > 莊園 > 安娜)。正在合併信息...
-2025-09-23 23:30:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 23:30:06 - [ERROR] - [512280345618546699] (_resolve_and_save) 在儲存 '安娜' 到 LORE 時發生錯誤: Generation stopped due to finish_reason: PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '阿利斯特'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '阿利斯特' 時發生錯誤: name 'SynthesisTask' is not defined
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1119, in _resolve_and_save
-    synthesized_description = await self.ainvoke_with_rotation(synthesis_prompt, retry_strategy='none')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 578, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 551, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
-google.generativeai.types.generation_types.BlockedPromptException: Generation stopped due to finish_reason: PROHIBITED_CONTENT
-2025-09-23 23:30:06 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '米婭' (Key: 米婭)。正在合併信息...
-2025-09-23 23:30:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-23 23:30:08 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
-2025-09-23 23:30:08 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
-2025-09-23 23:32:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 23:32:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 23:32:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 23:32:58 - [INFO] - Discord Bot is ready!
-2025-09-23 23:33:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 23:33:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 23:33:01 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-23 23:33:36 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 2 條文檔到 RAG 語料庫。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-23 23:33:36 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
-2025-09-23 23:33:36 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-23 23:33:37 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-23 23:33:37 - [INFO] - [512280345618546699] [LORE解析階段1/2] 開始粗提取，生成LORE骨架...
-2025-09-23 23:33:37 - [INFO] - [512280345618546699] 世界聖經已被分割成 7 個文本塊進行處理...
-2025-09-23 23:33:37 - [INFO] - [512280345618546699] 正在處理文本塊 1/7...
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 19 個實體...
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 5 個實體...
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '絲月' (Key: 王都 > 維利爾斯莊園 > 絲月)。正在合併信息...
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82430 秒)。
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82435 秒)。
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82440 秒)。
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82445 秒)。
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82460 秒)。
-2025-09-23 23:33:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82426 秒)。
-2025-09-23 23:33:53 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:33:53 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:33:53 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '卡爾•維利爾斯' (Key: 王都 > 維利爾斯莊園 > 卡爾•維利爾斯)。正在合併信息...
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82426 秒)。
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82431 秒)。
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82436 秒)。
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82451 秒)。
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82416 秒)。
-2025-09-23 23:34:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82421 秒)。
-2025-09-23 23:34:02 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:34:02 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:34:02 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '莉莉絲' (Key: 王都 > 聖凱瑟琳學院 > 莉莉絲)。正在合併信息...
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82424 秒)。
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82429 秒)。
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82444 秒)。
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82409 秒)。
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82414 秒)。
-2025-09-23 23:34:09 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82419 秒)。
-2025-09-23 23:34:09 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:34:09 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:34:09 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '老高' (Key: 王都 > 維利爾斯莊園 > 聖凱瑟琳學院 > 老高)。正在合併信息...
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82419 秒)。
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82434 秒)。
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82399 秒)。
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82404 秒)。
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82409 秒)。
-2025-09-23 23:34:19 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82414 秒)。
-2025-09-23 23:34:19 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:34:19 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:34:19 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:34:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '薩格納' (Key: 王國 > 薩格納)。正在合併信息...
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82420 秒)。
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82386 秒)。
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82391 秒)。
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82396 秒)。
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82400 秒)。
-2025-09-23 23:34:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82405 秒)。
-2025-09-23 23:34:33 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:34:33 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:34:33 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '菲利普' (Key: 王國 > 菲利普)。正在合併信息...
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82371 秒)。
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82375 秒)。
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82380 秒)。
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82385 秒)。
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82390 秒)。
-2025-09-23 23:34:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82405 秒)。
-2025-09-23 23:34:48 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:34:48 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:34:48 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #0.
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '米婭' (Key: 米婭)。正在合併信息...
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82363 秒)。
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82367 秒)。
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82372 秒)。
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82377 秒)。
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82392 秒)。
-2025-09-23 23:35:01 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82358 秒)。
-2025-09-23 23:35:01 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:35:01 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:35:01 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '赫克托' (Key: 王國 > 赫克托)。正在合併信息...
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82358 秒)。
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82363 秒)。
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82368 秒)。
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82383 秒)。
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82349 秒)。
-2025-09-23 23:35:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82353 秒)。
-2025-09-23 23:35:10 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:35:10 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:35:10 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '艾莉諾' (Key: 王國 > 艾莉諾)。正在合併信息...
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82351 秒)。
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82356 秒)。
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82371 秒)。
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82337 秒)。
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82342 秒)。
-2025-09-23 23:35:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82346 秒)。
-2025-09-23 23:35:22 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:35:22 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:35:22 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:35:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '埃德蒙三世' (Key: 王國 > 埃德蒙三世)。正在合併信息...
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82346 秒)。
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82361 秒)。
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82326 秒)。
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82331 秒)。
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82336 秒)。
-2025-09-23 23:35:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82341 秒)。
-2025-09-23 23:35:32 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-23 23:35:32 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-23 23:35:32 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-23 23:39:34 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-23 23:39:34 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-23 23:39:34 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-23 23:39:34 - [INFO] - Discord Bot is ready!
-2025-09-23 23:39:37 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-23 23:39:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-23 23:39:38 - [INFO] - 已成功發送啟動成功通知給管理員。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瑪莉'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '瑪莉' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '安娜'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '安娜' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '老羅'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '老羅' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:35 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '馬克'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:35 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '馬克' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '費奇'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '費奇' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '湯瑪斯'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '湯瑪斯' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '愛蓮娜'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '愛蓮娜' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '絲月'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '絲月' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瑪莉'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '瑪莉' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '愛莉莎'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '愛莉莎' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '安娜'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '安娜' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '湯姆'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '湯姆' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '米婭'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '米婭' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '卡蓮'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '卡蓮' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '凱爾'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '凱爾' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '艾拉'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '艾拉' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '里斯'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '里斯' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瑪倫'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '瑪倫' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:36 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瓦勒留斯'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:36 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '瓦勒留斯' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:37 - [INFO] - [512280345618546699] 文本塊 2 的 LORE 已成功儲存。
+2025-09-23 23:40:37 - [INFO] - [512280345618546699] 正在處理文本塊 3/7...
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 2 個實體...
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '湯姆'，已將其加入描述合成批處理隊列。
+2025-09-23 23:40:47 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '湯姆' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] 文本塊 3 的 LORE 已成功儲存。
+2025-09-23 23:40:47 - [INFO] - [512280345618546699] 正在處理文本塊 4/7...
+2025-09-23 23:40:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 23:40:48 - [WARNING] - [512280345618546699] 文本塊 4 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['STATE-A', '絲月', 'ROLE-D', 'ROLE-B', 'ACTION-E', '愛莉莎', 'CODE-F-GEN-A', '艾莉諾', '安娜', '米婭', '薩格納', '瑪莉', '維利爾斯勳爵', '莉莉絲', '菲利普', 'ACTION-C', 'FLUID-A', 'CODE-F-GEN-C']
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 82030 秒)。
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82045 秒)。
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 82011 秒)。
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82015 秒)。
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 82020 秒)。
+2025-09-23 23:40:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 82025 秒)。
+2025-09-23 23:40:48 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-23 23:40:48 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 23:40:48 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-23 23:41:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
+2025-09-23 23:41:39 - [INFO] - [512280345618546699] [重構成功] 已成功根據關鍵詞還原出 LORE。
+2025-09-23 23:41:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 10 個實體...
+2025-09-23 23:41:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
+2025-09-23 23:41:39 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '絲月'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:39 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '絲月' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:40 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '愛莉莎'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:40 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '愛莉莎' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '艾莉諾'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '艾莉諾' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '安娜'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '安娜' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '米婭'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '米婭' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '薩格納'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '薩格納' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '瑪莉'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '瑪莉' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '維利爾斯勳爵'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '維利爾斯勳爵' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '莉莉絲'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '莉莉絲' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '菲利普'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:41 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '菲利普' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] 文本塊 4 的 LORE 已成功儲存。
+2025-09-23 23:41:41 - [INFO] - [512280345618546699] 正在處理文本塊 5/7...
+2025-09-23 23:41:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-23 23:41:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 17 個實體...
+2025-09-23 23:41:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
+2025-09-23 23:41:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 25 個實體...
+2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '克拉拉'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '克拉拉' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '高爾'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '高爾' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '翠絲'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '翠絲' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '迪茜'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '迪茜' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:56 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '亞瑟'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:56 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '亞瑟' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:57 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '馬丁'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:57 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '馬丁' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:57 - [INFO] - [512280345618546699] [LORE合併] 檢測到已存在的NPC '費奇'，已將其加入描述合成批處理隊列。
+2025-09-23 23:41:57 - [ERROR] - [512280345618546699] (_resolve_and_save) 在初步處理 '費奇' 時發生錯誤: name 'SynthesisTask' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1101, in _resolve_and_save
+    task = SynthesisTask(
+NameError: name 'SynthesisTask' is not defined. Did you mean: 'synthesis_tasks'?
+2025-09-23 23:41:58 - [INFO] - [512280345618546699] 文本塊 5 的 LORE 已成功儲存。
+2025-09-23 23:41:58 - [INFO] - [512280345618546699] 正在處理文本塊 6/7...
+2025-09-23 23:41:59 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-23 23:41:59 - [WARNING] - [512280345618546699] 文本塊 6 遭遇內容審查 (BlockedPromptException)。啟動【終極解構-重構】策略...
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [解構成功] 已提取情報關鍵詞: ['老羅', '卡蓮', '米婭', '馬克', '湯瑪斯', '老高', '瓦勒留斯', '凱爾', '費奇', '里斯', '當前狀態', 'ROLE-D', 'ACTION-E', '瑪倫', '愛蓮娜', '莉莉絲', '湯姆', '艾拉']
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 81945 秒)。
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81950 秒)。
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 81954 秒)。
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 81959 秒)。
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 81975 秒)。
+2025-09-23 23:41:59 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 81940 秒)。
+2025-09-23 23:41:59 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-23 23:41:59 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 23:41:59 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-23 23:44:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 23:44:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 23:44:26 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 23:44:26 - [INFO] - Discord Bot is ready!
+2025-09-23 23:44:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 23:44:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 23:44:29 - [INFO] - 已成功發送啟動成功通知給管理員。
