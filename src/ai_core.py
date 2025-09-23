@@ -196,14 +196,15 @@ class AILover:
             logger.error(f"[{self.user_id}] 無法寫入 API 冷卻檔案: {e}")
     # 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
 
-    # 函式：獲取下一個可用的 API 金鑰 (v2.0 - 冷卻系統)
+    # 函式：獲取下一個可用的 API 金鑰
     # 更新紀錄:
+    # v2.1 (2025-09-23): [災難性BUG修復] 修正了函式簽名，增加了 model_name 參數，並更新了內部邏輯以執行精確到“金鑰+模型”組合的冷卻檢查。此修改是為了與 ainvoke_with_rotation 中的持久化冷卻機制完全同步，從而解決 TypeError。
     # v2.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，會自動跳過處於冷卻期的金鑰。
     # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於集中管理 API 金鑰的輪換。
-    def _get_next_available_key(self) -> Optional[Tuple[str, int]]:
+    def _get_next_available_key(self, model_name: str) -> Optional[Tuple[str, int]]:
         """
         獲取下一個可用的 API 金鑰及其索引。
-        會自動跳過處於冷卻期的金鑰。如果所有金鑰都在冷卻期，則返回 None。
+        會自動跳過處於針對特定模型冷卻期的金鑰。如果所有金鑰都在冷卻期，則返回 None。
         """
         if not self.api_keys:
             return None
@@ -212,16 +213,19 @@ class AILover:
         for i in range(len(self.api_keys)):
             index_to_check = (start_index + i) % len(self.api_keys)
             
-            cooldown_until = self.key_cooldowns.get(index_to_check)
+            # [v2.1 核心修正] 使用 "金鑰索引_模型名稱" 作為唯一的冷卻鍵
+            cooldown_key = f"{index_to_check}_{model_name}"
+            cooldown_until = self.key_model_cooldowns.get(cooldown_key)
+
             if cooldown_until and time.time() < cooldown_until:
                 cooldown_remaining = round(cooldown_until - time.time())
-                logger.info(f"[{self.user_id}] [API Key Cooling] 跳過冷卻中的 API Key #{index_to_check} (剩餘 {cooldown_remaining} 秒)。")
+                logger.info(f"[{self.user_id}] [API Key Cooling] 跳過冷卻中的 API Key #{index_to_check} (針對模型 {model_name}，剩餘 {cooldown_remaining} 秒)。")
                 continue
             
             self.current_key_index = (index_to_check + 1) % len(self.api_keys)
             return self.api_keys[index_to_check], index_to_check
         
-        logger.warning(f"[{self.user_id}] [API 警告] 所有 API 金鑰當前都處於冷卻期。")
+        logger.warning(f"[{self.user_id}] [API 警告] 針對模型 '{model_name}'，所有 API 金鑰當前都處於冷卻期。")
         return None
     # 獲取下一個可用的 API 金鑰 函式結束
 
@@ -2953,6 +2957,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
