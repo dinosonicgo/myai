@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-23T20:19:19.478557 ###
+### AI Lover Log - Last updated at 2025-09-23T20:33:47.374040 ###
 
-2025-09-23 20:15:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '國王埃德蒙三世' 的檔案。
-2025-09-23 20:15:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:15:47 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '大皇子阿拉里克' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+    refined_profile = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '菲利普•薩格納' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:15:50 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇子赫克托' 的檔案。
-2025-09-23 20:15:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '二公主塞拉菲娜' 的檔案。
-2025-09-23 20:15:54 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇女伊索爾德' 的檔案。
-2025-09-23 20:15:55 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '博林勳爵' 的檔案。
-2025-09-23 20:15:57 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '亞瑟' 的檔案。
-2025-09-23 20:15:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬丁' 的檔案。
-2025-09-23 20:16:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '阿利斯特' 的檔案。
-2025-09-23 20:16:02 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '麥可' 的檔案。
-2025-09-23 20:16:04 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '費奇' 的檔案。
-2025-09-23 20:16:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯瑪斯' 的檔案。
-2025-09-23 20:16:08 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '愛蓮娜' 的檔案。
-2025-09-23 20:16:10 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '連恩' 的檔案。
-2025-09-23 20:16:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老羅' 的檔案。
-2025-09-23 20:16:13 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬克' 的檔案。
-2025-09-23 20:16:13 - [INFO] - [512280345618546699] [LORE精煉] 未能在聖經中找到角色 '蓋博 太太' 的額外上下文，跳過精煉。
-2025-09-23 20:16:17 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '米婭' 的檔案。
-2025-09-23 20:16:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '勳爵' 的檔案。
-2025-09-23 20:16:22 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 20:16:22 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '卡蓮' 時發生錯誤: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=23, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '莉莉絲' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 340, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 323, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=23, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 20:16:24 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '凱爾' 的檔案。
-2025-09-23 20:16:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '艾拉' 的檔案。
-2025-09-23 20:16:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:16:27 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '里斯' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '絲月' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:16:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瑪倫' 的檔案。
-2025-09-23 20:16:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '索菲亞' 的檔案。
-2025-09-23 20:16:33 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯姆' 的檔案。
-2025-09-23 20:16:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '露比' 的檔案。
-2025-09-23 20:16:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '泰莎' 的檔案。
-2025-09-23 20:16:39 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老漢姆' 的檔案。
-2025-09-23 20:16:41 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '葛瑞塔' 的檔案。
-2025-09-23 20:16:43 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '芬恩' 的檔案。
-2025-09-23 20:16:46 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '夏卡爾' 的檔案。
-2025-09-23 20:16:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老高' 的檔案。
-2025-09-23 20:16:49 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瓦勒留斯神父' 的檔案。
-2025-09-23 20:16:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '費奇' 的檔案。
-2025-09-23 20:16:54 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老高' 的檔案。
-2025-09-23 20:16:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯瑪斯' 的檔案。
-2025-09-23 20:16:57 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '愛蓮娜' 的檔案。
-2025-09-23 20:17:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '連恩' 的檔案。
-2025-09-23 20:17:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老羅' 的檔案。
-2025-09-23 20:17:03 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬克' 的檔案。
-2025-09-23 20:17:03 - [INFO] - [512280345618546699] [LORE精煉] 未能在聖經中找到角色 '蓋博 太太' 的額外上下文，跳過精煉。
-2025-09-23 20:17:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:04 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '提姆' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '安娜' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:07 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '米婭' 的檔案。
-2025-09-23 20:17:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '勳爵' 的檔案。
-2025-09-23 20:17:14 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '卡蓮' 的檔案。
-2025-09-23 20:17:16 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '艾拉' 的檔案。
-2025-09-23 20:17:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:17 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '凱爾' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '里奧' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '里斯' 的檔案。
-2025-09-23 20:17:22 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瑪倫' 的檔案。
-2025-09-23 20:17:23 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '索菲亞' 的檔案。
-2025-09-23 20:17:25 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯姆' 的檔案。
-2025-09-23 20:17:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '露比' 的檔案。
-2025-09-23 20:17:28 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '泰莎' 的檔案。
-2025-09-23 20:17:30 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老漢姆' 的檔案。
-2025-09-23 20:17:31 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '葛瑞塔' 的檔案。
-2025-09-23 20:17:32 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '芬恩' 的檔案。
-2025-09-23 20:17:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '安布羅斯' 的檔案。
-2025-09-23 20:17:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瓦勒留斯' 的檔案。
-2025-09-23 20:17:40 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬庫斯' 的檔案。
-2025-09-23 20:17:40 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:40 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '艾莉諾' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '蘇菲' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:42 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '布魯諾' 的檔案。
-2025-09-23 20:17:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:42 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '布里奇特' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '貝拉' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:42 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '瓦萊麗' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '米婭' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:46 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '菲利普' 的檔案。
-2025-09-23 20:17:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '巴納比' 的檔案。
-2025-09-23 20:17:49 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '奧斯華' 的檔案。
-2025-09-23 20:17:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:17:49 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '艾諾拉' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '班恩' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:17:51 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '漢德瑞克師傅' 的檔案。
-2025-09-23 20:17:53 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '索菲亞' 的檔案。
-2025-09-23 20:17:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '卡蓮' 的檔案。
-2025-09-23 20:18:00 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瓦勒留斯' 的檔案。
-2025-09-23 20:18:02 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '國王埃德蒙三世' 的檔案。
-2025-09-23 20:18:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:18:02 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '大皇子阿拉里克' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '安東尼' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:18:04 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇子赫克托' 的檔案。
-2025-09-23 20:18:06 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '二公主塞拉菲娜' 的檔案。
-2025-09-23 20:18:08 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '三皇女伊索爾德' 的檔案。
-2025-09-23 20:18:10 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '博林勳爵' 的檔案。
-2025-09-23 20:18:12 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '克拉拉' 的檔案。
-2025-09-23 20:18:14 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '高爾' 的檔案。
-2025-09-23 20:18:16 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '翠絲' 的檔案。
-2025-09-23 20:18:17 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '迪茜' 的檔案。
-2025-09-23 20:18:19 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '亞瑟' 的檔案。
-2025-09-23 20:18:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬丁' 的檔案。
-2025-09-23 20:18:22 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '阿利斯特' 的檔案。
-2025-09-23 20:18:23 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '麥可' 的檔案。
-2025-09-23 20:18:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:18:24 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '提姆' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '無名勳爵' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:18:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 20:18:25 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '卡蓮' 時發生錯誤: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=23, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '布里奇特' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 340, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 323, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=23, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 20:18:27 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瑪倫' 的檔案。
-2025-09-23 20:18:29 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯姆' 的檔案。
-2025-09-23 20:18:30 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '露比' 的檔案。
-2025-09-23 20:18:32 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '泰莎' 的檔案。
-2025-09-23 20:18:34 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瑪莉' 的檔案。
-2025-09-23 20:18:35 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '愛莉莎' 的檔案。
-2025-09-23 20:18:37 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '安娜' 的檔案。
-2025-09-23 20:18:37 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:18:37 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '澤拉' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '布魯諾' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:18:38 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '蘇菲' 的檔案。
-2025-09-23 20:18:40 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '貝拉' 的檔案。
-2025-09-23 20:18:41 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '莉娜' 的檔案。
-2025-09-23 20:18:43 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '艾蜜莉' 的檔案。
-2025-09-23 20:18:44 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '卡萊兒' 的檔案。
-2025-09-23 20:18:47 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '薩格納將軍' 的檔案。
-2025-09-23 20:18:48 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯瑪斯' 的檔案。
-2025-09-23 20:18:50 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '愛蓮娜' 的檔案。
-2025-09-23 20:18:52 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '連恩' 的檔案。
-2025-09-23 20:18:52 - [INFO] - [512280345618546699] [LORE精煉] 未能在聖經中找到角色 '蓋博太太' 的額外上下文，跳過精煉。
-2025-09-23 20:18:54 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯姆' 的檔案。
-2025-09-23 20:18:56 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老漢姆' 的檔案。
-2025-09-23 20:18:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:18:56 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '勳爵' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '瓦萊麗' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:18:59 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '安布羅斯' 的檔案。
-2025-09-23 20:19:01 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瓦勒留斯' 的檔案。
-2025-09-23 20:19:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-23 20:19:03 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '馬庫斯' 時發生錯誤: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '漢德瑞克師傅' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 340, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 323, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
-appearance
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.11/v/string_type
-2025-09-23 20:19:05 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瑪莉' 的檔案。
-2025-09-23 20:19:07 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '安娜' 的檔案。
-2025-09-23 20:19:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:19:07 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '絲月' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '安布羅斯' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-23 20:19:09 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '費奇' 的檔案。
-2025-09-23 20:19:09 - [INFO] - [512280345618546699] [LORE精煉] 未能在聖經中找到角色 '蓋博 太太' 的額外上下文，跳過精煉。
-2025-09-23 20:19:11 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老高' 的檔案。
-2025-09-23 20:19:13 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '湯瑪斯' 的檔案。
-2025-09-23 20:19:14 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '愛蓮娜' 的檔案。
-2025-09-23 20:19:16 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '連恩' 的檔案。
-2025-09-23 20:19:18 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '安布羅斯' 的檔案。
-2025-09-23 20:19:19 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-23 20:19:19 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '艾莉諾' 時發生錯誤: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '奧斯華' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
     refined_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 335, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 307, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (剩餘 86332 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (剩餘 86337 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (剩餘 86312 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (剩餘 86317 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (剩餘 86343 秒)。
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (剩餘 86349 秒)。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] [API 警告] 所有 API 金鑰當前都處於冷卻期。
+2025-09-23 20:24:50 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-flash-lite' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-09-23 20:24:50 - [ERROR] - [512280345618546699] [LORE精煉] 在精煉角色 '巴納比' 時發生錯誤: ainvoke_with_rotation failed without a specific exception.
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1534, in _background_lore_refinement
+    refined_profile = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 374, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-09-23 20:24:50 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。
+2025-09-23 20:33:33 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 20:33:33 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 20:33:33 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 20:33:33 - [INFO] - Discord Bot is ready!
+2025-09-23 20:33:36 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 20:33:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 20:33:37 - [INFO] - 已成功發送啟動成功通知給管理員。
