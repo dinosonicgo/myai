@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-23T14:59:03.689603 ###
+### AI Lover Log - Last updated at 2025-09-23T15:04:54.274118 ###
 
-2025-09-23 14:43:23 - [INFO] - [512280345618546699] [LORE解析階段1/2] 粗提取完成。總共 7 個文本塊，成功處理 6 個。
-2025-09-23 14:43:23 - [INFO] - [512280345618546699] 正在啟動背景任務以進行 LORE 細節精煉...
-2025-09-23 14:43:28 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任務已啟動。
-2025-09-23 14:43:28 - [INFO] - [512280345618546699] [LORE精煉] 发现 646 條LORE骨架需要精煉。
-2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '絲月' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '卡爾•維利爾斯' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '莉莉絲' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '薩格納' 時發生错误: Replacement index 0 out of range for positional args tuple
-2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '菲利普' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '米婭' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '艾莉諾' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:28 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '埃德蒙三世' 時發生错误: Replacement index 0 out of range for positional args tuple
@@ -300,3 +291,12 @@
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '瓦勒留斯' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [WARNING] - [512280345618546699] [LORE精煉] 在精煉 '勳爵' 時發生错误: Replacement index 0 out of range for positional args tuple
 2025-09-23 14:43:34 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景LORE細節精煉任务完成。
+2025-09-23 15:04:16 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 15:04:16 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-23 15:04:17 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-23 15:04:17 - [INFO] - Discord Bot is ready!
+2025-09-23 15:04:19 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-23 15:04:19 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-23 15:04:20 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-23 15:04:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-23 15:04:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
