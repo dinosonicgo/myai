@@ -1,29 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T00:50:39.248908 ###
+### AI Lover Log - Last updated at 2025-09-25T00:55:41.406757 ###
 
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D', 'ACTION-E']
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 3057 秒)。
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 2479 秒)。
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 3062 秒)。
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 2701 秒)。
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 2705 秒)。
-2025-09-25 00:29:03 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 2711 秒)。
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-25 00:29:03 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:29:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #0.
-2025-09-25 00:29:13 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
-2025-09-25 00:29:14 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-25 00:29:14 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-09-25 00:29:14 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-09-25 00:29:14 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-09-25 00:29:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-25 00:29:19 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
-2025-09-25 00:29:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-25 00:29:19 - [INFO] - [512280345618546699] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。
-2025-09-25 00:29:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
 2025-09-25 00:29:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
 2025-09-25 00:30:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
 2025-09-25 00:30:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
@@ -300,3 +276,27 @@
 2025-09-25 00:50:38 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
 2025-09-25 00:50:38 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
 2025-09-25 00:50:38 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
+2025-09-25 00:50:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-25 00:50:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-25 00:50:43 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-25 00:50:43 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-25 00:50:43 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [/start] 初始地點 '艾瑞亞大陸 > 靜謐之森 > 月影溪谷' 已成功生成並存入LORE。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1753 秒)。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 1175 秒)。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1758 秒)。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1397 秒)。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1401 秒)。
+2025-09-25 00:50:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1407 秒)。
+2025-09-25 00:50:47 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-25 00:50:47 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-25 00:50:47 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-25 00:51:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
+2025-09-25 00:51:17 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
+2025-09-25 00:51:17 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
+2025-09-25 00:51:18 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
+2025-09-25 00:51:18 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
