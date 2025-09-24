@@ -1,80 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T16:19:43.227245 ###
+### AI Lover Log - Last updated at 2025-09-24T16:24:45.462914 ###
 
-synthesized_descriptions.6.description
-  Field required [type=missing, input_value={'name': '薩格納', 'sy...鍵的「同盟」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.7.description
-  Field required [type=missing, input_value={'name': '菲利普', 'sy...族猜測與渴望。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.8.description
-  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.9.description
-  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.10.description
-  Field required [type=missing, input_value={'name': '赫克托', 'sy...位，因其賢明。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.11.description
-  Field required [type=missing, input_value={'name': '埃德蒙三世...爾，皈依新神！'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.12.description
-  Field required [type=missing, input_value={'name': '阿拉里克', ...下凡般的武勇。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.13.description
-  Field required [type=missing, input_value={'name': '伊索爾德', ...王國軍事力量。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.14.description
-  Field required [type=missing, input_value={'name': '博林', 'synth...狂熱的「矛」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.15.description
-  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.16.description
-  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.17.description
-  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.18.description
-  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.19.description
-  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.20.description
-  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.21.description
-  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.22.description
-  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.23.description
-  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.24.description
-  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.25.description
-  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.26.description
-  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.27.description
-  Field required [type=missing, input_value={'name': '朱利安', 'sy...恩」的可能性。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.28.description
-  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.29.description
-  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.30.description
-  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 synthesized_descriptions.31.description
   Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
@@ -300,3 +225,78 @@ synthesized_descriptions.50.description
 2025-09-24 16:16:07 - [INFO] - [512280345618546699] 開場白已成功作為第一條AI訊息存入場景 '512280345618546699_local_星語森林_月光溪谷_静谧小屋' 的歷史記錄並持久化。
 2025-09-24 16:16:07 - [INFO] - [512280345618546699] /start 流程：正在向使用者私訊發送開場白...
 2025-09-24 16:16:08 - [INFO] - [512280345618546699] /start 流程：開場白發送完畢。設定流程成功結束。
+2025-09-24 16:19:55 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
+2025-09-24 16:19:55 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 開始初步解析所有文本塊...
+2025-09-24 16:19:55 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
+2025-09-24 16:20:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-09-24 16:20:08 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
+2025-09-24 16:20:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-24 16:20:24 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
+2025-09-24 16:20:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-24 16:20:33 - [INFO] - [512280345618546699] 正在初步解析文本塊 4/7...
+2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['CODE-F-GEN-A', 'ACTION-E', 'ROLE-D', 'ROLE-B', 'FLUID-A', 'STATE-A', 'ACTION-C', 'CODE-F-GEN-C']
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 32015 秒)。
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 32020 秒)。
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32367 秒)。
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31788 秒)。
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32372 秒)。
+2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 32010 秒)。
+2025-09-24 16:20:34 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-24 16:20:34 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 16:21:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
+2025-09-24 16:21:00 - [INFO] - [512280345618546699] 正在初步解析文本塊 5/7...
+2025-09-24 16:21:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-09-24 16:21:11 - [INFO] - [512280345618546699] 正在初步解析文本塊 6/7...
+2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['ROLE-D', 'ACTION-E']
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31750 秒)。
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32334 秒)。
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 31972 秒)。
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 31977 秒)。
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 31983 秒)。
+2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32329 秒)。
+2025-09-24 16:21:12 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-24 16:21:12 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] 正在初步解析文本塊 7/7...
+2025-09-24 16:21:36 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 16:21:36 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['CODE-F-GEN-A', 'STATE-A', 'ACTION-B', 'ACTION-E', 'CODE-M-GEN-A', 'ROLE-D']
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 31948 秒)。
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 31953 秒)。
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 31958 秒)。
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32304 秒)。
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31726 秒)。
+2025-09-24 16:21:36 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32309 秒)。
+2025-09-24 16:21:36 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-24 16:21:36 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-24 16:21:36 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 初步解析完成。收集到 71 個潛在NPC條目和其他 61 條LORE。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 開始批量實體解析...
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 31938 秒)。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 31943 秒)。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32290 秒)。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31711 秒)。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32294 秒)。
+2025-09-24 16:21:51 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 31933 秒)。
+2025-09-24 16:21:51 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-24 16:21:51 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-24 16:21:51 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 71 條決策。
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 實體解析完成。決策: 71 創建, 0 合併。
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 開始批量描述合成...
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
+2025-09-24 16:22:27 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 138 條文檔用於創始構建。
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-24 16:22:38 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
