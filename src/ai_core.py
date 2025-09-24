@@ -820,7 +820,8 @@ class AILover:
 
     # 函式：委婉化並重試
     # 更新紀錄:
-    # v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。它現在能夠識別並處理多種不同鏈（如LORE解析、LORE提取）的Prompt結構，通過遍歷一個正則表達式列表來提取需要被消毒的文本，使其成為一個可被廣泛應用的、健壯的抗審查備援函式。
+    # v4.2 (2025-09-24): [災難性BUG修復] 修正了雙重無害化策略中的一個邏輯錯誤。現在，函式會正確地從“已代碼化”的文本中提取安全的技術代碼作為關鍵詞，而不是錯誤地從原文中提取敏感詞，從而確保了備援鏈自身的絕對安全。
+    # v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。
     # v4.0 (2025-09-23): [根本性重構] 採用了更可靠的“代碼化解構”策略。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
@@ -833,23 +834,20 @@ class AILover:
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...")
         
         try:
-            # [v4.1 核心修正] 通用化標記提取
             text_to_sanitize = None
-            # 定義一個正則表達式列表，按可能性排序
             patterns_to_try = [
                 r"【遊戲設計筆記】:\s*([\s\S]*?)---", # for get_canon_transformation_chain
                 r"【劇情上下文 \(可能經過代碼化處理\)】:\s*([\s\S]*?)---", # for get_character_details_parser_chain
                 r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---", # for get_lore_update_fact_check_prompt
                 r"【本回合的完整對話】:\s*([\s\S]*?)---", # for get_lore_extraction_chain
                 r"【小說手稿片段】:\s*([\s\S]*?)---", # for get_literary_euphemization_chain
-                r"【批量描述合成任務】:\s*(\{[\s\S]*\})" # [v4.1 新增] for get_description_synthesis_prompt
+                r"【批量描述合成任務】:\s*(\{[\s\S]*\})" # for get_description_synthesis_prompt
             ]
             
             for pattern in patterns_to_try:
                 match = re.search(pattern, failed_prompt, re.IGNORECASE)
                 if match:
                     text_to_sanitize = match.group(1).strip()
-                    # 如果匹配到的是 JSON，我們需要將其解析並轉換為字符串
                     if text_to_sanitize.startswith('{') or text_to_sanitize.startswith('['):
                         try:
                             json_data = json.loads(text_to_sanitize)
@@ -862,24 +860,25 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。")
                 return None
             
-            # [v4.2 核心修正] 雙重無害化：先將提取的文本代碼化
+            # [v4.2 核心修正] 雙重無害化：第一步，將提取出的原始文本進行本地代碼化
             coded_text = text_to_sanitize
-            reversed_decoding_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-            for word, code in reversed_decoding_map:
-                coded_text = coded_text.replace(word, code)
+            # 必須從 DECODING_MAP 的 value (原始詞) 映射到 key (代碼)
+            # 為了正確替換，我們需要一個反向的映射，並按長度排序以避免子字符串問題
+            reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+            for code, word in reversed_map:
+                 # DECODING_MAP 的結構是 code: word，所以我們需要反過來
+                 coded_text = coded_text.replace(word, code)
 
-            # 現在從已代碼化的文本中提取關鍵詞（即技術代碼本身）
-            extracted_codes = {code for code in self.DECODING_MAP.values() if code in coded_text}
+            # 第二步，從“已代碼化”的安全文本中提取關鍵詞（即技術代碼本身）
+            extracted_codes = {code for code in self.DECODING_MAP.keys() if code in coded_text}
             
             all_names = set()
             if self.profile:
                 all_names.add(self.profile.user_profile.name)
                 all_names.add(self.profile.ai_profile.name)
             
-            # 姓名不需要代碼化
             extracted_names = {name for name in all_names if name and name in text_to_sanitize}
             
-            # 最終的關鍵詞列表是安全的技術代碼和人名的組合
             final_keywords = list(extracted_codes | extracted_names)
 
             if not final_keywords:
@@ -3459,6 +3458,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
