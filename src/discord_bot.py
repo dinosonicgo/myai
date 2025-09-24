@@ -169,8 +169,9 @@ class ContinueToAiSetupView(discord.ui.View):
 
 # 類別：繼續到世界聖經設定的視圖
 # 更新紀錄:
-# v1.3 (2025-09-25): [災難性BUG修復] 将所有 finalize_setup 的调用从 asyncio.create_task 改为直接 await，以确保创世流程的同步执行，防止开场白在 LORE 解析完成前生成。
-# v1.2 (2025-09-24): [災難性BUG修復] 重构了“上傳世界聖經”按鈕的邏輯以解决流程中断问题。
+# v1.4 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱，從錯誤的 'content_text' 改為正確的 'canon_text'，解決了 TypeError。
+# v1.3 (2025-09-25): [災難性BUG修復] 修改為直接 await 創世流程，確保同步執行。
+# v1.2 (2025-09-24): [災難性BUG修復] 重構了“上傳世界聖經”按鈕的邏輯以解决流程中断问题。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -213,10 +214,11 @@ class ContinueToCanonSetupView(discord.ui.View):
                 self.stop()
                 return
 
-            # [v1.3 核心修正] 直接 await 最终流程
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
-            await self.cog.finalize_setup(interaction, content_text=content_text)
+            
+            # [v1.4 核心修正] 使用正確的關鍵字參數名稱 'canon_text'
+            await self.cog.finalize_setup(interaction, canon_text=content_text)
 
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超時。請重新點擊 `/start` 開始。", ephemeral=True)
@@ -240,8 +242,7 @@ class ContinueToCanonSetupView(discord.ui.View):
             except discord.errors.NotFound:
                 pass 
 
-        # [v1.3 核心修正] 直接 await，不再使用 create_task
-        await interaction.response.defer(ephemeral=True) # Defer an empty response first
+        await interaction.response.defer(ephemeral=True)
         await self.cog.finalize_setup(interaction, canon_text=None)
     # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
@@ -374,6 +375,8 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
     # 函式：初始化 WorldCanonPasteModal
     
     # 函式：處理 Modal 提交事件
+    # 更新紀錄:
+    # v1.2 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱，從錯誤的 'content_text' 改為正確的 'canon_text'，解決了 TypeError。
     async def on_submit(self, interaction: discord.Interaction):
         if self.original_interaction_message_id:
             try:
@@ -383,16 +386,18 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
                 await original_message.edit(view=view)
             except (discord.errors.NotFound, AttributeError): pass
         
-        # [核心修正] 根据 is_setup_flow 决定是 await 还是 create_task
         if self.is_setup_flow:
-            await interaction.response.defer(ephemeral=True) # Defer first
-            await self.cog.finalize_setup(interaction, content_text=self.canon_text.value)
+            await interaction.response.defer(ephemeral=True)
+            # [v1.2 核心修正] 使用正確的關鍵字參數名稱 'canon_text'
+            await self.cog.finalize_setup(interaction, canon_text=self.canon_text.value)
         else:
             await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經...", ephemeral=True)
             asyncio.create_task(self.cog._background_process_canon(interaction=interaction, content_text=self.canon_text.value, is_setup_flow=self.is_setup_flow))
 
     # 函式：處理 Modal 提交事件
 # 類別：貼上世界聖經的 Modal
+
+
 
 
 
