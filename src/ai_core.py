@@ -3263,7 +3263,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
                 logger.info(f"[{self.user_id}] (RAG Cache) 快取未命中 for Memory ID #{memory_entry.id}，執行一次性淨化...")
                 try:
-                    literary_full_prompt = literary_prompt_template.format(dialogue_history=doc.page_content)
+                    # [核心修正] 為淨化鏈注入最高指導原則，並使用更安全的 none 重試策略
+                    literary_full_prompt = self._safe_format_prompt(
+                        literary_prompt_template,
+                        {"dialogue_history": doc.page_content},
+                        inject_core_protocol=True
+                    )
                     sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none')
                     if sanitized_part and sanitized_part.strip():
                         sanitized_text = sanitized_part.strip()
@@ -3289,7 +3294,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] (RAG Summarizer) 成功淨化 {len(safely_sanitized_parts)}/{len(retrieved_docs)} 份文檔，正在進行最終摘要...")
         
         summarizer_prompt_template = self.get_rag_summarizer_chain()
-        summarizer_full_prompt = summarizer_prompt_template.format(documents=safe_overview_of_all_docs)
+        # [核心修正] 同樣為摘要鏈注入最高指導原則
+        summarizer_full_prompt = self._safe_format_prompt(
+            summarizer_prompt_template,
+            {"documents": safe_overview_of_all_docs},
+            inject_core_protocol=True
+        )
         summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='none')
 
         if not summarized_context or not summarized_context.strip():
@@ -3337,6 +3347,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
