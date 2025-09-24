@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T22:31:45.089558 ###
+### AI Lover Log - Last updated at 2025-09-24T22:36:47.363861 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1947, in _execute_tool_call_plan
-    validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 731, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 714, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for EntityValidationResult
 reasoning
   Field required [type=missing, input_value={'decision': 'CREATE', 'm...條目進行關聯。"}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
@@ -300,3 +291,12 @@ aiohttp.client_exceptions.ServerDisconnectedError: Server disconnected
 2025-09-24 22:31:44 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
 2025-09-24 22:31:44 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
 2025-09-24 22:31:44 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 22:31:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-24 22:31:45 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-24 22:31:45 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-09-24 22:31:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 19 個實體...
+2025-09-24 22:31:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 41 個實體...
+2025-09-24 22:31:51 - [INFO] - [512280345618546699] LORE 解析流程成功完成。正在觸發 RAG 全量重建...
+2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 184 條文檔用於創始構建。
+2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
