@@ -169,8 +169,7 @@ class ContinueToAiSetupView(discord.ui.View):
 
 # 類別：繼續到世界聖經設定的視圖
 # 更新紀錄:
-# v1.5 (2025-09-25): [災難性BUG修復] 修正了UI生命週期管理。將 self.stop() 從 finally 塊中移出，確保在長時異步任務 finalize_setup 完全結束後才停止視圖，從而防止 interaction 失效導致最終訊息發送失敗。
-# v1.4 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱。
+# v1.6 (2025-09-25): [灾难性BUG修復] 彻底重构了所有回调，使其仅负责启动一个独立的、解耦的后台创世任务 (_perform_full_setup_flow)，并立即回应用户，从而根除了所有因 interaction 过期和流程同步失败导致的问题。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -178,24 +177,29 @@ class ContinueToCanonSetupView(discord.ui.View):
         self.cog = cog
     # 函式：初始化 ContinueToCanonSetupView
 
-    # 函式：處理「貼上世界聖經」按鈕點擊事件
-    @discord.ui.button(label="📄 貼上世界聖經 (文字)", style=discord.ButtonStyle.success, custom_id="persistent_paste_canon")
+    # 函式：处理「贴上世界圣经」按钮点击事件
+    @discord.ui.button(label="📄 贴上世界圣经 (文字)", style=discord.ButtonStyle.success, custom_id="persistent_paste_canon")
     async def paste_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
-        logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' paste button clicked.")
-        modal = WorldCanonPasteModal(self.cog, is_setup_flow=True, original_interaction_message_id=interaction.message.id)
+        if user_id in self.cog.active_setups:
+            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
+            return
+        
+        modal = WorldCanonPasteModal(self.cog, original_interaction_message_id=interaction.message.id)
         await interaction.response.send_modal(modal)
-    # 函式：處理「貼上世界聖經」按鈕點擊事件
+    # 函式：处理「贴上世界圣经」按钮点击事件
 
-    # 處理「上傳世界聖經」按鈕點擊事件
+    # 处理「上传世界圣经」按钮点击事件
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
-        logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' upload button clicked.")
-        
+        if user_id in self.cog.active_setups:
+            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
+            return
+
         for item in self.children:
             item.disabled = True
-        await interaction.response.edit_message(content="**請在 5 分鐘內，直接在此對話中發送您的 `.txt` 世界聖經檔案...**", view=self)
+        await interaction.response.edit_message(content="**请在 5 分钟内，直接在此对话中发送您的 `.txt` 世界圣经檔案...**", view=self)
 
         def check(message: discord.Message):
             return (message.author.id == interaction.user.id and 
@@ -207,46 +211,46 @@ class ContinueToCanonSetupView(discord.ui.View):
             user_message_with_file = await self.cog.bot.wait_for('message', check=check, timeout=300.0)
             attachment = user_message_with_file.attachments[0]
             
-            if attachment.size > 5 * 1024 * 1024:
-                await interaction.followup.send("❌ 檔案過大！請重新點擊 `/start` 開始。", ephemeral=True)
-                self.stop()
+            if attachment.size > 5 * 1024 * 1024: # 5MB
+                await interaction.followup.send("❌ 檔案過大！请重新开始 `/start` 流程。", ephemeral=True)
                 return
 
+            await interaction.followup.send("✅ 檔案已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
+            
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            # [v1.5 核心修正] 先執行長時任務，執行完畢後才停止視圖
-            await self.cog.finalize_setup(interaction, canon_text=content_text)
-            self.stop()
+            self.cog.active_setups.add(user_id)
+            asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
 
         except asyncio.TimeoutError:
-            await interaction.followup.send("⏳ 操作已超時。請重新點擊 `/start` 開始。", ephemeral=True)
-            self.stop()
+            await interaction.followup.send("⏳ 操作已超时。请重新开始 `/start` 流程。", ephemeral=True)
         except Exception as e:
-            logger.error(f"[{user_id}] 在等待檔案上傳時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"處理您的檔案時發生錯誤: `{e}`。請重新點擊 `/start` 開始。", ephemeral=True)
+            logger.error(f"[{user_id}] 在等待檔案上傳时发生错误: {e}", exc_info=True)
+            await interaction.followup.send(f"处理您的檔案时发生错误: `{e}`。请重新开始 `/start` 流程。", ephemeral=True)
+        finally:
             self.stop()
-    # 處理「上傳世界聖經」按鈕點擊事件
+    # 处理「上传世界圣经」按钮点击事件
 
-    # 函式：處理「完成設定」按鈕點擊事件
-    @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
+    # 函式：处理「完成设定」按钮点击事件
+    @discord.ui.button(label="✅ 完成设定并开始冒险 (跳过圣经)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
-        logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.")
-        for item in self.children: item.disabled = True
+        if user_id in self.cog.active_setups:
+            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
+            return
+            
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
         
-        if interaction.message:
-            try:
-                await interaction.message.edit(view=self)
-            except discord.errors.NotFound:
-                pass 
-
-        await interaction.response.defer(ephemeral=True)
-        # [v1.5 核心修正] 先執行長時任務，執行完畢後才停止視圖
-        await self.cog.finalize_setup(interaction, canon_text=None)
+        await interaction.followup.send("✅ 基础设定完成！创世流程已在后台启动，完成后您将收到开场白。这可能需要几分钟，请耐心等候。", ephemeral=True)
+        
+        self.cog.active_setups.add(user_id)
+        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=None))
         self.stop()
-    # 函式：處理「完成設定」按鈕點擊事件
-# 類別：繼續到世界聖經設定的視圖
+    # 函式：处理「完成设定」按钮点击事件
+# 类别：继续到世界圣经设定的视图
 
 
 
@@ -368,19 +372,21 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
     canon_text = discord.ui.TextInput(label="請將您的世界觀/角色背景故事貼於此處", style=discord.TextStyle.paragraph, placeholder="在此貼上您的 .txt 檔案內容或直接編寫...", required=True, max_length=4000)
     
     # 函式：初始化 WorldCanonPasteModal
-    def __init__(self, cog: "BotCog", is_setup_flow: bool = False, original_interaction_message_id: int = None):
+    def __init__(self, cog: "BotCog", original_interaction_message_id: int = None):
         super().__init__(timeout=600.0)
         self.cog = cog
-        self.is_setup_flow = is_setup_flow
         self.original_interaction_message_id = original_interaction_message_id
     # 函式：初始化 WorldCanonPasteModal
     
-    # 函式：處理 Modal 提交事件
+    # 函式：处理 Modal 提交事件
     # 更新紀錄:
-    # v1.3 (2025-09-25): [災難性BUG修復] 確保在 await finalize_setup 之後再停止 modal/view，防止 interaction 失效。
-    # v1.2 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱。
+    # v1.4 (2025-09-25): [灾难性BUG修复] 彻底重构，使其仅负责启动独立的后台创世任务，解决流程同步和 interaction 过期问题。
     async def on_submit(self, interaction: discord.Interaction):
-        original_message = None
+        user_id = str(interaction.user.id)
+        if user_id in self.cog.active_setups:
+            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
+            return
+
         if self.original_interaction_message_id:
             try:
                 original_message = await interaction.channel.fetch_message(self.original_interaction_message_id)
@@ -389,21 +395,13 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
                 await original_message.edit(view=view)
             except (discord.errors.NotFound, AttributeError): pass
         
-        if self.is_setup_flow:
-            await interaction.response.defer(ephemeral=True)
-            await self.cog.finalize_setup(interaction, canon_text=self.canon_text.value)
-            # [v1.3 核心修正] 任務完成後再停止相關視圖
-            if original_message:
-                view = discord.ui.View.from_message(original_message)
-                if hasattr(view, 'stop'):
-                    view.stop()
+        await interaction.response.send_message("✅ 文字已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
+        
+        self.cog.active_setups.add(user_id)
+        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=self.canon_text.value))
 
-        else:
-            await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經...", ephemeral=True)
-            asyncio.create_task(self.cog._background_process_canon(interaction=interaction, content_text=self.canon_text.value, is_setup_flow=self.is_setup_flow))
-
-    # 函式：處理 Modal 提交事件
-# 類別：貼上世界聖經的 Modal
+    # 函式：处理 Modal 提交事件
+# 类别：贴上世界圣经的 Modal
 
 
 
@@ -1079,7 +1077,8 @@ class BotCog(commands.Cog):
     def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
         self.bot = bot
         self.ai_instances: dict[str, AILover] = {}
-        self.setup_locks: set[str] = set()
+        # [v57.0 核心修正] setup_locks 改名为 active_setups 以更好地反映其作用
+        self.active_setups: set[str] = set()
         self.git_lock = git_lock
     # 函式：初始化 BotCog
 
@@ -1087,7 +1086,65 @@ class BotCog(commands.Cog):
     def cog_unload(self):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
+    # 函式：执行完整的后台创世流程
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。它确保了所有步骤都同步执行，并在完成后直接向用户发送开场白，解决了流程中断和 interaction 过期的问题。
+    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
+        """一个独立的背景任务，负责执行从LORE解析到发送开场白的完整创世流程。"""
+        user_id = str(user.id)
+        try:
+            logger.info(f"[{user_id}] 独立的后台创世流程已为用户启动。")
+            
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance or not ai_instance.profile:
+                logger.error(f"[{user_id}] 在后台创世流程中，AI核心初始化失败。")
+                await user.send("❌ 错误：无法初始化您的 AI 核心以进行创世。")
+                return
 
+            # --- 步骤 1: 世界圣经处理 (如果提供) ---
+            if canon_text:
+                logger.info(f"[{user_id}] [后台创世 1/4] 正在处理世界圣经...")
+                await ai_instance.add_canon_to_vector_store(canon_text)
+                logger.info(f"[{user_id}] [后台创世 1/4] 正在进行 LORE 智能解析...")
+                await ai_instance.parse_and_create_lore_from_canon(canon_text)
+                logger.info(f"[{user_id}] [后台创世 1/4] LORE 智能解析已同步完成。")
+            
+            # --- 步骤 2: 补完角色档案 ---
+            logger.info(f"[{user_id}] [后台创世 2/4] 正在补完角色档案...")
+            await ai_instance.complete_character_profiles()
+            
+            # --- 步骤 3: 生成世界创世资讯 ---
+            logger.info(f"[{user_id}] [后台创世 3/4] 正在生成世界创世资讯...")
+            await ai_instance.generate_world_genesis(canon_text=canon_text)
+            
+            # --- 步骤 4: 生成开场白 ---
+            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
+            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
+
+            # --- 最终步骤: 发送开场白并清理 ---
+            scene_key = ai_instance._get_scene_key()
+            await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
+            
+            logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
+            for i in range(0, len(opening_scene), 2000):
+                await user.send(opening_scene[i:i+2000])
+            logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 后台创世流程发生严重错误: {e}", exc_info=True)
+            try:
+                await user.send(f"❌ **创世失败**：在后台执行时发生了未预期的严重错误: `{e}`")
+            except discord.errors.HTTPException as send_e:
+                 logger.error(f"[{user_id}] 无法向使用者发送最终的错误讯息: {send_e}")
+        finally:
+            # 无论成功或失败，都从活动设置中移除使用者，允许他们重新开始
+            self.active_setups.discard(user_id)
+            logger.info(f"[{user_id}] 后台创世流程结束，状态锁已释放。")
+    # 函式：执行完整的后台创世流程
+
+
+    
 # 函式：獲取或創建使用者的 AI 實例 (v52.0 - 按需加載記憶)
 # 更新紀錄:
 # v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。此修改確保了短期記憶只在用戶開始一個新會話、首次創建AI實例時從資料庫恢復一次，避免了在 /start 流程中錯誤地恢復舊記憶。
