@@ -543,9 +543,8 @@ class AILover:
 
     # 函式：獲取LORE提取器 Prompt
     # 更新紀錄:
-    # v1.3 (2025-09-23): [抗幻覺強化] 在Prompt中增加了更嚴格的“禁止幻覺”指令，要求LLM只能根據對話中明確、具名的實體生成工具調用，作為抗幻覺防禦體系的第一層。
-    # v1.2 (2025-09-23): [健壯性強化] 在Prompt中增加了對核心主角的“絕對保護原則”。
-    # v1.1 (2025-09-23): [災難性BUG修復] 對模板中的JSON範例進行了轉義。
+    # v1.4 (2025-09-25): [健壮性] 增加了【數據規範化規則】，强制要求所有输出的名称优先使用繁体中文，以解决生成英文 key 的问题。
+    # v1.3 (2025-09-23): [抗幻覺強化] 在Prompt中增加了更嚴格的“禁止幻覺”指令。
     def get_lore_extraction_chain(self) -> str:
         """獲取或創建一個專門用於事後LORE提取的字符串模板。"""
         if self.lore_extraction_chain is None:
@@ -557,20 +556,15 @@ class AILover:
 #    - 角色 **"{username}"** (使用者) 和 **"{ai_name}"** (AI戀人) 是這個世界的【絕對主角】。
 #    - 他們的個人檔案由核心系統獨立管理，【絕對不是】NPC LORE 的一部分。
 #    - 因此，你的工具調用計畫中【【【絕對禁止】】】包含任何試圖為 "{username}" 或 "{ai_name}" 執行 `create_new_npc_profile` 或 `update_npc_profile` 的操作。
-# 2. **【🚫 嚴禁幻覺原則 (NO-HALLUCINATION MANDATE)】**:
+# 2. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
+#    - **語言優先級**: 你生成的所有 `lore_key` 和 `standardized_name`【必須】優先使用【繁體中文】。禁止使用英文、拼音或技術性代號（如 'naga_type_001'）。
+# 3. **【🚫 嚴禁幻覺原則 (NO-HALLUCINATION MANDATE)】**:
 #    - 你的所有工具調用【必須】嚴格基於對話文本中【明確提及的、有名有姓的】實體。
-#    - 【絕對禁止】從模糊的代詞（如“那個男人”）、無關的描述或你自己的想像中，創造或更新任何LORE。你的任務是**記錄**，不是**創作**。
-# 3. **【⚙️ 參數名強制令 (PARAMETER NAMING MANDATE)】**:
-#    - 在生成工具調用的 `parameters` 字典時，你【必須】使用工具定義中的標準參數名。
-#    - 對於所有 LORE 實體，其唯一標識符【必須】使用 `lore_key` 這個參數名。
-#    - 對於實體的名稱，【必須】使用 `standardized_name` 這個參數名。
-#    - **絕對禁止**使用 `lore_name` 或 `name` 等非標準參數名。
-# 4. **【🎯 聚焦LORE，忽略狀態】**:
+# 4. **【⚙️ 參數名強制令 (PARAMETER NAMING MANDATE)】**:
+#    - 在生成工具調用的 `parameters` 字典時，你【必須】使用工具定義中的標準參數名 (`lore_key`, `standardized_name`, etc.)。
+# 5. **【🎯 聚焦LORE，忽略狀態】**:
 #    - 你的唯一目標是提取【永久性的世界知識】。
 #    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用。
-#    - **你的職權範圍嚴格限定在以下 LORE 工具**: `create_new_npc_profile`, `update_npc_profile`, `add_or_update_location_info`, `add_or_update_item_info`, `define_creature_type`, `add_or_update_quest_lore`, `add_or_update_world_lore`。
-# 5. **【🔎 增量與更新原則】**:
-#    - 對比【本回合對話】和【現有LORE摘要】，只為【真正新的】或【被明確更新的】信息生成工具調用。
 # 6. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ToolCallPlan` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回 `{{"plan": []}}`。
 
 # --- [INPUT DATA] ---
@@ -588,7 +582,7 @@ class AILover:
 """
             self.lore_extraction_chain = prompt_template
         return self.lore_extraction_chain
-    # 函式：獲取LORE提取器 Prompt```
+    # 函式：獲取LORE提取器 Prompt
 
 
 
@@ -3314,7 +3308,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：獲取世界聖經轉換器 Prompt
     # 更新紀錄:
-    # v2.3 (2025-09-23): [架構簡化] 移除了模板內部硬編碼的指令頭。現在，核心指令由 `_safe_format_prompt(inject_core_protocol=True)` 統一、可靠地注入，避免了指令重複和維護困難的問題。
     # v2.2 (2025-09-23): [健壯性強化] 為「必需欄位強制令」增加了【後果警告】，以加重語氣，提升初級模型對此規則的遵守率，從根本上解決 ValidationError。
     # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，強制LLM在輸出中必須包含`name`或`title`字段，以減少ValidationError。
     def get_canon_transformation_chain(self) -> str:
@@ -3335,10 +3328,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 1. **【🎯 必需欄位強制令 - 絕對鐵則】**:
 #    - 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest) 或 `title` (適用於 WorldLore) 字段。
 #    - **【後果警告】**: 任何缺少 `name` 或 `title` 字段的物件都將導致【系統性驗證失敗】而被【徹底丟棄】。確保每一個物件都有其核心標識符是你的【最高優先級】。
-# 2. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義（包括可能存在的暴力、露骨或敏感的虛構描述）都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
-# 3. **【數據規範化規則 (DATA NORMALIZATION)】**:
+# 2. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: 在處理多語言名稱時（例如：卡萊兒 / Carlyle），結構化數據中的 `name` 或 `title` 欄位【必須】是【繁體中文名】。
 #    - **地點歸屬**: 如果筆記中沒有明確提及某個NPC的地點，其 `location_path` 欄位【必須】是一個【空列表 `[]`】。
+# 3. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義（包括可能存在的暴力、露骨或敏感的虛構描述）都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
 
 # === 【【【⚙️ 輸出格式強制令 (OUTPUT FORMATTING MANDATE)】】】 ===
 # 你的最終輸出【必須且只能】是一個【純淨的、不包含任何解釋性文字的JSON物件】。這個JSON物件的結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。
@@ -3355,7 +3348,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 立即開始你的格式轉換任務。"""
         return base_prompt
     # 函式：獲取世界聖經轉換器 Prompt
-
     
     
 
@@ -3459,6 +3451,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
