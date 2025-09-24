@@ -169,7 +169,8 @@ class ContinueToAiSetupView(discord.ui.View):
 
 # 類別：繼續到世界聖經設定的視圖
 # 更新紀錄:
-# v1.1 (2025-09-23): [功能擴展] 新增了“上傳世界聖經”按鈕，允許使用者在 /start 流程中直接通過檔案上傳來提供世界觀，提升了用戶體驗的靈活性。
+# v1.2 (2025-09-24): [災難性BUG修復] 徹底重構了“上傳世界聖經”按鈕的邏輯。現在它會直接在當前頻道等待使用者發送帶有附件的訊息，從而創建了一個閉環流程，徹底解決了因跨指令狀態同步失敗導致的創世流程中斷問題。
+# v1.1 (2025-09-23): [功能擴展] 新增了“上傳世界聖經”按鈕。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -186,19 +187,53 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：處理「貼上世界聖經」按鈕點擊事件
 
-    # [v1.1 新增] 處理「上傳世界聖經」按鈕點擊事件
+    # [v1.2 核心修正] 處理「上傳世界聖經」按鈕點擊事件
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' upload button clicked.")
-        # 這裡我們不直接處理上傳，而是引導使用者使用斜線指令
-        # 這是因為按鈕互動無法直接觸發檔案上傳介面
-        await interaction.response.send_message(
-            "請在此頻道中，直接使用 `/set_canon_file` 指令來上傳您的 `.txt` 世界聖經檔案。\n"
-            "**重要提示：** 上傳成功後，創世流程將會自動繼續。",
-            ephemeral=True
-        )
-    # [v1.1 新增] 處理「上傳世界聖經」按鈕點擊事件
+        
+        # 禁用所有按鈕，向使用者表明正在等待操作
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(content="**請在 5 分鐘內，直接在此對話中發送您的 `.txt` 世界聖經檔案...**", view=self)
+
+        def check(message: discord.Message):
+            # 檢查訊息是否來自同一個使用者，同一個頻道，並且包含一個 .txt 附件
+            return (message.author.id == interaction.user.id and 
+                    message.channel.id == interaction.channel.id and 
+                    message.attachments and 
+                    message.attachments[0].filename.lower().endswith('.txt'))
+
+        try:
+            # 等待使用者發送符合條件的訊息，超時為 300 秒 (5分鐘)
+            user_message_with_file = await self.cog.bot.wait_for('message', check=check, timeout=300.0)
+            
+            attachment = user_message_with_file.attachments[0]
+            
+            # 檢查檔案大小
+            if attachment.size > 5 * 1024 * 1024: # 5MB
+                await interaction.followup.send("❌ 檔案過大！請上傳小於 5MB 的檔案。請重新點擊 `/start` 開始。", ephemeral=True)
+                self.stop()
+                return
+
+            await interaction.followup.send("✅ 檔案已接收！正在後台為您進行向量化和智能解析...", ephemeral=True)
+            
+            content_bytes = await attachment.read()
+            content_text = content_bytes.decode('utf-8')
+            
+            # 直接調用背景處理函式，並將 is_setup_flow 強制設為 True
+            asyncio.create_task(self.cog._background_process_canon(interaction, content_text, is_setup_flow=True))
+
+        except asyncio.TimeoutError:
+            # 如果使用者超時未發送檔案
+            await interaction.followup.send("⏳ 操作已超時，您沒有在 5 分鐘內上傳檔案。請重新點擊 `/start` 開始。", ephemeral=True)
+        except Exception as e:
+            logger.error(f"[{user_id}] 在等待檔案上傳時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"處理您的檔案時發生錯誤: `{e}`。請重新點擊 `/start` 開始。", ephemeral=True)
+        finally:
+            self.stop()
+    # [v1.2 核心修正] 處理「上傳世界聖經」按鈕點擊事件
 
     # 函式：處理「完成設定」按鈕點擊事件
     @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
@@ -212,7 +247,7 @@ class ContinueToCanonSetupView(discord.ui.View):
             try:
                 await interaction.message.edit(view=self)
             except discord.errors.NotFound:
-                pass # 如果訊息已被刪除，則忽略
+                pass 
 
         await interaction.response.send_message("✅ 基礎設定完成！正在為您啟動創世...", ephemeral=True)
         asyncio.create_task(self.cog.finalize_setup(interaction, canon_text=None))
