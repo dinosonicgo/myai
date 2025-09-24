@@ -3276,11 +3276,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：將互動記錄保存到資料庫 (v10.0 - 純 SQL)
-# 更新紀錄:
-# v10.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將對話歷史存入 SQL 的 MemoryData 表中。
-# v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，將安全摘要同時寫入 content 和 sanitized_content 欄位。
-# v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
+    # 函式：將互動記錄保存到資料庫 (v10.0 - 純 SQL)
+    # 更新紀錄:
+    # v10.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將對話歷史存入 SQL 的 MemoryData 表中。
+    # v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，將安全摘要同時寫入 content 和 sanitized_content 欄位。
+    # v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
     async def _save_interaction_to_dbs(self, interaction_text: str):
         """将单次互动的安全文本保存到 SQL 数据库，以供 BM25 检索器使用。"""
         if not interaction_text or not self.profile:
@@ -3288,25 +3288,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         user_id = self.user_id
         current_time = time.time()
+        
+        # [v13.0 適配] 由於不再生成淨化內容，sanitized_content 欄位可以留空或存儲原始文本
+        # 為了數據庫結構一致和未來可能的擴展，我們暫時將原始文本存入
         sanitized_text_for_db = interaction_text
 
         try:
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
-                    content=sanitized_text_for_db,
+                    content=interaction_text, # 存儲原始文本
                     timestamp=current_time,
                     importance=5,
-                    sanitized_content=sanitized_text_for_db
+                    sanitized_content=sanitized_text_for_db # 存儲原始文本以兼容
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{self.user_id}] [長期記憶寫入] 安全存檔已成功保存到 SQL 資料庫。")
+            logger.info(f"[{self.user_id}] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [長期記憶寫入] 將安全存檔保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [長期記憶寫入] 將互動記錄保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
