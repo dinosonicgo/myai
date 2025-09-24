@@ -355,34 +355,6 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
-class BatchResolutionResult(BaseModel):
-    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
-    decision: Literal['EXISTING', 'NEW'] = Field(description="您的最終判斷：'EXISTING'表示此名稱指向一個已存在的實體，'NEW'表示這是一個全新的實體。")
-    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
-    matched_key: Optional[str] = Field(default=None, description="如果判斷為'EXISTING'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
-    standardized_name: Optional[str] = Field(default=None, description="如果判斷為'NEW'，請提供一個對新實體名稱進行清理和標準化後的版本。如果判斷為'EXISTING'，則返回匹配到的實體的主要名稱。")
-
-    @model_validator(mode='after')
-    def check_consistency_and_autofill(self) -> 'BatchResolutionResult':
-        if self.decision == 'NEW' and not self.standardized_name:
-            self.standardized_name = self.original_name
-        if self.decision == 'EXISTING' and not self.matched_key:
-            raise ValueError("如果 decision 是 'EXISTING'，則 matched_key 欄位是必需的。")
-        
-        if self.decision == 'EXISTING' and not self.standardized_name:
-            if self.matched_key:
-                self.standardized_name = self.matched_key.split(' > ')[-1]
-            else:
-                self.standardized_name = self.original_name
-        
-        if not self.standardized_name:
-            self.standardized_name = self.original_name
-
-        return self
-
-class BatchResolutionPlan(BaseModel):
-    resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
-
 class SingleResolutionResult(BaseModel):
     """單個實體名稱的解析結果。"""
     original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
@@ -500,4 +472,4 @@ FactCheckResult.model_rebuild()
 
 
 
-
+我再次提供 schemas.py 檔案，你確認裡面的 BatchResolutionResult class 是否是我上次修改過的，如果不是，給我修正後的完整 schemas.py 檔案，嚴禁省略簡化
