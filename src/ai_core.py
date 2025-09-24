@@ -2650,13 +2650,14 @@ class ExtractionResult(BaseModel):
 
 
 
-      # 函式：解析並從世界聖經創建 LORE
+    # 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
+    # v8.2 (2025-09-24): [災難性BUG修復] 重構了第一層策略，將其從一次性的全文發送改為“大塊分區，結果合併”的模式，以從根本上解決因請求負載過大導致的 TimeoutError。
     # v8.1 (2025-09-24): [完整性修復] 提供了包含所有四層降級策略的完整、可運行的總指揮函式實現。
     # v8.0 (2025-09-24): [重大架構重構] 根據最新討論，實現了四層降級備援策略。
     async def parse_and_create_lore_from_canon(self, canon_text: str, is_setup_flow: bool = False):
         """
-        [v8.1 總指揮] 解析世界聖經文本，提取LORE並存入資料庫。
+        [v8.2 總指揮] 解析世界聖經文本，提取LORE並存入資料庫。
         採用一個包含四層降級備援策略的健壯流程，以最大限度地保留信息完整性。
         """
         if not self.profile:
@@ -2671,7 +2672,6 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] [LORE儲存] 正在批量儲存 {len(refined_profiles)} 個最終精煉的角色檔案...")
             for profile in refined_profiles:
                 try:
-                    # 使用角色名稱和地點路徑（如果可用）來創建一個更唯一的key
                     location_path = profile.location_path or []
                     lore_key = " > ".join(location_path + [profile.name]) if location_path else profile.name
                     final_content = self._decode_lore_content(profile.model_dump(), self.DECODING_MAP)
@@ -2690,7 +2690,6 @@ class ExtractionResult(BaseModel):
         async def run_hybrid_nlp_pipeline(text_to_process: str, use_coded_text: bool) -> bool:
             if not self.profile: return False
             
-            # --- 階段一：實體骨架提取 ---
             logger.info(f"[{self.user_id}] [混合NLP] 階段 1/2：正在提取角色骨架...")
             extraction_prompt_template = self.get_entity_extraction_chain()
             extraction_prompt = self._safe_format_prompt(
@@ -2705,12 +2704,11 @@ class ExtractionResult(BaseModel):
             
             logger.info(f"[{self.user_id}] [混合NLP] 階段 1/2：成功提取到 {len(extraction_result.characters)} 個角色骨架。")
 
-            # --- 階段二：批量深度精煉 ---
             logger.info(f"[{self.user_id}] [混合NLP] 階段 2/2：正在準備批量深度精煉...")
             all_refined_profiles: List[CharacterProfile] = []
             details_parser_template = self.get_character_details_parser_chain()
             
-            BATCH_SIZE = 5 # 較小的批次大小以避免單次 Prompt 過長
+            BATCH_SIZE = 5
             character_skeletons = extraction_result.characters
             
             for i in range(0, len(character_skeletons), BATCH_SIZE):
@@ -2719,8 +2717,7 @@ class ExtractionResult(BaseModel):
 
                 batch_input_str_parts = []
                 for skeleton in batch:
-                    # 為每個角色聚合其上下文
-                    aliases = [skeleton.name] # 未來可以擴展別名系統
+                    aliases = [skeleton.name]
                     name_pattern = re.compile('|'.join(re.escape(name) for name in set(aliases) if name))
                     
                     plot_context_parts = []
@@ -2748,7 +2745,6 @@ class ExtractionResult(BaseModel):
                     details_parser_template, {"batch_input": batch_input_str}, inject_core_protocol=True
                 )
                 
-                # 如果在處理原文時失敗，就直接返回 False，觸發更高層級的降級
                 try:
                     batch_result = await self.ainvoke_with_rotation(
                         refinement_prompt, output_schema=BatchRefinementResult, use_degradation=True, retry_strategy='euphemize'
@@ -2758,13 +2754,13 @@ class ExtractionResult(BaseModel):
                 except BlockedPromptException as e:
                     if not use_coded_text:
                         logger.warning(f"[{self.user_id}] [混合NLP] 處理原文批次時遭遇內容審查，將觸發代碼化備援。錯誤: {e}")
-                        return False # 返回 False 以觸發第三層降級
+                        return False
                     else:
                         logger.error(f"[{self.user_id}] [混合NLP] 處理【已代碼化】文本時仍然遭遇內容審查，此批次失敗。錯誤: {e}")
-                        continue # 繼續處理下一個批次
+                        continue
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [混合NLP] 處理批次時發生未知嚴重錯誤: {e}", exc_info=True)
-                    continue # 繼續處理下一個批次
+                    continue
 
             if all_refined_profiles:
                 await save_final_lores(all_refined_profiles)
@@ -2772,28 +2768,54 @@ class ExtractionResult(BaseModel):
             else:
                 return False
 
-        # --- 策略 1: 【理想方案】直接原文批量解析 ---
-        logger.info(f"[{self.user_id}] [LORE解析 1/4] 正在嘗試【理想方案：直接全文解析】...")
+        # --- 策略 1: 【理想方案】大塊分區，結果合併 ---
+        logger.info(f"[{self.user_id}] [LORE解析 1/4] 正在嘗試【理想方案：大塊分區解析】...")
         try:
-            transformation_template = self.get_canon_transformation_chain()
-            full_prompt = self._safe_format_prompt(
-                transformation_template,
-                {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": canon_text},
-                inject_core_protocol=True
-            )
-            parsing_result = await self.ainvoke_with_rotation(
-                full_prompt, output_schema=CanonParsingResult, use_degradation=True, retry_strategy='euphemize'
-            )
-            if parsing_result:
-                logger.info(f"[{self.user_id}] [LORE解析 1/4] ✅ 全文解析成功！正在儲存結果...")
-                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-                await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
-                await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
-                await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+            # [v8.2 核心修正] 使用更大的分塊來避免單次請求超時
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=500)
+            large_chunks = text_splitter.split_text(canon_text)
+            
+            merged_parsing_result = CanonParsingResult()
+            all_chunks_succeeded = True
+
+            for i, chunk in enumerate(large_chunks, 1):
+                logger.info(f"[{self.user_id}] [大塊解析] 正在處理分區 {i}/{len(large_chunks)}...")
+                transformation_template = self.get_canon_transformation_chain()
+                full_prompt = self._safe_format_prompt(
+                    transformation_template,
+                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+                    inject_core_protocol=True
+                )
+                
+                # 單個大塊的解析，如果失敗（包括超時），則整個第一層策略失敗
+                chunk_result = await self.ainvoke_with_rotation(
+                    full_prompt, output_schema=CanonParsingResult, use_degradation=True, retry_strategy='euphemize'
+                )
+                
+                if chunk_result:
+                    merged_parsing_result.npc_profiles.extend(chunk_result.npc_profiles)
+                    merged_parsing_result.locations.extend(chunk_result.locations)
+                    merged_parsing_result.items.extend(chunk_result.items)
+                    merged_parsing_result.creatures.extend(chunk_result.creatures)
+                    merged_parsing_result.quests.extend(chunk_result.quests)
+                    merged_parsing_result.world_lores.extend(chunk_result.world_lores)
+                else:
+                    # 如果任何一個塊返回了空結果（可能是委婉化失敗），則標記失敗並跳出
+                    logger.warning(f"[{self.user_id}] [大塊解析] 分區 {i} 解析返回空結果，第一層策略終止。")
+                    all_chunks_succeeded = False
+                    break
+
+            if all_chunks_succeeded:
+                logger.info(f"[{self.user_id}] [LORE解析 1/4] ✅ 所有大塊分區解析成功！正在合併並儲存結果...")
+                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in merged_parsing_result.npc_profiles])
+                await self._resolve_and_save("locations", [p.model_dump() for p in merged_parsing_result.locations])
+                await self._resolve_and_save("items", [p.model_dump() for p in merged_parsing_result.items])
+                await self._resolve_and_save("creatures", [p.model_dump() for p in merged_parsing_result.creatures])
+                await self._resolve_and_save("quests", [p.model_dump() for p in merged_parsing_result.quests])
+                await self._resolve_and_save("world_lores", [p.model_dump() for p in merged_parsing_result.world_lores], title_key='title')
                 parsing_completed = True
-        except (BlockedPromptException, ResourceExhausted) as e:
+
+        except (BlockedPromptException, ResourceExhausted, TimeoutError) as e:
             logger.warning(f"[{self.user_id}] [LORE解析 1/4] 理想方案失敗 ({type(e).__name__})，將降級到第一備援。")
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE解析 1/4] 理想方案遭遇未知嚴重錯誤: {e}", exc_info=True)
@@ -2825,7 +2847,9 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] [LORE解析 3/4] 正在嘗試【第二備援：代碼化混合NLP】...")
             try:
                 coded_text = canon_text
-                for word, code in self.DECODING_MAP.items():
+                # 使用反向映射來替換，確保長詞優先
+                reversed_decoding_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                for word, code in reversed_decoding_map:
                     coded_text = coded_text.replace(word, code)
                 
                 parsing_completed = await run_hybrid_nlp_pipeline(coded_text, use_coded_text=True)
@@ -2844,10 +2868,10 @@ class ExtractionResult(BaseModel):
         if not parsing_completed:
             logger.info(f"[{self.user_id}] [LORE解析 4/4] 正在執行【最終保險：分塊解析】...")
             try:
-                # 這是資訊損失最大但最穩定的舊流程
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
                 text_chunks = text_splitter.split_text(canon_text)
                 
+                all_results = CanonParsingResult()
                 for i, chunk in enumerate(text_chunks, 1):
                     logger.info(f"[{self.user_id}] [分塊解析] 正在處理文本塊 {i}/{len(text_chunks)}...")
                     try:
@@ -2861,11 +2885,19 @@ class ExtractionResult(BaseModel):
                             full_prompt, output_schema=CanonParsingResult, retry_strategy='euphemize'
                         )
                         if parsing_result:
-                            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                            # ... 此處可以添加對其他LORE類型的保存調用 ...
+                            all_results.npc_profiles.extend(parsing_result.npc_profiles)
+                            all_results.locations.extend(parsing_result.locations)
+                            all_results.items.extend(parsing_result.items)
+                            all_results.creatures.extend(parsing_result.creatures)
+                            all_results.quests.extend(parsing_result.quests)
+                            all_results.world_lores.extend(parsing_result.world_lores)
                     except Exception as chunk_e:
                         logger.error(f"[{self.user_id}] [分塊解析] 處理文本塊 {i} 時失敗，已跳過。錯誤: {chunk_e}")
                         continue
+                
+                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in all_results.npc_profiles])
+                await self._resolve_and_save("locations", [p.model_dump() for p in all_results.locations])
+                # ...可以為其他類型添加保存調用...
                 parsing_completed = True
             except Exception as e:
                 logger.critical(f"[{self.user_id}] [LORE解析 4/4] 最終備援方案“分塊解析”也失敗了！錯誤: {e}", exc_info=True)
@@ -2875,6 +2907,7 @@ class ExtractionResult(BaseModel):
             await self._load_or_build_rag_retriever(force_rebuild=True)
         else:
             logger.error(f"[{self.user_id}] 所有 LORE 解析方案均告失敗，無法為世界聖經創建 LORE。")
+
     # 函式：解析並從世界聖經創建 LORE
 
 
@@ -3398,6 +3431,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
