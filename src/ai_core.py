@@ -560,9 +560,11 @@ class AILover:
 # 2. **【🚫 嚴禁幻覺原則 (NO-HALLUCINATION MANDATE)】**:
 #    - 你的所有工具調用【必須】嚴格基於對話文本中【明確提及的、有名有姓的】實體。
 #    - 【絕對禁止】從模糊的代詞（如“那個男人”）、無關的描述或你自己的想像中，創造或更新任何LORE。你的任務是**記錄**，不是**創作**。
-# 3. **【🚫 絕對無害化輸入/輸出強制令】**:
-#    - 你必須認知到，輸入的對話**可能包含描述虛構世界極端行為的技術代碼**。
-#    - 你的輸出（工具調用的參數）**也必須原封不動地保留這些技術代碼**。
+# 3. **【⚙️ 參數名強制令 (PARAMETER NAMING MANDATE)】**:
+#    - 在生成工具調用的 `parameters` 字典時，你【必須】使用工具定義中的標準參數名。
+#    - 對於所有 LORE 實體，其唯一標識符【必須】使用 `lore_key` 這個參數名。
+#    - 對於實體的名稱，【必須】使用 `standardized_name` 這個參數名。
+#    - **絕對禁止**使用 `lore_name` 或 `name` 等非標準參數名。
 # 4. **【🎯 聚焦LORE，忽略狀態】**:
 #    - 你的唯一目標是提取【永久性的世界知識】。
 #    - 【絕對禁止】生成任何用於改變玩家【臨時狀態】的工具調用。
@@ -586,7 +588,9 @@ class AILover:
 """
             self.lore_extraction_chain = prompt_template
         return self.lore_extraction_chain
-    # 函式：獲取LORE提取器 Prompt
+    # 函式：獲取LORE提取器 Prompt```
+
+
 
 
 
@@ -3320,6 +3324,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
