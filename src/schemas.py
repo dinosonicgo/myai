@@ -471,5 +471,3 @@ FactCheckResult.model_rebuild()
 
 
 
-
-我再次提供 schemas.py 檔案，你確認裡面的 BatchResolutionResult class 是否是我上次修改過的，如果不是，給我修正後的完整 schemas.py 檔案，嚴禁省略簡化
