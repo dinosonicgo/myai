@@ -841,13 +841,22 @@ class AILover:
                 r"【劇情上下文 \(可能經過代碼化處理\)】:\s*([\s\S]*?)---", # for get_character_details_parser_chain
                 r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---", # for get_lore_update_fact_check_prompt
                 r"【本回合的完整對話】:\s*([\s\S]*?)---", # for get_lore_extraction_chain
-                r"【小說手稿片段】:\s*([\s\S]*?)---" # for get_literary_euphemization_chain
+                r"【小說手稿片段】:\s*([\s\S]*?)---", # for get_literary_euphemization_chain
+                r"【批量描述合成任務】:\s*(\{[\s\S]*\})" # [v4.1 新增] for get_description_synthesis_prompt
             ]
             
             for pattern in patterns_to_try:
                 match = re.search(pattern, failed_prompt, re.IGNORECASE)
                 if match:
                     text_to_sanitize = match.group(1).strip()
+                    # 如果匹配到的是 JSON，我們需要將其解析並轉換為字符串
+                    if text_to_sanitize.startswith('{') or text_to_sanitize.startswith('['):
+                        try:
+                            json_data = json.loads(text_to_sanitize)
+                            text_to_sanitize = json.dumps(json_data, ensure_ascii=False)
+                        except json.JSONDecodeError:
+                            # 如果解析失敗，就當作普通文本處理
+                            pass
                     break
             
             if not text_to_sanitize:
@@ -863,7 +872,10 @@ class AILover:
                 "高潮": "STATE-A", "射精": "STATE-B", "臣服": "ROLE-A",
                 "主人": "ROLE-B", "母狗": "ROLE-C", "母畜": "ROLE-D"
             }
-            extracted_codes = {coded_terms[kw] for kw in coded_terms if kw in text_to_sanitize}
+            # [v4.1 修正] 應該是從 decoding_map 反向查找
+            keywords_to_find = list(self.DECODING_MAP.values())
+            
+            extracted_codes = {kw for kw in keywords_to_find if kw in text_to_sanitize}
             
             all_names = set()
             if self.profile:
@@ -876,7 +888,8 @@ class AILover:
 
             if not final_keywords:
                 logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出任何已知關鍵詞，無法進行重構。")
-                return None
+                # 即使沒有關鍵詞，也返回一個空的 schema，避免 None 導致上層出錯
+                return output_schema() if output_schema else None
 
             logger.info(f"[{self.user_id}] (Euphemizer) 已提取情報關鍵詞: {final_keywords}")
 
@@ -896,7 +909,7 @@ class AILover:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 【通用化解構】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
-            return None
+            return output_schema() if output_schema else None
     # 函式：委婉化並重試
 
 
@@ -3435,6 +3448,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
