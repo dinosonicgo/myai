@@ -248,6 +248,19 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
+# [v1.4 新增] 單個實體解析模型，確保 ai_core.py 可以成功導入
+class SingleResolutionResult(BaseModel):
+    """單個實體名稱的解析結果。"""
+    original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
+    decision: Literal['NEW', 'EXISTING'] = Field(description="判斷結果：'NEW' 代表這是一個全新的實體，'EXISTING' 代表它指向一個已存在的實體。")
+    standardized_name: Optional[str] = Field(None, description="如果判斷為'NEW'，AI 應為其生成一個更標準、更正式的名稱。如果判斷為'EXISTING'，此欄位可為空。")
+    matched_key: Optional[str] = Field(None, description="如果判斷為'EXISTING'，此欄位必須包含匹配到的、已存在的實體的唯一主鍵 (lore_key)。")
+    reasoning: str = Field(description="AI 做出此判斷的簡短理由。")
+
+class SingleResolutionPlan(BaseModel):
+    """單個實體名稱的完整解析計畫。"""
+    resolution: SingleResolutionResult
+
 class ToolCallPlan(BaseModel):
     plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
 
@@ -329,3 +342,5 @@ ExtractedEntities.model_rebuild()
 ExpansionDecision.model_rebuild()
 IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
+SingleResolutionPlan.model_rebuild()
+SingleResolutionResult.model_rebuild()
