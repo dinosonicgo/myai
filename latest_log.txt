@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T00:55:41.406757 ###
+### AI Lover Log - Last updated at 2025-09-25T01:01:11.225982 ###
 
-2025-09-25 00:29:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-25 00:30:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-25 00:30:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
-2025-09-25 00:31:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-25 00:31:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-25 00:31:52 - [INFO] - [512280345618546699] [LORE解析 1/4] ✅ 所有並行任務解析成功！正在合併並儲存結果...
-2025-09-25 00:31:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 66 個實體...
 2025-09-25 00:31:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 2893 秒)。
 2025-09-25 00:31:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 2532 秒)。
 2025-09-25 00:31:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 2537 秒)。
@@ -300,3 +293,10 @@
 2025-09-25 00:51:17 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-25 00:51:18 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-25 00:51:18 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-25 01:00:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-25 01:00:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-25 01:00:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-25 01:00:57 - [INFO] - Discord Bot is ready!
+2025-09-25 01:01:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-25 01:01:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-25 01:01:02 - [INFO] - 已成功發送啟動成功通知給管理員。
