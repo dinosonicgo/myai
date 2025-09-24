@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T10:24:14.311598 ###
+### AI Lover Log - Last updated at 2025-09-24T10:29:42.945610 ###
 
-resolutions.41.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.42.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.43.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.44.decision
@@ -300,3 +293,10 @@ resolutions.65.decision
 2025-09-24 10:19:01 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-24 10:19:01 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-24 10:19:01 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-24 10:29:28 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 10:29:28 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 10:29:29 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 10:29:29 - [INFO] - Discord Bot is ready!
+2025-09-24 10:29:31 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 10:29:31 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 10:29:32 - [INFO] - 已成功發送啟動成功通知給管理員。
