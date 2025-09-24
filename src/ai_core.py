@@ -3213,11 +3213,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：檢索並摘要記憶 (v12.2 - 原生模板重構)
     # 更新紀錄:
+    # v13.0 (2025-09-24): [重大架構重構] 根據最新洞察，徹底移除了脆弱且冗餘的“文學性委婉化”（淨化）中間件。現在，RAG 檢索到的原始文本將被直接送入摘要器，以最大限度地保留上下文信息並消除不必要的故障點。
     # v12.2 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt。
     # v12.1 (2025-11-15): [完整性修復] 提供了此函式的完整、未省略的版本。
-    # v12.0 (2025-11-15): [災難性BUG修復 & 性能優化] 徹底重構了此函式以實現【持久化淨化快取】。
     async def retrieve_and_summarize_memories(self, query_text: str) -> str:
-        """執行RAG檢索並將結果總結為摘要。採用【持久化淨化快取】策略以確保性能和穩定性。"""
+        """執行RAG檢索並直接將原始結果總結為摘要，不再进行中间“净化”处理。"""
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return "沒有檢索到相關的長期記憶。"
@@ -3243,70 +3243,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not retrieved_docs:
             return "沒有檢索到相關的長期記憶。"
 
-        logger.info(f"[{self.user_id}] (RAG Cache) 檢索到 {len(retrieved_docs)} 份文檔，正在檢查淨化快取...")
+        logger.info(f"[{self.user_id}] (RAG Summarizer) 檢索到 {len(retrieved_docs)} 份原始文檔，正在直接進行摘要...")
         
-        safely_sanitized_parts = []
-        docs_to_update_in_db = {}
-        literary_prompt_template = self.get_literary_euphemization_chain()
-
-        async with AsyncSessionLocal() as session:
-            for i, doc in enumerate(retrieved_docs):
-                stmt = select(MemoryData).where(MemoryData.user_id == self.user_id, MemoryData.content == doc.page_content)
-                result = await session.execute(stmt)
-                memory_entry = result.scalars().first()
-
-                if not memory_entry: continue
-
-                if memory_entry.sanitized_content:
-                    safely_sanitized_parts.append(memory_entry.sanitized_content)
-                    continue
-
-                logger.info(f"[{self.user_id}] (RAG Cache) 快取未命中 for Memory ID #{memory_entry.id}，執行一次性淨化...")
-                try:
-                    # [核心修正] 為淨化鏈注入最高指導原則，並使用更安全的 none 重試策略
-                    literary_full_prompt = self._safe_format_prompt(
-                        literary_prompt_template,
-                        {"dialogue_history": doc.page_content},
-                        inject_core_protocol=True
-                    )
-                    sanitized_part = await self.ainvoke_with_rotation(literary_full_prompt, retry_strategy='none')
-                    if sanitized_part and sanitized_part.strip():
-                        sanitized_text = sanitized_part.strip()
-                        safely_sanitized_parts.append(sanitized_text)
-                        docs_to_update_in_db[memory_entry.id] = sanitized_text
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] (RAG Cache) 一次性淨化 Memory ID #{memory_entry.id} 失敗，已跳過。錯誤: {e}")
-                    continue
-        
-        if docs_to_update_in_db:
-            async with AsyncSessionLocal() as session:
-                for mem_id, sanitized_text in docs_to_update_in_db.items():
-                    stmt = update(MemoryData).where(MemoryData.id == mem_id).values(sanitized_content=sanitized_text)
-                    await session.execute(stmt)
-                await session.commit()
-            logger.info(f"[{self.user_id}] (RAG Cache) 已成功將 {len(docs_to_update_in_db)} 條新淨化的記憶寫回快取。")
-
-        if not safely_sanitized_parts:
-            logger.warning(f"[{self.user_id}] (RAG Sanitizer) 所有檢索到的文檔都未能成功淨化。")
-            return "（從記憶中檢索到一些相關片段，但因內容過於露骨而無法生成安全的劇情概述。）"
-        
-        safe_overview_of_all_docs = "\n\n---\n\n".join(safely_sanitized_parts)
-        logger.info(f"[{self.user_id}] (RAG Summarizer) 成功淨化 {len(safely_sanitized_parts)}/{len(retrieved_docs)} 份文檔，正在進行最終摘要...")
+        # [v13.0 核心修正] 直接拼接原始文檔內容，不再淨化
+        raw_content_of_all_docs = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         
         summarizer_prompt_template = self.get_rag_summarizer_chain()
-        # [核心修正] 同樣為摘要鏈注入最高指導原則
         summarizer_full_prompt = self._safe_format_prompt(
             summarizer_prompt_template,
-            {"documents": safe_overview_of_all_docs},
-            inject_core_protocol=True
+            {"documents": raw_content_of_all_docs},
+            inject_core_protocol=True  # 注入越獄指令以處理潛在的 NSFW 內容
         )
-        summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='none')
+        
+        try:
+            summarized_context = await self.ainvoke_with_rotation(summarizer_full_prompt, retry_strategy='euphemize')
+        except Exception as e:
+            logger.error(f"[{self.user_id}] RAG 摘要鏈在處理原始文本時遭遇無法恢復的錯誤: {e}", exc_info=True)
+            return "（從記憶中檢索到相關片段，但在生成摘要時遇到錯誤。）"
+
 
         if not summarized_context or not summarized_context.strip():
-             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理已淨化的內容後，返回了空的結果。")
+             logger.warning(f"[{self.user_id}] RAG 摘要鏈在處理原始內容後，返回了空的結果。")
              summarized_context = "從記憶中檢索到一些相關片段，但無法生成清晰的摘要。"
              
-        logger.info(f"[{self.user_id}] 已成功將 RAG 上下文提煉為事實要點。")
+        logger.info(f"[{self.user_id}] 已成功將 RAG 原始上下文提煉為事實要點。")
         return f"【背景歷史參考（事實要點）】:\n{summarized_context}"
     # 檢索並摘要記憶 函式結束
             
@@ -3347,6 +3307,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
