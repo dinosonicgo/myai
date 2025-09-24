@@ -1476,49 +1476,54 @@ class BotCog(commands.Cog):
     
 # 指令：通過上傳檔案來設定世界聖經 (v54.0 - 超時修正)
 # 更新紀錄:
-# v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程。在函式開頭增加了 await interaction.response.defer()，以立即響應 Discord 的 3 秒時限並將其延長至 15 分鐘。隨後將發送消息的方法改為 await interaction.followup.send()。此修改從根本上解決了因讀取大檔案耗時過長而導致的 "Unknown interaction" 超時錯誤。
+# v54.1 (2025-09-24): [災難性BUG修復] 增加了對 setup_locks 的檢查，使指令能夠智能判斷當前是否處於 /start 創世流程中，從而正確觸發後續的創世步驟，解決了流程中斷的問題。
+# v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程以解決超時問題。
 # v52.0 (2025-11-22): [架構調整] 創建此指令。
-# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     @app_commands.command(name="set_canon_file", description="通過上傳 .txt 檔案來設定您的世界聖經")
     @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
     async def set_canon_file(self, interaction: discord.Interaction, file: discord.Attachment):
-        # [v54.0 核心修正] 立即延遲回應，防止 3 秒超時
         await interaction.response.defer(ephemeral=True, thinking=True)
 
         if not file.filename.lower().endswith('.txt'):
-            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send("❌ 檔案格式錯誤！請上傳一個 .txt 檔案。", ephemeral=True)
             return
         
-        # 檢查檔案大小
         if file.size > 5 * 1024 * 1024: # 5MB
-            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send("❌ 檔案過大！請上傳小於 5MB 的檔案。", ephemeral=True)
             return
 
         try:
-            # 現在可以安全地執行可能耗時的操作
             content_bytes = await file.read()
             
-            # 嘗試用多種編碼解碼，以增加兼容性
             try:
                 content_text = content_bytes.decode('utf-8')
             except UnicodeDecodeError:
                 try:
                     content_text = content_bytes.decode('gbk')
                 except UnicodeDecodeError:
-                    # [v54.0 核心修正] 使用 followup.send
                     await interaction.followup.send("❌ 檔案編碼錯誤！請確保您的 .txt 檔案是 UTF-8 或 GBK 編碼。", ephemeral=True)
                     return
 
-            # [v54.0 核心修正] 使用 followup.send 發送後續消息
+            # [v54.1 核心修正] 智能判斷當前是否處於 /start 設置流程中
+            user_id = str(interaction.user.id)
+            is_currently_in_setup = user_id in self.setup_locks
+            
+            if is_currently_in_setup:
+                 # 如果在創世流程中，禁用按鈕並提示後續流程會自動開始
+                if interaction.channel and interaction.message:
+                     try:
+                        original_message = await interaction.channel.fetch_message(interaction.message.id)
+                        view = discord.ui.View.from_message(original_message)
+                        for item in view.children: item.disabled = True
+                        await original_message.edit(view=view)
+                     except (discord.errors.NotFound, AttributeError): pass
+            
             await interaction.followup.send("✅ 檔案已接收！正在後台為您進行向量化和智能解析，這可能需要幾分鐘時間，請稍候...", ephemeral=True)
             
-            # 將耗時的處理作為背景任務執行
-            asyncio.create_task(self._background_process_canon(interaction, content_text, is_setup_flow=False))
+            # 將動態判斷的 is_setup_flow 值傳遞給背景任務
+            asyncio.create_task(self._background_process_canon(interaction, content_text, is_setup_flow=is_currently_in_setup))
         except Exception as e:
             logger.error(f"處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
-            # [v54.0 核心修正] 使用 followup.send
             await interaction.followup.send(f"讀取或處理檔案時發生嚴重錯誤: `{type(e).__name__}`", ephemeral=True)
 # 通過上傳檔案來設定世界聖經 指令結束
 
