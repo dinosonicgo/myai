@@ -169,9 +169,8 @@ class ContinueToAiSetupView(discord.ui.View):
 
 # 類別：繼續到世界聖經設定的視圖
 # 更新紀錄:
-# v1.4 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱，從錯誤的 'content_text' 改為正確的 'canon_text'，解決了 TypeError。
-# v1.3 (2025-09-25): [災難性BUG修復] 修改為直接 await 創世流程，確保同步執行。
-# v1.2 (2025-09-24): [災難性BUG修復] 重構了“上傳世界聖經”按鈕的邏輯以解决流程中断问题。
+# v1.5 (2025-09-25): [災難性BUG修復] 修正了UI生命週期管理。將 self.stop() 從 finally 塊中移出，確保在長時異步任務 finalize_setup 完全結束後才停止視圖，從而防止 interaction 失效導致最終訊息發送失敗。
+# v1.4 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -206,7 +205,6 @@ class ContinueToCanonSetupView(discord.ui.View):
 
         try:
             user_message_with_file = await self.cog.bot.wait_for('message', check=check, timeout=300.0)
-            
             attachment = user_message_with_file.attachments[0]
             
             if attachment.size > 5 * 1024 * 1024:
@@ -217,15 +215,16 @@ class ContinueToCanonSetupView(discord.ui.View):
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            # [v1.4 核心修正] 使用正確的關鍵字參數名稱 'canon_text'
+            # [v1.5 核心修正] 先執行長時任務，執行完畢後才停止視圖
             await self.cog.finalize_setup(interaction, canon_text=content_text)
+            self.stop()
 
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超時。請重新點擊 `/start` 開始。", ephemeral=True)
+            self.stop()
         except Exception as e:
             logger.error(f"[{user_id}] 在等待檔案上傳時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"處理您的檔案時發生錯誤: `{e}`。請重新點擊 `/start` 開始。", ephemeral=True)
-        finally:
             self.stop()
     # 處理「上傳世界聖經」按鈕點擊事件
 
@@ -243,7 +242,9 @@ class ContinueToCanonSetupView(discord.ui.View):
                 pass 
 
         await interaction.response.defer(ephemeral=True)
+        # [v1.5 核心修正] 先執行長時任務，執行完畢後才停止視圖
         await self.cog.finalize_setup(interaction, canon_text=None)
+        self.stop()
     # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
 
@@ -376,8 +377,10 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
     
     # 函式：處理 Modal 提交事件
     # 更新紀錄:
-    # v1.2 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱，從錯誤的 'content_text' 改為正確的 'canon_text'，解決了 TypeError。
+    # v1.3 (2025-09-25): [災難性BUG修復] 確保在 await finalize_setup 之後再停止 modal/view，防止 interaction 失效。
+    # v1.2 (2025-09-25): [災難性BUG修復] 修正了调用 finalize_setup 時的關鍵字參數名稱。
     async def on_submit(self, interaction: discord.Interaction):
+        original_message = None
         if self.original_interaction_message_id:
             try:
                 original_message = await interaction.channel.fetch_message(self.original_interaction_message_id)
@@ -388,8 +391,13 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         
         if self.is_setup_flow:
             await interaction.response.defer(ephemeral=True)
-            # [v1.2 核心修正] 使用正確的關鍵字參數名稱 'canon_text'
             await self.cog.finalize_setup(interaction, canon_text=self.canon_text.value)
+            # [v1.3 核心修正] 任務完成後再停止相關視圖
+            if original_message:
+                view = discord.ui.View.from_message(original_message)
+                if hasattr(view, 'stop'):
+                    view.stop()
+
         else:
             await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經...", ephemeral=True)
             asyncio.create_task(self.cog._background_process_canon(interaction=interaction, content_text=self.canon_text.value, is_setup_flow=self.is_setup_flow))
@@ -1266,7 +1274,7 @@ class BotCog(commands.Cog):
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
         
         try:
-            await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到兩分鐘，請稍候。", ephemeral=True)
+            await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到十幾分鐘，請稍候。", ephemeral=True)
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
