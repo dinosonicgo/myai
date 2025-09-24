@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-24T15:03:40.804646 ###
+### AI Lover Log - Last updated at 2025-09-24T15:08:43.014177 ###
 
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.62.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.63.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
+synthesized_descriptions.8.description
+  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.9.description
+  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.10.description
+  Field required [type=missing, input_value={'name': '赫克托', 'sy...位，因其賢明。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.11.description
+  Field required [type=missing, input_value={'name': '埃德蒙三世...爾，皈依新神！'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.12.description
+  Field required [type=missing, input_value={'name': '阿拉里克', ...下凡般的武勇。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.13.description
+  Field required [type=missing, input_value={'name': '伊索爾德', ...王國軍事力量。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.14.description
+  Field required [type=missing, input_value={'name': '博林', 'synth...狂熱的「矛」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.15.description
+  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.16.description
+  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.17.description
+  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.18.description
+  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.19.description
+  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.20.description
+  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.21.description
+  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.22.description
+  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.23.description
+  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.24.description
+  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.25.description
+  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.26.description
+  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.27.description
+  Field required [type=missing, input_value={'name': '朱利安', 'sy...恩」的可能性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.28.description
+  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.29.description
+  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.30.description
+  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.31.description
+  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.32.description
+  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.33.description
+  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.34.description
+  Field required [type=missing, input_value={'name': '老羅', 'synth...聖女的蕩婦」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.35.description
+  Field required [type=missing, input_value={'name': '馬克', 'synth...聖女的蕩婦」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.36.description
+  Field required [type=missing, input_value={'name': '費奇', 'synth...音分享給兒女。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.37.description
+  Field required [type=missing, input_value={'name': '湯瑪斯', 'sy...性神」的信徒。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.38.description
+  Field required [type=missing, input_value={'name': '愛蓮娜', 'sy...性神」的信徒。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.39.description
+  Field required [type=missing, input_value={'name': '愛莉莎', 'sy...的幸運兒之一。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.40.description
+  Field required [type=missing, input_value={'name': '卡蓮', 'synth...的核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.41.description
+  Field required [type=missing, input_value={'name': '凱爾', 'synth...」核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.42.description
+  Field required [type=missing, input_value={'name': '艾拉', 'synth...」核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.43.description
+  Field required [type=missing, input_value={'name': '瓦勒留斯', ...均以失敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.44.description
+  Field required [type=missing, input_value={'name': '里斯', 'synth...教派中的地位。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.45.description
+  Field required [type=missing, input_value={'name': '瑪倫', 'synth...教義得以康復。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.46.description
+  Field required [type=missing, input_value={'name': '艾莉絲', 'sy...隨FLUID-A的產生。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.47.description
+  Field required [type=missing, input_value={'name': '博林勳爵', ...握重兵的將領。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.48.description
+  Field required [type=missing, input_value={'name': '受役者', 'sy...生理組成部分。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.49.description
+  Field required [type=missing, input_value={'name': '無名男性', ...現ACTION-E行為。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.50.description
+  Field required [type=missing, input_value={'name': '無名女性', ...和輪姦的反應。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2691, in parse_and_create_lore_from_canon
-    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2728, in parse_and_create_lore_from_canon
+    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='euphemize', use_degradation=True)
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 731, in ainvoke_with_rotation
     raise e
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 714, in ainvoke_with_rotation
     return output_schema.model_validate(json.loads(clean_json_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
     return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 64 validation errors for BatchResolutionPlan
-resolutions.0.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.1.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.2.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.3.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.4.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.5.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.6.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.7.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.8.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.9.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.10.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.11.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.12.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.13.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.14.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.15.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.16.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.17.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.18.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.19.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.20.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.21.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.22.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.23.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.24.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.25.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.26.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.27.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.28.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.29.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.30.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.31.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.32.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.33.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.34.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.35.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.36.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.37.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.38.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.39.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.40.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.41.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.42.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.43.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.44.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.45.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.46.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.47.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.48.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.49.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.50.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.51.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.52.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.53.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.54.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.55.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.56.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.57.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.58.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.59.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.60.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.61.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.62.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.63.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='CREATE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-2025-09-24 11:35:01 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 實體解析完成。決策: 64 創建, 0 合併。
-2025-09-24 11:35:01 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 開始批量描述合成...
-2025-09-24 11:35:01 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
-2025-09-24 11:35:01 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 315 條文檔用於創始構建。
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
-2025-09-24 11:35:15 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
-2025-09-24 14:53:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-24 14:53:22 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-24 14:53:22 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-24 14:53:22 - [INFO] - Discord Bot is ready!
-2025-09-24 14:53:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-24 14:53:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-24 14:53:25 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-24 15:00:27 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 315 條文檔到 RAG 語料庫。
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-24 15:00:27 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-24 15:00:27 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-24 15:00:29 - [INFO] - [512280345618546699] (Canon Processor) 已从 SQL 记忆库中清理了 33 条旧 'canon' 记录。
-2025-09-24 15:00:29 - [INFO] - [512280345618546699] (Canon Processor) 所有 33 个世界圣经文本块均已成功处理并存入 SQL 记忆库。
-2025-09-24 15:00:29 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 開始初步解析所有文本塊...
-2025-09-24 15:00:29 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
-2025-09-24 15:00:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-24 15:00:49 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
-2025-09-24 15:00:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-24 15:00:59 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
-2025-09-24 15:01:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-24 15:01:10 - [INFO] - [512280345618546699] 正在初步解析文本塊 4/7...
-2025-09-24 15:01:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 15:01:11 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['CODE-F-GEN-C', 'ROLE-B', 'ACTION-C', 'FLUID-A', 'STATE-A', 'ACTION-E', 'ROLE-D', 'CODE-F-GEN-A']
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 37130 秒)。
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 36551 秒)。
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 37134 秒)。
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 36773 秒)。
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 36778 秒)。
-2025-09-24 15:01:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 36783 秒)。
-2025-09-24 15:01:11 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 15:01:11 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 15:01:11 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 15:01:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
-2025-09-24 15:01:22 - [INFO] - [512280345618546699] 正在初步解析文本塊 5/7...
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] 正在初步解析文本塊 6/7...
-2025-09-24 15:01:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 15:01:34 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['ACTION-E', 'ROLE-D']
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 36750 秒)。
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 36755 秒)。
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 36760 秒)。
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 37107 秒)。
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 36528 秒)。
-2025-09-24 15:01:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 37111 秒)。
-2025-09-24 15:01:34 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 15:01:34 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 15:01:34 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] 正在初步解析文本塊 7/7...
-2025-09-24 15:01:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 15:01:55 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['ACTION-B', 'STATE-A', 'ACTION-E', 'CODE-M-GEN-A', 'ROLE-D', 'CODE-F-GEN-A']
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 36739 秒)。
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 37085 秒)。
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 36507 秒)。
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 37090 秒)。
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 36729 秒)。
-2025-09-24 15:01:55 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 36734 秒)。
-2025-09-24 15:01:55 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 15:01:55 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 15:01:55 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [LORE解析階段 1/4] 初步解析完成。收集到 62 個潛在NPC條目和其他 50 條LORE。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [LORE解析階段 2/4] 開始批量實體解析...
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 37070 秒)。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 36491 秒)。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 37074 秒)。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 36713 秒)。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 36718 秒)。
-2025-09-24 15:02:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 36723 秒)。
-2025-09-24 15:02:11 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 15:02:11 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 15:02:11 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+pydantic_core._pydantic_core.ValidationError: 51 validation errors for BatchSynthesisResult
+synthesized_descriptions.0.description
+  Field required [type=missing, input_value={'name': '絲月', 'synth...奇蹟般地受孕。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.1.description
+  Field required [type=missing, input_value={'name': '絲月', 'synth...奇蹟般地受孕。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.2.description
+  Field required [type=missing, input_value={'name': '卡爾•維利...成為神國中心。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.3.description
+  Field required [type=missing, input_value={'name': '莉莉絲', 'sy...是極致的痛苦。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.4.description
+  Field required [type=missing, input_value={'name': '莉莉絲', 'sy...是極致的痛苦。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.5.description
+  Field required [type=missing, input_value={'name': '老高', 'synth...「教義栽培」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.6.description
+  Field required [type=missing, input_value={'name': '薩格納', 'sy...鍵的「同盟」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.7.description
+  Field required [type=missing, input_value={'name': '菲利普', 'sy...族猜測與渴望。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.8.description
+  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.9.description
+  Field required [type=missing, input_value={'name': '米婭', 'synth...「恩澤試用」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.10.description
+  Field required [type=missing, input_value={'name': '赫克托', 'sy...位，因其賢明。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.11.description
+  Field required [type=missing, input_value={'name': '埃德蒙三世...爾，皈依新神！'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.12.description
+  Field required [type=missing, input_value={'name': '阿拉里克', ...下凡般的武勇。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.13.description
+  Field required [type=missing, input_value={'name': '伊索爾德', ...王國軍事力量。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.14.description
+  Field required [type=missing, input_value={'name': '博林', 'synth...狂熱的「矛」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.15.description
+  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.16.description
+  Field required [type=missing, input_value={'name': '克拉拉', 'sy...皆以慘敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.17.description
+  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.18.description
+  Field required [type=missing, input_value={'name': '高爾', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.19.description
+  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.20.description
+  Field required [type=missing, input_value={'name': '翠絲', 'synth...「聖潔果實」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.21.description
+  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.22.description
+  Field required [type=missing, input_value={'name': '迪茜', 'synth...也更具攻擊性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.23.description
+  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.24.description
+  Field required [type=missing, input_value={'name': '亞瑟', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.25.description
+  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.26.description
+  Field required [type=missing, input_value={'name': '馬丁', 'synth...想已倒向性神。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.27.description
+  Field required [type=missing, input_value={'name': '朱利安', 'sy...恩」的可能性。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.28.description
+  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.29.description
+  Field required [type=missing, input_value={'name': '阿利斯特', ...「生命之神」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.30.description
+  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.31.description
+  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.32.description
+  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.33.description
+  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.34.description
+  Field required [type=missing, input_value={'name': '老羅', 'synth...聖女的蕩婦」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.35.description
+  Field required [type=missing, input_value={'name': '馬克', 'synth...聖女的蕩婦」。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.36.description
+  Field required [type=missing, input_value={'name': '費奇', 'synth...音分享給兒女。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.37.description
+  Field required [type=missing, input_value={'name': '湯瑪斯', 'sy...性神」的信徒。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.38.description
+  Field required [type=missing, input_value={'name': '愛蓮娜', 'sy...性神」的信徒。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.39.description
+  Field required [type=missing, input_value={'name': '愛莉莎', 'sy...的幸運兒之一。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.40.description
+  Field required [type=missing, input_value={'name': '卡蓮', 'synth...的核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.41.description
+  Field required [type=missing, input_value={'name': '凱爾', 'synth...」核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.42.description
+  Field required [type=missing, input_value={'name': '艾拉', 'synth...」核心管理者。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.43.description
+  Field required [type=missing, input_value={'name': '瓦勒留斯', ...均以失敗告終。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.44.description
+  Field required [type=missing, input_value={'name': '里斯', 'synth...教派中的地位。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.45.description
+  Field required [type=missing, input_value={'name': '瑪倫', 'synth...教義得以康復。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.46.description
+  Field required [type=missing, input_value={'name': '艾莉絲', 'sy...隨FLUID-A的產生。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.47.description
+  Field required [type=missing, input_value={'name': '博林勳爵', ...握重兵的將領。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.48.description
+  Field required [type=missing, input_value={'name': '受役者', 'sy...生理組成部分。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.49.description
+  Field required [type=missing, input_value={'name': '無名男性', ...現ACTION-E行為。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+synthesized_descriptions.50.description
+  Field required [type=missing, input_value={'name': '無名女性', ...和輪姦的反應。'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-24 15:07:49 - [INFO] - [512280345618546699] [LORE解析階段 3/4] 描述合成完成。生成了 0 條新描述。
+2025-09-24 15:07:49 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 開始應用所有數據庫更新...
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] [LORE解析階段 4/4] 所有數據庫更新已應用。世界聖經解析流程完成。
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] 正在為世界聖經觸發一次性的 RAG 知識庫全量重建...
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 333 條文檔用於創始構建。
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-24 15:07:59 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
