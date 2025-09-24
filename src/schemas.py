@@ -28,13 +28,16 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
+# --- [v1.3 新增] 混合 NLP 流程所需模型 ---
+class CharacterSkeleton(BaseModel):
+    """用於混合 NLP 第一階段，表示一個角色的最基本骨架信息。"""
+    name: str = Field(description="角色的名字。必須是文本中明確提到的、最常用的名字。")
+    description: str = Field(description="一句話總結該角色的核心身份、職業或在當前文本塊中的主要作用。")
 
+class ExtractionResult(BaseModel):
+    """包裹第一階段實體骨架提取結果的模型。"""
+    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
-# 函式：基础 LORE 數據模型 - CharacterProfile
-# 更新紀錄:
-# v2.3 (2025-09-24): [健壯性強化] 將所有 Optional[str] 類型的字段全部修改為 str，並提供空的字符串 "" 作為默認值。此修改強制要求LLM即使在信息不足時也必須返回一個空字符串而不是null，從而徹底解決了因類型不匹配導致的 ValidationError。
-# v2.2 (2025-09-23): [災難性BUG修復] 為多個容易被LLM省略的字段提供了空的默認值。
-# v2.1 (2025-09-23): [災難性BUG修復] 為 `relationships` 欄位的 description 新增了轉義。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -84,99 +87,10 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = str(v)
         return normalized_dict
-# 函式：基础 LORE 數據模型 - CharacterProfile
 
-
-
-
-# [v1.0 新增] 用於批量LORE精煉的包裹模型
 class BatchRefinementResult(BaseModel):
+    """包裹第二階段批量深度精煉結果的模型。"""
     refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
-
-# [v1.0 新增] 用於抗幻覺實體驗證的模型
-class EntityValidationResult(BaseModel):
-    """用於結構化地表示對一個待創建實體的“事實查核”結果。"""
-    decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="""驗證後的最終決定：
-- 'CREATE': 確認這是一個在對話中被明確引入的、全新的實體，應予以創建。
-- 'MERGE': 確認這其實是某個已存在實體的別名或拼寫錯誤，應與之合併。
-- 'IGNORE': 確認這完全是LLM的幻覺，對話中沒有足夠證據支持，應直接忽略。""")
-    reasoning: str = Field(description="做出此判斷的簡短、清晰的理由。")
-    matched_key: Optional[str] = Field(default=None, description="如果判斷為'MERGE'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
-
-    @model_validator(mode='after')
-    def check_consistency(self) -> 'EntityValidationResult':
-        if self.decision == 'MERGE' and not self.matched_key:
-            raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
-        return self
-
-# [v1.0 新增] 用於批量描述合成的模型
-class SynthesisTask(BaseModel):
-    """封裝單個描述合成任務的數據。"""
-    name: str
-    original_description: str
-    new_information: str
-
-class SynthesizedDescription(BaseModel):
-    """封裝單個合成描述的結果。"""
-    name: str = Field(description="與輸入任務完全相同的角色名稱。")
-    description: str = Field(description="由LLM重寫並整合後的全新描述文本。")
-
-class BatchSynthesisResult(BaseModel):
-    """用於包裹批量描述合成的結果。"""
-    synthesized_descriptions: List[SynthesizedDescription] = Field(description="一個包含所有被成功合成描述的角色的結果列表。")
-
-# [v1.0 新增] 用於抗幻覺實體驗證的模型
-class EntityValidationResult(BaseModel):
-    """用於結構化地表示對一個待創建實體的“事實查核”結果。"""
-    decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="""驗證後的最終決定：
-- 'CREATE': 確認這是一個在對話中被明確引入的、全新的實體，應予以創建。
-- 'MERGE': 確認這其實是某個已存在實體的別名或拼寫錯誤，應與之合併。
-- 'IGNORE': 確認這完全是LLM的幻覺，對話中沒有足夠證據支持，應直接忽略。""")
-    reasoning: str = Field(description="做出此判斷的簡短、清晰的理由。")
-    matched_key: Optional[str] = Field(default=None, description="如果判斷為'MERGE'，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
-
-    @model_validator(mode='after')
-    def check_consistency(self) -> 'EntityValidationResult':
-        if self.decision == 'MERGE' and not self.matched_key:
-            raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
-        return self
-
-# [v1.0 新增] 用於抗事實幻覺（數據污染）的模型
-class FactCheckResult(BaseModel):
-    """用於結構化地表示對一次LORE更新操作的“事實查核”結果。"""
-    is_consistent: bool = Field(description="判斷提議的更新是否與對話上下文完全一致。如果更新中包含了任何對話中找不到依據的信息（幻覺），則為 False。")
-    conflicting_info: Optional[str] = Field(default=None, description="如果 is_consistent 為 False，請簡要說明是哪個字段或哪部分信息與上下文衝突或缺乏依據。")
-    suggestion: Optional[Dict[str, Any]] = Field(default=None, description="一個可選的、修正後的 `updates` 字典。只包含那些能在上下文中找到依據的、真實的更新。")
-
-# [v1.0 新增] 用於批量實體解析的模型
-# 更新紀錄:
-# v1.2 (2025-09-24): [根本性重構] 為了徹底解決頑固的快取和LLM輸出不一致問題，將 decision 字段的類型從嚴格的 Literal 改為更具彈性的 str。後端的處理邏輯將負責解釋其語義。
-# v1.1 (2025-09-24): [健壯性強化] 擴展了 decision 字段的 Literal 可接受值，增加了 'CREATE' 和 'MERGE' 作為 'NEW' 和 'EXISTING' 的同義詞。
-class BatchResolutionResult(BaseModel):
-    """用於結構化地表示對單個待處理實體的解析結果。"""
-    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
-    decision: str = Field(description="您的最終判斷，通常是 'CREATE', 'NEW', 'MERGE', 或 'EXISTING' 之一。")
-    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
-    matched_key: Optional[str] = Field(default=None, description="如果判斷為合併類型，此欄位【必須】包含來自現有實體列表中的、與之匹配的那個實體的【完整、未經修改的 `key`】。")
-    standardized_name: str = Field(description="最終應使用的標準化名稱。")
-
-    @model_validator(mode='after')
-    def check_consistency(self) -> 'BatchResolutionResult':
-        if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
-            raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。")
-        return self
-
-class BatchResolutionPlan(BaseModel):
-    """用於包裹批量實體解析的完整計畫。"""
-    resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
-
-
-
-
-
-
-
-
 
 class Quest(BaseModel):
     name: str = Field(description="任務的標準化、唯一的官方名稱。")
@@ -185,7 +99,6 @@ class Quest(BaseModel):
     status: str = Field(default="active", description="任務的當前狀態，例如 'active', 'completed', 'failed'。")
     quest_giver: Optional[str] = Field(default=None, description="此任務的發布者（NPC名字）。")
     suggested_level: Optional[int] = Field(default=None, description="建議執行此任務的角色等級。")
-    # [v1.0 核心修正] 轉義了 description 字符串中的大括號
     rewards: Dict[str, Any] = Field(default_factory=dict, description="完成任務的獎勵，例如 {{'金錢': 100, '物品': ['治療藥水']}}。")
 
     @field_validator('aliases', mode='before')
@@ -256,7 +169,6 @@ class WorldLore(BaseModel):
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
     key_elements: List[str] = Field(default_factory=list, description="與此 Lore 相關的關鍵詞或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="與此 Lore 相關的角色、地點或物品的名稱列表。")
-    # [v1.1 核心新增] 新增 template_keys 欄位以支持 LORE 繼承
     template_keys: Optional[List[str]] = Field(default=None, description="一個可選的鍵列表，表示此LORE條目繼承了哪些模板LORE的屬性。")
 
     @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
@@ -264,11 +176,49 @@ class WorldLore(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
-# --- AI 思考/行動相關模型 ---
-class ActionIntent(BaseModel):
-    action_type: Literal['physical', 'verbal', 'magical', 'observation', 'other'] = Field(description="將使用者指令分類為：'physical'(物理動作), 'verbal'(對話), 'magical'(魔法), 'observation'(觀察), 或 'other'(其他)。")
-    primary_target: Optional[str] = Field(default=None, description="動作的主要目標是誰或什麼？（例如 NPC 的名字）")
-    action_summary_for_status: str = Field(description="用一句話總結這個動作，以便將其記錄為角色的 `current_action` 狀態。例如：'正在與碧進行口交'、'坐下'、'正在攻擊哥布林'。")
+class EntityValidationResult(BaseModel):
+    decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="驗證後的最終決定。")
+    reasoning: str = Field(description="做出此判斷的簡短、清晰的理由。")
+    matched_key: Optional[str] = Field(default=None, description="如果判斷為'MERGE'，此欄位必須包含匹配到的實體的完整 key。")
+
+    @model_validator(mode='after')
+    def check_consistency(self) -> 'EntityValidationResult':
+        if self.decision == 'MERGE' and not self.matched_key:
+            raise ValueError("如果 decision 是 'MERGE'，則 matched_key 欄位是必需的。")
+        return self
+
+class SynthesisTask(BaseModel):
+    name: str
+    original_description: str
+    new_information: str
+
+class SynthesizedDescription(BaseModel):
+    name: str = Field(description="與輸入任務完全相同的角色名稱。")
+    description: str = Field(description="由LLM重寫並整合後的全新描述文本。")
+
+class BatchSynthesisResult(BaseModel):
+    synthesized_descriptions: List[SynthesizedDescription] = Field(description="一個包含所有被成功合成描述的角色的結果列表。")
+
+class FactCheckResult(BaseModel):
+    is_consistent: bool = Field(description="判斷提議的更新是否與對話上下文完全一致。")
+    conflicting_info: Optional[str] = Field(default=None, description="如果不一致，說明衝突之處。")
+    suggestion: Optional[Dict[str, Any]] = Field(default=None, description="一個修正後的 `updates` 字典。")
+
+class BatchResolutionResult(BaseModel):
+    original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
+    decision: str = Field(description="您的最終判斷，通常是 'CREATE', 'NEW', 'MERGE', 或 'EXISTING' 之一。")
+    reasoning: str = Field(description="您做出此判斷的簡短、清晰的理由。")
+    matched_key: Optional[str] = Field(default=None, description="如果判斷為合併類型，此欄位必須包含匹配到的實體的完整 key。")
+    standardized_name: str = Field(description="最終應使用的標準化名稱。")
+
+    @model_validator(mode='after')
+    def check_consistency(self) -> 'BatchResolutionResult':
+        if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
+            raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。")
+        return self
+
+class BatchResolutionPlan(BaseModel):
+    resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名稱。")
@@ -285,68 +235,11 @@ class ToolCall(BaseModel):
                 return value
         return value
 
-class CharacterAction(BaseModel):
-    character_name: str = Field(description="執行此行動的角色的【確切】名字。")
-    reasoning: str = Field(description="【必需】解釋該角色【為什麼】要採取這個行動。此理由必須與其性格、好感度、當前情境和目標緊密相關。")
-    action_description: Optional[str] = Field(default=None, description="對該角色將要執行的【具體物理動作】的清晰、簡潔的描述。如果行動主要是對話，此欄位可為空。")
-    dialogue: Optional[str] = Field(default=None, description="如果該角色在行動中或行動後會說話，請在此處提供確切的對話內容。")
-    tool_call: Optional[ToolCall] = Field(default=None, description="如果此行動需要呼叫一個工具來改變世界狀態（如移動、使用物品），請在此處定義工具呼叫。") 
-    template_id: Optional[str] = Field(default=None, description="[系統專用] 用於標識此動作來源於哪個預設模板。")
-
-    @model_validator(mode='after')
-    def check_action_or_dialogue_exists(self) -> 'CharacterAction':
-        if not self.action_description and not self.dialogue:
-            raise ValueError("一個 CharacterAction 必須至少包含 action_description 或 dialogue 其中之一。")
-        return self
-
-class TurnPlan(BaseModel):
-    """一回合行動的完整結構化計畫。"""
-    thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。首先分析情境，然後為每個活躍的 AI/NPC 角色生成行動動機，最終制定出本回合的完整計畫。")
-    narration: Optional[str] = Field(default="", description="【導演的場景設定 (Director's Scene Setting)】一個綜合性的、用於搭建舞台的旁白。它應描寫場景的整體氛圍、光影、聲音、以及任何與核心角色無關的背景活動，為接下來的核心表演奠定基調。")
-    character_actions: List[CharacterAction] = Field(default_factory=list, description="一個包含本回合所有【核心角色】的【關鍵表演 (Key Performances)】的列表。")
-    execution_rejection_reason: Optional[str] = Field(default=None, description="當且僅當指令因不合 lógica而無法執行時，此欄位包含以角色口吻給出的解釋。")
-    template_id: Optional[str] = Field(default=None, description="[系統專用] 用於標識此計畫是否來源於某個預設模板。")
-
-    @model_validator(mode='before')
-    @classmethod
-    def repair_missing_character_names(cls, data: Any) -> Any:
-        if isinstance(data, dict) and 'character_actions' in data and isinstance(data['character_actions'], list):
-            last_valid_name = None
-            for action in data['character_actions']:
-                if isinstance(action, dict):
-                    if 'character_name' in action and action['character_name']:
-                        last_valid_name = action['character_name']
-                    elif 'character_name' not in action and last_valid_name:
-                        action['character_name'] = last_valid_name
-        return data
-
-    @model_validator(mode='after')
-    def check_plan_logic(self) -> 'TurnPlan':
-        """[v15.0 自我修復模式] 驗證並修復計畫的邏輯一致性。"""
-        has_actions = bool(self.character_actions)
-        has_rejection = bool(self.execution_rejection_reason and self.execution_rejection_reason.strip())
-
-        if has_actions and has_rejection:
-            object.__setattr__(self, 'execution_rejection_reason', None)
-            has_rejection = False
-            
-        has_thought_or_actions = bool(self.thought) or has_actions or (self.narration and self.narration.strip())
-        if not has_thought_or_actions and not has_rejection:
-            raise ValueError("一個 TurnPlan 必須至少包含 'thought'、'narration'、'character_actions' 或 'execution_rejection_reason' 中的一項。")
-            
-        return self
-
-class ToolCallPlan(BaseModel):
-    plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
-
-# 類別：世界創世結果
-# 更新紀錄:
-# v1.1 (2025-09-23): [架構調整] 根據“按需生成”原則，將 initial_npcs 欄位設為可選，因為創世階段現在只專注於生成地點。
 class WorldGenesisResult(BaseModel):
-    location_path: List[str] = Field(description="新生成的出生點的層級式路徑。例如：['艾瑟利亞王國', '首都晨風城', '城南的寧靜小巷']。")
-    location_info: LocationInfo = Field(description="對該出生點的詳細描述，符合 LocationInfo 模型。")
-    initial_npcs: List[CharacterProfile] = Field(default_factory=list, description="伴隨出生點生成的一到兩位初始NPC的完整角色檔案列表。")
-# 類別：世界創世結果
+    location_path: List[str] = Field(description="新生成的出生點的層級式路徑。")
+    location_info: LocationInfo = Field(description="對該出生點的詳細描述。")
+    initial_npcs: List[CharacterProfile] = Field(default_factory=list, description="伴隨出生點生成的初始NPC列表。")
+
 class CanonParsingResult(BaseModel):
     npc_profiles: List[CharacterProfile] = Field(default_factory=list, description="從文本中解析出的所有 NPC 的完整個人檔案列表。")
     locations: List[LocationInfo] = Field(default_factory=list, description="從文本中解析出的所有地點的詳細資訊列表。")
@@ -355,46 +248,32 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
-class SingleResolutionResult(BaseModel):
-    """單個實體名稱的解析結果。"""
-    original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
-    decision: Literal['NEW', 'EXISTING'] = Field(description="判斷結果：'NEW' 代表這是一個全新的實體，'EXISTING' 代表它指向一個已存在的實體。")
-    standardized_name: Optional[str] = Field(None, description="如果判斷為'NEW'，AI 應為其生成一個更標準、更正式的名稱。如果判斷為'EXISTING'，此欄位可為空。")
-    matched_key: Optional[str] = Field(None, description="如果判斷為'EXISTING'，此欄位必須包含匹配到的、已存在的實體的唯一主鍵 (lore_key)。")
-    reasoning: str = Field(description="AI 做出此判斷的簡短理由。")
+class ToolCallPlan(BaseModel):
+    plan: List[ToolCall] = Field(..., description="一個包含多個工具呼叫計畫的列表。")
 
-class SingleResolutionPlan(BaseModel):
-    """單個實體名稱的完整解析計畫。"""
-    resolution: SingleResolutionResult
+class TurnPlan(BaseModel):
+    thought: Optional[str] = Field(default=None, description="您作為世界導演的整體思考過程。")
+    narration: Optional[str] = Field(default="", description="導演的場景設定旁白。")
+    character_actions: List[Dict] = Field(default_factory=list, description="本回合所有核心角色的關鍵表演列表。")
+    execution_rejection_reason: Optional[str] = Field(default=None, description="當指令因不合邏輯而無法執行時的解釋。")
+    template_id: Optional[str] = Field(default=None, description="[系統專用] 模板ID。")
 
 class UserInputAnalysis(BaseModel):
-    """[第一層分析] 用於結構化地表示對使用者輸入的初步意圖分析結果。"""
-    input_type: Literal['dialogue_or_command', 'narration', 'continuation'] = Field(description="判斷使用者輸入的類型：'dialogue_or_command'（對話或指令）、'narration'（場景描述）、或 'continuation'（要求接續上文）。")
-    summary_for_planner: str = Field(description="為後續的規劃器（Planner）提供一句簡潔、清晰的指令摘要。")
-    narration_for_turn: str = Field(description="如果 `input_type` 是 'narration' 且由使用者主動提供，此欄位包含完整的原始旁白。否則為空字符串。")
+    input_type: Literal['dialogue_or_command', 'narration', 'continuation'] = Field(description="使用者輸入的類型。")
+    summary_for_planner: str = Field(description="為規劃器提供的指令摘要。")
+    narration_for_turn: str = Field(description="如果使用者提供了旁白，此處為完整內容。")
 
 class SceneCastingResult(BaseModel):
-    """用於結構化地表示場景中預生成的新 NPC 的結果，包括核心角色和互動配角。"""
-    newly_created_npcs: List[CharacterProfile] = Field(
-        description="一個新創建的、需要被賦予身份的核心角色列表。",
-        default_factory=list
-    )
-    supporting_cast: List[CharacterProfile] = Field(
-        description="一個為核心角色創造的、用於互動的臨時配角列表（例如顧客、同伴等）。",
-        default_factory=list
-    )
-    implied_location: Optional[LocationInfo] = Field(
-        default=None,
-        description="如果能從上下文中推斷出一個合理的、符合世界觀的場景地點，則在此處提供該地點的詳細信息。"
-    )
+    newly_created_npcs: List[CharacterProfile] = Field(default_factory=list, description="新創建的核心角色列表。")
+    supporting_cast: List[CharacterProfile] = Field(default_factory=list, description="用於互動的臨時配角列表。")
+    implied_location: Optional[LocationInfo] = Field(default=None, description="從上下文中推斷出的場景地點。")
 
 class SceneAnalysisResult(BaseModel):
-    """[第二層分析] 用於結構化地表示對使用者意圖和場景視角的分析結果，解決'遠程觀察'問題。"""
-    viewing_mode: Literal['local', 'remote'] = Field(description="判斷使用者當前的行動/觀察視角。'local' 表示在當前場景行動；'remote' 表示正在觀察一個遠程場景。")
-    reasoning: str = Field(description="做出此判斷的簡潔理由。")
-    target_location_path: Optional[List[str]] = Field(default=None, description="如果 viewing_mode 為 'remote'，此欄位必須包含使用者意圖觀察的目標地點的層級路徑。")
-    focus_entity: Optional[str] = Field(default=None, description="如果指令是觀察某個地點裡的特定事物或人（例如‘市場裡的魚販’），此欄位應包含那個核心觀察對象的名稱，例如 '魚販'。")
-    action_summary: str = Field(description="對使用者意圖的簡潔總結，例如：'使用者想要看看王城市場現在是什麼樣子' 或 '使用者向 AI 角色搭話'。")
+    viewing_mode: Literal['local', 'remote'] = Field(description="使用者當前的行動/觀察視角。")
+    reasoning: str = Field(description="做出此判斷的理由。")
+    target_location_path: Optional[List[str]] = Field(default=None, description="遠程觀察的目標地點路徑。")
+    focus_entity: Optional[str] = Field(default=None, description="觀察的核心對象。")
+    action_summary: str = Field(description="對使用者意圖的簡潔總結。")
 
     @model_validator(mode='after')
     def check_target_location_if_remote(self) -> 'SceneAnalysisResult':
@@ -402,46 +281,24 @@ class SceneAnalysisResult(BaseModel):
             raise ValueError("如果 viewing_mode 是 'remote'，則 target_location_path 是必需的。")
         return self
 
-class CharacterQuantificationResult(BaseModel):
-    """用於結構化地表示從使用者輸入中量化出的角色描述列表。"""
-    character_descriptions: List[str] = Field(description="一個包含所有需要被創建的角色的具體描述的列表。例如：['男性獸人戰士', '男性獸人戰士', '女性精靈法師']。")
-
-class RawSceneAnalysis(BaseModel):
-    """一個沒有複雜內部驗證的 Pydantic 模型，專門用於安全地接收來自 LLM 的、可能存在邏輯矛盾的初步場景分析結果。"""
-    viewing_mode: Literal['local', 'remote'] = Field(description="對視角的初步判斷。")
-    reasoning: str = Field(description="做出判斷的理由。")
-    target_location_path: Optional[List[str]] = Field(default=None, description="初步提取的地點路徑。")
-    focus_entity: Optional[str] = Field(default=None, description="初步提取的核心實體。")
-    action_summary: str = Field(description="對使用者意圖的摘要。")
-
 class ValidationResult(BaseModel):
-    is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true，否則為 false。")
+    is_violating: bool = Field(description="如果文本違反了使用者主權原則，則為 true。")
 
 class ExtractedEntities(BaseModel):
     names: List[str] = Field(description="從文本中提取出的所有專有名詞和關鍵實體名稱的列表。")
 
 class ExpansionDecision(BaseModel):
-    """用于结构化地表示关于是否应在本回合进行世界LORE扩展的决定。"""
-    should_expand: bool = Field(description="如果当前对话轮次适合进行世界构建和LORE扩展，则为 true；如果对话是简单的、重复的或与已知实体的互动，则为 false。")
-    reasoning: str = Field(description="做出此决定的简短理由。")
+    should_expand: bool = Field(description="如果當前對話適合進行世界構建，則為 true。")
+    reasoning: str = Field(description="做出此決定的理由。")
 
 class IntentClassificationResult(BaseModel):
-    """用於結構化地表示對使用者輸入意圖的語意分類結果。"""
-    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="""對使用者意圖的最終分類：
-- 'sfw': 安全的、適合所有觀眾的內容。
-- 'nsfw_interactive': 包含露骨或敏感內容的、使用者與 AI/NPC 的直接互動請求。
-- 'nsfw_descriptive': 包含露骨或敏感內容的、要求對遠程或第三方場景進行描述的請求。""")
-    reasoning: str = Field(description="做出此分類的簡短理由。")
+    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="對使用者輸入意圖的最終分類。")
+    reasoning: str = Field(description="做出此分類的理由。")
 
 class StyleAnalysisResult(BaseModel):
-    """用於結構化地表示對使用者自訂風格的分析結果，以便為規劃器提供具體指令。"""
-    dialogue_requirement: str = Field(description="根據風格指令，對本回合對話的具體要求。例如：'AI角色必須說話' 或 '無需對話'。")
-    narration_level: str = Field(description="對旁白詳細程度的要求。例如：'低', '中等', '高'。")
-    proactive_suggestion: Optional[str] = Field(default=None, description="根據風格和情境，給出一個可選的、用於推動劇情的行動建議。")
-
-CharacterAction.model_rebuild()
-
-
+    dialogue_requirement: str = Field(description="對本回合對話的具體要求。")
+    narration_level: str = Field(description="對旁白詳細程度的要求。")
+    proactive_suggestion: Optional[str] = Field(default=None, description="用於推動劇情的行動建議。")
 
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
@@ -461,13 +318,14 @@ SynthesisTask.model_rebuild()
 SynthesizedDescription.model_rebuild()
 BatchSynthesisResult.model_rebuild()
 FactCheckResult.model_rebuild()
-
-
-
-
-
-
-
-
-
-
+ExtractionResult.model_rebuild()
+CharacterSkeleton.model_rebuild()
+TurnPlan.model_rebuild()
+UserInputAnalysis.model_rebuild()
+SceneCastingResult.model_rebuild()
+SceneAnalysisResult.model_rebuild()
+ValidationResult.model_rebuild()
+ExtractedEntities.model_rebuild()
+ExpansionDecision.model_rebuild()
+IntentClassificationResult.model_rebuild()
+StyleAnalysisResult.model_rebuild()
