@@ -1,38 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T19:52:48.207171 ###
+### AI Lover Log - Last updated at 2025-09-24T21:56:39.628715 ###
 
-2025-09-24 16:19:55 - [INFO] - [512280345618546699] 正在初步解析文本塊 1/7...
-2025-09-24 16:20:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-24 16:20:08 - [INFO] - [512280345618546699] 正在初步解析文本塊 2/7...
-2025-09-24 16:20:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-24 16:20:24 - [INFO] - [512280345618546699] 正在初步解析文本塊 3/7...
-2025-09-24 16:20:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-24 16:20:33 - [INFO] - [512280345618546699] 正在初步解析文本塊 4/7...
-2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['CODE-F-GEN-A', 'ACTION-E', 'ROLE-D', 'ROLE-B', 'FLUID-A', 'STATE-A', 'ACTION-C', 'CODE-F-GEN-C']
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 32015 秒)。
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 32020 秒)。
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32367 秒)。
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31788 秒)。
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32372 秒)。
-2025-09-24 16:20:34 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 32010 秒)。
-2025-09-24 16:20:34 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-24 16:20:34 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-24 16:20:34 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-24 16:21:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-24 16:21:00 - [INFO] - [512280345618546699] 正在初步解析文本塊 5/7...
-2025-09-24 16:21:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-24 16:21:11 - [INFO] - [512280345618546699] 正在初步解析文本塊 6/7...
-2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] (Euphemizer) 已提取情報關鍵詞: ['ROLE-D', 'ACTION-E']
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 31750 秒)。
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 32334 秒)。
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 31972 秒)。
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 31977 秒)。
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 31983 秒)。
-2025-09-24 16:21:12 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 32329 秒)。
-2025-09-24 16:21:12 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
 2025-09-24 16:21:12 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
 2025-09-24 16:21:12 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
 2025-09-24 16:21:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
@@ -300,3 +267,36 @@ lore_key
 2025-09-24 19:52:37 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-24 19:52:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-24 19:52:37 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-24 19:57:49 - [ERROR] - 發送更新成功通知給管理員時發生未知錯誤: Server disconnected
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1581, in _perform_update_and_restart
+    await admin_user.send("✅ **系統更新成功！** 機器人即將重啟。")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\abc.py", line 1644, in send
+    data = await state.http.send_message(channel.id, params=params)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\http.py", line 642, in request
+    async with self.__session.request(method, url, **kwargs) as response:
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiohttp\client.py", line 1482, in __aenter__
+    self._resp: _RetType = await self._coro
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiohttp\client.py", line 770, in _request
+    resp = await handler(req)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiohttp\client.py", line 748, in _connect_and_send_request
+    await resp.start(conn)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiohttp\client_reqrep.py", line 532, in start
+    message, payload = await protocol.read()  # type: ignore[union-attr]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiohttp\streams.py", line 672, in read
+    await self._waiter
+aiohttp.client_exceptions.ServerDisconnectedError: Server disconnected
+2025-09-24 21:37:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 21:37:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 21:37:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 21:37:57 - [INFO] - Discord Bot is ready!
+2025-09-24 21:37:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 21:37:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 21:38:00 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-24 21:56:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 21:56:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 21:56:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 21:56:25 - [INFO] - Discord Bot is ready!
+2025-09-24 21:56:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 21:56:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 21:56:29 - [INFO] - 已成功發送啟動成功通知給管理員。
