@@ -233,6 +233,4 @@ def get_lore_tools() -> List[Tool]:
         define_creature_type,
         add_or_update_quest_lore,
         add_or_update_world_lore,
-    ]        add_or_update_world_lore,
     ]
-
