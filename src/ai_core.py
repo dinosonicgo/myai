@@ -590,7 +590,7 @@ class AILover:
 
 
 
-        # 函式：獲取實體驗證器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取實體驗證器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-23): [全新創建] 創建此函式作為“抗幻覺驗證層”的核心。它生成的Prompt專門用於在創建新LORE前進行事實查核，判斷一個待創建的實體是真實的新實體、已存在實體的別名，還是應被忽略的LLM幻覺。
     def get_entity_validation_prompt(self) -> str:
@@ -609,6 +609,16 @@ class AILover:
 #      - 實體名稱完全沒有在對話中出現。
 #      - 這是一個無關緊要的、一次性的背景元素。
 # 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `EntityValidationResult` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# 你的輸出JSON的結構【必須】與下方範例完全一致。特別注意，物件的鍵名【必須】是 "decision", "reasoning", "matched_key"。
+# ```json
+# {{
+#   "decision": "CREATE",
+#   "reasoning": "對話中明確引入了'米婭'這個新角色，並提供了關於她的豐富資訊。",
+#   "matched_key": null
+# }}
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -3310,6 +3320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
