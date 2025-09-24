@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T14:48:02.924075 ###
+### AI Lover Log - Last updated at 2025-09-24T14:53:36.392093 ###
 
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.35.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
-resolutions.36.decision
-  Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.11/v/literal_error
 resolutions.37.decision
   Input should be 'EXISTING' or 'NEW' [type=literal_error, input_value='MERGE', input_type=str]
     For further information visit https://errors.pydantic.dev/2.11/v/literal_error
@@ -300,3 +293,10 @@ resolutions.63.decision
 2025-09-24 11:35:15 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 315 條文檔用於創始構建。
 2025-09-24 11:35:15 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
 2025-09-24 11:35:15 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
+2025-09-24 14:53:22 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 14:53:22 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 14:53:22 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 14:53:22 - [INFO] - Discord Bot is ready!
+2025-09-24 14:53:25 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 14:53:25 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 14:53:25 - [INFO] - 已成功發送啟動成功通知給管理員。
