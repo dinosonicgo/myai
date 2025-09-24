@@ -1201,9 +1201,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：處理世界聖經並提取LORE (/start 流程 1/4) (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第一步，取代舊的 process_canon_node。
+    # 函式：處理世界聖經並提取LORE (/start 流程 1/4) (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.1 (2025-09-24): [災難性BUG修復] 修正了對 parse_and_create_lore_from_canon 的呼叫簽名，移除了多餘的 None 參數，並改用關鍵字參數以增強健壯性，從而解決了 TypeError: got multiple values for argument 'is_setup_flow' 的問題。
+    # v1.0 (2025-10-19): [重大架構重構] 創建此函式，作為手動編排的 /start 流程的第一步，取代舊的 process_canon_node。
     async def process_canon_and_extract_lores(self, canon_text: Optional[str]):
         """(/start 流程 1/4) 處理世界聖經文本，存入RAG並解析LORE。"""
         if not canon_text:
@@ -1215,8 +1216,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
         
         logger.info(f"[{self.user_id}] [/start] 正在進行 LORE 智能解析...")
-        # 注意：這裡的 interaction 傳遞 None，因為這是在 /start 流程的後台，不直接回應互動
-        await self.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
+        # [v1.1 核心修正] 修正了呼叫簽名，使用關鍵字參數以確保正確性
+        await self.parse_and_create_lore_from_canon(canon_text=canon_text, is_setup_flow=True)
         logger.info(f"[{self.user_id}] [/start] LORE 智能解析完成。")
 # 處理世界聖經並提取LORE 函式結束
 
@@ -3458,6 +3459,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
