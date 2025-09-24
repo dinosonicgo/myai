@@ -1208,10 +1208,27 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 2. **【信息保全與邏輯整合】**: 你必須保留所有核心事實，並將新舊信息在邏輯上整合。丟棄所有如“[補充資訊]”之類的標籤。
 # 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchSynthesisResult` Pydantic 模型的JSON物件。其 `synthesized_descriptions` 列表必須包含對輸入中**所有**角色的處理結果。
 
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# 你的輸出JSON的結構【必須】與下方範例完全一致。特別注意，列表中的每個物件【必須】包含 "name" 和 "description" 這兩個鍵。
+# ```json
+# {{
+#   "synthesized_descriptions": [
+#     {{
+#       "name": "絲月",
+#       "description": "這是為絲月合成後的全新描述文本..."
+#     }},
+#     {{
+#       "name": "卡爾•維利爾斯",
+#       "description": "這是為卡爾•維利爾斯合成後的全新描述文本..."
+#     }}
+#   ]
+# }}
+# ```
+
 # --- [INPUT DATA] ---
 # 【批量描述合成任務】:
 {batch_input_json}
-# --- YOUR OUTPUT (A single, valid JSON object matching BatchSynthesisResult) ---"""
+# --- YOUR OUTPUT (A single, valid JSON object matching the structure of the example above) ---"""
             self.description_synthesis_prompt = prompt_template
         return self.description_synthesis_prompt
     # 函式：獲取描述合成器 Prompt
@@ -3320,6 +3337,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
