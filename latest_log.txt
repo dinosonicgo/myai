@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T16:39:52.445369 ###
+### AI Lover Log - Last updated at 2025-09-24T16:44:54.653043 ###
 
-synthesized_descriptions.31.description
-  Field required [type=missing, input_value={'name': '瑪莉', 'synth...揀選」的材料。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.32.description
-  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.33.description
-  Field required [type=missing, input_value={'name': '安娜', 'synth...揀選」的材料。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.34.description
-  Field required [type=missing, input_value={'name': '老羅', 'synth...聖女的蕩婦」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.35.description
-  Field required [type=missing, input_value={'name': '馬克', 'synth...聖女的蕩婦」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.36.description
-  Field required [type=missing, input_value={'name': '費奇', 'synth...音分享給兒女。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.37.description
-  Field required [type=missing, input_value={'name': '湯瑪斯', 'sy...性神」的信徒。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.38.description
-  Field required [type=missing, input_value={'name': '愛蓮娜', 'sy...性神」的信徒。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-synthesized_descriptions.39.description
   Field required [type=missing, input_value={'name': '愛莉莎', 'sy...的幸運兒之一。'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
 synthesized_descriptions.40.description
@@ -300,3 +275,28 @@ synthesized_descriptions.50.description
 2025-09-24 16:22:38 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 138 條文檔用於創始構建。
 2025-09-24 16:22:38 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
 2025-09-24 16:22:38 - [INFO] - [512280345618546699] RAG 知識庫已成功重建。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] (RAG Cache) 檢索到 15 份文檔，正在檢查淨化快取...
+2025-09-24 16:43:49 - [WARNING] - [512280345618546699] (RAG Sanitizer) 所有檢索到的文檔都未能成功淨化。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 30625 秒)。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 30972 秒)。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 30393 秒)。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 30976 秒)。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 30615 秒)。
+2025-09-24 16:43:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 30620 秒)。
+2025-09-24 16:43:49 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-09-24 16:43:49 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-09-24 16:43:49 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-09-24 16:43:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
+2025-09-24 16:43:58 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-24 16:43:59 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-24 16:44:04 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-24 16:44:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-09-24 16:44:05 - [INFO] - [512280345618546699] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。
