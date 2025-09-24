@@ -169,8 +169,8 @@ class ContinueToAiSetupView(discord.ui.View):
 
 # 類別：繼續到世界聖經設定的視圖
 # 更新紀錄:
-# v1.2 (2025-09-24): [災難性BUG修復] 徹底重構了“上傳世界聖經”按鈕的邏輯。現在它會直接在當前頻道等待使用者發送帶有附件的訊息，從而創建了一個閉環流程，徹底解決了因跨指令狀態同步失敗導致的創世流程中斷問題。
-# v1.1 (2025-09-23): [功能擴展] 新增了“上傳世界聖經”按鈕。
+# v1.3 (2025-09-25): [災難性BUG修復] 将所有 finalize_setup 的调用从 asyncio.create_task 改为直接 await，以确保创世流程的同步执行，防止开场白在 LORE 解析完成前生成。
+# v1.2 (2025-09-24): [災難性BUG修復] 重构了“上傳世界聖經”按鈕的邏輯以解决流程中断问题。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -187,53 +187,45 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：處理「貼上世界聖經」按鈕點擊事件
 
-    # [v1.2 核心修正] 處理「上傳世界聖經」按鈕點擊事件
+    # 處理「上傳世界聖經」按鈕點擊事件
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' upload button clicked.")
         
-        # 禁用所有按鈕，向使用者表明正在等待操作
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(content="**請在 5 分鐘內，直接在此對話中發送您的 `.txt` 世界聖經檔案...**", view=self)
 
         def check(message: discord.Message):
-            # 檢查訊息是否來自同一個使用者，同一個頻道，並且包含一個 .txt 附件
             return (message.author.id == interaction.user.id and 
                     message.channel.id == interaction.channel.id and 
                     message.attachments and 
                     message.attachments[0].filename.lower().endswith('.txt'))
 
         try:
-            # 等待使用者發送符合條件的訊息，超時為 300 秒 (5分鐘)
             user_message_with_file = await self.cog.bot.wait_for('message', check=check, timeout=300.0)
             
             attachment = user_message_with_file.attachments[0]
             
-            # 檢查檔案大小
-            if attachment.size > 5 * 1024 * 1024: # 5MB
-                await interaction.followup.send("❌ 檔案過大！請上傳小於 5MB 的檔案。請重新點擊 `/start` 開始。", ephemeral=True)
+            if attachment.size > 5 * 1024 * 1024:
+                await interaction.followup.send("❌ 檔案過大！請重新點擊 `/start` 開始。", ephemeral=True)
                 self.stop()
                 return
 
-            await interaction.followup.send("✅ 檔案已接收！正在後台為您進行向量化和智能解析...", ephemeral=True)
-            
+            # [v1.3 核心修正] 直接 await 最终流程
             content_bytes = await attachment.read()
-            content_text = content_bytes.decode('utf-8')
-            
-            # 直接調用背景處理函式，並將 is_setup_flow 強制設為 True
-            asyncio.create_task(self.cog._background_process_canon(interaction, content_text, is_setup_flow=True))
+            content_text = content_bytes.decode('utf-8', errors='ignore')
+            await self.cog.finalize_setup(interaction, content_text=content_text)
 
         except asyncio.TimeoutError:
-            # 如果使用者超時未發送檔案
-            await interaction.followup.send("⏳ 操作已超時，您沒有在 5 分鐘內上傳檔案。請重新點擊 `/start` 開始。", ephemeral=True)
+            await interaction.followup.send("⏳ 操作已超時。請重新點擊 `/start` 開始。", ephemeral=True)
         except Exception as e:
             logger.error(f"[{user_id}] 在等待檔案上傳時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"處理您的檔案時發生錯誤: `{e}`。請重新點擊 `/start` 開始。", ephemeral=True)
         finally:
             self.stop()
-    # [v1.2 核心修正] 處理「上傳世界聖經」按鈕點擊事件
+    # 處理「上傳世界聖經」按鈕點擊事件
 
     # 函式：處理「完成設定」按鈕點擊事件
     @discord.ui.button(label="✅ 完成設定並開始冒險 (跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
@@ -242,17 +234,20 @@ class ContinueToCanonSetupView(discord.ui.View):
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToCanonSetupView' finalize button clicked.")
         for item in self.children: item.disabled = True
         
-        # 確保原始訊息也被更新
         if interaction.message:
             try:
                 await interaction.message.edit(view=self)
             except discord.errors.NotFound:
                 pass 
 
-        await interaction.response.send_message("✅ 基礎設定完成！正在為您啟動創世...", ephemeral=True)
-        asyncio.create_task(self.cog.finalize_setup(interaction, canon_text=None))
+        # [v1.3 核心修正] 直接 await，不再使用 create_task
+        await interaction.response.defer(ephemeral=True) # Defer an empty response first
+        await self.cog.finalize_setup(interaction, canon_text=None)
     # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
+
+
+
 
 # 類別：重新生成或撤銷回覆的視圖
 # 更新紀錄:
@@ -387,8 +382,15 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
                 for item in view.children: item.disabled = True
                 await original_message.edit(view=view)
             except (discord.errors.NotFound, AttributeError): pass
-        await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經...", ephemeral=True)
-        asyncio.create_task(self.cog._background_process_canon(interaction=interaction, content_text=self.canon_text.value, is_setup_flow=self.is_setup_flow))
+        
+        # [核心修正] 根据 is_setup_flow 决定是 await 还是 create_task
+        if self.is_setup_flow:
+            await interaction.response.defer(ephemeral=True) # Defer first
+            await self.cog.finalize_setup(interaction, content_text=self.canon_text.value)
+        else:
+            await interaction.response.send_message("✅ 指令已接收！正在後台為您處理世界聖經...", ephemeral=True)
+            asyncio.create_task(self.cog._background_process_canon(interaction=interaction, content_text=self.canon_text.value, is_setup_flow=self.is_setup_flow))
+
     # 函式：處理 Modal 提交事件
 # 類別：貼上世界聖經的 Modal
 
@@ -1249,27 +1251,34 @@ class BotCog(commands.Cog):
 
     
     
-# 函式：完成設定流程 (v51.0 - 持久化開場白)
-# 更新紀錄:
-# v51.0 (2025-11-22): [重大架構升級] 將儲存開場白到短期記憶的方式，從直接操作 ChatMessageHistory 物件改為調用新的、具備持久化能力的 ai_instance._add_message_to_scene_history 函式，確保了開場白作為第一條訊息能被正確存入資料庫。
-# v50.0 (2025-11-14): [完整性修復] 根據 NameError，提供了此檔案的完整版本。
-# v49.0 (2025-11-14): [災難性BUG修復] 增加了在開場白後將其存入歷史記錄的關鍵步驟。
+    # 函式：完成設定流程 (v51.0 - 持久化開場白)
+    # 更新紀錄:
+    # v51.1 (2025-09-25): [災難性BUG修復] 将 LORE 解析步骤从 process_canon_and_extract_lores 中移入此函式，并使用 await 直接调用，确保在生成开场白之前，圣经解析必须同步完成。
+    # v51.0 (2025-11-22): [重大架構升級] 增加了对开场白的持久化存储。
+    # v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
         
-        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-        if not ai_instance or not ai_instance.profile:
-            logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
-            await interaction.followup.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。", ephemeral=True)
-            self.setup_locks.discard(user_id)
-            return
-
         try:
             await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到兩分鐘，請稍候。", ephemeral=True)
             
-            logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
-            await ai_instance.process_canon_and_extract_lores(canon_text)
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance or not ai_instance.profile:
+                logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
+                await interaction.followup.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。", ephemeral=True)
+                self.setup_locks.discard(user_id)
+                return
+
+            # [v51.1 核心修正] 将 LORE 解析流程直接在此处 await，确保同步执行
+            if canon_text:
+                logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
+                await ai_instance.add_canon_to_vector_store(canon_text)
+                logger.info(f"[{user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
+                logger.info(f"[{user_id}] [/start] 正在進行 LORE 智能解析 (此步驟可能耗時較長)...")
+                await ai_instance.parse_and_create_lore_from_canon(canon_text=canon_text, is_setup_flow=True)
+                logger.info(f"[{user_id}] [/start] LORE 智能解析完成。")
+            
             await asyncio.sleep(2.0)
 
             logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
@@ -1277,17 +1286,16 @@ class BotCog(commands.Cog):
             await asyncio.sleep(2.0)
 
             logger.info(f"[{user_id}] [/start 流程 3/4] 正在生成世界創世資訊...")
-            await ai_instance.generate_world_genesis()
+            await ai_instance.generate_world_genesis(canon_text=canon_text) # 将 canon_text 传递给创世
             await asyncio.sleep(2.0)
 
             logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
-            opening_scene = await ai_instance.generate_opening_scene()
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
-            # [v51.0 核心修正] 使用新的持久化方法寫入開場白
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
-            logger.info(f"[{user_id}] 開場白已成功作為第一條AI訊息存入場景 '{scene_key}' 的歷史記錄並持久化。")
+            logger.info(f"[{user_id}] 開場白已成功存入場景 '{scene_key}' 的歷史記錄並持久化。")
 
             dm_channel = await interaction.user.create_dm()
             
@@ -1479,6 +1487,8 @@ class BotCog(commands.Cog):
     # 指令：進入設定中心
 
     # 指令：客製化 AI 的回覆風格
+    # 更新紀錄:
+    # v1.1 (2025-09-24): [功能更新] 根據使用者要求，將預設的回應風格更新為“非常具體詳細描述，豐富對話互動”。
     @app_commands.command(name="response_style", description="客製化 AI 的回覆風格")
     async def response_style(self, interaction: discord.Interaction):
         if not isinstance(interaction.channel, discord.DMChannel):
@@ -1488,7 +1498,9 @@ class BotCog(commands.Cog):
         if not ai_instance or not ai_instance.profile:
             await interaction.response.send_message("請先使用 `/start` 指令進行初始設定。", ephemeral=True)
             return
-        current_style = ai_instance.profile.response_style_prompt or "角色要有非常豐富的對話和互動"
+        
+        # [核心修正] 更新此處的預設值
+        current_style = ai_instance.profile.response_style_prompt or "非常具體詳細描述，豐富對話互動"
         await interaction.response.send_modal(ResponseStyleModal(self, current_style))
     # 指令：客製化 AI 的回覆風格
 
