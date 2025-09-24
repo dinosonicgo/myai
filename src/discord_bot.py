@@ -1264,18 +1264,27 @@ class BotCog(commands.Cog):
 
 # 函式：監聽並處理所有符合條件的訊息 (v58.0 - 雙重保險LORE提取)
 # 更新紀錄:
-# v58.0 (2025-11-21): [重大架構升級] 移除了依賴主模型摘要的LORE提取流程，改為總是無條件地創建一個獨立的 `_background_lore_extraction` 背景任務。此修改實現了「雙重保險」機制，確保即使主模型判斷失誤，專門的提取鏈也能捕獲並創建被遺漏的LORE。
-# v55.0 (2025-11-16): [功能整合] 整合了「重新生成」功能。
-# v54.2 (2025-11-15): [災難性BUG修復] 修正了日誌記錄中對 user_id 的錯誤引用。
+# v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。现在，当用户处于 /start 创世流程中时，此监听器将完全忽略用户的任何消息，从而根除了因竞争条件导致生成重复开场白的问题。
+# v58.0 (2025-11-21): [重大架構升級] 改为总是无条件地创建独立的背景 LORE 提取任务。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
+        
+        user_id = str(message.author.id)
+
+        # [v58.1 核心修正] 创世流程防火墙
+        # 如果使用者正在进行 /start 设置，则忽略所有常规讯息以防止竞争条件。
+        if user_id in self.active_setups:
+            logger.info(f"[{user_id}] (on_message) 侦测到用户处于活跃的创世流程中，已忽略常规讯息。")
+            return
+
         is_dm = isinstance(message.channel, discord.DMChannel)
         is_mentioned = self.bot.user in message.mentions
         if not is_dm and not is_mentioned: return
+        
         ctx = await self.bot.get_context(message)
         if ctx.valid: return
-        user_id = str(message.author.id)
+        
         user_input = message.content.replace(f'<@{self.bot.user.id}>', '').strip()
         if is_mentioned and not user_input:
             await message.channel.send(f"你好，{message.author.mention}！需要我做什麼嗎？")
@@ -1302,11 +1311,9 @@ class BotCog(commands.Cog):
                     
                     logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理任務...")
                     
-                    # 任務1: 更新長期記憶 (來自摘要)
                     if summary_data.get("memory_summary"):
                         asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
                     
-                    # [v58.0 核心修正] 任務2: 啟動獨立的、作為雙重保險的LORE提取流程
                     asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
 
                 else:
