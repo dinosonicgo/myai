@@ -1,47 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T07:35:25.706567 ###
+### AI Lover Log - Last updated at 2025-09-25T07:40:28.061555 ###
 
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 1378 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1961 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1600 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1605 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1610 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1956 秒)。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1961 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1600 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1605 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1610 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1956 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 1378 秒)。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1600 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1605 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1610 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1956 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 1378 秒)。
-2025-09-25 00:47:24 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1961 秒)。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-25 00:47:24 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:47:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-25 00:47:25 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-A', 'ACTION-C', 'ROLE-B', 'ACTION-E', 'ROLE-D', 'CODE-F-GEN-C', 'STATE-A']
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1604 秒)。
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1609 秒)。
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1956 秒)。
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 1377 秒)。
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1961 秒)。
-2025-09-25 00:47:25 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1599 秒)。
-2025-09-25 00:47:25 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-09-25 00:47:25 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-09-25 00:47:25 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-09-25 00:47:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-25 00:47:26 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
 2025-09-25 00:47:26 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ACTION-B', 'CODE-F-GEN-A', 'CODE-M-GEN-A', 'ACTION-E', 'ROLE-D', 'STATE-A']
 2025-09-25 00:47:26 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1609 秒)。
 2025-09-25 00:47:26 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1955 秒)。
@@ -300,3 +258,45 @@ Traceback (most recent call last):
     raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
 google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
 2025-09-25 07:32:04 - [WARNING] - [512280345618546699] [事後處理-LORE保險] LORE提取鏈的LLM回應為空或最終失敗。
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] 啟動「生成即摘要」對話流程...
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] [預處理-生成即摘要] 正在準備上下文...
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] [導演視角] 當前錨定模式: 'local'
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] [導演視角] 檢測到本地互動指令，視角保持 'local'。
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] 正在組合混合記憶...
+2025-09-25 07:36:33 - [INFO] - [512280345618546699] (RAG Summarizer) 檢索到 15 份原始文檔，正在直接進行摘要...
+2025-09-25 07:36:34 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-25 07:36:34 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-25 07:36:34 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-09-25 07:36:34 - [WARNING] - [512280345618546699] RAG 摘要鏈在處理原始內容後，返回了空的結果。
+2025-09-25 07:36:34 - [INFO] - [512280345618546699] 已成功將 RAG 原始上下文提煉為事實要點。
+2025-09-25 07:36:34 - [INFO] - [512280345618546699] [生成即摘要] 正在執行雙重輸出生成...
+2025-09-25 07:37:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-09-25 07:37:07 - [INFO] - [512280345618546699] [生成即摘要] 雙重輸出解析成功。
+2025-09-25 07:37:07 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
+2025-09-25 07:37:07 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-09-25 07:37:08 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-09-25 07:37:08 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-09-25 07:37:12 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
+2025-09-25 07:37:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-25 07:37:14 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-09-25 07:37:14 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-09-25 07:37:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #5) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-25 07:37:15 - [ERROR] - [512280345618546699] 【最高指令集注入重試】策略最終失敗: Prompt blocked due to PROHIBITED_CONTENT
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 704, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1627, in _force_and_retry
+    return await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 734, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 704, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
+2025-09-25 07:37:15 - [WARNING] - [512280345618546699] [事後處理-LORE保險] LORE提取鏈的LLM回應為空或最終失敗。
