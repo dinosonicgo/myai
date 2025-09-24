@@ -68,7 +68,8 @@ async def create_new_npc_profile(lore_key: str, standardized_name: str, original
     }
     lore_entry = await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     location_str = " > ".join(final_location_path) if final_location_path else "未知地點"
     return f"已成功為新 NPC '{standardized_name}' 創建了檔案 (主鍵: '{lore_key}')，地點: '{location_str}'。"
 
@@ -83,7 +84,8 @@ async def update_npc_profile(lore_key: str, updates: Dict[str, Any]) -> str:
     ai_core = tool_context.get_ai_core()
     updated_lore = await add_or_update_lore(user_id, 'npc_profile', lore_key, updates, merge=True)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(updated_lore)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(updated_lore)
     npc_name = updated_lore.content.get('name', lore_key.split(' > ')[-1])
     return f"已成功更新 NPC '{npc_name}' 的檔案。"
 
@@ -109,7 +111,8 @@ async def add_or_update_location_info(lore_key: str, standardized_name: str, ori
     location_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
     lore_entry = await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為地點 '{standardized_name}' 記錄了資訊。"
 
 # --- 物品相關工具 ---
@@ -136,7 +139,8 @@ async def add_or_update_item_info(lore_key: str, standardized_name: str, origina
     item_data = {"name": standardized_name, "description": description, "effect": effect, "visual_description": visual_description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
     lore_entry = await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物品 '{standardized_name}' 記錄了詳細資訊。"
 
 # --- 生物相關工具 ---
@@ -161,7 +165,8 @@ async def define_creature_type(lore_key: str, standardized_name: str, original_n
     creature_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
     lore_entry = await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物種 '{standardized_name}' 創建了百科詞條。"
 
 # --- 任務與世界傳說相關工具 ---
@@ -188,7 +193,8 @@ async def add_or_update_quest_lore(lore_key: str, standardized_name: str, origin
     quest_data = {"title": standardized_name, "description": description, "location_path": location_path, "status": status, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
     lore_entry = await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
 
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
@@ -211,7 +217,8 @@ async def add_or_update_world_lore(lore_key: str, standardized_name: str, origin
     lore_data = {"title": standardized_name, "content": content, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
     lore_entry = await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
     # [v3.4 核心修正] 觸發RAG增量更新
-    await ai_core._update_rag_for_single_lore(lore_entry)
+    if ai_core:
+        await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功將 '{standardized_name}' 記錄為傳說。"
 
 # --- 工具列表導出 ---
@@ -226,4 +233,6 @@ def get_lore_tools() -> List[Tool]:
         define_creature_type,
         add_or_update_quest_lore,
         add_or_update_world_lore,
+    ]        add_or_update_world_lore,
     ]
+
