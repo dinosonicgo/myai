@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-24T22:41:49.690166 ###
+### AI Lover Log - Last updated at 2025-09-24T22:47:22.505515 ###
 
-reasoning
-  Field required [type=missing, input_value={'decision': 'CREATE', 'm...條目進行關聯。"}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-24 18:59:44 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在NPC '未知實體' 的更新。啟動事實查核...
-2025-09-24 18:59:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-24 18:59:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-24 18:59:45 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for update_npc_profile: 1 validation error for EntityValidationResult
 reasoning
   Field required [type=missing, input_value={'decision': 'CREATE', 'r...', 'matched_key': None}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/missing
@@ -300,3 +293,10 @@ aiohttp.client_exceptions.ServerDisconnectedError: Server disconnected
 2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
 2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 184 條文檔用於創始構建。
 2025-09-24 22:31:51 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-24 22:47:08 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-24 22:47:08 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-24 22:47:08 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-24 22:47:08 - [INFO] - Discord Bot is ready!
+2025-09-24 22:47:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-24 22:47:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-24 22:47:12 - [INFO] - 已成功發送啟動成功通知給管理員。
