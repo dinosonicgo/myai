@@ -2650,14 +2650,13 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：解析並從世界聖經創建 LORE
+# 函式：解析並從世界聖經創建 LORE
     # 更新紀錄:
-    # v8.4 (2025-09-24): [性能優化] 實現了並行處理。第一層和第四層備援策略現在會利用 asyncio.gather 將多個文本塊並行發送到不同的 API Key，極大地加快了長文本的解析速度。
-    # v8.3 (2025-09-24): [災難性BUG修復] 將第一層策略的分塊大小從 10000 調整為對降級模型更安全的 4000。
-    # v8.2 (2025-09-24): [災難性BUG修復] 重構了第一層策略以解決 TimeoutError。
-    async def parse_and_create_lore_from_canon(self, canon_text: str, is_setup_flow: bool = False):
+    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數，因为流程控制已完全由 discord_bot.py 负责。
+    # v8.4 (2025-09-24): [性能優化] 實現了並行處理。
+    async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        [v8.4 總指揮] 解析世界聖經文本，提取LORE並存入資料庫。
+        [v8.5 總指揮] 解析世界聖經文本，提取LORE並存入資料庫。
         採用一個包含四層降級備援策略和並行處理的健壯流程。
         """
         if not self.profile:
@@ -3433,6 +3432,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
