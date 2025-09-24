@@ -1418,10 +1418,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：生成開場白 (/start 流程 4/4)
-# 更新紀錄:
-# v182.0 (2025-09-23): [根本性重構] 根據“與聖經深度融合”和“按需生成”的原則，徹底重寫了此函式的 Prompt。現在，它能夠接收完整的世界聖經文本作為核心上下文，並被強制要求生成一個將主角二人無縫植入該世界、且沒有任何其他NPC的深度定制化開場白。
-# v181.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯，使其不再依賴任何 LangChain 執行鏈，而是通過 ainvoke_with_rotation 直接調用原生 API。同時保留了 v181.0 版本 Prompt 的核心思想，即「靜態場景」和「開放式結尾」。
-# v180.0 (2025-11-12): [完整性修復] 提供了此函式的完整、未省略的版本。
+    # 更新紀錄:
+    # v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt，并为 ainvoke_with_rotation 设置了 'force' 重试策略，以确保开场白生成过程与其他创造性LLM调用享有同等级别的抗审查保护。
+    # v182.0 (2025-09-23): [根本性重構] 彻底重写了此函式的 Prompt 以实现深度圣经融合。
+    # v181.0 (2025-11-19): [根本性重構] 适配了原生 SDK 引擎。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """(/start 流程 4/4) 根據已生成的完整上下文，撰寫故事的開場白。"""
         if not self.profile:
@@ -1434,7 +1434,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
         location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
-        system_prompt_str = f"""你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
+        # 将所有内容组合成一个完整的模板，以便 safe_format 处理
+        full_template = f"""你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
 
 # === 【【【v182.0 核心任務定義】】】 ===
 你的唯一任務是，基於所有源數據（特別是【世界聖經全文】），為使用者角色「{user_profile.name}」與 AI 角色「{ai_profile.name}」創造一個**【深度定制化的、靜態的開場快照】**。
@@ -1456,8 +1457,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 ---
 {self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
 ---
-"""
-        human_prompt_str = f"""
+
 請嚴格遵循你在系統指令中學到的所有規則，為以下角色和場景搭建一個【靜態的、無NPC的、與世界聖經深度融合的】開場快照。
 
 # === 【【【v182.0 核心要求】】】 ===
@@ -1469,28 +1469,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 ---
 【世界觀核心】
-{self.profile.world_settings}
+{{world_settings}}
 ---
 【當前地點】: {" > ".join(gs.location_path)}
 【地點描述】: {location_description}
 ---
 【使用者角色檔案：{user_profile.name}】
-{json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False)}
+{{user_profile_json}}
 ---
 【AI角色檔案：{ai_profile.name}】
-{json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False)}
+{{ai_profile_json}}
 ---
 【世界聖經全文 (你的核心參考資料)】:
-{canon_text or "（未提供世界聖經，請基於世界觀核心和地點描述進行創作。）"}
+{{canon_text}}
 ---
 
 請開始搭建一個寧靜、靜態且符合所有設定的開場場景。
 """
         
-        full_prompt = f"{system_prompt_str}\n\n{human_prompt_str}"
+        # [v182.1 核心修正] 使用 _safe_format_prompt 注入最高指令，並準備參數
+        params = {
+            "world_settings": self.profile.world_settings,
+            "user_profile_json": json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False),
+            "ai_profile_json": json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False),
+            "canon_text": canon_text or "（未提供世界聖經，請基於世界觀核心和地點描述进行創作。）"
+        }
+        
+        full_prompt = self._safe_format_prompt(full_template, params, inject_core_protocol=True)
         
         final_opening_scene = ""
         try:
+            # [v182.1 核心修正] 明确使用 'force' 策略
             initial_scene = await self.ainvoke_with_rotation(
                 full_prompt, 
                 retry_strategy='force',
@@ -3432,6 +3441,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
