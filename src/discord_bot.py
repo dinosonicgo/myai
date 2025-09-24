@@ -624,13 +624,11 @@ class ForceRestartView(discord.ui.View):
 
 # 類別：確認 /start 重置的視圖 (v53.0 - 臨時視圖修正)
 # 更新紀錄:
-# v53.0 (2025-11-22): [災難性BUG修復] 徹底重構了此視圖的實現方式。移除了按鈕的 custom_id 並恢復了 timeout，將其從一個錯誤的「持久化視圖」改為正確的「臨時狀態視圖」。此修改解決了因全局註冊導致 interaction_check 永遠失敗，從而使按鈕無響應的根本問題。
-# v52.0 (2025-11-22): [架構調整] 引入此視圖以提供更安全的重置流程。
-# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+# v53.1 (2025-09-25): [災難性BUG修復] 将 start_reset_flow 的调用从 asyncio.create_task 改为直接 await，确保在按钮回调的生命周期内完成所有耗时操作和后续回应，从而解决“该应用未受回应”的超时问题。
+# v53.0 (2025-11-22): [災難性BUG修復] 彻底重构了此视图的实现方式。
 class ConfirmStartView(discord.ui.View):
     # 函式：初始化 ConfirmStartView
     def __init__(self, *, cog: "BotCog"):
-        # [v53.0 核心修正] 臨時視圖必須有超時
         super().__init__(timeout=180.0)
         self.cog = cog
         self.original_interaction_user_id = None
@@ -645,21 +643,20 @@ class ConfirmStartView(discord.ui.View):
     # 檢查互動是否來自原始使用者 函式結束
         
     # 函式：處理「確認重置」按鈕點擊事件
-    # [v53.0 核心修正] 移除了 custom_id
     @discord.ui.button(label="【確認重置並開始】", style=discord.ButtonStyle.danger)
     async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        self.cog.setup_locks.add(str(interaction.user.id))
-        # 在回應前先禁用按鈕，提供即時反饋
+        # 步骤 1: 立即回应互动，并禁用按钮，提供即时反馈
         for item in self.children:
             item.disabled = True
-        await interaction.response.edit_message(content="正在為您重置所有資料，請稍候...", view=self)
-        # 將耗時操作作為背景任務執行，避免互動超時
-        asyncio.create_task(self.cog.start_reset_flow(interaction))
+        await interaction.response.edit_message(content="⏳ 正在為您重置所有資料，此过程可能需要一点时间，请稍候...", view=self)
+        
+        # 步骤 2: 【核心修正】直接 await 耗时任务，而不是作为背景任务
+        # interaction.followup 将用于在 reset 流程结束后发送最终消息
+        await self.cog.start_reset_flow(interaction)
         self.stop()
     # 處理「確認重置」按鈕點擊事件 函式結束
         
     # 函式：處理「取消」按鈕點擊事件
-    # [v53.0 核心修正] 移除了 custom_id
     @discord.ui.button(label="取消", style=discord.ButtonStyle.secondary)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.edit_message(content="操作已取消。", view=None)
@@ -668,16 +665,19 @@ class ConfirmStartView(discord.ui.View):
         
     # 函式：處理視圖超時事件
     async def on_timeout(self):
-        # 確保超時後按鈕也會被禁用
         for item in self.children:
             item.disabled = True
-        # 這裡可以選擇編輯原始訊息，告知使用者操作已超時
-        # try:
-        #     await self.message.edit(content="操作已超時，請重新發起指令。", view=self)
-        # except discord.HTTPException:
-        #     pass
+        try:
+            # 尝试编辑原始消息，告知用户操作已超时
+            if self.message:
+                await self.message.edit(content="操作已超時，請重新發起指令。", view=self)
+        except discord.HTTPException:
+            pass
     # 處理視圖超時事件 函式結束
 # 確認 /start 重置的視圖 類別結束
+
+
+
 
 # 類別：/settings 指令的選擇視圖
 class SettingsChoiceView(discord.ui.View):
@@ -1528,33 +1528,30 @@ class BotCog(commands.Cog):
 
 # 指令：開始全新的冒險（重置所有資料） (v53.0 - 視圖生命週期修正)
 # 更新紀錄:
-# v53.0 (2025-11-22): [災難性BUG修復] 在發送 ConfirmStartView 後，增加了 `await view.wait()`。此修改會阻塞指令函式的退出，直到視圖被交互（按鈕點擊）或超時，從而確保了 View 物件在其生命週期內始終存活於記憶體中，徹底解決了按鈕點擊後無響應的問題。
-# v52.0 (2025-11-22): [重大架構升級] 整合了顯式清除短期記憶的邏輯。
-# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+# v53.1 (2025-09-25): [架構簡化] 移除了对 setup_locks 的检查，因为重复启动的问题已由 UI 回调和 active_setups 机制更可靠地处理。
+# v53.0 (2025-11-22): [災難性BUG修復] 彻底重构了此视图的实现方式。
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         if not isinstance(interaction.channel, discord.DMChannel):
             await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
             return
-        if user_id in self.setup_locks:
-            view = ForceRestartView(cog=self)
-            view.original_interaction_user_id = interaction.user.id
-            await interaction.response.send_message("偵測到您有尚未完成的設定流程。您想要？", view=view, ephemeral=True)
-            # 增加 view.wait() 以確保此視圖也能正常工作
-            await view.wait()
+        
+        # 检查是否已有流程正在进行
+        if user_id in self.active_setups:
+            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，无法重复开始。请耐心等候或联系管理员。", ephemeral=True)
             return
             
         view = ConfirmStartView(cog=self)
         view.original_interaction_user_id = interaction.user.id
+        # 将 view.message 储存起来，以便在 on_timeout 中使用
         await interaction.response.send_message(
             "⚠️ **警告** ⚠️\n您確定要開始一段全新的冒險嗎？\n這將會**永久刪除**您當前所有的角色、世界、記憶和進度。", 
             view=view, 
             ephemeral=True
         )
+        view.message = await interaction.original_response()
         
-        # [v53.0 核心修正] 等待視圖交互完成或超時
-        # 這可以防止 view 物件在 start 函式結束後被垃圾回收，從而確保按鈕能夠被響應。
         await view.wait()
 # 開始全新的冒險（重置所有資料） 指令結束
 
