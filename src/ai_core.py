@@ -2695,9 +2695,9 @@ class ExtractionResult(BaseModel):
                     for resolution in resolution_plan.resolutions:
                         original_item = next((item for item in all_new_npcs if item.get("name") == resolution.original_name), None)
                         if not original_item: continue
-                        if resolution.decision in ['CREATE', 'NEW']:
+                        if resolution.decision.upper() in ['CREATE', 'NEW']:
                             items_to_create.append(original_item)
-                        elif resolution.decision in ['MERGE', 'EXISTING'] and resolution.matched_key:
+                        elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                             updates_to_merge[resolution.matched_key].append(original_item)
                 else:
                     items_to_create = all_new_npcs
@@ -3320,6 +3320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
