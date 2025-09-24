@@ -1266,46 +1266,59 @@ class BotCog(commands.Cog):
     
     # 函式：完成設定流程 (v51.0 - 持久化開場白)
     # 更新紀錄:
-    # v51.1 (2025-09-25): [災難性BUG修復] 将 LORE 解析步骤从 process_canon_and_extract_lores 中移入此函式，并使用 await 直接调用，确保在生成开场白之前，圣经解析必须同步完成。
-    # v51.0 (2025-11-22): [重大架構升級] 增加了对开场白的持久化存储。
-    # v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+    # v51.2 (2025-09-25): [災難性BUG修復] 徹底重構創世流程，將 LORE 解析的調用邏輯從 ai_core.py 移至此處，並確保所有步驟都通過 await 嚴格同步執行，從根本上解決了開場白在聖經解析完成前生成的問題。
+    # v51.1 (2025-09-25): [災難性BUG修復] 修正了 LORE 解析的同步調用問題。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
-        logger.info(f"[{user_id}] (UI Event) finalize_setup 被觸發。Canon provided: {bool(canon_text)}")
+        logger.info(f"[{user_id}] (UI Event) finalize_setup 總指揮流程啟動。Canon provided: {bool(canon_text)}")
         
+        # 初始回應，告知使用者流程已開始，防止互動超時
+        # 使用 followup 是因為初始的 interaction 可能已經被 defer 或回應過
         try:
-            await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這可能需要一到十幾分鐘，請稍候。", ephemeral=True)
-            
+            await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這是一個耗時過程，可能需要數分鐘，請耐心等候最終的開場白。", ephemeral=True)
+        except discord.errors.HTTPException:
+            # 如果 followup 失敗，嘗試用原始互動回應
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("🚀 **正在為您執行最終創世...**\n這是一個耗時過程，可能需要數分鐘，請耐心等候最終的開場白。", ephemeral=True)
+            except discord.errors.HTTPException as e:
+                logger.error(f"[{user_id}] 無法發送初始等待訊息: {e}")
+
+        try:
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
-                await interaction.followup.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。", ephemeral=True)
+                await interaction.user.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。")
                 self.setup_locks.discard(user_id)
                 return
 
-            # [v51.1 核心修正] 将 LORE 解析流程直接在此处 await，确保同步执行
+            # --- 步驟 1: 世界聖經處理 (如果提供) ---
             if canon_text:
                 logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
                 await ai_instance.add_canon_to_vector_store(canon_text)
                 logger.info(f"[{user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
-                logger.info(f"[{user_id}] [/start] 正在進行 LORE 智能解析 (此步驟可能耗時較長)...")
+                
+                logger.info(f"[{user_id}] [/start] 正在進行 LORE 智能解析 (此步驟將被嚴格等待)...")
+                # 【核心修正】直接在此處 AWAIT LORE 解析函式
                 await ai_instance.parse_and_create_lore_from_canon(canon_text=canon_text, is_setup_flow=True)
-                logger.info(f"[{user_id}] [/start] LORE 智能解析完成。")
+                logger.info(f"[{user_id}] [/start] LORE 智能解析【已同步完成】。")
+            else:
+                 logger.info(f"[{user_id}] [/start 流程 1/4] 跳過世界聖經處理。")
             
-            await asyncio.sleep(2.0)
-
+            # --- 步驟 2: 補完角色檔案 ---
             logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
-            await asyncio.sleep(2.0)
-
+            
+            # --- 步驟 3: 生成世界創世資訊 ---
             logger.info(f"[{user_id}] [/start 流程 3/4] 正在生成世界創世資訊...")
-            await ai_instance.generate_world_genesis(canon_text=canon_text) # 将 canon_text 传递给创世
-            await asyncio.sleep(2.0)
-
+            await ai_instance.generate_world_genesis(canon_text=canon_text)
+            
+            # --- 步驟 4: 生成開場白 ---
             logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
+            # --- 最終步驟: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             logger.info(f"[{user_id}] 開場白已成功存入場景 '{scene_key}' 的歷史記錄並持久化。")
@@ -1320,11 +1333,13 @@ class BotCog(commands.Cog):
         except Exception as e:
             logger.error(f"[{user_id}] 在手動編排的創世流程中發生嚴重錯誤: {e}", exc_info=True)
             try:
-                await interaction.followup.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}", ephemeral=True)
-            except discord.errors.NotFound:
-                await interaction.user.send(f"❌ **錯誤**：在執行最終設定時發生了未預期的嚴重錯誤: {e}")
+                await interaction.user.send(f"❌ **創世失敗**：在執行最終設定時發生了未預期的嚴重錯誤: `{e}`")
+            except discord.errors.HTTPException as send_e:
+                 logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
+            # 確保在流程結束時，無論成功或失敗，都釋放鎖
             self.setup_locks.discard(user_id)
+            logger.info(f"[{user_id}] /start 流程鎖已釋放。")
 # 完成設定流程 函式結束
 
     # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
