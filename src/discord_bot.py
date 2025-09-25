@@ -1075,13 +1075,16 @@ class VersionControlView(discord.ui.View):
 
 # 類別：機器人核心功能集 (Cog)
 class BotCog(commands.Cog):
-    # 函式：初始化 BotCog
-    def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock):
+    # 函式：初始化 BotCog (v57.1 - Ollama健康检查)
+    # 更新紀錄:
+    # v57.1 (2025-09-26): [重大架構升級] `__init__` 和 `get_or_create_ai_instance` 被重构，现在可以接收并储存 `is_ollama_available` 状态，并将其传递给每一个新创建的 `AILover` 实例。
+    # v57.0 (2025-11-17): [完整性修復] 根據使用者要求，提供包含所有近期修正的完整檔案。
+    def __init__(self, bot: "AILoverBot", git_lock: asyncio.Lock, is_ollama_available: bool):
         self.bot = bot
         self.ai_instances: dict[str, AILover] = {}
-        # [v57.0 核心修正] setup_locks 改名为 active_setups 以更好地反映其作用
         self.active_setups: set[str] = set()
         self.git_lock = git_lock
+        self.is_ollama_available = is_ollama_available # 储存状态
     # 函式：初始化 BotCog
 
     # 函式：Cog 卸載時執行的清理
