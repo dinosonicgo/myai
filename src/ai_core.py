@@ -103,7 +103,7 @@ class AILover:
     
     # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
     # 更新紀錄:
-    # v227.5 (2025-09-23): [架構升級] 為實現RAG增量更新，新增了 bm25_index_path 和 bm25_corpus 屬性，用於管理持久化的RAG索引。
+    # v227.5 (2025-09-23): [架構升級] 為實現RAG增量更新，新增了 bm25_index_path 和 bm25_corpus 屬性。
     # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。
     # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。
     def __init__(self, user_id: str):
@@ -134,7 +134,6 @@ class AILover:
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
         
-        # --- 所有 get_..._chain/prompt 輔助鏈的佔位符 ---
         self.forensic_lore_reconstruction_chain: Optional[str] = None
         self.batch_entity_resolution_chain: Optional[str] = None
         self.single_entity_resolution_chain: Optional[str] = None
@@ -151,7 +150,6 @@ class AILover:
         self.lore_extraction_chain: Optional[str] = None
         self.description_synthesis_prompt: Optional[str] = None
         
-        # --- 模板與資源 ---
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
         self.scene_histories: Dict[str, ChatMessageHistory] = {}
@@ -169,13 +167,14 @@ class AILover:
         self.bm25_corpus: List[Document] = []
     # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
 
+
     
 
 
 
-  # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
+   # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在AI核心初始化時從JSON檔案讀取冷卻數據。
+    # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。
     def _load_cooldowns(self):
         """從 JSON 檔案載入金鑰+模型的冷卻狀態。"""
         if self.cooldown_file_path.exists():
@@ -1783,6 +1782,7 @@ class ExtractionResult(BaseModel):
     # v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
     # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
     async def initialize(self) -> bool:
+        """從資料庫加載使用者數據並初始化 AI 核心。這是啟動時的關鍵方法。"""
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
             if not result:
@@ -2877,10 +2877,7 @@ class ExtractionResult(BaseModel):
 
 
 
-   # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
-    # 更新紀錄:
-    # v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”。
-    async def parse_and_create_lore_from_canon(self, canon_text: str):
+):
         """
         【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
         """
@@ -2957,13 +2954,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
    # 函式：執行 LORE 解析管線 (v2.1 - 結構完整性修復)
     # 更新紀錄:
-    # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排，以解決 'await' outside async function 的 SyntaxError。
-    # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層——“混合 NLP 方案”。
-    # v1.0 (2025-09-25): [重大架構升級] 創建此函式作為統一的“四層降級解析”引擎。
+    # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排。
+    # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
         【核心 LORE 解析引擎】執行一個四層降級的解析管線，以確保資訊的最大保真度。
-        返回 True 表示至少有一層成功，返回 False 表示完全失敗。
         """
         if not self.profile or not text_to_parse.strip():
             return False
@@ -3595,6 +3590,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
