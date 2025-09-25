@@ -101,11 +101,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
+    # 函式：初始化AI核心 (v227.6 - 本地LLM整合)
     # 更新紀錄:
+    # v227.6 (2025-09-25): [架構擴展] 新增了 self.ollama_model_name 屬性，為本地 LLM 備援方案提供可配置的模型名稱。
     # v227.5 (2025-09-23): [架構升級] 為實現RAG增量更新，新增了 bm25_index_path 和 bm25_corpus 屬性。
     # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。
-    # v227.3 (2025-09-23): [架構擴展] 新增了 self.DECODING_MAP 屬性。
     def __init__(self, user_id: str):
         self.user_id: str = user_id
         self.profile: Optional[UserProfile] = None
@@ -130,6 +130,9 @@ class AILover:
             "STATE-B": "射精", "ROLE-A": "臣服", "ROLE-B": "主人",
             "ROLE-C": "母狗", "ROLE-D": "母畜"
         }
+        
+        # [v227.6 核心修正] 為本地備援模型設定名稱
+        self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
@@ -165,7 +168,7 @@ class AILover:
 
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
-    # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
+    # 函式：初始化AI核心
 
 
     
@@ -907,9 +910,172 @@ class AILover:
 
 
     
+    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.2 - 執行時組裝)
+    # 更新紀錄:
+    # v1.2 (2025-09-25): [災難性BUG修復] 根據「最小化骨架」策略重構。此函式現在負責獲取Prompt骨架，並在Python執行時動態地、安全地將Pydantic定義和Few-Shot範例注入進去，生成最終的完整Prompt。這徹底解決了所有渲染截斷問題。
+    # v1.1 (2025-09-25): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為本地LLM備援方案的執行核心。
+    async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
+        """
+        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務。
+        此函式會在執行時動態組裝完整的 Prompt。
+        返回一個 CanonParsingResult 物件，如果失敗則返回 None。
+        """
+        import httpx
+        import json
+        from pydantic import ValidationError
+        
+        if not self.profile:
+            return None
+
+        logger.info(f"[{self.user_id}] 正在使用本地模型 '{self.ollama_model_name}' 進行LORE解析...")
+        
+        # --- 步驟 1: 準備 Prompt 的所有組成部分 ---
+        pydantic_definitions = """
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
+class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
+class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
+class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
+class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""; status: str = "未知"
+class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
+class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
+"""
+        example_input = "「在維利爾斯莊園的深處，勳爵夫人絲月正照看著她的女兒莉莉絲。莉莉絲手中把玩著一顆名為『虛空之心』的黑色寶石。」"
+        example_json_output = """{
+  "npc_profiles": [
+    {
+      "name": "絲月",
+      "aliases": ["勳爵夫人絲月"],
+      "description": "維利爾斯勳爵的夫人，莉莉絲的母親。",
+      "location_path": ["維利爾斯莊園"]
+    },
+    {
+      "name": "莉莉絲",
+      "description": "絲月的女兒，擁有『虛空之心』寶石。",
+      "location_path": ["維利爾斯莊園"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "維利爾斯莊園",
+      "description": "勳爵夫人絲月和她女兒莉莉絲居住的地方。",
+      "known_npcs": ["絲月", "莉莉絲"]
+    }
+  ],
+  "items": [
+    {
+      "name": "虛空之心",
+      "description": "一顆被莉莉絲持有的黑色寶石。",
+      "item_type": "寶石"
+    }
+  ],
+  "creatures": [],
+  "quests": [],
+  "world_lores": []
+}"""
+        
+        # --- 步驟 2: 獲取安全的 Prompt 骨架 ---
+        prompt_skeleton = self.get_local_model_lore_parser_prompt()
+
+        # --- 步驟 3: 動態、安全地組裝最終 Prompt ---
+        pydantic_block = f"```python\n{pydantic_definitions}\n```"
+        output_block = f"```json\n{example_json_output}\n```"
+        start_tag_block = "```json"
+        
+        # 使用 .format() 方法將所有部分注入骨架
+        full_prompt = prompt_skeleton.format(
+            username=self.profile.user_profile.name,
+            ai_name=self.profile.ai_profile.name,
+            pydantic_definitions_placeholder=pydantic_block,
+            example_input_placeholder=example_input,
+            example_output_placeholder=output_block,
+            canon_text=canon_text,
+            start_tag_placeholder=start_tag_block
+        )
+
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": full_prompt,
+            "format": "json",
+            "stream": False,
+            "options": {
+                "temperature": 0.2
+            }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                
+                response_data = response.json()
+                json_string_from_model = response_data.get("response")
+                
+                if not json_string_from_model:
+                    logger.error(f"[{self.user_id}] 本地模型返回了空的 'response' 內容。")
+                    return None
+
+                parsed_json = json.loads(json_string_from_model)
+                validated_result = CanonParsingResult.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] 本地模型成功解析並驗證了LORE數據。")
+                return validated_result
+
+        except httpx.ConnectError:
+            logger.error(f"[{self.user_id}] 無法連接到本地 Ollama 伺服器。請確保 Ollama 正在運行並且在 http://localhost:11434 上可用。")
+            return None
+        except httpx.HTTPStatusError as e:
+            logger.error(f"[{self.user_id}] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
+            return None
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(f"[{self.user_id}] 無法解析或驗證來自本地模型的JSON輸出: {e}", exc_info=True)
+            return None
+        except Exception as e:
+            logger.error(f"[{self.user_id}] 呼叫本地 Ollama 模型時發生未知錯誤: {e}", exc_info=True)
+            return None
+    # 函式：呼叫本地Ollama模型進行LORE解析
+
+
     
     
-    
+        # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 終極渲染修復)
+    # 更新紀錄:
+    # v2.0 (2025-09-25): [災難性BUG修復] 採用終極的「最小化骨架」策略。此函式不再返回包含範例的完整Prompt，而是只返回一個絕對安全的指令骨架。完整的Prompt將在執行時由核心調用函式動態組裝，從而徹底繞過渲染引擎的截斷問題。
+    # v1.3 (2025-09-25): [災難性BUG修復] 採用終極的物理隔離策略。
+    # v1.2 (2025-09-25): [災難性BUG修復] 採用了終極的字串構建策略。
+    def get_local_model_lore_parser_prompt(self) -> str:
+        """
+        返回一個最小化的、絕對安全的 Prompt 骨架。
+        完整的 Prompt 將在 _invoke_local_ollama_parser 中動態組裝。
+        """
+        # 這個骨架是安全的，不包含任何會觸發 Markdown 渲染錯誤的序列。
+        prompt_skeleton = """# TASK: 你是一個高精度的數據提取與結構化引擎。
+# MISSION: 你的任務是閱讀提供的【遊戲設計筆記】，並將其中包含的所有世界觀資訊（LORE）提取為一個結構化的JSON物件。
+
+### 核心規則 (CORE RULES) ###
+1.  **主角排除**: 絕對禁止為「{username}」或「{ai_name}」創建任何LORE條目。
+2.  **JSON ONLY**: 你的最終輸出必須且只能是一個純淨的、有效的JSON物件，其結構必須嚴格匹配下方的【Pydantic模型定義】。禁止包含任何解釋性文字、註釋或Markdown標記。
+
+### Pydantic模型定義 (Pydantic Model Definitions) ###
+{pydantic_definitions_placeholder}
+
+### 範例 (EXAMPLE) ###
+INPUT:
+{example_input_placeholder}
+
+OUTPUT:
+{example_output_placeholder}
+
+### 你的任務 (YOUR TASK) ###
+# 請從下方的【遊戲設計筆記】中提取所有LORE資訊，並生成一個純淨的JSON物件。
+
+### 遊戲設計筆記 (Game Design Notes) ###
+{canon_text}
+
+### 你的JSON輸出 (Your JSON Output) ###
+{start_tag_placeholder}
+"""
+        return prompt_skeleton
+    # 函式：獲取本地模型專用的LORE解析器Prompt骨架
     
     
     
@@ -2962,25 +3128,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v2.2 - 核心主角保護)
+    # 函式：執行 LORE 解析管線 (v3.0 - 本地LLM備援)
     # 更新紀錄:
-    # v2.2 (2025-09-25): [災難性BUG修復] 在格式化 LORE 解析鏈的 Prompt 時，增加了對 username 和 ai_name 的傳遞，以確保核心主角保護原則能夠在所有解析層級中生效。
+    # v3.0 (2025-09-25): [重大架構升級] 引入了本地無審查LLM作為第二層備援。當第一層Gemini解析因內容審查失敗時，管線會首先嘗試使用本地Ollama模型處理原始文本，失敗後才會降級到後續的Gemini安全代碼和混合NLP方案。
+    # v2.2 (2025-09-25): [災難性BUG修復] 在格式化 LORE 解析鏈的 Prompt 時，增加了對 username 和 ai_name 的傳遞。
     # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排。
-    # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
-        【核心 LORE 解析引擎】執行一個四層降級的解析管線，以確保資訊的最大保真度。
+        【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
         """
         if not self.profile or not text_to_parse.strip():
             return False
 
         parsing_completed = False
 
-        # --- 層級 1: 【理想方案】原文宏觀解析 ---
+        # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在嘗試【理想方案：原文宏觀解析】...")
-                # [v2.2 核心修正] 傳遞主角名稱
+                logger.info(f"[{self.user_id}] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...")
                 transformation_template = self.get_canon_transformation_chain()
                 full_prompt = self._safe_format_prompt(
                     transformation_template,
@@ -2991,7 +3156,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 1/4] ✅ 成功！正在儲存結果...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 成功！正在儲存結果...")
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
@@ -3000,16 +3165,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
                     parsing_completed = True
         except BlockedPromptException:
-            logger.warning(f"[{self.user_id}] [LORE 解析 1/4] 遭遇內容審查，正在降級到第二層...")
+            logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 遭遇內容審查，正在降級到第二層（本地LLM）...")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 1/4] 遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 1/5] 遭遇未知錯誤: {e}，正在降級。", exc_info=True)
 
-        # --- 層級 2: 【安全代碼方案】全文無害化解析 ---
+        # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在嘗試【安全代碼方案：全文無害化解析】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在嘗試【本地備援方案：無審查解析】...")
+                parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
+                if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
+                    logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！正在儲存本地解析結果...")
+                    # 本地模型輸出的是原始文本，無需解碼
+                    await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
+                    await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
+                    await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
+                    await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
+                    await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    parsing_completed = True
+                else:
+                    logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+
+
+        # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
+        try:
+            if not parsing_completed:
+                logger.info(f"[{self.user_id}] [LORE 解析 3/5] 正在嘗試【安全代碼方案：全文無害化解析】...")
                 sanitized_text = text_to_parse
-                reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item), reverse=True)
                 for code, word in reversed_map:
                     sanitized_text = sanitized_text.replace(word, code)
 
@@ -3021,7 +3207,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 成功！正在解碼並儲存結果...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 3/5] ✅ 成功！正在解碼並儲存結果...")
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
@@ -3030,20 +3216,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
                     parsing_completed = True
         except BlockedPromptException:
-            logger.warning(f"[{self.user_id}] [LORE 解析 2/4] 無害化後仍遭遇審查，正在降級到第三層...")
+            logger.warning(f"[{self.user_id}] [LORE 解析 3/5] 無害化後仍遭遇審查，正在降級到第四層...")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 2/4] 遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 3/5] 遭遇未知錯誤: {e}", exc_info=True)
 
-        # --- 層級 3: 【混合 NLP 方案】靶向精煉 ---
+        # --- 層級 4: 【混合 NLP 方案】靶向精煉 (Gemini + spaCy) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 3/4] 正在嘗試【混合 NLP 方案：靶向精煉】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...")
                 
                 candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
                 if not candidate_entities:
-                    logger.info(f"[{self.user_id}] [LORE 解析 3/4] 本地 NLP 未能提取任何候選實體，跳過此層。")
+                    logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地 NLP 未能提取任何候選實體，跳過此層。")
                 else:
-                    logger.info(f"[{self.user_id}] [LORE 解析 3/4] 本地提取到 {len(candidate_entities)} 個候選實體，正在請求 LLM 進行分類...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地提取到 {len(candidate_entities)} 個候選實體，正在請求 LLM 進行分類...")
                     
                     classification_prompt = self.get_lore_classification_prompt()
                     class_full_prompt = self._safe_format_prompt(
@@ -3054,7 +3240,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
                     
                     if not classification_result or not classification_result.classifications:
-                        logger.warning(f"[{self.user_id}] [LORE 解析 3/4] LLM 分類決策失敗或返回空結果，跳過此層。")
+                        logger.warning(f"[{self.user_id}] [LORE 解析 4/5] LLM 分類決策失敗或返回空結果，跳過此層。")
                     else:
                         tasks = []
                         pydantic_map = { "npc_profile": CharacterProfile, "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
@@ -3080,7 +3266,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 )
                         
                         if tasks:
-                            logger.info(f"[{self.user_id}] [LORE 解析 3/4] 正在並行執行 {len(tasks)} 個靶向精煉任務...")
+                            logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在並行執行 {len(tasks)} 個靶向精煉任務...")
                             refined_results = await asyncio.gather(*tasks, return_exceptions=True)
                             
                             success_count = 0
@@ -3093,16 +3279,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                         success_count += 1
                             
                             if success_count > 0:
-                                logger.info(f"[{self.user_id}] [LORE 解析 3/4] ✅ 成功！混合 NLP 方案儲存了 {success_count} 條 LORE。")
+                                logger.info(f"[{self.user_id}] [LORE 解析 4/5] ✅ 成功！混合 NLP 方案儲存了 {success_count} 條 LORE。")
                                 parsing_completed = True
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 3/4] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 4/5] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
 
-        # --- 層級 4: 【法醫級重構方案】終極備援 ---
+        # --- 層級 5: 【法醫級重構方案】終極備援 (Gemini) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在嘗試【法醫級重構方案】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 5/5] 正在嘗試【法醫級重構方案】...")
                 keywords = set()
                 for word in self.DECODING_MAP.values():
                     if word in text_to_parse:
@@ -3126,22 +3312,82 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                     )
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                        logger.info(f"[{self.user_id}] [LORE 解析 4/4] ✅ 成功！正在解碼並儲存重構結果...")
+                        logger.info(f"[{self.user_id}] [LORE 解析 5/5] ✅ 成功！正在解碼並儲存重構結果...")
                         await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                         await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                         parsing_completed = True
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 4/4] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 5/5] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
 
         if not parsing_completed:
-            logger.error(f"[{self.user_id}] [LORE 解析] 所有四層解析方案均最終失敗。")
+            logger.error(f"[{self.user_id}] [LORE 解析] 所有五層解析方案均最終失敗。")
 
         return parsing_completed
     # 函式：執行 LORE 解析管線
 
 
 
-    
+        # 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Pydantic定義物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔，避免被渲染器截斷。
+    def get_ollama_pydantic_definitions_template(self) -> str:
+        """返回一個包含所有LORE解析所需Pydantic模型定義的純文字區塊。"""
+        
+        pydantic_definitions = """
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
+class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
+class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
+class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
+class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""; status: str = "未知"
+class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
+class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
+"""
+        return pydantic_definitions
+    # 函式：獲取為Ollama準備的Pydantic模型定義模板
+
+
+        # 函式：獲取為Ollama準備的解析範例模板 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Few-Shot範例物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔。
+    def get_ollama_example_template(self) -> Tuple[str, str]:
+        """返回一個元組，包含用於Few-Shot學習的輸入範例和期望的JSON輸出範例。"""
+
+        example_input = "「在維利爾斯莊園的深處，勳爵夫人絲月正照看著她的女兒莉莉絲。莉莉絲手中把玩著一顆名為『虛空之心』的黑色寶石。」"
+        
+        example_json_output = """{
+  "npc_profiles": [
+    {
+      "name": "絲月",
+      "aliases": ["勳爵夫人絲月"],
+      "description": "維利爾斯勳爵的夫人，莉莉絲的母親。",
+      "location_path": ["維利爾斯莊園"]
+    },
+    {
+      "name": "莉莉絲",
+      "description": "絲月的女兒，擁有『虛空之心』寶石。",
+      "location_path": ["維利爾斯莊園"]
+    }
+  ],
+  "locations": [
+    {
+      "name": "維利爾斯莊園",
+      "description": "勳爵夫人絲月和她女兒莉莉絲居住的地方。",
+      "known_npcs": ["絲月", "莉莉絲"]
+    }
+  ],
+  "items": [
+    {
+      "name": "虛空之心",
+      "description": "一顆被莉莉絲持有的黑色寶石。",
+      "item_type": "寶石"
+    }
+  ],
+  "creatures": [],
+  "quests": [],
+  "world_lores": []
+}"""
+        return example_input, example_json_output
+    # 函式：獲取為Ollama準備的解析範例模板
 
 
 
@@ -3601,6 +3847,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
