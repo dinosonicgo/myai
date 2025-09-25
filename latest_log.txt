@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T23:22:43.190687 ###
+### AI Lover Log - Last updated at 2025-09-25T23:27:45.610352 ###
 
-2025-09-25 07:37:07 - [INFO] - [512280345618546699] 回應已發送。正在啟動事後處理任務...
-2025-09-25 07:37:07 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-09-25 07:37:08 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-09-25 07:37:08 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-09-25 07:37:12 - [INFO] - [512280345618546699] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...
 2025-09-25 07:37:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查錯誤: BlockedPromptException。
 2025-09-25 07:37:14 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
 2025-09-25 07:37:14 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
@@ -300,3 +295,8 @@ AttributeError: 'AILover' object has no attribute 'initialize'
 2025-09-25 23:22:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-25 23:22:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-25 23:22:32 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-25 23:22:47 - [ERROR] - 處理上傳的世界聖經檔案時發生錯誤: 'BotCog' object has no attribute 'setup_locks'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1647, in set_canon_file
+    is_currently_in_setup = user_id in self.setup_locks
+AttributeError: 'BotCog' object has no attribute 'setup_locks'
