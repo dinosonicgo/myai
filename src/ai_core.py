@@ -2877,7 +2877,12 @@ class ExtractionResult(BaseModel):
 
 
 
-):
+    # 函式：解析並從世界聖經創建 LORE (v9.1 - 結構修復)
+    # 更新紀錄:
+    # v9.1 (2025-09-25): [災難性BUG修復] 恢復了因複製錯誤而遺失的函式定義行 (def ...)，以解決 'unmatched )' 的 SyntaxError。
+    # v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎。
+    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
+    async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
         """
@@ -2895,7 +2900,7 @@ class ExtractionResult(BaseModel):
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-    # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
+    # 函式：解析並從世界聖經創建 LORE (v9.1 - 結構修復)
 
 
 
@@ -3590,6 +3595,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
