@@ -643,11 +643,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.3 - 模型日誌記錄)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.4 - 參數修正)
     # 更新紀錄:
+    # v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫，移除了多餘的異常物件參數 `e`，使其與函式定義匹配，解決了 TypeError。
     # v232.3 (2025-09-25): [可觀測性升級] 新增了日誌記錄，現在每次成功的生成都會在日誌中明確標示所使用的模型名稱和API金鑰索引。
-    # v232.2 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法，解決了 AttributeError。
-    # v232.1 (2025-09-25): [災難性BUG修復] 在處理內容審查異常的邏輯中，增加了對 retry_strategy == 'none' 的判斷。
+    # v232.2 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -716,7 +716,6 @@ class AILover:
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
-                        # [v232.3 核心修正] 在此處添加成功的日誌記錄
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
@@ -736,7 +735,8 @@ class AILover:
                         elif retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
                         elif retry_strategy == 'force':
-                            return await self._force_and_retry(full_prompt, output_schema, e)
+                            # [v232.4 核心修正] 移除了多餘的參數 `e`
+                            return await self._force_and_retry(full_prompt, output_schema)
                         else: 
                             raise e
 
@@ -3847,6 +3847,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
