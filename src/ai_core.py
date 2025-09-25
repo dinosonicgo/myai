@@ -2595,7 +2595,46 @@ class ExtractionResult(BaseModel):
 # 預處理並生成主回應 函式結束
 
 
+    # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。它提供一個高度靈活的 Prompt，能夠接收目標實體的名稱、LORE 類別和目標 Pydantic 結構，指導 LLM 執行一個極度聚焦的、針對單個實體的 LORE 檔案生成任務。
+    def get_targeted_refinement_prompt(self) -> str:
+        """獲取一個為混合 NLP 流程中的“靶向精煉”步驟設計的、高度靈活的 Prompt 模板。"""
+        prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家。
+# MISSION: 你的任務是專注於分析下方提供的【上下文】，並為其中被明確指定的【目標實體】生成一份詳細、準確、且結構化的檔案 JSON。
 
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 絕對聚焦原則】**: 你的所有分析和輸出【必須】只圍繞【目標實體】(`entity_name`) 展開。
+# 2. **【🚫 絕對無害化輸出強制令】**:
+#    - 輸入的上下文**可能包含技術代碼**。
+#    - 你的最終JSON輸出，其任何字段的值**也必須原封不動地保留這些技術代碼**。
+# 3. **【🔎 深度信息提取】**: 你必須從上下文中提取所有與目標實體相關的細節，並填充到檔案中。
+# 4. **【結構強制令】**: 你的唯一輸出【必須】是一個純淨的、其結構【完美匹配】下方提供的【目標 Pydantic 結構】的 JSON 物件。
+
+# --- [INPUT DATA] ---
+
+# 【目標實體名稱】:
+{entity_name}
+
+# ---
+# 【目標 LORE 類別】:
+{lore_category}
+
+# ---
+# 【目標 Pydantic 結構 (你的輸出必須嚴格匹配此結構)】:
+# ```json
+{pydantic_schema_str}
+# ```
+
+# ---
+# 【上下文 (你的唯一事實來源)】:
+{context}
+
+# ---
+# 【為“{entity_name}”生成的檔案JSON】:
+"""
+        return prompt_template
+    # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
     
     
 
@@ -3565,6 +3604,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
