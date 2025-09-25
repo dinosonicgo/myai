@@ -1266,20 +1266,21 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # 函式：在 connection_watcher 任務首次運行前執行的設置
 
-# 函式：監聽並處理所有符合條件的訊息 (v58.0 - 雙重保險LORE提取)
-# 更新紀錄:
-# v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。现在，当用户处于 /start 创世流程中时，此监听器将完全忽略用户的任何消息，从而根除了因竞争条件导致生成重复开场白的问题。
-# v58.0 (2025-11-21): [重大架構升級] 改为总是无条件地创建独立的背景 LORE 提取任务。
+    # 函式：監聽並處理所有符合條件的訊息 (v58.2 - 競爭條件修復)
+    # 更新紀錄:
+    # v58.2 (2025-09-26): [災難性BUG修復] 增加了對 `self.active_setups` 狀態的檢查。現在，當使用者處於 `/start` 創世流程中時，此監聽器將完全忽略使用者的任何消息（包括上傳檔案），從而根除了因競爭條件導致生成重複或錯誤開場白的問題。
+    # v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。
+    # v58.0 (2025-11-21): [重大架構升級] 改为总是无条件地创建独立的背景 LORE 提取任务。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
         
         user_id = str(message.author.id)
 
-        # [v58.1 核心修正] 创世流程防火墙
+        # [v58.2 核心修正] 創世流程防火牆
         # 如果使用者正在进行 /start 设置，则忽略所有常规讯息以防止竞争条件。
         if user_id in self.active_setups:
-            logger.info(f"[{user_id}] (on_message) 侦测到用户处于活跃的创世流程中，已忽略常规讯息。")
+            logger.info(f"[{user_id}] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '{message.content[:50]}...' 以防止競爭。")
             return
 
         is_dm = isinstance(message.channel, discord.DMChannel)
@@ -1327,7 +1328,7 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-# 監聽並處理所有符合條件的訊息 函式結束
+    # 監聽並處理所有符合條件的訊息 函式結束
 
 
     
