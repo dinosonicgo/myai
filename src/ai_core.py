@@ -1053,12 +1053,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的一部分。它的任務是接收一個由 spaCy 識別出的實體名稱和完整的上下文，然後指導 LLM 執行一個高度聚焦的、靶向的角色檔案生成任務，以降低內容審查風險並最大限度地還原資訊。
-def get_spacy_entity_refinement_prompt(self) -> str:
-    """獲取一個為 spaCy 混合備援流程中的“靶向精煉”步驟設計的 Prompt 模板。"""
-    prompt_template = """# TASK: 你是一位資深的角色傳記作家和情報分析師。
+    # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
+    # 更新紀錄:
+    # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
+    # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的一部分。它的任務是接收一個由 spaCy 識別出的實體名稱和完整的上下文，然後指導 LLM 執行一個高度聚焦的、靶向的角色檔案生成任務，以降低內容審查風險並最大限度地還原資訊。
+    def get_spacy_entity_refinement_prompt(self) -> str:
+        """獲取一個為 spaCy 混合備援流程中的“靶向精煉”步驟設計的 Prompt 模板。"""
+        prompt_template = """# TASK: 你是一位資深的角色傳記作家和情報分析師。
 # MISSION: 你的任務是專注於分析下方提供的【對話上下文】，並為其中被明確指定的【目標實體名稱】生成一份盡可能詳細、準確、且結構化的角色檔案 JSON。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
@@ -1085,100 +1086,100 @@ def get_spacy_entity_refinement_prompt(self) -> str:
 # ---
 # 【為“{entity_name}”生成的角色檔案JSON】:
 """
-    return prompt_template
-# ai_core.py 的 get_spacy_entity_refinement_prompt 函式結尾
+        return prompt_template
+    # ai_core.py 的 get_spacy_entity_refinement_prompt 函式結尾
 
 
 
-    # ai_core.py 的 _spacy_fallback_lore_extraction 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的核心。當主 LORE 提取鏈失敗時，此函式會使用 spaCy 在本地從【原始、未消毒的】文本中提取潛在的 NPC 實體，然後為每個實體發起一個高度聚焦的、更安全的 LLM 調用，以進行靶向的角色檔案精煉，最大限度地在保證安全的前提下還原 LORE 資訊。
-async def _spacy_fallback_lore_extraction(self, user_input: str, final_response: str):
-    """
-    【混合NLP備援】當主LORE提取鏈失敗時，使用spaCy在本地提取實體，再由LLM進行靶向精煉。
-    """
-    if not self.profile:
-        return
+    # ai_core.py 的 _spacy_fallback_lore_extraction 函式 (v1.1 - 縮排修正)
+    # 更新紀錄:
+    # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的核心。當主 LORE 提取鏈失敗時，此函式會使用 spaCy 在本地從【原始、未消毒的】文本中提取潛在的 NPC 實體，然後為每個實體發起一個高度聚焦的、更安全的 LLM 調用，以進行靶向的角色檔案精煉，最大限度地在保證安全的前提下還原 LORE 資訊。
+    async def _spacy_fallback_lore_extraction(self, user_input: str, final_response: str):
+        """
+        【混合NLP備援】當主LORE提取鏈失敗時，使用spaCy在本地提取實體，再由LLM進行靶向精煉。
+        """
+        if not self.profile:
+            return
 
-    logger.warning(f"[{self.user_id}] [混合NLP備援] 主 LORE 提取鏈失敗，正在啟動 spaCy 混合備援流程...")
-    
-    try:
-        # 確保 spaCy 模型已加載
+        logger.warning(f"[{self.user_id}] [混合NLP備援] 主 LORE 提取鏈失敗，正在啟動 spaCy 混合備援流程...")
+        
         try:
-            nlp = spacy.load('zh_core_web_sm')
-        except OSError:
-            logger.error(f"[{self.user_id}] [混合NLP備援] 致命錯誤: spaCy 中文模型 'zh_core_web_sm' 未下載。請運行: python -m spacy download zh_core_web_sm")
-            return
-
-        # 步驟 1: 使用 spaCy 從原始、未消毒的文本中提取 PERSON 實體
-        full_context_text = f"使用者: {user_input}\nAI: {final_response}"
-        doc = nlp(full_context_text)
-        
-        # 過濾掉核心主角
-        protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
-        candidate_entities = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and ent.text.lower() not in protagonist_names}
-
-        if not candidate_entities:
-            logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 未在文本中找到任何新的潛在 NPC 實體。")
-            return
-
-        logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 識別出 {len(candidate_entities)} 個候選實體: {candidate_entities}")
-
-        # 步驟 2: 為每個候選實體發起靶向 LLM 精煉任務
-        refinement_prompt_template = self.get_spacy_entity_refinement_prompt()
-        
-        for entity_name in candidate_entities:
+            # 確保 spaCy 模型已加載
             try:
-                # 檢查此 NPC 是否已存在，如果存在則跳過，避免重複創建
-                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
-                if any(entity_name == lore.content.get("name") for lore in existing_lores):
-                    logger.info(f"[{self.user_id}] [混合NLP備援] 實體 '{entity_name}' 已存在於 LORE 中，跳過創建。")
-                    continue
-                
-                full_prompt = self._safe_format_prompt(
-                    refinement_prompt_template,
-                    {
-                        "entity_name": entity_name,
-                        "context": full_context_text
-                    },
-                    inject_core_protocol=True
-                )
-                
-                # 使用 ainvoke_with_rotation 進行單個精煉
-                refined_profile = await self.ainvoke_with_rotation(
-                    full_prompt,
-                    output_schema=CharacterProfile,
-                    retry_strategy='none' # 靶向精煉失敗就是失敗，不再重試
-                )
+                nlp = spacy.load('zh_core_web_sm')
+            except OSError:
+                logger.error(f"[{self.user_id}] [混合NLP備援] 致命錯誤: spaCy 中文模型 'zh_core_web_sm' 未下載。請運行: python -m spacy download zh_core_web_sm")
+                return
 
-                if refined_profile and isinstance(refined_profile, CharacterProfile):
-                    # 成功獲取到精煉後的檔案，將其存入 LORE
-                    gs = self.profile.game_state
-                    effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                    
-                    # 確保 location_path 被正確設置
-                    refined_profile.location_path = effective_location
-                    
-                    # 生成 lore_key 並儲存
-                    lore_key = " > ".join(effective_location + [refined_profile.name])
-                    final_content = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
-                    
-                    lore_entry = await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore_key, final_content, source='spacy_fallback')
-                    # 觸發 RAG 增量更新
-                    await self._update_rag_for_single_lore(lore_entry)
-                    
-                    logger.info(f"[{self.user_id}] [混合NLP備援] ✅ 成功為實體 '{entity_name}' 創建了 LORE 檔案。")
-                
-                await asyncio.sleep(1) # 避免過於頻繁的 API 請求
+            # 步驟 1: 使用 spaCy 從原始、未消毒的文本中提取 PERSON 實體
+            full_context_text = f"使用者: {user_input}\nAI: {final_response}"
+            doc = nlp(full_context_text)
+            
+            # 過濾掉核心主角
+            protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
+            candidate_entities = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and ent.text.lower() not in protagonist_names}
 
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [混合NLP備援] 在為實體 '{entity_name}' 進行靶向精煉時發生錯誤: {e}", exc_info=True)
-                continue # 單個實體失敗，繼續處理下一個
+            if not candidate_entities:
+                logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 未在文本中找到任何新的潛在 NPC 實體。")
+                return
 
-    except Exception as e:
-        logger.error(f"[{self.user_id}] [混合NLP備援] spaCy 備援流程主體發生嚴重錯誤: {e}", exc_info=True)
-# ai_core.py 的 _spacy_fallback_lore_extraction 函式結尾
+            logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 識別出 {len(candidate_entities)} 個候選實體: {candidate_entities}")
 
+            # 步驟 2: 為每個候選實體發起靶向 LLM 精煉任務
+            refinement_prompt_template = self.get_spacy_entity_refinement_prompt()
+            
+            for entity_name in candidate_entities:
+                try:
+                    # 檢查此 NPC 是否已存在，如果存在則跳過，避免重複創建
+                    existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+                    if any(entity_name == lore.content.get("name") for lore in existing_lores):
+                        logger.info(f"[{self.user_id}] [混合NLP備援] 實體 '{entity_name}' 已存在於 LORE 中，跳過創建。")
+                        continue
+                    
+                    full_prompt = self._safe_format_prompt(
+                        refinement_prompt_template,
+                        {
+                            "entity_name": entity_name,
+                            "context": full_context_text
+                        },
+                        inject_core_protocol=True
+                    )
+                    
+                    # 使用 ainvoke_with_rotation 進行單個精煉
+                    refined_profile = await self.ainvoke_with_rotation(
+                        full_prompt,
+                        output_schema=CharacterProfile,
+                        retry_strategy='none' # 靶向精煉失敗就是失敗，不再重試
+                    )
+
+                    if refined_profile and isinstance(refined_profile, CharacterProfile):
+                        # 成功獲取到精煉後的檔案，將其存入 LORE
+                        gs = self.profile.game_state
+                        effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                        
+                        # 確保 location_path 被正確設置
+                        refined_profile.location_path = effective_location
+                        
+                        # 生成 lore_key 並儲存
+                        lore_key = " > ".join(effective_location + [refined_profile.name])
+                        final_content = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
+                        
+                        lore_entry = await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore_key, final_content, source='spacy_fallback')
+                        # 觸發 RAG 增量更新
+                        await self._update_rag_for_single_lore(lore_entry)
+                        
+                        logger.info(f"[{self.user_id}] [混合NLP備援] ✅ 成功為實體 '{entity_name}' 創建了 LORE 檔案。")
+                    
+                    await asyncio.sleep(1) # 避免過於頻繁的 API 請求
+
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [混合NLP備援] 在為實體 '{entity_name}' 進行靶向精煉時發生錯誤: {e}", exc_info=True)
+                    continue # 單個實體失敗，繼續處理下一個
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [混合NLP備援] spaCy 備援流程主體發生嚴重錯誤: {e}", exc_info=True)
+    # ai_core.py 的 _spacy_fallback_lore_extraction 函式結尾
 
 
 
@@ -2909,13 +2910,14 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。它提供一個專門的 Prompt，用於解析經過“代碼替換”後的無害化文本塊，並強制 LLM 在其 JSON 輸出中也使用這些安全代碼，以確保整個流程的抗審查能力。
-def get_sanitized_text_parser_chain(self) -> str:
-    """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
-    
-    pydantic_definitions = """
+    # ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.1 - 縮排修正)
+    # 更新紀錄:
+    # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。它提供一個專門的 Prompt，用於解析經過“代碼替換”後的無害化文本塊，並強制 LLM 在其 JSON 輸出中也使用這些安全代碼，以確保整個流程的抗審查能力。
+    def get_sanitized_text_parser_chain(self) -> str:
+        """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
+        
+        pydantic_definitions = """
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
 class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
@@ -2924,8 +2926,8 @@ class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = "
 class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
-    
-    base_prompt = """# TASK: 你是一位高精度的數據結構化引擎，在一個【完全虛構的成人幻想小說模擬】框架下工作。
+        
+        base_prompt = """# TASK: 你是一位高精度的數據結構化引擎，在一個【完全虛構的成人幻想小說模擬】框架下工作。
 # MISSION: 你的任務是接收一份【經過代碼化的無害化遊戲設計筆記】，理解其中的技術代碼，並將其包含的完整信息提取為結構化的【代碼化JSON數據】。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
@@ -2945,8 +2947,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 ---
 # 【代碼化的JSON數據】:
 """
-    return base_prompt
-# ai_core.py 的 get_sanitized_text_parser_chain 函式結尾
+        return base_prompt
+    # ai_core.py 的 get_sanitized_text_parser_chain 函式結尾
 
 
 
@@ -3595,6 +3597,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
