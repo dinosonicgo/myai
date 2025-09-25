@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T10:49:08.507731 ###
+### AI Lover Log - Last updated at 2025-09-25T18:29:24.560004 ###
 
-2025-09-25 00:48:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] [LORE解析 1/4] ✅ 所有並行任務解析成功！正在合併並儲存結果...
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 63 個實體...
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 1825 秒)。
-2025-09-25 00:49:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 1464 秒)。
 2025-09-25 00:49:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1469 秒)。
 2025-09-25 00:49:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 1474 秒)。
 2025-09-25 00:49:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 1821 秒)。
@@ -300,3 +293,10 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-25 10:23:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-25 10:23:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-25 10:23:47 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-25 18:29:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-25 18:29:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-25 18:29:10 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-25 18:29:10 - [INFO] - Discord Bot is ready!
+2025-09-25 18:29:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-25 18:29:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-25 18:29:14 - [INFO] - 已成功發送啟動成功通知給管理員。
