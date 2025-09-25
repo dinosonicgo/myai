@@ -41,93 +41,103 @@ _clear_pycache()
 shutdown_event = asyncio.Event()
 git_lock = asyncio.Lock()
 
-    # 函式：Ollama健康檢查與自動下載 (v1.1 - HTTP方法修正)
-    # 更新紀錄:
-    # v1.1 (2025-09-26): [災難性BUG修復] 根據網路搜尋的Ollama API文件驗證，將檢查本地模型的API呼叫從不正確的 `POST` 方法修正為正確的 `GET` 方法，徹底解決了 `405 Method Not Allowed` 錯誤。
-    # v1.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
-    async def _ollama_health_check(model_name: str) -> bool:
-        """
-        在程式启动时检查本地Ollama服务的健康状况。
-        1. 检查服务是否可连接。
-        2. 检查所需模型是否已存在。
-        3. 如果模型不存在，则尝试自动下载。
-        返回一个布林值，表示本地备援方案是否最终可用。
-        """
-        print("\n--- 正在执行本地 AI (Ollama) 健康检查 ---")
-        
-        # 步骤 1: 检查Ollama服务是否正在运行
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.get("http://localhost:11434/")
-            if response.status_code == 200 and "Ollama is running" in response.text:
-                print("✅ [Ollama Health Check] 本地 Ollama 服务连接成功。")
-            else:
-                raise httpx.ConnectError("Invalid response from Ollama server")
-        except (httpx.ConnectError, httpx.TimeoutException):
-            print("⚠️ [Ollama Health Check] 未能连接到本地 Ollama 服务 (http://localhost:11434)。")
-            print("   -> 这可能是因为 Ollama 未安装或未运行。")
-            print("   -> 本地 LORE 解析备援方案将被【禁用】。")
-            print("   -> 系统将完全依赖云端模型备援方案继续运行。")
-            return False
+# 函式：Ollama健康檢查與自動下載 (v1.2 - 縮排修正)
+# 更新紀錄:
+# v1.2 (2025-09-26): [災難性BUG修復] 修正了函式定義前的意外縮排，解決了導致程式啟動失敗的 `IndentationError`。
+# v1.1 (2025-09-26): [災難性BUG修復] 根據網路搜尋的Ollama API文件驗證，將檢查本地模型的API呼叫從不正確的 `POST` 方法修正為正確的 `GET` 方法。
+# v1.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
+async def _ollama_health_check(model_name: str) -> bool:
+    """
+    在程式启动时检查本地Ollama服务的健康状况。
+    1. 检查服务是否可连接。
+    2. 检查所需模型是否已存在。
+    3. 如果模型不存在，则尝试自动下载。
+    返回一个布林值，表示本地备援方案是否最终可用。
+    """
+    print("\n--- 正在执行本地 AI (Ollama) 健康检查 ---")
+    
+    # 步骤 1: 检查Ollama服务是否正在运行
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get("http://localhost:11434/")
+        if response.status_code == 200 and "Ollama is running" in response.text:
+            print("✅ [Ollama Health Check] 本地 Ollama 服务连接成功。")
+        else:
+            raise httpx.ConnectError("Invalid response from Ollama server")
+    except (httpx.ConnectError, httpx.TimeoutException):
+        print("⚠️ [Ollama Health Check] 未能连接到本地 Ollama 服务 (http://localhost:11434)。")
+        print("   -> 这可能是因为 Ollama 未安装或未运行。")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        print("   -> 系统将完全依赖云端模型备援方案继续运行。")
+        return False
 
-        # 步骤 2: 检查所需模型是否已存在
-        try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                # [v1.1 核心修正] 使用 GET 方法，並移除不必要的 json 參數
-                response = await client.get("http://localhost:11434/api/tags")
-                response.raise_for_status()
-                data = response.json()
-                installed_models = [m['name'] for m in data.get('models', [])]
-                if model_name in installed_models:
-                    print(f"✅ [Ollama Health Check] 所需模型 '{model_name}' 已安装。本地备援方案已就绪。")
-                    return True
-                else:
-                    print(f"⏳ [Ollama Health Check] 所需模型 '{model_name}' 未找到，正在尝试自动下载...")
-        except Exception as e:
-            logger.error(f"🔥 [Ollama Health Check] 检查本地模型列表时发生错误: {e}", exc_info=True)
-            print("   -> 将尝试继续执行自动下载流程。")
-
-        # 步骤 3: 自动下载模型
-        try:
-            process = await asyncio.create_subprocess_shell(
-                f'ollama pull {model_name}',
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-
-            async def log_stream(stream, prefix):
-                while True:
-                    line = await stream.readline()
-                    if not line:
-                        break
-                    print(f"   [{prefix}] {line.decode(errors='ignore').strip()}")
-
-            await asyncio.gather(
-                log_stream(process.stdout, "Ollama Pull"),
-                log_stream(process.stderr, "Ollama Error")
-            )
-            
-            return_code = await process.wait()
-            if return_code == 0:
-                print(f"✅ [Ollama Health Check] 模型 '{model_name}' 自动下载成功！本地备援方案已就绪。")
+    # 步骤 2: 检查所需模型是否已存在
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get("http://localhost:11434/api/tags")
+            response.raise_for_status()
+            data = response.json()
+            installed_models = [m['name'] for m in data.get('models', [])]
+            if model_name in installed_models:
+                print(f"✅ [Ollama Health Check] 所需模型 '{model_name}' 已安装。本地备援方案已就绪。")
                 return True
             else:
-                print(f"🔥 [Ollama Health Check] 模型 '{model_name}' 自动下载失败，返回码: {return_code}。")
-                print(f"   -> 请尝试手动在终端中运行 `ollama pull {model_name}`。")
-                print("   -> 本地 LORE 解析备援方案将被【禁用】。")
-                return False
+                print(f"⏳ [Ollama Health Check] 所需模型 '{model_name}' 未找到，正在尝试自动下载...")
+    except Exception as e:
+        # 使用 logger 记录更详细的错误
+        # logger.error(f"🔥 [Ollama Health Check] 检查本地模型列表时发生错误: {e}", exc_info=True)
+        print(f"🔥 [Ollama Health Check] 检查本地模型列表时发生错误: {e}")
+        print("   -> 将尝试继续执行自动下载流程。")
 
-        except FileNotFoundError:
-            print("🔥 [Ollama Health Check] 'ollama' 命令未找到。")
-            print("   -> 请确保您已安装 Ollama 并且其路径已添加到系统环境变量中。")
+    # 步骤 3: 自动下载模型
+    try:
+        process = await asyncio.create_subprocess_shell(
+            f'ollama pull {model_name}',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        async def log_stream(stream, prefix):
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                print(f"   [{prefix}] {line.decode(errors='ignore').strip()}")
+
+        await asyncio.gather(
+            log_stream(process.stdout, "Ollama Pull"),
+            log_stream(process.stderr, "Ollama Error")
+        )
+        
+        return_code = await process.wait()
+        if return_code == 0:
+            print(f"✅ [Ollama Health Check] 模型 '{model_name}' 自动下载成功！本地备援方案已就绪。")
+            return True
+        else:
+            print(f"🔥 [Ollama Health Check] 模型 '{model_name}' 自动下载失败，返回码: {return_code}。")
+            print(f"   -> 请尝试手动在终端中运行 `ollama pull {model_name}`。")
             print("   -> 本地 LORE 解析备援方案将被【禁用】。")
             return False
-        except Exception as e:
-            print(f"🔥 [Ollama Health Check] 执行 `ollama pull` 时发生未知错误: {e}")
-            print("   -> 本地 LORE 解析备援方案将被【禁用】。")
-            return False
-    # 函式：Ollama健康檢查與自動下載
 
+    except FileNotFoundError:
+        print("🔥 [Ollama Health Check] 'ollama' 命令未找到。")
+        print("   -> 请确保您已安装 Ollama 并且其路径已添加到系统环境变量中。")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        return False
+    except Exception as e:
+        print(f"🔥 [Ollama Health Check] 执行 `ollama pull` 时发生未知错误: {e}")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        return False
+# 函式：Ollama健康檢查與自動下載
+
+
+
+
+
+# 函式：檢查並安裝依賴項 (v1.1 - 縮排修正)
+# 更新紀錄:
+# v1.1 (2025-09-26): [災難性BUG修復] 修正了函式定義前的意外縮排，解決了 `IndentationError`。
+# v1.0 (2025-09-26): [全新創建] 模組化依賴檢查。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
@@ -183,7 +193,7 @@ def _check_and_install_dependencies():
             sys.exit(1)
             
     print("✅ 所有依賴項和模型均已準備就緒。")
-
+# 函式：檢查並安裝依賴項
 # --- 本地應用模組導入 ---
 from src.database import init_db
 from src.config import settings
