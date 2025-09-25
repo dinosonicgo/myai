@@ -2804,268 +2804,33 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE
-    # 更新紀錄:
-    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數，因为流程控制已完全由 discord_bot.py 负责。
-    # v8.4 (2025-09-24): [性能優化] 實現了並行處理。
-    async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """
-        [v8.5 總指揮] 解析世界聖經文本，提取LORE並存入資料庫。
-        採用一個包含四層降級備援策略和並行處理的健壯流程。
-        """
-        if not self.profile:
-            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
-            return
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v9.0 - 重構為管線啟動器)
+# 更新紀錄:
+# v9.0 (2025-09-25): [重大架構重構] 根據“多層降級解析”策略，此函式被徹底重構。其自身不再包含複雜的解析邏輯，而是作為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎，並在成功後觸發 RAG 索引的全量重建。
+# v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
+# v8.4 (2025-09-24): [性能優化] 實現了並行處理。
+async def parse_and_create_lore_from_canon(self, canon_text: str):
+    """
+    【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
+    """
+    if not self.profile:
+        logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
+        return
 
-        parsing_completed = False
-        
-        # --- 輔助函式：保存最終解析結果 ---
-        async def save_final_lores(refined_profiles: List[CharacterProfile]):
-            if not self.profile: return
-            logger.info(f"[{self.user_id}] [LORE儲存] 正在批量儲存 {len(refined_profiles)} 個最終精煉的角色檔案...")
-            for profile in refined_profiles:
-                try:
-                    location_path = profile.location_path or []
-                    lore_key = " > ".join(location_path + [profile.name]) if location_path else profile.name
-                    final_content = self._decode_lore_content(profile.model_dump(), self.DECODING_MAP)
-                    await lore_book.add_or_update_lore(
-                        user_id=self.user_id,
-                        category='npc_profile',
-                        key=lore_key,
-                        content=final_content,
-                        source='hybrid_nlp_refiner'
-                    )
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE儲存] 儲存角色 '{profile.name}' 時失敗: {e}", exc_info=True)
-            logger.info(f"[{self.user_id}] [LORE儲存] 所有角色檔案儲存完畢。")
+    logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
+    
+    # 調用核心解析引擎
+    success = await self._execute_lore_parsing_pipeline(canon_text)
 
-        # --- 輔助函式：執行混合 NLP 流程 ---
-        async def run_hybrid_nlp_pipeline(text_to_process: str, use_coded_text: bool) -> bool:
-            if not self.profile: return False
-            
-            logger.info(f"[{self.user_id}] [混合NLP] 階段 1/2：正在提取角色骨架...")
-            extraction_prompt_template = self.get_entity_extraction_chain()
-            extraction_prompt = self._safe_format_prompt(
-                extraction_prompt_template, {"chunk": text_to_process}, inject_core_protocol=True
-            )
-            extraction_result = await self.ainvoke_with_rotation(
-                extraction_prompt, output_schema=ExtractionResult, use_degradation=False, models_to_try_override=[FUNCTIONAL_MODEL]
-            )
-            if not extraction_result or not extraction_result.characters:
-                logger.warning(f"[{self.user_id}] [混合NLP] 階段 1/2：未能提取到任何角色骨架。")
-                return False
-            
-            logger.info(f"[{self.user_id}] [混合NLP] 階段 1/2：成功提取到 {len(extraction_result.characters)} 個角色骨架。")
+    if success:
+        logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+        # 創世完成後，需要強制重建 RAG 索引以包含所有新 LORE
+        await self._load_or_build_rag_retriever(force_rebuild=True)
+        logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
+    else:
+        logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+# ai_core.py 的 parse_and_create_lore_from_canon 函式結尾
 
-            logger.info(f"[{self.user_id}] [混合NLP] 階段 2/2：正在準備批量深度精煉...")
-            all_refined_profiles: List[CharacterProfile] = []
-            details_parser_template = self.get_character_details_parser_chain()
-            
-            BATCH_SIZE = 5
-            character_skeletons = extraction_result.characters
-            
-            for i in range(0, len(character_skeletons), BATCH_SIZE):
-                batch = character_skeletons[i:i+BATCH_SIZE]
-                logger.info(f"[{self.user_id}] [混合NLP] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(character_skeletons) + BATCH_SIZE - 1)//BATCH_SIZE}...")
-
-                batch_input_str_parts = []
-                for skeleton in batch:
-                    aliases = [skeleton.name]
-                    name_pattern = re.compile('|'.join(re.escape(name) for name in set(aliases) if name))
-                    
-                    plot_context_parts = []
-                    for match in name_pattern.finditer(text_to_process):
-                        start, end = match.span()
-                        context_start = max(0, start - 300)
-                        context_end = min(len(text_to_process), end + 300)
-                        plot_context_parts.append(f"...{text_to_process[context_start:context_end]}...")
-                    
-                    plot_context = "\n\n".join(plot_context_parts) if plot_context_parts else "（未在文本中找到額外上下文）"
-                    pre_parsed_data_json = json.dumps(skeleton.model_dump(), ensure_ascii=False, indent=2)
-
-                    batch_input_str_parts.append(f"""
-# --- 角色精煉任務 ---
-# 【當前正在分析的角色】: {skeleton.name}
-# 【預解析數據字典 (由階段一提取)】: {pre_parsed_data_json}
-# 【劇情上下文】: {plot_context}
-# --- 任務結束 ---
-""")
-                
-                if not batch_input_str_parts: continue
-                batch_input_str = "\n".join(batch_input_str_parts)
-
-                refinement_prompt = self._safe_format_prompt(
-                    details_parser_template, {"batch_input": batch_input_str}, inject_core_protocol=True
-                )
-                
-                try:
-                    batch_result = await self.ainvoke_with_rotation(
-                        refinement_prompt, output_schema=BatchRefinementResult, use_degradation=True, retry_strategy='euphemize'
-                    )
-                    if batch_result and batch_result.refined_profiles:
-                        all_refined_profiles.extend(batch_result.refined_profiles)
-                except BlockedPromptException as e:
-                    if not use_coded_text:
-                        logger.warning(f"[{self.user_id}] [混合NLP] 處理原文批次時遭遇內容審查，將觸發代碼化備援。錯誤: {e}")
-                        return False
-                    else:
-                        logger.error(f"[{self.user_id}] [混合NLP] 處理【已代碼化】文本時仍然遭遇內容審查，此批次失敗。錯誤: {e}")
-                        continue
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [混合NLP] 處理批次時發生未知嚴重錯誤: {e}", exc_info=True)
-                    continue
-
-            if all_refined_profiles:
-                await save_final_lores(all_refined_profiles)
-                return True
-            else:
-                return False
-
-        # --- 策略 1: 【理想方案】大塊分區，並行解析 ---
-        logger.info(f"[{self.user_id}] [LORE解析 1/4] 正在嘗試【理想方案：大塊並行解析】...")
-        try:
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-            large_chunks = text_splitter.split_text(canon_text)
-            
-            # [v8.4 核心修正] 創建並行任務列表
-            tasks = []
-            for i, chunk in enumerate(large_chunks, 1):
-                logger.info(f"[{self.user_id}] [並行解析] 正在準備分區 {i}/{len(large_chunks)} 的任務...")
-                transformation_template = self.get_canon_transformation_chain()
-                full_prompt = self._safe_format_prompt(
-                    transformation_template,
-                    {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
-                    inject_core_protocol=True
-                )
-                tasks.append(self.ainvoke_with_rotation(
-                    full_prompt, output_schema=CanonParsingResult, use_degradation=True, retry_strategy='euphemize'
-                ))
-            
-            # [v8.4 核心修正] 並行執行所有任務
-            logger.info(f"[{self.user_id}] [並行解析] 正在同時執行 {len(tasks)} 個解析任務...")
-            chunk_results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            merged_parsing_result = CanonParsingResult()
-            all_chunks_succeeded = True
-
-            for result in chunk_results:
-                if isinstance(result, Exception):
-                    # 如果任何一個並行任務失敗，則整個第一層策略失敗
-                    logger.warning(f"[{self.user_id}] [並行解析] 一個並行任務失敗 ({type(result).__name__})，第一層策略終止。")
-                    all_chunks_succeeded = False
-                    break
-                if result:
-                    merged_parsing_result.npc_profiles.extend(result.npc_profiles)
-                    merged_parsing_result.locations.extend(result.locations)
-                    merged_parsing_result.items.extend(result.items)
-                    merged_parsing_result.creatures.extend(result.creatures)
-                    merged_parsing_result.quests.extend(result.quests)
-                    merged_parsing_result.world_lores.extend(result.world_lores)
-                else:
-                    # 如果任何一個塊返回了空結果（可能是委婉化失敗），也標記失敗
-                    logger.warning(f"[{self.user_id}] [並行解析] 一個並行任務返回空結果，第一層策略終止。")
-                    all_chunks_succeeded = False
-                    break
-
-            if all_chunks_succeeded:
-                logger.info(f"[{self.user_id}] [LORE解析 1/4] ✅ 所有並行任務解析成功！正在合併並儲存結果...")
-                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in merged_parsing_result.npc_profiles])
-                await self._resolve_and_save("locations", [p.model_dump() for p in merged_parsing_result.locations])
-                await self._resolve_and_save("items", [p.model_dump() for p in merged_parsing_result.items])
-                await self._resolve_and_save("creatures", [p.model_dump() for p in merged_parsing_result.creatures])
-                await self._resolve_and_save("quests", [p.model_dump() for p in merged_parsing_result.quests])
-                await self._resolve_and_save("world_lores", [p.model_dump() for p in merged_parsing_result.world_lores], title_key='title')
-                parsing_completed = True
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE解析 1/4] 理想方案在並行執行框架中遭遇未知嚴重錯誤: {e}", exc_info=True)
-            logger.warning(f"[{self.user_id}] 正在降級到第一備援...")
-
-        if parsing_completed:
-            logger.info(f"[{self.user_id}] LORE 解析流程成功完成。正在觸發 RAG 全量重建...")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            return
-
-        # --- 策略 2: 【第一備援】原文混合 NLP 兩階段批量精煉 ---
-        if not parsing_completed:
-            logger.info(f"[{self.user_id}] [LORE解析 2/4] 正在嘗試【第一備援：原文混合NLP】...")
-            try:
-                parsing_completed = await run_hybrid_nlp_pipeline(canon_text, use_coded_text=False)
-                if parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE解析 2/4] ✅ 原文混合NLP成功！")
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE解析 2/4] 原文混合NLP遭遇未知嚴重錯誤: {e}", exc_info=True)
-                logger.warning(f"[{self.user_id}] 正在降級到第二備援...")
-
-        if parsing_completed:
-            logger.info(f"[{self.user_id}] LORE 解析流程成功完成。正在觸發 RAG 全量重建...")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            return
-            
-        # --- 策略 3: 【第二備援】代碼化混合 NLP 兩階段批量精煉 ---
-        if not parsing_completed:
-            logger.info(f"[{self.user_id}] [LORE解析 3/4] 正在嘗試【第二備援：代碼化混合NLP】...")
-            try:
-                coded_text = canon_text
-                reversed_decoding_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-                for word, code in reversed_decoding_map:
-                    coded_text = coded_text.replace(word, code)
-                
-                parsing_completed = await run_hybrid_nlp_pipeline(coded_text, use_coded_text=True)
-                if parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE解析 3/4] ✅ 代碼化混合NLP成功！")
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE解析 3/4] 代碼化混合NLP遭遇未知嚴重錯誤: {e}", exc_info=True)
-                logger.warning(f"[{self.user_id}] 正在降級到最終備援...")
-
-        if parsing_completed:
-            logger.info(f"[{self.user_id}] LORE 解析流程成功完成。正在觸發 RAG 全量重建...")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            return
-
-        # --- 策略 4: 【最終保險】分塊解析 (並行化) ---
-        if not parsing_completed:
-            logger.info(f"[{self.user_id}] [LORE解析 4/4] 正在執行【最終保險：並行分塊解析】...")
-            try:
-                text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-                text_chunks = text_splitter.split_text(canon_text)
-                
-                tasks = []
-                for chunk in text_chunks:
-                    transformation_template = self.get_canon_transformation_chain()
-                    full_prompt = self._safe_format_prompt(
-                        transformation_template,
-                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
-                        inject_core_protocol=True
-                    )
-                    tasks.append(self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='euphemize'
-                    ))
-                
-                logger.info(f"[{self.user_id}] [並行分塊解析] 正在同時執行 {len(tasks)} 個備援解析任務...")
-                chunk_results = await asyncio.gather(*tasks, return_exceptions=True)
-
-                all_results = CanonParsingResult()
-                for i, result in enumerate(chunk_results):
-                    if isinstance(result, Exception):
-                        logger.error(f"[{self.user_id}] [並行分塊解析] 處理文本塊 {i+1} 時失敗，已跳過。錯誤: {result}")
-                        continue
-                    if result:
-                        all_results.npc_profiles.extend(result.npc_profiles)
-                        # ... 此處可以添加對其他LORE類型的合併 ...
-                
-                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in all_results.npc_profiles])
-                parsing_completed = True
-            except Exception as e:
-                logger.critical(f"[{self.user_id}] [LORE解析 4/4] 最終備援方案也失敗了！錯誤: {e}", exc_info=True)
-        
-        if parsing_completed:
-            logger.info(f"[{self.user_id}] LORE 解析流程已通過最終備援方案完成。正在觸發 RAG 全量重建...")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-        else:
-            logger.error(f"[{self.user_id}] 所有 LORE 解析方案均告失敗，無法為世界聖經創建 LORE。")
-
-    # 函式：解析並從世界聖經創建 LORE
 
 
 
@@ -3696,6 +3461,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
