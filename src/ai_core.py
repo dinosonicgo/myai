@@ -919,16 +919,43 @@ class AILover:
     # 函式：委婉化並重試
 
 
-    
-    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.2 - 執行時組裝)
+
+        # 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.2 (2025-09-25): [災難性BUG修復] 根據「最小化骨架」策略重構。此函式現在負責獲取Prompt骨架，並在Python執行時動態地、安全地將Pydantic定義和Few-Shot範例注入進去，生成最終的完整Prompt。這徹底解決了所有渲染截斷問題。
-    # v1.1 (2025-09-25): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為本地LLM備援方案的執行核心。
+    # v1.0 (2025-09-26): [全新創建] 創建此函式作為本地模型解析失敗時的自我修正機制。它提供一個簡單直接的指令，要求模型修正其自己先前生成的、格式錯誤的JSON輸出。
+    def get_local_model_json_correction_prompt(self) -> str:
+        """為本地模型生成一個用於自我修正JSON格式錯誤的Prompt模板。"""
+
+        prompt = """# TASK: 你是一個JSON格式修正引擎。
+# MISSION: 你的任務是接收一段【格式錯誤的原始文本】，並將其修正為一個【結構完全正確】的純淨JSON物件。
+
+### 核心規則 (CORE RULES) ###
+1.  **修正錯誤**: 仔細分析【格式錯誤的原始文本】，找出並修正所有語法錯誤（例如，缺失的引號、多餘的逗號、未閉合的括號等）。
+2.  **保留內容**: 盡最大努力保留原始文本中的所有數據和內容。
+3.  **JSON ONLY**: 你的最終輸出必須且只能是一個純淨的、有效的JSON物件。絕對禁止包含任何解釋性文字或註釋。
+
+### 格式錯誤的原始文本 (Malformed Original Text) ###
+{raw_json_string}
+
+### 修正後的JSON輸出 (Corrected JSON Output) ###
+```json
+"""
+        return prompt
+    # 函式：獲取本地模型專用的JSON修正Prompt
+
+
+
+
+
+    
+    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.2 - 自我修正)
+    # 更新紀錄:
+    # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。當第一次解析返回的JSON格式錯誤時，此函式不再立即失敗，而是會自動觸發一次修正請求，將錯誤的JSON傳回給模型要求其修復，從而極大地提高了處理不穩定本地模型輸出的成功率。
+    # v1.1 (2025-09-26): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
+    # v1.0 (2025-09-26): [全新創建] 創建此函式作為本地LLM備援方案的執行核心。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
-        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務。
-        此函式會在執行時動態組裝完整的 Prompt。
+        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
         返回一個 CanonParsingResult 物件，如果失敗則返回 None。
         """
         import httpx
@@ -938,61 +965,17 @@ class AILover:
         if not self.profile:
             return None
 
-        logger.info(f"[{self.user_id}] 正在使用本地模型 '{self.ollama_model_name}' 進行LORE解析...")
+        logger.info(f"[{self.user_id}] 正在使用本地模型 '{self.ollama_model_name}' 進行LORE解析 (Attempt 1/2)...")
         
-        # --- 步驟 1: 準備 Prompt 的所有組成部分 ---
-        pydantic_definitions = """
-class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
-class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
-class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
-class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
-class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""; status: str = "未知"
-class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
-class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
-"""
-        example_input = "「在維利爾斯莊園的深處，勳爵夫人絲月正照看著她的女兒莉莉絲。莉莉絲手中把玩著一顆名為『虛空之心』的黑色寶石。」"
-        example_json_output = """{
-  "npc_profiles": [
-    {
-      "name": "絲月",
-      "aliases": ["勳爵夫人絲月"],
-      "description": "維利爾斯勳爵的夫人，莉莉絲的母親。",
-      "location_path": ["維利爾斯莊園"]
-    },
-    {
-      "name": "莉莉絲",
-      "description": "絲月的女兒，擁有『虛空之心』寶石。",
-      "location_path": ["維利爾斯莊園"]
-    }
-  ],
-  "locations": [
-    {
-      "name": "維利爾斯莊園",
-      "description": "勳爵夫人絲月和她女兒莉莉絲居住的地方。",
-      "known_npcs": ["絲月", "莉莉絲"]
-    }
-  ],
-  "items": [
-    {
-      "name": "虛空之心",
-      "description": "一顆被莉莉絲持有的黑色寶石。",
-      "item_type": "寶石"
-    }
-  ],
-  "creatures": [],
-  "quests": [],
-  "world_lores": []
-}"""
-        
-        # --- 步驟 2: 獲取安全的 Prompt 骨架 ---
         prompt_skeleton = self.get_local_model_lore_parser_prompt()
+        pydantic_definitions = self.get_ollama_pydantic_definitions_template()
+        example_input, example_json_output = self.get_ollama_example_template()
+        start_tag = "```json"
+        end_tag = "```"
 
-        # --- 步驟 3: 動態、安全地組裝最終 Prompt ---
         pydantic_block = f"```python\n{pydantic_definitions}\n```"
-        output_block = f"```json\n{example_json_output}\n```"
-        start_tag_block = "```json"
+        output_block = f"{start_tag}\n{example_json_output}\n{end_tag}"
         
-        # 使用 .format() 方法將所有部分注入骨架
         full_prompt = prompt_skeleton.format(
             username=self.profile.user_profile.name,
             ai_name=self.profile.ai_profile.name,
@@ -1000,7 +983,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             example_input_placeholder=example_input,
             example_output_placeholder=output_block,
             canon_text=canon_text,
-            start_tag_placeholder=start_tag_block
+            start_tag_placeholder=start_tag
         )
 
         payload = {
@@ -1008,9 +991,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             "prompt": full_prompt,
             "format": "json",
             "stream": False,
-            "options": {
-                "temperature": 0.2
-            }
+            "options": { "temperature": 0.2 }
         }
         
         try:
@@ -1027,17 +1008,50 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
                 parsed_json = json.loads(json_string_from_model)
                 validated_result = CanonParsingResult.model_validate(parsed_json)
-                logger.info(f"[{self.user_id}] 本地模型成功解析並驗證了LORE數據。")
+                logger.info(f"[{self.user_id}] 本地模型在首次嘗試中成功解析並驗證了LORE數據。")
                 return validated_result
+
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.warning(f"[{self.user_id}] 本地模型首次解析失敗: {type(e).__name__}。啟動【自我修正】重試 (Attempt 2/2)...")
+            
+            # [v1.2 核心修正] 自我修正邏輯
+            try:
+                correction_prompt_template = self.get_local_model_json_correction_prompt()
+                correction_prompt = correction_prompt_template.format(raw_json_string=str(e))
+
+                correction_payload = {
+                    "model": self.ollama_model_name,
+                    "prompt": correction_prompt,
+                    "format": "json",
+                    "stream": False,
+                    "options": { "temperature": 0.0 } # 修正時使用0溫度
+                }
+
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    correction_response = await client.post("http://localhost:11434/api/generate", json=correction_payload)
+                    correction_response.raise_for_status()
+                    
+                    correction_data = correction_response.json()
+                    corrected_json_string = correction_data.get("response")
+
+                    if not corrected_json_string:
+                        logger.error(f"[{self.user_id}] 本地模型的自我修正嘗試返回了空的 'response' 內容。")
+                        return None
+                    
+                    corrected_parsed_json = json.loads(corrected_json_string)
+                    validated_result = CanonParsingResult.model_validate(corrected_parsed_json)
+                    logger.info(f"[{self.user_id}] 本地模型【自我修正】成功！已解析並驗證LORE數據。")
+                    return validated_result
+            
+            except Exception as correction_e:
+                logger.error(f"[{self.user_id}] 本地模型的【自我修正】嘗試最終失敗: {type(correction_e).__name__}", exc_info=True)
+                return None
 
         except httpx.ConnectError:
             logger.error(f"[{self.user_id}] 無法連接到本地 Ollama 伺服器。請確保 Ollama 正在運行並且在 http://localhost:11434 上可用。")
             return None
         except httpx.HTTPStatusError as e:
             logger.error(f"[{self.user_id}] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
-            return None
-        except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(f"[{self.user_id}] 無法解析或驗證來自本地模型的JSON輸出: {e}", exc_info=True)
             return None
         except Exception as e:
             logger.error(f"[{self.user_id}] 呼叫本地 Ollama 模型時發生未知錯誤: {e}", exc_info=True)
@@ -3981,6 +3995,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
