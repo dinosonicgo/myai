@@ -1145,11 +1145,11 @@ class BotCog(commands.Cog):
 
 
     
-# 函式：獲取或創建使用者的 AI 實例 (v52.0 - 按需加載記憶)
-# 更新紀錄:
-# v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。此修改確保了短期記憶只在用戶開始一個新會話、首次創建AI實例時從資料庫恢復一次，避免了在 /start 流程中錯誤地恢復舊記憶。
-# v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
-# v48.0 (2025-10-19): [重大架構重構] 徹底移除了對 LangGraph 的所有依賴。
+    # 函式：獲取或創建使用者的 AI 實例 (v52.1 - 結構校正)
+    # 更新紀錄:
+    # v52.1 (2025-09-25): [結構校正] 提供此函式的完整版本，以確認其在 `AttributeError` 故障排查中的正確性。函式本身的邏輯是正確的，問題根源在於 AILover 類別的定義。
+    # v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。此修改確保了短期記憶只在用戶開始一個新會話、首次創建AI實例時從資料庫恢復一次，避免了在 /start 流程中錯誤地恢復舊記憶。
+    # v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
             return self.ai_instances[user_id]
@@ -1177,7 +1177,9 @@ class BotCog(commands.Cog):
         else:
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
             return None
-# 獲取或創建使用者的 AI 實例 函式結束
+    # 獲取或創建使用者的 AI 實例 函式結束
+
+    
 
     # 函式：安全地異步執行 Git 命令並返回結果
     async def _run_git_command(self, command: List[str]) -> Tuple[bool, str]:
