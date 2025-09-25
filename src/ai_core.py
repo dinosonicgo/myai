@@ -3238,11 +3238,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v3.0 - 本地LLM備援)
-    # 更新紀錄:
-    # v3.0 (2025-09-25): [重大架構升級] 引入了本地無審查LLM作為第二層備援。當第一層Gemini解析因內容審查失敗時，管線會首先嘗試使用本地Ollama模型處理原始文本，失敗後才會降級到後續的Gemini安全代碼和混合NLP方案。
-    # v2.2 (2025-09-25): [災難性BUG修復] 在格式化 LORE 解析鏈的 Prompt 時，增加了對 username 和 ai_name 的傳遞。
-    # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排。
+    # 函式：執行 LORE 解析管線 (v3.1 - Ollama健康检查)
+    # 更新纪录:
+    # v3.1 (2025-09-26): [重大架構升級] 管线的第二层（本地LLM备援）现在会首先检查 `self.is_ollama_available` 状态旗标。如果本地模型在启动时被检测为不可用，此层将被安全、安静地跳过，直接进入下一层备援，从而实现优雅的降级。
+    # v3.0 (2025-09-26): [重大架構升級] 引入了本地無審查LLM作為第二層備援。
+    # v2.2 (2025-09-26): [災難性BUG修復] 在格式化 LORE 解析鏈的 Prompt 時，增加了對 username 和 ai_name 的傳遞。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
         【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
@@ -3280,13 +3280,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.error(f"[{self.user_id}] [LORE 解析 1/5] 遭遇未知錯誤: {e}，正在降級。", exc_info=True)
 
         # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
-        try:
-            if not parsing_completed:
+        # [v3.1 核心修正] 增加健康状态检查
+        if not parsing_completed and self.is_ollama_available:
+            try:
                 logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在嘗試【本地備援方案：無審查解析】...")
                 parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                     logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！正在儲存本地解析結果...")
-                    # 本地模型輸出的是原始文本，無需解碼
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
@@ -3296,8 +3296,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     parsing_completed = True
                 else:
                     logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+        elif not parsing_completed and not self.is_ollama_available:
+            logger.info(f"[{self.user_id}] [LORE 解析 2/5] 本地 Ollama 備援方案在啟動時檢測為不可用，已安全跳過。")
 
 
         # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
@@ -3962,6 +3964,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
