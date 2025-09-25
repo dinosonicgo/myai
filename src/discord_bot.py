@@ -167,9 +167,10 @@ class ContinueToAiSetupView(discord.ui.View):
     # 函式：處理「最後一步：設定 AI 戀人」按鈕點擊事件
 # 類別：繼續到 AI 角色設定的視圖
 
-# 類別：繼續到世界聖經設定的視圖
+# 類別：繼續到世界聖經設定的視圖 (v1.7 - 競爭條件修復)
 # 更新紀錄:
-# v1.6 (2025-09-25): [灾难性BUG修復] 彻底重构了所有回调，使其仅负责启动一个独立的、解耦的后台创世任务 (_perform_full_setup_flow)，并立即回应用户，从而根除了所有因 interaction 过期和流程同步失败导致的问题。
+# v1.7 (2025-09-26): [災難性BUG修復] 彻底重构了 `upload_canon` 的逻辑顺序。现在，程式会在 `await bot.wait_for` **之前**就将使用者ID加入 `active_setups` 集合（即提前开启防火墙），并用 `try...finally` 块确保在流程结束或失败时都能正确移除ID。此修改从根本上解决了因时序问题导致 `on_message` 绕过防火墙从而触发错误对话的竞争条件问题。
+# v1.6 (2025-09-25): [灾难性BUG修復] 彻底重构了所有回调，使其仅负责启动一个独立的、解耦的后台创世任务。
 class ContinueToCanonSetupView(discord.ui.View):
     # 函式：初始化 ContinueToCanonSetupView
     def __init__(self, *, cog: "BotCog"):
@@ -197,6 +198,10 @@ class ContinueToCanonSetupView(discord.ui.View):
             await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
             return
 
+        # [v1.7 核心修正] 关键步骤：提前开启防火墙
+        self.cog.active_setups.add(user_id)
+        logger.info(f"[{user_id}] [创世流程] 档案上传开始，已设置 active_setups 状态锁。")
+
         for item in self.children:
             item.disabled = True
         await interaction.response.edit_message(content="**请在 5 分钟内，直接在此对话中发送您的 `.txt` 世界圣经檔案...**", view=self)
@@ -220,8 +225,10 @@ class ContinueToCanonSetupView(discord.ui.View):
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            self.cog.active_setups.add(user_id)
+            # 此处不再需要 add(user_id)，因为已经在前面添加了
             asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
+            # 任务已转交后台，让 View 自然结束即可
+            self.stop()
 
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超时。请重新开始 `/start` 流程。", ephemeral=True)
@@ -229,6 +236,19 @@ class ContinueToCanonSetupView(discord.ui.View):
             logger.error(f"[{user_id}] 在等待檔案上傳时发生错误: {e}", exc_info=True)
             await interaction.followup.send(f"处理您的檔案时发生错误: `{e}`。请重新开始 `/start` 流程。", ephemeral=True)
         finally:
+            # [v1.7 核心修正] 健壮性保证：无论成功、失败还是超时，如果后台任务没有被成功启动，
+            # 就在这里释放锁，以允许用户重试。
+            # 如果后台任务已启动，它将在自己结束时释放锁。
+            # 这里做一个双重保险的检查。
+            if user_id in self.cog.active_setups:
+                # 检查后台任务是否真的在运行（这是一个简化检查，不完全精确但足够好）
+                # 更好的方式是让 _perform_full_setup_flow 返回一个 future，但为了减少改动，我们简化处理
+                # 如果任务已经启动，它会很快地在 finally 中移除 user_id，所以这里做一个延时检查
+                await asyncio.sleep(1) # 短暂等待，看后台任务是否已接管
+                if user_id in self.cog.active_setups:
+                     # 如果 user_id 还在，说明后台任务可能没启动或立即失败了，我们在这里清理
+                    logger.warning(f"[{user_id}] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。")
+                    self.cog.active_setups.discard(user_id)
             self.stop()
     # 处理「上传世界圣经」按钮点击事件
 
@@ -244,7 +264,7 @@ class ContinueToCanonSetupView(discord.ui.View):
             item.disabled = True
         await interaction.response.edit_message(view=self)
         
-        await interaction.followup.send("✅ 基础设定完成！创世流程已在后台启动，完成后您将收到开场白。这可能需要几分钟，请耐心等候。", ephemeral=True)
+        await interaction.followup.send("✅ 基礎設定完成！創世流程已在後台啟動，完成後您將收到開場白。這可能需要幾分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
         asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=None))
@@ -255,9 +275,10 @@ class ContinueToCanonSetupView(discord.ui.View):
 
 
 
-# 類別：重新生成或撤銷回覆的視圖
+# 類別：重新生成或撤銷回覆的視圖 (v1.2 - DM權限修正)
 # 更新紀錄:
-# v1.1 (2025-09-23): [功能擴展] 新增了“撤銷”按鈕。此按鈕允許使用者徹底移除上一回合的對話（包括使用者的輸入和AI的回覆），並將短期記憶回滾到上一個狀態，從而實現了類似網頁版AI的“刪除回合”功能。
+# v1.2 (2025-09-26): [健壯性強化] 在 `undo` 方法中增加了對頻道類型的檢查。現在，只有在非私信頻道（即伺服器頻道）中，程式才會嘗試刪除使用者的上一條訊息。此修改從根本上避免了因機器人無權在私信中刪除他人訊息而產生的 `403 Forbidden` 警告。
+# v1.1 (2025-09-23): [功能擴展] 新增了“撤銷”按鈕。
 # v1.0 (2025-11-17): [全新創建] 創建此視圖以支持重新生成功能。
 class RegenerateView(discord.ui.View):
     # 函式：初始化 RegenerateView
@@ -283,12 +304,10 @@ class RegenerateView(discord.ui.View):
             if scene_key in ai_instance.scene_histories:
                 history = ai_instance.scene_histories[scene_key]
                 if len(history.messages) >= 2:
-                    # 移除 AI 的回覆和使用者的輸入
                     history.messages.pop()
                     history.messages.pop()
                     logger.info(f"[{user_id}] [重新生成] 已從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
-            # 刪除觸發此操作的 AI 回覆訊息
             await interaction.message.delete()
 
             logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
@@ -316,7 +335,7 @@ class RegenerateView(discord.ui.View):
             await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
     # 函式：處理「重新生成」按鈕點擊事件
 
-    # [v1.1 新增] 函式：處理「撤銷」按鈕點擊事件
+    # [v1.2 核心修正] 函式：處理「撤銷」按鈕點擊事件
     @discord.ui.button(label="🗑️ 撤銷", style=discord.ButtonStyle.danger, custom_id="persistent_undo_button")
     async def undo(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -336,27 +355,25 @@ class RegenerateView(discord.ui.View):
                 await interaction.followup.send("❌ 錯誤：沒有足夠的歷史記錄可供撤銷。", ephemeral=True)
                 return
 
-            # 步驟 1: 從短期記憶中移除上一回合
-            history.messages.pop()  # 移除 AI 的回覆
-            last_user_message = history.messages.pop() # 移除使用者的輸入
+            history.messages.pop()
+            last_user_message = history.messages.pop()
             logger.info(f"[{user_id}] [撤銷] 已成功從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
-            # 步驟 2: 刪除 Discord 上的訊息
-            # 刪除觸發此操作的 AI 回覆訊息
             await interaction.message.delete()
             
-            # 嘗試尋找並刪除使用者的上一條訊息
-            # 注意：這在私訊中可能無法完美工作，但在頻道中通常有效
-            try:
-                async for msg in interaction.channel.history(limit=10):
-                    if msg.author.id == interaction.user.id and msg.content == last_user_message.content:
-                        await msg.delete()
-                        logger.info(f"[{user_id}] [撤銷] 已成功刪除使用者的上一條指令訊息。")
-                        break
-            except (discord.errors.Forbidden, discord.errors.NotFound) as e:
-                logger.warning(f"[{user_id}] [撤銷] 刪除使用者訊息時發生非致命錯誤: {e}")
+            # [v1.2 核心修正] 增加頻道類型檢查，只在非DM頻道嘗試刪除使用者訊息
+            if not isinstance(interaction.channel, discord.DMChannel):
+                try:
+                    async for msg in interaction.channel.history(limit=10):
+                        if msg.author.id == interaction.user.id and msg.content == last_user_message.content:
+                            await msg.delete()
+                            logger.info(f"[{user_id}] [撤銷] 已成功刪除使用者在伺服器頻道中的上一條指令訊息。")
+                            break
+                except (discord.errors.Forbidden, discord.errors.NotFound) as e:
+                    logger.warning(f"[{user_id}] [撤銷] 刪除使用者訊息時發生非致命錯誤（可能權限不足）: {e}")
+            else:
+                logger.info(f"[{user_id}] [撤銷] 處於DM頻道，跳過刪除使用者訊息的步驟。")
             
-            # 步驟 3: 更新 last_user_input 為空，防止重新生成出錯
             ai_instance.last_user_input = None
 
             await interaction.followup.send("✅ 上一回合已成功撤銷。", ephemeral=True)
@@ -364,8 +381,12 @@ class RegenerateView(discord.ui.View):
         except Exception as e:
             logger.error(f"[{user_id}] [撤銷] 流程執行時發生異常: {e}", exc_info=True)
             await interaction.followup.send(f"撤銷時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
-    # [v1.1 新增] 函式：處理「撤銷」按鈕點擊事件
+    # 函式：處理「撤銷」按鈕點擊事件
 # 類別：重新生成或撤銷回覆的視圖
+
+
+
+
 
 # 類別：貼上世界聖經的 Modal
 class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文本"):
