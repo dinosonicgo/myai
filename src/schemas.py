@@ -248,6 +248,19 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
+
+
+class LoreClassificationResult(BaseModel):
+    """用於混合 NLP 流程，表示單個候選實體的分類結果。"""
+    entity_name: str = Field(description="與輸入完全相同的候選實體名稱。")
+    lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore'] = Field(description="對此實體的 LORE 類別判斷。如果是不重要或無法識別的實體，則判斷為 'ignore'。")
+    reasoning: str = Field(description="做出此分類判斷的簡短理由。")
+
+class BatchClassificationResult(BaseModel):
+    """包裹批量分類結果的模型。"""
+    classifications: List[LoreClassificationResult] = Field(description="一個包含對每一個候選實體的分類結果的列表。")
+
+
 # [v1.4 新增] 單個實體解析模型，確保 ai_core.py 可以成功導入
 class SingleResolutionResult(BaseModel):
     """單個實體名稱的解析結果。"""
@@ -344,3 +357,6 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
+
+LoreClassificationResult.model_rebuild()
+BatchClassificationResult.model_rebuild()
