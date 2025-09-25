@@ -1,22 +1,28 @@
-# main.py 的中文註釋(v11.0 - Ollama健康檢查)
+# main.py 的中文註釋(v11.1 - Import修正)
 # 更新紀錄:
-# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。此修改解决了本地模型依赖的健壮性问题，实现了：1.自动检测Ollama服务是否运行。2.自动检测所需模型是否存在。3.在模型不存在时，自动尝试`ollama pull`下载。4.根据检查结果生成一个全局状态，传递给AI核心，使其能够安全地禁用/启用本地备援功能。
+# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句（`FastAPI`, `Request`, `HTMLResponse`, `StaticFiles`, `Jinja2Templates`），並對import塊進行了PEP 8標準化分組，徹底解決了NameError問題。
+# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
 # v10.1 (2025-09-26): [災難性BUG修復] 將 PROJ_DIR 和快取清理邏輯提升到所有 src 導入之前。
-# v10.0 (2025-09-25): [重大架構重構] 引入了更强大的错误处理和模块化任务启动器。
 
 import os
 import sys
 import shutil
 from pathlib import Path
 import asyncio
-import uvicorn
 import time
 import subprocess
 import importlib.metadata
 import datetime
 import traceback
-import httpx
 import json
+import httpx
+
+# [v11.1 核心修正] 導入所有運行 FastAPI 所需的第三方庫
+import uvicorn
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 PROJ_DIR = Path(__file__).resolve().parent
 
@@ -35,7 +41,6 @@ _clear_pycache()
 shutdown_event = asyncio.Event()
 git_lock = asyncio.Lock()
 
-# [v11.0 核心修正] 全新的Ollama健康检查与自动下载函数
 async def _ollama_health_check(model_name: str) -> bool:
     """
     在程式启动时检查本地Ollama服务的健康状况。
@@ -46,7 +51,6 @@ async def _ollama_health_check(model_name: str) -> bool:
     """
     print("\n--- 正在执行本地 AI (Ollama) 健康检查 ---")
     
-    # 步骤 1: 检查Ollama服务是否正在运行
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get("http://localhost:11434/")
@@ -61,7 +65,6 @@ async def _ollama_health_check(model_name: str) -> bool:
         print("   -> 系统将完全依赖云端模型备援方案继续运行。")
         return False
 
-    # 步骤 2: 检查所需模型是否已存在
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post("http://localhost:11434/api/tags", json={})
@@ -77,7 +80,6 @@ async def _ollama_health_check(model_name: str) -> bool:
         print(f"🔥 [Ollama Health Check] 检查本地模型列表时发生错误: {e}")
         print("   -> 将尝试继续执行自动下载流程。")
 
-    # 步骤 3: 自动下载模型
     try:
         process = await asyncio.create_subprocess_shell(
             f'ollama pull {model_name}',
@@ -103,7 +105,7 @@ async def _ollama_health_check(model_name: str) -> bool:
             return True
         else:
             print(f"🔥 [Ollama Health Check] 模型 '{model_name}' 自动下载失败，返回码: {return_code}。")
-            print("   -> 请尝试手动在终端中运行 `ollama pull {model_name}`。")
+            print(f"   -> 请尝试手动在终端中运行 `ollama pull {model_name}`。")
             print("   -> 本地 LORE 解析备援方案将被【禁用】。")
             return False
 
@@ -116,7 +118,6 @@ async def _ollama_health_check(model_name: str) -> bool:
         print(f"🔥 [Ollama Health Check] 执行 `ollama pull` 时发生未知错误: {e}")
         print("   -> 本地 LORE 解析备援方案将被【禁用】。")
         return False
-
 
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
@@ -131,7 +132,7 @@ def _check_and_install_dependencies():
         'chromadb': 'chromadb', 'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
         'python-Levenshtein': 'Levenshtein',
-        'spacy': 'spacy', 'httpx': 'httpx' # 新增 httpx 依赖
+        'spacy': 'spacy', 'httpx': 'httpx'
     }
     
     missing_packages = []
@@ -174,11 +175,13 @@ def _check_and_install_dependencies():
             
     print("✅ 所有依賴項和模型均已準備就緒。")
 
+# --- 本地應用模組導入 ---
 from src.database import init_db
 from src.config import settings
 from src.web_server import router as web_router
 from src.discord_bot import AILoverBot
 
+# --- FastAPI 應用實例化與配置 ---
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -188,6 +191,7 @@ app.include_router(web_router)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+# --- 異步守護任務與核心服務 ---
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -282,7 +286,6 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
             print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
             await asyncio.sleep(600)
 
-# [v11.0 核心修正] 更新函数签名以接收 Ollama 状态
 async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event, is_ollama_available: bool):
     """啟動Discord Bot的核心服務。內建錯誤處理和啟動依賴等待。"""
     try:
@@ -294,7 +297,6 @@ async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Eve
             print("🔥 [Discord Bot] 錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。服務無法啟動。")
             return
 
-        # 将 Ollama 状态传递给 Bot 实例
         bot = AILoverBot(shutdown_event=shutdown_event, git_lock=lock, is_ollama_available=is_ollama_available)
         
         bot_task = asyncio.create_task(bot.start(settings.DISCORD_BOT_TOKEN))
@@ -346,30 +348,24 @@ async def start_web_server_task():
         print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
 async def main():
-    MAIN_PY_VERSION = "v11.0"
+    MAIN_PY_VERSION = "v11.1" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
     try:
-        # --- 步骤 1: 依赖项检查 ---
         _check_and_install_dependencies()
-
-        # --- 步骤 2: Ollama 健康检查 ---
-        # 注意：这里的模型名称需要与 ai_core.py 中的完全一致
+        
         ollama_model_to_check = "HammerAI/llama-3-lexi-uncensored:latest"
         is_ollama_ready = await _ollama_health_check(ollama_model_to_check)
         
-        # --- 步骤 3: 数据库初始化 ---
         db_ready_event = asyncio.Event()
         print("\n初始化資料庫...")
         await init_db(db_ready_event)
         
-        # --- 步骤 4: 任务调度 ---
         core_services = []
         guardian_tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
         if mode in ["all", "discord"]:
-            # 将健康检查结果传递给 Discord Bot 任务
             core_services.append(start_discord_bot_task(git_lock, db_ready_event, is_ollama_ready))
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
