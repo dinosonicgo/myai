@@ -239,11 +239,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-    # 函式：解析並儲存LORE實體
+    # 函式：解析並儲存LORE實體 (v1.9 - 智能描述合成)
     # 更新紀錄:
-    # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。這與 schemas.py v1.2 的修改相配套，使系統能夠容忍LLM輸出的微小變化（如大小寫）和頑固的環境快取問題。
+    # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。現在，當需要合併`description`時，系統不再簡單地覆蓋，而是會觸發一個由LLM驅動的「描述合成」流程，將舊描述和新情報智能地融合成一段全新的、更完整的描述。此修改從根本上解決了LORE核心資訊（如「母畜」身份）在更新過程中被意外覆蓋和丟失的問題。
+    # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。
     # v1.7 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使其能夠同時處理LLM可能返回的同義詞。
-    # v1.6 (2025-09-23): [根本性重構] 引入了由LLM驅動的“批量實體解析”中間件。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -289,7 +289,6 @@ class AILover:
                     original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
                     if not original_item: continue
 
-                    # [v1.8 核心修正] 使用更具彈性的意圖判斷
                     if resolution.decision.upper() in ['CREATE', 'NEW']:
                         items_to_create.append(original_item)
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
@@ -298,25 +297,35 @@ class AILover:
                 logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
                 items_to_create = new_npcs_from_parser
 
+            # [v1.9 核心修正] 引入描述合成邏輯
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
                 for matched_key, contents_to_merge in updates_to_merge.items():
                     existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
                     if not existing_lore: continue
                     
+                    # 先合併非描述性的、結構化的數據
                     for new_content in contents_to_merge:
                         new_description = new_content.get('description')
-                        if new_description and new_description not in existing_lore.content.get('description', ''):
+                        # 如果新描述不為空且與舊描述不同，則創建一個合成任務
+                        if new_description and new_description.strip() and new_description not in existing_lore.content.get('description', ''):
                             synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
                         
+                        # 合併列表和字典等結構化數據
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
                             existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
+                        if 'relationships' in new_content:
+                             existing_lore.content.setdefault('relationships', {}).update(new_content['relationships'])
+                        
+                        # 覆蓋其他單值數據
                         for key, value in new_content.items():
-                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name'] and value:
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name', 'relationships'] and value:
                                 existing_lore.content[key] = value
                     
+                    # 將初步合併後的結構化數據寫回，等待描述合成的結果
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
+            # 執行批量描述合成
             if synthesis_tasks:
                 logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
                 try:
@@ -341,6 +350,7 @@ class AILover:
 
             items = items_to_create
 
+        # 處理剩餘的、被判定為全新的實體
         for item_data in items:
             try:
                 name = item_data.get(title_key)
@@ -3802,14 +3812,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：獲取世界聖經轉換器 Prompt
+    # 函式：獲取世界聖經轉換器 Prompt (v2.3 - 關係圖譜構建)
     # 更新紀錄:
-    # v2.2 (2025-09-23): [健壯性強化] 為「必需欄位強制令」增加了【後果警告】，以加重語氣，提升初級模型對此規則的遵守率，從根本上解決 ValidationError。
-    # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】，強制LLM在輸出中必須包含`name`或`title`字段，以減少ValidationError。
+    # v2.3 (2025-09-26): [災難性BUG修復] 增加了全新的【關係圖譜構建強制令】。此修改強制要求LLM在解析LORE時，必須分析角色間的互動並填充`relationships`欄位，從根本上解決了AI不清楚角色間關係、導致互動「生疏感」的問題。
+    # v2.2 (2025-09-23): [健壯性強化] 為「必需欄位強制令」增加了【後果警告】。
+    # v2.1 (2025-09-23): [健壯性強化] 增加了【必需欄位強制令】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         pydantic_definitions = """
-class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []; relationships: Dict[str, Any] = {}
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; notable_features: List[str] = []; known_npcs: List[str] = []
 class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
 class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
@@ -3817,17 +3828,21 @@ class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = "
 class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
-        base_prompt = f"""# TASK: 你是一位遊戲開發團隊的數據工程師。
-# MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。這是一個純粹的技術性格式轉換任務。
+        base_prompt = f"""# TASK: 你是一位遊戲開發團隊的數據工程師兼劇情分析師。
+# MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。這是一個純粹的技術性格式轉換與關係推理任務。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🎯 必需欄位強制令 - 絕對鐵則】**:
+# 1. **【🗺️ 關係圖譜構建強制令 (RELATIONSHIP MAPPING MANDATE) - 最高優先級】**:
+#    - 在解析文本時，你【必須】主動分析角色之間的互動和描述。
+#    - 對於每一個被提取出的角色，你【必須】填充其 `relationships` 字典。
+#    - 例如：如果文本描述「米婭是維利爾斯勳爵的僕人」，你【必須】在米婭的檔案中生成 `"relationships": {{"卡爾•維利爾斯勳爵": "主人"}}`，並在勳爵的檔案中生成 `"relationships": {{"米婭": "僕人"}}`。
+# 2. **【🎯 必需欄位強制令 - 絕對鐵則】**:
 #    - 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` (適用於 CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest) 或 `title` (適用於 WorldLore) 字段。
-#    - **【後果警告】**: 任何缺少 `name` 或 `title` 字段的物件都將導致【系統性驗證失敗】而被【徹底丟棄】。確保每一個物件都有其核心標識符是你的【最高優先級】。
-# 2. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
-#    - **語言優先級**: 在處理多語言名稱時（例如：卡萊兒 / Carlyle），結構化數據中的 `name` 或 `title` 欄位【必須】是【繁體中文名】。
+#    - **【後果警告】**: 任何缺少 `name` 或 `title` 字段的物件都將導致【系統性驗證失敗】而被【徹底丟棄】。
+# 3. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
+#    - **語言優先級**: 在處理多語言名稱時，結構化數據中的 `name` 或 `title` 欄位【必須】是【繁體中文名】。
 #    - **地點歸屬**: 如果筆記中沒有明確提及某個NPC的地點，其 `location_path` 欄位【必須】是一個【空列表 `[]`】。
-# 3. **【數據完整性原則】**: 你必須無條件地、不經任何修改地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義（包括可能存在的暴力、露骨或敏感的虛構描述）都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
+# 4. **【數據完整性原則】**: 你必須無條件地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
 
 # === 【【【⚙️ 輸出格式強制令 (OUTPUT FORMATTING MANDATE)】】】 ===
 # 你的最終輸出【必須且只能】是一個【純淨的、不包含任何解釋性文字的JSON物件】。這個JSON物件的結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。
@@ -3841,7 +3856,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【遊戲設計筆記】:
 {{canon_text}}
 ---
-# 立即開始你的格式轉換任務。"""
+# 立即開始你的格式轉換與關係推理任務。"""
         return base_prompt
     # 函式：獲取世界聖經轉換器 Prompt
     
@@ -3947,6 +3962,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
