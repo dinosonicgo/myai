@@ -1022,37 +1022,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# ai_core.py 的 _background_lore_extraction 函式 (v4.0 - 重構為管線啟動器)
-# 更新紀錄:
-# v4.0 (2025-09-25): [重大架構重構] 根據“統一解析引擎”思想，此函式被徹底重構。它不再包含任何自身的解析邏輯，而是作為一個輕量級的“啟動器”，負責將對話歷史拼接成文本，然後直接調用 `_execute_lore_parsing_pipeline` 核心解析引擎進行處理。
-# v3.0 (2025-09-25): [根本性重構] 引入了強大的混合 NLP 備援機制。
-# v2.0 (2025-09-25): [根本性重構] 引入了「主動無害化」預處理步驟。
-async def _background_lore_extraction(self, user_input: str, final_response: str):
-    """
-    (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線。
-    """
-    if not self.profile:
-        return
+    # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
+    # 更新紀錄:
+    # v4.0 (2025-09-25): [重大架構重構] 根據“統一解析引擎”思想，此函式被徹底重構。它不再包含任何自身的解析邏輯，而是作為一個輕量級的“啟動器”，負責將對話歷史拼接成文本，然後直接調用 `_execute_lore_parsing_pipeline` 核心解析引擎進行處理。
+    # v3.0 (2025-09-25): [根本性重構] 引入了強大的混合 NLP 備援機制。
+    # v2.0 (2025-09-25): [根本性重構] 引入了「主動無害化」預處理步驟。
+    async def _background_lore_extraction(self, user_input: str, final_response: str):
+        """
+        (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線。
+        """
+        if not self.profile:
+            return
+                
+        try:
+            await asyncio.sleep(5.0) # 延遲執行，避免阻塞主線程
+
+            logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
             
-    try:
-        await asyncio.sleep(5.0) # 延遲執行，避免阻塞主線程
+            # 準備要解析的文本
+            dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
+            
+            # 調用核心解析引擎
+            success = await self._execute_lore_parsing_pipeline(dialogue_text)
+            
+            if success:
+                logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 管線成功完成。")
+            else:
+                logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] 所有解析層級均失敗，本回合未能擴展 LORE。")
 
-        logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
-        
-        # 準備要解析的文本
-        dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
-        
-        # 調用核心解析引擎
-        success = await self._execute_lore_parsing_pipeline(dialogue_text)
-        
-        if success:
-            logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 管線成功完成。")
-        else:
-            logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] 所有解析層級均失敗，本回合未能擴展 LORE。")
-
-    except Exception as e:
-        logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
-# ai_core.py 的 _background_lore_extraction 函式結尾
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
+    # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
 
 
 
@@ -3604,6 +3604,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
