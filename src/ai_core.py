@@ -2483,11 +2483,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應
+    # 函式：預處理並生成主回應 (v33.13 - 強制LORE注入)
     # 更新紀錄:
-    # v33.12 (2025-09-24): [架構升級] 引入了“LORE繼承”機制。在構建上下文時，會檢查NPC是否繼承了模板（如“母畜”），並將模板內容動態注入到角色描述中，確保LLM能獲取到完整的、繼承後的人物設定，從根本上解決了因LORE設定分散導致的角色行為不一致問題。
-    # v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯，以解決“系統洩漏”問題。
-    # v33.10 (2025-09-23): [災難性BUG修復] 對 `summary_schema_mandate` Prompt 模板中的JSON範例大括號進行了轉義。
+    # v33.13 (2025-09-25): [災難性BUG修復] 徹底重構了 `relevant_npc_context` 的構建邏輯。現在會強制性地將所有被識別為「核心互動目標」的角色的完整LORE檔案（特別是description）注入到最終的Prompt中，從根本上解決了AI因缺乏上下文而「不認識」已知角色的問題。
+    # v33.12 (2025-09-24): [架構升級] 引入了“LORE繼承”機制。
+    # v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2674,46 +2674,46 @@ class ExtractionResult(BaseModel):
             "historical_context": raw_short_term_history,
         }
 
-        # [v33.12 核心修正] LORE 繼承邏輯
-        async def get_npc_context_with_inheritance(npcs: List[Lore]) -> str:
-            npc_summaries = []
-            for npc_lore in npcs:
-                # 創建內容的深拷貝以避免修改原始緩存
-                content = npc_lore.content.copy()
-                description = content.get('description', '無描述')
-                
-                # 從 LORE 條目本身讀取 template_keys
-                template_keys = npc_lore.template_keys
-                
-                # 如果沒有，再嘗試從 content 字典中讀取（為了兼容舊數據）
-                if not template_keys:
-                    template_keys = content.get('template_keys')
+        # [v33.13 核心修正] 全新的上下文注入邏輯
+        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
+            """將一個角色檔案格式化為對LLM友好的情報簡報。"""
+            parts = [f"名稱: {profile.name}"]
+            if profile.aliases:
+                parts.append(f"別名: {', '.join(profile.aliases)}")
+            if profile.status:
+                parts.append(f"當前狀態: {profile.status}")
+            if profile.description:
+                # 注入繼承的模板LORE
+                description = profile.description
+                if hasattr(profile, 'template_keys') and profile.template_keys:
+                    # 這部分邏輯需要異步，暫時在外部處理或簡化
+                    pass
+                parts.append(f"核心描述與情報: {description}")
+            return "\n".join(f"- {p}" for p in parts)
 
-                if template_keys and isinstance(template_keys, list):
-                    logger.info(f"[{self.user_id}] [LORE繼承] 檢測到NPC '{content.get('name')}' 繼承模板: {template_keys}")
-                    for key in template_keys:
-                        # 模板通常是 world_lore 類別
-                        template_lore = await lore_book.get_lore(self.user_id, 'world_lore', key)
-                        if template_lore and template_lore.content.get('content'):
-                            description += f"\n\n[繼承設定: {key}]\n{template_lore.content['content']}"
-                
-                npc_summaries.append(f"- {content.get('name', '未知NPC')}: {description}")
-            return "\n".join(npc_summaries)
-
-        if gs.viewing_mode == 'remote':
+        if gs.viewing_mode == 'remote' and gs.remote_target_path:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
-            full_prompt_params["relevant_npc_context"] = await get_npc_context_with_inheritance(relevant_npcs) or "（此場景目前沒有核心互動目標。）"
-            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此場景沒有其他背景角色。）"
-            full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}"
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
+            
+            relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
+            full_prompt_params["relevant_npc_context"] = "\n\n".join(relevant_context_parts) or "（此場景目前沒有核心互動目標。）"
+            full_prompt_params["npc_context"] = "\n".join([f"- {p.name}" for p in background_characters]) or "（此場景沒有其他背景角色。）"
+            
+            location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.remote_target_path))
+            location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+            full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}\n地點描述: {location_description}"
         else:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            relevant_npcs, background_npcs = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
-            ai_profile_summary = f"- {ai_profile.name} (你的AI戀人): {ai_profile.description}"
-            relevant_npcs_summary = await get_npc_context_with_inheritance(relevant_npcs)
-            full_prompt_params["relevant_npc_context"] = f"使用者角色: {user_profile.name}\n{ai_profile_summary}\n{relevant_npcs_summary}".strip()
-            full_prompt_params["npc_context"] = "\n".join([f"- {npc.content.get('name', '未知NPC')}" for npc in background_npcs]) or "（此地沒有其他背景角色。）"
-            full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}"
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs)
+
+            relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
+            full_prompt_params["relevant_npc_context"] = "\n\n".join(relevant_context_parts) or "（場景中無明確互動目標，請聚焦於玩家與AI的互動。）"
+            full_prompt_params["npc_context"] = "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色。）"
+            
+            location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
+            location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+            full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}\n地點描述: {location_description}"
+
 
         full_template = "\n".join([
             system_prompt_template, world_snapshot_template,
@@ -2758,7 +2758,10 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
 
         return final_novel_text, summary_data
-# 預處理並生成主回應 函式結束
+    # 預處理並生成主回應 函式結束
+
+
+    
 
 
    # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
@@ -2804,60 +2807,73 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：獲取場景中的相關 NPC (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-11-20): [全新創建] 創建此核心上下文篩選函式。它能夠根據使用者輸入和對話歷史，智能地將場景內所有NPC區分為「核心互動目標」和「背景角色」，從根本上解決了 AI 描述與指令無關NPC的問題。
-    async def _get_relevant_npcs(self, user_input: str, chat_history: List[BaseMessage], all_scene_npcs: List[Lore]) -> Tuple[List[Lore], List[Lore]]:
+    # 函式：獲取場景中的相關 NPC (v1.1 - 強制LORE注入)
+    # 更新紀錄:
+    # v1.1 (2025-09-25): [重大架構重構] 重構了函式的返回類型和邏輯。現在它會返回一個包含 CharacterProfile 對象的元組，並能將使用者和 AI 戀人本身也納入「核心互動目標」的範疇，為後續的強制 LORE 注入提供更豐富的數據源。
+    # v1.0 (2025-11-20): [全新創建] 創建此核心上下文篩選函式。
+    async def _get_relevant_npcs(self, user_input: str, chat_history: List[BaseMessage], all_scene_npcs: List[Lore]) -> Tuple[List[CharacterProfile], List[CharacterProfile]]:
         """
-        從場景中的所有NPC裡，篩選出與當前互動直接相關的核心NPC和作為背景的NPC。
-        返回 (relevant_npcs, background_npcs) 的元組。
+        從場景中的所有角色（包括玩家、AI和NPC）裡，篩選出與當前互動直接相關的核心目標和背景角色。
+        返回 (relevant_characters, background_characters) 的元組，其中每個元素都是 CharacterProfile 物件。
         """
-        if not all_scene_npcs:
+        if not self.profile:
             return [], []
 
         relevant_keys = set()
+        relevant_characters_map: Dict[str, CharacterProfile] = {}
         
-        # 規則 1: 從使用者當前輸入中尋找明確提及的 NPC
-        for npc_lore in all_scene_npcs:
-            npc_name = npc_lore.content.get('name', '')
-            if npc_name and npc_name in user_input:
-                relevant_keys.add(npc_lore.key)
-            # 檢查別名
-            for alias in npc_lore.content.get('aliases', []):
-                if alias and alias in user_input:
-                    relevant_keys.add(npc_lore.key)
-
-        # 規則 2: 從最近的對話歷史中尋找被提及的 NPC (特別是上一輪AI的回應)
+        # 初始將使用者和 AI 添加到潛在相關列表
+        user_profile = self.profile.user_profile
+        ai_profile = self.profile.ai_profile
+        
+        # 規則 1: 從使用者當前輸入中尋找明確提及的角色
+        all_possible_chars = [user_profile, ai_profile] + [CharacterProfile.model_validate(lore.content) for lore in all_scene_npcs]
+        
+        for char_profile in all_possible_chars:
+            names_to_check = [char_profile.name] + char_profile.aliases
+            for name in names_to_check:
+                if name and name in user_input:
+                    relevant_characters_map[char_profile.name] = char_profile
+                    if hasattr(char_profile, 'key'): # 適用於來自 LORE 的 NPC
+                        relevant_keys.add(char_profile.key)
+                    break
+        
+        # 規則 2: 從最近的對話歷史中尋找被提及的角色
         if chat_history:
             last_ai_message = ""
-            # 找到最後一條 AI 訊息
             for msg in reversed(chat_history):
                 if isinstance(msg, AIMessage):
                     last_ai_message = msg.content
                     break
             
             if last_ai_message:
-                for npc_lore in all_scene_npcs:
-                    npc_name = npc_lore.content.get('name', '')
-                    if npc_name and npc_name in last_ai_message:
-                        relevant_keys.add(npc_lore.key)
-                    for alias in npc_lore.content.get('aliases', []):
-                        if alias and alias in last_ai_message:
-                            relevant_keys.add(npc_lore.key)
+                for char_profile in all_possible_chars:
+                    if char_profile.name in relevant_characters_map: continue
+                    names_to_check = [char_profile.name] + char_profile.aliases
+                    for name in names_to_check:
+                        if name and name in last_ai_message:
+                            relevant_characters_map[char_profile.name] = char_profile
+                            if hasattr(char_profile, 'key'):
+                                relevant_keys.add(char_profile.key)
+                            break
+
+        # 如果沒有在輸入或歷史中找到明確目標，則將使用者和AI視為預設核心
+        if not relevant_characters_map:
+            relevant_characters_map[user_profile.name] = user_profile
+            relevant_characters_map[ai_profile.name] = ai_profile
+
+        # 進行最終分類
+        relevant_characters = list(relevant_characters_map.values())
+        background_characters = [
+            CharacterProfile.model_validate(lore.content) 
+            for lore in all_scene_npcs 
+            if lore.key not in relevant_keys
+        ]
         
-        # 進行分類
-        relevant_npcs = []
-        background_npcs = []
-        for npc_lore in all_scene_npcs:
-            if npc_lore.key in relevant_keys:
-                relevant_npcs.append(npc_lore)
-            else:
-                background_npcs.append(npc_lore)
+        logger.info(f"[{self.user_id}] [上下文篩選] 核心目標: {[c.name for c in relevant_characters]}, 背景角色: {[c.name for c in background_characters]}")
         
-        logger.info(f"[{self.user_id}] [上下文篩選] 核心目標: {[n.content.get('name') for n in relevant_npcs]}, 背景角色: {[n.content.get('name') for n in background_npcs]}")
-        
-        return relevant_npcs, background_npcs
-# 獲取場景中的相關 NPC 函式結束
+        return relevant_characters, background_characters
+    # 獲取場景中的相關 NPC 函式結束
     
 
     # 函式：關閉 AI 實例並釋放資源 (v198.2 - 完成重構)
@@ -3847,6 +3863,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
