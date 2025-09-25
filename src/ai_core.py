@@ -640,11 +640,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.2 - 縮排修正)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.3 - 模型日誌記錄)
     # 更新紀錄:
+    # v232.3 (2025-09-25): [可觀測性升級] 新增了日誌記錄，現在每次成功的生成都會在日誌中明確標示所使用的模型名稱和API金鑰索引。
     # v232.2 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法，解決了 AttributeError。
-    # v232.1 (2025-09-25): [災難性BUG修復] 在處理內容審查異常的邏輯中，增加了對 retry_strategy == 'none' 的判斷。此修改確保了當調用者明確不希望自動重試時，函式會直接拋出異常而不是錯誤地調用備援鏈，從而保證了降級流程的正確執行。
-    # v232.0 (2025-09-25): [災難性BUG修復] 增加了對 `retry_strategy == 'force'` 的 `elif` 判斷。
+    # v232.1 (2025-09-25): [災難性BUG修復] 在處理內容審查異常的邏輯中，增加了對 retry_strategy == 'none' 的判斷。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -713,6 +713,7 @@ class AILover:
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
+                        # [v232.3 核心修正] 在此處添加成功的日誌記錄
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
@@ -727,14 +728,13 @@ class AILover:
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查錯誤: {type(e).__name__}。")
-                        # [v232.1 核心修正] 增加 'none' 判斷
                         if retry_strategy == 'none':
-                            raise e # 直接拋出，讓上層的降級管線捕捉
+                            raise e 
                         elif retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
                         elif retry_strategy == 'force':
                             return await self._force_and_retry(full_prompt, output_schema, e)
-                        else: # 默認行為也是直接拋出
+                        else: 
                             raise e
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
@@ -770,7 +770,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.2 - 縮排修正)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎
 
 
 
@@ -3601,6 +3601,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
