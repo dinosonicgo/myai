@@ -1,11 +1,4 @@
-### AI Lover Log - Last updated at 2025-09-26T00:24:44.120324 ###
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 709, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-
-During handling of the above exception, another exception occurred:
+### AI Lover Log - Last updated at 2025-09-26T00:30:15.232426 ###
 
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1308, in on_message
@@ -300,3 +293,10 @@ name
 2025-09-26 00:24:06 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-26 00:24:07 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-26 00:24:07 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-26 00:30:01 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-26 00:30:01 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-26 00:30:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-26 00:30:01 - [INFO] - Discord Bot is ready!
+2025-09-26 00:30:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-26 00:30:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-26 00:30:05 - [INFO] - 已成功發送啟動成功通知給管理員。
