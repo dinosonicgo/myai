@@ -1,3 +1,9 @@
+# main.py 的中文註釋(v11.0 - Ollama健康檢查)
+# 更新紀錄:
+# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。此修改解决了本地模型依赖的健壮性问题，实现了：1.自动检测Ollama服务是否运行。2.自动检测所需模型是否存在。3.在模型不存在时，自动尝试`ollama pull`下载。4.根据检查结果生成一个全局状态，传递给AI核心，使其能够安全地禁用/启用本地备援功能。
+# v10.1 (2025-09-26): [災難性BUG修復] 將 PROJ_DIR 和快取清理邏輯提升到所有 src 導入之前。
+# v10.0 (2025-09-25): [重大架構重構] 引入了更强大的错误处理和模块化任务启动器。
+
 import os
 import sys
 import shutil
@@ -5,17 +11,13 @@ from pathlib import Path
 import asyncio
 import uvicorn
 import time
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import subprocess
 import importlib.metadata
 import datetime
 import traceback
+import httpx
+import json
 
-# [v10.1 核心修正] 將 PROJ_DIR 和快取清理邏輯提升到所有 src 導入之前
-# 這確保了在 Python 嘗試導入任何可能被快取的模組之前，舊快取已被徹底清除。
 PROJ_DIR = Path(__file__).resolve().parent
 
 def _clear_pycache():
@@ -28,15 +30,92 @@ def _clear_pycache():
             except OSError as e:
                 print(f"🔥 清理快取失敗: {e}")
 
-# 在啟動時立即執行快取清理
 _clear_pycache()
 
-
-# 全局的關閉事件，用於協調所有任務的優雅退出
 shutdown_event = asyncio.Event()
-
-# 全局的異步鎖，用於保護 Git 操作
 git_lock = asyncio.Lock()
+
+# [v11.0 核心修正] 全新的Ollama健康检查与自动下载函数
+async def _ollama_health_check(model_name: str) -> bool:
+    """
+    在程式启动时检查本地Ollama服务的健康状况。
+    1. 检查服务是否可连接。
+    2. 检查所需模型是否已存在。
+    3. 如果模型不存在，则尝试自动下载。
+    返回一个布林值，表示本地备援方案是否最终可用。
+    """
+    print("\n--- 正在执行本地 AI (Ollama) 健康检查 ---")
+    
+    # 步骤 1: 检查Ollama服务是否正在运行
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get("http://localhost:11434/")
+        if response.status_code == 200 and "Ollama is running" in response.text:
+            print("✅ [Ollama Health Check] 本地 Ollama 服务连接成功。")
+        else:
+            raise httpx.ConnectError
+    except (httpx.ConnectError, httpx.TimeoutException):
+        print("⚠️ [Ollama Health Check] 未能连接到本地 Ollama 服务 (http://localhost:11434)。")
+        print("   -> 这可能是因为 Ollama 未安装或未运行。")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        print("   -> 系统将完全依赖云端模型备援方案继续运行。")
+        return False
+
+    # 步骤 2: 检查所需模型是否已存在
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post("http://localhost:11434/api/tags", json={})
+            response.raise_for_status()
+            data = response.json()
+            installed_models = [m['name'] for m in data.get('models', [])]
+            if model_name in installed_models:
+                print(f"✅ [Ollama Health Check] 所需模型 '{model_name}' 已安装。本地备援方案已就绪。")
+                return True
+            else:
+                print(f"⏳ [Ollama Health Check] 所需模型 '{model_name}' 未找到，正在尝试自动下载...")
+    except Exception as e:
+        print(f"🔥 [Ollama Health Check] 检查本地模型列表时发生错误: {e}")
+        print("   -> 将尝试继续执行自动下载流程。")
+
+    # 步骤 3: 自动下载模型
+    try:
+        process = await asyncio.create_subprocess_shell(
+            f'ollama pull {model_name}',
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+
+        async def log_stream(stream, prefix):
+            while True:
+                line = await stream.readline()
+                if not line:
+                    break
+                print(f"   [{prefix}] {line.decode().strip()}")
+
+        await asyncio.gather(
+            log_stream(process.stdout, "Ollama Pull"),
+            log_stream(process.stderr, "Ollama Error")
+        )
+        
+        return_code = await process.wait()
+        if return_code == 0:
+            print(f"✅ [Ollama Health Check] 模型 '{model_name}' 自动下载成功！本地备援方案已就绪。")
+            return True
+        else:
+            print(f"🔥 [Ollama Health Check] 模型 '{model_name}' 自动下载失败，返回码: {return_code}。")
+            print("   -> 请尝试手动在终端中运行 `ollama pull {model_name}`。")
+            print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+            return False
+
+    except FileNotFoundError:
+        print("🔥 [Ollama Health Check] 'ollama' 命令未找到。")
+        print("   -> 请确保您已安装 Ollama 并且其路径已添加到系统环境变量中。")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        return False
+    except Exception as e:
+        print(f"🔥 [Ollama Health Check] 执行 `ollama pull` 时发生未知错误: {e}")
+        print("   -> 本地 LORE 解析备援方案将被【禁用】。")
+        return False
 
 
 def _check_and_install_dependencies():
@@ -52,7 +131,7 @@ def _check_and_install_dependencies():
         'chromadb': 'chromadb', 'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
         'python-Levenshtein': 'Levenshtein',
-        'spacy': 'spacy'
+        'spacy': 'spacy', 'httpx': 'httpx' # 新增 httpx 依赖
     }
     
     missing_packages = []
@@ -95,10 +174,6 @@ def _check_and_install_dependencies():
             
     print("✅ 所有依賴項和模型均已準備就緒。")
 
-# --- 執行依賴檢查 ---
-_check_and_install_dependencies()
-
-# --- 現在可以安全地導入我們自己的模組了 ---
 from src.database import init_db
 from src.config import settings
 from src.web_server import router as web_router
@@ -207,7 +282,8 @@ async def start_github_update_checker_task(lock: asyncio.Lock):
             print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
             await asyncio.sleep(600)
 
-async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event):
+# [v11.0 核心修正] 更新函数签名以接收 Ollama 状态
+async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event, is_ollama_available: bool):
     """啟動Discord Bot的核心服務。內建錯誤處理和啟動依賴等待。"""
     try:
         print("🔵 [Discord Bot] 正在等待數據庫初始化完成...")
@@ -218,7 +294,8 @@ async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Eve
             print("🔥 [Discord Bot] 錯誤：DISCORD_BOT_TOKEN 未在 config/.env 檔案中設定。服務無法啟動。")
             return
 
-        bot = AILoverBot(shutdown_event=shutdown_event, git_lock=lock)
+        # 将 Ollama 状态传递给 Bot 实例
+        bot = AILoverBot(shutdown_event=shutdown_event, git_lock=lock, is_ollama_available=is_ollama_available)
         
         bot_task = asyncio.create_task(bot.start(settings.DISCORD_BOT_TOKEN))
         shutdown_waiter = asyncio.create_task(shutdown_event.wait())
@@ -269,21 +346,31 @@ async def start_web_server_task():
         print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
 async def main():
-    MAIN_PY_VERSION = "v10.1" # 版本號更新
+    MAIN_PY_VERSION = "v11.0"
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
     try:
-        db_ready_event = asyncio.Event()
+        # --- 步骤 1: 依赖项检查 ---
+        _check_and_install_dependencies()
 
-        print("初始化資料庫...")
+        # --- 步骤 2: Ollama 健康检查 ---
+        # 注意：这里的模型名称需要与 ai_core.py 中的完全一致
+        ollama_model_to_check = "HammerAI/llama-3-lexi-uncensored:latest"
+        is_ollama_ready = await _ollama_health_check(ollama_model_to_check)
+        
+        # --- 步骤 3: 数据库初始化 ---
+        db_ready_event = asyncio.Event()
+        print("\n初始化資料庫...")
         await init_db(db_ready_event)
         
+        # --- 步骤 4: 任务调度 ---
         core_services = []
         guardian_tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
         
         if mode in ["all", "discord"]:
-            core_services.append(start_discord_bot_task(git_lock, db_ready_event))
+            # 将健康检查结果传递给 Discord Bot 任务
+            core_services.append(start_discord_bot_task(git_lock, db_ready_event, is_ollama_ready))
         if mode in ["all", "web"]:
             core_services.append(start_web_server_task())
 
