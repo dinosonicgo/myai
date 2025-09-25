@@ -1,21 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T20:15:31.728309 ###
+### AI Lover Log - Last updated at 2025-09-25T20:20:39.726400 ###
 
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-25 07:25:56 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-25 07:25:58 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-25 07:25:58 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 3 條場景歷史記錄。
-2025-09-25 07:26:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-25 07:26:05 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-25 07:26:05 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-25 07:26:05 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
 2025-09-25 07:26:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-25 07:26:07 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
 2025-09-25 07:26:19 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
@@ -296,6 +280,22 @@ AttributeError: 'AILover' object has no attribute 'initialize'
 2025-09-25 19:46:29 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'AILover' object has no attribute 'initialize'
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1482, in start_reset_flow
+    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1160, in get_or_create_ai_instance
+    if await ai_instance.initialize():
+AttributeError: 'AILover' object has no attribute 'initialize'
+2025-09-25 20:20:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-25 20:20:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-25 20:20:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-25 20:20:25 - [INFO] - Discord Bot is ready!
+2025-09-25 20:20:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-25 20:20:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-25 20:20:29 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-25 20:20:38 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-25 20:20:38 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-25 20:20:38 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'AILover' object has no attribute 'initialize'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1484, in start_reset_flow
     ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1160, in get_or_create_ai_instance
     if await ai_instance.initialize():
