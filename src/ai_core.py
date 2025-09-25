@@ -1019,81 +1019,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# ai_core.py 的 _background_lore_extraction 函式 (v3.0 - 引入混合NLP備援)
+# ai_core.py 的 _background_lore_extraction 函式 (v4.0 - 重構為管線啟動器)
 # 更新紀錄:
-# v3.0 (2025-09-25): [根本性重構] 在主 LORE 提取鏈的異常處理塊中，增加了對 `_spacy_fallback_lore_extraction` 的調用。此修改引入了一個強大的混合 NLP 備援機制，確保即使在主分析鏈因內容審查等原因徹底失敗後，系統仍能嘗試使用 spaCy 從原始文本中恢復 LORE 資訊。
+# v4.0 (2025-09-25): [重大架構重構] 根據“統一解析引擎”思想，此函式被徹底重構。它不再包含任何自身的解析邏輯，而是作為一個輕量級的“啟動器”，負責將對話歷史拼接成文本，然後直接調用 `_execute_lore_parsing_pipeline` 核心解析引擎進行處理。
+# v3.0 (2025-09-25): [根本性重構] 引入了強大的混合 NLP 備援機制。
 # v2.0 (2025-09-25): [根本性重構] 引入了「主動無害化」預處理步驟。
-# v1.1 (2025-09-24): [備援鏈修復] 將備援策略從不兼容的 'euphemize' 修改為 'force'。
 async def _background_lore_extraction(self, user_input: str, final_response: str):
     """
-    一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化，
-    作為對主模型摘要功能的補充和保險。內建主動無害化預處理和混合NLP備援。
+    (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線。
     """
     if not self.profile:
         return
-        
+            
     try:
-        await asyncio.sleep(5.0)
+        await asyncio.sleep(5.0) # 延遲執行，避免阻塞主線程
 
-        try:
-            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
-            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] 背景LORE提取：無法加載現有 LORE 摘要: {e}")
-            existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
-
-        logger.info(f"[{self.user_id}] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...")
+        logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
         
-        # [v2.0 核心修正] 步驟 1: 主動無害化預處理
-        sanitized_user_input = user_input
-        sanitized_final_response = final_response
-        reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-        for code, word in reversed_map:
-            sanitized_user_input = sanitized_user_input.replace(word, code)
-            sanitized_final_response = sanitized_final_response.replace(word, code)
+        # 準備要解析的文本
+        dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
         
-        prompt_template = self.get_lore_extraction_chain()
-
-        extraction_params = {
-            "username": self.profile.user_profile.name,
-            "ai_name": self.profile.ai_profile.name,
-            "existing_lore_summary": existing_lore_summary,
-            "user_input": sanitized_user_input, # 使用無害化版本
-            "final_response_text": sanitized_final_response, # 使用無害化版本
-        }
+        # 調用核心解析引擎
+        success = await self._execute_lore_parsing_pipeline(dialogue_text)
         
-        full_prompt = prompt_template.format(**extraction_params)
-        
-        extraction_plan = await self.ainvoke_with_rotation(
-            full_prompt,
-            output_schema=ToolCallPlan,
-            retry_strategy='euphemize'
-        )
-        
-        if not extraction_plan or not isinstance(extraction_plan, ToolCallPlan):
-            # [v3.0 核心修正] 主鏈失敗，觸發混合NLP備援
-            logger.warning(f"[{self.user_id}] [事後處理-LORE保險] 主 LORE 提取鏈的LLM回應為空或最終失敗。")
-            await self._spacy_fallback_lore_extraction(user_input, final_response) # <--- 調用新的備援函式
-            return
-
-        if extraction_plan.plan:
-            logger.info(f"[{self.user_id}] [事後處理-LORE保險] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
-            
-            gs = self.profile.game_state
-            effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-            
-            await self._execute_tool_call_plan(extraction_plan, effective_location)
+        if success:
+            logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 管線成功完成。")
         else:
-            logger.info(f"[{self.user_id}] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。")
+            logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] 所有解析層級均失敗，本回合未能擴展 LORE。")
 
     except Exception as e:
-        logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取任務主體發生未預期的異常: {e}", exc_info=True)
-        # [v3.0 核心修正] 即使在主體發生未知錯誤時，也嘗試觸發備援
-        logger.warning(f"[{self.user_id}] [事後處理-LORE保險] 因主體異常，觸發混合NLP備援作為最後手段...")
-        await self._spacy_fallback_lore_extraction(user_input, final_response)
+        logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
 # ai_core.py 的 _background_lore_extraction 函式結尾
-            
 
 
 
@@ -3461,6 +3417,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
