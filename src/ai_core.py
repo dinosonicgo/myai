@@ -101,13 +101,14 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.6 - 本地LLM整合)
-    # 更新紀錄:
-    # v227.6 (2025-09-25): [架構擴展] 新增了 self.ollama_model_name 屬性，為本地 LLM 備援方案提供可配置的模型名稱。
-    # v227.5 (2025-09-23): [架構升級] 為實現RAG增量更新，新增了 bm25_index_path 和 bm25_corpus 屬性。
-    # v227.4 (2025-09-23): [架構升級] 引入了持久化的API金鑰冷卻機制。
-    def __init__(self, user_id: str):
+    # 函式：初始化AI核心 (v227.8 - Ollama健康检查)
+    # 更新纪录:
+    # v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值，并将其储存为实例属性。
+    # v227.7 (2025-09-26): [架構重構] 新增了 self.ollama_parser_prompt_template 屬性。
+    # v227.6 (2025-09-26): [架構擴展] 新增了 self.ollama_model_name 屬性。
+    def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
+        self.is_ollama_available = is_ollama_available # 储存状态
         self.profile: Optional[UserProfile] = None
         
         self.model_priority_list: List[str] = GENERATION_MODEL_PRIORITY
@@ -131,7 +132,6 @@ class AILover:
             "ROLE-C": "母狗", "ROLE-D": "母畜"
         }
         
-        # [v227.6 核心修正] 為本地備援模型設定名稱
         self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
@@ -3962,6 +3962,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
