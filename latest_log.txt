@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T19:45:18.133507 ###
+### AI Lover Log - Last updated at 2025-09-25T19:50:20.337409 ###
 
-2025-09-25 07:25:55 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 139 條文檔到 RAG 語料庫。
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-25 07:25:55 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-25 07:25:55 - [INFO] - [512280345618546699] 成功恢復了 2 個場景的對話歷史，總計 3 條訊息。
 2025-09-25 07:25:55 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
 2025-09-25 07:25:56 - [INFO] - [512280345618546699] AI 實例資源已釋放。
 2025-09-25 07:25:58 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
@@ -300,3 +291,12 @@ AttributeError: 'AILover' object has no attribute 'initialize'
 2025-09-25 19:45:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-25 19:45:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-25 19:45:07 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-25 19:46:29 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-25 19:46:29 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-25 19:46:29 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'AILover' object has no attribute 'initialize'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1482, in start_reset_flow
+    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1160, in get_or_create_ai_instance
+    if await ai_instance.initialize():
+AttributeError: 'AILover' object has no attribute 'initialize'
