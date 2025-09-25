@@ -2523,11 +2523,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v33.14 - 指令驅動LORE注入)
+    # 函式：預處理並生成主回應 (v33.15 - LORE類型安全)
     # 更新紀錄:
-    # v33.14 (2025-09-25): [災難性BUG修復] 徹底重構了上下文構建邏輯。引入了全新的「指令驅動LORE注入」三步策略：1.從使用者輸入中提取實體；2.強制查找這些實體的完整LORE檔案；3.將檔案注入到一個全新的、專用的`explicit_character_files_context`上下文區塊中。此修改從根本上確保了只要使用者提及某個角色，其完整檔案就必定會出現在Prompt中，徹底解決了「失憶」問題。
+    # v33.15 (2025-09-26): [災難性BUG修復] 在強制LORE注入的查找邏輯中，增加了對 `lore.category == 'npc_profile'` 的嚴格類型檢查。此修改確保了只有真正的角色檔案會被嘗試驗證為CharacterProfile，從根本上解決了因試圖驗證 `world_lore` 等其他類型而導致的Pydantic ValidationError。
+    # v33.14 (2025-09-25): [災難性BUG修復] 徹底重構了上下文構建邏輯，引入了全新的「指令驅動LORE注入」三步策略。
     # v33.13 (2025-09-25): [災難性BUG修復] 徹底重構了 `relevant_npc_context` 的構建邏輯。
-    # v33.12 (2025-09-24): [架構升級] 引入了“LORE繼承”機制。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2544,30 +2544,38 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # [v33.14 核心修正 第一步]：從使用者輸入中提取實體
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
 
-        # [v33.14 核心修正 第二步]：強制查找這些實體的LORE
         explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
         if explicitly_mentioned_entities:
             logger.info(f"[{self.user_id}] [LORE注入] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
             found_lores = []
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            # 將核心主角也加入查找範圍
+            
             all_known_profiles = {
                 user_profile.name: user_profile,
                 ai_profile.name: ai_profile
             }
+            
+            # [v33.15 核心修正] 增加嚴格的類型檢查
             for lore in all_lores:
-                profile = CharacterProfile.model_validate(lore.content)
-                all_known_profiles[profile.name] = profile
-                if profile.aliases:
-                    for alias in profile.aliases:
-                        all_known_profiles[alias] = profile
+                # 只處理角色檔案，忽略地點、物品、世界傳說等
+                if lore.category == 'npc_profile':
+                    try:
+                        profile = CharacterProfile.model_validate(lore.content)
+                        all_known_profiles[profile.name] = profile
+                        if profile.aliases:
+                            for alias in profile.aliases:
+                                all_known_profiles[alias] = profile
+                    except ValidationError as e:
+                        logger.warning(f"[{self.user_id}] [LORE校驗] 跳過一個無效的角色LORE條目 (key: {lore.key}): {e}")
+
 
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in all_known_profiles:
-                    found_lores.append(all_known_profiles[entity_name])
+                    # 避免重複添加
+                    if all_known_profiles[entity_name] not in found_lores:
+                        found_lores.append(all_known_profiles[entity_name])
             
             if found_lores:
                 context_parts = []
@@ -2577,7 +2585,6 @@ class ExtractionResult(BaseModel):
                 logger.info(f"[{self.user_id}] [LORE注入] 已成功構建 {len(found_lores)} 份核心角色情報檔案。")
 
 
-        # 視角判斷邏輯
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
@@ -2745,7 +2752,7 @@ class ExtractionResult(BaseModel):
             "quests_context": micro_task_context,
             "user_input": user_input,
             "historical_context": raw_short_term_history,
-            "explicit_character_files_context": explicit_character_files_context # [v33.14 核心修正 第三步]
+            "explicit_character_files_context": explicit_character_files_context
         }
 
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
@@ -2827,7 +2834,6 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text, summary_data
     # 預處理並生成主回應 函式結束
-
 
     
 
@@ -3931,6 +3937,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
