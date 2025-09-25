@@ -1019,70 +1019,215 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景LORE提取與擴展
+# ai_core.py 的 _background_lore_extraction 函式 (v3.0 - 引入混合NLP備援)
 # 更新紀錄:
-# v1.1 (2025-09-24): [備援鏈修復] 將備援策略從不兼容的 'euphemize' 修改為 'force'。此鏈的輸入是安全的對話記錄，不應觸發審查；如果意外觸發，強制重試是比調用錯誤備援鏈更合理的選擇。
-# v1.0 (2025-11-21): [全新創建] 創建此函式作為獨立的、事後的 LORE 提取流程。
-    async def _background_lore_extraction(self, user_input: str, final_response: str):
-        """
-        一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化，
-        作為對主模型摘要功能的補充和保險。
-        """
-        if not self.profile:
-            return
-            
+# v3.0 (2025-09-25): [根本性重構] 在主 LORE 提取鏈的異常處理塊中，增加了對 `_spacy_fallback_lore_extraction` 的調用。此修改引入了一個強大的混合 NLP 備援機制，確保即使在主分析鏈因內容審查等原因徹底失敗後，系統仍能嘗試使用 spaCy 從原始文本中恢復 LORE 資訊。
+# v2.0 (2025-09-25): [根本性重構] 引入了「主動無害化」預處理步驟。
+# v1.1 (2025-09-24): [備援鏈修復] 將備援策略從不兼容的 'euphemize' 修改為 'force'。
+async def _background_lore_extraction(self, user_input: str, final_response: str):
+    """
+    一個非阻塞的背景任務，負責從最終的AI回應中提取新的LORE並將其持久化，
+    作為對主模型摘要功能的補充和保險。內建主動無害化預處理和混合NLP備援。
+    """
+    if not self.profile:
+        return
+        
+    try:
+        await asyncio.sleep(5.0)
+
         try:
-            await asyncio.sleep(5.0)
-
-            try:
-                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-                lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
-                existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
-            except Exception as e:
-                logger.warning(f"[{self.user_id}] 背景LORE提取：無法加載現有 LORE 摘要: {e}")
-                existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
-
-            logger.info(f"[{self.user_id}] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...")
-            
-            prompt_template = self.get_lore_extraction_chain()
-
-            extraction_params = {
-                "username": self.profile.user_profile.name,
-                "ai_name": self.profile.ai_profile.name,
-                "existing_lore_summary": existing_lore_summary,
-                "user_input": user_input,
-                "final_response_text": final_response,
-            }
-            
-            full_prompt = prompt_template.format(**extraction_params)
-            
-            extraction_plan = await self.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=ToolCallPlan,
-                retry_strategy='force' # [v1.1 核心修正]
-            )
-            
-            if not extraction_plan or not isinstance(extraction_plan, ToolCallPlan):
-                logger.warning(f"[{self.user_id}] [事後處理-LORE保險] LORE提取鏈的LLM回應為空或最終失敗。")
-                return
-
-            if extraction_plan.plan:
-                logger.info(f"[{self.user_id}] [事後處理-LORE保險] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
-                
-                gs = self.profile.game_state
-                effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                
-                await self._execute_tool_call_plan(extraction_plan, effective_location)
-            else:
-                logger.info(f"[{self.user_id}] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。")
-
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            lore_summary_list = [f"- [{lore.category}] {lore.content.get('name', lore.content.get('title', lore.key))}" for lore in all_lores]
+            existing_lore_summary = "\n".join(lore_summary_list) if lore_summary_list else "目前沒有任何已知的 LORE。"
         except Exception as e:
-            logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取與擴展任務執行時發生未預期的異常: {e}", exc_info=True)
-# 背景LORE提取與擴展 函式結束
+            logger.warning(f"[{self.user_id}] 背景LORE提取：無法加載現有 LORE 摘要: {e}")
+            existing_lore_summary = "錯誤：無法加載現有 LORE 摘要。"
+
+        logger.info(f"[{self.user_id}] [事後處理-LORE保險] 獨立的背景LORE提取器已啟動...")
+        
+        # [v2.0 核心修正] 步驟 1: 主動無害化預處理
+        sanitized_user_input = user_input
+        sanitized_final_response = final_response
+        reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+        for code, word in reversed_map:
+            sanitized_user_input = sanitized_user_input.replace(word, code)
+            sanitized_final_response = sanitized_final_response.replace(word, code)
+        
+        prompt_template = self.get_lore_extraction_chain()
+
+        extraction_params = {
+            "username": self.profile.user_profile.name,
+            "ai_name": self.profile.ai_profile.name,
+            "existing_lore_summary": existing_lore_summary,
+            "user_input": sanitized_user_input, # 使用無害化版本
+            "final_response_text": sanitized_final_response, # 使用無害化版本
+        }
+        
+        full_prompt = prompt_template.format(**extraction_params)
+        
+        extraction_plan = await self.ainvoke_with_rotation(
+            full_prompt,
+            output_schema=ToolCallPlan,
+            retry_strategy='euphemize'
+        )
+        
+        if not extraction_plan or not isinstance(extraction_plan, ToolCallPlan):
+            # [v3.0 核心修正] 主鏈失敗，觸發混合NLP備援
+            logger.warning(f"[{self.user_id}] [事後處理-LORE保險] 主 LORE 提取鏈的LLM回應為空或最終失敗。")
+            await self._spacy_fallback_lore_extraction(user_input, final_response) # <--- 調用新的備援函式
+            return
+
+        if extraction_plan.plan:
+            logger.info(f"[{self.user_id}] [事後處理-LORE保險] 提取到 {len(extraction_plan.plan)} 條新LORE，準備執行擴展...")
+            
+            gs = self.profile.game_state
+            effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+            
+            await self._execute_tool_call_plan(extraction_plan, effective_location)
+        else:
+            logger.info(f"[{self.user_id}] [事後處理-LORE保險] AI分析後判斷最終回應中不包含新的LORE可供提取。")
+
+    except Exception as e:
+        logger.error(f"[{self.user_id}] [事後處理-LORE保險] 背景LORE提取任務主體發生未預期的異常: {e}", exc_info=True)
+        # [v3.0 核心修正] 即使在主體發生未知錯誤時，也嘗試觸發備援
+        logger.warning(f"[{self.user_id}] [事後處理-LORE保險] 因主體異常，觸發混合NLP備援作為最後手段...")
+        await self._spacy_fallback_lore_extraction(user_input, final_response)
+# ai_core.py 的 _background_lore_extraction 函式結尾
             
 
 
 
+# ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的一部分。它的任務是接收一個由 spaCy 識別出的實體名稱和完整的上下文，然後指導 LLM 執行一個高度聚焦的、靶向的角色檔案生成任務，以降低內容審查風險並最大限度地還原資訊。
+def get_spacy_entity_refinement_prompt(self) -> str:
+    """獲取一個為 spaCy 混合備援流程中的“靶向精煉”步驟設計的 Prompt 模板。"""
+    prompt_template = """# TASK: 你是一位資深的角色傳記作家和情報分析師。
+# MISSION: 你的任務是專注於分析下方提供的【對話上下文】，並為其中被明確指定的【目標實體名稱】生成一份盡可能詳細、準確、且結構化的角色檔案 JSON。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 絕對聚焦原則】**: 你的所有分析和輸出【必須】只圍繞【目標實體名稱】展開。忽略上下文中與此實體無關的其他角色或事件。
+# 2. **【🚫 絕對無害化輸出強制令】**:
+#    - 你必須認知到，輸入的上下文**可能包含描述虛構世界極端行為的技術代碼**（例如 `ROLE-D`, `ACTION-C`）。
+#    - 你的最終JSON輸出，其所有字段的值（特別是 `description`）**也必須原封不動地保留這些技術代碼**。
+#    - 這是一個數據提取和結構化任務，不是翻譯任務。【絕對禁止】將任何技術代碼還原為原始的敏感詞彙。
+# 3. **【🔎 深度信息提取】**: 你必須從上下文中提取所有與目標實體相關的細節，包括但不限於：
+#    - **外貌與描述**: 任何關於外觀、性格、背景、職業的描述。
+#    - **行為與關係**: 該角色的行為、對話以及與其他角色的互動關係。
+#    - **狀態與裝備**: 該角色的當前狀態、情緒或穿戴的物品。
+# 4. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `CharacterProfile` Pydantic 模型的JSON物件。`name` 字段必須與【目標實體名稱】完全一致。
+
+# --- [INPUT DATA] ---
+
+# 【目標實體名稱】:
+{entity_name}
+
+# ---
+# 【對話上下文 (你的唯一事實來源)】:
+{context}
+
+# ---
+# 【為“{entity_name}”生成的角色檔案JSON】:
+"""
+    return prompt_template
+# ai_core.py 的 get_spacy_entity_refinement_prompt 函式結尾
+
+
+
+    # ai_core.py 的 _spacy_fallback_lore_extraction 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的核心。當主 LORE 提取鏈失敗時，此函式會使用 spaCy 在本地從【原始、未消毒的】文本中提取潛在的 NPC 實體，然後為每個實體發起一個高度聚焦的、更安全的 LLM 調用，以進行靶向的角色檔案精煉，最大限度地在保證安全的前提下還原 LORE 資訊。
+async def _spacy_fallback_lore_extraction(self, user_input: str, final_response: str):
+    """
+    【混合NLP備援】當主LORE提取鏈失敗時，使用spaCy在本地提取實體，再由LLM進行靶向精煉。
+    """
+    if not self.profile:
+        return
+
+    logger.warning(f"[{self.user_id}] [混合NLP備援] 主 LORE 提取鏈失敗，正在啟動 spaCy 混合備援流程...")
+    
+    try:
+        # 確保 spaCy 模型已加載
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+        except OSError:
+            logger.error(f"[{self.user_id}] [混合NLP備援] 致命錯誤: spaCy 中文模型 'zh_core_web_sm' 未下載。請運行: python -m spacy download zh_core_web_sm")
+            return
+
+        # 步驟 1: 使用 spaCy 從原始、未消毒的文本中提取 PERSON 實體
+        full_context_text = f"使用者: {user_input}\nAI: {final_response}"
+        doc = nlp(full_context_text)
+        
+        # 過濾掉核心主角
+        protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
+        candidate_entities = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and ent.text.lower() not in protagonist_names}
+
+        if not candidate_entities:
+            logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 未在文本中找到任何新的潛在 NPC 實體。")
+            return
+
+        logger.info(f"[{self.user_id}] [混合NLP備援] spaCy 識別出 {len(candidate_entities)} 個候選實體: {candidate_entities}")
+
+        # 步驟 2: 為每個候選實體發起靶向 LLM 精煉任務
+        refinement_prompt_template = self.get_spacy_entity_refinement_prompt()
+        
+        for entity_name in candidate_entities:
+            try:
+                # 檢查此 NPC 是否已存在，如果存在則跳過，避免重複創建
+                existing_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+                if any(entity_name == lore.content.get("name") for lore in existing_lores):
+                    logger.info(f"[{self.user_id}] [混合NLP備援] 實體 '{entity_name}' 已存在於 LORE 中，跳過創建。")
+                    continue
+                
+                full_prompt = self._safe_format_prompt(
+                    refinement_prompt_template,
+                    {
+                        "entity_name": entity_name,
+                        "context": full_context_text
+                    },
+                    inject_core_protocol=True
+                )
+                
+                # 使用 ainvoke_with_rotation 進行單個精煉
+                refined_profile = await self.ainvoke_with_rotation(
+                    full_prompt,
+                    output_schema=CharacterProfile,
+                    retry_strategy='none' # 靶向精煉失敗就是失敗，不再重試
+                )
+
+                if refined_profile and isinstance(refined_profile, CharacterProfile):
+                    # 成功獲取到精煉後的檔案，將其存入 LORE
+                    gs = self.profile.game_state
+                    effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                    
+                    # 確保 location_path 被正確設置
+                    refined_profile.location_path = effective_location
+                    
+                    # 生成 lore_key 並儲存
+                    lore_key = " > ".join(effective_location + [refined_profile.name])
+                    final_content = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
+                    
+                    lore_entry = await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore_key, final_content, source='spacy_fallback')
+                    # 觸發 RAG 增量更新
+                    await self._update_rag_for_single_lore(lore_entry)
+                    
+                    logger.info(f"[{self.user_id}] [混合NLP備援] ✅ 成功為實體 '{entity_name}' 創建了 LORE 檔案。")
+                
+                await asyncio.sleep(1) # 避免過於頻繁的 API 請求
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [混合NLP備援] 在為實體 '{entity_name}' 進行靶向精煉時發生錯誤: {e}", exc_info=True)
+                continue # 單個實體失敗，繼續處理下一個
+
+    except Exception as e:
+        logger.error(f"[{self.user_id}] [混合NLP備援] spaCy 備援流程主體發生嚴重錯誤: {e}", exc_info=True)
+# ai_core.py 的 _spacy_fallback_lore_extraction 函式結尾
+
+
+
+
+
+    
         
 
 
@@ -3441,6 +3586,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
