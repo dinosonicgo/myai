@@ -2113,6 +2113,85 @@ class ExtractionResult(BaseModel):
 
 
 
+
+    # 函式：使用 spaCy 和規則提取實體 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。它結合使用 spaCy 的命名實體識別（NER）和名詞短語提取，從原始文本中全面地、在本地捕獲所有潛在的 LORE 候選實體，為後續的 LLM 分類決策提供原材料。
+    async def _spacy_and_rule_based_entity_extraction(self, text_to_parse: str) -> set:
+        """【本地處理】結合 spaCy 和規則，從文本中提取所有潛在的 LORE 實體。"""
+        if not self.profile:
+            return set()
+
+        candidate_entities = set()
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+        except OSError:
+            logger.error(f"[{self.user_id}] [spaCy] 致命錯誤: 中文模型 'zh_core_web_sm' 未下載。")
+            return set()
+
+        doc = nlp(text_to_parse)
+        protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
+
+        # 規則 1: 提取命名實體
+        for ent in doc.ents:
+            if ent.label_ in ['PERSON', 'GPE', 'LOC', 'ORG', 'FAC'] and len(ent.text) > 1 and ent.text.lower() not in protagonist_names:
+                candidate_entities.add(ent.text.strip())
+
+        # 規則 2: 提取名詞短語
+        for chunk in doc.noun_chunks:
+            if len(chunk.text) > 2 and chunk.text.lower() not in protagonist_names:
+                 candidate_entities.add(chunk.text.strip())
+
+        # 規則 3: 提取引號內容
+        quoted_phrases = re.findall(r'[「『]([^」』]+)[」』]', text_to_parse)
+        for phrase in quoted_phrases:
+            if len(phrase) > 2 and phrase.lower() not in protagonist_names:
+                candidate_entities.add(phrase.strip())
+                
+        return candidate_entities
+    # 函式：使用 spaCy 和規則提取實體 (v1.0 - 全新創建)
+
+
+
+        # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。它的任務是接收一個由本地 NLP 提取的候選實體列表，並指導 LLM 扮演世界觀編輯的角色，為列表中的每一個詞進行分類，判斷其 LORE 類型或決定是否忽略，從而為後續的靶向精煉生成一份清晰的行動計畫。
+    def get_lore_classification_prompt(self) -> str:
+        """獲取一個為混合 NLP 流程中的“分類決策”步驟設計的 Prompt 模板。"""
+        prompt_template = """# TASK: 你是一位資深的世界觀編輯與 LORE 圖書管理員。
+# MISSION: 你的任務是接收一份由初級工具提取的【潛在 LORE 候選列表】，並根據【完整的上下文】對列表中的【每一個詞】進行專業的審核與分類。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【分類強制令】**: 你【必須】為輸入列表中的【每一個】候選詞做出判斷，並將其歸類到以下六個 LORE 類別之一或標記為忽略：
+#    - `npc_profile`: 明確的人物角色。
+#    - `location_info`: 明確的地理位置、建築或區域。
+#    - `item_info`: 明確的物品、道具或裝備。
+#    - `creature_info`: 明確的生物或物種。
+#    - `quest`: 明確的任務、目標或事件。
+#    - `world_lore`: 抽象的概念、傳說、歷史背景或組織。
+#    - `ignore`: 無關緊要的普通名詞、形容詞、無法識別的詞語或不值得記錄的實體。
+# 2. **【上下文依據】**: 你的所有分類判斷【必須】基於下方提供的【上下文】。例如，如果“虛空之心”在上下文中被描述為一顆寶石，則應分類為 `item_info`；如果是一段傳說，則為 `world_lore`。
+# 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchClassificationResult` Pydantic 模型的JSON物件。`classifications` 列表必須包含對【所有】輸入候選詞的處理結果。
+
+# --- [INPUT DATA] ---
+
+# 【潛在 LORE 候選列表】:
+{candidate_entities_json}
+
+# ---
+# 【上下文 (你的唯一事實來源)】:
+{context}
+
+# ---
+# 【你的批量分類結果JSON】:
+"""
+        return prompt_template
+    # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
+
+
+
+    
+    
     
     
 
@@ -3486,6 +3565,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
