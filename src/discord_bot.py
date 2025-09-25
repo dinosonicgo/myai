@@ -1150,22 +1150,22 @@ class BotCog(commands.Cog):
 
 
     
-    # 函式：獲取或創建使用者的 AI 實例 (v52.1 - 結構校正)
-    # 更新紀錄:
-    # v52.1 (2025-09-25): [結構校正] 提供此函式的完整版本，以確認其在 `AttributeError` 故障排查中的正確性。函式本身的邏輯是正確的，問題根源在於 AILover 類別的定義。
-    # v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。此修改確保了短期記憶只在用戶開始一個新會話、首次創建AI實例時從資料庫恢復一次，避免了在 /start 流程中錯誤地恢復舊記憶。
-    # v50.0 (2025-11-14): [完整性修復] 提供了此檔案的完整版本。
+    # 函式：獲取或創建使用者的 AI 實例 (v52.2 - Ollama健康检查)
+    # 更新纪录:
+    # v52.2 (2025-09-26): [重大架構升級] 在创建 `AILover` 实例时，将 `BotCog` 中储存的 `is_ollama_available` 状态传递给 `AILover` 的构造函数。
+    # v52.1 (2025-09-25): [結構校正] 提供此函式的完整版本。
+    # v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
             return self.ai_instances[user_id]
         
         logger.info(f"使用者 {user_id} 沒有活躍的 AI 實例，嘗試創建...")
-        ai_instance = AILover(user_id)
+        # 将状态传递给 AILover 实例
+        ai_instance = AILover(user_id=user_id, is_ollama_available=self.is_ollama_available)
         
         if await ai_instance.initialize():
             logger.info(f"為使用者 {user_id} 成功創建並初始化 AI 實例。")
             
-            # [v52.0 核心修正] 在實例成功初始化後，立即為其恢復短期記憶
             await ai_instance._rehydrate_scene_histories()
 
             self.ai_instances[user_id] = ai_instance
