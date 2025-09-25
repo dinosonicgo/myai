@@ -1396,7 +1396,47 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將單條 LORE 格式化為 RAG 文檔 函式結束
 
 
+    # 函式：從使用者輸入中提取實體 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為「指令驅動LORE注入」策略的核心。它使用 spaCy 和正則表達式，快速從使用者的指令中提取出所有潛在的角色/實體名稱，為後續的強制LORE查找提供目標列表。
+    async def _extract_entities_from_input(self, user_input: str) -> List[str]:
+        """從使用者輸入文本中快速提取潛在的實體名稱列表。"""
+        # 優先使用 LORE Book 中已知的所有 NPC 名字和別名進行正則匹配，這是最精確的方式
+        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+        known_names = set()
+        if self.profile:
+            known_names.add(self.profile.user_profile.name)
+            known_names.add(self.profile.ai_profile.name)
 
+        for lore in all_lores:
+            if lore.content.get("name"):
+                known_names.add(lore.content["name"])
+            if lore.content.get("aliases"):
+                known_names.update(lore.content["aliases"])
+        
+        # 創建一個正則表達式，匹配任何一個已知的名字
+        # | 將名字按長度降序排序，以優先匹配長名字 (例如 "卡爾·維利爾斯" 而不是 "卡爾")
+        if known_names:
+            sorted_names = sorted(list(known_names), key=len, reverse=True)
+            pattern = re.compile('|'.join(re.escape(name) for name in sorted_names if name))
+            found_entities = set(pattern.findall(user_input))
+            if found_entities:
+                logger.info(f"[{self.user_id}] [指令實體提取] 通過 LORE 字典找到實體: {found_entities}")
+                return list(found_entities)
+
+        # 如果正則匹配失敗，則回退到 spaCy 進行更廣泛的實體識別
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+            doc = nlp(user_input)
+            entities = [ent.text for ent in doc.ents if ent.label_ in ('PERSON', 'ORG', 'GPE')]
+            if entities:
+                logger.info(f"[{self.user_id}] [指令實體提取] spaCy 回退找到實體: {entities}")
+                return entities
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [指令實體提取] spaCy 執行失敗: {e}")
+        
+        return []
+    # 函式：從使用者輸入中提取實體
 
 
     
@@ -2483,11 +2523,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v33.13 - 強制LORE注入)
+    # 函式：預處理並生成主回應 (v33.14 - 指令驅動LORE注入)
     # 更新紀錄:
-    # v33.13 (2025-09-25): [災難性BUG修復] 徹底重構了 `relevant_npc_context` 的構建邏輯。現在會強制性地將所有被識別為「核心互動目標」的角色的完整LORE檔案（特別是description）注入到最終的Prompt中，從根本上解決了AI因缺乏上下文而「不認識」已知角色的問題。
+    # v33.14 (2025-09-25): [災難性BUG修復] 徹底重構了上下文構建邏輯。引入了全新的「指令驅動LORE注入」三步策略：1.從使用者輸入中提取實體；2.強制查找這些實體的完整LORE檔案；3.將檔案注入到一個全新的、專用的`explicit_character_files_context`上下文區塊中。此修改從根本上確保了只要使用者提及某個角色，其完整檔案就必定會出現在Prompt中，徹底解決了「失憶」問題。
+    # v33.13 (2025-09-25): [災難性BUG修復] 徹底重構了 `relevant_npc_context` 的構建邏輯。
     # v33.12 (2025-09-24): [架構升級] 引入了“LORE繼承”機制。
-    # v33.11 (2025-09-23): [災難性BUG修復] 徹底重構了雙重輸出的解析邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2503,6 +2543,39 @@ class ExtractionResult(BaseModel):
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
+
+        # [v33.14 核心修正 第一步]：從使用者輸入中提取實體
+        explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
+
+        # [v33.14 核心修正 第二步]：強制查找這些實體的LORE
+        explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
+        if explicitly_mentioned_entities:
+            logger.info(f"[{self.user_id}] [LORE注入] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
+            found_lores = []
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            # 將核心主角也加入查找範圍
+            all_known_profiles = {
+                user_profile.name: user_profile,
+                ai_profile.name: ai_profile
+            }
+            for lore in all_lores:
+                profile = CharacterProfile.model_validate(lore.content)
+                all_known_profiles[profile.name] = profile
+                if profile.aliases:
+                    for alias in profile.aliases:
+                        all_known_profiles[alias] = profile
+
+            for entity_name in explicitly_mentioned_entities:
+                if entity_name in all_known_profiles:
+                    found_lores.append(all_known_profiles[entity_name])
+            
+            if found_lores:
+                context_parts = []
+                for profile in found_lores:
+                    context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{profile.description}\n")
+                explicit_character_files_context = "\n".join(context_parts)
+                logger.info(f"[{self.user_id}] [LORE注入] 已成功構建 {len(found_lores)} 份核心角色情報檔案。")
+
 
         # 視角判斷邏輯
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
@@ -2672,23 +2745,18 @@ class ExtractionResult(BaseModel):
             "quests_context": micro_task_context,
             "user_input": user_input,
             "historical_context": raw_short_term_history,
+            "explicit_character_files_context": explicit_character_files_context # [v33.14 核心修正 第三步]
         }
 
-        # [v33.13 核心修正] 全新的上下文注入邏輯
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
-            """將一個角色檔案格式化為對LLM友好的情報簡報。"""
             parts = [f"名稱: {profile.name}"]
             if profile.aliases:
                 parts.append(f"別名: {', '.join(profile.aliases)}")
             if profile.status:
                 parts.append(f"當前狀態: {profile.status}")
             if profile.description:
-                # 注入繼承的模板LORE
                 description = profile.description
-                if hasattr(profile, 'template_keys') and profile.template_keys:
-                    # 這部分邏輯需要異步，暫時在外部處理或簡化
-                    pass
-                parts.append(f"核心描述與情報: {description}")
+                parts.append(f"核心描述與情报: {description}")
             return "\n".join(f"- {p}" for p in parts)
 
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
@@ -3863,6 +3931,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
