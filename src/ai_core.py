@@ -165,16 +165,15 @@ class AILover:
         self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
 
-        # [v227.5 核心新增] RAG 持久化屬性
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
-    # 初始化AI核心 函式結束
+    # 函式：初始化AI核心 (v227.5 - 引入RAG持久化)
 
     
 
 
 
-        # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
+  # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在AI核心初始化時從JSON檔案讀取冷卻數據。
     def _load_cooldowns(self):
@@ -188,8 +187,11 @@ class AILover:
                 self.key_model_cooldowns = {}
         else:
             self.key_model_cooldowns = {}
+    # 函式：讀取持久化的冷卻狀態 (v1.0 - 全新創建)
 
-    # 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
+
+
+    
     # 更新紀錄:
     # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在檢測到速率超限後，將更新後的冷卻數據寫回JSON檔案。
     def _save_cooldowns(self):
@@ -1022,11 +1024,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-    # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
+   # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
     # 更新紀錄:
-    # v4.0 (2025-09-25): [重大架構重構] 根據“統一解析引擎”思想，此函式被徹底重構。它不再包含任何自身的解析邏輯，而是作為一個輕量級的“啟動器”，負責將對話歷史拼接成文本，然後直接調用 `_execute_lore_parsing_pipeline` 核心解析引擎進行處理。
-    # v3.0 (2025-09-25): [根本性重構] 引入了強大的混合 NLP 備援機制。
-    # v2.0 (2025-09-25): [根本性重構] 引入了「主動無害化」預處理步驟。
+    # v4.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個輕量級的“啟動器”。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線。
@@ -1035,14 +1035,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return
                 
         try:
-            await asyncio.sleep(5.0) # 延遲執行，避免阻塞主線程
+            await asyncio.sleep(5.0)
 
             logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
             
-            # 準備要解析的文本
             dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
             
-            # 調用核心解析引擎
             success = await self._execute_lore_parsing_pipeline(dialogue_text)
             
             if success:
@@ -1779,11 +1777,11 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
     # 更新短期與長期記憶 函式結束
     
-# 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
-# 更新紀錄:
-# v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。記憶恢復的責任被轉移到 discord_bot.py 的 get_or_create_ai_instance 中，確保只在需要時執行一次。
-# v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
-# v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
+   # 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
+    # 更新紀錄:
+    # v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。
+    # v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
+    # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
     async def initialize(self) -> bool:
         async with AsyncSessionLocal() as session:
             result = await session.get(UserData, self.user_id)
@@ -1819,7 +1817,7 @@ class ExtractionResult(BaseModel):
             logger.error(f"[{self.user_id}] 配置前置資源時發生致命錯誤: {e}", exc_info=True)
             return False
         return True
-# 初始化AI實例 函式結束
+    # 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
 
 
 
@@ -2114,9 +2112,9 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：使用 spaCy 和規則提取實體 (v1.0 - 全新創建)
+   # 函式：使用 spaCy 和規則提取實體 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。它結合使用 spaCy 的命名實體識別（NER）和名詞短語提取，從原始文本中全面地、在本地捕獲所有潛在的 LORE 候選實體，為後續的 LLM 分類決策提供原材料。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。
     async def _spacy_and_rule_based_entity_extraction(self, text_to_parse: str) -> set:
         """【本地處理】結合 spaCy 和規則，從文本中提取所有潛在的 LORE 實體。"""
         if not self.profile:
@@ -2132,17 +2130,14 @@ class ExtractionResult(BaseModel):
         doc = nlp(text_to_parse)
         protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
 
-        # 規則 1: 提取命名實體
         for ent in doc.ents:
             if ent.label_ in ['PERSON', 'GPE', 'LOC', 'ORG', 'FAC'] and len(ent.text) > 1 and ent.text.lower() not in protagonist_names:
                 candidate_entities.add(ent.text.strip())
 
-        # 規則 2: 提取名詞短語
         for chunk in doc.noun_chunks:
             if len(chunk.text) > 2 and chunk.text.lower() not in protagonist_names:
                  candidate_entities.add(chunk.text.strip())
 
-        # 規則 3: 提取引號內容
         quoted_phrases = re.findall(r'[「『]([^」』]+)[」』]', text_to_parse)
         for phrase in quoted_phrases:
             if len(phrase) > 2 and phrase.lower() not in protagonist_names:
@@ -2153,9 +2148,10 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
+
+   # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。它的任務是接收一個由本地 NLP 提取的候選實體列表，並指導 LLM 扮演世界觀編輯的角色，為列表中的每一個詞進行分類，判斷其 LORE 類型或決定是否忽略，從而為後續的靶向精煉生成一份清晰的行動計畫。
+    # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。
     def get_lore_classification_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“分類決策”步驟設計的 Prompt 模板。"""
         prompt_template = """# TASK: 你是一位資深的世界觀編輯與 LORE 圖書管理員。
@@ -2595,9 +2591,9 @@ class ExtractionResult(BaseModel):
 # 預處理並生成主回應 函式結束
 
 
-    # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
+   # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。它提供一個高度靈活的 Prompt，能夠接收目標實體的名稱、LORE 類別和目標 Pydantic 結構，指導 LLM 執行一個極度聚焦的、針對單個實體的 LORE 檔案生成任務。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。
     def get_targeted_refinement_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“靶向精煉”步驟設計的、高度靈活的 Prompt 模板。"""
         prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家。
@@ -2881,11 +2877,9 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
+   # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
     # 更新紀錄:
-    # v9.0 (2025-09-25): [重大架構重構] 根據“多層降級解析”策略，此函式被徹底重構。其自身不再包含複雜的解析邏輯，而是作為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎，並在成功後觸發 RAG 索引的全量重建。
-    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
-    # v8.4 (2025-09-24): [性能優化] 實現了並行處理。
+    # v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
@@ -2896,12 +2890,10 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        # 調用核心解析引擎
         success = await self._execute_lore_parsing_pipeline(canon_text)
 
         if success:
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
-            # 創世完成後，需要強制重建 RAG 索引以包含所有新 LORE
             await self._load_or_build_rag_retriever(force_rebuild=True)
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
@@ -2963,7 +2955,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v2.0 - 完成混合 NLP 層)
+   # 函式：執行 LORE 解析管線 (v2.1 - 結構完整性修復)
     # 更新紀錄:
     # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排，以解決 'await' outside async function 的 SyntaxError。
     # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層——“混合 NLP 方案”。
@@ -3138,8 +3130,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.error(f"[{self.user_id}] [LORE 解析] 所有四層解析方案均最終失敗。")
 
         return parsing_completed
-    # 函式：執行 LORE 解析管線 (v2.0 - 完成混合 NLP 層)
-
+    # 函式：執行 LORE 解析管線 (v2.1 - 結構完整性修復)
 
 
 
@@ -3604,6 +3595,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
