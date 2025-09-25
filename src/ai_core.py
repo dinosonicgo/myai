@@ -542,8 +542,9 @@ class AILover:
 # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 
 
-    # 函式：獲取LORE提取器 Prompt
+    # 函式：獲取LORE提取器 Prompt (v1.5 - 核心主角保護)
     # 更新紀錄:
+    # v1.5 (2025-09-25): [災難性BUG修復] 增加了【核心主角絕對保護原則】，在 Prompt 層面嚴格禁止 LLM 為使用者或 AI 戀人創建/更新 NPC LORE，從根本上解決了核心角色被錯誤識別為 NPC 的問題。
     # v1.4 (2025-09-25): [健壮性] 增加了【數據規範化規則】，强制要求所有输出的名称优先使用繁体中文，以解决生成英文 key 的问题。
     # v1.3 (2025-09-23): [抗幻覺強化] 在Prompt中增加了更嚴格的“禁止幻覺”指令。
     def get_lore_extraction_chain(self) -> str:
@@ -1023,8 +1024,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-   # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
+     # 函式：背景LORE提取與擴展 (v4.1 - 核心主角保護)
     # 更新紀錄:
+    # v4.1 (2025-09-25): [災難性BUG修復] 在格式化 Prompt 時，增加了對 username 和 ai_name 的傳遞。此修改旨在配合 get_lore_extraction_chain 的更新，將核心主角的名稱動態注入到保護規則中，確保保護機制能夠正確生效。
     # v4.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個輕量級的“啟動器”。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
@@ -1038,6 +1040,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
             
+            # [v4.1 核心修正] 在此處準備好需要傳遞給 Prompt 的參數
             dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
             
             success = await self._execute_lore_parsing_pipeline(dialogue_text)
@@ -1049,7 +1052,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景LORE提取與擴展 (v4.0 - 重構為管線啟動器)
+    # 函式：背景LORE提取與擴展
 
 
 
@@ -2959,8 +2962,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-   # 函式：執行 LORE 解析管線 (v2.1 - 結構完整性修復)
+    # 函式：執行 LORE 解析管線 (v2.2 - 核心主角保護)
     # 更新紀錄:
+    # v2.2 (2025-09-25): [災難性BUG修復] 在格式化 LORE 解析鏈的 Prompt 時，增加了對 username 和 ai_name 的傳遞，以確保核心主角保護原則能夠在所有解析層級中生效。
     # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排。
     # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
@@ -2976,6 +2980,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         try:
             if not parsing_completed:
                 logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在嘗試【理想方案：原文宏觀解析】...")
+                # [v2.2 核心修正] 傳遞主角名稱
                 transformation_template = self.get_canon_transformation_chain()
                 full_prompt = self._safe_format_prompt(
                     transformation_template,
@@ -3132,8 +3137,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.error(f"[{self.user_id}] [LORE 解析] 所有四層解析方案均最終失敗。")
 
         return parsing_completed
-    # 函式：執行 LORE 解析管線 (v2.1 - 結構完整性修復)
-
+    # 函式：執行 LORE 解析管線
 
 
 
@@ -3597,6 +3601,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
