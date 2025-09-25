@@ -1836,28 +1836,29 @@ class BotCog(commands.Cog):
     # 函式：全域應用程式指令錯誤處理器
 # 類別：機器人核心功能集 (Cog)
 
-# 類別：AI 戀人機器人主體
+# 類別：AI 戀人機器人主體 (v52.1 - Ollama健康检查)
+# 更新紀錄:
+# v52.1 (2025-09-26): [重大架構升級] `__init__` 和 `setup_hook` 被重构，现在可以接收来自 `main.py` 的Ollama健康检查结果 (`is_ollama_available`)，并将其传递给 `BotCog`，从而使整个AI核心能够感知本地模型的可用性。
+# v52.0 (2025-11-22): [災難性BUG修復] 移除了對 ConfirmStartView 的全局註冊。
+# v51.3 (2025-11-17): [功能擴展] 實現了伺服器特定指令同步。
 class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
-    def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock):
+    def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock, is_ollama_available: bool):
         super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
         self.shutdown_event = shutdown_event
         self.git_lock = git_lock
         self.is_ready_once = False
+        self.is_ollama_available = is_ollama_available # 储存状态
     # 函式：初始化 AILoverBot
     
-# 函式：Discord 機器人設置鉤子 (v52.0 - 移除錯誤的持久化視圖)
-# 更新紀錄:
-# v52.0 (2025-11-22): [災難性BUG修復] 移除了對 ConfirmStartView 的全局註冊。ConfirmStartView 是一個有狀態的臨時視圖，不應被持久化，錯誤的註冊導致了其 interaction_check 永遠失敗。
-# v51.3 (2025-11-17): [功能擴展] 實現了伺服器特定指令同步。
-# v51.2 (2025-11-17): [健壯性強化] 為指令同步 (tree.sync) 增加了詳細的日誌記錄和 try...except 錯誤處理。
+    # 函式：Discord 機器人設置鉤子
     async def setup_hook(self):
-        cog = BotCog(self, self.git_lock)
+        # 将状态传递给 Cog
+        cog = BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
         cog.connection_watcher.start()
         
-        # [v52.0 核心修正] 只註冊真正無狀態的持久化視圖
         self.add_view(StartSetupView(cog=cog))
         self.add_view(ContinueToUserSetupView(cog=cog))
         self.add_view(ContinueToAiSetupView(cog=cog))
@@ -1880,7 +1881,7 @@ class AILoverBot(commands.Bot):
             logger.error(f"🔥 應用程式指令同步失敗: {e}", exc_info=True)
         
         logger.info("Discord Bot is ready!")
-# Discord 機器人設置鉤子 函式結束
+    # Discord 機器人設置鉤子 函式結束
     
     # 函式：機器人準備就緒時的事件處理器
     async def on_ready(self):
