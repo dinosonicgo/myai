@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T23:46:00.991025 ###
+### AI Lover Log - Last updated at 2025-09-25T23:51:24.976410 ###
 
-2025-09-25 19:36:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-25 19:36:32 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'AILover' object has no attribute 'initialize'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1482, in start_reset_flow
-    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1160, in get_or_create_ai_instance
-    if await ai_instance.initialize():
 AttributeError: 'AILover' object has no attribute 'initialize'
 2025-09-25 19:45:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-25 19:45:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
@@ -300,3 +293,10 @@ TypeError: AILover._force_and_retry() takes 3 positional arguments but 4 were gi
 2025-09-25 23:43:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 4 個實體...
 2025-09-25 23:43:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 1 個實體...
 2025-09-25 23:43:12 - [INFO] - [512280345618546699] [對話後 LORE 擴展] 管線成功完成。
+2025-09-25 23:51:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-25 23:51:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-25 23:51:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-25 23:51:11 - [INFO] - Discord Bot is ready!
+2025-09-25 23:51:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-25 23:51:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-25 23:51:15 - [INFO] - 已成功發送啟動成功通知給管理員。
