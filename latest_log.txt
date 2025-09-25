@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-25T19:36:28.574127 ###
+### AI Lover Log - Last updated at 2025-09-25T19:41:30.995817 ###
 
-2025-09-25 01:01:02 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-25 01:04:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-25 01:04:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-25 01:04:20 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-25 01:04:20 - [INFO] - Discord Bot is ready!
-2025-09-25 01:04:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-25 01:04:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-25 01:04:23 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-25 07:15:00 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-25 07:15:00 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
 2025-09-25 07:15:00 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-09-25 07:15:00 - [INFO] - Discord Bot is ready!
@@ -300,3 +291,12 @@ AttributeError: 'AILover' object has no attribute 'initialize'
 2025-09-25 19:36:17 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-25 19:36:17 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-25 19:36:18 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-25 19:36:32 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-25 19:36:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-25 19:36:32 - [ERROR] - [512280345618546699] 後台重置任務失敗: 'AILover' object has no attribute 'initialize'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1482, in start_reset_flow
+    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1160, in get_or_create_ai_instance
+    if await ai_instance.initialize():
+AttributeError: 'AILover' object has no attribute 'initialize'
