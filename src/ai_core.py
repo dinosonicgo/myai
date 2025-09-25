@@ -2881,32 +2881,32 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v9.0 - 重構為管線啟動器)
-# 更新紀錄:
-# v9.0 (2025-09-25): [重大架構重構] 根據“多層降級解析”策略，此函式被徹底重構。其自身不再包含複雜的解析邏輯，而是作為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎，並在成功後觸發 RAG 索引的全量重建。
-# v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
-# v8.4 (2025-09-24): [性能優化] 實現了並行處理。
-async def parse_and_create_lore_from_canon(self, canon_text: str):
-    """
-    【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
-    """
-    if not self.profile:
-        logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
-        return
+    # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
+    # 更新紀錄:
+    # v9.0 (2025-09-25): [重大架構重構] 根據“多層降級解析”策略，此函式被徹底重構。其自身不再包含複雜的解析邏輯，而是作為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎，並在成功後觸發 RAG 索引的全量重建。
+    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
+    # v8.4 (2025-09-24): [性能優化] 實現了並行處理。
+    async def parse_and_create_lore_from_canon(self, canon_text: str):
+        """
+        【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
+        """
+        if not self.profile:
+            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
+            return
 
-    logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
-    
-    # 調用核心解析引擎
-    success = await self._execute_lore_parsing_pipeline(canon_text)
+        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
+        
+        # 調用核心解析引擎
+        success = await self._execute_lore_parsing_pipeline(canon_text)
 
-    if success:
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
-        # 創世完成後，需要強制重建 RAG 索引以包含所有新 LORE
-        await self._load_or_build_rag_retriever(force_rebuild=True)
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
-    else:
-        logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-# ai_core.py 的 parse_and_create_lore_from_canon 函式結尾
+        if success:
+            logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+            # 創世完成後，需要強制重建 RAG 索引以包含所有新 LORE
+            await self._load_or_build_rag_retriever(force_rebuild=True)
+            logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
+        else:
+            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+    # 函式：解析並從世界聖經創建 LORE (v9.0 - 重構為管線啟動器)
 
 
 
@@ -3604,6 +3604,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
