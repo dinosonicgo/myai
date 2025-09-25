@@ -519,7 +519,8 @@ class CharacterSettingsModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"[{user_id}] 處理角色設定 Modal 提交時出錯: {e}", exc_info=True)
             await interaction.followup.send("錯誤：在處理您的設定時遇到問題。", ephemeral=True)
-            if self.is_setup_flow: self.cog.setup_locks.discard(user_id)
+            # [核心修正] 使用新的變數名稱
+            if self.is_setup_flow: self.cog.active_setups.discard(user_id)
     # 函式：處理 Modal 提交事件
 # 類別：設定角色檔案的 Modal
 
@@ -550,7 +551,8 @@ class WorldSettingsModal(discord.ui.Modal):
         ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
         if not ai_instance:
             await interaction.followup.send("錯誤：無法初始化 AI 核心。", ephemeral=True)
-            if self.is_setup_flow: self.cog.setup_locks.discard(user_id)
+            # [核心修正] 使用新的變數名稱
+            if self.is_setup_flow: self.cog.active_setups.discard(user_id)
             return
         await ai_instance.update_and_persist_profile({'world_settings': self.world_settings.value})
         if self.is_setup_flow:
@@ -1330,20 +1332,18 @@ class BotCog(commands.Cog):
 
     
     
-    # 函式：完成設定流程 (v51.0 - 持久化開場白)
+    # 函式：完成設定流程 (v51.3 - 變數重命名修正)
     # 更新紀錄:
-    # v51.2 (2025-09-25): [災難性BUG修復] 徹底重構創世流程，將 LORE 解析的調用邏輯從 ai_core.py 移至此處，並確保所有步驟都通過 await 嚴格同步執行，從根本上解決了開場白在聖經解析完成前生成的問題。
+    # v51.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
+    # v51.2 (2025-09-25): [災難性BUG修復] 徹底重構創世流程，將 LORE 解析的調用邏輯從 ai_core.py 移至此處，並確保所有步驟都通過 await 嚴格同步執行。
     # v51.1 (2025-09-25): [災難性BUG修復] 修正了 LORE 解析的同步調用問題。
     async def finalize_setup(self, interaction: discord.Interaction, canon_text: Optional[str] = None):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) finalize_setup 總指揮流程啟動。Canon provided: {bool(canon_text)}")
         
-        # 初始回應，告知使用者流程已開始，防止互動超時
-        # 使用 followup 是因為初始的 interaction 可能已經被 defer 或回應過
         try:
             await interaction.followup.send("🚀 **正在為您執行最終創世...**\n這是一個耗時過程，可能需要數分鐘，請耐心等候最終的開場白。", ephemeral=True)
         except discord.errors.HTTPException:
-            # 如果 followup 失敗，嘗試用原始互動回應
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message("🚀 **正在為您執行最終創世...**\n這是一個耗時過程，可能需要數分鐘，請耐心等候最終的開場白。", ephemeral=True)
@@ -1355,36 +1355,31 @@ class BotCog(commands.Cog):
             if not ai_instance or not ai_instance.profile:
                 logger.error(f"[{user_id}] 在 finalize_setup 中獲取 AI 核心失敗。")
                 await interaction.user.send("❌ 錯誤：無法從資料庫加載您的基礎設定以進行創世。")
-                self.setup_locks.discard(user_id)
+                # [核心修正] 使用新的變數名稱
+                self.active_setups.discard(user_id)
                 return
 
-            # --- 步驟 1: 世界聖經處理 (如果提供) ---
             if canon_text:
                 logger.info(f"[{user_id}] [/start 流程 1/4] 正在處理世界聖經...")
                 await ai_instance.add_canon_to_vector_store(canon_text)
                 logger.info(f"[{user_id}] [/start] 聖經文本已存入 RAG 資料庫。")
                 
                 logger.info(f"[{user_id}] [/start] 正在進行 LORE 智能解析 (此步驟將被嚴格等待)...")
-                # 【核心修正】直接在此處 AWAIT LORE 解析函式
-                await ai_instance.parse_and_create_lore_from_canon(canon_text=canon_text, is_setup_flow=True)
+                await ai_instance.parse_and_create_lore_from_canon(canon_text=canon_text)
                 logger.info(f"[{user_id}] [/start] LORE 智能解析【已同步完成】。")
             else:
                  logger.info(f"[{user_id}] [/start 流程 1/4] 跳過世界聖經處理。")
             
-            # --- 步驟 2: 補完角色檔案 ---
             logger.info(f"[{user_id}] [/start 流程 2/4] 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步驟 3: 生成世界創世資訊 ---
             logger.info(f"[{user_id}] [/start 流程 3/4] 正在生成世界創世資訊...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
             
-            # --- 步驟 4: 生成開場白 ---
             logger.info(f"[{user_id}] [/start 流程 4/4] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [/start 流程 4/4] 開場白生成完畢。")
 
-            # --- 最終步驟: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             logger.info(f"[{user_id}] 開場白已成功存入場景 '{scene_key}' 的歷史記錄並持久化。")
@@ -1403,10 +1398,10 @@ class BotCog(commands.Cog):
             except discord.errors.HTTPException as send_e:
                  logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
-            # 確保在流程結束時，無論成功或失敗，都釋放鎖
-            self.setup_locks.discard(user_id)
+            # [核心修正] 使用新的變數名稱
+            self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] /start 流程鎖已釋放。")
-# 完成設定流程 函式結束
+    # 完成設定流程 函式結束
 
     # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
     @app_commands.command(name="admin_browse_lores", description="[管理員] 分頁瀏覽指定使用者的 LORE 資料庫。")
@@ -1470,47 +1465,40 @@ class BotCog(commands.Cog):
 
     
     
-# 函式：開始 /start 指令的重置流程 (v52.2 - 導入修正)
-# 更新紀錄:
-# v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
-# v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式，將錯誤的 `interaction.user_id` 改為正確的 `interaction.user.id`。
-# v52.0 (2025-11-22): [重大架構升級] 在刪除用戶數據的流程中，增加了對 ai_instance._clear_scene_histories() 的顯式調用。
+    # 函式：開始 /start 指令的重置流程 (v52.3 - 變數重命名修正)
+    # 更新紀錄:
+    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
+    # v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
+    # v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            # 獲取一個臨時實例以執行清除操作
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance:
                 logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
             
-            # 關閉並移除記憶體中的實例
             if user_id in self.ai_instances:
                 await self.ai_instances.pop(user_id).shutdown()
                 gc.collect()
                 await asyncio.sleep(1.5)
 
-            # 在刪除其他數據之前，先清除短期記憶
             if ai_instance:
                 await ai_instance._clear_scene_histories()
 
-            # 刪除資料庫中的所有其他數據
             async with AsyncSessionLocal() as session:
-                # 再次確保短期記憶被刪除（雙重保險）
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
             
-            # 刪除向量數據庫文件
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
                 await asyncio.to_thread(shutil.rmtree, vector_store_path)
             
             view = StartSetupView(cog=self)
-            # 使用 followup 來回應已經被 defer/edit 過的互動
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
                 view=view, 
@@ -1518,19 +1506,17 @@ class BotCog(commands.Cog):
             )
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
-            # 確保即使發生錯誤也能通知使用者
             if not interaction.response.is_done():
                 try:
-                    # 如果初始互動尚未回應，用它來發送錯誤
                     await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
                 except discord.errors.InteractionResponded:
-                    # 如果在我們檢查和發送之間，有其他東西回應了互動
                     await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
             else:
                 await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
-            self.setup_locks.discard(user_id)
-# 開始 /start 指令的重置流程 函式結束
+            # [核心修正] 使用新的變數名稱
+            self.active_setups.discard(user_id)
+    # 開始 /start 指令的重置流程 函式結束
 
 
     
@@ -1612,11 +1598,11 @@ class BotCog(commands.Cog):
 
 
     
-# 指令：通過上傳檔案來設定世界聖經 (v54.0 - 超時修正)
-# 更新紀錄:
-# v54.1 (2025-09-24): [災難性BUG修復] 增加了對 setup_locks 的檢查，使指令能夠智能判斷當前是否處於 /start 創世流程中，從而正確觸發後續的創世步驟，解決了流程中斷的問題。
-# v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程以解決超時問題。
-# v52.0 (2025-11-22): [架構調整] 創建此指令。
+    # 指令：通過上傳檔案來設定世界聖經 (v54.2 - 變數重命名修正)
+    # 更新紀錄:
+    # v54.2 (2025-09-25): [災難性BUG修復] 將對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
+    # v54.1 (2025-09-24): [災難性BUG修復] 增加了對 setup_locks 的檢查，使指令能夠智能判斷當前是否處於 /start 創世流程中。
+    # v54.0 (2025-11-22): [災難性BUG修復] 徹底重構了此函式的回應流程以解決超時問題。
     @app_commands.command(name="set_canon_file", description="通過上傳 .txt 檔案來設定您的世界聖經")
     @app_commands.describe(file="請上傳一個 .txt 格式的檔案，最大 5MB。")
     async def set_canon_file(self, interaction: discord.Interaction, file: discord.Attachment):
@@ -1642,12 +1628,11 @@ class BotCog(commands.Cog):
                     await interaction.followup.send("❌ 檔案編碼錯誤！請確保您的 .txt 檔案是 UTF-8 或 GBK 編碼。", ephemeral=True)
                     return
 
-            # [v54.1 核心修正] 智能判斷當前是否處於 /start 設置流程中
             user_id = str(interaction.user.id)
-            is_currently_in_setup = user_id in self.setup_locks
+            # [核心修正] 使用新的變數名稱
+            is_currently_in_setup = user_id in self.active_setups
             
             if is_currently_in_setup:
-                 # 如果在創世流程中，禁用按鈕並提示後續流程會自動開始
                 if interaction.channel and interaction.message:
                      try:
                         original_message = await interaction.channel.fetch_message(interaction.message.id)
@@ -1658,12 +1643,11 @@ class BotCog(commands.Cog):
             
             await interaction.followup.send("✅ 檔案已接收！正在後台為您進行向量化和智能解析，這可能需要幾分鐘時間，請稍候...", ephemeral=True)
             
-            # 將動態判斷的 is_setup_flow 值傳遞給背景任務
             asyncio.create_task(self._background_process_canon(interaction, content_text, is_setup_flow=is_currently_in_setup))
         except Exception as e:
             logger.error(f"處理上傳的世界聖經檔案時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"讀取或處理檔案時發生嚴重錯誤: `{type(e).__name__}`", ephemeral=True)
-# 通過上傳檔案來設定世界聖經 指令結束
+    # 通過上傳檔案來設定世界聖經 指令結束
 
 
 
