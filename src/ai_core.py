@@ -2153,7 +2153,7 @@ class ExtractionResult(BaseModel):
 
 
 
-        # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
+    # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。它的任務是接收一個由本地 NLP 提取的候選實體列表，並指導 LLM 扮演世界觀編輯的角色，為列表中的每一個詞進行分類，判斷其 LORE 類型或決定是否忽略，從而為後續的靶向精煉生成一份清晰的行動計畫。
     def get_lore_classification_prompt(self) -> str:
@@ -2965,7 +2965,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：執行 LORE 解析管線 (v2.0 - 完成混合 NLP 層)
     # 更新紀錄:
-    # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層——“混合 NLP 方案”。此版本現在包含本地實體提取、LLM 分類決策、以及並行的 LLM 靶向精煉，使其成為一個功能完備、高度健壯的備援路徑。
+    # v2.1 (2025-09-25): [災難性BUG修復] 修正了所有程式碼塊的縮排，以解決 'await' outside async function 的 SyntaxError。
+    # v2.0 (2025-09-25): [重大架構升級] 完整實現了降級策略的第三層——“混合 NLP 方案”。
     # v1.0 (2025-09-25): [重大架構升級] 創建此函式作為統一的“四層降級解析”引擎。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
@@ -3089,7 +3090,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                     category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name) or (hasattr(result, 'title') and c.entity_name == result.title)), None)
                                     if category:
                                         title_key = 'title' if isinstance(result, WorldLore) else 'name'
-                                        # 注意：這裡的 category 來自 classification，所以 "npc_profiles" 這種複數形式需要手動添加 "s"
                                         await self._resolve_and_save(category + "s", [result.model_dump()], title_key=title_key)
                                         success_count += 1
                             
@@ -3100,45 +3100,45 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE 解析 3/4] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
 
-    # --- 層級 4: 【法醫級重構方案】終極備援 ---
-    try:
+        # --- 層級 4: 【法醫級重構方案】終極備援 ---
+        try:
+            if not parsing_completed:
+                logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在嘗試【法醫級重構方案】...")
+                keywords = set()
+                for word in self.DECODING_MAP.values():
+                    if word in text_to_parse:
+                        keywords.add(word)
+                
+                protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
+                try:
+                    nlp = spacy.load('zh_core_web_sm')
+                    doc = nlp(text_to_parse)
+                    for ent in doc.ents:
+                        if ent.label_ == 'PERSON' and ent.text not in protagonist_names:
+                            keywords.add(ent.text)
+                except Exception: pass
+                
+                if keywords:
+                    reconstruction_template = self.get_forensic_lore_reconstruction_chain()
+                    full_prompt = self._safe_format_prompt(
+                        reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=False
+                    )
+                    parsing_result = await self.ainvoke_with_rotation(
+                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
+                    )
+                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
+                        logger.info(f"[{self.user_id}] [LORE 解析 4/4] ✅ 成功！正在解碼並儲存重構結果...")
+                        await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
+                        await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
+                        parsing_completed = True
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [LORE 解析 4/4] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
+
         if not parsing_completed:
-            logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在嘗試【法醫級重構方案】...")
-            keywords = set()
-            for word in self.DECODING_MAP.values():
-                if word in text_to_parse:
-                    keywords.add(word)
-            
-            protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
-            try:
-                nlp = spacy.load('zh_core_web_sm')
-                doc = nlp(text_to_parse)
-                for ent in doc.ents:
-                    if ent.label_ == 'PERSON' and ent.text not in protagonist_names:
-                        keywords.add(ent.text)
-            except Exception: pass
-            
-            if keywords:
-                reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-                full_prompt = self._safe_format_prompt(
-                    reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=False
-                )
-                parsing_result = await self.ainvoke_with_rotation(
-                    full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
-                )
-                if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                    logger.info(f"[{self.user_id}] [LORE 解析 4/4] ✅ 成功！正在解碼並儲存重構結果...")
-                    await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                    await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-                    parsing_completed = True
-    except Exception as e:
-        logger.error(f"[{self.user_id}] [LORE 解析 4/4] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析] 所有四層解析方案均最終失敗。")
 
-    if not parsing_completed:
-        logger.error(f"[{self.user_id}] [LORE 解析] 所有四層解析方案均最終失敗。")
-
-    return parsing_completed
-# 函式：執行 LORE 解析管線 (v2.0 - 完成混合 NLP 層)
+        return parsing_completed
+    # 函式：執行 LORE 解析管線 (v2.0 - 完成混合 NLP 層)
 
 
 
@@ -3604,6 +3604,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
