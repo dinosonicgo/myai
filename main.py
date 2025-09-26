@@ -210,7 +210,10 @@ app.include_router(web_router)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# --- 異步守護任務與核心服務 ---
+# main.py 的 start_git_log_pusher_task 函式 (v2.0 - 強制同步修正)
+# 更新紀錄:
+# v2.0 (2025-09-27): [災難性BUG修復] 在執行日誌提交前，增加了 `git fetch` 和 `git reset --hard origin/main` 的強制同步邏輯。此修改旨在解決因本地倉庫落後於遠端倉庫而導致的 "non-fast-forward" git push rejected 錯誤，確保日誌推送的健壯性。
+# v1.0 (2025-09-26): [全新創建] 創建此背景守護任務。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -221,6 +224,12 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
 
     def run_git_commands_sync() -> bool:
         try:
+            # [v2.0 核心修正] 在所有操作之前，強制與遠端同步
+            print("   [LOG Pusher] 正在與遠端倉庫同步...")
+            subprocess.run(["git", "fetch", "origin"], check=True, cwd=PROJ_DIR, capture_output=True)
+            subprocess.run(["git", "reset", "--hard", "origin/main"], check=True, cwd=PROJ_DIR, capture_output=True)
+            print("   [LOG Pusher] 同步完成。")
+
             if not log_file_path.is_file(): return False
             with open(log_file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
@@ -229,6 +238,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
             with open(upload_log_path, 'w', encoding='utf-8') as f:
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
+            
             subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
             commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             commit_process = subprocess.run(
@@ -266,6 +276,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60)
+# main.py 的 start_git_log_pusher_task 函式
 
 async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
