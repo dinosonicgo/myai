@@ -38,6 +38,12 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
+# [v2.0 核心修正] 新增 RelationshipDetail 模型
+class RelationshipDetail(BaseModel):
+    """定義一個結構化的關係細節。"""
+    type: str = Field(default="未知", description="關係的總體類型，例如 '家庭', '主從', '同盟', '支配', '敵對'。")
+    roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的一個或多個具體角色/身份/稱謂。")
+
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -55,7 +61,7 @@ class CharacterProfile(BaseModel):
     location: str = Field(default="", description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
-    relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
+    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="記錄此角色與其他角色的結構化關係。")
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
@@ -71,21 +77,46 @@ class CharacterProfile(BaseModel):
     def _validate_string_to_dict_fields(cls, value: Any) -> Any:
         return _validate_string_to_dict(value)
 
+    # [v2.0 核心修正] 強化 relationships 驗證器以實現向下相容和結構化轉換
     @field_validator('relationships', mode='before')
     @classmethod
-    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, str]:
-        if isinstance(value, str):
-            value = _validate_string_to_dict(value)
+    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Dict[str, Any]]:
         if not isinstance(value, dict):
             return {}
+        
         normalized_dict = {}
-        for k, v in value.items():
-            if isinstance(v, int):
-                normalized_dict[str(k)] = f"關係值: {v}"
-            elif isinstance(v, str):
-                normalized_dict[str(k)] = v
-            else:
-                normalized_dict[str(k)] = str(v)
+        for char_name, relation_info in value.items():
+            # 情況 1: 已經是符合新結構的字典
+            if isinstance(relation_info, dict) and ('type' in relation_info or 'roles' in relation_info):
+                # 確保 roles 是列表
+                if 'roles' in relation_info and isinstance(relation_info['roles'], str):
+                    relation_info['roles'] = _validate_string_to_list(relation_info['roles'])
+                elif 'role' in relation_info and 'roles' not in relation_info: # 處理 role -> roles 的兼容
+                    relation_info['roles'] = _validate_string_to_list(relation_info.pop('role'))
+                normalized_dict[char_name] = relation_info
+                continue
+
+            # 情況 2: 是舊的扁平化字串格式 (e.g., "妻子", "僕役長、聖女")
+            if isinstance(relation_info, str):
+                roles = _validate_string_to_list(relation_info)
+                # 簡單的規則推斷關係類型
+                relationship_type = "未知"
+                # 這裡可以加入更複雜的關鍵詞判斷邏輯
+                if any(r in roles for r in ["妻子", "丈夫", "女兒", "兒子", "母親", "父親"]):
+                    relationship_type = "家庭"
+                elif any(r in roles for r in ["僕役長", "女僕", "馬夫", "廚師", "工匠", "主人"]):
+                    relationship_type = "主從"
+                elif any(r in roles for r in ["盟友"]):
+                    relationship_type = "同盟"
+                elif any(r in roles for r in ["母畜", "聖女", "教義監督者"]):
+                    relationship_type = "支配/宗教"
+
+                normalized_dict[char_name] = {
+                    "type": relationship_type,
+                    "roles": roles
+                }
+                continue
+        
         return normalized_dict
 
 class BatchRefinementResult(BaseModel):
