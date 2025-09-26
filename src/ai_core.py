@@ -534,46 +534,52 @@ class AILover:
                 return False
         return False
 
-    # 函式：增量更新 RAG 索引 (v1.0 - 全新創建)
+    # 函式：增量更新 RAG 索引 (v2.0 - 支持LORE分塊)
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。它負責處理單條LORE的新增或更新，在記憶體中對語料庫進行操作，然後觸發索引的輕量級重建和持久化。
+    # v2.0 (2025-09-27): [根本性重構] 徹底重構了此函式的更新邏輯以支持LORE分塊。現在，它不再是簡單地替換單個文檔，而是首先通過元數據中的 `key` 刪除所有與該LORE相關的舊文本塊，然後再將所有新生成的文本塊（無論是一個還是多個）添加到語料庫中，確保了RAG索引的數據一致性。
+    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。
     async def _update_rag_for_single_lore(self, lore: Lore):
-        """為單個LORE條目增量更新RAG索引。"""
-        new_doc = self._format_lore_into_document(lore)
+        """為單個LORE條目增量更新RAG索引，支持一對多的文檔分塊。"""
         key_to_update = lore.key
         
-        # 在記憶體語料庫中查找並替換或追加
-        found = False
-        for i, doc in enumerate(self.bm25_corpus):
-            if doc.metadata.get("key") == key_to_update:
-                self.bm25_corpus[i] = new_doc
-                found = True
-                break
+        # 步驟 1: 為更新後的 LORE 生成新的文檔列表（可能包含多個塊）
+        new_docs = self._format_lore_into_document(lore)
         
-        if not found:
-            self.bm25_corpus.append(new_doc)
-
-        # 從更新後的記憶體語料庫輕量級重建檢索器
+        # 步驟 2: 從記憶體語料庫中移除所有與此 LORE key 相關的舊文檔
+        original_doc_count = len(self.bm25_corpus)
+        # 使用列表推導式來構建一個不包含舊文檔的新列表
+        self.bm25_corpus = [
+            doc for doc in self.bm25_corpus 
+            if doc.metadata.get("key") != key_to_update
+        ]
+        removed_count = original_doc_count - len(self.bm25_corpus)
+        
+        # 步驟 3: 將所有新的文檔塊追加到語料庫中
+        self.bm25_corpus.extend(new_docs)
+        
+        # 步驟 4: 從更新後的記憶體語料庫輕量級重建檢索器
         if self.bm25_corpus:
             self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
             self.bm25_retriever.k = 15
             self.retriever = self.bm25_retriever
         
-        # 將更新後的語料庫持久化到磁碟
+        # 步驟 5: 將更新後的語料庫持久化到磁碟
         self._save_bm25_corpus()
-        action = "更新" if found else "添加"
-        logger.info(f"[{self.user_id}] [RAG增量更新] 已成功 {action} LORE '{key_to_update}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
+        
+        action_summary = f"移除了 {removed_count} 個舊塊，並添加了 {len(new_docs)} 個新塊"
+        logger.info(f"[{self.user_id}] [RAG增量更新] 已成功更新 LORE '{key_to_update}' 的 RAG 索引 ({action_summary})。當前總文檔數: {len(self.bm25_corpus)}")
+    # 函式：增量更新 RAG 索引
 
 
 
 
-# 函式：加載或構建 RAG 檢索器
-# 更新紀錄:
-# v210.1 (2025-09-24): [災難性BUG修復] 恢復了 force_rebuild 參數，並增加了相應的處理邏輯。此修改旨在修復因移除該參數而導致的 TypeError，並確保在需要時（如解析完世界聖經後）能夠強制觸發RAG索引的全量重建。
-# v210.0 (2025-09-23): [根本性重構] 此函式從 `_build_retriever` 重構而來，實現了持久化索引的啟動邏輯。
+    # 函式：加載或構建 RAG 檢索器 (v211.0 - 適配LORE自動分塊)
+    # 更新紀錄:
+    # v211.0 (2025-09-27): [架構適配] 將創始構建流程中對 `_format_lore_into_document` 的調用結果處理方式，從 `append()` 修改為 `extend()`。此修改旨在適應 `_format_lore_into_document` 現在返回文檔列表（List[Document]）的新架構，確保所有LORE文本塊都能被正確添加到RAG語料庫中。
+    # v210.1 (2025-09-24): [災難性BUG修復] 恢復了 force_rebuild 參數，並增加了相應的處理邏輯。
+    # v210.0 (2025-09-23): [根本性重構] 此函式從 `_build_retriever` 重構而來，實現了持久化索引的啟動邏輯。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """在啟動時，從持久化檔案加載RAG索引，或在首次啟動/強制要求時從資料庫全量構建它。"""
-        # [v210.1 核心修正] 增加強制重建的判斷
         if not force_rebuild and self._load_bm25_corpus():
             if self.bm25_corpus:
                 self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
@@ -585,7 +591,6 @@ class AILover:
                 logger.info(f"[{self.user_id}] (Retriever Builder) 持久化語料庫為空，RAG 檢索器為空。")
             return self.retriever
 
-        # 如果強制重建或加載失敗，則執行全量構建
         log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
         logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行全量創始構建...")
         
@@ -599,7 +604,9 @@ class AILover:
             
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             for lore in all_lores:
-                all_docs_for_bm25.append(self._format_lore_into_document(lore))
+                # [v211.0 核心修正] 使用 extend 而不是 append
+                # 因為 _format_lore_into_document 現在返回一個文檔列表
+                all_docs_for_bm25.extend(self._format_lore_into_document(lore))
         
         self.bm25_corpus = all_docs_for_bm25
         logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 和 LORE 加載 {len(self.bm25_corpus)} 條文檔用於創始構建。")
@@ -615,7 +622,7 @@ class AILover:
             logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，創始構建為空。")
 
         return self.retriever
-# 函式：加載或構建 RAG 檢索器
+    # 函式：加載或構建 RAG 檢索器
 
 
 
@@ -1526,14 +1533,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。它負責將結構化的LORE數據轉換為對RAG友好的純文本，是擴展AI知識廣度的關鍵一步。
-    def _format_lore_into_document(self, lore: Lore) -> Document:
-        """將一個 LORE 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
+    # 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 引入LORE自動分塊)
+    # 更新紀錄:
+    # v2.0 (2025-09-27): [架構升級] 引入了LORE自動分塊機制。此函式現在會檢查LORE內容的長度，如果超過閾值，則自動使用RecursiveCharacterTextSplitter將其分割成多個帶有相同元數據的Document塊。返回值已從 `Document` 更改為 `List[Document]`，從根本上解決了長LORE內容導致上下文溢出和檢索不精確的問題。
+    # v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
+    def _format_lore_into_document(self, lore: Lore) -> List[Document]:
+        """
+        將一個 LORE 物件轉換為一段或多段對 RAG 友好的、人類可讀的文本描述文檔列表。
+        內建自動分塊功能。
+        """
+        # 定義分塊閾值和設定
+        LORE_CHUNK_THRESHOLD = 1000  # 字元數
+        
         content = lore.content
         text_parts = []
         
+        # 保持原有的文本格式化邏輯
         title = content.get('name') or content.get('title') or lore.key
         category_map = {
             "npc_profile": "NPC 檔案", "location_info": "地點資訊",
@@ -1544,9 +1559,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         text_parts.append(f"【{category_name}: {title}】")
         
-        # 遍歷 content 字典中的所有鍵值對，並將它們格式化為文本
         for key, value in content.items():
-            # 忽略已經在標題中使用過的鍵和空的鍵
             if value and key not in ['name', 'title', 'aliases']:
                 key_str = key.replace('_', ' ').capitalize()
                 if isinstance(value, list) and value:
@@ -1559,8 +1572,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     text_parts.append(f"- {key_str}: {value}")
 
         full_text = "\n".join(text_parts)
-        return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
-# 將單條 LORE 格式化為 RAG 文檔 函式結束
+        
+        # 核心元數據，所有分塊都將共享此元數據
+        metadata = {"source": "lore", "category": lore.category, "key": lore.key}
+        
+        # [v2.0 核心修正] 檢查長度並執行分塊
+        if len(full_text) <= LORE_CHUNK_THRESHOLD:
+            # 如果文本長度在閾值內，則返回單一文檔列表
+            return [Document(page_content=full_text, metadata=metadata)]
+        else:
+            # 如果文本過長，則進行自動分塊
+            logger.info(f"[{self.user_id}] [RAG分塊] LORE '{lore.key}' (長度: {len(full_text)}) 超出閾值，正在執行自動分塊...")
+            
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=1000,  # 與閾值保持一致
+                chunk_overlap=200,
+                length_function=len
+            )
+            
+            # create_documents 會自動將元數據應用到所有生成的塊
+            docs = text_splitter.create_documents([full_text], metadatas=[metadata])
+            logger.info(f"[{self.user_id}] [RAG分塊] LORE '{lore.key}' 已被成功分割為 {len(docs)} 個文本塊。")
+            return docs
+    # 將單條 LORE 格式化為 RAG 文檔 函式結束
 
 
     # 函式：從使用者輸入中提取實體 (v1.0 - 全新創建)
@@ -4181,6 +4215,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
