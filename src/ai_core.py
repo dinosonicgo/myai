@@ -239,16 +239,18 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-    # 函式：解析並儲存LORE實體 (v2.0 - 三層防禦架構)
+
+
+    # 函式：解析並儲存LORE實體 (v3.0 - 兩階段四層降級)
     # 更新紀錄:
-    # v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合成的邏輯，引入了三層防禦架構：1. 嘗試使用雲端模型進行批量合成；2. 若因審查失敗，則降級到本地無審查模型進行逐一合成；3. 若本地模型也失敗，則執行程式級的確定性字串拼接。此修改從根本上杜絕了LORE信息在合併過程中被靜默丟失的風險。
+    # v3.0 (2025-09-27): [災難性BUG修復] 根據性能反饋，徹底重構描述合成的備援邏輯。新架構為“兩階段、四層降級”：1A) 嘗試雲端批量合成 -> 1B) 若審查失敗，則使用最高指令集在雲端模型梯隊中強制重試 -> 2A) 若仍失敗，則降級到本地模型進行批量合成 -> 2B) 若本地失敗，則執行程式級拼接。此修改在確保抗審查能力的同時，極大提升了備援流程的執行效率。
+    # v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合成的邏輯，引入了三層防禦架構。
     # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。
-    # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
-        內建針對 NPC 的批量實體解析、三層防禦描述合成與最終解碼邏輯。
+        內建針對 NPC 的批量實體解析、兩階段四層降級描述合成與最終解碼邏輯。
         """
         if not self.profile:
             return
@@ -319,47 +321,57 @@ class AILover:
                     
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
-            # --- [v2.0 核心修正] 三層防禦描述合成 ---
+            # --- [v3.0 核心修正] 兩階段、四層降級描述合成 ---
             if synthesis_tasks:
                 synthesized_results: Dict[str, str] = {}
+                synthesis_completed = False
                 
-                # --- 第一層防線: 雲端批量合成 ---
+                # --- 階段一: 雲端高強度突破 ---
                 try:
-                    logger.info(f"[{self.user_id}] [LORE 合併 L1] 正在為 {len(synthesis_tasks)} 個NPC執行【雲端批量合成】...")
+                    # L1-A: 初始嘗試
+                    logger.info(f"[{self.user_id}] [LORE 合併 L1-A] 正在為 {len(synthesis_tasks)} 個NPC執行【雲端批量合成】...")
                     synthesis_prompt_template = self.get_description_synthesis_prompt()
                     batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
                     synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
                     
-                    cloud_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
+                    cloud_result = await self.ainvoke_with_rotation(
+                        synthesis_prompt, 
+                        output_schema=BatchSynthesisResult, 
+                        retry_strategy='force', # [核心] 失敗時自動觸發 L1-B
+                        use_degradation=True
+                    )
                     
                     if cloud_result and cloud_result.synthesized_descriptions:
-                        logger.info(f"[{self.user_id}] [LORE 合併 L1] ✅ 雲端批量合成成功，收到 {len(cloud_result.synthesized_descriptions)} 條新描述。")
+                        logger.info(f"[{self.user_id}] [LORE 合併 L1] ✅ 雲端高強度突破成功，收到 {len(cloud_result.synthesized_descriptions)} 條新描述。")
                         for res in cloud_result.synthesized_descriptions:
                             synthesized_results[res.name] = res.description
-                
-                except BlockedPromptException:
-                    logger.warning(f"[{self.user_id}] [LORE 合併 L1] 遭遇內容審查！正在降級到【L2: 本地逐一合成】...")
-                    # --- 第二層防線: 本地逐一合成 ---
-                    for task in synthesis_tasks:
-                        logger.info(f"[{self.user_id}] [LORE 合併 L2] 正在為 '{task.name}' 執行本地合成...")
-                        local_result = await self._invoke_local_ollama_synthesis(task.original_description, task.new_information)
-                        if local_result:
-                            logger.info(f"[{self.user_id}] [LORE 合併 L2] ✅ 本地合成成功: '{task.name}'")
-                            synthesized_results[task.name] = local_result
-                        else:
-                            logger.warning(f"[{self.user_id}] [LORE 合併 L2] ❌ 本地合成失敗: '{task.name}'。將降級到 L3。")
+                        synthesis_completed = True
+                    else:
+                        logger.warning(f"[{self.user_id}] [LORE 合併 L1] 雲端高強度突破最終返回空結果。正在降級到階段二。")
 
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE 合併 L1] 雲端批量合成遭遇未知錯誤: {e}。將對所有任務嘗試 L2/L3 備援。", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE 合併 L1] 雲端高強度突破遭遇未知錯誤: {e}。正在降級到階段二。", exc_info=True)
                 
-                # --- 第三層防線: 程式級確定性合併 ---
+                # --- 階段二: 本地批量備援 ---
+                if not synthesis_completed:
+                    # L2-A: 本地批量合成
+                    logger.warning(f"[{self.user_id}] [LORE 合併 L2-A] 雲端方案失敗，正在啟動【本地批量合成】...")
+                    local_batch_results = await self._invoke_local_ollama_batch_synthesis(synthesis_tasks)
+                    
+                    if local_batch_results:
+                        logger.info(f"[{self.user_id}] [LORE 合併 L2-A] ✅ 本地批量合成成功，收到 {len(local_batch_results)} 條結果。")
+                        synthesized_results.update(local_batch_results)
+                    else:
+                        logger.error(f"[{self.user_id}] [LORE 合併 L2-A] ❌ 本地批量合成最終失敗。")
+
+                # L2-B: 程式級確定性合併 (最終防線)
                 if len(synthesized_results) < len(synthesis_tasks):
-                    logger.warning(f"[{self.user_id}] [LORE 合併 L3] LLM 合成不完整，正在為剩餘任務執行【程式級確定性合併】...")
+                    logger.warning(f"[{self.user_id}] [LORE 合併 L2-B] LLM 合成不完整，正在為剩餘任務執行【程式級確定性合併】...")
                     import datetime
                     timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
                     for task in synthesis_tasks:
                         if task.name not in synthesized_results:
-                            logger.info(f"[{self.user_id}] [LORE 合併 L3] 正在為 '{task.name}' 執行拼接...")
+                            logger.info(f"[{self.user_id}] [LORE 合併 L2-B] 正在為 '{task.name}' 執行拼接...")
                             fallback_description = (
                                 f"{task.original_description}\n\n"
                                 f"--- [系統追加情報 v{timestamp}] ---\n"
@@ -368,7 +380,7 @@ class AILover:
                             synthesized_results[task.name] = fallback_description
 
                 # --- 統一寫入數據庫 ---
-                logger.info(f"[{self.user_id}] [LORE 合併] 所有防線執行完畢，正在將 {len(synthesized_results)} 條結果統一寫入資料庫...")
+                logger.info(f"[{self.user_id}] [LORE 合併] 所有備援流程執行完畢，正在將 {len(synthesized_results)} 條結果統一寫入資料庫...")
                 all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in synthesized_results)
                 for lore in all_merged_lores:
                     char_name = lore.content.get('name')
@@ -392,6 +404,7 @@ class AILover:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
     # 函式：解析並儲存LORE實體
+                        
 
 
     # 函式：呼叫本地Ollama模型進行批量描述合成 (v2.0 - 批量重構)
@@ -4090,6 +4103,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
