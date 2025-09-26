@@ -3376,19 +3376,32 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v3.4 - 致命錯誤修正)
+    # 函式：執行 LORE 解析管線 (v3.5 - 返回值穿透修正)
     # 更新紀錄:
-    # v3.4 (2025-09-27): [災難性BUG修復] 移除了所有對 _resolve_and_save 函式傳遞 title_key='title' 的硬編碼參數，使其與 schemas.py v3.0 中 WorldLore 的 name 字段統一，解決了 ValidationError。同時，此版本依賴於在 ai_core.py 頂部對 BatchClassificationResult 的正確導入，以解決 NameError。
-    # v3.2 (2025-09-26): [可觀測性升級] 在第四層備援（混合NLP方案）中，為實體提取、分類、精煉和儲存的每一步都增加了詳細的日誌記錄，以便於在該流程失敗時進行精確的問題定位。
-    # v3.1 (2025-09-26): [重大架構升級] 管线的第二层（本地LLM备援）现在会首先检查 `self.is_ollama_available` 状态旗标。
-    async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
+    # v3.5 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯，以解決 TypeError。現在，函式會返回一個 (bool, List[str]) 的元組，並在內部創建一個列表來收集所有解析層級中成功創建或更新的LORE主鍵，確保將詳細的擴展結果正確地傳遞給上層調用者。
+    # v3.4 (2025-09-27): [災難性BUG修復] 移除了所有對 _resolve_and_save 函式傳遞 title_key='title' 的硬編碼參數。
+    # v3.2 (2025-09-26): [可觀測性升級] 增加了詳細的日誌記錄。
+    async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, List[str]]:
         """
         【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
+        返回一個元組 (是否成功, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
-            return False
+            return False, []
 
         parsing_completed = False
+        all_successful_keys: List[str] = [] # [v3.5 核心修正] 初始化主鍵收集器
+
+        # 輔助函式，用於從解析結果中提取主鍵
+        def extract_keys_from_result(result: CanonParsingResult) -> List[str]:
+            keys = []
+            if result.npc_profiles: keys.extend([p.name for p in result.npc_profiles])
+            if result.locations: keys.extend([l.name for l in result.locations])
+            if result.items: keys.extend([i.name for i in result.items])
+            if result.creatures: keys.extend([c.name for c in result.creatures])
+            if result.quests: keys.extend([q.name for q in result.quests])
+            if result.world_lores: keys.extend([w.name for w in result.world_lores])
+            return keys
 
         # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
         try:
@@ -3405,12 +3418,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                     logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 成功！正在儲存結果...")
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    # [v3.4 核心修正] 移除 title_key='title'
                     await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
@@ -3425,12 +3438,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                     logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！正在儲存本地解析結果...")
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    # [v3.4 核心修正] 移除 title_key='title'
                     await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
                 else:
@@ -3459,12 +3472,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                     logger.info(f"[{self.user_id}] [LORE 解析 3/5] ✅ 成功！正在解碼並儲存結果...")
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    # [v3.4 核心修正] 移除 title_key='title'
                     await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
@@ -3490,7 +3503,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse[:8000]},
                         inject_core_protocol=True
                     )
-                    # [v3.4 NameError 修正] 此處需要 BatchClassificationResult 被正確導入
                     classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
                     
                     if not classification_result or not classification_result.classifications:
@@ -3529,8 +3541,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 if not isinstance(result, Exception) and result:
                                     category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name)), None)
                                     if category:
-                                        # [v3.4 核心修正] 移除 title_key 的判斷邏輯
                                         await self._resolve_and_save(category + "s", [result.model_dump()])
+                                        if hasattr(result, 'name'): # [v3.5 核心修正]
+                                            all_successful_keys.append(result.name)
                                         success_count += 1
                             
                             if success_count > 0:
@@ -3571,6 +3584,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     )
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
                         logger.info(f"[{self.user_id}] [LORE 解析 5/5] ✅ 成功！正在解碼並儲存重構結果...")
+                        all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
                         await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                         await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                         parsing_completed = True
@@ -3582,9 +3596,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         if not parsing_completed:
             logger.error(f"[{self.user_id}] [LORE 解析] 所有五層解析方案均最終失敗。")
-
-        return parsing_completed
+        
+        # [v3.5 核心修正] 返回元組
+        return parsing_completed, all_successful_keys
     # 函式：執行 LORE 解析管線
+
+
+
+    
 
 
         # 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
@@ -4154,6 +4173,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
