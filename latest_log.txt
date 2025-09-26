@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-26T23:34:24.185310 ###
+### AI Lover Log - Last updated at 2025-09-26T23:35:16.621250 ###
 
-2025-09-26 18:30:26 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 8 validation errors for BatchResolutionPlan
-resolutions.21
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '米婭...ardized_name': '米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/value_error
-resolutions.45
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '菲利...'菲利普•薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/value_error
 resolutions.56
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '麥可...ardized_name': '麥可'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.11/v/value_error
@@ -300,3 +293,10 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-26 23:28:38 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-26 23:28:39 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-26 23:28:39 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-26 23:35:02 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-26 23:35:02 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-26 23:35:03 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-26 23:35:03 - [INFO] - Discord Bot is ready!
+2025-09-26 23:35:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-26 23:35:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-26 23:35:06 - [INFO] - 已成功發送啟動成功通知給管理員。
