@@ -211,6 +211,9 @@ async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 # --- 異步守護任務與核心服務 ---
+# 更新紀錄:
+# v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了 run_git_commands_sync 輔助函式，在 git push 之前增加了 git pull --rebase 命令。此修改確保了在推送日誌前，本地倉庫總是先與遠端同步，從根本上解決了因版本不一致導致的推送被拒絕 (Updates were rejected) 的問題。
+# v1.0 (2025-09-26): [全新創建] 創建此背景任務。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -220,8 +223,14 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
     upload_log_path = PROJ_DIR / "latest_log.txt"
 
     def run_git_commands_sync() -> bool:
+        """
+        一個健壯的、同步的 Git 操作函式，包含了拉取-變基-推送的完整流程。
+        """
         try:
+            # 步驟 0: 檢查日誌文件是否存在
             if not log_file_path.is_file(): return False
+
+            # 步驟 1: 寫入最新的日誌內容
             with open(log_file_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             latest_lines = lines[-300:]
@@ -229,24 +238,47 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
             with open(upload_log_path, 'w', encoding='utf-8') as f:
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
+
+            # 步驟 2: Git 操作
+            # 將日誌文件添加到暫存區
             subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
+            
+            # 創建 commit
             commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
             commit_process = subprocess.run(
                 ["git", "commit", "-m", commit_message], 
                 capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
             )
+            # 如果沒有東西可以提交，這不是一個錯誤，直接返回成功即可
             if commit_process.returncode != 0:
                 if "nothing to commit" in commit_process.stdout or "沒有東西可以提交" in commit_process.stdout:
-                    return False
+                    return True # 沒有新的日誌，視為成功
                 else:
+                    # 其他 commit 錯誤，則拋出異常
                     raise subprocess.CalledProcessError(
                         commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
                     )
             
+            # 【【【v2.0 核心修正】】】
+            # 步驟 3: 在推送前，先從遠端拉取並變基，以同步任何外部的變更
+            print("   [LOG Pusher] 正在與遠端同步 (git pull --rebase)...")
+            pull_process = subprocess.run(["git", "pull", "--rebase"], check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8')
+            
+            # 步驟 4: 推送到遠端倉庫
+            print("   [LOG Pusher] 正在推送日誌更新...")
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
+            
+            print("   ✅ [LOG Pusher] 日誌成功推送到 GitHub。")
             return True
+
         except subprocess.CalledProcessError as e:
             error_output = e.stderr or e.stdout
+            # 如果是 rebase 過程中發生衝突，則中止 rebase 以恢復倉庫狀態
+            if "CONFLICT" in str(error_output):
+                print(f"🔥 [LOG Pusher] Git rebase 發生衝突，正在中止變基操作...")
+                subprocess.run(["git", "rebase", "--abort"], cwd=PROJ_DIR, capture_output=True)
+            
+            # 忽略 "nothing to commit" 這類非錯誤信息
             if "nothing to commit" not in str(error_output) and "沒有東西可以提交" not in str(error_output):
                 print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
             return False
@@ -254,18 +286,21 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
             print(f"🔥 [LOG Pusher] 執行時發生未知錯誤: {e}")
             return False
 
+    # 主循環
     while not shutdown_event.is_set():
         try:
             async with lock:
+                # 在異步環境中，將同步的 Git 操作放到一個獨立的執行緒中運行，避免阻塞事件循環
                 await asyncio.to_thread(run_git_commands_sync)
             
+            # 等待下一次執行
             await asyncio.sleep(300) 
         except asyncio.CancelledError:
             print("⚪️ [LOG Pusher] 背景任務被正常取消。")
             break
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
-            await asyncio.sleep(60)
+            await asyncio.sleep(60) # 發生錯誤後，縮短等待時間以便更快重試
 
 async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
@@ -430,3 +465,4 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
