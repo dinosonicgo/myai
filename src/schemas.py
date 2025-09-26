@@ -186,7 +186,6 @@ class CreatureInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
-# [v2.0 核心修正] 將 WorldLore 的 title 統一為 name
 class WorldLore(BaseModel):
     name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
