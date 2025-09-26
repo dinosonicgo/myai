@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T00:39:48.091321 ###
+### AI Lover Log - Last updated at 2025-09-27T00:45:22.055923 ###
 
-2025-09-26 23:25:38 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
-2025-09-26 23:25:38 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-09-26 23:25:39 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
-2025-09-26 23:26:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-26 23:26:35 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！正在儲存結果...
-2025-09-26 23:26:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 66 個實體...
-2025-09-26 23:26:35 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 304 秒)。
 2025-09-26 23:26:35 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 1513 秒)。
 2025-09-26 23:27:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
 2025-09-26 23:27:40 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 66 條決策。
@@ -300,3 +293,10 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1276, in _background_lore_extraction
     success, created_or_updated_keys = await self._execute_lore_parsing_pipeline(dialogue_text)
 TypeError: cannot unpack non-iterable bool object
+2025-09-27 00:45:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 00:45:07 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 00:45:08 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 00:45:08 - [INFO] - Discord Bot is ready!
+2025-09-27 00:45:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 00:45:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 00:45:12 - [INFO] - 已成功發送啟動成功通知給管理員。
