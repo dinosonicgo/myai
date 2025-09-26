@@ -407,9 +407,10 @@ class AILover:
                         
 
 
-    # 函式：呼叫本地Ollama模型進行批量描述合成 (v2.0 - 批量重構)
+    # 函式：呼叫本地Ollama模型進行批量描述合成 (v2.1 - 渲染衝突修復)
     # 更新紀錄:
-    # v2.0 (2025-09-27): [災難性BUG修復] 根據性能優化要求，將此函式從處理單一任務重構為處理批量任務。現在它會接收一個任務列表，構建一個包含所有任務的單一Prompt，並一次性呼叫本地LLM，從根本上解決了本地備援逐一處理過慢的問題。
+    # v2.1 (2025-09-27): [災難性BUG修復] 採用了字串拼接策略來構建Prompt。此修改旨在物理上分離f-string多行字串中的 ```json 序列，從根本上解決因Markdown渲染引擎誤判導致程式碼被截斷的頑固問題。
+    # v2.0 (2025-09-27): [災難性BUG修復] 根據性能優化要求，將此函式從處理單一任務重構為處理批量任務。
     # v1.0 (2025-09-27): [全新創建] 創建此函式作為LORE合併第二層備援（本地LLM）的核心執行器。
     async def _invoke_local_ollama_batch_synthesis(self, tasks: List[SynthesisTask]) -> Optional[Dict[str, str]]:
         """
@@ -417,7 +418,7 @@ class AILover:
         返回一個包含 {角色名: 合成後文本} 的字典，如果失敗則返回 None。
         """
         import httpx
-        from pydantic import BaseModel
+        from pydantic import BaseModel, ValidationError
         
         if not self.is_ollama_available:
             logger.warning(f"[{self.user_id}] [本地合成備援] 因Ollama服務不可用，跳過本地批量合成。")
@@ -434,7 +435,8 @@ class AILover:
         task_json_str = json.dumps([t.model_dump() for t in tasks], ensure_ascii=False, indent=2)
         pydantic_schema_str = json.dumps(LocalBatchResult.model_json_schema(), ensure_ascii=False, indent=2)
 
-        prompt = f"""# TASK: You are a data processing engine. Your task is to process a batch of text merging requests.
+        # [v2.1 核心修正] 使用字串拼接來避免渲染衝突
+        prompt_template_part1 = """# TASK: You are a data processing engine. Your task is to process a batch of text merging requests.
 # MISSION: For each item in the `tasks` JSON array below, merge the `original_description` and `new_information` into a single, coherent `description`.
 # RULES:
 # 1.  Your output MUST be a single, valid JSON object that perfectly matches the `PYDANTIC_SCHEMA`.
@@ -442,8 +444,59 @@ class AILover:
 # 3.  The `name` in each result object MUST EXACTLY MATCH the name from the corresponding input task.
 # 4.  Merge the texts naturally, preserving all key facts from both sources.
 
-### PYDANTIC_SCHEMA (Your output MUST conform to this structure):```json
-{pydantic_schema_str}
+### PYDANTIC_SCHEMA (Your output MUST conform to this structure):
+"""
+        json_block_start = "```json"
+        json_block_end = "```"
+
+        prompt = (
+            prompt_template_part1
+            + f"\n{json_block_start}\n"
+            + pydantic_schema_str
+            + f"\n{json_block_end}\n\n"
+            + "### INPUT_TASKS:\n"
+            + f"{json_block_start}\n"
+            + task_json_str
+            + f"\n{json_block_end}\n\n"
+            + "### YOUR_JSON_OUTPUT:\n"
+        )
+
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": prompt,
+            "format": "json",
+            "stream": False,
+            "options": { "temperature": 0.5 }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                response_data = response.json()
+                json_string_from_model = response_data.get("response")
+                
+                if not json_string_from_model:
+                    logger.warning(f"[{self.user_id}] [本地批量合成] 本地模型返回了空的合成結果。")
+                    return None
+                
+                # 解析並驗證結果
+                parsed_json = json.loads(json_string_from_model)
+                validated_result = LocalBatchResult.model_validate(parsed_json)
+                
+                # 轉換為期望的字典格式
+                return {res.name: res.description for res in validated_result.results}
+
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(f"[{self.user_id}] [本地批量合成] 本地模型返回的JSON格式錯誤或驗證失敗: {e}", exc_info=True)
+            return None
+        except httpx.ConnectError:
+            logger.error(f"[{self.user_id}] [本地批量合成] 無法連接到本地 Ollama 伺服器。")
+            return None
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [本地批量合成] 呼叫本地 Ollama 批量合成時發生未知錯誤: {e}", exc_info=True)
+            return None
+    # 函式：呼叫本地Ollama模型進行批量描述合成
 
 
 
@@ -4103,6 +4156,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
