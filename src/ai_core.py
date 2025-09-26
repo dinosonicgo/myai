@@ -2628,11 +2628,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v36.0 - 混合上下文注入)
+    # 函式：預處理並生成主回應 (v37.0 - 擴展查詢上下文傳遞)
     # 更新紀錄:
-    # v36.0 (2025-09-27): [災難性BUG修復] 重構了此函式以適配 retrieve_and_summarize_memories 返回的結構化字典。現在，它會將返回的「規則全文」和「事件摘要」分別注入到 world_snapshot_template 中新增的 {scene_rules_context} 和原有的 {retrieved_context} 欄位，確保了關鍵LORE能夠以最高優先級、無損地呈現給生成模型。
-    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的、指令中明確提及的角色檔案列表（found_lores），作為一個新的參數 `explicitly_mentioned_profiles`，顯式地傳遞給 `_get_relevant_npcs` 函式。
-    # v34.0 (2025-09-27): [災難性BUG修復] 徹底重構了「遠程觀察」模式下的地點設定邏輯。
+    # v37.0 (2025-09-27): [災難性BUG修復] 在確定了場景的核心角色（relevant_characters）後，將此角色列表作為新的參數傳遞給 retrieve_and_summarize_memories 函式。此修改為RAG系統提供了執行「上下文擴展查詢」所需的關鍵資訊，確保了與角色身份相關的LORE（如禮儀）能夠被準確檢索。
+    # v36.0 (2025-09-27): [災難性BUG修復] 重構了此函式以適配 retrieve_and_summarize_memories 返回的結構化字典。
+    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的角色檔案列表，顯式地傳遞給 `_get_relevant_npcs` 函式。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2742,7 +2742,28 @@ class ExtractionResult(BaseModel):
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
         chat_history = chat_history_manager.messages
 
+        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
+            parts = [f"名稱: {profile.name}"]
+            if profile.aliases: parts.append(f"別名: {', '.join(profile.aliases)}")
+            if profile.status: parts.append(f"當前狀態: {profile.status}")
+            if profile.description:
+                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
+                parts.append(f"核心描述與情报: {desc}")
+            return "\n".join(f"- {p}" for p in parts)
+
+        # 確定場景角色
+        relevant_characters = []
+        background_characters = []
+        if gs.viewing_mode == 'remote' and gs.remote_target_path:
+            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
+        else: # local mode
+            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
+
         logger.info(f"[{self.user_id}] 正在組合混合記憶...")
+        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=relevant_characters)
+        
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
             raw_short_term_history = ""
@@ -2755,8 +2776,6 @@ class ExtractionResult(BaseModel):
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
-        structured_rag_context = await self.retrieve_and_summarize_memories(user_input)
-        
         snapshot_params = {
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
@@ -2764,32 +2783,15 @@ class ExtractionResult(BaseModel):
             "scene_rules_context": structured_rag_context.get("rules", "無規則"),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
-            "explicit_character_files_context": explicit_character_files_context
+            "explicit_character_files_context": explicit_character_files_context,
+            "relevant_npc_context": "\n\n".join([format_character_profile_for_prompt(p) for p in relevant_characters]) or "（場景中無明確互動目標）",
+            "npc_context": "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色）"
         }
 
-        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
-            parts = [f"名稱: {profile.name}"]
-            if profile.aliases: parts.append(f"別名: {', '.join(profile.aliases)}")
-            if profile.status: parts.append(f"當前狀態: {profile.status}")
-            if profile.description:
-                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
-                parts.append(f"核心描述與情报: {desc}")
-            return "\n".join(f"- {p}" for p in parts)
-
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
-            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
-            
-            snapshot_params["relevant_npc_context"] = "\n\n".join([format_character_profile_for_prompt(p) for p in relevant_characters]) or "（此場景目前沒有核心互動目標。）"
-            snapshot_params["npc_context"] = "\n".join([f"- {p.name}" for p in background_characters]) or "（此場景沒有其他背景角色。）"
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.remote_target_path))
             snapshot_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'}"
-        else: # local mode
-            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
-
-            snapshot_params["relevant_npc_context"] = "\n\n".join([format_character_profile_for_prompt(p) for p in relevant_characters]) or "（場景中無明確互動目標，請聚焦於玩家與AI的互動。）"
-            snapshot_params["npc_context"] = "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色。）"
+        else:
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
             snapshot_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'}"
         
@@ -2918,6 +2920,47 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text, summary_data
     # 預處理並生成主回應 函式結束
+
+
+
+
+
+
+
+
+
+        # 函式：刪除最新一條長期記憶 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-27): [全新創建] 創建此輔助函式作為「撤銷」功能的核心後端邏輯。它負責連接資料庫，精確地找到並刪除屬於該使用者的、時間戳最新的一條長期記憶記錄，確保撤銷操作能夠同時清理資料庫。
+    async def _delete_last_memory(self):
+        """從 SQL 資料庫中刪除屬於當前使用者的、最新的一條長期記憶。"""
+        logger.info(f"[{self.user_id}] [撤銷-後端] 正在嘗試從資料庫刪除最新一條長期記憶...")
+        try:
+            async with AsyncSessionLocal() as session:
+                # 找到時間戳最大（即最新）的那條記錄
+                stmt = select(MemoryData.id).where(
+                    MemoryData.user_id == self.user_id
+                ).order_by(MemoryData.timestamp.desc()).limit(1)
+                
+                result = await session.execute(stmt)
+                latest_memory_id = result.scalars().first()
+
+                if latest_memory_id:
+                    # 根據 ID 刪除該記錄
+                    delete_stmt = delete(MemoryData).where(MemoryData.id == latest_memory_id)
+                    await session.execute(delete_stmt)
+                    await session.commit()
+                    logger.info(f"[{self.user_id}] [撤銷-後端] ✅ 成功刪除 ID 為 {latest_memory_id} 的長期記憶。")
+                else:
+                    logger.warning(f"[{self.user_id}] [撤銷-後端] ⚠️ 在資料庫中沒有找到屬於該使用者的長期記憶可供刪除。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [撤銷-後端] 🔥 從資料庫刪除長期記憶時發生錯誤: {e}", exc_info=True)
+    # 函式：刪除最新一條長期記憶
+
+
+
+
+    
 
 
 
@@ -4068,14 +4111,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v14.0 - 混合式上下文生成)
+    # 函式：檢索並摘要記憶 (v15.0 - 上下文擴展查詢)
     # 更新紀錄:
-    # v14.0 (2025-09-27): [災難性BUG修復] 徹底重構了RAG的上下文處理邏輯。此函式不再返回單一的摘要字串，而是返回一個包含'rules'和'summary'的字典。它會智能過濾檢索結果，將最重要的「規則性LORE」（如禮儀、世界觀）的【全文】無損放入'rules'鍵，僅將其他次要資訊進行摘要。此修改從根本上解決了關鍵行為準則在摘要過程中被過濾掉的問題。
-    # v13.0 (2025-09-24): [重大架構重構] 徹底移除了脆弱且冗餘的“文學性委婉化”（淨化）中間件。
-    # v12.2 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
-    async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
+    # v15.0 (2025-09-27): [災難性BUG修復] 徹底重構了RAG查詢邏輯。此函式現在接收一個包含場景核心角色的 contextual_profiles 列表。它會將這些角色的所有名字和別名（如“母畜”）提取出來，與使用者的原始輸入合併，形成一個擴展查詢。使用此擴展查詢進行檢索，確保了與角色身份相關的LORE（如“母畜的禮儀”）能夠被準確地找到並注入上下文。
+    # v14.0 (2025-09-27): [災難性BUG修復] 徹底重構了RAG的上下文處理邏輯，分離「規則全文」和「事件摘要」。
+    # v13.0 (2025-09-24): [重大架構重構] 移除了文學性委婉化中間件。
+    async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
         執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
+        內建基於場景上下文的查詢擴展功能。
         返回一個字典: {"rules": str, "summary": str}
         """
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
@@ -4083,12 +4127,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return default_return
         
+        # [v15.0 核心修正] 上下文擴展查詢
+        expanded_query = query_text
+        if contextual_profiles:
+            query_keywords = set(query_text.split())
+            for profile in contextual_profiles:
+                query_keywords.add(profile.name)
+                if profile.aliases:
+                    query_keywords.update(profile.aliases)
+            expanded_query = " ".join(query_keywords)
+            logger.info(f"[{self.user_id}] RAG查詢已擴展為: '{expanded_query}'")
+
         retrieved_docs = []
         try:
+            # 使用擴展後的查詢
             if self.retriever:
-                retrieved_docs = await self.retriever.ainvoke(query_text)
+                retrieved_docs = await self.retriever.ainvoke(expanded_query)
             if not retrieved_docs and self.bm25_retriever:
-                retrieved_docs = await self.bm25_retriever.ainvoke(query_text)
+                retrieved_docs = await self.bm25_retriever.ainvoke(expanded_query)
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
@@ -4096,24 +4152,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not retrieved_docs:
             return default_return
 
-        # [v14.0 核心修正] 智能過濾與分離
         rule_docs = []
         other_docs = []
         for doc in retrieved_docs:
-            # 假設 'world_lore' 類別的 LORE 是需要嚴格遵守的規則
             if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore":
                 rule_docs.append(doc)
             else:
                 other_docs.append(doc)
         
-        # 無損拼接前 3 條最重要的規則
         rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]])
         if not rules_context:
             rules_context = "（當前場景無特定的行為準則或世界觀設定）"
         
-        # 對其餘文檔進行摘要
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        docs_to_summarize = other_docs + rule_docs[3:] # 將多餘的規則也放入摘要
+        docs_to_summarize = other_docs + rule_docs[3:]
         if docs_to_summarize:
             raw_content_for_summary = "\n\n---\n\n".join([doc.page_content for doc in docs_to_summarize])
             summarizer_prompt_template = self.get_rag_summarizer_chain()
@@ -4174,6 +4226,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
