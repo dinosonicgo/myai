@@ -871,7 +871,10 @@ class ConfirmAndEditView(discord.ui.View):
     # 函式：處理視圖超時事件
 # 類別：確認並編輯角色檔案的視圖
 
-# 類別：編輯 NPC 的下拉選單
+# 類別：編輯 NPC 的下拉選單 (v2.0 - 長 LORE 檔案化)
+# 更新紀錄:
+# v2.0 (2025-09-27): [災難性BUG修復] 重構了 callback 方法，使其在顯示 LORE 前先檢查內容長度。如果 LORE 過長，則以 .json 檔案形式發送，否則才發送 Embed。此修改確保了 /edit_profile 流程中的 LORE 預覽不會被截斷。
+# v1.0 (2025-09-26): [全新創建] 創建此下拉選單。
 class NpcEditSelect(discord.ui.Select):
     # 函式：初始化 NpcEditSelect
     def __init__(self, cog: "BotCog", all_npcs: List[Lore]):
@@ -894,10 +897,37 @@ class NpcEditSelect(discord.ui.Select):
         if not lore:
             await interaction.followup.send("錯誤：找不到所選的NPC資料。", ephemeral=True)
             return
+            
         profile = CharacterProfile.model_validate(lore.content)
-        embed = _create_profile_embed(profile, "👥 NPC 檔案")
         view = ConfirmAndEditView(cog=self.cog, target_type='npc', target_key=selected_key, display_name=profile.name, original_description=profile.description or "")
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+
+        # [v2.0 核心修正] 應用與 admin_check_lore 相同的邏輯
+        content_str = json.dumps(lore.content, ensure_ascii=False, indent=2)
+
+        if len(content_str) > 1000:
+            try:
+                temp_dir = PROJ_DIR / "temp"
+                temp_dir.mkdir(exist_ok=True)
+                file_path = temp_dir / f"npc_{interaction.user.id}_{int(time.time())}.json"
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content_str)
+                
+                file_name = f"{profile.name}.json"
+                await interaction.followup.send(
+                    f"這是 NPC **{profile.name}** 的當前檔案（由於內容過長，已作為檔案附件發送）。請預覽後點擊按鈕進行修改：",
+                    file=discord.File(file_path, filename=file_name),
+                    view=view,
+                    ephemeral=True
+                )
+                os.remove(file_path)
+            except Exception as e:
+                logger.error(f"[{interaction.user.id}] 創建或發送 NPC 檔案時出錯: {e}", exc_info=True)
+                await interaction.followup.send("錯誤：創建 NPC 檔案時發生問題。", ephemeral=True)
+        else:
+            embed = _create_profile_embed(profile, "👥 NPC 檔案")
+            await interaction.followup.send("這是您選擇角色的當前檔案，請預覽後點擊按鈕進行修改：", embed=embed, view=view, ephemeral=True)
+
+        # 禁用下拉選單，防止重複操作
         self.disabled = True
         await interaction.edit_original_response(view=self.view)
     # 函式：處理下拉選單選擇事件
@@ -1974,6 +2004,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
