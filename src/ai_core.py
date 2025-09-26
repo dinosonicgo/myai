@@ -1253,13 +1253,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-     # 函式：背景LORE提取與擴展 (v4.1 - 核心主角保護)
+     # 函式：背景LORE提取與擴展 (v5.0 - 日誌記錄增強)
     # 更新紀錄:
+    # v5.0 (2025-09-27): [可觀測性升級] 重構了此函式以接收 _execute_tool_call_plan 返回的 (總結, 主鍵列表) 元組。現在，如果LORE擴展成功，它會在日誌中明確記錄所有被成功創建或更新的LORE條目的主鍵，極大地提升了系統的可觀測性。
     # v4.1 (2025-09-25): [災難性BUG修復] 在格式化 Prompt 時，增加了對 username 和 ai_name 的傳遞。此修改旨在配合 get_lore_extraction_chain 的更新，將核心主角的名稱動態注入到保護規則中，確保保護機制能夠正確生效。
     # v4.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個輕量級的“啟動器”。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
-        (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線。
+        (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線，並記錄詳細的擴展結果。
         """
         if not self.profile:
             return
@@ -1269,15 +1270,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
             
-            # [v4.1 核心修正] 在此處準備好需要傳遞給 Prompt 的參數
             dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
             
-            success = await self._execute_lore_parsing_pipeline(dialogue_text)
+            # [v5.0 核心修正] 調用 LORE 解析管線並接收詳細結果
+            success, created_or_updated_keys = await self._execute_lore_parsing_pipeline(dialogue_text)
             
             if success:
-                logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 管線成功完成。")
+                # [v5.0 核心修正] 記錄詳細的擴展日誌
+                if created_or_updated_keys:
+                    log_message = f"擴展了 {len(created_or_updated_keys)} 條 LORE: {', '.join(created_or_updated_keys)}"
+                    logger.info(f"[{self.user_id}] [對話後 LORE 擴展] ✅ 管線成功完成。{log_message}")
+                else:
+                    logger.info(f"[{self.user_id}] [對話後 LORE 擴展] ✅ 管線成功完成，但本次對話未觸發新的LORE條目。")
             else:
-                logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] 所有解析層級均失敗，本回合未能擴展 LORE。")
+                logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] ⚠️ 所有解析層級均失敗，本回合未能擴展 LORE。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
@@ -2247,22 +2253,24 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行工具調用計畫
-# 更新紀錄:
-# v190.7 (2025-09-24): [健壯性強化] 在調用“事實查核”鏈時，增加了 `inject_core_protocol=True`。此修改為事實查核LLM注入了完整的越獄指令，確保其能夠安全地處理和分析包含原始NSFW詞彙的上下文，從根本上解決了因此導致的內容審查問題。
-# v190.6 (2025-09-24): [根本性重構] 引入了“抗事實污染”防禦層。
-# v190.5 (2025-09-23): [根本性重構] 引入了“抗幻覺驗證層”。
-    async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> str:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺與抗事實污染驗證層。"""
+    # 函式：執行工具調用計畫 (v191.0 - 增強日誌返回值)
+    # 更新紀錄:
+    # v191.0 (2025-09-27): [可觀測性升級] 徹底重構了函式的返回值。現在，此函式會返回一個包含 (總結字串, 成功的主鍵列表) 的元組，而不再只是一個字串。此修改為上層的日誌記錄函式提供了結構化的數據，使其能夠在日誌中明確記錄本次擴展了哪些具體的LORE條目。
+    # v190.7 (2025-09-24): [健壯性強化] 在調用“事實查核”鏈時，增加了 `inject_core_protocol=True`。
+    # v190.6 (2025-09-24): [根本性重構] 引入了“抗事實污染”防禦層。
+    async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> Tuple[str, List[str]]:
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺與抗事實污染驗證層。返回 (總結字串, 成功的主鍵列表) 的元組。"""
         if not plan or not plan.plan:
             logger.info(f"[{self.user_id}] (LORE Executor) LORE 扩展計畫為空，无需执行。")
-            return "LORE 扩展計畫為空。"
+            return "LORE 扩展計畫為空。", []
 
         tool_context.set_context(self.user_id, self)
         
+        successful_keys: List[str] = [] # [v191.0 核心修正] 初始化成功主鍵列表
+        
         try:
             if not self.profile:
-                return "错误：无法执行工具計畫，因为使用者 Profile 未加载。"
+                return "错误：无法执行工具計畫，因为使用者 Profile 未加载。", []
             
             def is_chinese(text: str) -> bool:
                 if not text: return False
@@ -2274,7 +2282,7 @@ class ExtractionResult(BaseModel):
 
             for call in plan.plan:
                 params = call.parameters
-                name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'title']
+                name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'name']
                 found_name = None
                 for variant in name_variants:
                     if variant in params:
@@ -2313,19 +2321,19 @@ class ExtractionResult(BaseModel):
                 purified_plan.append(call)
 
             if not purified_plan:
-                return "LORE 扩展計畫在淨化後為空。"
+                return "LORE 扩展計畫在淨化後為空。", []
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) 開始串行執行 {len(purified_plan)} 個修正後的LORE任务 ---")
             
             summaries = []
             for call in purified_plan:
                 try:
+                    lore_key_to_operate = call.parameters.get('lore_key')
                     if call.tool_name.startswith('update_'):
-                        lore_key_to_check = call.parameters.get('lore_key')
-                        original_lore = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_check) if lore_key_to_check else None
+                        original_lore = await lore_book.get_lore(self.user_id, 'npc_profile', lore_key_to_operate) if lore_key_to_operate else None
 
                         if original_lore:
-                            logger.info(f"[{self.user_id}] [事實查核] 檢測到對 LORE '{lore_key_to_check}' 的更新請求。啟動事實查核...")
+                            logger.info(f"[{self.user_id}] [事實查核] 檢測到對 LORE '{lore_key_to_operate}' 的更新請求。啟動事實查核...")
                             scene_key = self._get_scene_key()
                             history = self.scene_histories.get(scene_key, ChatMessageHistory())
                             context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
@@ -2355,7 +2363,7 @@ class ExtractionResult(BaseModel):
                                 continue
                         
                         else:
-                            entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or (lore_key_to_check.split(' > ')[-1] if lore_key_to_check else "未知實體")
+                            entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or (lore_key_to_operate.split(' > ')[-1] if lore_key_to_operate else "未知實體")
                             logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在NPC '{entity_name_to_validate}' 的更新。啟動事實查核...")
                             validation_prompt_template = self.get_entity_validation_prompt()
                             scene_key = self._get_scene_key()
@@ -2372,8 +2380,10 @@ class ExtractionResult(BaseModel):
                                 call.parameters['description'] = updates.get('description', '（由事實查核後創建）')
                                 effective_location = call.parameters.get('location_path', current_location_path)
                                 call.parameters['lore_key'] = " > ".join(effective_location + [call.parameters['standardized_name']])
+                                lore_key_to_operate = call.parameters['lore_key'] # 更新操作主鍵
                             elif validation_result and validation_result.decision == 'MERGE':
                                 call.parameters['lore_key'] = validation_result.matched_key
+                                lore_key_to_operate = call.parameters['lore_key'] # 更新操作主鍵
                             else:
                                 continue
 
@@ -2388,6 +2398,9 @@ class ExtractionResult(BaseModel):
                     summary = f"任務成功: {result}"
                     logger.info(f"[{self.user_id}] (LORE Executor) {summary}")
                     summaries.append(summary)
+                    if lore_key_to_operate: # [v191.0 核心修正]
+                        successful_keys.append(lore_key_to_operate)
+
                 except Exception as e:
                     summary = f"任務失敗: for {call.tool_name}: {e}"
                     logger.error(f"[{self.user_id}] (LORE Executor) {summary}", exc_info=True)
@@ -2395,12 +2408,12 @@ class ExtractionResult(BaseModel):
 
             logger.info(f"--- [{self.user_id}] (LORE Executor) LORE 扩展計畫执行完毕 ---")
             
-            return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。"
+            return "\n".join(summaries) if summaries else "LORE 扩展已执行，但未返回有效结果。", successful_keys
         
         finally:
             tool_context.set_context(None, None)
             logger.info(f"[{self.user_id}] (LORE Executor) 背景任务的工具上下文已清理。")
-# 執行工具調用計畫 函式結束
+    # 執行工具調用計畫 函式結束
 
 
 
@@ -4141,6 +4154,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
