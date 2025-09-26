@@ -49,12 +49,12 @@ async def is_admin(interaction: discord.Interaction) -> bool:
 # 函式：檢查使用者是否為管理員
 
 LORE_CATEGORIES = [
-    app_commands.Choice(name="👤 NPC 檔案", value="npc_profile"),
-    app_commands.Choice(name="📍 地點資訊", value="location_info"),
-    app_commands.Choice(name="📦 物品資訊", value="item_info"),
-    app_commands.Choice(name="🐾 生物/物種", value="creature_info"),
-    app_commands.Choice(name="📜 任務", value="quest"),
-    app_commands.Choice(name="🌍 世界傳說", value="world_lore"),
+    app_commands.Choice(name="👤 NPC 檔案 (npc_profile)", value="npc_profile"),
+    app_commands.Choice(name="📍 地點資訊 (location_info)", value="location_info"),
+    app_commands.Choice(name="📦 物品資訊 (item_info)", value="item_info"),
+    app_commands.Choice(name="🐾 生物/物種 (creature_info)", value="creature_info"),
+    app_commands.Choice(name="📜 任務 (quest)", value="quest"),
+    app_commands.Choice(name="🌍 世界傳說 (world_lore)", value="world_lore"),
 ]
 
 # 函式：使用者自動完成
@@ -1811,21 +1811,13 @@ class BotCog(commands.Cog):
         await self.push_log_to_github_repo(interaction)
     # 指令：[管理員] 推送日誌
         
-    # 函式：將日誌推送到 GitHub 倉庫 (v2.0 - 強制同步修正)
-    # 更新紀錄:
-    # v2.0 (2025-09-27): [災難性BUG修復] 在執行日誌提交前，增加了 `git fetch` 和 `git reset --hard origin/main` 的強制同步邏輯，以解決因本地倉庫落後而導致的推送被拒絕的錯誤。
-    # v1.0 (2025-11-17): [全新創建] 創建此函式。
+    # 函式：將日誌推送到 GitHub 倉庫
     async def push_log_to_github_repo(self, interaction: Optional[discord.Interaction] = None):
         try:
             log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
             if not log_file_path.is_file():
                 if interaction: await interaction.followup.send("❌ **推送失敗**：找不到日誌檔案。", ephemeral=True)
                 return
-
-            # [v2.0 核心修正] 在所有操作之前，強制與遠端同步
-            await self._run_git_command(["git", "fetch", "origin"])
-            await self._run_git_command(["git", "reset", "--hard", "origin/main"])
-
             with open(log_file_path, 'r', encoding='utf-8') as f: latest_lines = f.readlines()[-100:]
             upload_log_path = PROJ_DIR / "latest_log.txt"
             with open(upload_log_path, 'w', encoding='utf-8') as f: f.write(f"### AI Lover Log - {datetime.datetime.now().isoformat()} ###\n\n" + "".join(latest_lines))

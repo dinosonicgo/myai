@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Optional, Dict, List, Any, Literal
-from pydantic import BaseModel, Field, field_validator, model_validator, AliasChoices
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 # --- 基礎驗證器 ---
 def _validate_string_to_list(value: Any) -> Any:
@@ -38,11 +38,6 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
-class RelationshipDetail(BaseModel):
-    """定義一個結構化的關係細節。"""
-    type: str = Field(default="未知", description="關係的總體類型，例如 '家庭', '主從', '同盟', '支配', '敵對'。")
-    roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的一個或多個具體角色/身份/稱謂。")
-
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -60,7 +55,7 @@ class CharacterProfile(BaseModel):
     location: str = Field(default="", description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
-    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="記錄此角色與其他角色的結構化關係。")
+    relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
@@ -78,38 +73,19 @@ class CharacterProfile(BaseModel):
 
     @field_validator('relationships', mode='before')
     @classmethod
-    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Dict[str, Any]]:
+    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, str]:
+        if isinstance(value, str):
+            value = _validate_string_to_dict(value)
         if not isinstance(value, dict):
             return {}
-        
         normalized_dict = {}
-        for char_name, relation_info in value.items():
-            if isinstance(relation_info, dict) and ('type' in relation_info or 'roles' in relation_info):
-                if 'roles' in relation_info and isinstance(relation_info['roles'], str):
-                    relation_info['roles'] = _validate_string_to_list(relation_info['roles'])
-                elif 'role' in relation_info and 'roles' not in relation_info:
-                    relation_info['roles'] = _validate_string_to_list(relation_info.pop('role'))
-                normalized_dict[char_name] = relation_info
-                continue
-
-            if isinstance(relation_info, str):
-                roles = _validate_string_to_list(relation_info)
-                relationship_type = "未知"
-                if any(r in roles for r in ["妻子", "丈夫", "女兒", "兒子", "母親", "父親"]):
-                    relationship_type = "家庭"
-                elif any(r in roles for r in ["僕役長", "女僕", "馬夫", "廚師", "工匠", "主人"]):
-                    relationship_type = "主從"
-                elif any(r in roles for r in ["盟友"]):
-                    relationship_type = "同盟"
-                elif any(r in roles for r in ["母畜", "聖女", "教義監督者"]):
-                    relationship_type = "支配/宗教"
-
-                normalized_dict[char_name] = {
-                    "type": relationship_type,
-                    "roles": roles
-                }
-                continue
-        
+        for k, v in value.items():
+            if isinstance(v, int):
+                normalized_dict[str(k)] = f"關係值: {v}"
+            elif isinstance(v, str):
+                normalized_dict[str(k)] = v
+            else:
+                normalized_dict[str(k)] = str(v)
         return normalized_dict
 
 class BatchRefinementResult(BaseModel):
@@ -187,7 +163,7 @@ class CreatureInfo(BaseModel):
         return _validate_string_to_list(value)
 
 class WorldLore(BaseModel):
-    name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
+    title: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。")
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
     content: str = Field(default="", description="詳細的內容描述。")
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
@@ -273,7 +249,7 @@ class CanonParsingResult(BaseModel):
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
 
-# [v3.0 核心修正] 補上缺失的類定義
+
 class LoreClassificationResult(BaseModel):
     """用於混合 NLP 流程，表示單個候選實體的分類結果。"""
     entity_name: str = Field(description="與輸入完全相同的候選實體名稱。")
@@ -381,5 +357,6 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
+
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
