@@ -1,7 +1,7 @@
 import json
 import re
 from typing import Optional, Dict, List, Any, Literal
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, AliasChoices
 
 # --- 基礎驗證器 ---
 def _validate_string_to_list(value: Any) -> Any:
@@ -38,7 +38,6 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
-# [v2.0 核心修正] 新增 RelationshipDetail 模型
 class RelationshipDetail(BaseModel):
     """定義一個結構化的關係細節。"""
     type: str = Field(default="未知", description="關係的總體類型，例如 '家庭', '主從', '同盟', '支配', '敵對'。")
@@ -77,7 +76,6 @@ class CharacterProfile(BaseModel):
     def _validate_string_to_dict_fields(cls, value: Any) -> Any:
         return _validate_string_to_dict(value)
 
-    # [v2.0 核心修正] 強化 relationships 驗證器以實現向下相容和結構化轉換
     @field_validator('relationships', mode='before')
     @classmethod
     def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Dict[str, Any]]:
@@ -86,22 +84,17 @@ class CharacterProfile(BaseModel):
         
         normalized_dict = {}
         for char_name, relation_info in value.items():
-            # 情況 1: 已經是符合新結構的字典
             if isinstance(relation_info, dict) and ('type' in relation_info or 'roles' in relation_info):
-                # 確保 roles 是列表
                 if 'roles' in relation_info and isinstance(relation_info['roles'], str):
                     relation_info['roles'] = _validate_string_to_list(relation_info['roles'])
-                elif 'role' in relation_info and 'roles' not in relation_info: # 處理 role -> roles 的兼容
+                elif 'role' in relation_info and 'roles' not in relation_info:
                     relation_info['roles'] = _validate_string_to_list(relation_info.pop('role'))
                 normalized_dict[char_name] = relation_info
                 continue
 
-            # 情況 2: 是舊的扁平化字串格式 (e.g., "妻子", "僕役長、聖女")
             if isinstance(relation_info, str):
                 roles = _validate_string_to_list(relation_info)
-                # 簡單的規則推斷關係類型
                 relationship_type = "未知"
-                # 這裡可以加入更複雜的關鍵詞判斷邏輯
                 if any(r in roles for r in ["妻子", "丈夫", "女兒", "兒子", "母親", "父親"]):
                     relationship_type = "家庭"
                 elif any(r in roles for r in ["僕役長", "女僕", "馬夫", "廚師", "工匠", "主人"]):
@@ -193,8 +186,9 @@ class CreatureInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
+# [v2.0 核心修正] 將 WorldLore 的 title 統一為 name
 class WorldLore(BaseModel):
-    title: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。")
+    name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
     content: str = Field(default="", description="詳細的內容描述。")
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
