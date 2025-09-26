@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T00:27:52.642938 ###
+### AI Lover Log - Last updated at 2025-09-27T00:34:45.126598 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 749, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
-2025-09-26 23:10:25 - [WARNING] - [512280345618546699] [/start] 開場白生成遭遇無法恢復的錯誤: 生成了空的場景內容。。啟動【安全備用開場白】。
-2025-09-26 23:10:25 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
-2025-09-26 23:10:26 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
-2025-09-26 23:10:26 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-26 23:10:26 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
 2025-09-26 23:24:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-26 23:24:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
@@ -300,3 +293,10 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-27 00:17:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
 2025-09-27 00:17:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 2 個實體...
 2025-09-27 00:17:11 - [INFO] - [512280345618546699] [對話後 LORE 擴展] 管線成功完成。
+2025-09-27 00:34:30 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 00:34:30 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 00:34:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 00:34:31 - [INFO] - Discord Bot is ready!
+2025-09-27 00:34:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 00:34:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 00:34:34 - [INFO] - 已成功發送啟動成功通知給管理員。
