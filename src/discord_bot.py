@@ -1428,29 +1428,48 @@ class BotCog(commands.Cog):
             logger.info(f"[{user_id}] /start 流程鎖已釋放。")
     # 完成設定流程 函式結束
 
-    # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
-    @app_commands.command(name="admin_browse_lores", description="[管理員] 分頁瀏覽指定使用者的 LORE 資料庫。")
+    # 指令：[管理員] 查詢 Lore 詳細資料 (v2.0 - 長 LORE 檔案化)
+    # 更新紀錄:
+    # v2.0 (2025-09-27): [災難性BUG修復] 增加了對LORE內容長度的檢查。如果序列化後的JSON字串超過1000個字元，指令將不再嘗試發送會被截斷的Embed，而是將完整的LORE內容作為一個 .json 檔案發送，從根本上解決了LORE顯示不全的問題。
+    # v1.0 (2025-09-26): [全新創建] 創建此指令。
+    @app_commands.command(name="admin_check_lore", description="[管理員] 查詢指定使用者的 Lore 詳細資料")
     @app_commands.check(is_admin)
-    @app_commands.describe(target_user="要瀏覽其 LORE 的目標使用者。", category="要瀏覽的 LORE 類別。")
-    @app_commands.autocomplete(target_user=user_autocomplete)
+    @app_commands.describe(target_user="...", category="...", key="...")
+    @app_commands.autocomplete(target_user=user_autocomplete, key=lore_key_autocomplete)
     @app_commands.choices(category=LORE_CATEGORIES)
-    async def admin_browse_lores(self, interaction: discord.Interaction, target_user: str, category: str):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        
-        all_lores = await lore_book.get_lores_by_category_and_filter(target_user, category)
-        
-        if not all_lores:
-            await interaction.followup.send(f"❌ 在類別 `{category}` 中找不到使用者 `{target_user}` 的任何 LORE 條目。", ephemeral=True)
-            return
-
-        view = LorePaginatorView(lores=all_lores, user_id=target_user, category=category)
-        embed = await view._create_embed()
-        view.prev_page.disabled = True # 初始禁用上一頁
-        if view.total_pages == 0:
-             view.next_page.disabled = True # 如果只有一頁，也禁用下一頁
-
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-    # 指令：[管理員] 瀏覽 LORE 詳細資料 (分頁)
+    async def admin_check_lore(self, interaction: discord.Interaction, target_user: str, category: str, key: str):
+        await interaction.response.defer(ephemeral=True)
+        lore_entry = await lore_book.get_lore(target_user, category, key)
+        if lore_entry:
+            content_str = json.dumps(lore_entry.content, ensure_ascii=False, indent=2)
+            
+            # [v2.0 核心修正] 檢查內容長度
+            if len(content_str) > 1000:
+                # 如果內容太長，則作為檔案發送
+                try:
+                    file_path = PROJ_DIR / f"temp_lore_{interaction.user.id}.json"
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(content_str)
+                    
+                    await interaction.followup.send(
+                        f"📜 **Lore 查詢結果 for `{key}`**\n（由於內容過長，已作為檔案附件發送）", 
+                        file=discord.File(file_path, filename=f"{key.replace(' > ', '_')}.json"),
+                        ephemeral=True
+                    )
+                    # 刪除臨時文件
+                    os.remove(file_path)
+                except Exception as e:
+                    logger.error(f"[{interaction.user.id}] 創建或發送LORE檔案時出錯: {e}", exc_info=True)
+                    await interaction.followup.send("錯誤：創建LORE檔案時發生問題。", ephemeral=True)
+            else:
+                # 如果內容不長，則正常使用Embed
+                embed = Embed(title=f"📜 Lore 查詢: {key.split(' > ')[-1]}", color=discord.Color.green())
+                embed.add_field(name="詳細資料", value=f"```json\n{content_str}\n```", inline=False)
+                embed.set_footer(text=f"User: {target_user} | Category: {category}")
+                await interaction.followup.send(embed=embed, ephemeral=True)
+        else: 
+            await interaction.followup.send(f"錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
+    # 指令：[管理員] 查詢 Lore 詳細資料
     
 
     # 函式：在背景處理世界聖經文本
@@ -1921,3 +1940,4 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
