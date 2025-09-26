@@ -1,96 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-26T18:29:14.879267 ###
+### AI Lover Log - Last updated at 2025-09-26T18:34:17.137737 ###
 
-2025-09-26 11:59:49 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '布里奇特' 執行本地合成...
-2025-09-26 12:00:06 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '布里奇特'
-2025-09-26 12:00:06 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '大皇子阿拉里克' 執行本地合成...
-2025-09-26 12:00:22 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '大皇子阿拉里克'
-2025-09-26 12:00:22 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '博林勳爵' 執行本地合成...
-2025-09-26 12:00:47 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '博林勳爵'
-2025-09-26 12:00:47 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '博林勳爵' 執行本地合成...
-2025-09-26 12:01:12 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '博林勳爵'
-2025-09-26 12:01:12 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '老高' 執行本地合成...
-2025-09-26 12:01:27 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '老高'
-2025-09-26 12:01:27 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '馬丁' 執行本地合成...
-2025-09-26 12:01:40 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '馬丁'
-2025-09-26 12:01:40 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '亞瑟' 執行本地合成...
-2025-09-26 12:01:52 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '亞瑟'
-2025-09-26 12:01:52 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '克拉拉' 執行本地合成...
-2025-09-26 12:02:09 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '克拉拉'
-2025-09-26 12:02:09 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '高爾' 執行本地合成...
-2025-09-26 12:02:26 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '高爾'
-2025-09-26 12:02:26 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '高爾' 執行本地合成...
-2025-09-26 12:02:43 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '高爾'
-2025-09-26 12:02:43 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '翠絲' 執行本地合成...
-2025-09-26 12:02:56 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '翠絲'
-2025-09-26 12:02:56 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '翠絲' 執行本地合成...
-2025-09-26 12:03:10 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '翠絲'
-2025-09-26 12:03:10 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '迪茜' 執行本地合成...
-2025-09-26 12:03:15 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '迪茜'
-2025-09-26 12:03:15 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '迪茜' 執行本地合成...
-2025-09-26 12:03:21 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '迪茜'
-2025-09-26 12:03:21 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '阿利斯特' 執行本地合成...
-2025-09-26 12:03:36 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '阿利斯特'
-2025-09-26 12:03:36 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '麥可' 執行本地合成...
-2025-09-26 12:03:59 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '麥可'
-2025-09-26 12:03:59 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '麥可' 執行本地合成...
-2025-09-26 12:04:22 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '麥可'
-2025-09-26 12:04:22 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '麥可' 執行本地合成...
-2025-09-26 12:04:44 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '麥可'
-2025-09-26 12:04:44 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '費奇' 執行本地合成...
-2025-09-26 12:05:02 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '費奇'
-2025-09-26 12:05:02 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '老羅' 執行本地合成...
-2025-09-26 12:05:16 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '老羅'
-2025-09-26 12:05:16 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '馬克' 執行本地合成...
-2025-09-26 12:05:29 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '馬克'
-2025-09-26 12:05:29 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '卡蓮' 執行本地合成...
-2025-09-26 12:05:59 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '卡蓮'
-2025-09-26 12:05:59 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '艾拉' 執行本地合成...
-2025-09-26 12:06:27 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '艾拉'
-2025-09-26 12:06:27 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '凱爾' 執行本地合成...
-2025-09-26 12:06:52 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '凱爾'
-2025-09-26 12:06:52 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '里斯' 執行本地合成...
-2025-09-26 12:07:13 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '里斯'
-2025-09-26 12:07:13 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '瑪倫' 執行本地合成...
-2025-09-26 12:07:26 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '瑪倫'
-2025-09-26 12:07:26 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '泰莎' 執行本地合成...
-2025-09-26 12:07:34 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '泰莎'
-2025-09-26 12:07:34 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '露比' 執行本地合成...
-2025-09-26 12:07:44 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '露比'
-2025-09-26 12:07:44 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '葛瑞塔' 執行本地合成...
-2025-09-26 12:07:54 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '葛瑞塔'
-2025-09-26 12:07:54 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '芬恩' 執行本地合成...
-2025-09-26 12:08:04 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '芬恩'
-2025-09-26 12:08:04 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '瓦勒留斯' 執行本地合成...
-2025-09-26 12:08:27 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '瓦勒留斯'
-2025-09-26 12:08:27 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '瓦勒留斯' 執行本地合成...
-2025-09-26 12:08:51 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '瓦勒留斯'
-2025-09-26 12:08:51 - [INFO] - [512280345618546699] [LORE 合併 L2] 正在為 '莉娜' 執行本地合成...
-2025-09-26 12:09:00 - [INFO] - [512280345618546699] [LORE 合併 L2] ✅ 本地合成成功: '莉娜'
-2025-09-26 12:09:00 - [WARNING] - [512280345618546699] [LORE 合併 L3] LLM 合成不完整，正在為剩餘任務執行【程式級確定性合併】...
-2025-09-26 12:09:00 - [INFO] - [512280345618546699] [LORE 合併] 所有防線執行完畢，正在將 34 條結果統一寫入資料庫...
-2025-09-26 12:09:04 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 10 個實體...
-2025-09-26 12:09:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
-2025-09-26 12:09:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 19 個實體...
-2025-09-26 12:09:07 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
-2025-09-26 12:09:07 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-26 12:09:07 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 176 條文檔用於創始構建。
-2025-09-26 12:09:07 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
-2025-09-26 12:09:07 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
-2025-09-26 12:17:44 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-26 12:17:44 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-26 12:17:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-26 12:17:44 - [INFO] - Discord Bot is ready!
-2025-09-26 12:17:47 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-26 12:17:47 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-26 12:17:47 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-26 12:25:18 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-26 12:25:18 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-26 12:25:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-26 12:25:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-26 12:25:20 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 176 條文檔到 RAG 語料庫。
-2025-09-26 12:25:20 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-26 12:25:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-26 12:25:20 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
 2025-09-26 12:25:20 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
 2025-09-26 12:25:20 - [INFO] - [512280345618546699] 成功恢復了 3 個場景的對話歷史，總計 7 條訊息。
 2025-09-26 12:25:20 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
@@ -300,3 +209,94 @@ NameError: name 'BatchClassificationResult' is not defined. Did you mean: 'Inten
 2025-09-26 18:28:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 70 個實體...
 2025-09-26 18:28:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 18166 秒)。
 2025-09-26 18:28:53 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 19375 秒)。
+2025-09-26 18:30:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-09-26 18:30:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-26 18:30:26 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 8 validation errors for BatchResolutionPlan
+resolutions.21
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '米婭...ardized_name': '米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.45
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '菲利...'菲利普•薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.56
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '麥可...ardized_name': '麥可'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.57
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '高爾...ardized_name': '高爾'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.58
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '翠絲...ardized_name': '翠絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.59
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '迪茜...ardized_name': '迪茜'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.64
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '索菲...ized_name': '索菲亞'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.65
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡蓮...ardized_name': '卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 288, in _resolve_and_save
+    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 897, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 877, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 8 validation errors for BatchResolutionPlan
+resolutions.21
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '米婭...ardized_name': '米婭'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.45
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '菲利...'菲利普•薩格納'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.56
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '麥可...ardized_name': '麥可'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.57
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '高爾...ardized_name': '高爾'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.58
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '翠絲...ardized_name': '翠絲'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.59
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '迪茜...ardized_name': '迪茜'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.64
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '索菲...ized_name': '索菲亞'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+resolutions.65
+  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡蓮...ardized_name': '卡蓮'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/value_error
+2025-09-26 18:30:26 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
+2025-09-26 18:30:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 8 個實體...
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 113 條文檔用於創始構建。
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
+2025-09-26 18:30:35 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
+2025-09-26 18:30:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-09-26 18:30:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-26 18:30:40 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-26 18:30:40 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-26 18:30:40 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
+2025-09-26 18:30:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-26 18:30:41 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-09-26 18:30:41 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-09-26 18:30:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 18058 秒)。
+2025-09-26 18:30:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 19267 秒)。
+2025-09-26 18:31:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-09-26 18:31:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-26 18:31:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-26 18:31:09 - [INFO] - [512280345618546699] [/start] 初始地點 '埃德蒙王國 > 王都 > 聖凱瑟琳學院 - 靜默書庫' 已成功生成並存入LORE。
+2025-09-26 18:31:09 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
+2025-09-26 18:31:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-09-26 18:31:35 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
+2025-09-26 18:31:36 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
+2025-09-26 18:31:36 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
+2025-09-26 18:31:36 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
