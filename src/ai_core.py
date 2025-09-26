@@ -2615,11 +2615,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v33.16 - 視角感知篩選)
+    # 函式：預處理並生成主回應 (v34.0 - 遠程路徑標準化)
     # 更新紀錄:
-    # v33.16 (2025-09-26): [災難性BUG修復] 在呼叫 `_get_relevant_npcs` 時，將當前的視角模式 `gs.viewing_mode` 作為參數傳遞進去。此修改使得上下文篩選邏輯能夠根據視角模式調整其行為，解決了遠程觀察時錯誤地將本地主角設為核心目標的問題。
+    # v34.0 (2025-09-27): [災難性BUG修復] 徹底重構了「遠程觀察」模式下的地點設定邏輯。現在，系統不再將使用者的自然語言指令直接存為路徑，而是會先調用一個專門的、輕量級的LLM地點提取器，將指令轉換為標準化的地點路徑（例如：["維利爾斯莊園", "洗衣房"]），然後再進行後續的NPC查詢。此修改從根本上解決了因路徑格式錯誤導致場景NPC為空、核心LORE資訊丟失的致命問題。
+    # v33.16 (2025-09-26): [災難性BUG修復] 在呼叫 `_get_relevant_npcs` 時，將當前的視角模式 `gs.viewing_mode` 作為參數傳遞進去。
     # v33.15 (2025-09-26): [災難性BUG修復] 在強制LORE注入的查找邏輯中，增加了對 `lore.category == 'npc_profile'` 的嚴格類型檢查。
-    # v33.14 (2025-09-25): [災難性BUG修復] 徹底重構了上下文構建邏輯，引入了全新的「指令驅動LORE注入」三步策略。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2649,6 +2649,7 @@ class ExtractionResult(BaseModel):
                 ai_profile.name: ai_profile
             }
             
+            # 預加載所有NPC LORE到一個可查詢的字典中
             for lore in all_lores:
                 if lore.category == 'npc_profile':
                     try:
@@ -2657,14 +2658,16 @@ class ExtractionResult(BaseModel):
                         if profile.aliases:
                             for alias in profile.aliases:
                                 all_known_profiles[alias] = profile
-                    except ValidationError as e:
+                    except Exception as e:
                         logger.warning(f"[{self.user_id}] [LORE校驗] 跳過一個無效的角色LORE條目 (key: {lore.key}): {e}")
 
-
+            # 根據指令中提取的實體名稱，從預加載的字典中查找
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in all_known_profiles:
-                    if all_known_profiles[entity_name] not in found_lores:
-                        found_lores.append(all_known_profiles[entity_name])
+                    # 避免重複添加同一個 CharacterProfile 對象
+                    profile_obj = all_known_profiles[entity_name]
+                    if not any(p.name == profile_obj.name for p in found_lores):
+                        found_lores.append(profile_obj)
             
             if found_lores:
                 context_parts = []
@@ -2681,6 +2684,7 @@ class ExtractionResult(BaseModel):
         is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
         is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
         is_explicit_local_action = any(user_input.startswith(kw) for kw in local_action_keywords) or (user_profile.name in user_input) or (ai_profile.name in user_input)
+        
         if is_continuation:
             logger.info(f"[{self.user_id}] [導演視角] 檢測到連續性指令，繼承上一輪視角模式: '{gs.viewing_mode}'")
         elif gs.viewing_mode == 'remote':
@@ -2691,31 +2695,49 @@ class ExtractionResult(BaseModel):
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 無本地信號，視角保持在 'remote'。")
                 if is_descriptive_intent:
+                    # [v34.0 核心修正] 呼叫地點提取器來標準化路徑
                     try:
-                        target_str = user_input
-                        for kw in descriptive_keywords:
-                            if target_str.startswith(kw): target_str = target_str[len(kw):].strip()
-                        gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()] or [target_str]
-                        logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標更新為: {gs.remote_target_path}")
-                    except Exception: pass
-        else:
+                        location_extraction_prompt = self.get_location_extraction_prompt()
+                        full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
+                        # 使用一個臨時的 BaseModel 來解析簡單的 JSON 結構
+                        class LocationPath(BaseModel):
+                            location_path: List[str]
+                        
+                        extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
+                        if extraction_result and extraction_result.location_path:
+                            gs.remote_target_path = extraction_result.location_path
+                            logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已標準化為: {gs.remote_target_path}")
+                        else:
+                             logger.warning(f"[{self.user_id}] [導演視角] 地點提取失敗，使用指令作為備援路徑。")
+                             gs.remote_target_path = [user_input]
+                    except Exception as e:
+                        logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
+                        gs.remote_target_path = [user_input] # 發生錯誤時的回退
+        else: # viewing_mode == 'local'
             if is_descriptive_intent:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。")
                 gs.viewing_mode = 'remote'
+                # [v34.0 核心修正] 呼叫地點提取器來標準化路徑
                 try:
-                    target_str = user_input
-                    for kw in descriptive_keywords:
-                        if target_str.startswith(kw): target_str = target_str[len(kw):].strip()
-                    gs.remote_target_path = [p.strip() for p in re.split(r'[的]', target_str) if p.strip()] or [target_str]
-                    logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標設定為: {gs.remote_target_path}")
-                except Exception:
-                    gs.remote_target_path = [user_input]
+                    location_extraction_prompt = self.get_location_extraction_prompt()
+                    full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
+                    class LocationPath(BaseModel):
+                        location_path: List[str]
+                    extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
+                    if extraction_result and extraction_result.location_path:
+                        gs.remote_target_path = extraction_result.location_path
+                        logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已設定並標準化為: {gs.remote_target_path}")
+                    else:
+                        logger.warning(f"[{self.user_id}] [導演視角] 地點提取失敗，使用指令作為備援路徑。")
+                        gs.remote_target_path = [user_input]
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
+                    gs.remote_target_path = [user_input] # 發生錯誤時的回退
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令，視角保持 'local'。")
                 gs.viewing_mode = 'local'
                 gs.remote_target_path = None
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
-
 
         scene_key = self._get_scene_key()
         chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
@@ -2734,23 +2756,8 @@ class ExtractionResult(BaseModel):
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
-        micro_task_context = "無"
-        if chat_history:
-            last_ai_message = ""
-            for msg in reversed(chat_history):
-                if isinstance(msg, AIMessage):
-                    last_ai_message = msg.content
-                    break
-            if last_ai_message:
-                task_keywords = ["需要", "去", "尋找", "目標是", "前往"]
-                sentences = re.split(r'[。！？]', last_ai_message)
-                for sentence in sentences:
-                    if any(keyword in sentence for keyword in task_keywords):
-                        task_description = sentence.strip()
-                        micro_task_context = f"臨時短期任務：{task_description} (狀態：進行中)"
-                        logger.info(f"[{self.user_id}] [微任務檢測] 已注入上下文: {micro_task_context}")
-                        break
-
+        retrieved_context = await self.retrieve_and_summarize_memories(user_input)
+        
         system_prompt_template = self.core_protocol_prompt
         world_snapshot_template = self.world_snapshot_template
         
@@ -2830,15 +2837,11 @@ class ExtractionResult(BaseModel):
         full_prompt_params = {
             "username": user_profile.name,
             "ai_name": ai_profile.name,
-            "player_location": ' > '.join(gs.location_path),
-            "viewing_mode": gs.viewing_mode,
-            "remote_target_path_str": ' > '.join(gs.remote_target_path) if gs.remote_target_path else '未知遠程地點',
-            "micro_task_context": micro_task_context,
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
-            "retrieved_context": await self.retrieve_and_summarize_memories(user_input),
+            "retrieved_context": retrieved_context,
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            "quests_context": micro_task_context,
+            "quests_context": "當前無活躍任務",
             "user_input": user_input,
             "historical_context": raw_short_term_history,
             "explicit_character_files_context": explicit_character_files_context
@@ -2857,7 +2860,6 @@ class ExtractionResult(BaseModel):
 
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            # [v33.16 核心修正] 傳遞視角模式
             relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode)
             
             relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
@@ -2866,10 +2868,9 @@ class ExtractionResult(BaseModel):
             
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.remote_target_path))
             location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-            full_prompt_params["location_context"] = f"當前觀察地點: {full_prompt_params['remote_target_path_str']}\n地點描述: {location_description}"
-        else:
+            full_prompt_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {location_description}"
+        else: # local mode
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            # [v33.16 核心修正] 傳遞視角模式
             relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode)
 
             relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
@@ -2878,7 +2879,7 @@ class ExtractionResult(BaseModel):
             
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
             location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-            full_prompt_params["location_context"] = f"當前地點: {full_prompt_params['player_location']}\n地點描述: {location_description}"
+            full_prompt_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {location_description}"
 
 
         full_template = "\n".join([
@@ -2889,7 +2890,7 @@ class ExtractionResult(BaseModel):
             summary_schema_mandate, dual_output_mandate
         ])
 
-        full_prompt = full_template.format(**full_prompt_params)
+        full_prompt = self._safe_format_prompt(full_template, full_prompt_params)
 
         logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
         raw_dual_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
@@ -2925,6 +2926,48 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text, summary_data
     # 預處理並生成主回應 函式結束
+
+
+
+
+
+        # 函式：獲取地點提取器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為修正「遠程觀察」模式下上下文丟失問題的核心。它提供一個高度聚焦的Prompt，專門用於從使用者的自然語言指令中提取出結構化的、可用於資料庫查詢的地點路徑。
+    def get_location_extraction_prompt(self) -> str:
+        """獲取一個為「遠程觀察」模式設計的、專門用於從自然語言提取地點路徑的Prompt模板。"""
+        prompt_template = """# TASK: 你是一個高精度的地理位置識別與路徑解析引擎。
+# MISSION: 你的任務是分析一段【使用者指令】，並從中提取出其中描述的【核心場景地點】，將其轉換為一個結構化的【地點路徑列表】。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【層級化解析】**: 你必須將地點解析為一個有序的層級列表，從最大範圍到最精確的地點。例如：「維利爾斯莊園的洗衣房」應解析為 `["維利爾斯莊園", "洗衣房"]`。
+# 2.  **【忽略非地點信息】**: 你的唯一目標是提取**地點**。完全忽略指令中關於角色、動作、時間等所有非地點信息。
+# 3.  **【空路徑處理】**: 如果指令中完全沒有提及任何具體地點，則返回一個包含單一通用地點的列表，例如 `["未知地點"]`。
+# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方結構的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {{
+#   "location_path": ["維利爾斯莊園", "洗衣房"]
+# }}
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【使用者指令】:
+{user_input}
+
+# ---
+# 【你解析出的地點路徑JSON】:
+"""
+        return prompt_template
+    # 函式：獲取地點提取器 Prompt
+
+
+
+
+
+    
     
 
 
@@ -4098,6 +4141,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
