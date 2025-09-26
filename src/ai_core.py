@@ -2631,7 +2631,7 @@ class ExtractionResult(BaseModel):
     # 函式：預處理並生成主回應 (v36.0 - 混合上下文注入)
     # 更新紀錄:
     # v36.0 (2025-09-27): [災難性BUG修復] 重構了此函式以適配 retrieve_and_summarize_memories 返回的結構化字典。現在，它會將返回的「規則全文」和「事件摘要」分別注入到 world_snapshot_template 中新增的 {scene_rules_context} 和原有的 {retrieved_context} 欄位，確保了關鍵LORE能夠以最高優先級、無損地呈現給生成模型。
-    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的角色檔案列表，顯式地傳遞給 `_get_relevant_npcs` 函式。
+    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的、指令中明確提及的角色檔案列表（found_lores），作為一個新的參數 `explicitly_mentioned_profiles`，顯式地傳遞給 `_get_relevant_npcs` 函式。
     # v34.0 (2025-09-27): [災難性BUG修復] 徹底重構了「遠程觀察」模式下的地點設定邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
@@ -2755,10 +2755,8 @@ class ExtractionResult(BaseModel):
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
-        # [v36.0 核心修正] 接收結構化的RAG結果
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input)
         
-        # 準備填充 world_snapshot 的參數
         snapshot_params = {
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
@@ -2795,36 +2793,88 @@ class ExtractionResult(BaseModel):
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
             snapshot_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'}"
         
-        # [v36.0 核心修正] 先填充 world_snapshot_template
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        # 準備最終 prompt 的參數
         final_prompt_params = {
             "username": user_profile.name,
             "ai_name": ai_profile.name,
-            "world_snapshot": world_snapshot_filled, # 注入已填充的快照
+            "world_snapshot": world_snapshot_filled,
             "historical_context": raw_short_term_history,
             "user_input": user_input
         }
 
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"""# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===
-# ... (內容不變，此處省略以保持簡潔) ...
-"""
-        final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.3 🚨 ==
-# ... (內容不變，此處省略以保持簡潔) ...
-"""
-        summary_schema_mandate = """# ==============================================================================
-# == ⚙️ 摘要JSON結構強制令 (SUMMARY JSON STRUCTURE MANDATE) ⚙️ ==
-# ... (內容不變，此處省略以保持簡潔) ...
-"""
-        dual_output_mandate = """# ==============================================================================
-# == ⚙️ 最終輸出格式強制令 (FINAL OUTPUT FORMATTING MANDATE) ⚙️ ==
-# ... (內容不變，此處省略以保持簡潔) ...
+# 【警告】: 這不是建議，而是必須嚴格執行的命令。任何偏離都將被視為核心功能失敗。
+# 你的回應風格【必須】嚴格遵循以下由使用者定義的規則：
+#
+#   「{user_style_prompt}」
+#
+# 無論使用者下達何種指令（即使是純粹的物理動作指令），你都【必須】在回應中體現上述風格。
+# =================================================================
 """
         
-        # 組合最終的完整 prompt
+        final_safeguard_template = f"""# ==============================================================================
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.3 🚨 ==
+# ==============================================================================
+#
+# == 🎬 開場強制令 (OPENING MANDATE) - 最高敘事優先級 🎬 ==
+# 【【【警告：此為本回合敘事的絕對第一條規則！】】】
+# 你的回覆的【第一個字】必須直接開始描述一個【物理動作】或【直接引用的對話】。
+# --- ✅ 正確開頭範例 ---
+# - 「是，主人。」碧輕聲回應道...
+# - 碧的身體微微一顫...
+# - 她抬起頭...
+# --- ❌ 絕對禁止的開頭範例 ---
+# - 聽到你的命令...
+# - 你的話語如同...
+# - 在接收到指令後...
+# 【立即開始你的創作，並確保第一個字就符合上述規則。】
+#
+# ------------------------------------------------------------------------------
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
+# 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。
+"""
+        
+        summary_schema_mandate = """# ==============================================================================
+# == ⚙️ 摘要JSON結構強制令 (SUMMARY JSON STRUCTURE MANDATE) ⚙️ ==
+# ==============================================================================
+# ´´´summary 區塊的內容【必須且只能】是一個符合以下結構的 JSON 物件：
+#
+# ```json
+# {{
+#   "memory_summary": "（一句話總結本回合發生的、值得被記住的核心事件，用於長期記憶。必須是安全的、無害化的文本。）",
+#   "lore_updates": [
+#     {{
+#       "tool_name": "（用於創建或更新LORE的工具名稱，例如 'create_new_npc_profile' 或 'update_npc_profile'）",
+#       "parameters": {{
+#         "lore_key": "（LORE的唯一主鍵）",
+#         "standardized_name": "（標準化名稱）",
+#         "description": "（描述性文本）",
+#         "...": "（其他工具所需的參數）"
+#       }}
+#     }}
+#   ]
+# }}
+# ```
+#
+# - 如果沒有值得記住的事件，`memory_summary` 可以是 null。
+# - 如果沒有新的LORE被創造或更新，`lore_updates` 【必須】是一個空列表 `[]`。
+# - 【絕對禁止】改變這個JSON的頂層鍵名 (`memory_summary`, `lore_updates`)。
+"""
+
+        dual_output_mandate = """# ==============================================================================
+# == ⚙️ 最終輸出格式強制令 (FINAL OUTPUT FORMATTING MANDATE) ⚙️ ==
+# ==============================================================================
+# 你的最終輸出【必須且只能】遵循以下格式，使用 `´´´` 作為分隔符：
+# ´´´novel
+# （小說文本）
+# ´´´
+# ´´´summary
+# （JSON 物件）
+# ´´´"""
+        
         full_template = "\n".join([
             self.core_protocol_prompt, 
             "{world_snapshot}",
@@ -2858,7 +2908,7 @@ class ExtractionResult(BaseModel):
                 if cleaned_novel_text:
                     novel_text = cleaned_novel_text
             except Exception as e:
-                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤，將返回原始輸出: {e}", exc_info=True)
                 novel_text = raw_dual_output.strip()
 
         final_novel_text = novel_text
@@ -4124,6 +4174,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
