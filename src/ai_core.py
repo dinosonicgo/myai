@@ -1794,11 +1794,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：生成開場白 (/start 流程 4/4)
+    # 函式：生成開場白 (/start 流程 4/4) (v183.0 - 本地安全代碼化)
     # 更新紀錄:
-    # v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt，并为 ainvoke_with_rotation 设置了 'force' 重试策略，以确保开场白生成过程与其他创造性LLM调用享有同等级别的抗审查保护。
+    # v183.0 (2025-09-27): [災難性BUG修復] 引入了「本地安全代碼化」策略。現在，在將所有高風險數據（角色檔案、地點描述、世界聖經）填入Prompt前，會先使用本地的編碼表將NSFW詞彙替換為安全代碼；在接收到模型的輸出後，再將代碼解碼還原。此「編碼-生成-解碼」的閉環流程從根本上解決了開場白Prompt因包含敏感詞而被內容審查系統攔截的問題。
+    # v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt，并为 ainvoke_with_rotation 设置了 'force' 重试策略，以确保开场白生成过程与其他創造性LLM调用享有同等级别的抗审查保护。
     # v182.0 (2025-09-23): [根本性重構] 彻底重写了此函式的 Prompt 以实现深度圣经融合。
-    # v181.0 (2025-11-19): [根本性重構] 适配了原生 SDK 引擎。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """(/start 流程 4/4) 根據已生成的完整上下文，撰寫故事的開場白。"""
         if not self.profile:
@@ -1811,7 +1811,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
         location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
-        # 将所有内容组合成一个完整的模板，以便 safe_format 处理
+        # [v183.0 核心修正] 創建一個用於編碼的反向映射
+        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+        # 為了正確替換，按長度排序以避免子字符串問題
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+
+        def encode_text(text: str) -> str:
+            if not text: return ""
+            for word, code in sorted_encoding_map:
+                text = text.replace(word, code)
+            return text
+
+        # [v183.0 核心修正] 對所有高風險輸入進行本地編碼
+        encoded_location_description = encode_text(location_description)
+        encoded_user_profile_json = encode_text(json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False))
+        encoded_ai_profile_json = encode_text(json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False))
+        encoded_canon_text = encode_text(canon_text or "（未提供世界聖經，請基於世界觀核心和地點描述进行創作。）")
+        encoded_world_settings = encode_text(self.profile.world_settings)
+
         full_template = f"""你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
 
 # === 【【【v182.0 核心任務定義】】】 ===
@@ -1849,7 +1866,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {{world_settings}}
 ---
 【當前地點】: {" > ".join(gs.location_path)}
-【地點描述】: {location_description}
+【地點描述】: {encoded_location_description}
 ---
 【使用者角色檔案：{user_profile.name}】
 {{user_profile_json}}
@@ -1864,19 +1881,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 請開始搭建一個寧靜、靜態且符合所有設定的開場場景。
 """
         
-        # [v182.1 核心修正] 使用 _safe_format_prompt 注入最高指令，並準備參數
         params = {
-            "world_settings": self.profile.world_settings,
-            "user_profile_json": json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False),
-            "ai_profile_json": json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False),
-            "canon_text": canon_text or "（未提供世界聖經，請基於世界觀核心和地點描述进行創作。）"
+            "world_settings": encoded_world_settings,
+            "user_profile_json": encoded_user_profile_json,
+            "ai_profile_json": encoded_ai_profile_json,
+            "canon_text": encoded_canon_text
         }
         
         full_prompt = self._safe_format_prompt(full_template, params, inject_core_protocol=True)
         
         final_opening_scene = ""
         try:
-            # [v182.1 核心修正] 明确使用 'force' 策略
             initial_scene = await self.ainvoke_with_rotation(
                 full_prompt, 
                 retry_strategy='force',
@@ -1885,8 +1900,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
             if not initial_scene or not initial_scene.strip():
                 raise Exception("生成了空的場景內容。")
-
-            final_opening_scene = initial_scene.strip()
+            
+            # [v183.0 核心修正] 對模型的輸出進行解碼，還原NSFW詞彙
+            decoded_scene = self._decode_lore_content(initial_scene, self.DECODING_MAP)
+            final_opening_scene = decoded_scene.strip()
             
         except Exception as e:
             logger.warning(f"[{self.user_id}] [/start] 開場白生成遭遇無法恢復的錯誤: {e}。啟動【安全備用開場白】。")
@@ -1896,7 +1913,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
         return final_opening_scene
-# 生成開場白 函式結束
+    # 生成開場白 函式結束
 
     
 
@@ -4073,6 +4090,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
