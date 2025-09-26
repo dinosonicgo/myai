@@ -3377,10 +3377,11 @@ class ExtractionResult(BaseModel):
 
 
 
-    # ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.1 - 縮排修正)
+    # ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.2 - 數據模型統一)
     # 更新紀錄:
+    # v1.2 (2025-09-27): [災難性BUG修復] 更新了Prompt中內聯的Pydantic模型定義，將 WorldLore 的 'title' 字段同步修改為 'name'，以解決因模型不一致導致的潛在驗證失敗問題。
     # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。它提供一個專門的 Prompt，用於解析經過“代碼替換”後的無害化文本塊，並強制 LLM 在其 JSON 輸出中也使用這些安全代碼，以確保整個流程的抗審查能力。
+    # v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。
     def get_sanitized_text_parser_chain(self) -> str:
         """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
         
@@ -3390,7 +3391,7 @@ class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: 
 class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
 class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
 class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""; status: str = "未知"
-class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
+class WorldLore(BaseModel): name: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
         
@@ -4185,6 +4186,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
