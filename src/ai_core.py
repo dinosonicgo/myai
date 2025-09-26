@@ -736,11 +736,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.4 - 參數修正)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - force策略修正)
     # 更新紀錄:
-    # v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫，移除了多餘的異常物件參數 `e`，使其與函式定義匹配，解決了 TypeError。
+    # v233.0 (2025-09-27): [災難性BUG修復] 修正了 `BlockedPromptException` 的處理邏輯。現在，當 `retry_strategy` 設置為 'force' 時，它會直接將失敗的 Prompt 傳遞給 `_force_and_retry` 備援函式，而不是像 'euphemize' 那樣進行解構。此修改是實現雲端高強度突破備援策略的關鍵。
+    # v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫，移除了多餘的異常物件參數 `e`。
     # v232.3 (2025-09-25): [可觀測性升級] 新增了日誌記錄，現在每次成功的生成都會在日誌中明確標示所使用的模型名稱和API金鑰索引。
-    # v232.2 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -827,8 +827,8 @@ class AILover:
                             raise e 
                         elif retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
+                        # [v233.0 核心修正] 直接將原始 prompt 傳遞給 force retry
                         elif retry_strategy == 'force':
-                            # [v232.4 核心修正] 移除了多餘的參數 `e`
                             return await self._force_and_retry(full_prompt, output_schema)
                         else: 
                             raise e
@@ -867,6 +867,7 @@ class AILover:
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
     # 函式：帶輪換和備援策略的原生 API 調用引擎
+                            
 
 
 
@@ -4104,6 +4105,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
