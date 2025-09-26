@@ -394,58 +394,43 @@ class AILover:
     # 函式：解析並儲存LORE實體
 
 
-        # 函式：呼叫本地Ollama模型進行單次描述合成 (v1.0 - 全新創建)
+    # 函式：呼叫本地Ollama模型進行批量描述合成 (v2.0 - 批量重構)
     # 更新紀錄:
-    # v1.0 (2025-09-27): [全新創建] 創建此函式作為LORE合併第二層備援（本地LLM）的核心執行器。它負責處理單個角色的描述合成任務，以化整為零的方式確保備援流程的穩定性。
-    async def _invoke_local_ollama_synthesis(self, original_description: str, new_information: str) -> Optional[str]:
+    # v2.0 (2025-09-27): [災難性BUG修復] 根據性能優化要求，將此函式從處理單一任務重構為處理批量任務。現在它會接收一個任務列表，構建一個包含所有任務的單一Prompt，並一次性呼叫本地LLM，從根本上解決了本地備援逐一處理過慢的問題。
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為LORE合併第二層備援（本地LLM）的核心執行器。
+    async def _invoke_local_ollama_batch_synthesis(self, tasks: List[SynthesisTask]) -> Optional[Dict[str, str]]:
         """
-        【第二層備援】呼叫本地運行的 Ollama 模型來執行單次的 LORE 描述合成任務。
-        返回一個包含合成後文本的字串，如果失敗則返回 None。
+        【第二層備援】呼叫本地運行的 Ollama 模型來執行【批量】的 LORE 描述合成任務。
+        返回一個包含 {角色名: 合成後文本} 的字典，如果失敗則返回 None。
         """
         import httpx
+        from pydantic import BaseModel
         
         if not self.is_ollama_available:
-            logger.warning(f"[{self.user_id}] [本地合成備援] 因Ollama服務不可用，跳過本地合成。")
+            logger.warning(f"[{self.user_id}] [本地合成備援] 因Ollama服務不可用，跳過本地批量合成。")
             return None
 
-        prompt = f"""# TASK: Merge two pieces of text into a single, coherent paragraph.
-# RULE: Combine the core facts from both texts naturally. Do not add any extra commentary.
+        # 為本地模型定義一個簡單的 Pydantic 輸出結構
+        class LocalSynthResult(BaseModel):
+            name: str
+            description: str
+        class LocalBatchResult(BaseModel):
+            results: List[LocalSynthResult]
 
-### ORIGINAL TEXT:
-{original_description}
+        # 構建批量 Prompt
+        task_json_str = json.dumps([t.model_dump() for t in tasks], ensure_ascii=False, indent=2)
+        pydantic_schema_str = json.dumps(LocalBatchResult.model_json_schema(), ensure_ascii=False, indent=2)
 
-### NEW INFORMATION:
-{new_information}
+        prompt = f"""# TASK: You are a data processing engine. Your task is to process a batch of text merging requests.
+# MISSION: For each item in the `tasks` JSON array below, merge the `original_description` and `new_information` into a single, coherent `description`.
+# RULES:
+# 1.  Your output MUST be a single, valid JSON object that perfectly matches the `PYDANTIC_SCHEMA`.
+# 2.  The output JSON object must contain a `results` list with an entry for EVERY task in the input.
+# 3.  The `name` in each result object MUST EXACTLY MATCH the name from the corresponding input task.
+# 4.  Merge the texts naturally, preserving all key facts from both sources.
 
-### MERGED TEXT:
-"""
-        payload = {
-            "model": self.ollama_model_name,
-            "prompt": prompt,
-            "stream": False,
-            "options": { "temperature": 0.5 }
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=120.0) as client:
-                response = await client.post("http://localhost:11434/api/generate", json=payload)
-                response.raise_for_status()
-                response_data = response.json()
-                synthesized_text = response_data.get("response")
-                
-                if not synthesized_text or not synthesized_text.strip():
-                    logger.warning(f"[{self.user_id}] [本地合成備援] 本地模型返回了空的合成結果。")
-                    return None
-                
-                return synthesized_text.strip()
-
-        except httpx.ConnectError:
-            logger.error(f"[{self.user_id}] [本地合成備援] 無法連接到本地 Ollama 伺服器。")
-            return None
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [本地合成備援] 呼叫本地 Ollama 合成時發生未知錯誤: {e}", exc_info=True)
-            return None
-    # 函式：呼叫本地Ollama模型進行單次描述合成
+### PYDANTIC_SCHEMA (Your output MUST conform to this structure):```json
+{pydantic_schema_str}
 
 
 
@@ -4105,6 +4090,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
