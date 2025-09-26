@@ -275,11 +275,11 @@ class ContinueToCanonSetupView(discord.ui.View):
 
 
 
-# 類別：重新生成或撤銷回覆的視圖 (v1.2 - DM權限修正)
+# 類別：重新生成或撤銷回覆的視圖 (v1.3 - 深度撤銷)
 # 更新紀錄:
-# v1.2 (2025-09-26): [健壯性強化] 在 `undo` 方法中增加了對頻道類型的檢查。現在，只有在非私信頻道（即伺服器頻道）中，程式才會嘗試刪除使用者的上一條訊息。此修改從根本上避免了因機器人無權在私信中刪除他人訊息而產生的 `403 Forbidden` 警告。
+# v1.3 (2025-09-27): [災難性BUG修復] 在 undo 方法中增加了對 ai_instance._delete_last_memory() 的調用。此修改將前端的撤銷操作與後端資料庫清理打通，確保在撤銷短期記憶的同時，也刪除對應的長期記憶，從根本上解決了因RAG讀取到已撤銷內容而導致重複回覆的問題。
+# v1.2 (2025-09-26): [健壯性強化] 在 `undo` 方法中增加了對頻道類型的檢查。
 # v1.1 (2025-09-23): [功能擴展] 新增了“撤銷”按鈕。
-# v1.0 (2025-11-17): [全新創建] 創建此視圖以支持重新生成功能。
 class RegenerateView(discord.ui.View):
     # 函式：初始化 RegenerateView
     def __init__(self, *, cog: "BotCog"):
@@ -300,16 +300,23 @@ class RegenerateView(discord.ui.View):
             return
 
         try:
+            # 步驟 1: 清理短期記憶 (記憶體)
             scene_key = ai_instance._get_scene_key()
             if scene_key in ai_instance.scene_histories:
                 history = ai_instance.scene_histories[scene_key]
                 if len(history.messages) >= 2:
-                    history.messages.pop()
+                    # 移除上一輪的 AI 回應 和 使用者輸入
+                    history.messages.pop() 
                     history.messages.pop()
                     logger.info(f"[{user_id}] [重新生成] 已從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
+            # 步驟 2: 清理長期記憶 (資料庫)
+            await ai_instance._delete_last_memory()
+
+            # 步驟 3: 刪除 Discord 上的訊息
             await interaction.message.delete()
 
+            # 步驟 4: 重新生成
             logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
             input_data = {"user_input": ai_instance.last_user_input}
             
@@ -321,10 +328,11 @@ class RegenerateView(discord.ui.View):
                     current_view = view if i + 2000 >= len(final_response) else None
                     await interaction.channel.send(final_response[i:i+2000], view=current_view)
                 
+                # 重新生成後的事後處理
                 if summary_data:
                     logger.info(f"[{user_id}] [重新生成] 新回應已發送，正在啟動事後處理任務...")
                     asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
-                    asyncio.create_task(ai_instance.execute_lore_updates_from_summary(summary_data))
+                    asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_user_input, final_response))
                 else:
                     logger.info(f"[{user_id}] [重新生成] 新回應無摘要數據，跳過事後處理。")
             else:
@@ -335,7 +343,7 @@ class RegenerateView(discord.ui.View):
             await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
     # 函式：處理「重新生成」按鈕點擊事件
 
-    # [v1.2 核心修正] 函式：處理「撤銷」按鈕點擊事件
+    # 函式：處理「撤銷」按鈕點擊事件
     @discord.ui.button(label="🗑️ 撤銷", style=discord.ButtonStyle.danger, custom_id="persistent_undo_button")
     async def undo(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -348,6 +356,7 @@ class RegenerateView(discord.ui.View):
             return
 
         try:
+            # 步驟 1: 清理短期記憶 (記憶體)
             scene_key = ai_instance._get_scene_key()
             history = ai_instance.scene_histories.get(scene_key)
 
@@ -355,13 +364,16 @@ class RegenerateView(discord.ui.View):
                 await interaction.followup.send("❌ 錯誤：沒有足夠的歷史記錄可供撤銷。", ephemeral=True)
                 return
 
-            history.messages.pop()
-            last_user_message = history.messages.pop()
+            history.messages.pop() # 移除 AI 回應
+            last_user_message = history.messages.pop() # 移除使用者輸入
             logger.info(f"[{user_id}] [撤銷] 已成功從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
+            # [v1.3 核心修正] 步驟 2: 清理長期記憶 (資料庫)
+            await ai_instance._delete_last_memory()
+
+            # 步驟 3: 刪除 Discord 上的訊息
             await interaction.message.delete()
             
-            # [v1.2 核心修正] 增加頻道類型檢查，只在非DM頻道嘗試刪除使用者訊息
             if not isinstance(interaction.channel, discord.DMChannel):
                 try:
                     async for msg in interaction.channel.history(limit=10):
@@ -376,13 +388,15 @@ class RegenerateView(discord.ui.View):
             
             ai_instance.last_user_input = None
 
-            await interaction.followup.send("✅ 上一回合已成功撤銷。", ephemeral=True)
+            await interaction.followup.send("✅ 上一回合已成功深度撤銷（包含長期記憶）。", ephemeral=True)
 
         except Exception as e:
             logger.error(f"[{user_id}] [撤銷] 流程執行時發生異常: {e}", exc_info=True)
             await interaction.followup.send(f"撤銷時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
     # 函式：處理「撤銷」按鈕點擊事件
 # 類別：重新生成或撤銷回覆的視圖
+
+
 
 
 
@@ -2004,6 +2018,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
