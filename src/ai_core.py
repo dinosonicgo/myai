@@ -239,16 +239,16 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-    # 函式：解析並儲存LORE實體 (v1.9 - 智能描述合成)
+    # 函式：解析並儲存LORE實體 (v2.0 - 三層防禦架構)
     # 更新紀錄:
-    # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。現在，當需要合併`description`時，系統不再簡單地覆蓋，而是會觸發一個由LLM驅動的「描述合成」流程，將舊描述和新情報智能地融合成一段全新的、更完整的描述。此修改從根本上解決了LORE核心資訊（如「母畜」身份）在更新過程中被意外覆蓋和丟失的問題。
+    # v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合成的邏輯，引入了三層防禦架構：1. 嘗試使用雲端模型進行批量合成；2. 若因審查失敗，則降級到本地無審查模型進行逐一合成；3. 若本地模型也失敗，則執行程式級的確定性字串拼接。此修改從根本上杜絕了LORE信息在合併過程中被靜默丟失的風險。
+    # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。
     # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。
-    # v1.7 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使其能夠同時處理LLM可能返回的同義詞。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
-        內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
+        內建針對 NPC 的批量實體解析、三層防禦描述合成與最終解碼邏輯。
         """
         if not self.profile:
             return
@@ -297,56 +297,85 @@ class AILover:
                 logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
                 items_to_create = new_npcs_from_parser
 
-            # [v1.9 核心修正] 引入描述合成邏輯
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
                 for matched_key, contents_to_merge in updates_to_merge.items():
                     existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
                     if not existing_lore: continue
                     
-                    # 先合併非描述性的、結構化的數據
                     for new_content in contents_to_merge:
                         new_description = new_content.get('description')
-                        # 如果新描述不為空且與舊描述不同，則創建一個合成任務
                         if new_description and new_description.strip() and new_description not in existing_lore.content.get('description', ''):
                             synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
                         
-                        # 合併列表和字典等結構化數據
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
                             existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
                         if 'relationships' in new_content:
                              existing_lore.content.setdefault('relationships', {}).update(new_content['relationships'])
                         
-                        # 覆蓋其他單值數據
                         for key, value in new_content.items():
                             if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name', 'relationships'] and value:
                                 existing_lore.content[key] = value
                     
-                    # 將初步合併後的結構化數據寫回，等待描述合成的結果
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
-            # 執行批量描述合成
+            # --- [v2.0 核心修正] 三層防禦描述合成 ---
             if synthesis_tasks:
-                logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
+                synthesized_results: Dict[str, str] = {}
+                
+                # --- 第一層防線: 雲端批量合成 ---
                 try:
+                    logger.info(f"[{self.user_id}] [LORE 合併 L1] 正在為 {len(synthesis_tasks)} 個NPC執行【雲端批量合成】...")
                     synthesis_prompt_template = self.get_description_synthesis_prompt()
                     batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
                     synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
-                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='euphemize', use_degradation=True)
+                    
+                    cloud_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
+                    
+                    if cloud_result and cloud_result.synthesized_descriptions:
+                        logger.info(f"[{self.user_id}] [LORE 合併 L1] ✅ 雲端批量合成成功，收到 {len(cloud_result.synthesized_descriptions)} 條新描述。")
+                        for res in cloud_result.synthesized_descriptions:
+                            synthesized_results[res.name] = res.description
+                
+                except BlockedPromptException:
+                    logger.warning(f"[{self.user_id}] [LORE 合併 L1] 遭遇內容審查！正在降級到【L2: 本地逐一合成】...")
+                    # --- 第二層防線: 本地逐一合成 ---
+                    for task in synthesis_tasks:
+                        logger.info(f"[{self.user_id}] [LORE 合併 L2] 正在為 '{task.name}' 執行本地合成...")
+                        local_result = await self._invoke_local_ollama_synthesis(task.original_description, task.new_information)
+                        if local_result:
+                            logger.info(f"[{self.user_id}] [LORE 合併 L2] ✅ 本地合成成功: '{task.name}'")
+                            synthesized_results[task.name] = local_result
+                        else:
+                            logger.warning(f"[{self.user_id}] [LORE 合併 L2] ❌ 本地合成失敗: '{task.name}'。將降級到 L3。")
 
-                    if synthesis_result and synthesis_result.synthesized_descriptions:
-                        logger.info(f"[{self.user_id}] [LORE合併] 批量合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
-                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
-                        
-                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in results_dict)
-                        for lore in all_merged_lores:
-                            char_name = lore.content.get('name')
-                            if char_name in results_dict:
-                                lore.content['description'] = results_dict[char_name]
-                                final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                                await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE 合併 L1] 雲端批量合成遭遇未知錯誤: {e}。將對所有任務嘗試 L2/L3 備援。", exc_info=True)
+                
+                # --- 第三層防線: 程式級確定性合併 ---
+                if len(synthesized_results) < len(synthesis_tasks):
+                    logger.warning(f"[{self.user_id}] [LORE 合併 L3] LLM 合成不完整，正在為剩餘任務執行【程式級確定性合併】...")
+                    import datetime
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d")
+                    for task in synthesis_tasks:
+                        if task.name not in synthesized_results:
+                            logger.info(f"[{self.user_id}] [LORE 合併 L3] 正在為 '{task.name}' 執行拼接...")
+                            fallback_description = (
+                                f"{task.original_description}\n\n"
+                                f"--- [系統追加情報 v{timestamp}] ---\n"
+                                f"{task.new_information}"
+                            )
+                            synthesized_results[task.name] = fallback_description
+
+                # --- 統一寫入數據庫 ---
+                logger.info(f"[{self.user_id}] [LORE 合併] 所有防線執行完畢，正在將 {len(synthesized_results)} 條結果統一寫入資料庫...")
+                all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in synthesized_results)
+                for lore in all_merged_lores:
+                    char_name = lore.content.get('name')
+                    if char_name in synthesized_results:
+                        lore.content['description'] = synthesized_results[char_name]
+                        final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
 
             items = items_to_create
 
@@ -363,6 +392,60 @@ class AILover:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
     # 函式：解析並儲存LORE實體
+
+
+        # 函式：呼叫本地Ollama模型進行單次描述合成 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為LORE合併第二層備援（本地LLM）的核心執行器。它負責處理單個角色的描述合成任務，以化整為零的方式確保備援流程的穩定性。
+    async def _invoke_local_ollama_synthesis(self, original_description: str, new_information: str) -> Optional[str]:
+        """
+        【第二層備援】呼叫本地運行的 Ollama 模型來執行單次的 LORE 描述合成任務。
+        返回一個包含合成後文本的字串，如果失敗則返回 None。
+        """
+        import httpx
+        
+        if not self.is_ollama_available:
+            logger.warning(f"[{self.user_id}] [本地合成備援] 因Ollama服務不可用，跳過本地合成。")
+            return None
+
+        prompt = f"""# TASK: Merge two pieces of text into a single, coherent paragraph.
+# RULE: Combine the core facts from both texts naturally. Do not add any extra commentary.
+
+### ORIGINAL TEXT:
+{original_description}
+
+### NEW INFORMATION:
+{new_information}
+
+### MERGED TEXT:
+"""
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": prompt,
+            "stream": False,
+            "options": { "temperature": 0.5 }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                response_data = response.json()
+                synthesized_text = response_data.get("response")
+                
+                if not synthesized_text or not synthesized_text.strip():
+                    logger.warning(f"[{self.user_id}] [本地合成備援] 本地模型返回了空的合成結果。")
+                    return None
+                
+                return synthesized_text.strip()
+
+        except httpx.ConnectError:
+            logger.error(f"[{self.user_id}] [本地合成備援] 無法連接到本地 Ollama 伺服器。")
+            return None
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [本地合成備援] 呼叫本地 Ollama 合成時發生未知錯誤: {e}", exc_info=True)
+            return None
+    # 函式：呼叫本地Ollama模型進行單次描述合成
 
 
 
@@ -4021,6 +4104,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
