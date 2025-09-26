@@ -239,11 +239,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-    # 函式：解析並儲存LORE實體 (v1.9 - 智能描述合成)
+    # 函式：解析並儲存LORE實體 (v3.0 - 四層降級備援)
     # 更新紀錄:
+    # v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯，實現了「兩階段、四層降級」架構：1A(雲端批量) -> 1B(雲端強制重試) -> 2A(本地批量) -> 2B(程式拼接)，從根本上解決了因內容審查或模型故障導致的數據丟失問題。
     # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。現在，當需要合併`description`時，系統不再簡單地覆蓋，而是會觸發一個由LLM驅動的「描述合成」流程，將舊描述和新情報智能地融合成一段全新的、更完整的描述。此修改從根本上解決了LORE核心資訊（如「母畜」身份）在更新過程中被意外覆蓋和丟失的問題。
     # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。
-    # v1.7 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使其能夠同時處理LLM可能返回的同義詞。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -297,60 +297,90 @@ class AILover:
                 logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
                 items_to_create = new_npcs_from_parser
 
-            # [v1.9 核心修正] 引入描述合成邏輯
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
                 for matched_key, contents_to_merge in updates_to_merge.items():
                     existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
                     if not existing_lore: continue
                     
-                    # 先合併非描述性的、結構化的數據
                     for new_content in contents_to_merge:
                         new_description = new_content.get('description')
-                        # 如果新描述不為空且與舊描述不同，則創建一個合成任務
                         if new_description and new_description.strip() and new_description not in existing_lore.content.get('description', ''):
                             synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
                         
-                        # 合併列表和字典等結構化數據
                         for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
                             existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
                         if 'relationships' in new_content:
                              existing_lore.content.setdefault('relationships', {}).update(new_content['relationships'])
                         
-                        # 覆蓋其他單值數據
                         for key, value in new_content.items():
                             if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name', 'relationships'] and value:
                                 existing_lore.content[key] = value
                     
-                    # 將初步合併後的結構化數據寫回，等待描述合成的結果
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
-            # 執行批量描述合成
+            # [v3.0 核心修正] 執行全新的四層降級描述合成
             if synthesis_tasks:
                 logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
+                synthesis_result = None
+                
+                # --- 層級 1A: 雲端批量 ---
                 try:
                     synthesis_prompt_template = self.get_description_synthesis_prompt()
                     batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
                     synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
-                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='euphemize', use_degradation=True)
-
-                    if synthesis_result and synthesis_result.synthesized_descriptions:
-                        logger.info(f"[{self.user_id}] [LORE合併] 批量合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
-                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
-                        
-                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in results_dict)
-                        for lore in all_merged_lores:
-                            char_name = lore.content.get('name')
-                            if char_name in results_dict:
-                                lore.content['description'] = results_dict[char_name]
-                                final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                                await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE合併] 批量描述合成主流程發生嚴重錯誤: {e}", exc_info=True)
+                    logger.warning(f"[{self.user_id}] [LORE合併-1A] 雲端批量合成失敗: {e}。降級到 1B (雲端強制重試)...")
+
+                # --- 層級 1B: 雲端強制重試 ---
+                if not synthesis_result:
+                    try:
+                        forceful_prompt = synthesis_prompt + f"\n\n{self.core_protocol_prompt}"
+                        synthesis_result = await self.ainvoke_with_rotation(forceful_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
+                    except Exception as e:
+                        logger.warning(f"[{self.user_id}] [LORE合併-1B] 雲端強制重試失敗: {e}。降級到 2A (本地批量)...")
+                
+                # --- 層級 2A: 本地批量 ---
+                if not synthesis_result and self.is_ollama_available:
+                    try:
+                        synthesis_result = await self._invoke_local_ollama_batch_synthesis(synthesis_tasks)
+                    except Exception as e:
+                        logger.error(f"[{self.user_id}] [LORE合併-2A] 本地批量合成遭遇嚴重錯誤: {e}。降級到 2B (程式拼接)...")
+                
+                # --- 最終處理與層級 2B (程式拼接) ---
+                if synthesis_result and synthesis_result.synthesized_descriptions:
+                    logger.info(f"[{self.user_id}] [LORE合併] LLM 合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
+                    results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
+                    tasks_dict = {task.name: task for task in synthesis_tasks}
+                    
+                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
+                    for lore in all_merged_lores:
+                        char_name = lore.content.get('name')
+                        if char_name in results_dict:
+                            lore.content['description'] = results_dict[char_name]
+                        # 處理在LLM輸出中可能遺漏的條目
+                        elif char_name in tasks_dict:
+                            logger.warning(f"[{self.user_id}] [LORE合併-2B] LLM輸出遺漏了'{char_name}'，觸發最終備援(程式拼接)。")
+                            task = tasks_dict[char_name]
+                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
+                        
+                        final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                else:
+                    logger.critical(f"[{self.user_id}] [LORE合併-2B] 所有LLM層級均失敗！觸發對所有任務的最終備援(程式拼接)。")
+                    tasks_dict = {task.name: task for task in synthesis_tasks}
+                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
+                    for lore in all_merged_lores:
+                        char_name = lore.content.get('name')
+                        if char_name in tasks_dict:
+                            task = tasks_dict[char_name]
+                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
+                            final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged_fallback')
 
             items = items_to_create
 
-        # 處理剩餘的、被判定為全新的實體
         for item_data in items:
             try:
                 name = item_data.get(title_key)
@@ -948,11 +978,11 @@ class AILover:
 
 
     
-    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.2 - 自我修正)
+    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
     # 更新紀錄:
+    # v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配，特別是恢復了對 start_tag_placeholder 的傳遞，從而解決了導致 /start 流程崩潰的致命 KeyError。
     # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。當第一次解析返回的JSON格式錯誤時，此函式不再立即失敗，而是會自動觸發一次修正請求，將錯誤的JSON傳回給模型要求其修復，從而極大地提高了處理不穩定本地模型輸出的成功率。
     # v1.1 (2025-09-26): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
-    # v1.0 (2025-09-26): [全新創建] 創建此函式作為本地LLM備援方案的執行核心。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
         呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
@@ -976,6 +1006,7 @@ class AILover:
         pydantic_block = f"```python\n{pydantic_definitions}\n```"
         output_block = f"{start_tag}\n{example_json_output}\n{end_tag}"
         
+        # [v1.3 核心修正] 確保 format 參數與模板佔位符完全匹配
         full_prompt = prompt_skeleton.format(
             username=self.profile.user_profile.name,
             ai_name=self.profile.ai_profile.name,
@@ -1014,17 +1045,25 @@ class AILover:
         except (json.JSONDecodeError, ValidationError) as e:
             logger.warning(f"[{self.user_id}] 本地模型首次解析失敗: {type(e).__name__}。啟動【自我修正】重試 (Attempt 2/2)...")
             
-            # [v1.2 核心修正] 自我修正邏輯
             try:
+                # 提取原始錯誤的json字符串
+                raw_json_string = ""
+                if hasattr(e, 'doc'): # JSONDecodeError
+                    raw_json_string = e.doc
+                elif hasattr(e, 'input'): # ValidationError
+                    raw_json_string = str(e.input)
+                else:
+                    raw_json_string = str(e)
+
                 correction_prompt_template = self.get_local_model_json_correction_prompt()
-                correction_prompt = correction_prompt_template.format(raw_json_string=str(e))
+                correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
 
                 correction_payload = {
                     "model": self.ollama_model_name,
                     "prompt": correction_prompt,
                     "format": "json",
                     "stream": False,
-                    "options": { "temperature": 0.0 } # 修正時使用0溫度
+                    "options": { "temperature": 0.0 }
                 }
 
                 async with httpx.AsyncClient(timeout=120.0) as client:
@@ -1061,9 +1100,9 @@ class AILover:
 
     
     
-        # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 終極渲染修復)
+    # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
     # 更新紀錄:
-    # v2.0 (2025-09-25): [災難性BUG修復] 採用終極的「最小化骨架」策略。此函式不再返回包含範例的完整Prompt，而是只返回一個絕對安全的指令骨架。完整的Prompt將在執行時由核心調用函式動態組裝，從而徹底繞過渲染引擎的截斷問題。
+    # v2.0 (2025-09-27): [災難性BUG修復] 恢復為「最小化骨架」策略。此函式現在返回一個包含所有必要佔位符（特別是 {start_tag_placeholder}）的模板骨架。完整的Prompt將在執行時由核心調用函式動態組裝。此修改旨在解決因模板與format參數不匹配而導致的致命KeyError。
     # v1.3 (2025-09-25): [災難性BUG修復] 採用終極的物理隔離策略。
     # v1.2 (2025-09-25): [災難性BUG修復] 採用了終極的字串構建策略。
     def get_local_model_lore_parser_prompt(self) -> str:
@@ -3264,11 +3303,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v3.2 - 日誌增強)
+    # 函式：執行 LORE 解析管線 (v3.4 - 致命錯誤修正)
     # 更新紀錄:
+    # v3.4 (2025-09-27): [災難性BUG修復] 移除了所有對 _resolve_and_save 函式傳遞 title_key='title' 的硬編碼參數，使其與 schemas.py v3.0 中 WorldLore 的 name 字段統一，解決了 ValidationError。同時，此版本依賴於在 ai_core.py 頂部對 BatchClassificationResult 的正確導入，以解決 NameError。
     # v3.2 (2025-09-26): [可觀測性升級] 在第四層備援（混合NLP方案）中，為實體提取、分類、精煉和儲存的每一步都增加了詳細的日誌記錄，以便於在該流程失敗時進行精確的問題定位。
     # v3.1 (2025-09-26): [重大架構升級] 管线的第二层（本地LLM备援）现在会首先检查 `self.is_ollama_available` 状态旗标。
-    # v3.0 (2025-09-26): [重大架構升級] 引入了本地無審查LLM作為第二層備援。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
         【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
@@ -3298,7 +3337,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除 title_key='title'
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 遭遇內容審查，正在降級到第二層（本地LLM）...")
@@ -3317,7 +3357,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除 title_key='title'
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
                 else:
                     logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
@@ -3350,7 +3391,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除 title_key='title'
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 3/5] 無害化後仍遭遇審查，正在降級到第四層...")
@@ -3362,7 +3404,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if not parsing_completed:
                 logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...")
                 
-                # [v3.2 核心修正] 增加詳細日誌
                 candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
                 if not candidate_entities:
                     logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地 NLP 未能提取任何候選實體，跳過此層。")
@@ -3376,6 +3417,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse[:8000]},
                         inject_core_protocol=True
                     )
+                    # [v3.4 NameError 修正] 此處需要 BatchClassificationResult 被正確導入
                     classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
                     
                     if not classification_result or not classification_result.classifications:
@@ -3412,10 +3454,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             success_count = 0
                             for result in refined_results:
                                 if not isinstance(result, Exception) and result:
-                                    category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name) or (hasattr(result, 'title') and c.entity_name == result.title)), None)
+                                    category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name)), None)
                                     if category:
-                                        title_key = 'title' if isinstance(result, WorldLore) else 'name'
-                                        await self._resolve_and_save(category + "s", [result.model_dump()], title_key=title_key)
+                                        # [v3.4 核心修正] 移除 title_key 的判斷邏輯
+                                        await self._resolve_and_save(category + "s", [result.model_dump()])
                                         success_count += 1
                             
                             if success_count > 0:
@@ -3470,7 +3512,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         return parsing_completed
     # 函式：執行 LORE 解析管線
-
 
 
         # 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
@@ -4032,6 +4073,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
