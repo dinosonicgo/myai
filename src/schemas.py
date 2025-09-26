@@ -273,7 +273,7 @@ class CanonParsingResult(BaseModel):
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
 
-
+# [v3.0 核心修正] 補上缺失的類定義
 class LoreClassificationResult(BaseModel):
     """用於混合 NLP 流程，表示單個候選實體的分類結果。"""
     entity_name: str = Field(description="與輸入完全相同的候選實體名稱。")
@@ -381,6 +381,5 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
