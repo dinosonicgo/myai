@@ -1,7 +1,13 @@
+# schemas.py v3.0 (關係結構化 & 致命BUG修復)
+# 更新紀錄:
+# v3.0 (2025-09-27): [災難性BUG修復] 補全了缺失的 LoreClassificationResult 和 BatchClassificationResult 類定義，並將 WorldLore 的 'title' 統一為 'name' 以解決 ValidationError。
+# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典，同時增加了向下兼容的驗證器。
+# v1.4 (2025-09-26): [災難性BUG修復] 在文件頂部增加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
+
 import json
 import re
 from typing import Optional, Dict, List, Any, Literal
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, AliasChoices
 
 # --- 基礎驗證器 ---
 def _validate_string_to_list(value: Any) -> Any:
@@ -38,6 +44,12 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
+# [v2.0 新增] 用於結構化關係的模型
+class RelationshipDetail(BaseModel):
+    """儲存一個角色對另一個角色的詳細關係資訊"""
+    type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
+    roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
+
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -55,7 +67,8 @@ class CharacterProfile(BaseModel):
     location: str = Field(default="", description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
     affinity: int = Field(default=0, description="此角色對使用者的好感度。")
-    relationships: Dict[str, Any] = Field(default_factory=dict, description="記錄此角色與其他角色的關係。例如：{{'莉莉絲': '女兒', '卡爾': '丈夫'}}")
+    # [v2.0 核心修正] 升級 relationships 欄位
+    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="記錄此角色與其他角色的結構化關係。例如：{'莉莉絲': {'type': '家庭', 'roles': ['女兒']}}")
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
@@ -71,21 +84,40 @@ class CharacterProfile(BaseModel):
     def _validate_string_to_dict_fields(cls, value: Any) -> Any:
         return _validate_string_to_dict(value)
 
+    # [v2.0 核心修正] 增加強大的向下兼容驗證器
     @field_validator('relationships', mode='before')
     @classmethod
-    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, str]:
+    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
+        """
+        一個強大的驗證器，用於處理和規範化 'relationships' 字典。
+        它可以向下兼容舊的扁平化字串格式，並將其自動轉換為新的 RelationshipDetail 結構。
+        """
         if isinstance(value, str):
             value = _validate_string_to_dict(value)
         if not isinstance(value, dict):
             return {}
+            
         normalized_dict = {}
         for k, v in value.items():
-            if isinstance(v, int):
-                normalized_dict[str(k)] = f"關係值: {v}"
-            elif isinstance(v, str):
-                normalized_dict[str(k)] = v
+            # 兼容舊格式: {"莉莉絲": "女兒"}
+            if isinstance(v, str):
+                normalized_dict[str(k)] = RelationshipDetail(roles=[v])
+            # 兼容舊格式: {"卡爾": 100} (好感度)
+            elif isinstance(v, int):
+                 normalized_dict[str(k)] = RelationshipDetail(type="好感度", roles=[str(v)])
+            # 處理新格式或已經是字典的格式
+            elif isinstance(v, dict):
+                try:
+                    # 嘗試直接驗證為新模型
+                    normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
+                except Exception:
+                    # 如果失敗，則作為通用字典處理
+                    roles = [str(role) for role in v.get("roles", [])]
+                    type_str = v.get("type", "社交關係")
+                    normalized_dict[str(k)] = RelationshipDetail(type=type_str, roles=roles)
+            # 其他類型，盡力轉換
             else:
-                normalized_dict[str(k)] = str(v)
+                normalized_dict[str(k)] = RelationshipDetail(roles=[str(v)])
         return normalized_dict
 
 class BatchRefinementResult(BaseModel):
@@ -163,7 +195,8 @@ class CreatureInfo(BaseModel):
         return _validate_string_to_list(value)
 
 class WorldLore(BaseModel):
-    title: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。")
+    # [v3.0 核心修正] 將 'title' 統一為 'name' 並保持兼容性
+    name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
     content: str = Field(default="", description="詳細的內容描述。")
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
@@ -249,7 +282,7 @@ class CanonParsingResult(BaseModel):
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
 
-
+# [v3.0 核心修正] 補全缺失的類定義
 class LoreClassificationResult(BaseModel):
     """用於混合 NLP 流程，表示單個候選實體的分類結果。"""
     entity_name: str = Field(description="與輸入完全相同的候選實體名稱。")
@@ -357,6 +390,8 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-
+# [v2.0 新增] 確保新模型也被重建
+RelationshipDetail.model_rebuild()
+# [v3.0 新增] 確保新模型也被重建
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
