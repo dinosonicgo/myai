@@ -3427,11 +3427,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v3.2 - 日誌增強)
+    # 函式：執行 LORE 解析管線 (v3.4 - 數據流連貫性修復)
     # 更新紀錄:
-    # v3.2 (2025-09-26): [可觀測性升級] 在第四層備援（混合NLP方案）中，為實體提取、分類、精煉和儲存的每一步都增加了詳細的日誌記錄，以便於在該流程失敗時進行精確的問題定位。
-    # v3.1 (2025-09-26): [重大架構升級] 管线的第二层（本地LLM备援）现在会首先检查 `self.is_ollama_available` 状态旗标。
-    # v3.0 (2025-09-26): [重大架構升級] 引入了本地無審查LLM作為第二層備援。
+    # v3.4 (2025-09-27): [災難性BUG修復] 移除了在 _resolve_and_save 呼叫中針對 world_lores 的、已過時的 `title_key='title'` 參數。此修改旨在與 schemas.py 中將 WorldLore 標識符統一為 'name' 的更新保持同步，從而解決因數據流不一致導致的致命啟動錯誤。
+    # v3.3 (2025-09-27): [災難性BUG修復] 修正了對本地模型（第二層備援）解析結果的判斷邏輯。
+    # v3.2 (2025-09-26): [可觀測性升級] 在第四層備援（混合NLP方案）中，為實體提取、分類、精煉和儲存的每一步都增加了詳細的日誌記錄。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> bool:
         """
         【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
@@ -3461,7 +3461,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除已過時的 title_key 參數
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 遭遇內容審查，正在降級到第二層（本地LLM）...")
@@ -3473,17 +3474,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             try:
                 logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在嘗試【本地備援方案：無審查解析】...")
                 parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
-                if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
+                if parsing_result and any([
+                    parsing_result.npc_profiles, 
+                    parsing_result.locations, 
+                    parsing_result.items, 
+                    parsing_result.creatures, 
+                    parsing_result.quests, 
+                    parsing_result.world_lores
+                ]):
                     logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！正在儲存本地解析結果...")
                     await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
                     await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除已過時的 title_key 參數
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
                 else:
-                    logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
+                    logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析（返回內容為空），正在降級到第三層（安全代碼）...")
             except Exception as e:
                 logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
         elif not parsing_completed and not self.is_ollama_available:
@@ -3513,7 +3522,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
                     await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
                     await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores], title_key='title')
+                    # [v3.4 核心修正] 移除已過時的 title_key 參數
+                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 3/5] 無害化後仍遭遇審查，正在降級到第四層...")
@@ -3525,7 +3535,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if not parsing_completed:
                 logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...")
                 
-                # [v3.2 核心修正] 增加詳細日誌
                 candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
                 if not candidate_entities:
                     logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地 NLP 未能提取任何候選實體，跳過此層。")
@@ -3575,10 +3584,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             success_count = 0
                             for result in refined_results:
                                 if not isinstance(result, Exception) and result:
-                                    category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name) or (hasattr(result, 'title') and c.entity_name == result.title)), None)
+                                    category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name)), None)
                                     if category:
-                                        title_key = 'title' if isinstance(result, WorldLore) else 'name'
-                                        await self._resolve_and_save(category + "s", [result.model_dump()], title_key=title_key)
+                                        # [v3.4 核心修正] 這裡不需要 title_key，因為 _resolve_and_save 預設就是 'name'
+                                        await self._resolve_and_save(category + "s", [result.model_dump()])
                                         success_count += 1
                             
                             if success_count > 0:
@@ -3633,6 +3642,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         return parsing_completed
     # 函式：執行 LORE 解析管線
+
+
+
+
+
+
+                    
 
 
 
@@ -4186,6 +4202,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
