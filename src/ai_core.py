@@ -1203,46 +1203,68 @@ class AILover:
 
     
     
-        # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 終極渲染修復)
+    # 函式：獲取本地模型專用的LORE解析器Prompt (v3.1 - 渲染衝突修復)
     # 更新紀錄:
-    # v2.0 (2025-09-25): [災難性BUG修復] 採用終極的「最小化骨架」策略。此函式不再返回包含範例的完整Prompt，而是只返回一個絕對安全的指令骨架。完整的Prompt將在執行時由核心調用函式動態組裝，從而徹底繞過渲染引擎的截斷問題。
-    # v1.3 (2025-09-25): [災難性BUG修復] 採用終極的物理隔離策略。
-    # v1.2 (2025-09-25): [災難性BUG修復] 採用了終極的字串構建策略。
+    # v3.1 (2025-09-27): [災難性BUG修復] 採用了與 v2.1 相同的字串拼接策略來構建Prompt。此修改旨在物理上分離f-string多行字串中的 ```python 和 ```json 序列，從根本上解決因Markdown渲染引擎誤判導致程式碼被截斷的頑固問題。
+    # v3.0 (2025-09-27): [災難性BUG修復] 根據本地8B模型解析成功但返回空內容的問題，徹底重構了此Prompt。
+    # v2.0 (2025-09-25): [災難性BUG修復] 採用終極的「最小化骨架」策略。
     def get_local_model_lore_parser_prompt(self) -> str:
         """
-        返回一個最小化的、絕對安全的 Prompt 骨架。
-        完整的 Prompt 將在 _invoke_local_ollama_parser 中動態組裝。
+        返回一個完整的、包含所有必要資訊的單體 Prompt，專為本地小模型優化。
+        採用字串拼接來避免渲染引擎的截斷錯誤。
         """
-        # 這個骨架是安全的，不包含任何會觸發 Markdown 渲染錯誤的序列。
-        prompt_skeleton = """# TASK: 你是一個高精度的數據提取與結構化引擎。
-# MISSION: 你的任務是閱讀提供的【遊戲設計筆記】，並將其中包含的所有世界觀資訊（LORE）提取為一個結構化的JSON物件。
+        # 步驟 1: 準備所有需要內聯的內容
+        pydantic_definitions = self.get_ollama_pydantic_definitions_template()
+        example_input, example_json_output = self.get_ollama_example_template()
+        username = self.profile.user_profile.name if self.profile else "{username}"
+        ai_name = self.profile.ai_profile.name if self.profile else "{ai_name}"
 
-### 核心規則 (CORE RULES) ###
-1.  **主角排除**: 絕對禁止為「{username}」或「{ai_name}」創建任何LORE條目。
-2.  **JSON ONLY**: 你的最終輸出必須且只能是一個純淨的、有效的JSON物件，其結構必須嚴格匹配下方的【Pydantic模型定義】。禁止包含任何解釋性文字、註釋或Markdown標記。
+        # 步驟 2: 將 Prompt 拆分成絕對安全的字串片段
+        prompt_part1 = f"""# TASK: You are a high-precision data extraction and structuring engine.
+# MISSION: Your task is to read the provided [Game Design Notes] and extract all the World-building information (LORE) into a structured JSON object.
 
-### Pydantic模型定義 (Pydantic Model Definitions) ###
-{pydantic_definitions_placeholder}
+### CORE RULES (ABSOLUTE MANDATE) ###
+1.  **Protagonist Exclusion**: You are absolutely forbidden from creating any LORE entries for "{username}" or "{ai_name}".
+2.  **JSON ONLY**: Your final output must be a pure, valid JSON object ONLY. It must strictly match the structure defined in the [Pydantic Model Definitions] below. Do not include any explanatory text, comments, or markdown markers.
 
-### 範例 (EXAMPLE) ###
+### Pydantic Model Definitions (Your output MUST conform to this structure) ###
+"""
+        prompt_part2 = """
+### EXAMPLE ###
 INPUT:
-{example_input_placeholder}
-
+"""
+        prompt_part3 = """
 OUTPUT:
-{example_output_placeholder}
+"""
+        prompt_part4 = """
+### YOUR TASK ###
+# Please extract all LORE information from the [Game Design Notes] below and generate a pure JSON object.
 
-### 你的任務 (YOUR TASK) ###
-# 請從下方的【遊戲設計筆記】中提取所有LORE資訊，並生成一個純淨的JSON物件。
-
-### 遊戲設計筆記 (Game Design Notes) ###
+### Game Design Notes ###
 {canon_text}
 
-### 你的JSON輸出 (Your JSON Output) ###
-{start_tag_placeholder}
+### Your JSON Output ###
 """
-        return prompt_skeleton
-    # 函式：獲取本地模型專用的LORE解析器Prompt骨架
-    
+        # 步驟 3: 定義程式碼塊的邊界標記
+        python_block_start = "```python"
+        text_block_start = "```text"
+        json_block_start = "```json"
+        block_end = "```"
+
+        # 步驟 4: 安全地拼接所有部分
+        full_prompt = (
+            prompt_part1
+            + f"\n{python_block_start}\n{pydantic_definitions}\n{block_end}\n"
+            + prompt_part2
+            + f"\n{text_block_start}\n{example_input}\n{block_end}\n"
+            + prompt_part3
+            + f"\n{json_block_start}\n{example_json_output}\n{block_end}\n"
+            + prompt_part4
+            + f"\n{json_block_start}\n"
+        )
+        
+        return full_prompt
+    # 函式：獲取本地模型專用的LORE解析器Prompt
     
     
     # 函式：獲取法醫級LORE重構器 Prompt
@@ -4163,6 +4185,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
