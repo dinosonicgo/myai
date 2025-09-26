@@ -1090,11 +1090,11 @@ class AILover:
 
 
     
-    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.2 - 自我修正)
+    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命的KeyError修復)
     # 更新紀錄:
-    # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。當第一次解析返回的JSON格式錯誤時，此函式不再立即失敗，而是會自動觸發一次修正請求，將錯誤的JSON傳回給模型要求其修復，從而極大地提高了處理不穩定本地模型輸出的成功率。
+    # v1.3 (2025-09-27): [災難性BUG修復] 恢復了使用模板骨架和動態組裝Prompt的原始設計。此修改旨在修復因v3.0單體化重構引入的、由於模板與.format()參數不匹配而導致的致命KeyError，該錯誤是導致/start流程在後台崩潰的根本原因。
+    # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
     # v1.1 (2025-09-26): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
-    # v1.0 (2025-09-26): [全新創建] 創建此函式作為本地LLM備援方案的執行核心。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
         呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
@@ -1158,8 +1158,10 @@ class AILover:
             
             # [v1.2 核心修正] 自我修正邏輯
             try:
+                # 這次我們需要傳遞錯誤的字串本身給修正 prompt
+                error_string_for_correction = json_string_from_model if 'json_string_from_model' in locals() else str(e)
                 correction_prompt_template = self.get_local_model_json_correction_prompt()
-                correction_prompt = correction_prompt_template.format(raw_json_string=str(e))
+                correction_prompt = correction_prompt_template.format(raw_json_string=error_string_for_correction)
 
                 correction_payload = {
                     "model": self.ollama_model_name,
@@ -4179,6 +4181,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
