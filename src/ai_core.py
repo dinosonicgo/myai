@@ -2628,11 +2628,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v37.0 - 擴展查詢上下文傳遞)
+    # 函式：預處理並生成主回應 (v39.0 - 兩階段角色確定)
     # 更新紀錄:
-    # v37.0 (2025-09-27): [災難性BUG修復] 在確定了場景的核心角色（relevant_characters）後，將此角色列表作為新的參數傳遞給 retrieve_and_summarize_memories 函式。此修改為RAG系統提供了執行「上下文擴展查詢」所需的關鍵資訊，確保了與角色身份相關的LORE（如禮儀）能夠被準確檢索。
-    # v36.0 (2025-09-27): [災難性BUG修復] 重構了此函式以適配 retrieve_and_summarize_memories 返回的結構化字典。
-    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的角色檔案列表，顯式地傳遞給 `_get_relevant_npcs` 函式。
+    # v39.0 (2025-09-27): [災難性BUG修復] 徹底重構了上下文構建的時序，引入「兩階段角色確定」機制。第一階段根據用戶輸入確定初步核心角色；第二階段在使用初步角色擴展RAG查詢後，對RAG返回的規則文本進行二次實體提取，將發現的新角色（如規則中提到的“主人”）合併進最終的核心角色列表。此修改從根本上解決了因RAG信息未能反哺角色列表而導致的LORE應用不全的最終問題。
+    # v38.0 (2025-09-27): [災難性BUG修復] 增加了對RAG摘要的解碼步驟，完成了安全閉環。
+    # v37.0 (2025-09-27): [災 nạn性BUG修復] 將場景核心角色列表傳遞給 RAG 系統以執行「上下文擴展查詢」。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2649,16 +2649,13 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
+        # --- 步驟 1: 預處理和視角確定 ---
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
-
-        explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
         found_lores: List[CharacterProfile] = []
         if explicitly_mentioned_entities:
             logger.info(f"[{self.user_id}] [LORE注入] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            
             all_known_profiles = { user_profile.name: user_profile, ai_profile.name: ai_profile }
-            
             for lore in all_lores:
                 if lore.category == 'npc_profile':
                     try:
@@ -2668,21 +2665,11 @@ class ExtractionResult(BaseModel):
                             for alias in profile.aliases: all_known_profiles[alias] = profile
                     except Exception as e:
                         logger.warning(f"[{self.user_id}] [LORE校驗] 跳過一個無效的角色LORE條目 (key: {lore.key}): {e}")
-
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in all_known_profiles:
                     profile_obj = all_known_profiles[entity_name]
                     if not any(p.name == profile_obj.name for p in found_lores):
                         found_lores.append(profile_obj)
-            
-            if found_lores:
-                context_parts = []
-                for profile in found_lores:
-                    desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
-                    context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{desc}\n")
-                explicit_character_files_context = "\n".join(context_parts)
-                logger.info(f"[{self.user_id}] [LORE注入] 已成功構建 {len(found_lores)} 份核心角色情報檔案。")
-
 
         logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
@@ -2697,24 +2684,22 @@ class ExtractionResult(BaseModel):
         elif gs.viewing_mode == 'remote':
             if is_explicit_local_action:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到強本地信號，視角從 'remote' 切換回 'local'。")
-                gs.viewing_mode = 'local'
-                gs.remote_target_path = None
-            else:
+                gs.viewing_mode = 'local'; gs.remote_target_path = None
+            elif is_descriptive_intent:
                 logger.info(f"[{self.user_id}] [導演視角] 無本地信號，視角保持在 'remote'。")
-                if is_descriptive_intent:
-                    try:
-                        location_extraction_prompt = self.get_location_extraction_prompt()
-                        full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
-                        class LocationPath(BaseModel): location_path: List[str]
-                        extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
-                        if extraction_result and extraction_result.location_path:
-                            gs.remote_target_path = extraction_result.location_path
-                            logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已標準化為: {gs.remote_target_path}")
-                        else:
-                             gs.remote_target_path = [user_input]
-                    except Exception as e:
-                        logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
-                        gs.remote_target_path = [user_input]
+                try:
+                    location_extraction_prompt = self.get_location_extraction_prompt()
+                    full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
+                    class LocationPath(BaseModel): location_path: List[str]
+                    extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
+                    if extraction_result and extraction_result.location_path:
+                        gs.remote_target_path = extraction_result.location_path
+                        logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已標準化為: {gs.remote_target_path}")
+                    else:
+                         gs.remote_target_path = [user_input]
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
+                    gs.remote_target_path = [user_input]
         else: # viewing_mode == 'local'
             if is_descriptive_intent:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。")
@@ -2734,36 +2719,56 @@ class ExtractionResult(BaseModel):
                     gs.remote_target_path = [user_input]
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令，視角保持 'local'。")
-                gs.viewing_mode = 'local'
-                gs.remote_target_path = None
+                gs.viewing_mode = 'local'; gs.remote_target_path = None
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
 
         scene_key = self._get_scene_key()
-        chat_history_manager = self.scene_histories.setdefault(scene_key, ChatMessageHistory())
-        chat_history = chat_history_manager.messages
+        chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
 
-        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
-            parts = [f"名稱: {profile.name}"]
-            if profile.aliases: parts.append(f"別名: {', '.join(profile.aliases)}")
-            if profile.status: parts.append(f"當前狀態: {profile.status}")
-            if profile.description:
-                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
-                parts.append(f"核心描述與情报: {desc}")
-            return "\n".join(f"- {p}" for p in parts)
+        # --- 步驟 2: 【【【v39.0 核心修正：兩階段角色確定】】】 ---
 
-        # 確定場景角色
-        relevant_characters = []
+        # --- 階段 2A: 初步角色確定 ---
+        initial_relevant_chars = []
         background_characters = []
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
-        else: # local mode
+            initial_relevant_chars, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
+        else:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
-
-        logger.info(f"[{self.user_id}] 正在組合混合記憶...")
-        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=relevant_characters)
+            initial_relevant_chars, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
         
+        # --- 階段 2B: 使用初步角色進行 RAG 擴展查詢 ---
+        logger.info(f"[{self.user_id}] 正在使用初步角色列表進行RAG擴展查詢...")
+        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=initial_relevant_chars)
+
+        # --- 階段 2C: 對 RAG 結果進行二次實體提取並合併 ---
+        final_relevant_characters_map = {p.name: p for p in initial_relevant_chars}
+        rules_text = structured_rag_context.get("rules", "")
+        if rules_text:
+            logger.info(f"[{self.user_id}] 正在對RAG規則進行二次實體提取...")
+            entities_from_rules = await self._extract_entities_from_input(rules_text)
+            if entities_from_rules:
+                logger.info(f"[{self.user_id}] 從規則中發現新實體: {entities_from_rules}")
+                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                all_known_profiles = { user_profile.name: user_profile, ai_profile.name: ai_profile }
+                for lore in all_lores:
+                    if lore.category == 'npc_profile':
+                        try:
+                            profile = CharacterProfile.model_validate(lore.content)
+                            all_known_profiles[profile.name] = profile
+                            if profile.aliases:
+                                for alias in profile.aliases: all_known_profiles[alias] = profile
+                        except Exception: pass
+                
+                for entity_name in entities_from_rules:
+                    if entity_name in all_known_profiles and entity_name not in final_relevant_characters_map:
+                        final_relevant_characters_map[entity_name] = all_known_profiles[entity_name]
+
+        final_relevant_characters = list(final_relevant_characters_map.values())
+        logger.info(f"[{self.user_id}] 最終場景核心角色列表確定: {[p.name for p in final_relevant_characters]}")
+
+
+        # --- 步驟 3: 組裝最終 Prompt ---
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
             raw_short_term_history = ""
@@ -2776,15 +2781,33 @@ class ExtractionResult(BaseModel):
                     role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
                     raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
         
+        decoded_summary = self._decode_lore_content(structured_rag_context.get("summary", "無摘要"), self.DECODING_MAP)
+
+        if found_lores:
+            context_parts = []
+            for profile in found_lores:
+                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
+                context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{desc}\n")
+            explicit_character_files_context = "\n".join(context_parts)
+        
+        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
+            parts = [f"名稱: {profile.name}"]
+            if profile.aliases: parts.append(f"別名: {', '.join(profile.aliases)}")
+            if profile.status: parts.append(f"當前狀態: {profile.status}")
+            if profile.description:
+                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
+                parts.append(f"核心描述與情报: {desc}")
+            return "\n".join(f"- {p}" for p in parts)
+
         snapshot_params = {
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
-            "retrieved_context": structured_rag_context.get("summary", "無摘要"),
+            "retrieved_context": decoded_summary,
             "scene_rules_context": structured_rag_context.get("rules", "無規則"),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
             "explicit_character_files_context": explicit_character_files_context,
-            "relevant_npc_context": "\n\n".join([format_character_profile_for_prompt(p) for p in relevant_characters]) or "（場景中無明確互動目標）",
+            "relevant_npc_context": "\n\n".join([format_character_profile_for_prompt(p) for p in final_relevant_characters]) or "（場景中無明確互動目標）",
             "npc_context": "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色）"
         }
 
@@ -2797,13 +2820,7 @@ class ExtractionResult(BaseModel):
         
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        final_prompt_params = {
-            "username": user_profile.name,
-            "ai_name": ai_profile.name,
-            "world_snapshot": world_snapshot_filled,
-            "historical_context": raw_short_term_history,
-            "user_input": user_input
-        }
+        final_prompt_params = { "username": user_profile.name, "ai_name": ai_profile.name, "world_snapshot": world_snapshot_filled, "historical_context": raw_short_term_history, "user_input": user_input }
 
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"""# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===
@@ -2877,15 +2894,7 @@ class ExtractionResult(BaseModel):
 # （JSON 物件）
 # ´´´"""
         
-        full_template = "\n".join([
-            self.core_protocol_prompt, 
-            "{world_snapshot}",
-            "\n# --- 最新對話歷史 ---", "{historical_context}",
-            "\n# --- 使用者最新指令 ---", "{user_input}",
-            style_mandate, final_safeguard_template,
-            summary_schema_mandate, dual_output_mandate
-        ])
-        
+        full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template, summary_schema_mandate, dual_output_mandate ])
         full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
 
         logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
@@ -4332,6 +4341,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
