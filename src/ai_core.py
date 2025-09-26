@@ -2628,11 +2628,11 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v34.0 - 遠程路徑標準化)
+    # 函式：預處理並生成主回應 (v35.0 - 上下文注入修正)
     # 更新紀錄:
-    # v34.0 (2025-09-27): [災難性BUG修復] 徹底重構了「遠程觀察」模式下的地點設定邏輯。現在，系統不再將使用者的自然語言指令直接存為路徑，而是會先調用一個專門的、輕量級的LLM地點提取器，將指令轉換為標準化的地點路徑（例如：["維利爾斯莊園", "洗衣房"]），然後再進行後續的NPC查詢。此修改從根本上解決了因路徑格式錯誤導致場景NPC為空、核心LORE資訊丟失的致命問題。
+    # v35.0 (2025-09-27): [災難性BUG修復] 將「LORE注入」階段獲取到的、指令中明確提及的角色檔案列表（found_lores），作為一個新的參數 `explicitly_mentioned_profiles`，顯式地傳遞給 `_get_relevant_npcs` 函式。此修改確保了上下文篩選器能夠獲取到最高優先級的角色資訊，從而解決了核心目標在篩選過程中被遺漏的致命問題。
+    # v34.0 (2025-09-27): [災難性BUG修復] 徹底重構了「遠程觀察」模式下的地點設定邏輯。
     # v33.16 (2025-09-26): [災難性BUG修復] 在呼叫 `_get_relevant_npcs` 時，將當前的視角模式 `gs.viewing_mode` 作為參數傳遞進去。
-    # v33.15 (2025-09-26): [災難性BUG修復] 在強制LORE注入的查找邏輯中，增加了對 `lore.category == 'npc_profile'` 的嚴格類型檢查。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
@@ -2652,9 +2652,10 @@ class ExtractionResult(BaseModel):
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
 
         explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
+        # [v35.0 核心修正] 將 found_lores 的類型明確為 List[CharacterProfile]
+        found_lores: List[CharacterProfile] = []
         if explicitly_mentioned_entities:
             logger.info(f"[{self.user_id}] [LORE注入] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
-            found_lores = []
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             
             all_known_profiles = {
@@ -2662,7 +2663,6 @@ class ExtractionResult(BaseModel):
                 ai_profile.name: ai_profile
             }
             
-            # 預加載所有NPC LORE到一個可查詢的字典中
             for lore in all_lores:
                 if lore.category == 'npc_profile':
                     try:
@@ -2674,10 +2674,8 @@ class ExtractionResult(BaseModel):
                     except Exception as e:
                         logger.warning(f"[{self.user_id}] [LORE校驗] 跳過一個無效的角色LORE條目 (key: {lore.key}): {e}")
 
-            # 根據指令中提取的實體名稱，從預加載的字典中查找
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in all_known_profiles:
-                    # 避免重複添加同一個 CharacterProfile 對象
                     profile_obj = all_known_profiles[entity_name]
                     if not any(p.name == profile_obj.name for p in found_lores):
                         found_lores.append(profile_obj)
@@ -2685,7 +2683,9 @@ class ExtractionResult(BaseModel):
             if found_lores:
                 context_parts = []
                 for profile in found_lores:
-                    context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{profile.description}\n")
+                    # 確保 description 是字串
+                    desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
+                    context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{desc}\n")
                 explicit_character_files_context = "\n".join(context_parts)
                 logger.info(f"[{self.user_id}] [LORE注入] 已成功構建 {len(found_lores)} 份核心角色情報檔案。")
 
@@ -2708,11 +2708,9 @@ class ExtractionResult(BaseModel):
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 無本地信號，視角保持在 'remote'。")
                 if is_descriptive_intent:
-                    # [v34.0 核心修正] 呼叫地點提取器來標準化路徑
                     try:
                         location_extraction_prompt = self.get_location_extraction_prompt()
                         full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
-                        # 使用一個臨時的 BaseModel 來解析簡單的 JSON 結構
                         class LocationPath(BaseModel):
                             location_path: List[str]
                         
@@ -2725,12 +2723,11 @@ class ExtractionResult(BaseModel):
                              gs.remote_target_path = [user_input]
                     except Exception as e:
                         logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
-                        gs.remote_target_path = [user_input] # 發生錯誤時的回退
+                        gs.remote_target_path = [user_input]
         else: # viewing_mode == 'local'
             if is_descriptive_intent:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。")
                 gs.viewing_mode = 'remote'
-                # [v34.0 核心修正] 呼叫地點提取器來標準化路徑
                 try:
                     location_extraction_prompt = self.get_location_extraction_prompt()
                     full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
@@ -2745,7 +2742,7 @@ class ExtractionResult(BaseModel):
                         gs.remote_target_path = [user_input]
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
-                    gs.remote_target_path = [user_input] # 發生錯誤時的回退
+                    gs.remote_target_path = [user_input]
             else:
                 logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令，視角保持 'local'。")
                 gs.viewing_mode = 'local'
@@ -2867,13 +2864,14 @@ class ExtractionResult(BaseModel):
             if profile.status:
                 parts.append(f"當前狀態: {profile.status}")
             if profile.description:
-                description = profile.description
-                parts.append(f"核心描述與情报: {description}")
+                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
+                parts.append(f"核心描述與情报: {desc}")
             return "\n".join(f"- {p}" for p in parts)
 
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode)
+            # [v35.0 核心修正] 傳入 found_lores
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
             
             relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
             full_prompt_params["relevant_npc_context"] = "\n\n".join(relevant_context_parts) or "（此場景目前沒有核心互動目標。）"
@@ -2884,7 +2882,8 @@ class ExtractionResult(BaseModel):
             full_prompt_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {location_description}"
         else: # local mode
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode)
+            # [v35.0 核心修正] 傳入 found_lores
+            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
 
             relevant_context_parts = [format_character_profile_for_prompt(p) for p in relevant_characters]
             full_prompt_params["relevant_npc_context"] = "\n\n".join(relevant_context_parts) or "（場景中無明確互動目標，請聚焦於玩家與AI的互動。）"
@@ -2939,7 +2938,6 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text, summary_data
     # 預處理並生成主回應 函式結束
-
 
 
 
@@ -3027,32 +3025,57 @@ class ExtractionResult(BaseModel):
     
     
 
-    # 函式：獲取場景中的相關 NPC (v1.2 - 視角感知)
+# 函式：獲取場景中的相關 NPC (v2.0 - 上下文注入修正)
     # 更新紀錄:
-    # v1.2 (2025-09-26): [災難性BUG修復] 新增了 `viewing_mode` 參數。現在函式的預設行為將根據視角模式改變：在 'remote' 模式下，如果沒有找到明確的互動目標，將返回空列表，而不是錯誤地返回本地的主角，從而解決了遠程場景上下文被污染的問題。
+    # v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了函式邏輯以解決核心目標丟失問題。新增了 explicitly_mentioned_profiles 參數，用於接收由「LORE注入」模塊強制加載的角色檔案。現在，函式會將這個最高優先級的列表與資料庫查詢的地點NPC列表合併去重，確保只要在指令中被提及的角色，就一定會被納入上下文篩選的候選池。
+    # v1.2 (2025-09-26): [災難性BUG修復] 新增了 `viewing_mode` 參數。現在函式的預設行為將根據視角模式改變。
     # v1.1 (2025-09-25): [重大架構重構] 重構了函式的返回類型和邏輯。
-    # v1.0 (2025-11-20): [全新創建] 創建此核心上下文篩選函式。
-    async def _get_relevant_npcs(self, user_input: str, chat_history: List[BaseMessage], all_scene_npcs: List[Lore], viewing_mode: str) -> Tuple[List[CharacterProfile], List[CharacterProfile]]:
+    async def _get_relevant_npcs(
+        self, 
+        user_input: str, 
+        chat_history: List[BaseMessage], 
+        all_scene_npcs: List[Lore], 
+        viewing_mode: str,
+        explicitly_mentioned_profiles: List[CharacterProfile]
+    ) -> Tuple[List[CharacterProfile], List[CharacterProfile]]:
         """
         從場景中的所有角色（包括玩家、AI和NPC）裡，篩選出與當前互動直接相關的核心目標和背景角色。
-        此函式具有視角感知能力。
+        此函式具有視角感知和上下文注入能力。
         返回 (relevant_characters, background_characters) 的元組，其中每個元素都是 CharacterProfile 物件。
         """
         if not self.profile:
             return [], []
 
-        relevant_keys = set()
-        relevant_characters_map: Dict[str, CharacterProfile] = {}
-        
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
-        
-        # 在 local 模式下，使用者和AI總是潛在的互動目標
-        all_possible_chars_source = [CharacterProfile.model_validate(lore.content) for lore in all_scene_npcs]
-        if viewing_mode == 'local':
-            all_possible_chars_source.extend([user_profile, ai_profile])
 
-        all_possible_chars = list({p.name: p for p in all_possible_chars_source}.values()) # 去重
+        # [v2.0 核心修正] 創建一個完整的、去重的候選角色池
+        all_possible_chars_map: Dict[str, CharacterProfile] = {}
+
+        # 優先級 1: 指令中明確提及的角色 (從外部注入)
+        for profile in explicitly_mentioned_profiles:
+            all_possible_chars_map[profile.name] = profile
+
+        # 優先級 2: 根據地點從資料庫查詢到的 NPC
+        for lore in all_scene_npcs:
+            try:
+                profile = CharacterProfile.model_validate(lore.content)
+                if profile.name not in all_possible_chars_map:
+                    all_possible_chars_map[profile.name] = profile
+            except Exception:
+                continue
+        
+        # 優先級 3: 在 local 模式下，玩家和 AI 總是候選者
+        if viewing_mode == 'local':
+            if user_profile.name not in all_possible_chars_map:
+                all_possible_chars_map[user_profile.name] = user_profile
+            if ai_profile.name not in all_possible_chars_map:
+                all_possible_chars_map[ai_profile.name] = ai_profile
+
+        all_possible_chars = list(all_possible_chars_map.values())
+        
+        # --- 開始篩選 ---
+        relevant_characters_map: Dict[str, CharacterProfile] = {}
 
         # 規則 1: 從使用者當前輸入中尋找明確提及的角色
         for char_profile in all_possible_chars:
@@ -3060,10 +3083,6 @@ class ExtractionResult(BaseModel):
             for name in names_to_check:
                 if name and name in user_input:
                     relevant_characters_map[char_profile.name] = char_profile
-                    # 查找原始lore key
-                    original_lore = next((lore for lore in all_scene_npcs if lore.content.get("name") == char_profile.name), None)
-                    if original_lore:
-                        relevant_keys.add(original_lore.key)
                     break
         
         # 規則 2: 從最近的對話歷史中尋找被提及的角色
@@ -3081,15 +3100,11 @@ class ExtractionResult(BaseModel):
                     for name in names_to_check:
                         if name and name in last_ai_message:
                             relevant_characters_map[char_profile.name] = char_profile
-                            original_lore = next((lore for lore in all_scene_npcs if lore.content.get("name") == char_profile.name), None)
-                            if original_lore:
-                                relevant_keys.add(original_lore.key)
                             break
 
-        # [v1.2 核心修正] 增加視角感知能力的預設行為
+        # 規則 3: 預設行為
         if not relevant_characters_map:
             if viewing_mode == 'local':
-                # 在本地模式下，如果沒有明確目標，則預設為主角互動
                 relevant_characters_map[user_profile.name] = user_profile
                 relevant_characters_map[ai_profile.name] = ai_profile
             # 在 remote 模式下，如果沒有明確目標，則 relevant_characters_map 保持為空
@@ -3097,9 +3112,9 @@ class ExtractionResult(BaseModel):
         # 進行最終分類
         relevant_characters = list(relevant_characters_map.values())
         background_characters = [
-            CharacterProfile.model_validate(lore.content) 
-            for lore in all_scene_npcs 
-            if lore.key not in relevant_keys
+            char for char in all_possible_chars 
+            if char.name not in relevant_characters_map
+            and char.name not in [user_profile.name, ai_profile.name] # 背景角色不應包括主角
         ]
         
         logger.info(f"[{self.user_id}] [上下文篩選 in '{viewing_mode}' mode] 核心目標: {[c.name for c in relevant_characters]}, 背景角色: {[c.name for c in background_characters]}")
@@ -4173,6 +4188,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
