@@ -4,6 +4,12 @@
 # v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
 # v225.2 (2025-11-16): [災難性BUG修復] 修正了 __init__ 的縮排錯誤。
 
+# ai_core.py 的中文註釋(v301.0 - 導入修正)
+# 更新紀錄:
+# v301.0 (2025-09-27): [災難性BUG修復] 在頂部導入列表中補上了在 LORE 解析第四層備援中使用的 `BatchClassificationResult` 模型，以解決因此導致的 NameError。
+# v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
+# v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
+
 import re
 import json
 import time
@@ -62,7 +68,8 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
                       SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
-                      EntityValidationResult, SynthesisTask, BatchSynthesisResult)
+                      EntityValidationResult, SynthesisTask, BatchSynthesisResult,
+                      BatchClassificationResult) # [v301.0 核心修正] 補上 BatchClassificationResult
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -4156,6 +4163,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
