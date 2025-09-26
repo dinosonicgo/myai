@@ -1447,13 +1447,19 @@ class BotCog(commands.Cog):
             if len(content_str) > 1000:
                 # 如果內容太長，則作為檔案發送
                 try:
-                    file_path = PROJ_DIR / f"temp_lore_{interaction.user.id}.json"
+                    # 確保 temp 目錄存在
+                    temp_dir = PROJ_DIR / "temp"
+                    temp_dir.mkdir(exist_ok=True)
+                    
+                    file_path = temp_dir / f"lore_{interaction.user.id}_{int(time.time())}.json"
                     with open(file_path, 'w', encoding='utf-8') as f:
                         f.write(content_str)
                     
+                    file_name = f"{key.replace(' > ', '_').replace('/', '_')}.json"
+
                     await interaction.followup.send(
                         f"📜 **Lore 查詢結果 for `{key}`**\n（由於內容過長，已作為檔案附件發送）", 
-                        file=discord.File(file_path, filename=f"{key.replace(' > ', '_')}.json"),
+                        file=discord.File(file_path, filename=file_name),
                         ephemeral=True
                     )
                     # 刪除臨時文件
@@ -1940,4 +1946,5 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
