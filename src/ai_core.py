@@ -41,13 +41,14 @@ from langchain_core.documents import Document
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core._api.deprecation import LangChainDeprecationWarning
-from pydantic import BaseModel, Field, ValidationError, field_validator
+# [核心修正] 從 pydantic 導入 AliasChoices
+from pydantic import BaseModel, Field, ValidationError, field_validator, AliasChoices
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 import chromadb
 from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.retrievers import EnsembleRetriever
+from langchain.retrievs import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 # [v301.0 核心修正] 導入 Levenshtein 庫的 ratio 函式，並重命名以避免命名衝突
 from Levenshtein import ratio as levenshtein_ratio
@@ -4829,6 +4830,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
