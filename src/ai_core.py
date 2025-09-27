@@ -3375,11 +3375,11 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 _programmatic_lore_validator 函式 (v2.0 - 混合式安全驗證)
+# ai_core.py 的 _programmatic_lore_validator 函式 (v2.1 - 異步修正)
 # 更新紀錄:
-# v2.0 (2025-09-28): [根本性重構] 根據最終討論，將此函式徹底重構為「混合式安全驗證」工作流。它不再使用有缺陷的正則表達式，而是實現了一個包含【本地編碼 -> 雲端LLM驗證 -> 本地LLM備援 -> 最終解碼】的四階段安全驗證管線，以確保對任何形式（結構化或敘事性）的世界聖經都能進行準確且抗審查的身份提取。
-# v1.1 (2025-09-28): [災難性BUG修復] 徹底重構了核心的正則表達式。
-    def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
+# v2.1 (2025-09-28): [災難性BUG修復] 將函式簽名從 `def` 修改為 `async def`，以解決因在函式內部使用 `await asyncio.gather` 而導致的 `SyntaxError: 'await' outside async function` 致命錯誤。
+# v2.0 (2025-09-28): [根本性重構] 將此函式徹底重構為「混合式安全驗證」工作流。
+    async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
         【v2.0 混合式安全驗證】一個基於LLM交叉驗證的、抗審查的程式化校驗器。
         """
@@ -3596,11 +3596,11 @@ class ExtractionResult(BaseModel):
 
     
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.1 - 變量名修正)
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.2 - 異步修正)
 # 更新紀錄:
-# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配（`canon_text` vs `text_to_parse`）而導致的致命 NameError，恢復了創世流程的正常運作。
+# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
+# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
 # v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
-# v12.0 (2025-11-22): [重大架構升級] 植入了「规则模板自动识别与链接」模塊。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -3611,7 +3611,6 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        # [v13.1 核心修正] 步驟 1: 使用正確的變數名稱 `canon_text` 進行調用
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
@@ -3620,7 +3619,8 @@ class ExtractionResult(BaseModel):
             return
 
         # 步驟 2: 植入「源頭真相」校驗器
-        validated_result = self._programmatic_lore_validator(parsing_result_object, canon_text)
+        # [v13.2 核心修正] 新增 await
+        validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
 
         # 步驟 3: 规则模板自动识别与链接模块
         logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
@@ -3709,8 +3709,7 @@ class ExtractionResult(BaseModel):
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
             await self._load_or_build_rag_retriever(force_rebuild=True)
-# 函式：解析並從世界聖經創建 LORE
-
+# 函式：解析並從世界聖經創建LORE
 
 
 
@@ -4797,6 +4796,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
