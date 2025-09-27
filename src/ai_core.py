@@ -2764,10 +2764,10 @@ class ExtractionResult(BaseModel):
     
     
     
-# ai_core.py 的 preprocess_and_generate 函式 (v43.3 - 強制事實錨定)
+# ai_core.py 的 preprocess_and_generate 函式 (v43.4 - Prompt洩漏修正)
 # 更新紀錄:
-# v43.3 (2025-09-28): [災難性BUG修復] 根據「強制事實錨定」策略，徹底重構了LORE資訊的注入方式。此版本現在會：1) 動態識別指令中的核心實體；2) 精確查詢這些實體的LORE檔案；3) 將這些檔案注入到一個全新的、帶有強制性指令頭的 `explicit_character_files_context` 區塊中。此修改旨在將LORE從「參考資料」提升為「強制鐵則」，從根本上解決AI忽略或篡改已知LORE設定的問題。
-# v43.2 (2025-09-28): [核心重構] 根據「兩階段RAG注入」策略，徹底重構了此函式的數據流。
+# v43.4 (2025-09-28): [災難性BUG修復] 引入了雙重保險機制以防止系統Prompt洩漏。1) 在最終指令 `final_safeguard_template` 中增加了全新的【輸出純淨強制令】，從Prompt層面嚴格禁止AI輸出任何系統標籤（如【劇情摘要】）。2) 在函式返回前，增加了一道程式化的輸出淨化邏輯，使用字串處理強制剝离所有已知的系統標籤，確保即使AI違反指令，洩漏的資訊也能在最後一刻被攔截和清理。
+# v43.3 (2025-09-28): [災難性BUG修復] 根據「強制事實錨定」策略，徹底重構了LORE資訊的注入方式。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v43.0重構) 執行純粹的小說生成任務。
@@ -2793,29 +2793,23 @@ class ExtractionResult(BaseModel):
                 text = text.replace(word, code)
             return text
 
-        # --- [v43.3 核心修正] 步驟 1: 動態識別指令中的所有核心實體 (角色、物品等) ---
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
         found_lores_for_injection: List[Dict[str, Any]] = []
         if explicitly_mentioned_entities:
             logger.info(f"[{self.user_id}] [LORE錨定] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             
-            # 創建一個包含所有已知別名的查找表
             lookup_table: Dict[str, Dict] = {}
             for lore in all_lores:
-                # 主名
                 main_name = lore.content.get("name") or lore.content.get("title")
                 if main_name:
                     lookup_table[main_name] = {"lore": lore, "type": lore.category}
-                # 別名
                 for alias in lore.content.get("aliases", []):
                     lookup_table[alias] = {"lore": lore, "type": lore.category}
 
-            # 根據指令中提取的實體進行查找
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in lookup_table:
                     found_lore_info = lookup_table[entity_name]
-                    # 避免重複注入同一個LORE
                     if not any(f['lore'].id == found_lore_info['lore'].id for f in found_lores_for_injection):
                         found_lores_for_injection.append(found_lore_info)
 
@@ -2828,7 +2822,6 @@ class ExtractionResult(BaseModel):
             lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple
         )
         
-        # 將LORE對象轉換為CharacterProfile對象列表
         explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
         
         relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
@@ -2856,14 +2849,12 @@ class ExtractionResult(BaseModel):
 
         decoded_summary = self._decode_lore_content(structured_rag_context.get("summary", "無摘要"), self.DECODING_MAP)
         
-        # --- [v43.3 核心修正] 構建「強制事實」區塊的內容 ---
         explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心實體。）"
         if found_lores_for_injection:
             context_parts = []
             for info in found_lores_for_injection:
                 lore_obj = info['lore']
                 name = lore_obj.content.get("name") or lore_obj.content.get("title", lore_obj.key)
-                # 將整個content字典轉換為格式化的字符串
                 content_str = json.dumps(lore_obj.content, ensure_ascii=False, indent=2)
                 context_parts.append(f"### 關於「{name}」({info['type']}) 的強制事實檔案 ###\n```json\n{content_str}\n```\n")
             explicit_character_files_context = "\n".join(context_parts)
@@ -2901,12 +2892,20 @@ class ExtractionResult(BaseModel):
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
+        # [v43.4 核心修正] 增加【輸出純淨強制令】
         final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.4 🚨 ==
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.5 🚨 ==
 # ==============================================================================
+#
+# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE) - 最高優先級 📖】】】 ===
+# 你的最終輸出【必須且只能】是純粹的小說文本本身。
+# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤（例如：【劇情摘要】、【完整小說內容】）。
+# 你的回應必須直接以小說的第一個字開始。
+#
+# ------------------------------------------------------------------------------
 # 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 # 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
-# 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。但是，如果出現了【極其合理的劇情契機】（例如：核心對話陷入僵局、有外部事件發生、或背景角色的身份與當前話題直接相關），你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話，以推動劇情發展。
+# 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。但是，如果出現了【極其合理的劇情契機】，你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話，以推動劇情發展。
 """
         
         full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template ])
@@ -2919,7 +2918,18 @@ class ExtractionResult(BaseModel):
         if raw_novel_output and raw_novel_output.strip():
             novel_text = raw_novel_output.strip()
 
-        final_novel_text = self._decode_lore_content(novel_text, self.DECODING_MAP)
+        # [v43.4 核心修正] 增加程式化的輸出淨化防線
+        final_novel_text = novel_text
+        system_tags = ["【本回合劇情摘要】", "【完整小說內容】", "【劇情摘要】"]
+        for tag in system_tags:
+            if tag in final_novel_text:
+                # 只取標籤之後的內容
+                final_novel_text = final_novel_text.split(tag, 1)[-1]
+        
+        # 移除可能殘留的 markdown 格式和星號
+        final_novel_text = re.sub(r'^\s*[\*`\n]+|[\*`\n]+\s*$', '', final_novel_text).strip()
+        
+        final_novel_text = self._decode_lore_content(final_novel_text, self.DECODING_MAP)
         
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
@@ -4810,6 +4820,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
