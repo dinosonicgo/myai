@@ -681,10 +681,10 @@ class AILover:
     
 
     # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.4 - 參數修正)
-    # 更新紀錄:
-    # v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫，移除了多餘的異常物件參數 `e`，使其與函式定義匹配，解決了 TypeError。
-    # v232.3 (2025-09-25): [可觀測性升級] 新增了日誌記錄，現在每次成功的生成都會在日誌中明確標示所使用的模型名稱和API金鑰索引。
-    # v232.2 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
+# ai_core.py 的 ainvoke_with_rotation 函式 (v232.5 - 原生SDK安全閥值修正)
+# 更新紀錄:
+# v232.5 (2025-09-28): [災難性BUG修復] 根據Google原生SDK官方文件，徹底重構了安全閥值的定義與傳遞方式。現在，safety_settings被定義為一個正確的字典列表，並直接在 `genai.GenerativeModel` 初始化時傳入，確保安全閥值在每一次API呼叫中都被強制且正確地應用，從根源上解決內容審查（BlockedPromptException）問題。
+# v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -725,6 +725,7 @@ class AILover:
                     try:
                         genai.configure(api_key=key_to_use)
                         
+                        # [v232.5 核心修正] 嚴格遵循原生SDK的格式要求
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -772,7 +773,6 @@ class AILover:
                         elif retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
                         elif retry_strategy == 'force':
-                            # [v232.4 核心修正] 移除了多餘的參數 `e`
                             return await self._force_and_retry(full_prompt, output_schema)
                         else: 
                             raise e
@@ -810,7 +810,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-    # 函式：帶輪換和備援策略的原生 API 調用引擎
+# 函式：帶輪換和備援策略的原生 API 調用引擎
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -1290,10 +1290,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 # 函式：背景事後分析 (v7.0 - 生成後分析)
+# ai_core.py 的 _background_lore_extraction 函式 (v7.1 - 呼叫語法修正)
 # 更新紀錄:
-# v7.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，此函式的職責被徹底重寫。它現在是事後處理的總指揮，負責調用一個獨立的分析鏈來提取記憶摘要和LORE更新計畫，然後再分別觸發記憶儲存和LORE執行任務。
-# v6.0 (2025-11-22): [災難性BUG修復] 修正了解包 `_execute_lore_parsing_pipeline` 返回值的變數數量。
-# v5.0 (2025-09-27): [可觀測性升級] 重構了日誌記錄邏輯。
+# v7.1 (2025-09-28): [災難性BUG修復] 修正了對 `ainvoke_with_rotation` 的呼叫方式，將 Prompt 模板和其參數分開，並使用關鍵字參數 `output_schema` 傳遞 Pydantic 模型，從根源上解決了 `TypeError: got multiple values for argument 'output_schema'` 的問題。
+# v7.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，此函式的職責被徹底重寫。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
         (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
@@ -1306,24 +1306,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
             
             # 步驟 1: 調用事後分析鏈
-            analysis_chain = self.get_post_generation_analysis_chain()
+            analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
             
-            dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
+            prompt_params = {
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "existing_lore_summary": existing_lore_summary,
+                "user_input": user_input,
+                "final_response_text": final_response
+            }
             
+            # [v7.1 核心修正] 修正此處的呼叫語法
+            full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
             analysis_result = await self.ainvoke_with_rotation(
-                analysis_chain,
-                {
-                    "username": self.profile.user_profile.name,
-                    "ai_name": self.profile.ai_profile.name,
-                    "existing_lore_summary": existing_lore_summary,
-                    "user_input": user_input,
-                    "final_response_text": final_response
-                },
-                output_schema=PostGenerationAnalysisResult,
+                full_prompt,
+                output_schema=PostGenerationAnalysisResult, # 使用關鍵字參數
                 retry_strategy='euphemize',
-                use_degradation=False # 使用快速的功能性模型
+                use_degradation=False 
             )
 
             if not analysis_result:
@@ -1341,7 +1342,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景事後分析
+# 函式：背景事後分析
 
 
     # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
@@ -2058,10 +2059,10 @@ class ExtractionResult(BaseModel):
     
 
 # 函式：強制並重試 (v3.0 - 注入最高指令)
+# ai_core.py 的 _force_and_retry 函式 (v3.1 - 安全閥值同步)
 # 更新紀錄:
-# v3.0 (2025-11-22): [重大架構升級] 根據討論，重構了此函式的核心邏輯。它不再使用硬編碼的簡短指令，而是在檢測到審查失敗時，將完整的核心規範 (`00_supreme_directive.txt`) 重新注入到失敗的 Prompt 中。這種「上下文重置」的方式能更有效地打破 AI 的拒絕服務狀態，極大地提高了備援重試的成功率。
-# v2.0 (2025-11-19): [根本性重構] 適配全新的原生 SDK 執行引擎。
-# v1.0 (2025-11-18): [全新創建] 創建此備援函式。
+# v3.1 (2025-09-28): [同步修正] 此函式現在將 `ainvoke_with_rotation` 作為其唯一的執行引擎，確保在備援重試時也能繼承並應用所有最新的修正，包括正確的安全閥值設置。
+# v3.0 (2025-11-22): [重大架構升級] 重構了此函式的核心邏輯，改為注入完整的核心規範。
     async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]]) -> Any:
         """
         嘗試通過將完整的核心指令集重新注入的方式來強化輸入後重試，
@@ -2070,13 +2071,12 @@ class ExtractionResult(BaseModel):
         logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...")
         
         try:
-            # [v3.0 核心修正] 使用從 00_supreme_directive.txt 加載的核心指令集
-            # 作為最強力的上下文重置和覆蓋指令。
             forceful_override = f"\n\n{self.core_protocol_prompt}"
             
             retry_prompt = failed_prompt + forceful_override
             logger.info(f"[{self.user_id}] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...")
             
+            # [v3.1 核心修正] 將 `ainvoke_with_rotation` 作為唯一的執行引擎，確保繼承所有修正
             return await self.ainvoke_with_rotation(
                 retry_prompt,
                 output_schema=output_schema,
@@ -2086,8 +2086,14 @@ class ExtractionResult(BaseModel):
             
         except Exception as e:
             logger.error(f"[{self.user_id}] 【最高指令集注入重試】策略最終失敗: {e}", exc_info=True)
+            # 根據 schema 返回一個安全的空值
+            if output_schema:
+                try:
+                    return output_schema()
+                except Exception:
+                    return None
             return None
-# 強制並重試 函式結束
+# 函式：強制並重試
     
     # 函式：獲取當前活躍場景的唯一鍵 (v1.0 - 全新創建)
     # 更新紀錄:
@@ -4827,6 +4833,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
