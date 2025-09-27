@@ -368,11 +368,14 @@ class RegenerateView(discord.ui.View):
         self.cog = cog
     # 函式：初始化 RegenerateView
 
-# src/discord_bot.py 的 RegenerateView.regenerate 函式 (v2.0 - 適配事後分析)
+
+
+
+    
+# src/discord_bot.py 的 RegenerateView.regenerate 函式 (v2.1 - 傳遞上下文快照)
 # 更新紀錄:
-# v2.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯，並調整了後續的背景任務觸發。
-# v1.3 (2025-09-27): [災難性BUG修復] 在 undo 方法中增加了對 ai_instance._delete_last_memory() 的調用。
-# v1.2 (2025-09-26): [健壯性強化] 在 `undo` 方法中增加了對頻道類型的檢查。
+# v2.1 (2025-09-28): [災難性BUG修復] 同步修改了對背景事後分析任務的調用方式，現在它會傳遞完整的上下文快照，以確保「重新生成」後的摘要也能感知上下文。
+# v2.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯。
     @discord.ui.button(label="🔄 重新生成", style=discord.ButtonStyle.secondary, custom_id="persistent_regenerate_button")
     async def regenerate(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -385,27 +388,20 @@ class RegenerateView(discord.ui.View):
             return
 
         try:
-            # 步驟 1: 清理短期記憶 (記憶體)
             scene_key = ai_instance._get_scene_key()
             if scene_key in ai_instance.scene_histories:
                 history = ai_instance.scene_histories[scene_key]
                 if len(history.messages) >= 2:
-                    # 移除上一輪的 AI 回應 和 使用者輸入
                     history.messages.pop() 
                     history.messages.pop()
                     logger.info(f"[{user_id}] [重新生成] 已從場景 '{scene_key}' 的短期記憶中撤銷上一回合。")
 
-            # 步驟 2: 清理長期記憶 (資料庫)
             await ai_instance._delete_last_memory()
-
-            # 步驟 3: 刪除 Discord 上的訊息
             await interaction.message.delete()
 
-            # 步驟 4: 重新生成
             logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
             input_data = {"user_input": ai_instance.last_user_input}
             
-            # [v2.0 核心修正] preprocess_and_generate 現在只返回小說文本
             final_response = await ai_instance.preprocess_and_generate(input_data)
 
             if final_response and final_response.strip():
@@ -414,16 +410,19 @@ class RegenerateView(discord.ui.View):
                     current_view = view if i + 2000 >= len(final_response) else None
                     await interaction.channel.send(final_response[i:i+2000], view=current_view)
                 
-                # [v2.0 核心修正] 觸發統一的背景事後分析任務
+                # [v2.1 核心修正] 傳遞完整的上下文快照給背景任務
                 logger.info(f"[{user_id}] [重新生成] 新回應已發送，正在啟動統一的「事後分析」任務...")
-                asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_user_input, final_response))
+                if ai_instance.last_context_snapshot:
+                    asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_context_snapshot))
+                else:
+                    logger.error(f"[{user_id}] 災難性錯誤：重新生成後未能創建上下文快照，事後分析無法啟動！")
             else:
                 await interaction.followup.send("（抱歉，我重新思考了一下，但腦海還是一片空白...）", ephemeral=True)
 
         except Exception as e:
             logger.error(f"[{user_id}] [重新生成] 流程執行時發生異常: {e}", exc_info=True)
             await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
-    # 函式：處理「重新生成」按鈕點擊事件
+# 函式：處理「重新生成」按鈕點擊事件
 
 
     
@@ -2121,6 +2120,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
