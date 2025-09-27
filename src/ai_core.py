@@ -2764,10 +2764,10 @@ class ExtractionResult(BaseModel):
     
     
     
-# ai_core.py 的 preprocess_and_generate 函式 (v43.4 - Prompt洩漏修正)
+# ai_core.py 的 preprocess_and_generate 函式 (v43.5 - 擴展上下文快照)
 # 更新紀錄:
-# v43.4 (2025-09-28): [災難性BUG修復] 引入了雙重保險機制以防止系統Prompt洩漏。1) 在最終指令 `final_safeguard_template` 中增加了全新的【輸出純淨強制令】，從Prompt層面嚴格禁止AI輸出任何系統標籤（如【劇情摘要】）。2) 在函式返回前，增加了一道程式化的輸出淨化邏輯，使用字串處理強制剝离所有已知的系統標籤，確保即使AI違反指令，洩漏的資訊也能在最後一刻被攔截和清理。
-# v43.3 (2025-09-28): [災難性BUG修復] 根據「強制事實錨定」策略，徹底重構了LORE資訊的注入方式。
+# v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了 `last_context_snapshot` 的內容。現在，它不僅包含生成的小說文本，還包含了生成時所依據的【所有LORE規則】(`scene_rules_context`)和【核心角色檔案】。這個豐富的快照將被傳遞給事後分析流程，使其能夠準確回溯和摘要由LORE規則驅動的關鍵行為。
+# v43.4 (2025-09-28): [災難性BUG修復] 引入了雙重保險機制以防止系統Prompt洩漏。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v43.0重構) 執行純粹的小說生成任務。
@@ -2892,11 +2892,9 @@ class ExtractionResult(BaseModel):
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v43.4 核心修正] 增加【輸出純淨強制令】
         final_safeguard_template = f"""# ==============================================================================
 # == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.5 🚨 ==
 # ==============================================================================
-#
 # === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE) - 最高優先級 📖】】】 ===
 # 你的最終輸出【必須且只能】是純粹的小說文本本身。
 # 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤（例如：【劇情摘要】、【完整小說內容】）。
@@ -2918,22 +2916,26 @@ class ExtractionResult(BaseModel):
         if raw_novel_output and raw_novel_output.strip():
             novel_text = raw_novel_output.strip()
 
-        # [v43.4 核心修正] 增加程式化的輸出淨化防線
         final_novel_text = novel_text
         system_tags = ["【本回合劇情摘要】", "【完整小說內容】", "【劇情摘要】"]
         for tag in system_tags:
             if tag in final_novel_text:
-                # 只取標籤之後的內容
                 final_novel_text = final_novel_text.split(tag, 1)[-1]
         
-        # 移除可能殘留的 markdown 格式和星號
         final_novel_text = re.sub(r'^\s*[\*`\n]+|[\*`\n]+\s*$', '', final_novel_text).strip()
-        
         final_novel_text = self._decode_lore_content(final_novel_text, self.DECODING_MAP)
         
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
-        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功。")
+        
+        # [v43.5 核心修正] 創建並儲存詳細的上下文快照
+        self.last_context_snapshot = {
+            "user_input": user_input,
+            "final_response": final_novel_text,
+            "scene_rules_context": scene_rules_context_str,
+            "relevant_characters": [p.model_dump() for p in relevant_characters]
+        }
+        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。")
 
         return final_novel_text
 # 函式：預處理並生成主回應
@@ -4820,6 +4822,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
