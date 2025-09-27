@@ -3423,15 +3423,15 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE (v10.0 - 植入校驗器)
+# 函式：解析並從世界聖經創建 LORE (v11.0 - 安全檢查修復)
 # 更新紀錄:
-# v10.0 (2025-11-22): [架構升級] 在此函式的核心流程中，植入了對全新「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。在LORE存入資料庫前，會先經過程式化的強制校驗與修正。
+# v11.0 (2025-11-22): [災難性BUG修復] 根據AttributeError日誌，重構了此函式的核心邏輯。現在，它會嚴格檢查LORE解析管線的返回狀態，只有在解析成功（布林值為True）且返回了有效的Pydantic物件時，才會繼續執行後續的校驗和儲存步驟，從根本上解決了向校驗器傳遞錯誤數據類型的問題。
+# v10.0 (2025-11-22): [架構升級] 在此函式的核心流程中，植入了對全新「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。
 # v9.1 (2025-09-25): [災難性BUG修復] 恢復了因複製錯誤而遺失的函式定義行 (def ...)。
-# v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
-        [v10.0 新增] 內建「源頭真相」校驗步驟。
+        [v11.0 新增] 內建對解析結果的嚴格安全檢查。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -3439,27 +3439,34 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        # 步驟 1: 執行5層降級LORE解析
-        parsing_result, _ = await self._execute_lore_parsing_pipeline(canon_text)
+        # [v11.0 核心修正] 步驟 1: 執行5層降級LORE解析，並接收包含狀態、物件和鍵列表的元組
+        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
-        # [v10.0 核心修正] 步驟 2: 植入「源頭真相」校驗器
-        if parsing_result:
-            parsing_result = self._programmatic_lore_validator(parsing_result, canon_text)
+        # [v11.0 核心修正] 步驟 2: 進行嚴格的安全檢查
+        if not is_successful or not parsing_result_object:
+            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+            # 即使解析失敗，我們仍然需要確保RAG索引被建立（可能只包含記憶），所以不直接返回
+            await self._load_or_build_rag_retriever(force_rebuild=True)
+            return
 
-        # 步驟 3: 儲存經過校驗的LORE
-        if parsing_result:
-            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-            await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-            await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
-            await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
-            await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-            await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
+        # 步驟 3: 如果解析成功，則執行「源頭真相」校驗器
+        validated_result = self._programmatic_lore_validator(parsing_result_object, canon_text)
+
+        # 步驟 4: 儲存經過校驗的LORE
+        if validated_result:
+            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
+            await self._resolve_and_save("locations", [p.model_dump() for p in validated_result.locations])
+            await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
+            await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
+            await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
+            await self._resolve_and_save("world_lores", [p.model_dump() for p in validated_result.world_lores])
             
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
             await self._load_or_build_rag_retriever(force_rebuild=True)
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+            logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
+            await self._load_or_build_rag_retriever(force_rebuild=True)
 # 函式：解析並從世界聖經創建 LORE
 
 
@@ -3518,24 +3525,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：執行 LORE 解析管線 (v3.5 - 返回值穿透修正)
-    # 更新紀錄:
-    # v3.5 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯，以解決 TypeError。現在，函式會返回一個 (bool, List[str]) 的元組，並在內部創建一個列表來收集所有解析層級中成功創建或更新的LORE主鍵，確保將詳細的擴展結果正確地傳遞給上層調用者。
-    # v3.4 (2025-09-27): [災難性BUG修復] 移除了所有對 _resolve_and_save 函式傳遞 title_key='title' 的硬編碼參數。
-    # v3.2 (2025-09-26): [可觀測性升級] 增加了詳細的日誌記錄。
-    async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, List[str]]:
+# 函式：執行 LORE 解析管線 (v3.7 - 補全備援邏輯)
+# 更新紀錄:
+# v3.7 (2025-11-22): [完整性修復] 根據使用者要求，提供了此函式的終極完整版本，補全了之前為簡潔而省略的第四層（混合NLP）和第五層（法醫級重構）備援方案的完整程式碼實現。
+# v3.6 (2025-11-22): [災難性BUG修復] 擴充了此函式的返回值，從 (bool, List[str]) 修改為 (bool, Optional[CanonParsingResult], List[str])。
+# v3.5 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯，以解決 TypeError。
+    async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
         【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
-        返回一個元組 (是否成功, [成功的主鍵列表])。
+        返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
-            return False, []
+            return False, None, []
 
         parsing_completed = False
-        all_successful_keys: List[str] = [] # [v3.5 核心修正] 初始化主鍵收集器
+        final_parsing_result: Optional["CanonParsingResult"] = None
+        all_successful_keys: List[str] = []
 
-        # 輔助函式，用於從解析結果中提取主鍵
-        def extract_keys_from_result(result: CanonParsingResult) -> List[str]:
+        def extract_keys_from_result(result: "CanonParsingResult") -> List[str]:
             keys = []
             if result.npc_profiles: keys.extend([p.name for p in result.npc_profiles])
             if result.locations: keys.extend([l.name for l in result.locations])
@@ -3559,14 +3566,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 成功！正在儲存結果...")
-                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
-                    await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                    await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-                    await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
-                    await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
-                    await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
+                    logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 成功！")
+                    final_parsing_result = parsing_result
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 遭遇內容審查，正在降級到第二層（本地LLM）...")
@@ -3579,14 +3581,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在嘗試【本地備援方案：無審查解析】...")
                 parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！正在儲存本地解析結果...")
-                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
-                    await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                    await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-                    await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
-                    await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
-                    await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
+                    logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！")
+                    final_parsing_result = parsing_result
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
                 else:
                     logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
@@ -3594,7 +3591,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
         elif not parsing_completed and not self.is_ollama_available:
             logger.info(f"[{self.user_id}] [LORE 解析 2/5] 本地 Ollama 備援方案在啟動時檢測為不可用，已安全跳過。")
-
 
         # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
         try:
@@ -3613,14 +3609,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 3/5] ✅ 成功！正在解碼並儲存結果...")
-                    all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
-                    await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                    await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
-                    await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
-                    await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
-                    await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
-                    await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
+                    logger.info(f"[{self.user_id}] [LORE 解析 3/5] ✅ 成功！")
+                    final_parsing_result = parsing_result
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
         except BlockedPromptException:
             logger.warning(f"[{self.user_id}] [LORE 解析 3/5] 無害化後仍遭遇審查，正在降級到第四層...")
@@ -3678,18 +3669,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在並行執行 {len(tasks)} 個靶向精煉任務...")
                             refined_results = await asyncio.gather(*tasks, return_exceptions=True)
                             
-                            success_count = 0
-                            for result in refined_results:
+                            aggregated_result = CanonParsingResult()
+                            for i, result in enumerate(refined_results):
                                 if not isinstance(result, Exception) and result:
-                                    category = next((c.lore_category for c in classification_result.classifications if (hasattr(result, 'name') and c.entity_name == result.name)), None)
-                                    if category:
-                                        await self._resolve_and_save(category + "s", [result.model_dump()])
-                                        if hasattr(result, 'name'): # [v3.5 核心修正]
-                                            all_successful_keys.append(result.name)
-                                        success_count += 1
+                                    category = classification_result.classifications[i].lore_category
+                                    if category == 'npc_profile': aggregated_result.npc_profiles.append(result)
+                                    elif category == 'location_info': aggregated_result.locations.append(result)
+                                    elif category == 'item_info': aggregated_result.items.append(result)
+                                    elif category == 'creature_info': aggregated_result.creatures.append(result)
+                                    elif category == 'quest': aggregated_result.quests.append(result)
+                                    elif category == 'world_lore': aggregated_result.world_lores.append(result)
                             
-                            if success_count > 0:
-                                logger.info(f"[{self.user_id}] [LORE 解析 4/5] ✅ 成功！混合 NLP 方案儲存了 {success_count} 條 LORE。")
+                            if aggregated_result.model_dump(exclude_none=True, exclude_defaults=True):
+                                logger.info(f"[{self.user_id}] [LORE 解析 4/5] ✅ 成功！混合 NLP 方案聚合了 {len(refined_results)} 條 LORE。")
+                                final_parsing_result = aggregated_result
+                                all_successful_keys.extend(extract_keys_from_result(aggregated_result))
                                 parsing_completed = True
                             else:
                                 logger.warning(f"[{self.user_id}] [LORE 解析 4/5] 靶向精煉任務均未成功返回有效結果。")
@@ -3725,10 +3719,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                     )
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                        logger.info(f"[{self.user_id}] [LORE 解析 5/5] ✅ 成功！正在解碼並儲存重構結果...")
-                        all_successful_keys.extend(extract_keys_from_result(parsing_result)) # [v3.5 核心修正]
-                        await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                        await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
+                        logger.info(f"[{self.user_id}] [LORE 解析 5/5] ✅ 成功！")
+                        final_parsing_result = parsing_result
+                        all_successful_keys.extend(extract_keys_from_result(parsing_result))
                         parsing_completed = True
                 else:
                     logger.warning(f"[{self.user_id}] [LORE 解析 5/5] 未能從文本中提取任何可用於重構的關鍵詞。")
@@ -3739,9 +3732,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not parsing_completed:
             logger.error(f"[{self.user_id}] [LORE 解析] 所有五層解析方案均最終失敗。")
         
-        # [v3.5 核心修正] 返回元組
-        return parsing_completed, all_successful_keys
-    # 函式：執行 LORE 解析管線
+        return parsing_completed, final_parsing_result, all_successful_keys
+# 函式：執行 LORE 解析管線
 
 
 
@@ -4566,6 +4558,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
