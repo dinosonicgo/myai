@@ -1461,11 +1461,17 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # 函式：在 connection_watcher 任務首次運行前執行的設置
 
-# src/discord_bot.py 的 BotCog.on_message 函式 (v59.0 - 適配事後分析)
+
+    
+    
+    
+    
+    
+    
+# src/discord_bot.py 的 BotCog.on_message 函式 (v59.1 - 傳遞上下文快照)
 # 更新紀錄:
-# v59.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯。由於分析任務已移至後台，此處不再需要處理`summary_data`，而是直接使用返回的小說文本。
-# v58.2 (2025-09-26): [災難性BUG修復] 增加了對 `self.active_setups` 狀態的檢查。
-# v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。
+# v59.1 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，修改了對背景事後分析任務的調用方式。現在它不再只傳遞輸入和輸出字串，而是將`ai_instance.last_context_snapshot`這個包含了LORE規則等豐富信息的完整上下文快照物件傳遞給背景任務，從根本上解決了摘要器因信息不足而導致的「摘要失真」問題。
+# v59.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -1499,7 +1505,6 @@ class BotCog(commands.Cog):
             try:
                 logger.info(f"[{user_id}] 啟動「純粹生成」對話流程...")
                 input_data = { "user_input": user_input }
-                # [v59.0 核心修正] preprocess_and_generate 現在只返回小說文本字串
                 final_response = await ai_instance.preprocess_and_generate(input_data)
                 
                 if final_response and final_response.strip():
@@ -1508,9 +1513,12 @@ class BotCog(commands.Cog):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    # [v59.0 核心修正] 觸發統一的背景事後分析任務
+                    # [v59.1 核心修正] 傳遞完整的上下文快照給背景任務
                     logger.info(f"[{user_id}] 回應已發送。正在啟動統一的「事後分析」任務...")
-                    asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
+                    if ai_instance.last_context_snapshot:
+                        asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_context_snapshot))
+                    else:
+                        logger.error(f"[{user_id}] 災難性錯誤：生成後未能創建上下文快照，事後分析無法啟動！")
 
                 else:
                     logger.error(f"為使用者 {user_id} 的生成流程返回了空的或無效的回應。")
@@ -1519,7 +1527,7 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"處理使用者 {user_id} 的「純粹生成」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-    # 監聽並處理所有符合條件的訊息 函式結束
+# 監聽並處理所有符合條件的訊息 函式結束
 
 
     
@@ -2113,6 +2121,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
