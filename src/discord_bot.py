@@ -504,6 +504,11 @@ class LorePaginatorView(discord.ui.View):
 
 
 # 類別：設定角色檔案的 Modal
+# src/discord_bot.py 的 CharacterSettingsModal 類別 (v1.1 - 性別輸入優化)
+# 更新紀錄:
+# v1.1 (2025-09-27): [體驗優化] 根據使用者需求，並在遵循 Discord Modal 技術限制的前提下，將性別輸入框的提示文字（placeholder）明確設定為 "男 / 女 / 其他"，以引導使用者進行規範化輸入。
+# v1.0 (N/A): 初始版本
+# 類別：設定角色檔案的 Modal
 class CharacterSettingsModal(discord.ui.Modal):
     # 函式：初始化 CharacterSettingsModal
     def __init__(self, cog: "BotCog", title: str, profile_data: dict, profile_type: str, is_setup_flow: bool = False, original_interaction_message_id: int = None):
@@ -513,7 +518,14 @@ class CharacterSettingsModal(discord.ui.Modal):
         self.is_setup_flow = is_setup_flow
         self.original_interaction_message_id = original_interaction_message_id
         self.name = discord.ui.TextInput(label="名字 (必填)", default=profile_data.get('name', ''))
-        self.gender = discord.ui.TextInput(label="性別 (必填)", default=profile_data.get('gender', ''), placeholder="男 / 女 / 其他")
+        
+        # [v1.1 核心修正] 由於 Discord Modal 不支援下拉選單，我們使用 placeholder 來引導使用者輸入標準化選項。
+        self.gender = discord.ui.TextInput(
+            label="性別 (必填)", 
+            default=profile_data.get('gender', ''), 
+            placeholder="請輸入 男 / 女 / 其他"
+        )
+        
         self.description = discord.ui.TextInput(label="性格、背景、種族、年齡等綜合描述", style=discord.TextStyle.paragraph, default=profile_data.get('description', ''), max_length=1000)
         self.appearance = discord.ui.TextInput(label="外觀描述 (髮型/瞳色/身材等)", style=discord.TextStyle.paragraph, default=profile_data.get('appearance', ''), required=False, max_length=1000)
         self.add_item(self.name)
@@ -2017,6 +2029,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
