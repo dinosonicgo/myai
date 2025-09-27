@@ -1314,22 +1314,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 # 函式：背景事後分析 (v7.0 - 生成後分析)
-# ai_core.py 的 _background_lore_extraction 函式 (v7.1 - 呼叫語法修正)
+# ai_core.py 的 _background_lore_extraction 函式 (v7.2 - 接收上下文快照)
 # 更新紀錄:
-# v7.1 (2025-09-28): [災難性BUG修復] 修正了對 `ainvoke_with_rotation` 的呼叫方式，將 Prompt 模板和其參數分開，並使用關鍵字參數 `output_schema` 傳遞 Pydantic 模型，從根源上解決了 `TypeError: got multiple values for argument 'output_schema'` 的問題。
-# v7.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，此函式的職責被徹底重寫。
-    async def _background_lore_extraction(self, user_input: str, final_response: str):
+# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。它現在接收一個完整的上下文快照`context_snapshot`，並將其中包含的LORE規則(`scene_rules_context`)注入到事後分析Prompt中。這使得摘要器能夠感知到生成器當初的創作依據，從而生成能準確反映LORE行為的高保真記憶。
+# v7.1 (2025-09-28): [災難性BUG修復] 修正了對 `ainvoke_with_rotation` 的呼叫方式。
+    async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
         (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
         """
         if not self.profile:
+            return
+        
+        # 從快照中解包所需數據
+        user_input = context_snapshot.get("user_input")
+        final_response = context_snapshot.get("final_response")
+        scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
+        
+        if not user_input or not final_response:
+            logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。")
             return
                 
         try:
             await asyncio.sleep(2.0)
             logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
             
-            # 步驟 1: 調用事後分析鏈
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
@@ -1339,14 +1347,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "ai_name": self.profile.ai_profile.name,
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
-                "final_response_text": final_response
+                "final_response_text": final_response,
+                "scene_rules_context": scene_rules_context # [v7.2 核心修正] 注入規則上下文
             }
             
-            # [v7.1 核心修正] 修正此處的呼叫語法
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
             analysis_result = await self.ainvoke_with_rotation(
                 full_prompt,
-                output_schema=PostGenerationAnalysisResult, # 使用關鍵字參數
+                output_schema=PostGenerationAnalysisResult,
                 retry_strategy='euphemize',
                 use_degradation=False 
             )
@@ -1355,7 +1363,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
                 return
 
-            # 步驟 2: 根據分析結果，分別觸發記憶儲存和LORE更新任務
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
@@ -1367,7 +1374,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
 # 函式：背景事後分析
-
 
     # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
     # 更新紀錄:
@@ -2709,37 +2715,29 @@ class ExtractionResult(BaseModel):
 
     
     # 函式：獲取事後分析器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_post_generation_analysis_chain 函式 (v1.1 - LORE修正能力)
+# ai_core.py 的 get_post_generation_analysis_chain 函式 (v1.2 - 上下文感知)
 # 更新紀錄:
-# v1.1 (2025-09-28): [核心升級] 根據最新需求，對Prompt進行了重大升級。引入了【事實校對原則】，並增加了一個專門的「更新現有LORE」的範例。此修改賦予了事後分析系統一項關鍵新能力：不僅能提取新知識，還能根據對話內容，主動識別並生成工具調用來修正與現有LORE相矛盾的設定，從而實現了通過對話動態修改世界觀的功能。
-# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此核心Prompt模板。
+# v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。新增了【創作依據參考】區塊和核心的【行為溯源原則】。此修改指示摘要器在生成記憶摘要時，必須回溯小說中的行為是否源於特定的LORE規則，並在摘要中明確體現這種關聯，從根源上解決了摘要內容丟失關鍵LORE行為細節的「失真」問題。
+# v1.1 (2025-09-28): [核心升級] 植入【事實校對原則】，賦予事後分析系統根據對話修正現有 LORE 的能力。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
             prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】兼【事實校對官】。
-# MISSION: 你的任務是閱讀【本回合的完整對話】，並將其與【現有LORE摘要】進行比對，提取出兩類關鍵信息：
-#   1.  **長期記憶摘要**: 一句簡潔的、無害化的、值得被AI角色記住的核心事件總結。
-#   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】，並將其轉化為結構化的工具調用計畫。
+# MISSION: 你的任務是閱讀【本回合的完整對話】和【創作依據參考】，提取出兩類關鍵信息：
+#   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映LORE規則的、無害化的核心事件總結。
+#   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】的結構化工具調用計畫。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【✅ 事實校對原則 (Fact-Checking Mandate) - 最高優先級】**:
+# 1.  **【📝 行為溯源原則 (Behavioral Traceability Mandate) - 最高摘要優先級】**:
+#     *   你【必須】分析【完整小說內容】。如果小說中描述的某個角色行為，能夠在【創作依據參考】中找到對應的規則（例如，小說寫了米婭的特定下跪動作，而規則裡有「母畜的禮儀」），你**【必須】**在你的 `memory_summary` 中明確地、簡潔地提及**這個由規則驅動的關鍵行為**。
+#     *   **目標**：確保存入長期記憶的摘要，不會丟失由LORE驅動的關鍵細節。
+# 2.  **【✅ 事實校對原則】**:
 #     *   你【必須】將對話內容與【現有LORE摘要】進行嚴格比對。
-#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定（例如，使用者指出蘋果是綠色的，而 LORE 說它是紅色的），你【必須】生成一個 `add_or_update_..._info` 或 `update_..._profile` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
-# 2.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
-# 3.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本，禁止添加任何原文未提及的資訊。
-# 4.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。你可以使用委婉的、文學性的語言來描述事件，但【絕對禁止】包含任何露骨的或違反內容安全的詞彙。
-# 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
-
-# === 【【【⚙️ 處理範例 (PROCESSING EXAMPLES)】】】 ===
-# --- 範例 1: 創建新LORE ---
-# - 對話: 「一個名叫湯姆的鐵匠走了過來。」
-# - LORE更新計畫: 應包含一個 `create_new_npc_profile` 工具調用，目標是 "湯姆"。
-#
-# --- 範例 2: 修正現有LORE ---
-# - 現有LORE摘要: `- item_info: 蘋果`
-# - 對話: `使用者: "這個世界的蘋果其實是綠色的。"`
-# - LORE更新計畫: 應包含一個 `add_or_update_item_info` 工具調用，參數為 `{{ "lore_key": "蘋果", "description": "一種綠色的水果" }}`。
-# ---------------------------------------------------------
+#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定，你【必須】生成一個 `add_or_update_..._info` 或 `update_..._profile` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
+# 3.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
+# 4.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本。
+# 5.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。
+# 6.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # --- [INPUT DATA] ---
 
@@ -2747,6 +2745,10 @@ class ExtractionResult(BaseModel):
 {existing_lore_summary}
 
 # ---
+# 【創作依據參考 (生成器在創作時看到的LORE規則)】:
+{scene_rules_context}
+# ---
+
 # 【本回合的完整對話】:
 # 使用者 ({username}): {user_input}
 # AI ({ai_name}): {final_response_text}
@@ -4822,6 +4824,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
