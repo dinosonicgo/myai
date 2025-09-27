@@ -1,34 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T14:45:47.845110 ###
+### AI Lover Log - Last updated at 2025-09-27T14:50:55.089223 ###
 
-2025-09-27 10:59:48 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-27 10:59:48 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-27 10:59:48 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 10:59:50 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-27 11:00:01 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-27 11:00:01 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-27 11:00:01 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 11:00:03 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-27 11:00:09 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-27 11:00:12 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-27 11:00:12 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-27 11:00:12 - [INFO] - [512280345618546699] (Canon Processor) 正在啟動敘事提取安全管線...
-2025-09-27 11:00:12 - [INFO] - [512280345618546699] [敘事提取 1/4] 正在嘗試【理想方案：雲端宏觀提取】...
-2025-09-27 11:00:13 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
-2025-09-27 11:01:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-27 11:01:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-27 11:01:04 - [ERROR] - [512280345618546699] [敘事提取 1/4] 遭遇未知錯誤: 1 validation error for NarrativeExtractionResult
-narrative_text
-  Field required [type=missing, input_value={'narrative_extraction_re...體神聖燈塔」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing，正在降級。
-2025-09-27 11:01:04 - [INFO] - [512280345618546699] [敘事提取 2/4] 本地備援方案暫未針對此任務優化，跳過此層級以提高效率。
-2025-09-27 11:01:04 - [INFO] - [512280345618546699] [敘事提取 3/4] 正在嘗試【安全代碼方案：全文無害化提取】...
-2025-09-27 11:01:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-27 11:01:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-27 11:01:48 - [ERROR] - [512280345618546699] [敘事提取 3/4] 遭遇未知錯誤: 1 validation error for NarrativeExtractionResult
-narrative_text
-  Field required [type=missing, input_value={'narrative_extraction_re...體神聖燈塔」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4312, in _execute_narrative_extraction_pipeline
     extraction_result = await self.ainvoke_with_rotation(
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 787, in ainvoke_with_rotation
@@ -300,3 +271,32 @@ narrative_text
 2025-09-27 14:44:32 - [INFO] - [512280345618546699] 本地模型在首次嘗試中成功解析並驗證了LORE數據。
 2025-09-27 14:44:32 - [WARNING] - [512280345618546699] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...
 2025-09-27 14:44:32 - [INFO] - [512280345618546699] [LORE 解析 3/5] 正在嘗試【安全代碼方案：全文無害化解析】...
+2025-09-27 14:47:32 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (TimeoutError)。將在 1.48 秒後進行第 2 次嘗試...
+2025-09-27 14:48:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-27 14:48:37 - [INFO] - [512280345618546699] [LORE 解析 3/5] ✅ 成功！正在解碼並儲存結果...
+2025-09-27 14:48:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 62 個實體...
+2025-09-27 14:49:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-09-27 14:49:33 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 62 條決策。
+2025-09-27 14:49:43 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 7 個實體...
+2025-09-27 14:49:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 22 個實體...
+2025-09-27 14:49:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 128 條文檔用於創始構建。
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
+2025-09-27 14:49:49 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
+2025-09-27 14:49:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-27 14:49:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-09-27 14:49:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-27 14:49:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 14:49:52 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
+2025-09-27 14:49:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
+2025-09-27 14:49:53 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-09-27 14:49:53 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-09-27 14:50:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-09-27 14:50:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-27 14:50:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 14:50:41 - [INFO] - [512280345618546699] [/start] 初始地點 '埃德蒙王國 > 王都城鎮區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
+2025-09-27 14:50:41 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
