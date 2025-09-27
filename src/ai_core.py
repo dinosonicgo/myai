@@ -2688,14 +2688,15 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v40.0 - 廢除二次提取)
-    # 更新紀錄:
-    # v40.0 (2025-09-27): [災難性BUG修復] 徹底移除了在RAG之後進行「二次實體提取」並合併角色的邏輯。現在，場景角色的確定完全由 _get_relevant_npcs (v3.0) 的LLM智能聚焦一次性完成，其結果將被視為最終版本。此修改徹底根除了因二次提取引入大量無關角色而導致的上下文污染問題。
-    # v39.0 (2025-09-27): [災難性BUG修復] 徹底重構了上下文構建的時序，引入「兩階段角色確定」機制。
-    # v38.0 (2025-09-27): [災難性BUG修復] 增加了對RAG摘要的解碼步驟，完成了安全閉環。
+# src/ai_core.py 的 preprocess_and_generate 函式 (v41.0 - LORE繼承系統)
+# 更新紀錄:
+# v41.0 (2025-11-22): [重大架構升級] 根據「LORE繼承與規則注入」設計，徹底重構了此函式。現在，在組裝世界快照前，它會動態查詢角色的身份(aliases)所觸發的規則LORE(world_lore)，並將這些規則精準注入到Prompt的`scene_rules_context`中，讓角色的行為能夠真正被世界觀所驅動。
+# v40.0 (2025-09-27): [災難性BUG修復] 徹底移除了在RAG之後進行「二次實體提取」並合併角色的邏輯。
+# v39.0 (2025-09-27): [災難性BUG修復] 徹底重構了上下文構建的時序，引入「兩階段角色確定」機制。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
         """
         (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
+        [v41.0 新增] 內建LORE繼承與規則注入系統。
         返回 (novel_text, summary_data) 的元組。
         """
         user_input = input_data["user_input"]
@@ -2790,7 +2791,7 @@ class ExtractionResult(BaseModel):
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
 
-        # --- 步驟 2: 【【【v40.0 核心修正：單次精準角色確定】】】 ---
+        # --- 步驟 2: 確定核心角色 ---
         relevant_characters = []
         background_characters = []
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
@@ -2800,6 +2801,22 @@ class ExtractionResult(BaseModel):
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
         
+        # --- [v41.0 核心修正] 步驟 2.5: 根據核心角色，查詢並注入繼承的規則 ---
+        scene_rules_context_str = "（無適用的特定規則）"
+        if relevant_characters:
+            all_aliases_in_scene = set()
+            for char in relevant_characters:
+                all_aliases_in_scene.add(char.name)
+                if char.aliases:
+                    all_aliases_in_scene.update(char.aliases)
+            
+            if all_aliases_in_scene:
+                applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
+                if applicable_rules:
+                    rule_texts = [f"【{rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
+                    scene_rules_context_str = "\n\n".join(rule_texts)
+                    logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
+
         # --- 步驟 3: 使用已確定的核心角色進行 RAG 擴展查詢 ---
         logger.info(f"[{self.user_id}] 正在使用最終確定的角色列表進行RAG擴展查詢...")
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=relevant_characters)
@@ -2829,7 +2846,7 @@ class ExtractionResult(BaseModel):
         
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
             parts = [f"名稱: {profile.name}"]
-            if profile.aliases: parts.append(f"別名: {', '.join(profile.aliases)}")
+            if profile.aliases: parts.append(f"別名/身份: {', '.join(profile.aliases)}")
             if profile.status: parts.append(f"當前狀態: {profile.status}")
             if profile.description:
                 desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
@@ -2840,7 +2857,7 @@ class ExtractionResult(BaseModel):
             "world_settings": self.profile.world_settings,
             "ai_settings": ai_profile.description,
             "retrieved_context": decoded_summary,
-            "scene_rules_context": structured_rag_context.get("rules", "無規則"),
+            "scene_rules_context": scene_rules_context_str, # [v41.0 核心修正] 使用動態查詢到的規則
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
             "explicit_character_files_context": explicit_character_files_context,
@@ -4499,6 +4516,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
