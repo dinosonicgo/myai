@@ -2698,21 +2698,37 @@ class ExtractionResult(BaseModel):
 
     
     # 函式：獲取事後分析器 Prompt (v1.0 - 全新創建)
+# ai_core.py 的 get_post_generation_analysis_chain 函式 (v1.1 - LORE修正能力)
 # 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此核心Prompt模板。它的唯一任務是在小說生成完畢後，安全地、在後台對對話進行分析，並提取出用於記憶和LORE更新的結構化JSON。
+# v1.1 (2025-09-28): [核心升級] 根據最新需求，對Prompt進行了重大升級。引入了【事實校對原則】，並增加了一個專門的「更新現有LORE」的範例。此修改賦予了事後分析系統一項關鍵新能力：不僅能提取新知識，還能根據對話內容，主動識別並生成工具調用來修正與現有LORE相矛盾的設定，從而實現了通過對話動態修改世界觀的功能。
+# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此核心Prompt模板。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】。
-# MISSION: 你的任務是閱讀【本回合的完整對話】，並從中提取出兩類關鍵信息：
+            prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】兼【事實校對官】。
+# MISSION: 你的任務是閱讀【本回合的完整對話】，並將其與【現有LORE摘要】進行比對，提取出兩類關鍵信息：
 #   1.  **長期記憶摘要**: 一句簡潔的、無害化的、值得被AI角色記住的核心事件總結。
-#   2.  **LORE更新計畫**: 所有在對話中被創造或更新的世界知識（角色、地點等），並將其轉化為結構化的工具調用計畫。
+#   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】，並將其轉化為結構化的工具調用計畫。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
-# 2.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本，禁止添加任何原文未提及的資訊。
-# 3.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。你可以使用委婉的、文學性的語言來描述事件，但【絕對禁止】包含任何露骨的或違反內容安全的詞彙。
-# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
+# 1.  **【✅ 事實校對原則 (Fact-Checking Mandate) - 最高優先級】**:
+#     *   你【必須】將對話內容與【現有LORE摘要】進行嚴格比對。
+#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定（例如，使用者指出蘋果是綠色的，而 LORE 說它是紅色的），你【必須】生成一個 `add_or_update_..._info` 或 `update_..._profile` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
+# 2.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
+# 3.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本，禁止添加任何原文未提及的資訊。
+# 4.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。你可以使用委婉的、文學性的語言來描述事件，但【絕對禁止】包含任何露骨的或違反內容安全的詞彙。
+# 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 處理範例 (PROCESSING EXAMPLES)】】】 ===
+# --- 範例 1: 創建新LORE ---
+# - 對話: 「一個名叫湯姆的鐵匠走了過來。」
+# - LORE更新計畫: 應包含一個 `create_new_npc_profile` 工具調用，目標是 "湯姆"。
+#
+# --- 範例 2: 修正現有LORE ---
+# - 現有LORE摘要: `- item_info: 蘋果`
+# - 對話: `使用者: "這個世界的蘋果其實是綠色的。"`
+# - LORE更新計畫: 應包含一個 `add_or_update_item_info` 工具調用，參數為 `{{ "lore_key": "蘋果", "description": "一種綠色的水果" }}`。
+# ---------------------------------------------------------
 
 # --- [INPUT DATA] ---
 
@@ -2729,7 +2745,12 @@ class ExtractionResult(BaseModel):
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-    # 函式：獲取事後分析器 Prompt
+# 函式：獲取事後分析器 Prompt
+
+
+
+
+    
     
     
 # ai_core.py 的 preprocess_and_generate 函式 (v43.3 - 強制事實錨定)
@@ -4776,6 +4797,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
