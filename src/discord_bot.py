@@ -194,10 +194,10 @@ class GenderSelectionView(discord.ui.View):
     # 內部類別：性別選擇下拉選單
 # 類別：性別選擇視圖
 
-# 類別：繼續到使用者角色設定的視圖
-# src/discord_bot.py 的 ContinueToUserSetupView 類別 (v1.1 - 適配性別選單)
+# src/discord_bot.py 的 ContinueToUserSetupView 類別 (v1.2 - 互動響應修正)
 # 更新紀錄:
-# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。現在它不再直接彈出Modal，而是發送一個包含性別下拉選單的 `GenderSelectionView`，作為新設定流程的第一步。
+# v1.2 (2025-09-28): [災難性BUG修復] 徹底重構了按鈕的回呼邏輯。現在它會先使用 `interaction.response.send_message` 來完成主要任務（發送新視圖），然後再安全地編輯原始訊息以禁用按鈕，遵循了「一次互動，一次主要響應」的原則，解決了因此導致的互動失敗錯誤。
+# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。
 # 類別：繼續到使用者角色設定的視圖
 class ContinueToUserSetupView(discord.ui.View):
     # 函式：初始化 ContinueToUserSetupView
@@ -212,11 +212,8 @@ class ContinueToUserSetupView(discord.ui.View):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.")
         
-        # [v1.1 核心修正] 禁用當前按鈕並發送新的性別選擇視圖
-        for item in self.children:
-            item.disabled = True
-        await interaction.message.edit(view=self)
-
+        # [v1.2 核心修正] 遵循 "一次互動，一次響應" 原則
+        # 步驟 1: 先完成主要響應任務：發送新的 ephemeral 訊息與視圖
         view = GenderSelectionView(
             cog=self.cog,
             profile_type='user',
@@ -224,13 +221,24 @@ class ContinueToUserSetupView(discord.ui.View):
             original_interaction_message_id=interaction.message.id
         )
         await interaction.response.send_message("請從下方選擇您的角色性別：", view=view, ephemeral=True)
+
+        # 步驟 2: 然後再安全地編輯原始訊息，禁用舊的按鈕
+        # 這樣做不會干擾主要響應
+        for item in self.children:
+            item.disabled = True
+        try:
+            await interaction.message.edit(view=self)
+        except (discord.errors.NotFound, discord.errors.HTTPException) as e:
+            logger.warning(f"[{user_id}] 在禁用舊按鈕時發生非致命錯誤: {e}")
+
     # 函式：處理「下一步：設定您的角色」按鈕點擊事件
 # 類別：繼續到使用者角色設定的視圖
 
 # 類別：繼續到 AI 角色設定的視圖
-# src/discord_bot.py 的 ContinueToAiSetupView 類別 (v1.1 - 適配性別選單)
+# src/discord_bot.py 的 ContinueToAiSetupView 類別 (v1.2 - 互動響應修正)
 # 更新紀錄:
-# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。現在它不再直接彈出Modal，而是發送一個包含性別下拉選單的 `GenderSelectionView`，以設定AI戀人的性別。
+# v1.2 (2025-09-28): [災難性BUG修復] 徹底重構了按鈕的回呼邏輯，使其遵循「一次互動，一次主要響應」的原則，解決了互動失敗錯誤。
+# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。
 # 類別：繼續到 AI 角色設定的視圖
 class ContinueToAiSetupView(discord.ui.View):
     # 函式：初始化 ContinueToAiSetupView
@@ -245,11 +253,8 @@ class ContinueToAiSetupView(discord.ui.View):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.")
         
-        # [v1.1 核心修正] 禁用當前按鈕並發送新的性別選擇視圖
-        for item in self.children:
-            item.disabled = True
-        await interaction.message.edit(view=self)
-        
+        # [v1.2 核心修正] 遵循 "一次互動，一次響應" 原則
+        # 步驟 1: 先完成主要響應任務：發送新的 ephemeral 訊息與視圖
         view = GenderSelectionView(
             cog=self.cog,
             profile_type='ai',
@@ -257,8 +262,21 @@ class ContinueToAiSetupView(discord.ui.View):
             original_interaction_message_id=interaction.message.id
         )
         await interaction.response.send_message("請從下方選擇 AI 戀人的性別：", view=view, ephemeral=True)
+        
+        # 步驟 2: 然後再安全地編輯原始訊息，禁用舊的按鈕
+        for item in self.children:
+            item.disabled = True
+        try:
+            await interaction.message.edit(view=self)
+        except (discord.errors.NotFound, discord.errors.HTTPException) as e:
+            logger.warning(f"[{user_id}] 在禁用舊按鈕時發生非致命錯誤: {e}")
     # 函式：處理「最後一步：設定 AI 戀人」按鈕點擊事件
 # 類別：繼續到 AI 角色設定的視圖
+
+
+
+
+
 # 類別：繼續到世界聖經設定的視圖 (v1.7 - 競爭條件修復)
 # 更新紀錄:
 # v1.7 (2025-09-26): [災難性BUG修復] 彻底重构了 `upload_canon` 的逻辑顺序。现在，程式会在 `await bot.wait_for` **之前**就将使用者ID加入 `active_setups` 集合（即提前开启防火墙），并用 `try...finally` 块确保在流程结束或失败时都能正确移除ID。此修改从根本上解决了因时序问题导致 `on_message` 绕过防火墙从而触发错误对话的竞争条件问题。
@@ -2123,6 +2141,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
