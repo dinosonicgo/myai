@@ -423,4 +423,6 @@ BatchClassificationResult.model_rebuild()
 # [v1.0 新增] 確保敘事提取模型也被重建
 NarrativeExtractionResult.model_rebuild()
 
+# [v1.0 新增] 確保事後分析模型也被重建
+PostGenerationAnalysisResult.model_rebuild()
 
