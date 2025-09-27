@@ -375,6 +375,16 @@ class NarrativeExtractionResult(BaseModel):
 # src/schemas.py 的 NarrativeExtractionResult 類別 結束
 
 
+# src/schemas.py 的 NarrativeDirective 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此模型。它用於驗證導演決策鏈返回的結構化數據，確保主生成流程能夠接收到一個清晰、不可違背的「本回合強制動作指令」。
+class NarrativeDirective(BaseModel):
+    """用於包裹「AI導演」決策結果的模型。"""
+    mandatory_action: Optional[str] = Field(default=None, description="一個可選的、根據場景規則推斷出的、本回合必須發生的核心動作的自然語言描述。如果沒有必須發生的動作，則為 null。")
+    scene_summary_for_generation: str = Field(description="對使用者原始意圖和推斷出的強制動作的簡潔整合，作為給主生成模型的最終、最高優先級的創作指令。")
+# src/schemas.py 的 NarrativeDirective 類別結束
+
+
 # src/schemas.py 的 PostGenerationAnalysisResult 類別 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此模型。它用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫，確保數據結構的穩定性。
@@ -425,4 +435,5 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
