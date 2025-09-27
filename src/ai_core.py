@@ -2719,11 +2719,10 @@ class ExtractionResult(BaseModel):
     # 函式：獲取事後分析器 Prompt
     
     
-# 函式：預處理並生成主回應 (v43.0 - 回歸純粹生成)
+# ai_core.py 的 preprocess_and_generate 函式 (v43.2 - 兩階段RAG注入)
 # 更新紀錄:
-# v43.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，徹底移除了此函式中所有關於摘要和JSON生成的指令。它的職責被簡化為單一的、純粹的創意寫作任務，以最大限度地複現使用者測試的高成功率，並將分析任務解耦到後台。
-# v42.0 (2025-11-22): [災難性BUG修復] 應用了「本地安全代碼化」策略以解決BlockedPromptException。
-# v41.0 (2025-11-22): [重大架構升級] 實現了「LORE繼承與規則注入系統」。
+# v43.2 (2025-09-28): [核心重構] 根據「兩階段RAG注入」策略，徹底重構了此函式的數據流。現在它會：1) 分離核心與背景角色；2) 只為核心角色執行精準的RAG記憶檢索（後處理篩選）；3) 為所有在場角色觸發LORE繼承；4) 為背景角色生成包含核心描述和身份的「迷你檔案卡」；5) 升級最終指令以明確授權AI在必要時使用背景角色。此修改從根本上解決了上下文污染問題，同時賦予了AI動態調用背景角色的能力。
+# v43.1 (2025-09-28): [功能優化] 在最終生成指令中增加了【角色名單鎖定鐵則】和【焦點鎖定原則】。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v43.0重構) 執行純粹的小說生成任務。
@@ -2741,7 +2740,6 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- 步驟 0: 定義本地編碼/解碼輔助函式 ---
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -2750,7 +2748,6 @@ class ExtractionResult(BaseModel):
                 text = text.replace(word, code)
             return text
 
-        # --- 步驟 1: 預處理和視角確定 ---
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
         found_lores: List[CharacterProfile] = []
         if explicitly_mentioned_entities:
@@ -2772,80 +2769,31 @@ class ExtractionResult(BaseModel):
                     if not any(p.name == profile_obj.name for p in found_lores):
                         found_lores.append(profile_obj)
 
-        logger.info(f"[{self.user_id}] [導演視角] 當前錨定模式: '{gs.viewing_mode}'")
-        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        descriptive_keywords = ["描述", "看看", "觀察", "描寫"]
-        local_action_keywords = ["去", "前往", "移動到", "旅行到", "我說", "我對", "我問"]
-        is_continuation = any(user_input.lower().startswith(kw) for kw in continuation_keywords)
-        is_descriptive_intent = any(user_input.startswith(kw) for kw in descriptive_keywords)
-        is_explicit_local_action = any(user_input.startswith(kw) for kw in local_action_keywords) or (user_profile.name in user_input) or (ai_profile.name in user_input)
-        
-        if is_continuation:
-            logger.info(f"[{self.user_id}] [導演視角] 檢測到連續性指令，繼承上一輪視角模式: '{gs.viewing_mode}'")
-        elif gs.viewing_mode == 'remote':
-            if is_explicit_local_action:
-                logger.info(f"[{self.user_id}] [導演視角] 檢測到強本地信號，視角從 'remote' 切換回 'local'。")
-                gs.viewing_mode = 'local'
-                gs.remote_target_path = None
-            else:
-                logger.info(f"[{self.user_id}] [導演視角] 無本地信號，視角保持在 'remote'。")
-                if is_descriptive_intent:
-                    try:
-                        location_extraction_prompt = self.get_location_extraction_prompt()
-                        full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
-                        class LocationPath(BaseModel):
-                            location_path: List[str]
-                        extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
-                        if extraction_result and extraction_result.location_path:
-                            gs.remote_target_path = extraction_result.location_path
-                            logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已標準化為: {gs.remote_target_path}")
-                        else:
-                             gs.remote_target_path = [user_input]
-                    except Exception as e:
-                        logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
-                        gs.remote_target_path = [user_input]
-        else: # viewing_mode == 'local'
-            if is_descriptive_intent:
-                logger.info(f"[{self.user_id}] [導演視角] 檢測到描述性指令，視角從 'local' 切換到 'remote'。")
-                gs.viewing_mode = 'remote'
-                try:
-                    location_extraction_prompt = self.get_location_extraction_prompt()
-                    full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
-                    class LocationPath(BaseModel):
-                        location_path: List[str]
-                    extraction_result = await self.ainvoke_with_rotation(full_prompt, output_schema=LocationPath)
-                    if extraction_result and extraction_result.location_path:
-                        gs.remote_target_path = extraction_result.location_path
-                        logger.info(f"[{self.user_id}] [導演視角] 遠程觀察目標已設定並標準化為: {gs.remote_target_path}")
-                    else:
-                        gs.remote_target_path = [user_input]
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [導演視角] 執行地點提取時發生錯誤: {e}", exc_info=True)
-                    gs.remote_target_path = [user_input]
-            else:
-                logger.info(f"[{self.user_id}] [導演視角] 檢測到本地互動指令，視角保持 'local'。")
-                gs.viewing_mode = 'local'
-                gs.remote_target_path = None
-        await self.update_and_persist_profile({'game_state': gs.model_dump()})
-
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
 
-        # --- 步驟 2: 確定核心角色 ---
-        relevant_characters = []
-        background_characters = []
-        if gs.viewing_mode == 'remote' and gs.remote_target_path:
-            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.remote_target_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
-        else:
-            all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
-            relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
+        # --- 步驟 1: 確定場景和所有在場角色 ---
+        scene_path_tuple = tuple(gs.remote_target_path) if gs.viewing_mode == 'remote' and gs.remote_target_path else tuple(gs.location_path)
+        all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(
+            self.user_id, 
+            'npc_profile', 
+            lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple
+        )
+        relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, found_lores)
         
-        # --- 步驟 2.5: 根據核心角色，查詢並注入繼承的規則 ---
+        # --- 步驟 2: [第一階段RAG] 只為核心角色進行精準RAG ---
+        structured_rag_context = await self.retrieve_and_summarize_memories(
+            user_input, 
+            contextual_profiles=relevant_characters,
+            filtering_profiles=relevant_characters # 使用核心角色列表進行後處理篩選
+        )
+
+        # --- 步驟 3: [LORE繼承] 為所有在場角色查詢相關規則 ---
+        all_characters_in_scene = relevant_characters + background_characters
         scene_rules_context_str = "（無適用的特定規則）"
-        if relevant_characters:
+        if all_characters_in_scene:
             all_aliases_in_scene = set()
-            for char in relevant_characters:
+            for char in all_characters_in_scene:
                 all_aliases_in_scene.add(char.name)
                 if char.aliases:
                     all_aliases_in_scene.update(char.aliases)
@@ -2853,44 +2801,31 @@ class ExtractionResult(BaseModel):
             if all_aliases_in_scene:
                 applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
                 if applicable_rules:
-                    rule_texts = [f"【{rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
+                    rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
                     scene_rules_context_str = "\n\n".join(rule_texts)
                     logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
 
-        # --- 步驟 3: RAG 擴展查詢 ---
-        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=relevant_characters)
-        
-        # --- 步驟 4: 組裝最終 Prompt ---
+        # --- 步驟 4: [第二階段LORE注入] 組裝最終Prompt ---
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
-            raw_short_term_history = ""
-            history_slice = chat_history[-6:]
-            if gs.viewing_mode == 'remote':
-                for msg in history_slice:
-                    raw_short_term_history += f"[{'導演指令' if isinstance(msg, HumanMessage) else '場景描述'}]: {msg.content}\n"
-            else:
-                for msg in history_slice:
-                    role = user_profile.name if isinstance(msg, HumanMessage) else ai_profile.name
-                    raw_short_term_history += f"{role}: {'「' + msg.content + '」' if '「' not in msg.content else msg.content}\n"
-        
+            raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
+
         decoded_summary = self._decode_lore_content(structured_rag_context.get("summary", "無摘要"), self.DECODING_MAP)
+        decoded_rules = self._decode_lore_content(structured_rag_context.get("rules", ""), self.DECODING_MAP)
 
         explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
         if found_lores:
-            context_parts = []
-            for profile in found_lores:
-                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
-                context_parts.append(f"### 關於「{profile.name}」的情報檔案 ###\n{desc}\n")
-            explicit_character_files_context = "\n".join(context_parts)
-        
+            explicit_character_files_context = "\n".join([f"### 關於「{p.name}」的情報檔案 ###\n{p.description}\n" for p in found_lores])
+
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
             parts = [f"名稱: {profile.name}"]
             if profile.aliases: parts.append(f"別名/身份: {', '.join(profile.aliases)}")
             if profile.status: parts.append(f"當前狀態: {profile.status}")
-            if profile.description:
-                desc = profile.description if isinstance(profile.description, str) else json.dumps(profile.description, ensure_ascii=False)
-                parts.append(f"核心描述與情报: {desc}")
+            if profile.description: parts.append(f"核心描述與情报: {profile.description}")
             return "\n".join(f"- {p}" for p in parts)
+        
+        # [v43.2 核心修正] 為背景角色創建迷你檔案卡
+        background_npc_context_str = "\n\n".join([format_character_profile_for_prompt(p) for p in background_characters]) or "（此地沒有其他背景角色）"
 
         snapshot_params = {
             "world_settings": encode_text(self.profile.world_settings),
@@ -2901,54 +2836,28 @@ class ExtractionResult(BaseModel):
             "quests_context": "當前無活躍任務",
             "explicit_character_files_context": encode_text(explicit_character_files_context),
             "relevant_npc_context": "\n\n".join([encode_text(format_character_profile_for_prompt(p)) for p in relevant_characters]) or "（場景中無明確互動目標）",
-            "npc_context": "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色）"
+            "npc_context": encode_text(background_npc_context_str)
         }
-
-        if gs.viewing_mode == 'remote' and gs.remote_target_path:
-            location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.remote_target_path))
-            location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-            snapshot_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {encode_text(location_desc)}"
-        else:
-            location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
-            location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-            snapshot_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {encode_text(location_desc)}"
         
+        location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+        location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
+        location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+        snapshot_params["location_context"] = f"當前地點: {' > '.join(location_path)}\n地點描述: {encode_text(location_desc)}"
+
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
         final_prompt_params = { "username": user_profile.name, "ai_name": ai_profile.name, "world_snapshot": world_snapshot_filled, "historical_context": raw_short_term_history, "user_input": user_input }
-
-        user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
-        style_mandate = f"""# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===
-# 【警告】: 這不是建議，而是必須嚴格執行的命令。任何偏離都將被視為核心功能失敗。
-# 你的回應風格【必須】嚴格遵循以下由使用者定義的規則：
-#
-#   「{user_style_prompt}」
-#
-# 無論使用者下達何種指令（即使是純粹的物理動作指令），你都【必須】在回應中體現上述風格。
-# =================================================================
-"""
         
+        user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
+        style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+        
+        # [v43.2 核心修正] 升級最終指令，增加【自主行動授權原則】
         final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.3 🚨 ==
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.4 🚨 ==
 # ==============================================================================
-#
-# == 🎬 開場強制令 (OPENING MANDATE) - 最高敘事優先級 🎬 ==
-# 【【【警告：此為本回合敘事的絕對第一條規則！】】】
-# 你的回覆的【第一個字】必須直接開始描述一個【物理動作】或【直接引用的對話】。
-# --- ✅ 正確開頭範例 ---
-# - 「是，主人。」碧輕聲回應道...
-# - 碧的身體微微一顫...
-# - 她抬起頭...
-# --- ❌ 絕對禁止的開頭範例 ---
-# - 聽到你的命令...
-# - 你的話語如同...
-# - 在接收到指令後...
-# 【立即開始你的創作，並確保第一個字就符合上述規則。】
-#
-# ------------------------------------------------------------------------------
 # 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 # 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
-# 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。
+# 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。但是，如果出現了【極其合理的劇情契機】（例如：核心對話陷入僵局、有外部事件發生、或背景角色的身份與當前話題直接相關），你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話，以推動劇情發展。
 """
         
         full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template ])
@@ -2959,11 +2868,7 @@ class ExtractionResult(BaseModel):
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
         if raw_novel_output and raw_novel_output.strip():
-            # 由於本地模型返回的可能是帶有摘要結構的完整文本，我們需要清理一下
-            if "´´´novel" in raw_novel_output:
-                novel_text = raw_novel_output.split("´´´novel")[1].split("´´´")[0].strip()
-            else:
-                novel_text = raw_novel_output.strip()
+            novel_text = raw_novel_output.strip()
 
         final_novel_text = self._decode_lore_content(novel_text, self.DECODING_MAP)
         
@@ -2972,8 +2877,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功。")
 
         return final_novel_text
-    # 預處理並生成主回應 函式結束
-
+# 函式：預處理並生成主回應
 
 
 
@@ -4687,14 +4591,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：檢索並摘要記憶 (v17.0 - 四層降級摘要管線)
-    # 更新紀錄:
-    # v17.0 (2025-09-27): [災難性BUG修復] 根據使用者建議，實現了更優雅的「四層降級摘要管線」。1(理想路徑):直接調用雲端模型處理原始文本。2(本地備援):若被審查，則調用本地無規範模型處理原始文本。3(代碼化備援):若本地模型失敗，則將文本代碼化後再次調用雲端模型。4(最終防線):返回中性提示。此修改在保證性能和品質的同時，極大增強了系統的健壯性。
-    # v16.0 (2025-09-27): [災難性BUG修復] 引入了「摘要器安全編碼」策略。
-    # v15.0 (2025-09-27): [災難性BUG修復] 徹底重構了RAG查詢邏輯，實現了「上下文擴展查詢」。
-    async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
+# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.1 - RAG後處理篩選)
+# 更新紀錄:
+# v17.1 (2025-09-28): [災難性BUG修復] 根據「兩階段RAG注入」策略，徹底重構了此函式。增加了`filtering_profiles`參數，並在檢索後植入了關鍵的【後處理篩選】邏輯。現在，它只會保留並摘要那些內容中明確提及了指定角色（通常是核心互動目標）的記憶文檔，從根本上解決了無關背景角色記憶造成上下文污染的問題。
+# v17.0 (2025-09-27): [災難性BUG修復] 根據使用者建議，實現了更優雅的「四層降級摘要管線」。
+    async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
         執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
-        內建四層降級摘要管線，以確保最大穩定性。
+        內建四層降級摘要管線和後處理篩選機制。
         返回一個字典: {"rules": str, "summary": str}
         """
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
@@ -4725,9 +4629,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not retrieved_docs:
             return default_return
 
+        # [v17.1 核心修正] RAG 後處理篩選
+        final_docs_to_process = retrieved_docs
+        if filtering_profiles:
+            filter_names = set()
+            for profile in filtering_profiles:
+                filter_names.add(profile.name)
+                if profile.aliases:
+                    filter_names.update(profile.aliases)
+            
+            filtered_docs = []
+            for doc in retrieved_docs:
+                # 如果文檔內容中包含任何一個核心角色的名字或別名，就保留它
+                if any(name in doc.page_content for name in filter_names):
+                    filtered_docs.append(doc)
+            
+            logger.info(f"[{self.user_id}] [RAG後處理篩選] 已將 {len(retrieved_docs)} 條初步檢索結果精煉為 {len(filtered_docs)} 條與核心角色相關的記憶。")
+            final_docs_to_process = filtered_docs
+
+        if not final_docs_to_process:
+             return default_return
+
         rule_docs = []
         other_docs = []
-        for doc in retrieved_docs:
+        for doc in final_docs_to_process:
             if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore":
                 rule_docs.append(doc)
             else:
@@ -4745,7 +4670,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             summary = None
             
             try:
-                # --- 層級 1: 理想路徑 (雲端 + 原始文本) ---
                 logger.info(f"[{self.user_id}] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...")
                 full_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary}, inject_core_protocol=True)
                 summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
@@ -4753,13 +4677,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             except BlockedPromptException:
                 logger.warning(f"[{self.user_id}] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (本地模型)...")
                 
-                # --- 層級 2: 本地備援 (本地模型 + 原始文本) ---
                 if self.is_ollama_available:
                     summary = await self._invoke_local_ollama_summarizer(raw_content_for_summary)
                 else:
                     logger.info(f"[{self.user_id}] [RAG摘要-2] 本地模型不可用，跳過此層級。")
 
-                # --- 層級 3: 代碼化備援 (雲端 + 編碼文本) ---
                 if not summary:
                     logger.warning(f"[{self.user_id}] [RAG摘要-2] 本地模型處理失敗或不可用。降級到層級 3 (代碼化)...")
                     try:
@@ -4782,7 +4704,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             except Exception as e:
                 logger.error(f"[{self.user_id}] [RAG摘要-1] 雲端摘要時發生未知錯誤: {e}", exc_info=True)
 
-            # --- 層級 4: 最終防線 ---
             if summary and summary.strip():
                 summary_context = f"【背景歷史參考（事實要點）】:\n{summary}"
             else:
@@ -4791,7 +4712,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         logger.info(f"[{self.user_id}] 已成功將 RAG 結果分離為 {len(rule_docs[:3])} 條規則全文和 {len(docs_to_summarize)} 條待摘要文檔。")
         return {"rules": rules_context, "summary": summary_context}
-    # 檢索並摘要記憶 函式結束
+# 函式：檢索並摘要記憶
             
 
 
@@ -4833,6 +4754,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
