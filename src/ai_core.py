@@ -62,7 +62,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult)
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -2766,17 +2766,20 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v44.0 - 整合 AI 導演)
+    # 函式：預處理並生成主回應 (v44.1 - 導入修正)
     # 更新紀錄:
-    # v44.0 (2025-09-28): [重大架構升級] 徹底重構此函式，整合了全新的「AI導演」決策模組。在主生成之前，此版本會先調用一個輕量級的LLM鏈（包含雲端和本地備援），根據場景規則生成一個「本回合強制動作指令」。這個指令隨後會被注入到主生成Prompt的最高優先級位置，從而將隱式的規則執行轉化為顯式的指令，從根本上解決了AI知道規則但選擇性忽略的問題。
+    # v44.1 (2025-09-28): [災難性BUG修復] 修正了因缺少對 `NarrativeDirective` 模型的導入而導致的 NameError。
+    # v44.0 (2025-09-28): [重大架構升級] 徹底重構此函式，整合了全新的「AI導演」決策模組。
     # v43.6 (2025-09-28): [災難性BUG修復] 根據「最終防線指令增強」策略，重構了最終Prompt的組裝邏輯。
-    # v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了`last_context_snapshot`的內容。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v44.0重構) 執行包含「AI導演」決策的純粹小說生成任務。
         組合所有上下文，由導演決定前置動作，最後調用原生LLM生成下一段故事。
         返回純小說文本字串。
         """
+        # [v44.1 核心修正] 確保 NarrativeDirective 已被導入，此處無需更改程式碼，只需確認檔案頂部導入語句正確
+        from .schemas import NarrativeDirective
+
         user_input = input_data["user_input"]
 
         if not self.profile:
@@ -2789,7 +2792,7 @@ class ExtractionResult(BaseModel):
         ai_profile = self.profile.ai_profile
 
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item), reverse=True)
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
             if not text: return ""
             for word, code in sorted_encoding_map:
@@ -3041,9 +3044,10 @@ class ExtractionResult(BaseModel):
 
 
 
-        # 函式：呼叫本地Ollama模型執行導演決策 (v1.0 - 全新創建)
+    # 函式：呼叫本地Ollama模型執行導演決策 (v1.1 - 健壯性修正)
     # 更新紀錄:
-    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此函式作為導演決策的本地無規範LLM備援方案。它確保了即使在雲端API因內容審查而失敗時，核心的規則執行邏輯依然能夠通過本地模型完成，極大地增強了系統的健壯性。
+    # v1.1 (2025-09-28): [災難性BUG修復] 增加了對本地模型返回錯誤數據類型的防禦性處理。在 Pydantic 驗證前，此版本會檢查 `scene_summary_for_generation` 欄位。如果其值為字典而非預期的字串，會將其自動轉換為 JSON 字串，從而解決因此導致的 ValidationError，大幅提高本地備援的成功率。
+    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此函式作為導演決策的本地無規範LLM備援方案。
     async def _invoke_local_ollama_director(self, relevant_characters_summary: str, scene_rules_context: str, user_input: str) -> Optional["NarrativeDirective"]:
         """
         呼叫本地運行的 Ollama 模型來執行「AI導演」的決策任務，內置一次JSON格式自我修正的重試機制。
@@ -3089,6 +3093,13 @@ class ExtractionResult(BaseModel):
                 
                 clean_json_str = json_match.group(0)
                 parsed_json = json.loads(clean_json_str)
+
+                # [v1.1 核心修正] 防禦性程式設計：處理本地模型返回錯誤數據類型的問題
+                summary_value = parsed_json.get("scene_summary_for_generation")
+                if isinstance(summary_value, dict):
+                    logger.warning(f"[{self.user_id}] [AI導演-備援] 本地模型為 'scene_summary_for_generation' 返回了字典，已自動修正為JSON字串。")
+                    parsed_json["scene_summary_for_generation"] = json.dumps(summary_value, ensure_ascii=False)
+
                 validated_result = NarrativeDirective.model_validate(parsed_json)
                 logger.info(f"[{self.user_id}] [AI導演-備援] ✅ 本地模型導演決策成功。")
                 return validated_result
@@ -5043,6 +5054,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
