@@ -2766,10 +2766,10 @@ class ExtractionResult(BaseModel):
     
     
     
-# ai_core.py 的 preprocess_and_generate 函式 (v43.5 - 擴展上下文快照)
+# ai_core.py 的 preprocess_and_generate 函式 (v43.6 - LORE強制執行修正)
 # 更新紀錄:
-# v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了 `last_context_snapshot` 的內容。現在，它不僅包含生成的小說文本，還包含了生成時所依據的【所有LORE規則】(`scene_rules_context`)和【核心角色檔案】。這個豐富的快照將被傳遞給事後分析流程，使其能夠準確回溯和摘要由LORE規則驅動的關鍵行為。
-# v43.4 (2025-09-28): [災難性BUG修復] 引入了雙重保險機制以防止系統Prompt洩漏。
+# v43.6 (2025-09-28): [災難性BUG修復] 根據「最終防線指令增強」策略，重構了最終Prompt的組裝邏輯。現在，場景適用規則(`scene_rules_context`)會被【再次】注入到`final_safeguard_template`的一個全新【絕對規則強制令】區塊中。此修改利用「臨近效應」和「上下文重複」的Prompt工程技巧，將LORE規則的執行優先級提升到最高，從根源上解決了AI知道規則但選擇性忽略的問題。
+# v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了`last_context_snapshot`的內容。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v43.0重構) 執行純粹的小說生成任務。
@@ -2835,7 +2835,7 @@ class ExtractionResult(BaseModel):
         )
 
         all_characters_in_scene = relevant_characters + background_characters
-        scene_rules_context_str = "（無適用的特定規則）"
+        scene_rules_context_str = "（本場景無特殊規則）"
         if all_characters_in_scene:
             all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
             if all_aliases_in_scene:
@@ -2889,27 +2889,71 @@ class ExtractionResult(BaseModel):
 
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        final_prompt_params = { "username": user_profile.name, "ai_name": ai_profile.name, "world_snapshot": world_snapshot_filled, "historical_context": raw_short_term_history, "user_input": user_input }
-        
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
+        # [v43.6 核心修正] 創建最終防線模板，並將場景規則再次注入
         final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.5 🚨 ==
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.6 🚨 ==
 # ==============================================================================
-# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE) - 最高優先級 📖】】】 ===
+#
+# === 【【【📜 絕對規則強制令 (ABSOLUTE RULES MANDATE) - 最高敘事優先級 📜】】】 ===
+# 【警告】: 你不是在創作，你是在模擬一個已存在的世界。以下是這個世界在此刻運行的、不可違背的物理定律。
+# 你的所有敘述，特別是角色的行為，【必須嚴格且精確地】反映以下規則。任何偏離都將導致模擬失敗。
+# --- 本場景生效的規則 ---
+# {{scene_rules_context}}
+# -------------------------
+#
+# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
 # 你的最終輸出【必須且只能】是純粹的小說文本本身。
-# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤（例如：【劇情摘要】、【完整小說內容】）。
+# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
 # 你的回應必須直接以小說的第一個字開始。
 #
 # ------------------------------------------------------------------------------
-# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
-# 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在下方「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。嚴禁憑空捏造任何新角色。
-# 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。但是，如果出現了【極其合理的劇情契機】，你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話，以推動劇情發展。
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。
+# 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。如果出現了【極其合理的劇情契機】，你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話。
 """
+        # [v43.6 核心修正] 組裝最終的 Prompt
+        final_prompt_params = { 
+            "username": user_profile.name, 
+            "ai_name": ai_profile.name, 
+            "world_snapshot": world_snapshot_filled, 
+            "historical_context": raw_short_term_history, 
+            "user_input": user_input,
+            "scene_rules_context": scene_rules_context_str # 將規則傳入
+        }
         
-        full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template ])
-        full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
+        full_template = "\n".join([ 
+            self.core_protocol_prompt, 
+            "{world_snapshot}", 
+            "\n# --- 最新對話歷史 ---", 
+            "{historical_context}", 
+            "\n# --- 使用者最新指令 ---", 
+            "{user_input}", 
+            style_mandate, 
+            final_safeguard_template # 使用包含規則注入點的新模板
+        ])
+
+        # 使用 safe_format 兩次來處理嵌套的模板
+        # 第一次格式化 final_safeguard_template
+        filled_safeguard = self._safe_format_prompt(final_safeguard_template, final_prompt_params)
+        # 更新 params 以包含格式化好的 safeguard
+        final_prompt_params["final_safeguard"] = filled_safeguard
+        
+        # 重新構建主模板以包含已填充的 safeguard
+        main_template = "\n".join([ 
+            self.core_protocol_prompt, 
+            "{world_snapshot}", 
+            "\n# --- 最新對話歷史 ---", 
+            "{historical_context}", 
+            "\n# --- 使用者最新指令 ---", 
+            "{user_input}", 
+            style_mandate, 
+            "{final_safeguard}"
+        ])
+        
+        full_prompt = self._safe_format_prompt(main_template, final_prompt_params)
 
         logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
@@ -2930,7 +2974,6 @@ class ExtractionResult(BaseModel):
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
         
-        # [v43.5 核心修正] 創建並儲存詳細的上下文快照
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
@@ -2941,7 +2984,6 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text
 # 函式：預處理並生成主回應
-
 
 
 
@@ -4824,6 +4866,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
