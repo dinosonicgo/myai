@@ -680,18 +680,18 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.4 - 參數修正)
-# ai_core.py 的 ainvoke_with_rotation 函式 (v232.5 - 原生SDK安全閥值修正)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v232.6 - 動態配置注入)
 # 更新紀錄:
-# v232.5 (2025-09-28): [災難性BUG修復] 根據Google原生SDK官方文件，徹底重構了安全閥值的定義與傳遞方式。現在，safety_settings被定義為一個正確的字典列表，並直接在 `genai.GenerativeModel` 初始化時傳入，確保安全閥值在每一次API呼叫中都被強制且正確地應用，從根源上解決內容審查（BlockedPromptException）問題。
-# v232.4 (2025-09-25): [災難性BUG修復] 修正了對 `_force_and_retry` 備援函式的呼叫。
+# v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。此修改允許上層調用者（如RAG摘要）為特定任務傳入自訂的生成配置（例如更大的`max_output_tokens`），使此函式從一個單一配置的引擎升級為一個能適應多種任務需求的、更靈活的底層API調用器，從根源上解決了摘要任務因輸出長度不足而失敗的問題。
+# v232.5 (2025-09-28): [災難性BUG修復] 徹底重構了安全閥值的定義與傳遞方式。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
         output_schema: Optional[Type[BaseModel]] = None,
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False,
-        models_to_try_override: Optional[List[str]] = None
+        models_to_try_override: Optional[List[str]] = None,
+        generation_config_override: Optional[Dict[str, Any]] = None
     ) -> Any:
         """
         一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、模型降級、內容審查備援策略，
@@ -712,6 +712,11 @@ class AILover:
         last_exception = None
         IMMEDIATE_RETRY_LIMIT = 3
 
+        # [v232.6 核心修正] 決定本次呼叫使用的生成配置
+        final_generation_config = {"temperature": 0.7} # 預設配置
+        if generation_config_override:
+            final_generation_config.update(generation_config_override)
+
         for model_index, model_name in enumerate(models_to_try):
             for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key(model_name)
@@ -725,7 +730,6 @@ class AILover:
                     try:
                         genai.configure(api_key=key_to_use)
                         
-                        # [v232.5 核心修正] 嚴格遵循原生SDK的格式要求
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -738,7 +742,7 @@ class AILover:
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
-                                generation_config=genai.types.GenerationConfig(temperature=0.7)
+                                generation_config=genai.types.GenerationConfig(**final_generation_config)
                             ),
                             timeout=180.0
                         )
@@ -747,7 +751,11 @@ class AILover:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
                              finish_reason_name = response.candidates[0].finish_reason.name
-                             raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                             # 特別處理 MAX_TOKENS，這不是內容審查錯誤
+                             if finish_reason_name == 'MAX_TOKENS':
+                                 raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                             else:
+                                 raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
 
@@ -767,7 +775,7 @@ class AILover:
 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查錯誤: {type(e).__name__}。")
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
                         if retry_strategy == 'none':
                             raise e 
                         elif retry_strategy == 'euphemize':
@@ -782,8 +790,13 @@ class AILover:
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
                         raise e
 
-                    except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError) as e:
+                    except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
+                        if "MAX_TOKENS" in str(e):
+                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
+                             # MAX_TOKENS 錯誤通常不可重試，直接中斷當前金鑰的嘗試
+                             break
+                        
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
@@ -4594,10 +4607,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：檢索並摘要記憶 (v17.0 - 四層降級摘要管線)
-# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.2 - 四層降級摘要管線)
+# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.3 - 動態配置注入)
 # 更新紀錄:
-# v17.2 (2025-09-28): [災難性BUG修復] 根據最新討論，徹底重構了RAG摘要的備援邏輯，實現了更智能的【四層降級摘要管線】。新流程的順序為：1) 嘗試雲端+原文；2) 若被審查，則降級到雲端+代碼化文本；3) 若雲端API故障，則降級到本地LLM+原文；4) 最終防線。此修改在最大化摘要質量的同時，也確保了在任何情況下都有最合適的、最可靠的備援路徑。
-# v17.1 (2025-09-28): [災難性BUG修復] 徹底重構了此函式，增加了`filtering_profiles`參數和【後處理篩選】邏輯。
+# v17.3 (2025-09-28): [災難性BUG修復] 在呼叫`ainvoke_with_rotation`執行摘要任務時，創建並通過新的`generation_config_override`參數傳入了一個專用的生成配置。此配置包含了一個更大的`max_output_tokens`值，從根源上解決了因摘要內容過長而觸發`MAX_TOKENS`錯誤的問題。
+# v17.2 (2025-09-28): [災難性BUG修復] 徹底重構了RAG摘要的備援邏輯，實現了更智能的【四層降級摘要管線】。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
         執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
@@ -4661,12 +4674,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             summarizer_prompt_template = self.get_rag_summarizer_chain()
             summary = None
 
-            # --- [v17.2 核心修正] 四層降級摘要管線 ---
+            # [v17.3 核心修正] 為摘要任務定義一個專用的、更寬鬆的生成配置
+            summary_generation_config = {
+                "temperature": 0.2,
+                "max_output_tokens": 4096 
+            }
+
             try:
                 # --- 層級 1: 理想路徑 (雲端 + 原始文本) ---
                 logger.info(f"[{self.user_id}] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...")
                 full_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary}, inject_core_protocol=True)
-                summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
+                summary = await self.ainvoke_with_rotation(
+                    full_prompt, 
+                    retry_strategy='none',
+                    generation_config_override=summary_generation_config
+                )
 
             except BlockedPromptException:
                 logger.warning(f"[{self.user_id}] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...")
@@ -4680,7 +4702,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         encoded_content = encoded_content.replace(word, code)
 
                     encoded_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": encoded_content}, inject_core_protocol=True)
-                    encoded_summary = await self.ainvoke_with_rotation(encoded_prompt, retry_strategy='none')
+                    encoded_summary = await self.ainvoke_with_rotation(
+                        encoded_prompt, 
+                        retry_strategy='none',
+                        generation_config_override=summary_generation_config
+                    )
                     
                     if encoded_summary:
                         logger.info(f"[{self.user_id}] [RAG摘要-2] ✅ 代碼化摘要成功，正在解碼...")
@@ -4750,6 +4776,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
