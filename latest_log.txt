@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T15:47:13.070027 ###
+### AI Lover Log - Last updated at 2025-09-27T15:52:43.839618 ###
 
-2025-09-27 14:49:49 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
-2025-09-27 14:49:49 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
-2025-09-27 14:49:49 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
-2025-09-27 14:49:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-27 14:49:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-27 14:49:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-27 14:49:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-27 14:49:52 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
 2025-09-27 14:49:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查錯誤: BlockedPromptException。
 2025-09-27 14:49:53 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
@@ -300,3 +293,10 @@ NameError: name 'PostGenerationAnalysisResult' is not defined
 2025-09-27 15:47:02 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-27 15:47:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-27 15:47:02 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-27 15:52:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 15:52:29 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 15:52:30 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 15:52:30 - [INFO] - Discord Bot is ready!
+2025-09-27 15:52:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 15:52:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 15:52:33 - [INFO] - 已成功發送啟動成功通知給管理員。
