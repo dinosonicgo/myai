@@ -41,22 +41,20 @@ from langchain_core.documents import Document
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core._api.deprecation import LangChainDeprecationWarning
-# [核心修正] 從 pydantic 導入 AliasChoices
 from pydantic import BaseModel, Field, ValidationError, field_validator, AliasChoices
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 import chromadb
 from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.retrievs import EnsembleRetriever
+# [核心修正] 将 "retrievs" 修正为 "retrievers"
+from langchain.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
-# [v301.0 核心修正] 導入 Levenshtein 庫的 ratio 函式，並重命名以避免命名衝突
 from Levenshtein import ratio as levenshtein_ratio
 
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
-# [v1.0 核心修正] 在此處導入 BatchRefinementResult
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
@@ -69,7 +67,6 @@ from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
-
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -4830,6 +4827,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
