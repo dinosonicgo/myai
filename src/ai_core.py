@@ -4056,11 +4056,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# src/ai_core.py 的 get_canon_transformation_chain 函式 (v2.6 - 主角中心宇宙原則)
+# 函式：獲取世界聖經轉換器 Prompt (v2.7 - 強化身份提取)
 # 更新紀錄:
-# v2.6 (2025-11-22): [災難性BUG修復] 根據使用者回饋，新增了【主角中心宇宙原則】鐵則。此規則在Prompt層面強制規定，AI角色的核心關係必須與使用者角色錨定，但關係類型保持開放（不限於戀人），從根本上解決了AI角色將核心關係錯誤地指向NPC的問題。
+# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】，在Prompt中增加了對「列表式」身份的處理規則和範例，以解決LORE解析時遺漏部分角色身份（如“母畜”）的問題。
+# v2.6 (2025-11-22): [災難性BUG修復] 新增了【主角中心宇宙原則】鐵則，從根本上解決了AI角色將核心關係錯誤地指向NPC的問題。
 # v2.5 (2025-09-27): [重大架構升級] 更新了【關係圖譜構建強制令】，提供了使用新的 RelationshipDetail 巢狀結構的範例。
-# v2.4 (2025-09-27): [災難性BUG修復] 新增了【身份別名雙重提取原則】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         # [v2.5 核心修正] 更新 Pydantic 定義以匹配 schemas.py v2.0 的 RelationshipDetail 結構
@@ -4100,17 +4100,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          }
 #        }
 #        ```
-# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.4】**:
+# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.7 - 強化版】**:
 #    - 當你從文本中識別出一個描述角色【核心身份】的關鍵詞時（例如：職業、頭銜、狀態、種族、綽號），你【必須】執行【雙重寫入】操作：
 #      a. 將這個身份作為敘述的一部分，完整地保留在 `description` 欄位中。
 #      b. **同時**，將這個關鍵詞本身作為一個獨立的字串，添加到 `aliases` 列表中。
-#    - **範例**:
-#      - **輸入文本**: 「絲月，維利爾斯莊園的女主人，一個虔誠的性神教徒，也被莊園的僕人們私下稱為『母畜』。」
+#    - **【列表處理強制令】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【分別地、獨立地】**添加到 `aliases` 列表中。
+#    - **範例 (v2.7 強化範例)**:
+#      - **輸入文本**: `* 絲月 - 身份: 維利爾斯莊園的女主人、虔誠的性神教徒、僕人私下稱呼的『母畜』。`
 #      - **正確的JSON輸出 (部分)**:
 #        ```json
 #        {
 #          "name": "絲月",
-#          "description": "絲月，維利爾-斯莊園的女主人，一個虔誠的性神教徒，也被莊園的僕人們私下稱為『母畜』。",
+#          "description": "絲月是維利爾斯莊園的女主人、一個虔誠的性神教徒，也被僕人們私下稱為『母畜』。",
 #          "aliases": ["女主人", "性神教徒", "母畜"]
 #        }
 #        ```
@@ -4140,6 +4141,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         base_prompt = part1 + part2
         return base_prompt
     # 函式：獲取世界聖經轉換器 Prompt
+
+
+    
 
 
 
@@ -4475,6 +4479,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
