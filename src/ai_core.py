@@ -3375,20 +3375,20 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 _programmatic_lore_validator 函式 (v2.1 - 異步修正)
+# ai_core.py 的 _programmatic_lore_validator 函式 (v3.0 - 分批處理重構)
 # 更新紀錄:
-# v2.1 (2025-09-28): [災難性BUG修復] 將函式簽名從 `def` 修改為 `async def`，以解決因在函式內部使用 `await asyncio.gather` 而導致的 `SyntaxError: 'await' outside async function` 致命錯誤。
-# v2.0 (2025-09-28): [根本性重構] 將此函式徹底重構為「混合式安全驗證」工作流。
+# v3.0 (2025-09-28): [災難性BUG修復] 根據LOG分析，將核心邏輯從並行處理 (`asyncio.gather`) 徹底重構為【分批處理】模式。此修改旨在將大量的單體API請求合併為少量的批量請求，從根本上解決因API調用過於頻繁而導致的 `ResourceExhausted` 速率限制問題。同時，明確指定驗證任務使用 `gemini-2.5-flash-lite` 模型以優化成本和效率。
+# v2.1 (2025-09-28): [災難性BUG修復] 將函式簽名從 `def` 修改為 `async def`。
     async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
-        【v2.0 混合式安全驗證】一個基於LLM交叉驗證的、抗審查的程式化校驗器。
+        【v3.0 分批交叉驗證】一個基於LLM批量交叉驗證的、抗審查的程式化校驗器。
         """
         if not parsing_result.npc_profiles:
             return parsing_result
 
-        logger.info(f"[{self.user_id}] [混合式安全驗證器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
+        logger.info(f"[{self.user_id}] [混合式安全驗證器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行【分批】最終校驗...")
 
-        # 步驟 1: 準備本地編碼/解碼工具
+        # 步驟 1: 準備工具
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -3397,76 +3397,131 @@ class ExtractionResult(BaseModel):
                 text = text.replace(word, code)
             return text
 
-        # 異步工作者函式，用於並行處理
-        async def worker(profile: "CharacterProfile"):
-            try:
-                # 步驟 2: 上下文定位
-                # 使用更寬鬆的模式定位上下文，只要求名字在行首附近即可
+        # 步驟 2: 分批處理
+        BATCH_SIZE = 10
+        profiles_to_process = parsing_result.npc_profiles
+        
+        for i in range(0, len(profiles_to_process), BATCH_SIZE):
+            batch = profiles_to_process[i:i+BATCH_SIZE]
+            logger.info(f"[{self.user_id}] [別名驗證] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(profiles_to_process) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+            
+            # 為當前批次構建輸入
+            batch_input_data = []
+            for profile in batch:
                 pattern = re.compile(r"^\s*\*\s*" + re.escape(profile.name) + r".*?([\s\S]*?)(?=\n\s*\*\s|\Z)", re.MULTILINE)
                 matches = pattern.findall(canon_text)
-                if not matches:
-                    return profile # 找不到上下文，無法驗證，返回原樣
+                context_snippet = "\n".join(matches) if matches else ""
                 
-                context_snippet = "\n".join(matches)
-                sanitized_context = encode_text(context_snippet)
+                batch_input_data.append({
+                    "character_name": profile.name,
+                    "context_snippet": encode_text(context_snippet),
+                    "claimed_aliases": profile.aliases or []
+                })
+
+            # 步驟 3: 雲端 LLM 批量交叉驗證 (優先路徑)
+            batch_validation_result = None
+            from .schemas import BaseModel
+            class AliasValidation(BaseModel):
+                character_name: str
+                final_aliases: List[str]
+            class BatchAliasValidationResult(BaseModel):
+                validated_aliases: List[AliasValidation]
+
+            try:
+                validator_prompt = self.get_batch_alias_validator_prompt()
+                full_prompt = self._safe_format_prompt(
+                    validator_prompt,
+                    {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)}
+                )
                 
-                # 步驟 3: 雲端 LLM 交叉驗證 (優先路徑)
-                final_aliases = None
-                from .schemas import BaseModel
-                class AliasResult(BaseModel):
-                    final_aliases: List[str]
-
-                try:
-                    validator_prompt = self.get_alias_validator_prompt()
-                    full_prompt = self._safe_format_prompt(
-                        validator_prompt,
-                        {
-                            "character_name": profile.name,
-                            "context_snippet": sanitized_context,
-                            "claimed_aliases_json": json.dumps(profile.aliases, ensure_ascii=False)
-                        }
-                    )
-                    validation_result = await self.ainvoke_with_rotation(full_prompt, output_schema=AliasResult, retry_strategy='none')
-                    if validation_result and validation_result.final_aliases:
-                        final_aliases = validation_result.final_aliases
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [別名驗證-雲端] 為 '{profile.name}' 進行雲端驗證時失敗: {e}。降級到本地備援...")
-
-                # 步驟 4: 本地 LLM 備援
-                if final_aliases is None and self.is_ollama_available:
-                    final_aliases = await self._invoke_local_ollama_validator(
-                        character_name=profile.name,
-                        context_snippet=sanitized_context,
-                        claimed_aliases=profile.aliases
-                    )
-
-                # 步驟 5: 結果合併與解碼
-                if final_aliases is not None:
-                    original_set = set(profile.aliases)
-                    validated_set = set(final_aliases)
-                    merged_set = original_set.union(validated_set)
-                    
-                    decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
-                    
-                    if set(decoded_aliases) != original_set:
-                        logger.warning(f"[{self.user_id}] [混合式安全驗證器] 檢測到角色 '{profile.name}' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。")
-                        profile.aliases = list(set(decoded_aliases)) # 去重後更新
-                
-                return profile
+                # [核心修正] 明確指定使用 gemini-2.5-flash-lite
+                batch_validation_result = await self.ainvoke_with_rotation(
+                    full_prompt, 
+                    output_schema=BatchAliasValidationResult, 
+                    retry_strategy='none',
+                    models_to_try_override=[FUNCTIONAL_MODEL] # FUNCTIONAL_MODEL 即 'gemini-2.5-flash-lite'
+                )
 
             except Exception as e:
-                logger.error(f"[{self.user_id}] [混合式安全驗證器] 在處理角色 '{profile.name}' 時發生未知錯誤: {e}", exc_info=True)
-                return profile # 發生未知錯誤時返回原始profile
+                logger.warning(f"[{self.user_id}] [別名驗證-雲端-批量] 批次 {i//BATCH_SIZE + 1} 驗證失敗: {e}。將對此批次啟用本地備援...")
+            
+            # 步驟 4: 本地 LLM 備援 (如果批量失敗，則逐個處理)
+            if not batch_validation_result or not batch_validation_result.validated_aliases:
+                if self.is_ollama_available:
+                    logger.info(f"[{self.user_id}] [別名驗證-備援] 正在為批次 {i//BATCH_SIZE + 1} 啟動本地LLM逐個驗證...")
+                    validated_aliases_map = {}
+                    for item in batch_input_data:
+                        local_result = await self._invoke_local_ollama_validator(
+                            character_name=item["character_name"],
+                            context_snippet=item["context_snippet"],
+                            claimed_aliases=item["claimed_aliases"]
+                        )
+                        if local_result:
+                            validated_aliases_map[item["character_name"]] = local_result
+                        await asyncio.sleep(0.5) # 避免本地模型過載
+                    # 將本地結果轉換為與雲端相同的格式
+                    if validated_aliases_map:
+                        batch_validation_result = BatchAliasValidationResult(
+                            validated_aliases=[
+                                AliasValidation(character_name=name, final_aliases=aliases)
+                                for name, aliases in validated_aliases_map.items()
+                            ]
+                        )
+                else:
+                    logger.error(f"[{self.user_id}] [別名驗證-備援] 批次 {i//BATCH_SIZE + 1} 驗證失敗且本地模型不可用，此批次校驗跳過。")
+                    continue
 
-        # 使用 asyncio.gather 來並行處理所有校驗任務
-        tasks = [worker(p) for p in parsing_result.npc_profiles]
-        validated_profiles = await asyncio.gather(*tasks)
-        
-        parsing_result.npc_profiles = validated_profiles
+            # 步驟 5: 結果合併與解碼
+            if batch_validation_result and batch_validation_result.validated_aliases:
+                results_map = {res.character_name: res.final_aliases for res in batch_validation_result.validated_aliases}
+                for profile in batch:
+                    if profile.name in results_map:
+                        validated_aliases = results_map[profile.name]
+                        original_set = set(profile.aliases or [])
+                        validated_set = set(validated_aliases)
+                        merged_set = original_set.union(validated_set)
+                        
+                        decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
+                        
+                        if set(decoded_aliases) != original_set:
+                            logger.warning(f"[{self.user_id}] [混合式安全驗證器] 檢測到角色 '{profile.name}' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。")
+                            profile.aliases = list(set(decoded_aliases))
+            
+            await asyncio.sleep(2) # 在處理下一批次前短暫休息，避免觸發速率限制
+
+        parsing_result.npc_profiles = profiles_to_process
+        logger.info(f"[{self.user_id}] [混合式安全驗證器] 所有批次的校驗已全部完成。")
         return parsing_result
 # 函式：程式化LORE校驗器 (核心重寫)
 
 
+
+
+    # ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「分批交叉驗證」策略，創建此核心Prompt模板。它的任務是接收一批角色的上下文和聲稱的身份列表，並在一次API調用中返回所有角色的完整驗證結果，以大幅減少API請求次數。
+    def get_batch_alias_validator_prompt(self) -> str:
+        """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
+        
+        prompt_template = """# TASK: 你是一位極其嚴謹、注重細節的【首席情報校對官】，擅長並行處理多個任務。
+# MISSION: 你的任務是接收一份包含【多個校對任務】的批量請求。對於列表中的【每一個角色】，你需要以其對應的【原始情報文本】為唯一依據，對【聲稱的身份列表】進行嚴格的【事實核查】，並返回一份【絕對完整、無遺漏】的最終身份列表。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【獨立處理】**: 你必須將每個角色的校對任務視為完全獨立的單元。一個角色的情報文本不能用於推斷另一個角色的身份。
+# 2. **【窮舉提取】**: 在每個角色的獨立上下文中，你【必須】找出所有能描述該角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
+# 3. **【合併與補全】**: 對於每個角色，你需要將你新發現的所有身份，與其【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`validated_aliases` 列表必須包含對輸入中【所有角色】的處理結果。
+
+# --- [INPUT DATA] ---
+
+# 【批量情報校對任務】:
+{batch_input_json}
+
+# ---
+# 【你校對後的批量結果JSON】:
+"""
+        return prompt_template
+# 函式：獲取批量別名交叉驗證器Prompt
     
 
 # ai_core.py 的 get_alias_validator_prompt 函式 (v1.0 - 全新創建)
@@ -4796,6 +4851,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
