@@ -240,16 +240,17 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-    # 函式：解析並儲存LORE實體 (v3.0 - 四層降級備援)
-    # 更新紀錄:
-    # v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯，實現了「兩階段、四層降級」架構：1A(雲端批量) -> 1B(雲端強制重試) -> 2A(本地批量) -> 2B(程式拼接)，從根本上解決了因內容審查或模型故障導致的數據丟失問題。
-    # v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。現在，當需要合併`description`時，系統不再簡單地覆蓋，而是會觸發一個由LLM驅動的「描述合成」流程，將舊描述和新情報智能地融合成一段全新的、更完整的描述。此修改從根本上解決了LORE核心資訊（如「母畜」身份）在更新過程中被意外覆蓋和丟失的問題。
-    # v1.8 (2025-09-24): [健壯性強化] 更新了實體解析後的決策邏輯，使用 `.upper() in [...]` 的方式來判斷意圖。
+# 函式：解析並儲存LORE實體 (v4.0 - 程式化身份校驗)
+# 更新紀錄:
+# v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。在儲存NPC檔案前，此函式會用正則表達式掃描其description，強制將所有遺漏的身份關鍵詞（如“母畜”）添加回aliases列表，從根本上解決LLM注意力遺漏的問題。
+# v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯，實現了「兩階段、四層降級」架構。
+# v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
         內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
+        [v4.0 新增] 內建程式化的身份別名校驗器。
         """
         if not self.profile:
             return
@@ -262,6 +263,31 @@ class AILover:
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
         if actual_category == 'npc_profile':
+            # --- [v4.0 核心修正] LORE 校驗器 ---
+            for item in items:
+                description = item.get("description", "")
+                aliases = item.get("aliases", [])
+                
+                # 使用正則表達式查找 `身份:` 行的內容
+                identity_match = re.search(r"(?i)(?:身份|identity)\s*:\s*([^.\n。]+)", description)
+                
+                if identity_match:
+                    identity_string = identity_match.group(1)
+                    # 提取所有由頓號、逗號、空格分隔的身份
+                    found_identities = [i.strip() for i in re.split(r'[、,，\s]', identity_string) if i.strip()]
+                    
+                    corrected = False
+                    for identity in found_identities:
+                        # 移除可能的括號註釋，只保留核心身份詞
+                        clean_identity = re.sub(r'\(.*\)|（.*）', '', identity).strip()
+                        if clean_identity and clean_identity not in aliases:
+                            aliases.append(clean_identity)
+                            corrected = True
+                    
+                    if corrected:
+                        item["aliases"] = aliases
+                        logger.warning(f"[{self.user_id}] [LORE 校驗器] 檢測到角色 '{item.get('name')}' 的身份遺漏，已強制修正 aliases 列表為: {aliases}")
+
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
             
@@ -320,12 +346,10 @@ class AILover:
                     
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
-            # [v3.0 核心修正] 執行全新的四層降級描述合成
             if synthesis_tasks:
                 logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
                 synthesis_result = None
                 
-                # --- 層級 1A: 雲端批量 ---
                 try:
                     synthesis_prompt_template = self.get_description_synthesis_prompt()
                     batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
@@ -334,7 +358,6 @@ class AILover:
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [LORE合併-1A] 雲端批量合成失敗: {e}。降級到 1B (雲端強制重試)...")
 
-                # --- 層級 1B: 雲端強制重試 ---
                 if not synthesis_result:
                     try:
                         forceful_prompt = synthesis_prompt + f"\n\n{self.core_protocol_prompt}"
@@ -342,14 +365,12 @@ class AILover:
                     except Exception as e:
                         logger.warning(f"[{self.user_id}] [LORE合併-1B] 雲端強制重試失敗: {e}。降級到 2A (本地批量)...")
                 
-                # --- 層級 2A: 本地批量 ---
                 if not synthesis_result and self.is_ollama_available:
                     try:
                         synthesis_result = await self._invoke_local_ollama_batch_synthesis(synthesis_tasks)
                     except Exception as e:
                         logger.error(f"[{self.user_id}] [LORE合併-2A] 本地批量合成遭遇嚴重錯誤: {e}。降級到 2B (程式拼接)...")
                 
-                # --- 最終處理與層級 2B (程式拼接) ---
                 if synthesis_result and synthesis_result.synthesized_descriptions:
                     logger.info(f"[{self.user_id}] [LORE合併] LLM 合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
                     results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
@@ -360,7 +381,6 @@ class AILover:
                         char_name = lore.content.get('name')
                         if char_name in results_dict:
                             lore.content['description'] = results_dict[char_name]
-                        # 處理在LLM輸出中可能遺漏的條目
                         elif char_name in tasks_dict:
                             logger.warning(f"[{self.user_id}] [LORE合併-2B] LLM輸出遺漏了'{char_name}'，觸發最終備援(程式拼接)。")
                             task = tasks_dict[char_name]
@@ -393,7 +413,7 @@ class AILover:
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
-    # 函式：解析並儲存LORE實體
+# 函式：解析並儲存LORE實體
 
 
 
@@ -4056,11 +4076,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：獲取世界聖經轉換器 Prompt (v2.7 - 強化身份提取)
+# 函式：獲取世界聖經轉換器 Prompt (v2.8 - 終極身份提取強化)
 # 更新紀錄:
-# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】，在Prompt中增加了對「列表式」身份的處理規則和範例，以解決LORE解析時遺漏部分角色身份（如“母畜”）的問題。
-# v2.6 (2025-11-22): [災難性BUG修復] 新增了【主角中心宇宙原則】鐵則，從根本上解決了AI角色將核心關係錯誤地指向NPC的問題。
-# v2.5 (2025-09-27): [重大架構升級] 更新了【關係圖譜構建強制令】，提供了使用新的 RelationshipDetail 巢狀結構的範例。
+# v2.8 (2025-11-22): [災難性BUG修復] 對【身份別名雙重提取原則】進行了終極強化，增加了措辭更強硬的「列表窮舉強制令」和更精準的範例，以最大限度地提升LLM在Prompt層面對多重身份的提取準確率。
+# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】，在Prompt中增加了對「列表式」身份的處理規則和範例。
+# v2.6 (2025-11-22): [災難性BUG修復] 新增了【主角中心宇宙原則】鐵則。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         # [v2.5 核心修正] 更新 Pydantic 定義以匹配 schemas.py v2.0 的 RelationshipDetail 結構
@@ -4100,19 +4120,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          }
 #        }
 #        ```
-# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.7 - 強化版】**:
+# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.8 - 終極強化版】**:
 #    - 當你從文本中識別出一個描述角色【核心身份】的關鍵詞時（例如：職業、頭銜、狀態、種族、綽號），你【必須】執行【雙重寫入】操作：
 #      a. 將這個身份作為敘述的一部分，完整地保留在 `description` 欄位中。
 #      b. **同時**，將這個關鍵詞本身作為一個獨立的字串，添加到 `aliases` 列表中。
-#    - **【列表處理強制令】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【分別地、獨立地】**添加到 `aliases` 列表中。
-#    - **範例 (v2.7 強化範例)**:
-#      - **輸入文本**: `* 絲月 - 身份: 維利爾斯莊園的女主人、虔誠的性神教徒、僕人私下稱呼的『母畜』。`
+#    - **【列表窮舉強制令 (LIST ENUMERATION MANDATE)】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【絕對必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【一個不漏地、分別地、獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為重大失敗。
+#    - **範例 (v2.8 終極強化範例)**:
+#      - **輸入文本**: `* 米婭 (Mia)\n   * 身份: 性神教徒、母畜、聖女 (於聖露修道院)。`
 #      - **正確的JSON輸出 (部分)**:
 #        ```json
 #        {
-#          "name": "絲月",
-#          "description": "絲月是維利爾斯莊園的女主人、一個虔誠的性神教徒，也被僕人們私下稱為『母畜』。",
-#          "aliases": ["女主人", "性神教徒", "母畜"]
+#          "name": "米婭",
+#          "description": "身份是性神教徒、母畜、以及聖露修道院的聖女。",
+#          "aliases": ["Mia", "性神教徒", "母畜", "聖女"]
 #        }
 #        ```
 # 4. **【🎯 必需欄位強制令】**:
@@ -4140,7 +4160,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         base_prompt = part1 + part2
         return base_prompt
-    # 函式：獲取世界聖經轉換器 Prompt
+# 函式：獲取世界聖經轉換器 Prompt
 
 
     
@@ -4479,6 +4499,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
