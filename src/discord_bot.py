@@ -287,7 +287,11 @@ class RegenerateView(discord.ui.View):
         self.cog = cog
     # 函式：初始化 RegenerateView
 
-    # 函式：處理「重新生成」按鈕點擊事件
+# src/discord_bot.py 的 RegenerateView.regenerate 函式 (v2.0 - 適配事後分析)
+# 更新紀錄:
+# v2.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯，並調整了後續的背景任務觸發。
+# v1.3 (2025-09-27): [災難性BUG修復] 在 undo 方法中增加了對 ai_instance._delete_last_memory() 的調用。
+# v1.2 (2025-09-26): [健壯性強化] 在 `undo` 方法中增加了對頻道類型的檢查。
     @discord.ui.button(label="🔄 重新生成", style=discord.ButtonStyle.secondary, custom_id="persistent_regenerate_button")
     async def regenerate(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -320,7 +324,8 @@ class RegenerateView(discord.ui.View):
             logger.info(f"[{user_id}] [重新生成] 正在使用上次輸入重新生成回應...")
             input_data = {"user_input": ai_instance.last_user_input}
             
-            final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
+            # [v2.0 核心修正] preprocess_and_generate 現在只返回小說文本
+            final_response = await ai_instance.preprocess_and_generate(input_data)
 
             if final_response and final_response.strip():
                 view = self
@@ -328,13 +333,9 @@ class RegenerateView(discord.ui.View):
                     current_view = view if i + 2000 >= len(final_response) else None
                     await interaction.channel.send(final_response[i:i+2000], view=current_view)
                 
-                # 重新生成後的事後處理
-                if summary_data:
-                    logger.info(f"[{user_id}] [重新生成] 新回應已發送，正在啟動事後處理任務...")
-                    asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
-                    asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_user_input, final_response))
-                else:
-                    logger.info(f"[{user_id}] [重新生成] 新回應無摘要數據，跳過事後處理。")
+                # [v2.0 核心修正] 觸發統一的背景事後分析任務
+                logger.info(f"[{user_id}] [重新生成] 新回應已發送，正在啟動統一的「事後分析」任務...")
+                asyncio.create_task(ai_instance._background_lore_extraction(ai_instance.last_user_input, final_response))
             else:
                 await interaction.followup.send("（抱歉，我重新思考了一下，但腦海還是一片空白...）", ephemeral=True)
 
@@ -343,6 +344,8 @@ class RegenerateView(discord.ui.View):
             await interaction.followup.send(f"重新生成時發生了一個嚴重的內部錯誤: `{type(e).__name__}`", ephemeral=True)
     # 函式：處理「重新生成」按鈕點擊事件
 
+
+    
     # 函式：處理「撤銷」按鈕點擊事件
     @discord.ui.button(label="🗑️ 撤銷", style=discord.ButtonStyle.danger, custom_id="persistent_undo_button")
     async def undo(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -1362,19 +1365,17 @@ class BotCog(commands.Cog):
         logger.info("【健康檢查 & Keep-Alive】背景任務已啟動。")
     # 函式：在 connection_watcher 任務首次運行前執行的設置
 
-    # 函式：監聽並處理所有符合條件的訊息 (v58.2 - 競爭條件修復)
-    # 更新紀錄:
-    # v58.2 (2025-09-26): [災難性BUG修復] 增加了對 `self.active_setups` 狀態的檢查。現在，當使用者處於 `/start` 創世流程中時，此監聽器將完全忽略使用者的任何消息（包括上傳檔案），從而根除了因競爭條件導致生成重複或錯誤開場白的問題。
-    # v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。
-    # v58.0 (2025-11-21): [重大架構升級] 改为总是无条件地创建独立的背景 LORE 提取任务。
+# src/discord_bot.py 的 BotCog.on_message 函式 (v59.0 - 適配事後分析)
+# 更新紀錄:
+# v59.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，修改了對 `preprocess_and_generate` 返回值的處理邏輯。由於分析任務已移至後台，此處不再需要處理`summary_data`，而是直接使用返回的小說文本。
+# v58.2 (2025-09-26): [災難性BUG修復] 增加了對 `self.active_setups` 狀態的檢查。
+# v58.1 (2025-09-25): [災難性BUG修復] 增加了对 active_setups 状态的检查。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
         
         user_id = str(message.author.id)
 
-        # [v58.2 核心修正] 創世流程防火牆
-        # 如果使用者正在进行 /start 设置，则忽略所有常规讯息以防止竞争条件。
         if user_id in self.active_setups:
             logger.info(f"[{user_id}] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '{message.content[:50]}...' 以防止競爭。")
             return
@@ -1400,9 +1401,10 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                logger.info(f"[{user_id}] 啟動「生成即摘要」對話流程...")
+                logger.info(f"[{user_id}] 啟動「純粹生成」對話流程...")
                 input_data = { "user_input": user_input }
-                final_response, summary_data = await ai_instance.preprocess_and_generate(input_data)
+                # [v59.0 核心修正] preprocess_and_generate 現在只返回小說文本字串
+                final_response = await ai_instance.preprocess_and_generate(input_data)
                 
                 if final_response and final_response.strip():
                     view = RegenerateView(cog=self)
@@ -1410,11 +1412,8 @@ class BotCog(commands.Cog):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    logger.info(f"[{user_id}] 回應已發送。正在啟動事後處理任務...")
-                    
-                    if summary_data.get("memory_summary"):
-                        asyncio.create_task(ai_instance.update_memories_from_summary(summary_data))
-                    
+                    # [v59.0 核心修正] 觸發統一的背景事後分析任務
+                    logger.info(f"[{user_id}] 回應已發送。正在啟動統一的「事後分析」任務...")
                     asyncio.create_task(ai_instance._background_lore_extraction(user_input, final_response))
 
                 else:
@@ -1422,7 +1421,7 @@ class BotCog(commands.Cog):
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的「生成即摘要」流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的「純粹生成」流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # 監聽並處理所有符合條件的訊息 函式結束
 
@@ -2018,6 +2017,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
