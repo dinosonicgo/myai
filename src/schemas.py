@@ -385,6 +385,20 @@ class NarrativeDirective(BaseModel):
 # src/schemas.py 的 NarrativeDirective 類別結束
 
 
+
+# src/schemas.py 的 RagFactSheet 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「RAG事實清單」策略，創建此模型。它的作用是將RAG摘要任務從一個高風險的「創造性總結」轉變為一個低風險的「結構化數據提取」，通過強制LLM輸出事實列表而非敘事段落，從根本上解決RAG摘要流程被語義安全過濾器攔截的問題。
+class RagFactSheet(BaseModel):
+    """用於包裹從RAG檢索結果中提取出的結構化事實清單的模型。"""
+    involved_characters: List[str] = Field(default_factory=list, description="在文本中涉及到的所有核心角色的名字列表。")
+    key_locations: List[str] = Field(default_factory=list, description="事件發生的關鍵地點列表。")
+    significant_objects: List[str] = Field(default_factory=list, description="在事件中扮演重要角色的物品列表。")
+    core_events: List[str] = Field(default_factory=list, description="對核心事件的、極度中性且客觀的要點式描述列表。")
+# src/schemas.py 的 RagFactSheet 類別結束
+
+
+
 # src/schemas.py 的 PostGenerationAnalysisResult 類別 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此模型。它用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫，確保數據結構的穩定性。
@@ -435,5 +449,6 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
