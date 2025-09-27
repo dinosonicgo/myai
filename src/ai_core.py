@@ -101,11 +101,11 @@ class AILover:
     
     
     
-# src/ai_core.py 的 AILover.__init__ 函式 (v228.0 - Ollama模型變數化)
+# src/ai_core.py 的 AILover.__init__ 函式 (v234.0 - 適配事後分析)
 # 更新紀錄:
-# v228.0 (2025-11-22): [架構優化] 根據使用者建議，新增了 self.ollama_model_name 屬性，將本地模型的名稱集中管理，以便於未來維護和更換。
-# v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值，并将其储存为实例属性。
-# v227.7 (2025-09-26): [架構重構] 新增了 self.ollama_parser_prompt_template 屬性。
+# v234.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，新增了 self.post_generation_analysis_chain 屬性，為新的事後分析鏈預留位置。
+# v228.0 (2025-11-22): [架構優化] 新增了 self.ollama_model_name 屬性。
+# v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -132,7 +132,6 @@ class AILover:
             "ROLE-C": "母狗", "ROLE-D": "母畜"
         }
         
-        # [v228.0 核心修正] 將本地模型名稱集中到一個變數中
         self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
@@ -153,6 +152,8 @@ class AILover:
         self.lore_refinement_chain: Optional[str] = None
         self.lore_extraction_chain: Optional[str] = None
         self.description_synthesis_prompt: Optional[str] = None
+        # [v234.0 核心修正] 新增事後分析鏈屬性
+        self.post_generation_analysis_chain: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
         self.world_snapshot_template: str = ""
@@ -1289,42 +1290,59 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-     # 函式：背景LORE提取與擴展 (v5.0 - 日誌記錄增強)
-    # 更新紀錄:
-    # v5.0 (2025-09-27): [可觀測性升級] 重構了此函式以接收 _execute_tool_call_plan 返回的 (總結, 主鍵列表) 元組。現在，如果LORE擴展成功，它會在日誌中明確記錄所有被成功創建或更新的LORE條目的主鍵，極大地提升了系統的可觀測性。
-    # v4.1 (2025-09-25): [災難性BUG修復] 在格式化 Prompt 時，增加了對 username 和 ai_name 的傳遞。此修改旨在配合 get_lore_extraction_chain 的更新，將核心主角的名稱動態注入到保護規則中，確保保護機制能夠正確生效。
-    # v4.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個輕量級的“啟動器”。
+ # 函式：背景事後分析 (v7.0 - 生成後分析)
+# 更新紀錄:
+# v7.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，此函式的職責被徹底重寫。它現在是事後處理的總指揮，負責調用一個獨立的分析鏈來提取記憶摘要和LORE更新計畫，然後再分別觸發記憶儲存和LORE執行任務。
+# v6.0 (2025-11-22): [災難性BUG修復] 修正了解包 `_execute_lore_parsing_pipeline` 返回值的變數數量。
+# v5.0 (2025-09-27): [可觀測性升級] 重構了日誌記錄邏輯。
     async def _background_lore_extraction(self, user_input: str, final_response: str):
         """
-        (事後處理) 將對話歷史傳遞給統一的 LORE 解析管線，並記錄詳細的擴展結果。
+        (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
         """
         if not self.profile:
             return
                 
         try:
-            await asyncio.sleep(5.0)
-
-            logger.info(f"[{self.user_id}] [對話後 LORE 擴展] 正在啟動多層降級解析管線...")
+            await asyncio.sleep(2.0)
+            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
+            
+            # 步驟 1: 調用事後分析鏈
+            analysis_chain = self.get_post_generation_analysis_chain()
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
             
             dialogue_text = f"使用者 ({self.profile.user_profile.name}): {user_input}\n\nAI ({self.profile.ai_profile.name}): {final_response}"
             
-            # [v5.0 核心修正] 調用 LORE 解析管線並接收詳細結果
-            success, created_or_updated_keys = await self._execute_lore_parsing_pipeline(dialogue_text)
+            analysis_result = await self.ainvoke_with_rotation(
+                analysis_chain,
+                {
+                    "username": self.profile.user_profile.name,
+                    "ai_name": self.profile.ai_profile.name,
+                    "existing_lore_summary": existing_lore_summary,
+                    "user_input": user_input,
+                    "final_response_text": final_response
+                },
+                output_schema=PostGenerationAnalysisResult,
+                retry_strategy='euphemize',
+                use_degradation=False # 使用快速的功能性模型
+            )
+
+            if not analysis_result:
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
+                return
+
+            # 步驟 2: 根據分析結果，分別觸發記憶儲存和LORE更新任務
+            if analysis_result.memory_summary:
+                await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
-            if success:
-                # [v5.0 核心修正] 記錄詳細的擴展日誌
-                if created_or_updated_keys:
-                    log_message = f"擴展了 {len(created_or_updated_keys)} 條 LORE: {', '.join(created_or_updated_keys)}"
-                    logger.info(f"[{self.user_id}] [對話後 LORE 擴展] ✅ 管線成功完成。{log_message}")
-                else:
-                    logger.info(f"[{self.user_id}] [對話後 LORE 擴展] ✅ 管線成功完成，但本次對話未觸發新的LORE條目。")
-            else:
-                logger.warning(f"[{self.user_id}] [對話後 LORE 擴展] ⚠️ 所有解析層級均失敗，本回合未能擴展 LORE。")
+            if analysis_result.lore_updates:
+                await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
+            
+            logger.info(f"[{self.user_id}] [事後分析] 背景分析與處理任務完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [對話後 LORE 擴展] 任務主體發生未預期的異常: {e}", exc_info=True)
-    # 函式：背景LORE提取與擴展
-
+            logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
+    # 函式：背景事後分析
 
 
     # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
@@ -2661,7 +2679,39 @@ class ExtractionResult(BaseModel):
     # 函式：背景LORE精煉
 
     
-    
+    # 函式：獲取事後分析器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此核心Prompt模板。它的唯一任務是在小說生成完畢後，安全地、在後台對對話進行分析，並提取出用於記憶和LORE更新的結構化JSON。
+    def get_post_generation_analysis_chain(self) -> str:
+        """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
+        if self.post_generation_analysis_chain is None:
+            prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】。
+# MISSION: 你的任務是閱讀【本回合的完整對話】，並從中提取出兩類關鍵信息：
+#   1.  **長期記憶摘要**: 一句簡潔的、無害化的、值得被AI角色記住的核心事件總結。
+#   2.  **LORE更新計畫**: 所有在對話中被創造或更新的世界知識（角色、地點等），並將其轉化為結構化的工具調用計畫。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
+# 2.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本，禁止添加任何原文未提及的資訊。
+# 3.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。你可以使用委婉的、文學性的語言來描述事件，但【絕對禁止】包含任何露骨的或違反內容安全的詞彙。
+# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
+
+# --- [INPUT DATA] ---
+
+# 【現有LORE摘要 (你的參考基準)】:
+{existing_lore_summary}
+
+# ---
+# 【本回合的完整對話】:
+# 使用者 ({username}): {user_input}
+# AI ({ai_name}): {final_response_text}
+# ---
+
+# 【你生成的分析結果JSON】:
+"""
+            self.post_generation_analysis_chain = prompt_template
+        return self.post_generation_analysis_chain
+    # 函式：獲取事後分析器 Prompt
     
     
 # src/ai_core.py 的 preprocess_and_generate 函式 (v41.0 - LORE繼承系統)
@@ -4558,6 +4608,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
