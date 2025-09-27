@@ -62,7 +62,8 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
                       SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
-                      EntityValidationResult, SynthesisTask, BatchSynthesisResult)
+                      EntityValidationResult, SynthesisTask, BatchSynthesisResult,
+                      NarrativeExtractionResult, PostGenerationAnalysisResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -1290,7 +1291,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
- # 函式：背景事後分析 (v7.0 - 生成後分析)
+# 函式：背景事後分析 (v7.0 - 生成後分析)
 # 更新紀錄:
 # v7.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，此函式的職責被徹底重寫。它現在是事後處理的總指揮，負責調用一個獨立的分析鏈來提取記憶摘要和LORE更新計畫，然後再分別觸發記憶儲存和LORE執行任務。
 # v6.0 (2025-11-22): [災難性BUG修復] 修正了解包 `_execute_lore_parsing_pipeline` 返回值的變數數量。
@@ -4567,6 +4568,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
