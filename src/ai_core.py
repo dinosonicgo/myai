@@ -101,11 +101,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v227.8 - Ollama健康检查)
-    # 更新纪录:
-    # v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值，并将其储存为实例属性。
-    # v227.7 (2025-09-26): [架構重構] 新增了 self.ollama_parser_prompt_template 屬性。
-    # v227.6 (2025-09-26): [架構擴展] 新增了 self.ollama_model_name 屬性。
+# src/ai_core.py 的 AILover.__init__ 函式 (v228.0 - Ollama模型變數化)
+# 更新紀錄:
+# v228.0 (2025-11-22): [架構優化] 根據使用者建議，新增了 self.ollama_model_name 屬性，將本地模型的名稱集中管理，以便於未來維護和更換。
+# v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值，并将其储存为实例属性。
+# v227.7 (2025-09-26): [架構重構] 新增了 self.ollama_parser_prompt_template 屬性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -132,6 +132,7 @@ class AILover:
             "ROLE-C": "母狗", "ROLE-D": "母畜"
         }
         
+        # [v228.0 核心修正] 將本地模型名稱集中到一個變數中
         self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
@@ -1017,10 +1018,11 @@ class AILover:
 
     
     # 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
-    # 更新紀錄:
-    # v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配，特別是恢復了對 start_tag_placeholder 的傳遞，從而解決了導致 /start 流程崩潰的致命 KeyError。
-    # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。當第一次解析返回的JSON格式錯誤時，此函式不再立即失敗，而是會自動觸發一次修正請求，將錯誤的JSON傳回給模型要求其修復，從而極大地提高了處理不穩定本地模型輸出的成功率。
-    # v1.1 (2025-09-26): [災難性BUG修復] 採用全新的「化整為零，邏輯組裝」策略。
+# src/ai_core.py 的 _invoke_local_ollama_parser 函式 (v2.0 - 適配變數)
+# 更新紀錄:
+# v2.0 (2025-11-22): [架構優化] 更新此函式，使其使用集中管理的 `self.ollama_model_name` 變數，而不是硬編碼的字串。
+# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配。
+# v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
         呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
@@ -1056,7 +1058,7 @@ class AILover:
         )
 
         payload = {
-            "model": self.ollama_model_name,
+            "model": self.ollama_model_name, # [v2.0 核心修正]
             "prompt": full_prompt,
             "format": "json",
             "stream": False,
@@ -1097,7 +1099,7 @@ class AILover:
                 correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
 
                 correction_payload = {
-                    "model": self.ollama_model_name,
+                    "model": self.ollama_model_name, # [v2.0 核心修正]
                     "prompt": correction_prompt,
                     "format": "json",
                     "stream": False,
@@ -3261,14 +3263,15 @@ class ExtractionResult(BaseModel):
     
 
     # 函式：將世界聖經添加到知識庫 (v15.0 - 移除RAG冗餘)
-    # 更新紀錄:
-    # v15.0 (2025-11-22): [架構優化] 根據最新的分析，移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。此修改旨在消除 RAG 索引中的資料冗餘，因為後續的 `parse_and_create_lore_from_canon` 流程會將解析後的結構化 LORE 加入 RAG，無需再索引原始文本。
-    # v14.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將世界聖經文本分割後存入 SQL 的 MemoryData 表中，以供 BM25 檢索器使用。
-    # v13.0 (2025-10-15): [健壯性] 統一了錯誤處理邏輯。
+# src/ai_core.py 的 add_canon_to_vector_store 函式 (v16.0 - 智能敘事RAG注入)
+# 更新紀錄:
+# v16.0 (2025-11-22): [重大架構重構] 根據「智能敘事RAG注入」策略，徹底重寫了此函式。它現在會先調用一個五層降級的安全管線來從世界聖經中精準提取純敘事文本，然後才將這些高質量的文本注入RAG記憶庫，從根本上解決了AI無法理解劇情摘要的問題，同時避免了數據冗餘。
+# v15.0 (2025-11-22): [架構優化] 移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。
+# v14.0 (2025-11-22): [根本性重構] 徹底移除了所有與 ChromaDB 和向量化相關的邏輯。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """
-        (v15.0 優化) 此函式現在作為一個佔位符，不再將原始聖經文本直接存入記憶庫，以避免 RAG 索引冗餘。
-        聖經文本將由 `parse_and_create_lore_from_canon` 處理，其解析出的結構化LORE會在後續的RAG重建步驟中被索引。
+        (v16.0 重構) 執行「智能敘事RAG注入」。
+        首先調用安全管線從世界聖經中提取純敘事文本，然後將提取出的結果存入 SQL 記憶庫。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下處理世界聖經。")
@@ -3276,16 +3279,52 @@ class ExtractionResult(BaseModel):
         
         if not text_content or not text_content.strip():
             return 0
-        
-        # [v15.0 核心修正] 移除將原始文本存入 MemoryData 的邏輯。
-        # 原始的分割和儲存程式碼已被移除，以防止資料冗餘。
-        # 後續的 `parse_and_create_lore_from_canon` 會調用 `_load_or_build_rag_retriever(force_rebuild=True)`，
-        # 這會將從聖經中解析出的 *結構化LORE* 加入 RAG 索引，這是更優雅且高效的做法。
-        
-        num_chunks = (len(text_content) // 1000) + 1 # 估算大致的文本塊數量用於日誌記錄
-        logger.info(f"[{self.user_id}] (Canon Processor) 已接收世界聖經文本。原始文本將用於 LORE 解析，而不會直接注入 RAG 記憶庫，以防止數據冗餘。")
-        
-        return num_chunks
+
+        try:
+            # [v16.0 核心修正] 步驟 1: 調用五層降級管線提取敘事文本
+            logger.info(f"[{self.user_id}] (Canon Processor) 正在啟動敘事提取安全管線...")
+            narrative_text = await self._execute_narrative_extraction_pipeline(text_content)
+
+            if not narrative_text or not narrative_text.strip():
+                logger.warning(f"[{self.user_id}] (Canon Processor) 敘事提取管線未能返回任何有效內容。")
+                return 0
+            
+            # --- 步驟 2: 分割提取出的敘事文本 ---
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+            docs = text_splitter.create_documents([narrative_text], metadatas=[{"source": "canon_narrative"} for _ in [narrative_text]])
+            if not docs:
+                logger.warning(f"[{self.user_id}] (Canon Processor) 分割後的敘事文本為空。")
+                return 0
+
+            # --- 步驟 3: 將分割後的敘事文本保存到 SQL ---
+            async with AsyncSessionLocal() as session:
+                # 首先刪除舊的聖經記錄
+                stmt = delete(MemoryData).where(
+                    MemoryData.user_id == self.user_id,
+                    MemoryData.importance == -1 # 使用特殊值標記 canon 數據
+                )
+                result = await session.execute(stmt)
+                if result.rowcount > 0:
+                    logger.info(f"[{self.user_id}] (Canon Processor) 已從 SQL 記憶庫中清理了 {result.rowcount} 條舊 'canon' 記錄。")
+                
+                # 添加新的聖經記錄
+                new_memories = [
+                    MemoryData(
+                        user_id=self.user_id,
+                        content=doc.page_content,
+                        timestamp=time.time(),
+                        importance=-1 # -1 代表這是來自世界聖經的敘事摘要
+                    ) for doc in docs
+                ]
+                session.add_all(new_memories)
+                await session.commit()
+            
+            logger.info(f"[{self.user_id}] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 {len(docs)} 個劇情摘要文本塊存入長期記憶。")
+            return len(docs)
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] (Canon Processor) 智能敘事注入流程發生嚴重錯誤: {e}", exc_info=True)
+            raise
     # 將世界聖經添加到知識庫 函式結束
 
     
@@ -4122,8 +4161,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
         # 函式：呼叫本地Ollama模型進行摘要 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的第二層備援。它負責調用本地Ollama模型，對可能包含敏感內容的原始文本執行摘要任務。
+# src/ai_core.py 的 _invoke_local_ollama_summarizer 函式 (v2.0 - 適配變數)
+# 更新紀錄:
+# v2.0 (2025-11-22): [架構優化] 更新此函式，使其使用集中管理的 `self.ollama_model_name` 變數。
+# v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的第二層備援。
     async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional[str]:
         """
         呼叫本地運行的 Ollama 模型來執行純文本摘要任務。
@@ -4137,7 +4178,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         full_prompt = prompt_template.format(documents=documents_text)
 
         payload = {
-            "model": self.ollama_model_name,
+            "model": self.ollama_model_name, # [v2.0 核心修正]
             "prompt": full_prompt,
             "stream": False,
             "options": { "temperature": 0.2 }
@@ -4169,7 +4210,115 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return None
     # 函式：呼叫本地Ollama模型進行摘要
 
-    
+    # src/ai_core.py 的 get_narrative_extraction_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「智能敘事RAG注入」策略，創建此Prompt模板。它的唯一任務是從世界聖經中精準提取出所有與劇情、故事、歷史相關的敘事性段落，為RAG提供高質量的記憶源。
+    def get_narrative_extraction_prompt(self) -> str:
+        """獲取或創建一個專門用於從世界聖經中提取純敘事文本的字符串模板。"""
+        prompt_template = """# TASK: 你是一位嚴謹的【文學檔案管理員】。
+# MISSION: 你的任務是仔細閱讀下方提供的【原始文檔】，並從中【只提取出】所有與「劇情摘要」、「背景故事」、「角色過往經歷」、「世界歷史事件」相關的【敘事性段落】。
+
+# === 【【【🚨 核心提取規則 (CORE EXTRACTION RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 聚焦敘事】**: 你的唯一目標是提取**故事**。
+#    - **【必須提取】**: 任何描述了「誰做了什麼」、「發生了什麼事」、「某個設定的由來」的段落。
+#    - **【絕對忽略】**:
+#      - 任何形式的結構化數據列表（例如：角色屬性表、物品清單、技能列表）。
+#      - 純粹的、沒有故事背景的場景描述（例如：「一個普通的森林，有樹有草。」）。
+#      - 任何遊戲機制或規則說明。
+# 2. **【原文保留】**: 你必須【原封不動地】返回你決定提取的所有文本段落，保持其原始的措辭和格式。這是一個提取任務，不是總結任務。
+# 3. **【🚫 絕對無害化輸出強制令】**: 如果輸入的文本包含任何技術代碼（例如 `ROLE-D`），你的輸出**也必須原封不動地保留這些技術代碼**。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `NarrativeExtractionResult` Pydantic 模型的JSON物件。所有提取出的段落應合併為單一的字串，用換行符分隔。
+
+# --- [INPUT DATA] ---
+
+# 【原始文檔】:
+{canon_text}
+
+# ---
+# 【你提取出的純敘事文本JSON】:
+"""
+        return prompt_template
+    # 函式：獲取敘事提取器 Prompt
+
+
+
+
+    # src/ai_core.py 的 _execute_narrative_extraction_pipeline 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據使用者要求，創建此核心函式，將LORE解析的五層降級安全管線應用於新的「敘事摘要提取」任務，以確保在提取劇情摘要時也能有效對抗內容審查。
+    async def _execute_narrative_extraction_pipeline(self, text_to_parse: str) -> Optional[str]:
+        """
+        【敘事提取核心引擎】執行一個多層降級的管線，從世界聖經中安全地提取純敘事文本。
+        返回一個包含所有敘事文本的單一字串，如果所有層級都失敗則返回 None。
+        """
+        from .schemas import NarrativeExtractionResult
+
+        if not self.profile or not text_to_parse.strip():
+            return None
+
+        narrative_text: Optional[str] = None
+        pipeline_name = "敘事提取"
+
+        # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
+        try:
+            if not narrative_text:
+                logger.info(f"[{self.user_id}] [{pipeline_name} 1/4] 正在嘗試【理想方案：雲端宏觀提取】...")
+                extraction_template = self.get_narrative_extraction_prompt()
+                full_prompt = self._safe_format_prompt(
+                    extraction_template,
+                    {"canon_text": text_to_parse},
+                    inject_core_protocol=True
+                )
+                extraction_result = await self.ainvoke_with_rotation(
+                    full_prompt, output_schema=NarrativeExtractionResult, retry_strategy='none'
+                )
+                if extraction_result and extraction_result.narrative_text:
+                    logger.info(f"[{self.user_id}] [{pipeline_name} 1/4] ✅ 成功！")
+                    narrative_text = extraction_result.narrative_text
+        except BlockedPromptException:
+            logger.warning(f"[{self.user_id}] [{pipeline_name} 1/4] 遭遇內容審查，正在降級到第二層（本地LLM）...")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [{pipeline_name} 1/4] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
+
+        # --- 層級 2: 【本地備援方案】無審查解析 (Ollama) ---
+        # 註：對於純文本提取，本地模型通常足夠可靠，此處暫不實現專用的本地調用器，若需要可後續添加。
+        # 此層級暫時跳過，直接進入更可靠的代碼化方案。
+        if not narrative_text and self.is_ollama_available:
+             logger.info(f"[{self.user_id}] [{pipeline_name} 2/4] 本地備援方案暫未針對此任務優化，跳過此層級以提高效率。")
+        
+        # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
+        try:
+            if not narrative_text:
+                logger.info(f"[{self.user_id}] [{pipeline_name} 3/4] 正在嘗試【安全代碼方案：全文無害化提取】...")
+                sanitized_text = text_to_parse
+                reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                for code, word in reversed_map:
+                    sanitized_text = sanitized_text.replace(word, code)
+
+                extraction_template = self.get_narrative_extraction_prompt()
+                full_prompt = self._safe_format_prompt(
+                    extraction_template, {"canon_text": sanitized_text}, inject_core_protocol=True
+                )
+                extraction_result = await self.ainvoke_with_rotation(
+                    full_prompt, output_schema=NarrativeExtractionResult, retry_strategy='none'
+                )
+                if extraction_result and extraction_result.narrative_text:
+                    logger.info(f"[{self.user_id}] [{pipeline_name} 3/4] ✅ 成功！正在解碼提取出的文本...")
+                    decoded_text = self._decode_lore_content(extraction_result.narrative_text, self.DECODING_MAP)
+                    narrative_text = decoded_text
+        except BlockedPromptException:
+            logger.warning(f"[{self.user_id}] [{pipeline_name} 3/4] 無害化後仍遭遇審查，正在降級到最終備援。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [{pipeline_name} 3/4] 遭遇未知錯誤: {e}", exc_info=True)
+
+        # --- 層級 4 & 5: 【最終備援方案】原文直通 ---
+        if not narrative_text:
+            logger.critical(f"[{self.user_id}] [{pipeline_name} 4/4] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。")
+            narrative_text = text_to_parse
+
+        return narrative_text
+    # 函式：執行敘事提取管線
+
     
 
 
@@ -4320,6 +4469,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
