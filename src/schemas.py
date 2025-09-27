@@ -194,6 +194,11 @@ class CreatureInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
+# src/schemas.py 的 WorldLore 類別 (v2.1 - 規則繼承)
+# 更新紀錄:
+# v2.1 (2025-11-22): [架構擴展] 新增了 template_keys 欄位。這是實現「LORE繼承與規則注入系統」的應用層基礎，用於定義一條世界傳說可以被哪些身份（aliases）所繼承。
+# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
+# v1.4 (2025-09-26): [災難性BUG修復] 在文件頂部增加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
 class WorldLore(BaseModel):
     # [v3.0 核心修正] 將 'title' 統一為 'name' 並保持兼容性
     name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
@@ -202,12 +207,14 @@ class WorldLore(BaseModel):
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
     key_elements: List[str] = Field(default_factory=list, description="與此 Lore 相關的關鍵詞或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="與此 Lore 相關的角色、地點或物品的名稱列表。")
-    template_keys: Optional[List[str]] = Field(default=None, description="一個可選的鍵列表，表示此LORE條目繼承了哪些模板LORE的屬性。")
+    # [v2.1 核心修正] 新增 template_keys 欄位
+    template_keys: Optional[List[str]] = Field(default=None, description="一個可選的關鍵詞列表。任何身份(alias)匹配此列表的角色，都將繼承本條LORE的content作為其行為準則。")
 
     @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
+# src/schemas.py 的 WorldLore 類別結束
 
 class EntityValidationResult(BaseModel):
     decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="驗證後的最終決定。")
@@ -406,3 +413,4 @@ BatchClassificationResult.model_rebuild()
 
 # [v1.0 新增] 確保敘事提取模型也被重建
 NarrativeExtractionResult.model_rebuild()
+
