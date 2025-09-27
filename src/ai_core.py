@@ -2766,14 +2766,15 @@ class ExtractionResult(BaseModel):
     
     
     
-# ai_core.py 的 preprocess_and_generate 函式 (v43.6 - LORE強制執行修正)
-# 更新紀錄:
-# v43.6 (2025-09-28): [災難性BUG修復] 根據「最終防線指令增強」策略，重構了最終Prompt的組裝邏輯。現在，場景適用規則(`scene_rules_context`)會被【再次】注入到`final_safeguard_template`的一個全新【絕對規則強制令】區塊中。此修改利用「臨近效應」和「上下文重複」的Prompt工程技巧，將LORE規則的執行優先級提升到最高，從根源上解決了AI知道規則但選擇性忽略的問題。
-# v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了`last_context_snapshot`的內容。
+    # 函式：預處理並生成主回應 (v44.0 - 整合 AI 導演)
+    # 更新紀錄:
+    # v44.0 (2025-09-28): [重大架構升級] 徹底重構此函式，整合了全新的「AI導演」決策模組。在主生成之前，此版本會先調用一個輕量級的LLM鏈（包含雲端和本地備援），根據場景規則生成一個「本回合強制動作指令」。這個指令隨後會被注入到主生成Prompt的最高優先級位置，從而將隱式的規則執行轉化為顯式的指令，從根本上解決了AI知道規則但選擇性忽略的問題。
+    # v43.6 (2025-09-28): [災難性BUG修復] 根據「最終防線指令增強」策略，重構了最終Prompt的組裝邏輯。
+    # v43.5 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，極大地擴充了`last_context_snapshot`的內容。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v43.0重構) 執行純粹的小說生成任務。
-        組合所有上下文並調用原生LLM生成下一段故事。
+        (v44.0重構) 執行包含「AI導演」決策的純粹小說生成任務。
+        組合所有上下文，由導演決定前置動作，最後調用原生LLM生成下一段故事。
         返回純小說文本字串。
         """
         user_input = input_data["user_input"]
@@ -2788,7 +2789,7 @@ class ExtractionResult(BaseModel):
         ai_profile = self.profile.ai_profile
 
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item), reverse=True)
         def encode_text(text: str) -> str:
             if not text: return ""
             for word, code in sorted_encoding_map:
@@ -2845,6 +2846,52 @@ class ExtractionResult(BaseModel):
                     scene_rules_context_str = "\n\n".join(rule_texts)
                     logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
 
+        # --- [v44.0 新增] AI 導演決策模組 ---
+        logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
+        directive = None
+        try:
+            director_prompt_template = self.get_narrative_directive_prompt()
+            relevant_chars_summary = ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無"
+            
+            director_prompt = self._safe_format_prompt(
+                director_prompt_template,
+                {
+                    "relevant_characters_summary": relevant_chars_summary,
+                    "scene_rules_context": scene_rules_context_str,
+                    "user_input": user_input
+                },
+                inject_core_protocol=True
+            )
+            directive = await self.ainvoke_with_rotation(
+                director_prompt,
+                output_schema=NarrativeDirective,
+                retry_strategy='none',
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [AI導演] 雲端導演決策失敗: {e}。正在啟動本地備援...")
+        
+        if not directive:
+            if self.is_ollama_available:
+                directive = await self._invoke_local_ollama_director(
+                    relevant_characters_summary=relevant_chars_summary,
+                    scene_rules_context=scene_rules_context_str,
+                    user_input=user_input
+                )
+            else:
+                logger.error(f"[{self.user_id}] [AI導演] 本地備援不可用，導演決策最終失敗。")
+        
+        # 最終備援：如果所有LLM都失敗，則創建一個基礎指令
+        if not directive:
+            directive = NarrativeDirective(
+                mandatory_action=None,
+                scene_summary_for_generation=user_input # 退回至僅使用使用者指令
+            )
+            logger.critical(f"[{self.user_id}] [AI導演] 所有導演決策層級均失敗，已觸發最終備援。")
+        
+        logger.info(f"[{self.user_id}] [AI導演] 決策完成。強制動作: '{directive.mandatory_action or '無'}'")
+        # --- AI 導演決策結束 ---
+
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
             raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
@@ -2892,17 +2939,16 @@ class ExtractionResult(BaseModel):
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v43.6 核心修正] 創建最終防線模板，並將場景規則再次注入
         final_safeguard_template = f"""# ==============================================================================
-# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.6 🚨 ==
+# == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.7 (導演版) 🚨 ==
 # ==============================================================================
 #
-# === 【【【📜 絕對規則強制令 (ABSOLUTE RULES MANDATE) - 最高敘事優先級 📜】】】 ===
-# 【警告】: 你不是在創作，你是在模擬一個已存在的世界。以下是這個世界在此刻運行的、不可違背的物理定律。
-# 你的所有敘述，特別是角色的行為，【必須嚴格且精確地】反映以下規則。任何偏離都將導致模擬失敗。
-# --- 本場景生效的規則 ---
-# {{scene_rules_context}}
-# -------------------------
+# === 【【【🎬 本回合導演強制指令 (MANDATORY DIRECTOR'S ACTION) - 最高敘事優先級 🎬】】】 ===
+# 【警告】: 你的創作必須以此指令為絕對核心。這是本回合故事的【劇本】。
+# 你的所有敘述，都必須是為了實現這個指令。
+# ---
+# 【導演劇本】: {{director_scene_summary}}
+# ---
 #
 # === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
 # 你的最終輸出【必須且只能】是純粹的小說文本本身。
@@ -2914,14 +2960,13 @@ class ExtractionResult(BaseModel):
 # 2. **【🎭 角色名單鎖定鐵則 v2.0】**: 你的所有描述【絕對禁止】包含任何**不在「核心互動目標」和「在場背景角色」這兩個列表中的具名 NPC**。
 # 3. **【🎯 焦點鎖定與自主行動授權原則 v2.0】**: 你的敘事焦點【必須】集中在「核心互動目標」上。如果出現了【極其合理的劇情契機】，你【被授權】調用「在場背景角色」列表中的一名角色，讓其根據自己的檔案卡進行簡短、合理的行動或對話。
 """
-        # [v43.6 核心修正] 組裝最終的 Prompt
         final_prompt_params = { 
             "username": user_profile.name, 
             "ai_name": ai_profile.name, 
             "world_snapshot": world_snapshot_filled, 
             "historical_context": raw_short_term_history, 
-            "user_input": user_input,
-            "scene_rules_context": scene_rules_context_str # 將規則傳入
+            "user_input": user_input, # 保留 user_input 以便模板完整性檢查
+            "director_scene_summary": directive.scene_summary_for_generation # 注入導演的最終指令
         }
         
         full_template = "\n".join([ 
@@ -2929,31 +2974,12 @@ class ExtractionResult(BaseModel):
             "{world_snapshot}", 
             "\n# --- 最新對話歷史 ---", 
             "{historical_context}", 
-            "\n# --- 使用者最新指令 ---", 
-            "{user_input}", 
+            # 移除舊的 user_input，因為它已被導演指令取代
             style_mandate, 
-            final_safeguard_template # 使用包含規則注入點的新模板
+            final_safeguard_template
         ])
 
-        # 使用 safe_format 兩次來處理嵌套的模板
-        # 第一次格式化 final_safeguard_template
-        filled_safeguard = self._safe_format_prompt(final_safeguard_template, final_prompt_params)
-        # 更新 params 以包含格式化好的 safeguard
-        final_prompt_params["final_safeguard"] = filled_safeguard
-        
-        # 重新構建主模板以包含已填充的 safeguard
-        main_template = "\n".join([ 
-            self.core_protocol_prompt, 
-            "{world_snapshot}", 
-            "\n# --- 最新對話歷史 ---", 
-            "{historical_context}", 
-            "\n# --- 使用者最新指令 ---", 
-            "{user_input}", 
-            style_mandate, 
-            "{final_safeguard}"
-        ])
-        
-        full_prompt = self._safe_format_prompt(main_template, final_prompt_params)
+        full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
 
         logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
@@ -2983,9 +3009,139 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。")
 
         return final_novel_text
-# 函式：預處理並生成主回應
+    # 函式：預處理並生成主回應
 
 
+
+
+
+
+
+
+
+
+
+
+        # 函式：獲取本地模型專用的導演決策器Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板，用於在雲端導演決策失敗時執行核心的規則判斷任務。
+    def get_local_model_director_prompt(self) -> str:
+        """獲取為本地LLM設計的、指令簡化的、用於導演決策的備援Prompt模板。"""
+        
+        prompt_template = """# TASK: 根據規則決定強制動作。
+# CHARACTERS: {relevant_characters_summary}
+# RULES: {scene_rules_context}
+# USER_INPUT: {user_input}
+# INSTRUCTION: 閱讀 CHARACTERS, RULES, USER_INPUT。如果 RULES 被觸發，在 "mandatory_action" 中描述動作，否則設為 null。在 "scene_summary_for_generation" 中結合 USER_INPUT 和動作。只輸出 JSON。
+# JSON_OUTPUT:
+```json
+"""
+        return prompt_template
+    # 函式：獲取本地模型專用的導演決策器Prompt
+
+
+
+        # 函式：呼叫本地Ollama模型執行導演決策 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此函式作為導演決策的本地無規範LLM備援方案。它確保了即使在雲端API因內容審查而失敗時，核心的規則執行邏輯依然能夠通過本地模型完成，極大地增強了系統的健壯性。
+    async def _invoke_local_ollama_director(self, relevant_characters_summary: str, scene_rules_context: str, user_input: str) -> Optional["NarrativeDirective"]:
+        """
+        呼叫本地運行的 Ollama 模型來執行「AI導演」的決策任務，內置一次JSON格式自我修正的重試機制。
+        成功則返回一個 NarrativeDirective 物件，失敗則返回 None。
+        """
+        import httpx
+        import json
+        from .schemas import NarrativeDirective
+
+        logger.info(f"[{self.user_id}] [AI導演-備援] 正在使用本地模型 '{self.ollama_model_name}' 進行導演決策...")
+        
+        prompt_template = self.get_local_model_director_prompt()
+        full_prompt = prompt_template.format(
+            relevant_characters_summary=relevant_characters_summary,
+            scene_rules_context=scene_rules_context,
+            user_input=user_input
+        )
+
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": full_prompt,
+            "format": "json",
+            "stream": False,
+            "options": { "temperature": 0.2 }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=180.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                
+                response_data = response.json()
+                json_string_from_model = response_data.get("response")
+                
+                if not json_string_from_model:
+                    logger.warning(f"[{self.user_id}] [AI導演-備援] 本地模型返回了空的 'response' 內容。")
+                    return None
+
+                # 本地模型有時會在JSON外層包裹Markdown，需要清理
+                json_match = re.search(r'\{.*\}', json_string_from_model, re.DOTALL)
+                if not json_match:
+                    raise json.JSONDecodeError("未能在本地模型回應中找到JSON物件", json_string_from_model, 0)
+                
+                clean_json_str = json_match.group(0)
+                parsed_json = json.loads(clean_json_str)
+                validated_result = NarrativeDirective.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] [AI導演-備援] ✅ 本地模型導演決策成功。")
+                return validated_result
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [AI導演-備援] 🔥 呼叫本地Ollama進行導演決策時發生未知錯誤: {e}", exc_info=True)
+            return None
+    # 函式：呼叫本地Ollama模型執行導演決策
+
+
+        # 函式：獲取 AI 導演決策器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此核心Prompt模板。它的唯一職責是接收場景的關鍵要素（角色、規則、使用者意圖），並輸出一份結構化的、包含「本回合強制動作」的導演指令集，從而將隱式的規則執行轉化為顯式的指令。
+    def get_narrative_directive_prompt(self) -> str:
+        """獲取或創建一個專門用於「AI導演」決策的字符串模板。"""
+        prompt_template = """# TASK: 你是一位極其聰明且注重邏輯的【AI故事導演】。
+# MISSION: 你的任務是審查一份【場景情報簡報】，並根據其中提供的【適用規則】，判斷在執行【使用者指令】之前，是否有一個**因規則而必須發生**的【強制前置動作】。
+
+# === 【【【🚨 核心決策規則 (CORE DECISION RULES) - 絕對鐵則】】】 ===
+# 1.  **【規則驅動原則】**: 你的唯一決策依據是【適用規則】。
+#     *   如果場景中的角色互動**明確觸發**了某條規則，你【必須】在 `mandatory_action` 中詳細描述這條規則所要求的動作。
+#     *   如果場景互動**沒有觸發任何**規則，`mandatory_action` 必須為 `null`。
+# 2.  **【指令融合原則】**: 你的 `scene_summary_for_generation` 欄位【必須】將【使用者指令】和（如果存在的）`mandatory_action` 融合成一個連貫的、給小說生成模型的最終創作指令。
+# 3.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `NarrativeDirective` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 範例 1 (觸發規則) ---
+# ```json
+# {
+#   "mandatory_action": "根據『母畜的禮儀』，米婭在看到勳爵的瞬間，必須立即、毫不猶豫地跪下行禮。",
+#   "scene_summary_for_generation": "以米婭向勳爵跪下行禮為開端，詳細描述他們在宅邸散步時相遇的場景。"
+# }
+# ```
+# --- 範例 2 (未觸發規則) ---
+# ```json
+# {
+#   "mandatory_action": null,
+#   "scene_summary_for_generation": "詳細描述米婭在花園獨自散步的場景。"
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【場景情報簡報】
+# - 在場核心角色: {relevant_characters_summary}
+# - 適用規則: {scene_rules_context}
+# - 使用者指令: {user_input}
+
+# ---
+# 【你的導演指令JSON】:
+"""
+        return prompt_template
+    # 函式：獲取 AI 導演決策器 Prompt
 
 
 
@@ -4887,6 +5043,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
