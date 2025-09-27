@@ -4591,10 +4591,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：檢索並摘要記憶 (v17.0 - 四層降級摘要管線)
-# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.1 - RAG後處理篩選)
+# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.2 - 四層降級摘要管線)
 # 更新紀錄:
-# v17.1 (2025-09-28): [災難性BUG修復] 根據「兩階段RAG注入」策略，徹底重構了此函式。增加了`filtering_profiles`參數，並在檢索後植入了關鍵的【後處理篩選】邏輯。現在，它只會保留並摘要那些內容中明確提及了指定角色（通常是核心互動目標）的記憶文檔，從根本上解決了無關背景角色記憶造成上下文污染的問題。
-# v17.0 (2025-09-27): [災難性BUG修復] 根據使用者建議，實現了更優雅的「四層降級摘要管線」。
+# v17.2 (2025-09-28): [災難性BUG修復] 根據最新討論，徹底重構了RAG摘要的備援邏輯，實現了更智能的【四層降級摘要管線】。新流程的順序為：1) 嘗試雲端+原文；2) 若被審查，則降級到雲端+代碼化文本；3) 若雲端API故障，則降級到本地LLM+原文；4) 最終防線。此修改在最大化摘要質量的同時，也確保了在任何情況下都有最合適的、最可靠的備援路徑。
+# v17.1 (2025-09-28): [災難性BUG修復] 徹底重構了此函式，增加了`filtering_profiles`參數和【後處理篩選】邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
         執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
@@ -4629,7 +4629,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not retrieved_docs:
             return default_return
 
-        # [v17.1 核心修正] RAG 後處理篩選
         final_docs_to_process = retrieved_docs
         if filtering_profiles:
             filter_names = set()
@@ -4638,11 +4637,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if profile.aliases:
                     filter_names.update(profile.aliases)
             
-            filtered_docs = []
-            for doc in retrieved_docs:
-                # 如果文檔內容中包含任何一個核心角色的名字或別名，就保留它
-                if any(name in doc.page_content for name in filter_names):
-                    filtered_docs.append(doc)
+            filtered_docs = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
             
             logger.info(f"[{self.user_id}] [RAG後處理篩選] 已將 {len(retrieved_docs)} 條初步檢索結果精煉為 {len(filtered_docs)} 條與核心角色相關的記憶。")
             final_docs_to_process = filtered_docs
@@ -4650,60 +4645,58 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not final_docs_to_process:
              return default_return
 
-        rule_docs = []
-        other_docs = []
-        for doc in final_docs_to_process:
-            if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore":
-                rule_docs.append(doc)
-            else:
-                other_docs.append(doc)
+        rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
+        other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
         
-        rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]])
-        if not rules_context:
-            rules_context = "（當前場景無特定的行為準則或世界觀設定）"
+        rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
         docs_to_summarize = other_docs + rule_docs[3:]
+
         if docs_to_summarize:
             raw_content_for_summary = "\n\n---\n\n".join([doc.page_content for doc in docs_to_summarize])
             summarizer_prompt_template = self.get_rag_summarizer_chain()
             summary = None
-            
+
+            # --- [v17.2 核心修正] 四層降級摘要管線 ---
             try:
+                # --- 層級 1: 理想路徑 (雲端 + 原始文本) ---
                 logger.info(f"[{self.user_id}] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...")
                 full_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary}, inject_core_protocol=True)
                 summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
 
             except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (本地模型)...")
-                
+                logger.warning(f"[{self.user_id}] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...")
+                # --- 層級 2: 最佳備援 (雲端 + 代碼化文本) ---
+                try:
+                    encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+                    sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+                    
+                    encoded_content = raw_content_for_summary
+                    for word, code in sorted_encoding_map:
+                        encoded_content = encoded_content.replace(word, code)
+
+                    encoded_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": encoded_content}, inject_core_protocol=True)
+                    encoded_summary = await self.ainvoke_with_rotation(encoded_prompt, retry_strategy='none')
+                    
+                    if encoded_summary:
+                        logger.info(f"[{self.user_id}] [RAG摘要-2] ✅ 代碼化摘要成功，正在解碼...")
+                        summary = self._decode_lore_content(encoded_summary, self.DECODING_MAP)
+                except Exception as e_code:
+                    logger.error(f"[{self.user_id}] [RAG摘要-2] 🔥 代碼化備援失敗: {e_code}", exc_info=True)
+            
+            except Exception as e_api:
+                logger.error(f"[{self.user_id}] [RAG摘要-1] 雲端摘要時發生API或網絡錯誤: {e_api}", exc_info=True)
+
+            # --- 層級 3: 可靠備援 (本地 LLM + 原始文本) ---
+            if not summary or not summary.strip():
+                logger.warning(f"[{self.user_id}] [RAG摘要] 所有雲端策略均失敗。降級到層級 3 (本地模型)...")
                 if self.is_ollama_available:
                     summary = await self._invoke_local_ollama_summarizer(raw_content_for_summary)
                 else:
-                    logger.info(f"[{self.user_id}] [RAG摘要-2] 本地模型不可用，跳過此層級。")
+                    logger.info(f"[{self.user_id}] [RAG摘要-3] 本地模型不可用，跳過此層級。")
 
-                if not summary:
-                    logger.warning(f"[{self.user_id}] [RAG摘要-2] 本地模型處理失敗或不可用。降級到層級 3 (代碼化)...")
-                    try:
-                        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-                        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-                        def encode_text(text: str) -> str:
-                            for word, code in sorted_encoding_map: text = text.replace(word, code)
-                            return text
-                        
-                        encoded_content = encode_text(raw_content_for_summary)
-                        encoded_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": encoded_content}, inject_core_protocol=True)
-                        encoded_summary = await self.ainvoke_with_rotation(encoded_prompt, retry_strategy='none')
-                        
-                        if encoded_summary:
-                            logger.info(f"[{self.user_id}] [RAG摘要-3] ✅ 代碼化摘要成功，正在解碼...")
-                            summary = self._decode_lore_content(encoded_summary, self.DECODING_MAP)
-                    except Exception as e:
-                        logger.error(f"[{self.user_id}] [RAG摘要-3] 🔥 最終的代碼化備援也失敗了: {e}", exc_info=True)
-
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [RAG摘要-1] 雲端摘要時發生未知錯誤: {e}", exc_info=True)
-
+            # --- 層級 4: 最終防線 ---
             if summary and summary.strip():
                 summary_context = f"【背景歷史參考（事實要點）】:\n{summary}"
             else:
@@ -4754,6 +4747,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
