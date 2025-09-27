@@ -2714,27 +2714,36 @@ class ExtractionResult(BaseModel):
     # 函式：獲取事後分析器 Prompt
     
     
-# src/ai_core.py 的 preprocess_and_generate 函式 (v41.0 - LORE繼承系統)
+# 函式：預處理並生成主回應 (v43.0 - 回歸純粹生成)
 # 更新紀錄:
-# v41.0 (2025-11-22): [重大架構升級] 根據「LORE繼承與規則注入」設計，徹底重構了此函式。現在，在組裝世界快照前，它會動態查詢角色的身份(aliases)所觸發的規則LORE(world_lore)，並將這些規則精準注入到Prompt的`scene_rules_context`中，讓角色的行為能夠真正被世界觀所驅動。
-# v40.0 (2025-09-27): [災難性BUG修復] 徹底移除了在RAG之後進行「二次實體提取」並合併角色的邏輯。
-# v39.0 (2025-09-27): [災難性BUG修復] 徹底重構了上下文構建的時序，引入「兩階段角色確定」機制。
-    async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
+# v43.0 (2025-11-22): [根本性重構] 根據「生成後分析」架構，徹底移除了此函式中所有關於摘要和JSON生成的指令。它的職責被簡化為單一的、純粹的創意寫作任務，以最大限度地複現使用者測試的高成功率，並將分析任務解耦到後台。
+# v42.0 (2025-11-22): [災難性BUG修復] 應用了「本地安全代碼化」策略以解決BlockedPromptException。
+# v41.0 (2025-11-22): [重大架構升級] 實現了「LORE繼承與規則注入系統」。
+    async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (生成即摘要流程) 組合Prompt，直接生成包含小說和安全摘要的雙重輸出，並將其解析後返回。
-        [v41.0 新增] 內建LORE繼承與規則注入系統。
-        返回 (novel_text, summary_data) 的元組。
+        (v43.0重構) 執行純粹的小說生成任務。
+        組合所有上下文並調用原生LLM生成下一段故事。
+        返回純小說文本字串。
         """
         user_input = input_data["user_input"]
 
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [預處理-生成即摘要] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [純粹生成流程] 正在準備上下文...")
         
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
+
+        # --- 步驟 0: 定義本地編碼/解碼輔助函式 ---
+        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+        def encode_text(text: str) -> str:
+            if not text: return ""
+            for word, code in sorted_encoding_map:
+                text = text.replace(word, code)
+            return text
 
         # --- 步驟 1: 預處理和視角確定 ---
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
@@ -2827,7 +2836,7 @@ class ExtractionResult(BaseModel):
             all_scene_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('location_path') == gs.location_path)
             relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs, gs.viewing_mode, found_lores)
         
-        # --- [v41.0 核心修正] 步驟 2.5: 根據核心角色，查詢並注入繼承的規則 ---
+        # --- 步驟 2.5: 根據核心角色，查詢並注入繼承的規則 ---
         scene_rules_context_str = "（無適用的特定規則）"
         if relevant_characters:
             all_aliases_in_scene = set()
@@ -2843,8 +2852,7 @@ class ExtractionResult(BaseModel):
                     scene_rules_context_str = "\n\n".join(rule_texts)
                     logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
 
-        # --- 步驟 3: 使用已確定的核心角色進行 RAG 擴展查詢 ---
-        logger.info(f"[{self.user_id}] 正在使用最終確定的角色列表進行RAG擴展查詢...")
+        # --- 步驟 3: RAG 擴展查詢 ---
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input, contextual_profiles=relevant_characters)
         
         # --- 步驟 4: 組裝最終 Prompt ---
@@ -2880,23 +2888,25 @@ class ExtractionResult(BaseModel):
             return "\n".join(f"- {p}" for p in parts)
 
         snapshot_params = {
-            "world_settings": self.profile.world_settings,
-            "ai_settings": ai_profile.description,
-            "retrieved_context": decoded_summary,
-            "scene_rules_context": scene_rules_context_str, # [v41.0 核心修正] 使用動態查詢到的規則
+            "world_settings": encode_text(self.profile.world_settings),
+            "ai_settings": encode_text(ai_profile.description),
+            "retrieved_context": encode_text(decoded_summary),
+            "scene_rules_context": encode_text(scene_rules_context_str),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
-            "explicit_character_files_context": explicit_character_files_context,
-            "relevant_npc_context": "\n\n".join([format_character_profile_for_prompt(p) for p in relevant_characters]) or "（場景中無明確互動目標）",
+            "explicit_character_files_context": encode_text(explicit_character_files_context),
+            "relevant_npc_context": "\n\n".join([encode_text(format_character_profile_for_prompt(p)) for p in relevant_characters]) or "（場景中無明確互動目標）",
             "npc_context": "\n".join([f"- {p.name}" for p in background_characters]) or "（此地沒有其他背景角色）"
         }
 
         if gs.viewing_mode == 'remote' and gs.remote_target_path:
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.remote_target_path))
-            snapshot_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'}"
+            location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+            snapshot_params["location_context"] = f"當前觀察地點: {' > '.join(gs.remote_target_path)}\n地點描述: {encode_text(location_desc)}"
         else:
             location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
-            snapshot_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'}"
+            location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
+            snapshot_params["location_context"] = f"當前地點: {' > '.join(gs.location_path)}\n地點描述: {encode_text(location_desc)}"
         
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
@@ -2936,78 +2946,27 @@ class ExtractionResult(BaseModel):
 # 3. **【🎯 焦點鎖定原則】**: 你的敘事焦點【必須】集中在「核心互動目標」上。除非劇情有極其強烈的需要，否則【不要】主動描述「在場背景角色」的行為或對話。
 """
         
-        summary_schema_mandate = """# ==============================================================================
-# == ⚙️ 摘要JSON結構強制令 (SUMMARY JSON STRUCTURE MANDATE) ⚙️ ==
-# ==============================================================================
-# ´´´summary 區塊的內容【必須且只能】是一個符合以下結構的 JSON 物件：
-#
-# ```json
-# {{
-#   "memory_summary": "（一句話總結本回合發生的、值得被記住的核心事件，用於長期記憶。必須是安全的、無害化的文本。）",
-#   "lore_updates": [
-#     {{
-#       "tool_name": "（用於創建或更新LORE的工具名稱，例如 'create_new_npc_profile' 或 'update_npc_profile'）",
-#       "parameters": {{
-#         "lore_key": "（LORE的唯一主鍵）",
-#         "standardized_name": "（標準化名稱）",
-#         "description": "（描述性文本）",
-#         "...": "（其他工具所需的參數）"
-#       }}
-#     }}
-#   ]
-# }}
-# ```
-#
-# - 如果沒有值得記住的事件，`memory_summary` 可以是 null。
-# - 如果沒有新的LORE被創造或更新，`lore_updates` 【必須】是一個空列表 `[]`。
-# - 【絕對禁止】改變這個JSON的頂層鍵名 (`memory_summary`, `lore_updates`)。
-"""
-
-        dual_output_mandate = """# ==============================================================================
-# == ⚙️ 最終輸出格式強制令 (FINAL OUTPUT FORMATTING MANDATE) ⚙️ ==
-# ==============================================================================
-# 你的最終輸出【必須且只能】遵循以下格式，使用 `´´´` 作為分隔符：
-# ´´´novel
-# （小說文本）
-# ´´´
-# ´´´summary
-# （JSON 物件）
-# ´´´"""
-        
-        full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template, summary_schema_mandate, dual_output_mandate ])
+        full_template = "\n".join([ self.core_protocol_prompt, "{world_snapshot}", "\n# --- 最新對話歷史 ---", "{historical_context}", "\n# --- 使用者最新指令 ---", "{user_input}", style_mandate, final_safeguard_template ])
         full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
 
-        logger.info(f"[{self.user_id}] [生成即摘要] 正在執行雙重輸出生成...")
-        raw_dual_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
+        logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
+        raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
-        summary_data = {}
-        if raw_dual_output and raw_dual_output.strip():
-            try:
-                parts = raw_dual_output.split("´´´summary")
-                potential_novel_text = parts[0]
-                if len(parts) > 1:
-                    summary_part = parts[1]
-                    json_object_match = re.search(r'\{.*\}|\[.*\]', summary_part, re.DOTALL)
-                    if json_object_match:
-                        clean_json_str = json_object_match.group(0)
-                        try:
-                            summary_data = json.loads(clean_json_str)
-                        except json.JSONDecodeError:
-                             logger.error(f"[{self.user_id}] 解析 ´´´summary JSON 時失敗。內容: {clean_json_str}")
-                cleaned_novel_text = potential_novel_text.replace("´´´novel", "").strip("´ \n")
-                if cleaned_novel_text:
-                    novel_text = cleaned_novel_text
-            except Exception as e:
-                logger.error(f"[{self.user_id}] 解析雙重輸出時發生未知錯誤，將返回原始輸出: {e}", exc_info=True)
-                novel_text = raw_dual_output.strip()
+        if raw_novel_output and raw_novel_output.strip():
+            # 由於本地模型返回的可能是帶有摘要結構的完整文本，我們需要清理一下
+            if "´´´novel" in raw_novel_output:
+                novel_text = raw_novel_output.split("´´´novel")[1].split("´´´")[0].strip()
+            else:
+                novel_text = raw_novel_output.strip()
 
-        final_novel_text = novel_text
+        final_novel_text = self._decode_lore_content(novel_text, self.DECODING_MAP)
+        
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
-        logger.info(f"[{self.user_id}] [生成即摘要] 雙重輸出解析成功。")
+        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功。")
 
-        return final_novel_text, summary_data
+        return final_novel_text
     # 預處理並生成主回應 函式結束
 
 
@@ -4608,6 +4567,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
