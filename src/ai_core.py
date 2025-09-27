@@ -3375,7 +3375,7 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：「源頭真相」LORE校驗器 (v1.0 - 全新創建)
+# ai_core.py 的 _programmatic_lore_validator 函式 (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-22): [全新創建] 根據「源頭真相」校驗策略，創建此核心校驗函式。它在LORE存入資料庫前，將LLM的解析結果與世界聖經原文進行比對，並強制修正任何被遺漏的身份(aliases)，從根本上解決了LLM注意力遺漏的問題。
     def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
@@ -3433,7 +3433,7 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE (v13.1 - 變量名修正)
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.1 - 變量名修正)
 # 更新紀錄:
 # v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配（`canon_text` vs `text_to_parse`）而導致的致命 NameError，恢復了創世流程的正常運作。
 # v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
@@ -4204,7 +4204,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：獲取世界聖經轉換器 Prompt (v2.8 - 終極身份提取強化)
+# ai_core.py 的 get_canon_transformation_chain 函式 (v2.8 - 終極身份提取強化)
 # 更新紀錄:
 # v2.8 (2025-11-22): [災難性BUG修復] 對【身份別名雙重提取原則】進行了終極強化，增加了措辭更強硬的「列表窮舉強制令」和更精準的範例，以最大限度地提升LLM在Prompt層面對多重身份的提取準確率。
 # v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】，在Prompt中增加了對「列表式」身份的處理規則和範例。
@@ -4636,6 +4636,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
