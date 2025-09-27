@@ -3433,11 +3433,11 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE (v13.0 - 關係圖譜校準)
+# 函式：解析並從世界聖經創建 LORE (v13.1 - 變量名修正)
 # 更新紀錄:
-# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。在LORE初步解析後，此模塊會自動遍歷所有角色的關係，智能推斷並強制寫入反向關係，從而將單向的關係鏈打通，構建出一個雙向、一致的知識圖譜，從根本上解決了角色之間關係認知不完整的問題。
-# v12.0 (2025-11-22): [重大架構升級] 植入了「规则模板自动识别与链接」模塊，實現了知識圖譜的全自動构建。
-# v11.0 (2025-11-22): [災難性BUG修復] 重構了此函式的核心邏輯以解決AttributeError。
+# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配（`canon_text` vs `text_to_parse`）而導致的致命 NameError，恢復了創世流程的正常運作。
+# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
+# v12.0 (2025-11-22): [重大架構升級] 植入了「规则模板自动识别与链接」模塊。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -3448,8 +3448,8 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        # 步驟 1: 執行5層降級LORE解析
-        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(text_to_parse)
+        # [v13.1 核心修正] 步驟 1: 使用正確的變數名稱 `canon_text` 進行調用
+        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
@@ -3484,13 +3484,11 @@ class ExtractionResult(BaseModel):
                         lore.template_keys = list(all_keys)
                         logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore.name}' 鏈接到身份: {lore.template_keys}")
         
-        # [v13.0 核心修正] 步驟 4: 【全新】事後關係圖譜校準模塊
+        # 步驟 4: 事後關係圖譜校準模塊
         logger.info(f"[{self.user_id}] [關係圖譜校準] 正在啟動事後關係校準模塊...")
         if validated_result.npc_profiles:
-            # 建立一個快速查找表
             profiles_by_name = {profile.name: profile for profile in validated_result.npc_profiles}
             
-            # 定義一個簡單的關係反轉對照表
             inverse_roles = {
                 "主人": "僕人", "僕人": "主人",
                 "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
@@ -3503,36 +3501,29 @@ class ExtractionResult(BaseModel):
             }
 
             for source_profile in validated_result.npc_profiles:
-                # 遍歷源角色的每一個關係
                 for target_name, rel_detail in list(source_profile.relationships.items()):
-                    # 查找目標角色的檔案
                     target_profile = profiles_by_name.get(target_name)
                     if not target_profile:
-                        continue # 如果目標角色不在本次解析結果中，則跳過
+                        continue
 
-                    # 準備反向關係的數據
                     inverse_rel_roles = []
                     for role in rel_detail.roles:
                         inverse_role = inverse_roles.get(role)
                         if inverse_role:
                             inverse_rel_roles.append(inverse_role)
                     
-                    # 如果沒有找到明確的反轉角色，則使用一個通用的反向關係類型
                     if not inverse_rel_roles and rel_detail.type:
                         inverse_rel_roles.append(rel_detail.type)
 
-                    # 檢查目標角色的關係字典中是否已有對源角色的記錄
                     target_has_relationship = target_profile.relationships.get(source_profile.name)
 
                     if not target_has_relationship:
-                        # 如果完全沒有，則創建一個新的反向關係
                         target_profile.relationships[source_profile.name] = RelationshipDetail(
-                            type=rel_detail.type, # 暫時使用相同的type
+                            type=rel_detail.type,
                             roles=inverse_rel_roles
                         )
                         logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
                     else:
-                        # 如果已有，則合併 roles，確保不重複
                         existing_roles = set(target_has_relationship.roles)
                         new_roles_to_add = set(inverse_rel_roles)
                         if not new_roles_to_add.issubset(existing_roles):
@@ -4646,6 +4637,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
