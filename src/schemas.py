@@ -404,3 +404,5 @@ RelationshipDetail.model_rebuild()
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
 
+# [v1.0 新增] 確保敘事提取模型也被重建
+NarrativeExtractionResult.model_rebuild()
