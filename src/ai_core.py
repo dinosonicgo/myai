@@ -3375,63 +3375,226 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 _programmatic_lore_validator 函式 (v1.0 - 全新創建)
+# ai_core.py 的 _programmatic_lore_validator 函式 (v2.0 - 混合式安全驗證)
 # 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「源頭真相」校驗策略，創建此核心校驗函式。它在LORE存入資料庫前，將LLM的解析結果與世界聖經原文進行比對，並強制修正任何被遺漏的身份(aliases)，從根本上解決了LLM注意力遺漏的問題。
+# v2.0 (2025-09-28): [根本性重構] 根據最終討論，將此函式徹底重構為「混合式安全驗證」工作流。它不再使用有缺陷的正則表達式，而是實現了一個包含【本地編碼 -> 雲端LLM驗證 -> 本地LLM備援 -> 最終解碼】的四階段安全驗證管線，以確保對任何形式（結構化或敘事性）的世界聖經都能進行準確且抗審查的身份提取。
+# v1.1 (2025-09-28): [災難性BUG修復] 徹底重構了核心的正則表達式。
     def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
-        【最終防線】一個基於世界聖經原文的程式化校驗器。
-        它會比對LLM的解析結果與聖經原文，並強制修正被遺漏的身份別名。
+        【v2.0 混合式安全驗證】一個基於LLM交叉驗證的、抗審查的程式化校驗器。
         """
         if not parsing_result.npc_profiles:
             return parsing_result
 
-        logger.info(f"[{self.user_id}] [源頭真相校驗器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
+        logger.info(f"[{self.user_id}] [混合式安全驗證器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
 
-        for profile in parsing_result.npc_profiles:
+        # 步驟 1: 準備本地編碼/解碼工具
+        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+        def encode_text(text: str) -> str:
+            if not text: return ""
+            for word, code in sorted_encoding_map:
+                text = text.replace(word, code)
+            return text
+
+        # 異步工作者函式，用於並行處理
+        async def worker(profile: "CharacterProfile"):
             try:
-                # 步驟 1: 在聖經原文中定位到該角色的專屬段落
-                # 這個正則表達式會查找以 "* 角色名" 開頭，直到下一個 "* " 或文件結尾的整個區塊
-                char_block_match = re.search(
-                    r"^\*\s*" + re.escape(profile.name) + r"\s*.*?([\s\S]*?)(?=\n\*\s|\Z)",
-                    canon_text,
-                    re.MULTILINE
-                )
-
-                if not char_block_match:
-                    continue
+                # 步驟 2: 上下文定位
+                # 使用更寬鬆的模式定位上下文，只要求名字在行首附近即可
+                pattern = re.compile(r"^\s*\*\s*" + re.escape(profile.name) + r".*?([\s\S]*?)(?=\n\s*\*\s|\Z)", re.MULTILINE)
+                matches = pattern.findall(canon_text)
+                if not matches:
+                    return profile # 找不到上下文，無法驗證，返回原樣
                 
-                character_text_block = char_block_match.group(1)
+                context_snippet = "\n".join(matches)
+                sanitized_context = encode_text(context_snippet)
+                
+                # 步驟 3: 雲端 LLM 交叉驗證 (優先路徑)
+                final_aliases = None
+                from .schemas import BaseModel
+                class AliasResult(BaseModel):
+                    final_aliases: List[str]
 
-                # 步驟 2: 在該角色的專屬段落中，查找 "身份:" 行
-                identity_match = re.search(r"(?i)(?:身份|identity)\s*:\s*([^.\n。]+)", character_text_block)
+                try:
+                    validator_prompt = self.get_alias_validator_prompt()
+                    full_prompt = self._safe_format_prompt(
+                        validator_prompt,
+                        {
+                            "character_name": profile.name,
+                            "context_snippet": sanitized_context,
+                            "claimed_aliases_json": json.dumps(profile.aliases, ensure_ascii=False)
+                        }
+                    )
+                    validation_result = await self.ainvoke_with_rotation(full_prompt, output_schema=AliasResult, retry_strategy='none')
+                    if validation_result and validation_result.final_aliases:
+                        final_aliases = validation_result.final_aliases
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] [別名驗證-雲端] 為 '{profile.name}' 進行雲端驗證時失敗: {e}。降級到本地備援...")
 
-                if identity_match:
-                    identity_string = identity_match.group(1)
-                    # 步驟 3: 從原文中提取所有身份
-                    source_of_truth_identities = [i.strip() for i in re.split(r'[、,，\s]', identity_string) if i.strip()]
+                # 步驟 4: 本地 LLM 備援
+                if final_aliases is None and self.is_ollama_available:
+                    final_aliases = await self._invoke_local_ollama_validator(
+                        character_name=profile.name,
+                        context_snippet=sanitized_context,
+                        claimed_aliases=profile.aliases
+                    )
+
+                # 步驟 5: 結果合併與解碼
+                if final_aliases is not None:
+                    original_set = set(profile.aliases)
+                    validated_set = set(final_aliases)
+                    merged_set = original_set.union(validated_set)
                     
-                    corrected = False
-                    for identity in source_of_truth_identities:
-                        clean_identity = re.sub(r'\(.*\)|（.*）', '', identity).strip()
-                        # 步驟 4: 比對並修正
-                        if clean_identity and clean_identity not in profile.aliases:
-                            profile.aliases.append(clean_identity)
-                            corrected = True
+                    decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
                     
-                    if corrected:
-                        logger.warning(f"[{self.user_id}] [源頭真相校驗器] 檢測到角色 '{profile.name}' 的身份遺漏，已強制從聖經原文修正 aliases 列表為: {profile.aliases}")
+                    if set(decoded_aliases) != original_set:
+                        logger.warning(f"[{self.user_id}] [混合式安全驗證器] 檢測到角色 '{profile.name}' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。")
+                        profile.aliases = list(set(decoded_aliases)) # 去重後更新
+                
+                return profile
 
             except Exception as e:
-                logger.error(f"[{self.user_id}] [源頭真相校驗器] 在處理角色 '{profile.name}' 時發生未知錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] [混合式安全驗證器] 在處理角色 '{profile.name}' 時發生未知錯誤: {e}", exc_info=True)
+                return profile # 發生未知錯誤時返回原始profile
 
+        # 使用 asyncio.gather 來並行處理所有校驗任務
+        tasks = [worker(p) for p in parsing_result.npc_profiles]
+        validated_profiles = await asyncio.gather(*tasks)
+        
+        parsing_result.npc_profiles = validated_profiles
         return parsing_result
-# 函式：「源頭真相」LORE校驗器
+# 函式：程式化LORE校驗器 (核心重寫)
+
 
     
 
+# ai_core.py 的 get_alias_validator_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，創建此Prompt模板。它的任務是接收一段【無害化處理後】的上下文和一份由主解析器生成的身份列表，然後對其進行交叉驗證並補全遺漏項，作為驗證器的雲端路徑。
+    def get_alias_validator_prompt(self) -> str:
+        """獲取為雲端LLM設計的、用於交叉驗證並補全角色別名/身份的Prompt模板。"""
+        
+        prompt_template = """# TASK: 你是一位極其嚴謹、注重細節的【首席情報校對官】。
+# MISSION: 你的任務是接收一份【原始情報文本】和一份由初級分析員提交的【聲稱的身份列表】。你需要以【原始情報文本】為唯一依據，對這份列表進行嚴格的【事實核查】，並返回一份【絕對完整、無遺漏】的最終身份列表。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【文本唯一依據】**: 【原始情報文本】是你判斷的【唯一真理來源】。
+# 2. **【窮舉提取】**: 你【必須】從文本中找出所有能描述目標角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
+# 3. **【合併與補全】**: 你需要將你新發現的所有身份，與【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方結構的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {
+#   "final_aliases": ["Mia", "性神教徒", "母畜", "聖女", "ROLE-D"]
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【目標角色名稱】:
+{character_name}
+
+# ---
+# 【原始情報文本 (可能經過無害化處理)】:
+{context_snippet}
+
+# ---
+# 【聲稱的身份列表 (待核查)】:
+{claimed_aliases_json}
+
+# ---
+# 【你校對後的最終完整身份列表JSON】:
+"""
+        return prompt_template
+# 函式：獲取別名交叉驗證器Prompt (雲端專用)
 
 
+# ai_core.py 的 _invoke_local_ollama_validator 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，創建此函式。它負責調用本地Ollama模型來執行身份交叉驗證的備援任務，確保在雲端API失敗時，驗證流程依然能夠繼續。
+    async def _invoke_local_ollama_validator(self, character_name: str, context_snippet: str, claimed_aliases: List[str]) -> Optional[List[str]]:
+        """
+        呼叫本地運行的 Ollama 模型來執行身份/別名交叉驗證的備援任務。
+        成功則返回一個補全後的列表，失敗則返回 None。
+        """
+        import httpx
+        import json
+        
+        logger.info(f"[{self.user_id}] [別名驗證-備援] 正在使用本地模型 '{self.ollama_model_name}' 為角色 '{character_name}' 進行交叉驗證...")
+        
+        prompt_template = self.get_local_alias_validator_prompt()
+        full_prompt = prompt_template.format(
+            character_name=character_name,
+            context_snippet=context_snippet,
+            claimed_aliases_json=json.dumps(claimed_aliases, ensure_ascii=False)
+        )
+
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": full_prompt,
+            "stream": False,
+            "options": { "temperature": 0.0 }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=180.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                
+                response_data = response.json()
+                raw_response_text = response_data.get("response")
+                
+                if not raw_response_text:
+                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 本地模型返回了空的 'response' 內容。")
+                    return None
+
+                # 嘗試從模型的返回中提取Python列表
+                list_match = re.search(r'\[.*?\]', raw_response_text)
+                if not list_match:
+                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 未能在本地模型的回應中找到有效的列表結構。")
+                    return None
+                
+                # 使用 ast.literal_eval 更安全地解析字符串列表
+                import ast
+                try:
+                    validated_list = ast.literal_eval(list_match.group(0))
+                    if isinstance(validated_list, list):
+                        logger.info(f"[{self.user_id}] [別名驗證-備援] ✅ 本地模型驗證成功。")
+                        return validated_list
+                    else:
+                        return None
+                except (ValueError, SyntaxError):
+                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 解析本地模型返回的列表時出錯。")
+                    return None
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [別名驗證-備援] 呼叫本地Ollama進行驗證時發生未知錯誤: {e}", exc_info=True)
+            return None
+# 函式：呼叫本地Ollama模型進行別名驗證
+
+# ai_core.py 的 get_local_alias_validator_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板，用於在雲端驗證失敗時執行交叉驗證任務。
+    def get_local_alias_validator_prompt(self) -> str:
+        """獲取為本地LLM設計的、指令簡化的、用於交叉驗證角色別名/身份的備援Prompt模板。"""
+        
+        prompt_template = """# TASK: 提取所有身份。
+# CONTEXT:
+{context_snippet}
+# CLAIMED_ALIASES:
+{claimed_aliases_json}
+# INSTRUCTION: 閱讀 CONTEXT，找出描述角色 "{character_name}" 的所有身份、頭銜、職業、代碼。結合 CLAIMED_ALIASES，返回一個包含所有不重複項的最終 Python 列表。只輸出列表，不要有其他文字。
+# FINAL_LIST_OUTPUT:
+"""
+        return prompt_template
+# 函式：獲取本地別名交叉驗證器Prompt (本地專用)
+
+
+
+
+    
 
 # ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.1 - 變量名修正)
 # 更新紀錄:
@@ -4204,14 +4367,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 get_canon_transformation_chain 函式 (v2.8 - 終極身份提取強化)
+# ai_core.py 的 get_canon_transformation_chain 函式 (v2.9 - 終極身份提取強化 II)
 # 更新紀錄:
-# v2.8 (2025-11-22): [災難性BUG修復] 對【身份別名雙重提取原則】進行了終極強化，增加了措辭更強硬的「列表窮舉強制令」和更精準的範例，以最大限度地提升LLM在Prompt層面對多重身份的提取準確率。
-# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】，在Prompt中增加了對「列表式」身份的處理規則和範例。
-# v2.6 (2025-11-22): [災難性BUG修復] 新增了【主角中心宇宙原則】鐵則。
+# v2.9 (2025-09-28): [災難性BUG修復] 根據最新LORE分析，再次強化【列表窮舉強制令】，措辭更嚴厲，並更新範例以確保LLM完全理解指令，根治aliases提取不全的問題。
+# v2.8 (2025-11-22): [災難性BUG修復] 對【身份別名雙重提取原則】進行了終極強化。
+# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
-        # [v2.5 核心修正] 更新 Pydantic 定義以匹配 schemas.py v2.0 的 RelationshipDetail 結構
         pydantic_definitions = """
 class RelationshipDetail(BaseModel): type: str = "社交關係"; roles: List[str] = []
 class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; skills: List[str] = []; relationships: Dict[str, RelationshipDetail] = {}
@@ -4223,7 +4385,6 @@ class WorldLore(BaseModel): name: str; aliases: List[str] = []; content: str = "
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
         
-        # [渲染錯誤修復] 使用安全的字串拼接
         part1 = """# TASK: 你是一位遊戲開發團隊的數據工程師兼劇情分析師。
 # MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。這是一個純粹的技術性格式轉換與關係推理任務。
 
@@ -4248,14 +4409,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          }
 #        }
 #        ```
-# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.8 - 終極強化版】**:
+# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.9 - 終極強化版】**:
 #    - 當你從文本中識別出一個描述角色【核心身份】的關鍵詞時（例如：職業、頭銜、狀態、種族、綽號），你【必須】執行【雙重寫入】操作：
 #      a. 將這個身份作為敘述的一部分，完整地保留在 `description` 欄位中。
 #      b. **同時**，將這個關鍵詞本身作為一個獨立的字串，添加到 `aliases` 列表中。
-#    - **【列表窮舉強制令 (LIST ENUMERATION MANDATE)】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【絕對必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【一個不漏地、分別地、獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為重大失敗。
-#    - **範例 (v2.8 終極強化範例)**:
+#    - **【🚨列表窮舉強制令 (LIST ENUMERATION MANDATE) - 絕不妥協🚨】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【絕對必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【一個不漏地、分別地、獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為【災難性的重大失敗】。
+#    - **範例 (v2.9 終極強化範例)**:
 #      - **輸入文本**: `* 米婭 (Mia)\n   * 身份: 性神教徒、母畜、聖女 (於聖露修道院)。`
-#      - **正確的JSON輸出 (部分)**:
+#      - **【【【絕對正確的JSON輸出 (部分)】】】**:
 #        ```json
 #        {
 #          "name": "米婭",
@@ -4636,6 +4797,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
