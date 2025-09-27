@@ -3433,15 +3433,14 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE (v11.0 - 安全檢查修復)
+# 函式：解析並從世界聖經創建 LORE (v12.0 - 規則自動鏈接)
 # 更新紀錄:
-# v11.0 (2025-11-22): [災難性BUG修復] 根據AttributeError日誌，重構了此函式的核心邏輯。現在，它會嚴格檢查LORE解析管線的返回狀態，只有在解析成功（布林值為True）且返回了有效的Pydantic物件時，才會繼續執行後續的校驗和儲存步驟，從根本上解決了向校驗器傳遞錯誤數據類型的問題。
-# v10.0 (2025-11-22): [架構升級] 在此函式的核心流程中，植入了對全新「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。
-# v9.1 (2025-09-25): [災難性BUG修復] 恢復了因複製錯誤而遺失的函式定義行 (def ...)。
+# v12.0 (2025-11-22): [重大架構升級] 根據使用者的終極需求，在此函式中植入了全新的「规则模板自动识别与链接」模塊。現在，在LORE解析完成後，系统會自動掃描所有规则類型的LORE，從其標題中提取身份關鍵詞，并自動為其设置template_keys，實現了知识图谱的全自动构建，無需用户手动干预。
+# v11.0 (2025-11-22): [災難性BUG修復] 重構了此函式的核心邏輯以解決AttributeError。
+# v10.0 (2025-11-22): [架構升級] 植入了对「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
-        [v11.0 新增] 內建對解析結果的嚴格安全檢查。
+        【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -3449,26 +3448,57 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        # [v11.0 核心修正] 步驟 1: 執行5層降級LORE解析，並接收包含狀態、物件和鍵列表的元組
+        # 步驟 1: 執行5層降級LORE解析
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
-        # [v11.0 核心修正] 步驟 2: 進行嚴格的安全檢查
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-            # 即使解析失敗，我們仍然需要確保RAG索引被建立（可能只包含記憶），所以不直接返回
             await self._load_or_build_rag_retriever(force_rebuild=True)
             return
 
-        # 步驟 3: 如果解析成功，則執行「源頭真相」校驗器
+        # 步驟 2: 植入「源頭真相」校驗器
         validated_result = self._programmatic_lore_validator(parsing_result_object, canon_text)
 
-        # 步驟 4: 儲存經過校驗的LORE
+        # 步驟 3: 【全新】规则模板自动识别与链接模块
+        logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
+        if validated_result.world_lores:
+            # 獲取所有已解析出的NPC身份，作為潛在的觸發關鍵詞
+            all_parsed_aliases = set()
+            if validated_result.npc_profiles:
+                for npc in validated_result.npc_profiles:
+                    all_parsed_aliases.add(npc.name)
+                    if npc.aliases:
+                        all_parsed_aliases.update(npc.aliases)
+
+            # 定義用於識別規則的關鍵詞
+            rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
+            
+            for lore in validated_result.world_lores:
+                # 检查這條LORE是否是一條規則
+                if any(keyword in lore.name for keyword in rule_keywords):
+                    # 如果是規則，從標題中提取它所適用的身份
+                    potential_keys = set()
+                    # 與所有已知身份進行比對，看哪些身份出現在標題中
+                    for alias in all_parsed_aliases:
+                        if alias and alias in lore.name: # 確保 alias 非空
+                            potential_keys.add(alias)
+                    
+                    if potential_keys:
+                        # 如果找到了匹配的身份，自動设置 template_keys
+                        # 合併現有的鍵（如果有的話），以防萬一
+                        existing_keys = set(lore.template_keys or [])
+                        all_keys = existing_keys.union(potential_keys)
+                        lore.template_keys = list(all_keys)
+                        logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore.name}' 鏈接到身份: {lore.template_keys}")
+
+        # 步驟 4: 儲存經過校驗和自動鏈接的LORE
         if validated_result:
             await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
             await self._resolve_and_save("locations", [p.model_dump() for p in validated_result.locations])
             await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
             await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
             await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
+            # 此處傳入的是已經被自動鏈接模塊修改過的 world_lores 列表
             await self._resolve_and_save("world_lores", [p.model_dump() for p in validated_result.world_lores])
             
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
@@ -4568,6 +4598,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
