@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T15:01:01.087813 ###
+### AI Lover Log - Last updated at 2025-09-27T15:05:43.381757 ###
 
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for NarrativeExtractionResult
-narrative_text
-  Field required [type=missing, input_value={'narrative_extraction_re...體神聖燈塔」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
 2025-09-27 11:01:48 - [CRITICAL] - [512280345618546699] [敘事提取 4/4] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。
 2025-09-27 11:01:50 - [INFO] - [512280345618546699] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 34 個劇情摘要文本塊存入長期記憶。
 2025-09-27 11:01:50 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
@@ -300,3 +293,10 @@ narrative_text
 2025-09-27 14:51:40 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-27 14:51:41 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-27 14:51:41 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-27 15:05:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 15:05:29 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 15:05:29 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 15:05:29 - [INFO] - Discord Bot is ready!
+2025-09-27 15:05:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 15:05:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 15:05:33 - [INFO] - 已成功發送啟動成功通知給管理員。
