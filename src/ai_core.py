@@ -240,17 +240,16 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# 函式：解析並儲存LORE實體 (v4.0 - 程式化身份校驗)
+# 函式：解析並儲存LORE實體 (v5.0 - 移除舊校驗器)
 # 更新紀錄:
-# v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。在儲存NPC檔案前，此函式會用正則表達式掃描其description，強制將所有遺漏的身份關鍵詞（如“母畜”）添加回aliases列表，從根本上解決LLM注意力遺漏的問題。
-# v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯，實現了「兩階段、四層降級」架構。
-# v1.9 (2025-09-26): [災難性BUG修復] 徹底重構了LORE更新(MERGE)的處理邏輯。
+# v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。該邏輯已被全新的、更上游的「源頭真相」校驗器 `_programmatic_lore_validator` 所取代，使此函式職責更單一。
+# v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。
+# v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
         內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
-        [v4.0 新增] 內建程式化的身份別名校驗器。
         """
         if not self.profile:
             return
@@ -262,32 +261,9 @@ class AILover:
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
+        # [v5.0 核心修正] 移除了舊的、基於description的校驗邏輯，因為它已被更可靠的 `_programmatic_lore_validator` 取代。
+        
         if actual_category == 'npc_profile':
-            # --- [v4.0 核心修正] LORE 校驗器 ---
-            for item in items:
-                description = item.get("description", "")
-                aliases = item.get("aliases", [])
-                
-                # 使用正則表達式查找 `身份:` 行的內容
-                identity_match = re.search(r"(?i)(?:身份|identity)\s*:\s*([^.\n。]+)", description)
-                
-                if identity_match:
-                    identity_string = identity_match.group(1)
-                    # 提取所有由頓號、逗號、空格分隔的身份
-                    found_identities = [i.strip() for i in re.split(r'[、,，\s]', identity_string) if i.strip()]
-                    
-                    corrected = False
-                    for identity in found_identities:
-                        # 移除可能的括號註釋，只保留核心身份詞
-                        clean_identity = re.sub(r'\(.*\)|（.*）', '', identity).strip()
-                        if clean_identity and clean_identity not in aliases:
-                            aliases.append(clean_identity)
-                            corrected = True
-                    
-                    if corrected:
-                        item["aliases"] = aliases
-                        logger.warning(f"[{self.user_id}] [LORE 校驗器] 檢測到角色 '{item.get('name')}' 的身份遺漏，已強制修正 aliases 列表為: {aliases}")
-
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
             
@@ -3389,21 +3365,73 @@ class ExtractionResult(BaseModel):
 
 
 
+# 函式：「源頭真相」LORE校驗器 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「源頭真相」校驗策略，創建此核心校驗函式。它在LORE存入資料庫前，將LLM的解析結果與世界聖經原文進行比對，並強制修正任何被遺漏的身份(aliases)，從根本上解決了LLM注意力遺漏的問題。
+    def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
+        """
+        【最終防線】一個基於世界聖經原文的程式化校驗器。
+        它會比對LLM的解析結果與聖經原文，並強制修正被遺漏的身份別名。
+        """
+        if not parsing_result.npc_profiles:
+            return parsing_result
 
+        logger.info(f"[{self.user_id}] [源頭真相校驗器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
+
+        for profile in parsing_result.npc_profiles:
+            try:
+                # 步驟 1: 在聖經原文中定位到該角色的專屬段落
+                # 這個正則表達式會查找以 "* 角色名" 開頭，直到下一個 "* " 或文件結尾的整個區塊
+                char_block_match = re.search(
+                    r"^\*\s*" + re.escape(profile.name) + r"\s*.*?([\s\S]*?)(?=\n\*\s|\Z)",
+                    canon_text,
+                    re.MULTILINE
+                )
+
+                if not char_block_match:
+                    continue
+                
+                character_text_block = char_block_match.group(1)
+
+                # 步驟 2: 在該角色的專屬段落中，查找 "身份:" 行
+                identity_match = re.search(r"(?i)(?:身份|identity)\s*:\s*([^.\n。]+)", character_text_block)
+
+                if identity_match:
+                    identity_string = identity_match.group(1)
+                    # 步驟 3: 從原文中提取所有身份
+                    source_of_truth_identities = [i.strip() for i in re.split(r'[、,，\s]', identity_string) if i.strip()]
+                    
+                    corrected = False
+                    for identity in source_of_truth_identities:
+                        clean_identity = re.sub(r'\(.*\)|（.*）', '', identity).strip()
+                        # 步驟 4: 比對並修正
+                        if clean_identity and clean_identity not in profile.aliases:
+                            profile.aliases.append(clean_identity)
+                            corrected = True
+                    
+                    if corrected:
+                        logger.warning(f"[{self.user_id}] [源頭真相校驗器] 檢測到角色 '{profile.name}' 的身份遺漏，已強制從聖經原文修正 aliases 列表為: {profile.aliases}")
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [源頭真相校驗器] 在處理角色 '{profile.name}' 時發生未知錯誤: {e}", exc_info=True)
+
+        return parsing_result
+# 函式：「源頭真相」LORE校驗器
 
     
 
 
 
 
-    # 函式：解析並從世界聖經創建 LORE (v9.1 - 結構修復)
-    # 更新紀錄:
-    # v9.1 (2025-09-25): [災難性BUG修復] 恢復了因複製錯誤而遺失的函式定義行 (def ...)，以解決 'unmatched )' 的 SyntaxError。
-    # v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”，其唯一職責是調用全新的、統一的 `_execute_lore_parsing_pipeline` 核心解析引擎。
-    # v8.5 (2025-09-25): [架構簡化] 移除了不再需要的 is_setup_flow 參數。
+# 函式：解析並從世界聖經創建 LORE (v10.0 - 植入校驗器)
+# 更新紀錄:
+# v10.0 (2025-11-22): [架構升級] 在此函式的核心流程中，植入了對全新「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。在LORE存入資料庫前，會先經過程式化的強制校驗與修正。
+# v9.1 (2025-09-25): [災難性BUG修復] 恢復了因複製錯誤而遺失的函式定義行 (def ...)。
+# v9.0 (2025-09-25): [重大架構重構] 此函式被徹底重構為一個高級別的“啟動器”。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線來處理世界聖經，並在成功後觸發 RAG 全量重建。
+        [v10.0 新增] 內建「源頭真相」校驗步驟。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -3411,15 +3439,28 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
-        success = await self._execute_lore_parsing_pipeline(canon_text)
+        # 步驟 1: 執行5層降級LORE解析
+        parsing_result, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
-        if success:
+        # [v10.0 核心修正] 步驟 2: 植入「源頭真相」校驗器
+        if parsing_result:
+            parsing_result = self._programmatic_lore_validator(parsing_result, canon_text)
+
+        # 步驟 3: 儲存經過校驗的LORE
+        if parsing_result:
+            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
+            await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result.locations])
+            await self._resolve_and_save("items", [p.model_dump() for p in parsing_result.items])
+            await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result.creatures])
+            await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result.quests])
+            await self._resolve_and_save("world_lores", [p.model_dump() for p in parsing_result.world_lores])
+            
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
             await self._load_or_build_rag_retriever(force_rebuild=True)
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-    # 函式：解析並從世界聖經創建 LORE (v9.1 - 結構修復)
+# 函式：解析並從世界聖經創建 LORE
 
 
 
@@ -4525,6 +4566,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
