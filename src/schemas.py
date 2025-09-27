@@ -374,6 +374,15 @@ class NarrativeExtractionResult(BaseModel):
     narrative_text: str = Field(description="所有被提取出的劇情摘要、背景故事和歷史事件的組合文本。")
 # src/schemas.py 的 NarrativeExtractionResult 類別 結束
 
+
+# src/schemas.py 的 PostGenerationAnalysisResult 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此模型。它用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫，確保數據結構的穩定性。
+class PostGenerationAnalysisResult(BaseModel):
+    """用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫的模型。"""
+    memory_summary: Optional[str] = Field(default=None, description="對本回合對話的簡潔、無害化總結，用於長期記憶。")
+    lore_updates: List[ToolCall] = Field(default_factory=list, description="一個包含多個用於創建或更新LORE的工具呼叫計畫的列表。")
+# src/schemas.py 的 PostGenerationAnalysisResult 類別結束
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -413,4 +422,5 @@ BatchClassificationResult.model_rebuild()
 
 # [v1.0 新增] 確保敘事提取模型也被重建
 NarrativeExtractionResult.model_rebuild()
+
 
