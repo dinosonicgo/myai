@@ -210,9 +210,10 @@ app.include_router(web_router)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# --- 異步守護任務與核心服務 ---
+# 函式：啟動 Git 日誌推送器任務 (v3.0 - 靜默化日誌)
 # 更新紀錄:
-# v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了 run_git_commands_sync 輔助函式，在 git push 之前增加了 git pull --rebase 命令。此修改確保了在推送日誌前，本地倉庫總是先與遠端同步，從根本上解決了因版本不一致導致的推送被拒絕 (Updates were rejected) 的問題。
+# v3.0 (2025-11-22): [體驗優化] 根據使用者回饋，移除了在日誌推送任務成功執行時產生的中間過程日誌（如“正在同步”、“正在推送”），使其在背景靜默運行，只在發生錯誤或成功推送新日誌時才輸出訊息。
+# v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了 run_git_commands_sync 輔助函式，在 git push 之前增加了 git pull --rebase 命令。
 # v1.0 (2025-09-26): [全新創建] 創建此背景任務。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
@@ -259,15 +260,17 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                         commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
                     )
             
-            # 【【【v2.0 核心修正】】】
             # 步驟 3: 在推送前，先從遠端拉取並變基，以同步任何外部的變更
-            print("   [LOG Pusher] 正在與遠端同步 (git pull --rebase)...")
+            # [v3.0 核心修正] 移除此處的 print 語句
+            # print("   [LOG Pusher] 正在與遠端同步 (git pull --rebase)...")
             pull_process = subprocess.run(["git", "pull", "--rebase"], check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8')
             
             # 步驟 4: 推送到遠端倉庫
-            print("   [LOG Pusher] 正在推送日誌更新...")
+            # [v3.0 核心修正] 移除此處的 print 語句
+            # print("   [LOG Pusher] 正在推送日誌更新...")
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
             
+            # [v3.0 核心修正] 保留這條最終的成功日誌，因為它只在有新日誌被推送時才會顯示
             print("   ✅ [LOG Pusher] 日誌成功推送到 GitHub。")
             return True
 
@@ -301,6 +304,10 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
         except Exception as e:
             print(f"🔥 [LOG Pusher] 背景任務主循環發生錯誤: {e}")
             await asyncio.sleep(60) # 發生錯誤後，縮短等待時間以便更快重試
+# 函式：啟動 Git 日誌推送器任務
+
+
+
 
 async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
@@ -465,4 +472,5 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
