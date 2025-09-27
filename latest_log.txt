@@ -1,82 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T14:27:22.318637 ###
+### AI Lover Log - Last updated at 2025-09-27T14:32:25.364121 ###
 
-2025-09-27 10:27:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-27 10:27:19 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-27 10:27:25 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-27 10:27:25 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 123 條文檔到 RAG 語料庫。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-27 10:27:26 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 成功恢復了 3 個場景的對話歷史，總計 21 條訊息。
-2025-09-27 10:27:26 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-27 10:27:27 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-27 10:27:29 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-27 10:27:29 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 21 條場景歷史記錄。
-2025-09-27 10:27:31 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-27 10:27:36 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-27 10:27:36 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-27 10:27:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 10:27:37 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-27 10:27:45 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-27 10:27:46 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-27 10:27:46 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 10:27:47 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-27 10:27:58 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-27 10:27:59 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-27 10:27:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 10:28:01 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-27 10:28:13 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-27 10:28:16 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-27 10:28:16 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-27 10:28:16 - [INFO] - [512280345618546699] (Canon Processor) 正在啟動敘事提取安全管線...
-2025-09-27 10:28:16 - [INFO] - [512280345618546699] [敘事提取 1/4] 正在嘗試【理想方案：雲端宏觀提取】...
-2025-09-27 10:28:17 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
-2025-09-27 10:29:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-27 10:29:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-27 10:29:12 - [ERROR] - [512280345618546699] [敘事提取 1/4] 遭遇未知錯誤: 1 validation error for NarrativeExtractionResult
-narrative_text
-  Field required [type=missing, input_value={'extracted_narratives': ...體神聖燈塔」。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing，正在降級。
-2025-09-27 10:29:12 - [INFO] - [512280345618546699] [敘事提取 2/4] 本地備援方案暫未針對此任務優化，跳過此層級以提高效率。
-2025-09-27 10:29:12 - [INFO] - [512280345618546699] [敘事提取 3/4] 正在嘗試【安全代碼方案：全文無害化提取】...
-2025-09-27 10:31:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-27 10:31:06 - [WARNING] - [512280345618546699] [敘事提取 3/4] 無害化後仍遭遇審查，正在降級到最終備援。
-2025-09-27 10:31:06 - [CRITICAL] - [512280345618546699] [敘事提取 4/4] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。
-2025-09-27 10:31:08 - [INFO] - [512280345618546699] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 34 個劇情摘要文本塊存入長期記憶。
-2025-09-27 10:31:08 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
-2025-09-27 10:31:08 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
-2025-09-27 10:31:08 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-09-27 10:32:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-27 10:32:25 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！正在儲存結果...
-2025-09-27 10:32:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 78 個實體...
-2025-09-27 10:33:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
-2025-09-27 10:33:56 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 78 條決策。
-2025-09-27 10:34:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 11 個實體...
-2025-09-27 10:34:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 4 個實體...
-2025-09-27 10:34:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
-2025-09-27 10:34:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 12 個實體...
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 126 條文檔用於創始構建。
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
-2025-09-27 10:34:11 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
-2025-09-27 10:34:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-27 10:34:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
 2025-09-27 10:34:19 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
 2025-09-27 10:34:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-27 10:34:19 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
@@ -300,3 +223,80 @@ narrative_text
 2025-09-27 14:27:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-27 14:27:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-27 14:27:11 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-27 14:27:26 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 118 條文檔到 RAG 語料庫。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-27 14:27:26 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 3 條訊息。
+2025-09-27 14:27:26 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-27 14:27:27 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-27 14:27:29 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-27 14:27:29 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 3 條場景歷史記錄。
+2025-09-27 14:27:31 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-27 14:27:34 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-27 14:27:35 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-27 14:27:35 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-27 14:27:35 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 14:27:36 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-27 14:27:44 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-27 14:27:44 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-27 14:27:44 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 14:27:46 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-27 14:28:00 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-27 14:28:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-27 14:28:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 14:28:02 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
+2025-09-27 14:28:07 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-27 14:28:10 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
+2025-09-27 14:28:10 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
+2025-09-27 14:28:10 - [INFO] - [512280345618546699] (Canon Processor) 正在啟動敘事提取安全管線...
+2025-09-27 14:28:10 - [INFO] - [512280345618546699] [敘事提取 1/4] 正在嘗試【理想方案：雲端宏觀提取】...
+2025-09-27 14:28:11 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
+2025-09-27 14:28:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-27 14:28:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-27 14:28:54 - [ERROR] - [512280345618546699] [敘事提取 1/4] 遭遇未知錯誤: 1 validation error for NarrativeExtractionResult
+narrative_text
+  Field required [type=missing, input_value={'narrative_extraction_re...體神聖燈塔」。"}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing，正在降級。
+2025-09-27 14:28:54 - [INFO] - [512280345618546699] [敘事提取 2/4] 本地備援方案暫未針對此任務優化，跳過此層級以提高效率。
+2025-09-27 14:28:54 - [INFO] - [512280345618546699] [敘事提取 3/4] 正在嘗試【安全代碼方案：全文無害化提取】...
+2025-09-27 14:29:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-27 14:29:35 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-27 14:29:35 - [ERROR] - [512280345618546699] [敘事提取 3/4] 遭遇未知錯誤: 1 validation error for NarrativeExtractionResult
+narrative_text
+  Field required [type=missing, input_value={'narrative_extraction_re...的巨大打擊。\n'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4349, in _execute_narrative_extraction_pipeline
+    extraction_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 807, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 787, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for NarrativeExtractionResult
+narrative_text
+  Field required [type=missing, input_value={'narrative_extraction_re...的巨大打擊。\n'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+2025-09-27 14:29:35 - [CRITICAL] - [512280345618546699] [敘事提取 4/4] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。
+2025-09-27 14:29:35 - [INFO] - [512280345618546699] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 34 個劇情摘要文本塊存入長期記憶。
+2025-09-27 14:29:35 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
+2025-09-27 14:29:35 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
+2025-09-27 14:29:35 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-27 14:30:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-27 14:30:57 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！正在儲存結果...
+2025-09-27 14:30:57 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 80 個實體...
