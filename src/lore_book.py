@@ -165,3 +165,39 @@ async def get_all_lores_for_user(user_id: str) -> List[Lore]:
         result = await session.execute(stmt)
         return result.scalars().all()
 # 函式：獲取指定使用者的所有 LORE (v1.0 - 全新创建)
+
+# src/lore_book.py 的 get_lores_by_template_keys 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「LORE繼承與規則注入系統」設計，創建此核心資料庫查詢函式。它的作用是接收一個身份關鍵詞列表，並從資料庫中反向查找所有將這些關鍵詞定義為繼承觸發器（template_keys）的世界傳說LORE。
+async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore]:
+    """
+    根據一個template_key列表，查詢所有匹配的world_lore條目。
+    這是一個反向查詢，用於找到需要被繼承的規則。
+    """
+    if not keys:
+        return []
+    
+    async with AsyncSessionLocal() as session:
+        # 構建一個查詢，檢查 JSON 類型的 template_keys 欄位是否包含列表中的任何一個 key
+        # SQLAlchemy 沒有直接操作 JSON 陣列包含關係的標準方法，我們需要在 Python 中過濾
+        stmt = select(Lore).where(
+            Lore.user_id == user_id,
+            Lore.category == 'world_lore',
+            Lore.template_keys.isnot(None) # 只查詢設置了 template_keys 的條目
+        )
+        
+        result = await session.execute(stmt)
+        all_rule_lores = result.scalars().all()
+        
+        # 在 Python 層面進行過濾
+        matching_lores = []
+        key_set = set(keys)
+        for lore in all_rule_lores:
+            if isinstance(lore.template_keys, list):
+                template_key_set = set(lore.template_keys)
+                # 檢查兩個集合是否有交集
+                if not key_set.isdisjoint(template_key_set):
+                    matching_lores.append(lore)
+                    
+        return matching_lores
+# src/lore_book.py 的 get_lores_by_template_keys 函式結束
