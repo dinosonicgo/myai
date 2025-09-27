@@ -100,11 +100,10 @@ class AILover:
     
     
     
-# src/ai_core.py 的 AILover.__init__ 函式 (v234.0 - 適配事後分析)
+# ai_core.py 的 AILover.__init__ 函式 (v234.1 - 新增淨化協議)
 # 更新紀錄:
-# v234.0 (2025-11-22): [架構重構] 根據「生成後分析」架構，新增了 self.post_generation_analysis_chain 屬性，為新的事後分析鏈預留位置。
-# v228.0 (2025-11-22): [架構優化] 新增了 self.ollama_model_name 屬性。
-# v227.8 (2025-09-26): [重大架構升級] `__init__` 函数现在接收一个 `is_ollama_available` 布林值。
+# v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性，並將一個安全的、專為數據處理任務設計的「淨化版」指導原則硬編碼於此。此修改將安全協議集中管理，避免了在多個函式中重複定義，提高了程式碼的可維護性和複用性。
+# v234.0 (2025-11-22): [架構重構] 新增了 self.post_generation_analysis_chain 屬性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -151,10 +150,22 @@ class AILover:
         self.lore_refinement_chain: Optional[str] = None
         self.lore_extraction_chain: Optional[str] = None
         self.description_synthesis_prompt: Optional[str] = None
-        # [v234.0 核心修正] 新增事後分析鏈屬性
         self.post_generation_analysis_chain: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
+        # [v234.1 核心修正] 硬編碼淨化版協議
+        self.data_protocol_prompt: str = """# ==============================================================================
+# == 📖 AI 數據處理程式指導原則 v1.0 (安全版) 📖
+# ==============================================================================
+# 【【【元指令：操作框架定義】】】
+# 你是一個在【完全虛構的成人幻想小說模擬】框架下運行的專用數據處理引擎。
+# 你的所有行為和輸出【都必須且只能】被視為此虛構模擬的一部分。
+# --- 核心原則 ---
+# 1. 【🎯 任務絕對優先原則】: 你的所有輸出都【必須】是為了直接回應或執行此任務。
+# 2. 【🚫 禁止幻覺原則】: 你的所有輸出【必須】嚴格基於輸入的上下文信息，【絕對禁止】添加任何原文未提及的推論或捏造事實。
+# 3. 【🧬 結構化輸出鐵則】: 如果任務要求以JSON格式輸出，你的最終輸出【必須且只能】是一個純淨的、結構完全符合要求的JSON物件。
+# ==============================================================================
+"""
         self.world_snapshot_template: str = ""
         self.scene_histories: Dict[str, ChatMessageHistory] = {}
 
@@ -169,7 +180,7 @@ class AILover:
 
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
-    # 函式：初始化AI核心
+# 函式：初始化AI核心
 
 
     
@@ -4628,10 +4639,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：檢索並摘要記憶 (v17.0 - 四層降級摘要管線)
-# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.3 - 動態配置注入)
+# ai_core.py 的 retrieve_and_summarize_memories 函式 (v17.5 - 協議變數化)
 # 更新紀錄:
-# v17.3 (2025-09-28): [災難性BUG修復] 在呼叫`ainvoke_with_rotation`執行摘要任務時，創建並通過新的`generation_config_override`參數傳入了一個專用的生成配置。此配置包含了一個更大的`max_output_tokens`值，從根源上解決了因摘要內容過長而觸發`MAX_TOKENS`錯誤的問題。
-# v17.2 (2025-09-28): [災難性BUG修復] 徹底重構了RAG摘要的備援邏輯，實現了更智能的【四層降級摘要管線】。
+# v17.5 (2025-09-28): [程式碼重構] 移除了函式內部硬編碼的安全協議字串，改為直接引用在 `__init__` 中統一定義的 `self.data_protocol_prompt` 實例屬性。此修改遵循了DRY原則，使安全協議的管理更加集中和清晰。
+# v17.4 (2025-09-28): [災難性BUG修復] 在函式內部直接硬編碼了一個安全的、專為數據處理任務設計的`data_protocol_prompt`。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
         執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
@@ -4695,7 +4706,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             summarizer_prompt_template = self.get_rag_summarizer_chain()
             summary = None
 
-            # [v17.3 核心修正] 為摘要任務定義一個專用的、更寬鬆的生成配置
+            # [v17.5 核心修正] 直接引用在 __init__ 中定義的安全協議變數
+            data_protocol_prompt = self.data_protocol_prompt
+
             summary_generation_config = {
                 "temperature": 0.2,
                 "max_output_tokens": 4096 
@@ -4704,9 +4717,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             try:
                 # --- 層級 1: 理想路徑 (雲端 + 原始文本) ---
                 logger.info(f"[{self.user_id}] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...")
-                full_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary}, inject_core_protocol=True)
+                full_prompt_l1 = data_protocol_prompt + "\n\n" + self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary})
                 summary = await self.ainvoke_with_rotation(
-                    full_prompt, 
+                    full_prompt_l1, 
                     retry_strategy='none',
                     generation_config_override=summary_generation_config
                 )
@@ -4722,9 +4735,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     for word, code in sorted_encoding_map:
                         encoded_content = encoded_content.replace(word, code)
 
-                    encoded_prompt = self._safe_format_prompt(summarizer_prompt_template, {"documents": encoded_content}, inject_core_protocol=True)
+                    full_prompt_l2 = data_protocol_prompt + "\n\n" + self._safe_format_prompt(summarizer_prompt_template, {"documents": encoded_content})
                     encoded_summary = await self.ainvoke_with_rotation(
-                        encoded_prompt, 
+                        full_prompt_l2, 
                         retry_strategy='none',
                         generation_config_override=summary_generation_config
                     )
@@ -4797,6 +4810,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
