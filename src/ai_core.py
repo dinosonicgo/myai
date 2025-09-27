@@ -3260,54 +3260,33 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：將世界聖經添加到知識庫 (v14.0 - 純 SQL)
-# 更新紀錄:
-# v14.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將世界聖經文本分割後存入 SQL 的 MemoryData 表中，以供 BM25 檢索器使用。
-# v13.0 (2025-10-15): [健壯性] 統一了錯誤處理邏輯。
-# v12.0 (2025-10-15): [健壯性] 統一了所有 ChromaDB 相關錯誤的日誌記錄為 WARNING 級別。
+    # 函式：將世界聖經添加到知識庫 (v15.0 - 移除RAG冗餘)
+    # 更新紀錄:
+    # v15.0 (2025-11-22): [架構優化] 根據最新的分析，移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。此修改旨在消除 RAG 索引中的資料冗餘，因為後續的 `parse_and_create_lore_from_canon` 流程會將解析後的結構化 LORE 加入 RAG，無需再索引原始文本。
+    # v14.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將世界聖經文本分割後存入 SQL 的 MemoryData 表中，以供 BM25 檢索器使用。
+    # v13.0 (2025-10-15): [健壯性] 統一了錯誤處理邏輯。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
-        """將世界聖經文本處理並保存到 SQL 記憶庫，以供 BM25 檢索器使用。"""
+        """
+        (v15.0 優化) 此函式現在作為一個佔位符，不再將原始聖經文本直接存入記憶庫，以避免 RAG 索引冗餘。
+        聖經文本將由 `parse_and_create_lore_from_canon` 處理，其解析出的結構化LORE會在後續的RAG重建步驟中被索引。
+        """
         if not self.profile:
             logger.error(f"[{self.user_id}] 嘗試在無 profile 的情況下處理世界聖經。")
             return 0
         
-        docs = []
-        try:
-            # --- 步驟 1: 分割文本 ---
-            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-            docs = text_splitter.create_documents([text_content], metadatas=[{"source": "canon"} for _ in [text_content]])
-            if not docs:
-                return 0
-
-            # --- 步驟 2: 保存到 SQL ---
-            async with AsyncSessionLocal() as session:
-                # 首先刪除舊的聖經記錄
-                stmt = delete(MemoryData).where(
-                    MemoryData.user_id == self.user_id,
-                    MemoryData.importance == -1 # 使用特殊值標記 canon 數據
-                )
-                result = await session.execute(stmt)
-                if result.rowcount > 0:
-                    logger.info(f"[{self.user_id}] (Canon Processor) 已从 SQL 记忆库中清理了 {result.rowcount} 条旧 'canon' 记录。")
-                
-                # 添加新的聖經記錄
-                new_memories = [
-                    MemoryData(
-                        user_id=self.user_id,
-                        content=doc.page_content,
-                        timestamp=time.time(),
-                        importance=-1
-                    ) for doc in docs
-                ]
-                session.add_all(new_memories)
-                await session.commit()
-            logger.info(f"[{self.user_id}] (Canon Processor) 所有 {len(docs)} 个世界圣经文本块均已成功处理并存入 SQL 记忆库。")
-            return len(docs)
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 處理核心設定並保存到 SQL 時發生嚴重錯誤: {e}", exc_info=True)
-            raise
-# 將世界聖經添加到知識庫 函式結束
+        if not text_content or not text_content.strip():
+            return 0
+        
+        # [v15.0 核心修正] 移除將原始文本存入 MemoryData 的邏輯。
+        # 原始的分割和儲存程式碼已被移除，以防止資料冗餘。
+        # 後續的 `parse_and_create_lore_from_canon` 會調用 `_load_or_build_rag_retriever(force_rebuild=True)`，
+        # 這會將從聖經中解析出的 *結構化LORE* 加入 RAG 索引，這是更優雅且高效的做法。
+        
+        num_chunks = (len(text_content) // 1000) + 1 # 估算大致的文本塊數量用於日誌記錄
+        logger.info(f"[{self.user_id}] (Canon Processor) 已接收世界聖經文本。原始文本將用於 LORE 解析，而不會直接注入 RAG 記憶庫，以防止數據冗餘。")
+        
+        return num_chunks
+    # 將世界聖經添加到知識庫 函式結束
 
     
     # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
@@ -4341,6 +4320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
