@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-28T00:45:05.617551 ###
+### AI Lover Log - Last updated at 2025-09-28T00:50:37.009877 ###
 
-2025-09-27 23:40:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-27 23:40:54 - [WARNING] - [512280345618546699] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...
-2025-09-27 23:43:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查錯誤: BlockedPromptException。
-2025-09-27 23:43:51 - [ERROR] - [512280345618546699] [RAG摘要-2] 🔥 代碼化備援失敗: Generation stopped due to finish_reason: MAX_TOKENS
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4669, in retrieve_and_summarize_memories
-    summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 772, in ainvoke_with_rotation
     raise e
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 747, in ainvoke_with_rotation
@@ -300,3 +293,10 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-28 00:44:55 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-28 00:44:55 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-28 00:44:56 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-28 00:50:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-28 00:50:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-28 00:50:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-28 00:50:31 - [INFO] - Discord Bot is ready!
+2025-09-28 00:50:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-28 00:50:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-28 00:50:35 - [INFO] - 已成功發送啟動成功通知給管理員。
