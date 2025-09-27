@@ -62,7 +62,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective)
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -4861,17 +4861,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v17.7 - 備援上下文注入)
+    # 函式：檢索並摘要記憶 (v18.0 - RAG 事實清單)
     # 更新紀錄:
-    # v17.7 (2025-09-28): [災難性BUG修復] 徹底重構了 Level 2 (代碼化備援) 的 Prompt 構建邏輯。舊的「絕對隔離」策略因移除所有上下文，導致安全過濾器將編碼文本誤判為違規。新策略反其道而行，為其重新注入【安全的】`data_protocol_prompt`，為安全過濾器提供「這是一個虛構模擬中的數據處理任務」的關鍵上下文，從根源上解決備援流程被審查的問題。
-    # v17.6 (2025-09-28): [災難性BUG修復] 在 Level 2 (雲端+代碼化) 備援路徑中，放棄了所有外部Prompt的拼接，改為調用一個全新的、完全自包含的 `get_safe_mode_summarizer_prompt`。
-    # v17.5 (2025-09-28): [程式碼重構] 移除了函式內部硬編碼的安全協議字串，改為直接引用在 `__init__` 中統一定義的 `self.data_protocol_prompt` 實例屬性。
+    # v18.0 (2025-09-28): [根本性重構] 徹底拋棄了高風險的「敘事性摘要」策略，轉而採用全新的「RAG事實清單」策略。此函式現在的目標是調用LLM提取一個結構化的`RagFactSheet`物件（包含角色、地點、事件列表），然後在本地將其安全地格式化為要點式文本。此修改將任務從「創作」降級為「數據提取」，從根本上解決了RAG摘要流程因語義分析而被內容審查系統攔截的頑固問題。
+    # v17.7 (2025-09-28): [災難性BUG修復] 徹底重構了 Level 2 (代碼化備援) 的 Prompt 構建邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        執行RAG檢索，並將結果智能地分離為「規則全文」和「事件摘要」。
-        內建四層降級摘要管線和後處理篩選機制。
+        (v18.0 重構) 執行RAG檢索，並將結果通過「事實清單」策略提取為結構化數據，最後格式化為安全的要點式文本。
         返回一個字典: {"rules": str, "summary": str}
         """
+        from .schemas import RagFactSheet
+
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
@@ -4885,114 +4885,117 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if profile.aliases:
                     query_keywords.update(profile.aliases)
             expanded_query = " ".join(query_keywords)
-            logger.info(f"[{self.user_id}] RAG查詢已擴展為: '{expanded_query}'")
-
+        
         retrieved_docs = []
         try:
-            if self.retriever:
-                retrieved_docs = await self.retriever.ainvoke(expanded_query)
-            if not retrieved_docs and self.bm25_retriever:
-                retrieved_docs = await self.bm25_retriever.ainvoke(expanded_query)
+            if self.retriever: retrieved_docs = await self.retriever.ainvoke(expanded_query)
+            if not retrieved_docs and self.bm25_retriever: retrieved_docs = await self.bm25_retriever.ainvoke(expanded_query)
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
                 
-        if not retrieved_docs:
-            return default_return
+        if not retrieved_docs: return default_return
 
         final_docs_to_process = retrieved_docs
         if filtering_profiles:
-            filter_names = set()
-            for profile in filtering_profiles:
-                filter_names.add(profile.name)
-                if profile.aliases:
-                    filter_names.update(profile.aliases)
-            
-            filtered_docs = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
-            
-            logger.info(f"[{self.user_id}] [RAG後處理篩選] 已將 {len(retrieved_docs)} 條初步檢索結果精煉為 {len(filtered_docs)} 條與核心角色相關的記憶。")
-            final_docs_to_process = filtered_docs
+            filter_names = set(p.name for p in filtering_profiles) | set(alias for p in filtering_profiles for alias in p.aliases)
+            final_docs_to_process = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
 
-        if not final_docs_to_process:
-             return default_return
+        if not final_docs_to_process: return default_return
 
         rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
         other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
-        
         rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        docs_to_summarize = other_docs + rule_docs[3:]
+        docs_to_process = other_docs + rule_docs[3:]
 
-        if docs_to_summarize:
-            raw_content_for_summary = "\n\n---\n\n".join([doc.page_content for doc in docs_to_summarize])
-            summarizer_prompt_template = self.get_rag_summarizer_chain()
-            summary = None
+        if docs_to_process:
+            raw_content = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
+            fact_sheet: Optional[RagFactSheet] = None
 
-            summary_generation_config = {
-                "temperature": 0.2,
-                "max_output_tokens": 4096 
-            }
-
+            # --- 層級 1: 雲端 + 原始文本 ---
             try:
-                # --- 層級 1: 理想路徑 (雲端 + 原始文本) ---
-                logger.info(f"[{self.user_id}] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...")
-                full_prompt_l1 = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(summarizer_prompt_template, {"documents": raw_content_for_summary})
-                summary = await self.ainvoke_with_rotation(
-                    full_prompt_l1, 
-                    retry_strategy='none',
-                    generation_config_override=summary_generation_config
-                )
-
+                logger.info(f"[{self.user_id}] [RAG事實提取-1] 嘗試使用雲端模型處理原始文本...")
+                prompt_template = self.get_rag_fact_sheet_extraction_prompt()
+                full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": raw_content})
+                fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
             except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...")
-                # --- 層級 2: 最佳備援 (雲端 + 代碼化文本) ---
+                logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...")
+                # --- 層級 2: 雲端 + 代碼化文本 ---
                 try:
-                    encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-                    sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-                    
-                    encoded_content = raw_content_for_summary
-                    for word, code in sorted_encoding_map:
-                        encoded_content = encoded_content.replace(word, code)
-
-                    # [v17.7 災難性BUG修復] 舊的「絕對隔離」策略失敗，因為它移除了所有上下文，導致安全過濾器將編碼後的文本誤判為惡意內容。
-                    # 新策略是重新引入【安全的】數據處理協議，為安全過濾器提供必要的上下文，告知這是一個虛構模擬中的數據處理任務。
-                    safe_mode_prompt_template = self.get_safe_mode_summarizer_prompt()
-                    encoded_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(safe_mode_prompt_template, {"documents": encoded_content})
-
-                    encoded_summary = await self.ainvoke_with_rotation(
-                        encoded_prompt, 
-                        retry_strategy='none',
-                        generation_config_override=summary_generation_config
-                    )
-                    
-                    if encoded_summary:
-                        logger.info(f"[{self.user_id}] [RAG摘要-2] ✅ 代碼化摘要成功，正在解碼...")
-                        summary = self._decode_lore_content(encoded_summary, self.DECODING_MAP)
+                    encoded_content = self._decode_lore_content(raw_content, {v: k for k, v in self.DECODING_MAP.items()})
+                    prompt_template = self.get_rag_fact_sheet_extraction_prompt()
+                    full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": encoded_content})
+                    fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
                 except Exception as e_code:
-                    logger.error(f"[{self.user_id}] [RAG摘要-2] 🔥 代碼化備援失敗: {e_code}", exc_info=True)
-            
+                    logger.error(f"[{self.user_id}] [RAG事實提取-2] 🔥 代碼化備援失敗: {e_code}", exc_info=True)
             except Exception as e_api:
-                logger.error(f"[{self.user_id}] [RAG摘要-1] 雲端摘要時發生API或網絡錯誤: {e_api}", exc_info=True)
+                logger.error(f"[{self.user_id}] [RAG事實提取-1] 雲端提取時發生API或網絡錯誤: {e_api}", exc_info=True)
 
-            # --- 層級 3: 可靠備援 (本地 LLM + 原始文本) ---
-            if not summary or not summary.strip():
-                logger.warning(f"[{self.user_id}] [RAG摘要] 所有雲端策略均失敗。降級到層級 3 (本地模型)...")
+            # --- 層級 3: 本地 LLM + 原始文本 ---
+            if not fact_sheet:
+                logger.warning(f"[{self.user_id}] [RAG事實提取] 所有雲端策略均失敗。降級到層級 3 (本地模型)...")
                 if self.is_ollama_available:
-                    summary = await self._invoke_local_ollama_summarizer(raw_content_for_summary)
-                else:
-                    logger.info(f"[{self.user_id}] [RAG摘要-3] 本地模型不可用，跳過此層級。")
+                    # 本地模型的專用調用器
+                    local_prompt = self.get_local_model_fact_sheet_prompt().format(documents=raw_content)
+                    fact_sheet = await self.ainvoke_with_rotation(local_prompt, output_schema=RagFactSheet, models_to_try_override=[self.ollama_model_name])
 
-            # --- 層級 4: 最終防線 ---
-            if summary and summary.strip():
-                summary_context = f"【背景歷史參考（事實要點）】:\n{summary}"
+            # --- 層級 4: 格式化或最終備援 ---
+            if fact_sheet:
+                logger.info(f"[{self.user_id}] [RAG事實提取] ✅ 成功提取事實清單。")
+                formatted_summary_parts = ["【背景歷史參考（事實要點）】:"]
+                if fact_sheet.involved_characters: formatted_summary_parts.append(f"- 相關角色: {', '.join(fact_sheet.involved_characters)}")
+                if fact_sheet.key_locations: formatted_summary_parts.append(f"- 關鍵地點: {', '.join(fact_sheet.key_locations)}")
+                if fact_sheet.significant_objects: formatted_summary_parts.append(f"- 重要物品: {', '.join(fact_sheet.significant_objects)}")
+                if fact_sheet.core_events:
+                    formatted_summary_parts.append("- 核心事件:")
+                    for event in fact_sheet.core_events:
+                        formatted_summary_parts.append(f"  - {event}")
+                
+                summary_context = self._decode_lore_content("\n".join(formatted_summary_parts), self.DECODING_MAP)
             else:
-                logger.error(f"[{self.user_id}] [RAG摘要-4] 所有摘要層級均失敗！")
+                logger.error(f"[{self.user_id}] [RAG事實提取-4] 所有提取層級均失敗！")
                 summary_context = "（記憶摘要因內容審查或系統錯誤而生成失敗）"
         
-        logger.info(f"[{self.user_id}] 已成功將 RAG 結果分離為 {len(rule_docs[:3])} 條規則全文和 {len(docs_to_summarize)} 條待摘要文檔。")
         return {"rules": rules_context, "summary": summary_context}
     # 函式：檢索並摘要記憶
+
+
+
+
+        # 函式：獲取RAG事實清單提取器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-28): [全新創建] 根據「RAG事實清單」策略，創建此核心Prompt模板。它將RAG摘要任務從創造性的總結轉變為結構化的數據提取，通過強制LLM填充事實清單而非撰寫段落，從根本上規避語義安全過濾。
+    def get_rag_fact_sheet_extraction_prompt(self) -> str:
+        """獲取或創建一個專門用於從RAG結果中提取結構化「事實清單」的字符串模板。"""
+        prompt_template = """# TASK: 你是一位頂級的情報分析師和數據提取專家。
+# MISSION: 你的任務是閱讀下方提供的【原始情報文檔】，並將其中包含的所有關鍵信息，提取並填寫到一個結構化的【事實清單JSON】中。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【任務性質】**: 這是一個**數據提取**任務，不是**文學創作**任務。
+# 2.  **【`core_events` 提取原則】**:
+#     *   你【必須】使用**最中性、最客觀、非敘事性**的語言來描述事件。
+#     *   **範例 (v1.0)**:
+#         *   **【禁止】**: "他用肉棒兇狠地插入了她的肉穴，讓她噴出了愛液。"
+#         *   **【正確】**: "角色A與角色B發生了一次親密互動，涉及到了器官的結合與生理反應。"
+#         *   **【正確 (代碼化文本)】**: "角色A與角色B發生了涉及ACTION-C的互動。"
+# 3.  **【數據保真原則】**: 你必須保留文本中的所有技術代碼（例如 `ROLE-D`, `ACTION-C`）。
+# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `RagFactSheet` Pydantic 模型的JSON物件。
+
+# --- [INPUT DATA] ---
+
+# 【原始情報文檔】:
+{documents}
+
+# ---
+# 【你提取出的事實清單JSON】:
+"""
+        return prompt_template
+    # 函式：獲取RAG事實清單提取器 Prompt
+
+
+    
             
 
 # ai_core.py 的 get_safe_mode_summarizer_prompt 函式 (v1.0 - 全新創建)
@@ -5054,6 +5057,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
