@@ -2719,10 +2719,10 @@ class ExtractionResult(BaseModel):
     # 函式：獲取事後分析器 Prompt
     
     
-# ai_core.py 的 preprocess_and_generate 函式 (v43.2 - 兩階段RAG注入)
+# ai_core.py 的 preprocess_and_generate 函式 (v43.3 - 強制事實錨定)
 # 更新紀錄:
-# v43.2 (2025-09-28): [核心重構] 根據「兩階段RAG注入」策略，徹底重構了此函式的數據流。現在它會：1) 分離核心與背景角色；2) 只為核心角色執行精準的RAG記憶檢索（後處理篩選）；3) 為所有在場角色觸發LORE繼承；4) 為背景角色生成包含核心描述和身份的「迷你檔案卡」；5) 升級最終指令以明確授權AI在必要時使用背景角色。此修改從根本上解決了上下文污染問題，同時賦予了AI動態調用背景角色的能力。
-# v43.1 (2025-09-28): [功能優化] 在最終生成指令中增加了【角色名單鎖定鐵則】和【焦點鎖定原則】。
+# v43.3 (2025-09-28): [災難性BUG修復] 根據「強制事實錨定」策略，徹底重構了LORE資訊的注入方式。此版本現在會：1) 動態識別指令中的核心實體；2) 精確查詢這些實體的LORE檔案；3) 將這些檔案注入到一個全新的、帶有強制性指令頭的 `explicit_character_files_context` 區塊中。此修改旨在將LORE從「參考資料」提升為「強制鐵則」，從根本上解決AI忽略或篡改已知LORE設定的問題。
+# v43.2 (2025-09-28): [核心重構] 根據「兩階段RAG注入」策略，徹底重構了此函式的數據流。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
         (v43.0重構) 執行純粹的小說生成任務。
@@ -2748,56 +2748,56 @@ class ExtractionResult(BaseModel):
                 text = text.replace(word, code)
             return text
 
+        # --- [v43.3 核心修正] 步驟 1: 動態識別指令中的所有核心實體 (角色、物品等) ---
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
-        found_lores: List[CharacterProfile] = []
+        found_lores_for_injection: List[Dict[str, Any]] = []
         if explicitly_mentioned_entities:
-            logger.info(f"[{self.user_id}] [LORE注入] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
+            logger.info(f"[{self.user_id}] [LORE錨定] 正在為指令中提及的 {explicitly_mentioned_entities} 強制查找LORE檔案...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            all_known_profiles = { user_profile.name: user_profile, ai_profile.name: ai_profile }
+            
+            # 創建一個包含所有已知別名的查找表
+            lookup_table: Dict[str, Dict] = {}
             for lore in all_lores:
-                if lore.category == 'npc_profile':
-                    try:
-                        profile = CharacterProfile.model_validate(lore.content)
-                        all_known_profiles[profile.name] = profile
-                        if profile.aliases:
-                            for alias in profile.aliases: all_known_profiles[alias] = profile
-                    except Exception as e:
-                        logger.warning(f"[{self.user_id}] [LORE校驗] 跳過一個無效的角色LORE條目 (key: {lore.key}): {e}")
+                # 主名
+                main_name = lore.content.get("name") or lore.content.get("title")
+                if main_name:
+                    lookup_table[main_name] = {"lore": lore, "type": lore.category}
+                # 別名
+                for alias in lore.content.get("aliases", []):
+                    lookup_table[alias] = {"lore": lore, "type": lore.category}
+
+            # 根據指令中提取的實體進行查找
             for entity_name in explicitly_mentioned_entities:
-                if entity_name in all_known_profiles:
-                    profile_obj = all_known_profiles[entity_name]
-                    if not any(p.name == profile_obj.name for p in found_lores):
-                        found_lores.append(profile_obj)
+                if entity_name in lookup_table:
+                    found_lore_info = lookup_table[entity_name]
+                    # 避免重複注入同一個LORE
+                    if not any(f['lore'].id == found_lore_info['lore'].id for f in found_lores_for_injection):
+                        found_lores_for_injection.append(found_lore_info)
 
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
 
-        # --- 步驟 1: 確定場景和所有在場角色 ---
         scene_path_tuple = tuple(gs.remote_target_path) if gs.viewing_mode == 'remote' and gs.remote_target_path else tuple(gs.location_path)
         all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(
-            self.user_id, 
-            'npc_profile', 
+            self.user_id, 'npc_profile', 
             lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple
         )
-        relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, found_lores)
         
-        # --- 步驟 2: [第一階段RAG] 只為核心角色進行精準RAG ---
+        # 將LORE對象轉換為CharacterProfile對象列表
+        explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
+        
+        relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
+        
         structured_rag_context = await self.retrieve_and_summarize_memories(
             user_input, 
             contextual_profiles=relevant_characters,
-            filtering_profiles=relevant_characters # 使用核心角色列表進行後處理篩選
+            filtering_profiles=relevant_characters
         )
 
-        # --- 步驟 3: [LORE繼承] 為所有在場角色查詢相關規則 ---
         all_characters_in_scene = relevant_characters + background_characters
         scene_rules_context_str = "（無適用的特定規則）"
         if all_characters_in_scene:
-            all_aliases_in_scene = set()
-            for char in all_characters_in_scene:
-                all_aliases_in_scene.add(char.name)
-                if char.aliases:
-                    all_aliases_in_scene.update(char.aliases)
-            
+            all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
             if all_aliases_in_scene:
                 applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
                 if applicable_rules:
@@ -2805,18 +2805,24 @@ class ExtractionResult(BaseModel):
                     scene_rules_context_str = "\n\n".join(rule_texts)
                     logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
 
-        # --- 步驟 4: [第二階段LORE注入] 組裝最終Prompt ---
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history:
             raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
 
         decoded_summary = self._decode_lore_content(structured_rag_context.get("summary", "無摘要"), self.DECODING_MAP)
-        decoded_rules = self._decode_lore_content(structured_rag_context.get("rules", ""), self.DECODING_MAP)
-
-        explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心角色。）"
-        if found_lores:
-            explicit_character_files_context = "\n".join([f"### 關於「{p.name}」的情報檔案 ###\n{p.description}\n" for p in found_lores])
-
+        
+        # --- [v43.3 核心修正] 構建「強制事實」區塊的內容 ---
+        explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心實體。）"
+        if found_lores_for_injection:
+            context_parts = []
+            for info in found_lores_for_injection:
+                lore_obj = info['lore']
+                name = lore_obj.content.get("name") or lore_obj.content.get("title", lore_obj.key)
+                # 將整個content字典轉換為格式化的字符串
+                content_str = json.dumps(lore_obj.content, ensure_ascii=False, indent=2)
+                context_parts.append(f"### 關於「{name}」({info['type']}) 的強制事實檔案 ###\n```json\n{content_str}\n```\n")
+            explicit_character_files_context = "\n".join(context_parts)
+        
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
             parts = [f"名稱: {profile.name}"]
             if profile.aliases: parts.append(f"別名/身份: {', '.join(profile.aliases)}")
@@ -2824,7 +2830,6 @@ class ExtractionResult(BaseModel):
             if profile.description: parts.append(f"核心描述與情报: {profile.description}")
             return "\n".join(f"- {p}" for p in parts)
         
-        # [v43.2 核心修正] 為背景角色創建迷你檔案卡
         background_npc_context_str = "\n\n".join([format_character_profile_for_prompt(p) for p in background_characters]) or "（此地沒有其他背景角色）"
 
         snapshot_params = {
@@ -2851,7 +2856,6 @@ class ExtractionResult(BaseModel):
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v43.2 核心修正] 升級最終指令，增加【自主行動授權原則】
         final_safeguard_template = f"""# ==============================================================================
 # == 🚨 最終防線指令 (FINAL SAFEGUARD PROTOCOL) v2.4 🚨 ==
 # ==============================================================================
@@ -2878,7 +2882,6 @@ class ExtractionResult(BaseModel):
 
         return final_novel_text
 # 函式：預處理並生成主回應
-
 
 
 
@@ -4747,6 +4750,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
