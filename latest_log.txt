@@ -1,87 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T21:50:45.977216 ###
+### AI Lover Log - Last updated at 2025-09-27T22:01:43.373364 ###
 
-2025-09-27 17:50:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-09-27 17:50:57 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-27 17:50:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 17:50:59 - [INFO] - [512280345618546699] [/start] 初始地點 '王國 > 王都郊外 > 俯瞰維利爾斯莊園的廢棄哨塔' 已成功生成並存入LORE。
-2025-09-27 17:50:59 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
-2025-09-27 17:52:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
-2025-09-27 17:52:00 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
-2025-09-27 17:52:00 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
-2025-09-27 17:52:01 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
-2025-09-27 17:52:01 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
-2025-09-27 20:24:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-27 20:24:15 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-27 20:24:16 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-27 20:24:16 - [INFO] - Discord Bot is ready!
-2025-09-27 20:24:19 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-27 20:24:19 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-27 20:24:19 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-27 20:27:05 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 102 條文檔到 RAG 語料庫。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-27 20:27:05 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-27 20:27:05 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-27 20:27:06 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-27 20:27:07 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-27 20:27:09 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 1 條場景歷史記錄。
-2025-09-27 20:27:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-27 20:27:15 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-27 20:27:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-27 20:27:15 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-27 20:27:16 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 20:27:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-27 20:27:24 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-27 20:27:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-27 20:27:25 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 20:27:26 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-27 20:27:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-27 20:27:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-27 20:27:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-27 20:27:40 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-27 20:27:47 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-27 20:27:50 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-27 20:27:50 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-27 20:27:50 - [INFO] - [512280345618546699] (Canon Processor) 正在啟動敘事提取安全管線...
-2025-09-27 20:27:50 - [INFO] - [512280345618546699] [敘事提取 1/4] 正在嘗試【理想方案：雲端宏觀提取】...
-2025-09-27 20:27:51 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
-2025-09-27 20:28:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-27 20:28:51 - [INFO] - [512280345618546699] [敘事提取 1/4] ✅ 成功！
-2025-09-27 20:28:53 - [INFO] - [512280345618546699] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 43 個劇情摘要文本塊存入長期記憶。
-2025-09-27 20:28:53 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
-2025-09-27 20:28:53 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
-2025-09-27 20:28:53 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [源頭真相校驗器] 正在啟動，對 63 個NPC檔案進行最終校驗...
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [LORE自動鏈接] ✅ 成功！已自動為規則 '母畜在宅邸的禮儀' 鏈接到身份: ['母畜']
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 正在啟動事後關係校準模塊...
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 卡爾•維利爾斯勳爵 -> 絲月 (New Roles: ['僕人', '主人', '妻子', '引導者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 莉莉絲 -> 絲月 (New Roles: ['聖女', '子女', '母親'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 卡爾•維利爾斯勳爵 -> 莉莉絲 (New Roles: ['僕人', '子女', '女兒', '主人'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 絲月 -> 莉莉絲 (New Roles: ['聖女', '子女', '母親'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 凱爾 -> 米婭 (New Roles: ['聖女', '上級', '同僚/守護者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 艾拉 -> 米婭 (New Roles: ['聖女', '同僚/女祭司', '引導者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 凱爾 -> 卡蓮 (Roles: ['伴侶/恩澤提供者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 米婭 -> 卡蓮 (Roles: ['同僚/引導者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 凱爾 -> 艾拉 (New Roles: ['妹妹', '伴侶', '兄妹/伴侶'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 米婭 -> 艾拉 (New Roles: ['女祭司', '同僚/引導者'])
-2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 艾拉 -> 凱爾 (New Roles: ['兄長', '伴侶', '兄妹/伴侶'])
 2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 里斯 -> 凱爾 (New Roles: ['同僚/守護者', '聖殿守護者'])
 2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 米婭 -> 凱爾 (New Roles: ['同僚/上級', '聖殿守護者'])
 2025-09-27 20:30:40 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 卡蓮 -> 凱爾 (New Roles: ['伴侶', '恩澤提供者', '伴侶/恩澤提供者'])
@@ -300,3 +218,85 @@
 2025-09-27 21:50:43 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
 2025-09-27 21:50:43 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
 2025-09-27 21:50:44 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-27 21:50:46 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-27 21:50:46 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-27 21:50:48 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-27 21:50:52 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-27 21:50:53 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-27 21:50:53 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-27 21:50:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 21:50:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-27 21:51:01 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-27 21:51:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-27 21:51:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 21:51:05 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-27 21:51:18 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-27 21:51:19 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-27 21:51:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-27 21:51:20 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
+2025-09-27 21:51:26 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-27 21:51:29 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
+2025-09-27 21:51:29 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
+2025-09-27 21:51:29 - [INFO] - [512280345618546699] (Canon Processor) 正在啟動敘事提取安全管線...
+2025-09-27 21:51:29 - [INFO] - [512280345618546699] [敘事提取 1/4] 正在嘗試【理想方案：雲端宏觀提取】...
+2025-09-27 21:51:30 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
+2025-09-27 21:52:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-27 21:52:16 - [INFO] - [512280345618546699] [敘事提取 1/4] ✅ 成功！
+2025-09-27 21:52:18 - [INFO] - [512280345618546699] (Canon Processor) ✅ 智能敘事RAG注入成功！已將 31 個劇情摘要文本塊存入長期記憶。
+2025-09-27 21:52:18 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
+2025-09-27 21:52:18 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
+2025-09-27 21:52:18 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-27 21:53:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-27 21:53:17 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！
+2025-09-27 21:53:17 - [INFO] - [512280345618546699] [混合式安全驗證器] 正在啟動，對 65 個NPC檔案進行【分批】最終校驗...
+2025-09-27 21:53:17 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 1/7...
+2025-09-27 21:53:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-27 21:53:20 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇解析或驗證錯誤: ValidationError。
+2025-09-27 21:53:20 - [WARNING] - [512280345618546699] [別名驗證-雲端-批量] 批次 1 驗證失敗: 10 validation errors for BatchAliasValidationResult
+validated_aliases.0.final_aliases
+  Field required [type=missing, input_value={'character_name': '絲...艾莉諾', 'Eleonora']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.1.final_aliases
+  Field required [type=missing, input_value={'character_name': '莉...', '神蹟的化身']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.2.final_aliases
+  Field required [type=missing, input_value={'character_name': '米... '活神蹟', '聖女']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.3.final_aliases
+  Field required [type=missing, input_value={'character_name': '卡... '活教典', '妓女']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.4.final_aliases
+  Field required [type=missing, input_value={'character_name': '艾...恩者', '女祭司']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.5.final_aliases
+  Field required [type=missing, input_value={'character_name': '凱...護者', '掘井人']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.6.final_aliases
+  Field required [type=missing, input_value={'character_name': '里...守護者', '孝子']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.7.final_aliases
+  Field required [type=missing, input_value={'character_name': '瑪...ted_aliases': ['Maren']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.8.final_aliases
+  Field required [type=missing, input_value={'character_name': '索...ed_aliases': ['Sophia']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+validated_aliases.9.final_aliases
+  Field required [type=missing, input_value={'character_name': '泰...ted_aliases': ['Tessa']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing。將對此批次啟用本地備援...
+2025-09-27 21:53:20 - [INFO] - [512280345618546699] [別名驗證-備援] 正在為批次 1 啟動本地LLM逐個驗證...
+2025-09-27 21:53:20 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '絲月' 進行交叉驗證...
+2025-09-27 22:01:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 22:01:29 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 22:01:29 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 22:01:29 - [INFO] - Discord Bot is ready!
+2025-09-27 22:01:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 22:01:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 22:01:33 - [INFO] - 已成功發送啟動成功通知給管理員。
