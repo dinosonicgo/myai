@@ -60,7 +60,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
                       ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
-                      SingleResolutionPlan, CharacterProfile, LocationInfo, ItemInfo, 
+                      SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
                       NarrativeExtractionResult, PostGenerationAnalysisResult)
@@ -3554,7 +3554,6 @@ class ExtractionResult(BaseModel):
 
 
 
-
     # ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.1 - 縮排修正)
     # 更新紀錄:
     # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
@@ -4637,6 +4636,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
