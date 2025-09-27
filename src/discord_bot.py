@@ -127,6 +127,77 @@ class StartSetupView(discord.ui.View):
     # 函式：處理「開始設定」按鈕點擊事件
 # 類別：/start 指令的初始設定視圖
 
+
+# src/discord_bot.py 的 GenderSelectionView 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 為了實現下拉式選單選擇性別的功能，創建此專用視圖。由於Discord Modal不支援Select元件，此視圖作為彈出Modal前的前置步驟，讓使用者先透過下拉選單選擇性別。
+# 類別：性別選擇視圖
+class GenderSelectionView(discord.ui.View):
+    # 函式：初始化 GenderSelectionView
+    def __init__(self, *, cog: "BotCog", profile_type: Literal['user', 'ai'], is_setup_flow: bool, original_interaction_message_id: int):
+        super().__init__(timeout=300.0)
+        self.cog = cog
+        self.profile_type = profile_type
+        self.is_setup_flow = is_setup_flow
+        self.original_interaction_message_id = original_interaction_message_id
+        
+        options = [
+            discord.SelectOption(label="男性", value="男", emoji="👨"),
+            discord.SelectOption(label="女性", value="女", emoji="👩"),
+            discord.SelectOption(label="其他", value="其他", emoji="❓"),
+        ]
+        
+        title_map = {
+            'user': "步驟 2/3: 您的角色設定",
+            'ai': "步驟 3/3: AI 戀人設定"
+        }
+        
+        self.add_item(self.GenderSelect(cog=self.cog, options=options, profile_type=self.profile_type, is_setup_flow=self.is_setup_flow, title=title_map[self.profile_type], original_interaction_message_id=self.original_interaction_message_id))
+    # 函式：初始化 GenderSelectionView
+
+    # 內部類別：性別選擇下拉選單
+    class GenderSelect(discord.ui.Select):
+        # 函式：初始化 GenderSelect
+        def __init__(self, *, cog: "BotCog", options: List[discord.SelectOption], profile_type: str, is_setup_flow: bool, title: str, original_interaction_message_id: int):
+            super().__init__(placeholder="請選擇角色的性別...", min_values=1, max_values=1, options=options)
+            self.cog = cog
+            self.profile_type = profile_type
+            self.is_setup_flow = is_setup_flow
+            self.title = title
+            self.original_interaction_message_id = original_interaction_message_id
+        # 函式：初始化 GenderSelect
+
+        # 函式：處理下拉選單選擇事件
+        async def callback(self, interaction: discord.Interaction):
+            selected_gender = self.values[0]
+            user_id = str(interaction.user.id)
+            
+            # 禁用原始視圖
+            self.disabled = True
+            await interaction.message.edit(view=self.view)
+            
+            ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
+            profile_attr = f"{self.profile_type}_profile"
+            profile_data = getattr(ai_instance.profile, profile_attr).model_dump() if ai_instance and ai_instance.profile else {}
+            
+            modal = CharacterSettingsModal(
+                cog=self.cog,
+                title=self.title,
+                profile_data=profile_data,
+                profile_type=self.profile_type,
+                is_setup_flow=self.is_setup_flow,
+                original_interaction_message_id=self.original_interaction_message_id,
+                pre_selected_gender=selected_gender # 傳入已選擇的性別
+            )
+            await interaction.response.send_modal(modal)
+        # 函式：處理下拉選單選擇事件
+    # 內部類別：性別選擇下拉選單
+# 類別：性別選擇視圖
+
+# 類別：繼續到使用者角色設定的視圖
+# src/discord_bot.py 的 ContinueToUserSetupView 類別 (v1.1 - 適配性別選單)
+# 更新紀錄:
+# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。現在它不再直接彈出Modal，而是發送一個包含性別下拉選單的 `GenderSelectionView`，作為新設定流程的第一步。
 # 類別：繼續到使用者角色設定的視圖
 class ContinueToUserSetupView(discord.ui.View):
     # 函式：初始化 ContinueToUserSetupView
@@ -140,13 +211,26 @@ class ContinueToUserSetupView(discord.ui.View):
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.")
-        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=True)
-        profile_data = ai_instance.profile.user_profile.model_dump() if ai_instance and ai_instance.profile else {}
-        modal = CharacterSettingsModal(self.cog, title="步驟 2/3: 您的角色設定", profile_data=profile_data, profile_type='user', is_setup_flow=True, original_interaction_message_id=interaction.message.id)
-        await interaction.response.send_modal(modal)
+        
+        # [v1.1 核心修正] 禁用當前按鈕並發送新的性別選擇視圖
+        for item in self.children:
+            item.disabled = True
+        await interaction.message.edit(view=self)
+
+        view = GenderSelectionView(
+            cog=self.cog,
+            profile_type='user',
+            is_setup_flow=True,
+            original_interaction_message_id=interaction.message.id
+        )
+        await interaction.response.send_message("請從下方選擇您的角色性別：", view=view, ephemeral=True)
     # 函式：處理「下一步：設定您的角色」按鈕點擊事件
 # 類別：繼續到使用者角色設定的視圖
 
+# 類別：繼續到 AI 角色設定的視圖
+# src/discord_bot.py 的 ContinueToAiSetupView 類別 (v1.1 - 適配性別選單)
+# 更新紀錄:
+# v1.1 (2025-09-28): [流程修改] 此視圖的按鈕行為被更新。現在它不再直接彈出Modal，而是發送一個包含性別下拉選單的 `GenderSelectionView`，以設定AI戀人的性別。
 # 類別：繼續到 AI 角色設定的視圖
 class ContinueToAiSetupView(discord.ui.View):
     # 函式：初始化 ContinueToAiSetupView
@@ -160,13 +244,21 @@ class ContinueToAiSetupView(discord.ui.View):
     async def continue_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.")
-        ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id), is_setup_flow=True)
-        profile_data = ai_instance.profile.ai_profile.model_dump() if ai_instance and ai_instance.profile else {}
-        modal = CharacterSettingsModal(self.cog, title="步驟 3/3: AI 戀人設定", profile_data=profile_data, profile_type='ai', is_setup_flow=True, original_interaction_message_id=interaction.message.id)
-        await interaction.response.send_modal(modal)
+        
+        # [v1.1 核心修正] 禁用當前按鈕並發送新的性別選擇視圖
+        for item in self.children:
+            item.disabled = True
+        await interaction.message.edit(view=self)
+        
+        view = GenderSelectionView(
+            cog=self.cog,
+            profile_type='ai',
+            is_setup_flow=True,
+            original_interaction_message_id=interaction.message.id
+        )
+        await interaction.response.send_message("請從下方選擇 AI 戀人的性別：", view=view, ephemeral=True)
     # 函式：處理「最後一步：設定 AI 戀人」按鈕點擊事件
 # 類別：繼續到 AI 角色設定的視圖
-
 # 類別：繼續到世界聖經設定的視圖 (v1.7 - 競爭條件修復)
 # 更新紀錄:
 # v1.7 (2025-09-26): [災難性BUG修復] 彻底重构了 `upload_canon` 的逻辑顺序。现在，程式会在 `await bot.wait_for` **之前**就将使用者ID加入 `active_setups` 集合（即提前开启防火墙），并用 `try...finally` 块确保在流程结束或失败时都能正确移除ID。此修改从根本上解决了因时序问题导致 `on_message` 绕过防火墙从而触发错误对话的竞争条件问题。
@@ -504,32 +596,29 @@ class LorePaginatorView(discord.ui.View):
 
 
 # 類別：設定角色檔案的 Modal
-# src/discord_bot.py 的 CharacterSettingsModal 類別 (v1.1 - 性別輸入優化)
+# src/discord_bot.py 的 CharacterSettingsModal 類別 (v1.2 - 適配下拉選單)
 # 更新紀錄:
-# v1.1 (2025-09-27): [體驗優化] 根據使用者需求，並在遵循 Discord Modal 技術限制的前提下，將性別輸入框的提示文字（placeholder）明確設定為 "男 / 女 / 其他"，以引導使用者進行規範化輸入。
-# v1.0 (N/A): 初始版本
+# v1.2 (2025-09-28): [核心重構] 為適應新的下拉式選單性別選擇流程，此Modal不再包含性別輸入框。其 `__init__` 方法現在接收一個 `pre_selected_gender` 參數，並在 `on_submit` 中將其與使用者填寫的其他資訊合併後儲存。
+# v1.1 (2025-09-27): [體驗優化] 將性別輸入框的提示文字明確設定為 "男 / 女 / 其他"。
 # 類別：設定角色檔案的 Modal
 class CharacterSettingsModal(discord.ui.Modal):
     # 函式：初始化 CharacterSettingsModal
-    def __init__(self, cog: "BotCog", title: str, profile_data: dict, profile_type: str, is_setup_flow: bool = False, original_interaction_message_id: int = None):
+    def __init__(self, cog: "BotCog", title: str, profile_data: dict, profile_type: str, is_setup_flow: bool = False, original_interaction_message_id: int = None, pre_selected_gender: str = "未設定"):
         super().__init__(title=title, timeout=600.0)
         self.cog = cog
         self.profile_type = profile_type
         self.is_setup_flow = is_setup_flow
         self.original_interaction_message_id = original_interaction_message_id
+        self.pre_selected_gender = pre_selected_gender # 儲存預選的性別
+
         self.name = discord.ui.TextInput(label="名字 (必填)", default=profile_data.get('name', ''))
-        
-        # [v1.1 核心修正] 由於 Discord Modal 不支援下拉選單，我們使用 placeholder 來引導使用者輸入標準化選項。
-        self.gender = discord.ui.TextInput(
-            label="性別 (必填)", 
-            default=profile_data.get('gender', ''), 
-            placeholder="請輸入 男 / 女 / 其他"
-        )
-        
+        # [v1.2 核心修正] 移除性別輸入框
+        # self.gender = discord.ui.TextInput(...)
         self.description = discord.ui.TextInput(label="性格、背景、種族、年齡等綜合描述", style=discord.TextStyle.paragraph, default=profile_data.get('description', ''), max_length=1000)
         self.appearance = discord.ui.TextInput(label="外觀描述 (髮型/瞳色/身材等)", style=discord.TextStyle.paragraph, default=profile_data.get('appearance', ''), required=False, max_length=1000)
+        
         self.add_item(self.name)
-        self.add_item(self.gender)
+        # self.add_item(self.gender) # 不再添加性別輸入框
         self.add_item(self.description)
         self.add_item(self.appearance)
     # 函式：初始化 CharacterSettingsModal
@@ -539,6 +628,8 @@ class CharacterSettingsModal(discord.ui.Modal):
         await interaction.response.defer(ephemeral=True, thinking=True)
         user_id = str(interaction.user.id)
         logger.info(f"[{user_id}] (UI Event) CharacterSettingsModal submitted for profile_type: '{self.profile_type}', is_setup_flow: {self.is_setup_flow}")
+        
+        # 嘗試禁用原始按鈕視圖
         if self.original_interaction_message_id:
             try:
                 original_message = await interaction.channel.fetch_message(self.original_interaction_message_id)
@@ -546,6 +637,7 @@ class CharacterSettingsModal(discord.ui.Modal):
                 for item in view.children: item.disabled = True
                 await original_message.edit(view=view)
             except (discord.errors.NotFound, AttributeError): pass
+
         ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
         if not ai_instance or not ai_instance.profile:
             await interaction.followup.send("錯誤：AI 核心或設定檔案未初始化。", ephemeral=True)
@@ -554,10 +646,13 @@ class CharacterSettingsModal(discord.ui.Modal):
         try:
             profile_to_update = getattr(ai_instance.profile, profile_attr)
             profile_to_update.name = self.name.value
-            profile_to_update.gender = self.gender.value
+            # [v1.2 核心修正] 使用預選的性別
+            profile_to_update.gender = self.pre_selected_gender
             profile_to_update.description = self.description.value
             profile_to_update.appearance = self.appearance.value
+            
             await ai_instance.update_and_persist_profile({profile_attr: profile_to_update.model_dump()})
+
             if not self.is_setup_flow:
                 await interaction.followup.send(f"✅ **{profile_to_update.name}** 的角色設定已成功更新！", ephemeral=True)
             elif self.profile_type == 'user': 
@@ -569,7 +664,6 @@ class CharacterSettingsModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"[{user_id}] 處理角色設定 Modal 提交時出錯: {e}", exc_info=True)
             await interaction.followup.send("錯誤：在處理您的設定時遇到問題。", ephemeral=True)
-            # [核心修正] 使用新的變數名稱
             if self.is_setup_flow: self.cog.active_setups.discard(user_id)
     # 函式：處理 Modal 提交事件
 # 類別：設定角色檔案的 Modal
@@ -2029,6 +2123,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
