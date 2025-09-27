@@ -359,6 +359,14 @@ class StyleAnalysisResult(BaseModel):
     narration_level: str = Field(description="對旁白詳細程度的要求。")
     proactive_suggestion: Optional[str] = Field(default=None, description="用於推動劇情的行動建議。")
 
+# src/schemas.py 的 NarrativeExtractionResult 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-11-22): [全新創建] 根據「智能敘事RAG注入」策略，創建此模型，用於驗證從世界聖經中提取出的純敘事文本。
+class NarrativeExtractionResult(BaseModel):
+    """用於包裹從世界聖經中提取出的純敘事文本的模型。"""
+    narrative_text: str = Field(description="所有被提取出的劇情摘要、背景故事和歷史事件的組合文本。")
+# src/schemas.py 的 NarrativeExtractionResult 類別 結束
+
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -395,3 +403,4 @@ RelationshipDetail.model_rebuild()
 # [v3.0 新增] 確保新模型也被重建
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
+
