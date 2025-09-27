@@ -4257,9 +4257,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return None
     # 函式：呼叫本地Ollama模型進行摘要
 
-    # src/ai_core.py 的 get_narrative_extraction_prompt 函式 (v1.0 - 全新創建)
+# 函式：獲取敘事提取器 Prompt (v2.0 - 結構範例強化)
 # 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「智能敘事RAG注入」策略，創建此Prompt模板。它的唯一任務是從世界聖經中精準提取出所有與劇情、故事、歷史相關的敘事性段落，為RAG提供高質量的記憶源。
+# v2.0 (2025-11-22): [災難性BUG修復] 根據ValidationError日誌，為Prompt增加了一個結構絕對正確的【輸出結構範例】。此修改為LLM提供了一個清晰的模仿目標，旨在根除因模型隨意命名JSON鍵而導致的驗證失敗問題。
+# v1.0 (2025-11-22): [全新創建] 根據「智能敘事RAG注入」策略，創建此Prompt模板。
     def get_narrative_extraction_prompt(self) -> str:
         """獲取或創建一個專門用於從世界聖經中提取純敘事文本的字符串模板。"""
         prompt_template = """# TASK: 你是一位嚴謹的【文學檔案管理員】。
@@ -4275,6 +4276,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 2. **【原文保留】**: 你必須【原封不動地】返回你決定提取的所有文本段落，保持其原始的措辭和格式。這是一個提取任務，不是總結任務。
 # 3. **【🚫 絕對無害化輸出強制令】**: 如果輸入的文本包含任何技術代碼（例如 `ROLE-D`），你的輸出**也必須原封不動地保留這些技術代碼**。
 # 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `NarrativeExtractionResult` Pydantic 模型的JSON物件。所有提取出的段落應合併為單一的字串，用換行符分隔。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# 你的輸出JSON的結構【必須】與下方範例完全一致。鍵名【必須】是 "narrative_text"。
+# ```json
+# {{
+#   "narrative_text": "在王國的邊陲，一場持續了數十年的戰爭終於迎來了終結...\\n\\n米婭來自貧民窟，曾因偷竊而被斬斷左手，並身患嚴重肺病。在瀕死之際投靠莊園..."
+# }}
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -4516,6 +4525,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
