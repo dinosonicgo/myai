@@ -1,28 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-27T17:34:47.749481 ###
+### AI Lover Log - Last updated at 2025-09-27T17:35:38.950305 ###
 
-2025-09-27 15:08:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-27 15:08:08 - [INFO] - [512280345618546699] [LORE 解析 1/5] ✅ 成功！正在儲存結果...
-2025-09-27 15:08:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 67 個實體...
-2025-09-27 15:09:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-09-27 15:09:19 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 67 條決策。
-2025-09-27 15:09:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 9 個實體...
-2025-09-27 15:09:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 3 個實體...
-2025-09-27 15:09:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
-2025-09-27 15:09:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 11 個實體...
-2025-09-27 15:09:32 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: 'bool' object has no attribute 'npc_profiles'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1207, in _perform_full_setup_flow
-    await ai_instance.parse_and_create_lore_from_canon(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3447, in parse_and_create_lore_from_canon
-    parsing_result = self._programmatic_lore_validator(parsing_result, canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3376, in _programmatic_lore_validator
-    if not parsing_result.npc_profiles:
-AttributeError: 'bool' object has no attribute 'npc_profiles'
-2025-09-27 15:09:33 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
-2025-09-27 15:15:07 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-27 15:15:07 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-27 15:15:08 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-27 15:15:08 - [INFO] - Discord Bot is ready!
 2025-09-27 15:15:10 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-27 15:15:10 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-27 15:15:11 - [INFO] - 已成功發送啟動成功通知給管理員。
@@ -300,3 +277,26 @@ Traceback (most recent call last):
     is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(text_to_parse)
 NameError: name 'text_to_parse' is not defined
 2025-09-27 17:32:52 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-27 17:35:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-27 17:35:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-27 17:35:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-27 17:35:25 - [INFO] - Discord Bot is ready!
+2025-09-27 17:35:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-27 17:35:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-27 17:35:29 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-27 17:35:34 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 27 條文檔用於創始構建。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-27 17:35:34 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-27 17:35:34 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-27 17:35:35 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-27 17:35:36 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-27 17:35:36 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-27 17:35:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
