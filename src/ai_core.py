@@ -3375,10 +3375,10 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 _programmatic_lore_validator 函式 (v3.0 - 分批處理重構)
+# ai_core.py 的 _programmatic_lore_validator 函式 (v3.1 - Pydantic彈性解析)
 # 更新紀錄:
-# v3.0 (2025-09-28): [災難性BUG修復] 根據LOG分析，將核心邏輯從並行處理 (`asyncio.gather`) 徹底重構為【分批處理】模式。此修改旨在將大量的單體API請求合併為少量的批量請求，從根本上解決因API調用過於頻繁而導致的 `ResourceExhausted` 速率限制問題。同時，明確指定驗證任務使用 `gemini-2.5-flash-lite` 模型以優化成本和效率。
-# v2.1 (2025-09-28): [災難性BUG修復] 將函式簽名從 `def` 修改為 `async def`。
+# v3.1 (2025-09-28): [災難性BUG修復] 在內部Pydantic模型 `AliasValidation` 的 `final_aliases` 欄位中增加了 `AliasChoices('aliases', 'validated_aliases')`。此修改賦予了Pydantic模型解析的彈性，使其能夠兼容LLM可能返回的不規範鍵名，從根源上解決了因鍵名不匹配引發的 `ValidationError`。
+# v3.0 (2025-09-28): [災難性BUG修復] 將核心邏輯從並行處理 (`asyncio.gather`) 徹底重構為【分批處理】模式。
     async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
         【v3.0 分批交叉驗證】一個基於LLM批量交叉驗證的、抗審查的程式化校驗器。
@@ -3421,9 +3421,11 @@ class ExtractionResult(BaseModel):
             # 步驟 3: 雲端 LLM 批量交叉驗證 (優先路徑)
             batch_validation_result = None
             from .schemas import BaseModel
+            # [v3.1 核心修正] 使用 AliasChoices 增加解析彈性
             class AliasValidation(BaseModel):
                 character_name: str
-                final_aliases: List[str]
+                final_aliases: List[str] = Field(validation_alias=AliasChoices('final_aliases', 'aliases', 'validated_aliases'))
+
             class BatchAliasValidationResult(BaseModel):
                 validated_aliases: List[AliasValidation]
 
@@ -3434,12 +3436,11 @@ class ExtractionResult(BaseModel):
                     {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)}
                 )
                 
-                # [核心修正] 明確指定使用 gemini-2.5-flash-lite
                 batch_validation_result = await self.ainvoke_with_rotation(
                     full_prompt, 
                     output_schema=BatchAliasValidationResult, 
                     retry_strategy='none',
-                    models_to_try_override=[FUNCTIONAL_MODEL] # FUNCTIONAL_MODEL 即 'gemini-2.5-flash-lite'
+                    models_to_try_override=[FUNCTIONAL_MODEL]
                 )
 
             except Exception as e:
@@ -3458,8 +3459,7 @@ class ExtractionResult(BaseModel):
                         )
                         if local_result:
                             validated_aliases_map[item["character_name"]] = local_result
-                        await asyncio.sleep(0.5) # 避免本地模型過載
-                    # 將本地結果轉換為與雲端相同的格式
+                        await asyncio.sleep(0.5)
                     if validated_aliases_map:
                         batch_validation_result = BatchAliasValidationResult(
                             validated_aliases=[
@@ -3487,7 +3487,7 @@ class ExtractionResult(BaseModel):
                             logger.warning(f"[{self.user_id}] [混合式安全驗證器] 檢測到角色 '{profile.name}' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。")
                             profile.aliases = list(set(decoded_aliases))
             
-            await asyncio.sleep(2) # 在處理下一批次前短暫休息，避免觸發速率限制
+            await asyncio.sleep(2)
 
         parsing_result.npc_profiles = profiles_to_process
         logger.info(f"[{self.user_id}] [混合式安全驗證器] 所有批次的校驗已全部完成。")
@@ -3497,9 +3497,10 @@ class ExtractionResult(BaseModel):
 
 
 
-    # ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.0 - 全新創建)
+# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.1 - 新增結構範例)
 # 更新紀錄:
-# v1.0 (2025-09-28): [全新創建] 根據「分批交叉驗證」策略，創建此核心Prompt模板。它的任務是接收一批角色的上下文和聲稱的身份列表，並在一次API調用中返回所有角色的完整驗證結果，以大幅減少API請求次數。
+# v1.1 (2025-09-28): [災難性BUG修復] 根據 ValidationError 日誌，為Prompt增加了一個結構絕對正確的【輸出結構範例】。此修改為LLM提供了一個清晰的模仿目標，旨在根除因模型隨意命名JSON鍵而導致的驗證失敗問題。
+# v1.0 (2025-09-28): [全新創建] 根據「分批交叉驗證」策略，創建此核心Prompt模板。
     def get_batch_alias_validator_prompt(self) -> str:
         """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
         
@@ -3510,7 +3511,24 @@ class ExtractionResult(BaseModel):
 # 1. **【獨立處理】**: 你必須將每個角色的校對任務視為完全獨立的單元。一個角色的情報文本不能用於推斷另一個角色的身份。
 # 2. **【窮舉提取】**: 在每個角色的獨立上下文中，你【必須】找出所有能描述該角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
 # 3. **【合併與補全】**: 對於每個角色，你需要將你新發現的所有身份，與其【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`validated_aliases` 列表必須包含對輸入中【所有角色】的處理結果。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`validated_aliases` 列表必須包含對輸入中【所有角色】的處理結果。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# 你的輸出JSON的結構【必須】與下方範例完全一致。鍵名【必須】是 "validated_aliases", "character_name", "final_aliases"。
+# ```json
+# {
+#   "validated_aliases": [
+#     {
+#       "character_name": "絲月",
+#       "final_aliases": ["Mia", "勳爵夫人", "啟蒙者"]
+#     },
+#     {
+#       "character_name": "米婭",
+#       "final_aliases": ["Mia", "性神教徒", "母畜", "聖女"]
+#     }
+#   ]
+# }
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -3522,49 +3540,9 @@ class ExtractionResult(BaseModel):
 """
         return prompt_template
 # 函式：獲取批量別名交叉驗證器Prompt
+
+
     
-
-# ai_core.py 的 get_alias_validator_prompt 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，創建此Prompt模板。它的任務是接收一段【無害化處理後】的上下文和一份由主解析器生成的身份列表，然後對其進行交叉驗證並補全遺漏項，作為驗證器的雲端路徑。
-    def get_alias_validator_prompt(self) -> str:
-        """獲取為雲端LLM設計的、用於交叉驗證並補全角色別名/身份的Prompt模板。"""
-        
-        prompt_template = """# TASK: 你是一位極其嚴謹、注重細節的【首席情報校對官】。
-# MISSION: 你的任務是接收一份【原始情報文本】和一份由初級分析員提交的【聲稱的身份列表】。你需要以【原始情報文本】為唯一依據，對這份列表進行嚴格的【事實核查】，並返回一份【絕對完整、無遺漏】的最終身份列表。
-
-# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【文本唯一依據】**: 【原始情報文本】是你判斷的【唯一真理來源】。
-# 2. **【窮舉提取】**: 你【必須】從文本中找出所有能描述目標角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
-# 3. **【合併與補全】**: 你需要將你新發現的所有身份，與【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方結構的JSON物件。
-
-# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
-# ```json
-# {
-#   "final_aliases": ["Mia", "性神教徒", "母畜", "聖女", "ROLE-D"]
-# }
-# ```
-
-# --- [INPUT DATA] ---
-
-# 【目標角色名稱】:
-{character_name}
-
-# ---
-# 【原始情報文本 (可能經過無害化處理)】:
-{context_snippet}
-
-# ---
-# 【聲稱的身份列表 (待核查)】:
-{claimed_aliases_json}
-
-# ---
-# 【你校對後的最終完整身份列表JSON】:
-"""
-        return prompt_template
-# 函式：獲取別名交叉驗證器Prompt (雲端專用)
-
 
 # ai_core.py 的 _invoke_local_ollama_validator 函式 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -4851,6 +4829,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
