@@ -3433,11 +3433,11 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：解析並從世界聖經創建 LORE (v12.0 - 規則自動鏈接)
+# 函式：解析並從世界聖經創建 LORE (v13.0 - 關係圖譜校準)
 # 更新紀錄:
-# v12.0 (2025-11-22): [重大架構升級] 根據使用者的終極需求，在此函式中植入了全新的「规则模板自动识别与链接」模塊。現在，在LORE解析完成後，系统會自動掃描所有规则類型的LORE，從其標題中提取身份關鍵詞，并自動為其设置template_keys，實現了知识图谱的全自动构建，無需用户手动干预。
+# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。在LORE初步解析後，此模塊會自動遍歷所有角色的關係，智能推斷並強制寫入反向關係，從而將單向的關係鏈打通，構建出一個雙向、一致的知識圖譜，從根本上解決了角色之間關係認知不完整的問題。
+# v12.0 (2025-11-22): [重大架構升級] 植入了「规则模板自动识别与链接」模塊，實現了知識圖譜的全自動构建。
 # v11.0 (2025-11-22): [災難性BUG修復] 重構了此函式的核心邏輯以解決AttributeError。
-# v10.0 (2025-11-22): [架構升級] 植入了对「源頭真相」校驗器 `_programmatic_lore_validator` 的調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -3449,7 +3449,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
         # 步驟 1: 執行5層降級LORE解析
-        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
+        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(text_to_parse)
 
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
@@ -3459,10 +3459,9 @@ class ExtractionResult(BaseModel):
         # 步驟 2: 植入「源頭真相」校驗器
         validated_result = self._programmatic_lore_validator(parsing_result_object, canon_text)
 
-        # 步驟 3: 【全新】规则模板自动识别与链接模块
+        # 步驟 3: 规则模板自动识别与链接模块
         logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
         if validated_result.world_lores:
-            # 獲取所有已解析出的NPC身份，作為潛在的觸發關鍵詞
             all_parsed_aliases = set()
             if validated_result.npc_profiles:
                 for npc in validated_result.npc_profiles:
@@ -3470,35 +3469,84 @@ class ExtractionResult(BaseModel):
                     if npc.aliases:
                         all_parsed_aliases.update(npc.aliases)
 
-            # 定義用於識別規則的關鍵詞
             rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
             
             for lore in validated_result.world_lores:
-                # 检查這條LORE是否是一條規則
                 if any(keyword in lore.name for keyword in rule_keywords):
-                    # 如果是規則，從標題中提取它所適用的身份
                     potential_keys = set()
-                    # 與所有已知身份進行比對，看哪些身份出現在標題中
                     for alias in all_parsed_aliases:
-                        if alias and alias in lore.name: # 確保 alias 非空
+                        if alias and alias in lore.name:
                             potential_keys.add(alias)
                     
                     if potential_keys:
-                        # 如果找到了匹配的身份，自動设置 template_keys
-                        # 合併現有的鍵（如果有的話），以防萬一
                         existing_keys = set(lore.template_keys or [])
                         all_keys = existing_keys.union(potential_keys)
                         lore.template_keys = list(all_keys)
                         logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore.name}' 鏈接到身份: {lore.template_keys}")
+        
+        # [v13.0 核心修正] 步驟 4: 【全新】事後關係圖譜校準模塊
+        logger.info(f"[{self.user_id}] [關係圖譜校準] 正在啟動事後關係校準模塊...")
+        if validated_result.npc_profiles:
+            # 建立一個快速查找表
+            profiles_by_name = {profile.name: profile for profile in validated_result.npc_profiles}
+            
+            # 定義一個簡單的關係反轉對照表
+            inverse_roles = {
+                "主人": "僕人", "僕人": "主人",
+                "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
+                "丈夫": "妻子", "妻子": "丈夫",
+                "戀人": "戀人", "情人": "情人",
+                "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
+                "敵人": "敵人", "宿敵": "宿敵",
+                "朋友": "朋友", "摯友": "摯友",
+                "老師": "學生", "學生": "老師",
+            }
 
-        # 步驟 4: 儲存經過校驗和自動鏈接的LORE
+            for source_profile in validated_result.npc_profiles:
+                # 遍歷源角色的每一個關係
+                for target_name, rel_detail in list(source_profile.relationships.items()):
+                    # 查找目標角色的檔案
+                    target_profile = profiles_by_name.get(target_name)
+                    if not target_profile:
+                        continue # 如果目標角色不在本次解析結果中，則跳過
+
+                    # 準備反向關係的數據
+                    inverse_rel_roles = []
+                    for role in rel_detail.roles:
+                        inverse_role = inverse_roles.get(role)
+                        if inverse_role:
+                            inverse_rel_roles.append(inverse_role)
+                    
+                    # 如果沒有找到明確的反轉角色，則使用一個通用的反向關係類型
+                    if not inverse_rel_roles and rel_detail.type:
+                        inverse_rel_roles.append(rel_detail.type)
+
+                    # 檢查目標角色的關係字典中是否已有對源角色的記錄
+                    target_has_relationship = target_profile.relationships.get(source_profile.name)
+
+                    if not target_has_relationship:
+                        # 如果完全沒有，則創建一個新的反向關係
+                        target_profile.relationships[source_profile.name] = RelationshipDetail(
+                            type=rel_detail.type, # 暫時使用相同的type
+                            roles=inverse_rel_roles
+                        )
+                        logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
+                    else:
+                        # 如果已有，則合併 roles，確保不重複
+                        existing_roles = set(target_has_relationship.roles)
+                        new_roles_to_add = set(inverse_rel_roles)
+                        if not new_roles_to_add.issubset(existing_roles):
+                            updated_roles = list(existing_roles.union(new_roles_to_add))
+                            target_has_relationship.roles = updated_roles
+                            logger.info(f"[{self.user_id}] [關係圖譜校準] 更新反向鏈接: {target_profile.name} -> {source_profile.name} (New Roles: {updated_roles})")
+
+        # 步驟 5: 儲存經過校驗、自動鏈接和關係校準的LORE
         if validated_result:
             await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
             await self._resolve_and_save("locations", [p.model_dump() for p in validated_result.locations])
             await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
             await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
             await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
-            # 此處傳入的是已經被自動鏈接模塊修改過的 world_lores 列表
             await self._resolve_and_save("world_lores", [p.model_dump() for p in validated_result.world_lores])
             
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
@@ -4598,6 +4646,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
