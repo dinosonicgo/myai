@@ -691,10 +691,10 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# ai_core.py 的 ainvoke_with_rotation 函式 (v232.6 - 動態配置注入)
-# 更新紀錄:
-# v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。此修改允許上層調用者（如RAG摘要）為特定任務傳入自訂的生成配置（例如更大的`max_output_tokens`），使此函式從一個單一配置的引擎升級為一個能適應多種任務需求的、更靈活的底層API調用器，從根源上解決了摘要任務因輸出長度不足而失敗的問題。
-# v232.5 (2025-09-28): [災難性BUG修復] 徹底重構了安全閥值的定義與傳遞方式。
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.7 - 生成完整性驗證)
+    # 更新紀錄:
+    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。此修改在接收到API的成功響應後，會主動檢查其`finish_reason`。如果停止原因不是自然的“STOP”，而是“MAX_TOKENS”或“SAFETY”等，即使API未報錯，此函式也會將其視為一次“靜默失敗”，並主動拋出異常以觸發重試或模型降級。此舉旨在從根本上解決因API返回被截斷的不完整文本而導致劇情中斷的問題。
+    # v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -723,8 +723,7 @@ class AILover:
         last_exception = None
         IMMEDIATE_RETRY_LIMIT = 3
 
-        # [v232.6 核心修正] 決定本次呼叫使用的生成配置
-        final_generation_config = {"temperature": 0.7} # 預設配置
+        final_generation_config = {"temperature": 0.7} 
         if generation_config_override:
             final_generation_config.update(generation_config_override)
 
@@ -760,13 +759,21 @@ class AILover:
                         
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
-                        if response.candidates and response.candidates[0].finish_reason not in [1, 'STOP']:
+                        
+                        # [v232.7 核心修正] 生成完整性驗證
+                        if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
                              finish_reason_name = response.candidates[0].finish_reason.name
-                             # 特別處理 MAX_TOKENS，這不是內容審查錯誤
+                             logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                             # 將靜默失敗轉化為可被重試邏輯捕獲的異常
                              if finish_reason_name == 'MAX_TOKENS':
+                                 # 對於 MAX_TOKENS，通常是輸入太長或輸出設置太小，重試意義不大，直接拋出讓上層處理
                                  raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                             elif finish_reason_name == 'SAFETY':
+                                 # 如果是因為安全原因停止，則觸發內容審查備援
+                                 raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                              else:
-                                 raise BlockedPromptException(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                 # 對於其他原因（如 RECITATION），視為臨時性 API 錯誤
+                                 raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
 
@@ -805,7 +812,6 @@ class AILover:
                         last_exception = e
                         if "MAX_TOKENS" in str(e):
                              logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
-                             # MAX_TOKENS 錯誤通常不可重試，直接中斷當前金鑰的嘗試
                              break
                         
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
@@ -834,7 +840,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎
+    # 函式：帶輪換和備援策略的原生 API 調用引擎
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -5152,6 +5158,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
