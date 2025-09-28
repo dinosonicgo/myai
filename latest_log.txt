@@ -1,9 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-28T23:29:18.303909 ###
+### AI Lover Log - Last updated at 2025-09-28T23:34:21.451250 ###
 
-    response = await client.post("http://localhost:11434/api/generate", json=payload)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1859, in post
-    return await self.request(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1540, in request
     return await self.send(request, auth=auth, follow_redirects=follow_redirects)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1629, in send
     response = await self._send_handling_auth(
@@ -300,3 +296,7 @@ httpx.ReadTimeout
 2025-09-28 23:28:57 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
 2025-09-28 23:28:57 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動【多階段混合解析管线】...
 2025-09-28 23:28:57 - [INFO] - [512280345618546699] [LORE 解析 1/2] 正在尝试【阶段一：骨架提取】...
+2025-09-28 23:30:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-09-28 23:30:48 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-09-28 23:32:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇靜默失敗，生成因 'PROHIBITED_CONTENT' 而提前終止。
+2025-09-28 23:32:42 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.25 秒後進行第 2 次嘗試...
