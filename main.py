@@ -212,11 +212,11 @@ async def read_root(request: Request):
 
 
 
-# 函式：啟動 Git 日誌推送器任務 (v4.0 - 完全靜默化)
+# 函式：啟動 Git 日誌推送器任務 (v5.0 - Git 工作流修正)
 # 更新紀錄:
+# v5.0 (2025-09-28): [災難性BUG修復] 徹底重構了 `run_git_commands_sync` 的內部 Git 命令執行順序。新流程將 `git commit` 移至 `git pull --rebase` 之前，確保了本地的日誌變更在與遠端同步前被妥善提交，從根本上解決了因 `unstaged changes` 導致 rebase 失敗的致命錯誤。
 # v4.0 (2025-11-22): [體驗優化] 根據使用者最新回饋，移除了在成功推送新日誌後顯示的最終確認訊息，使此背景任務在無錯誤發生時實現完全靜默運行。
 # v3.0 (2025-11-22): [體驗優化] 移除了在日誌推送任務成功執行時產生的中間過程日誌。
-# v2.0 (2025-09-27): [災難性BUG修復] 增加了 git pull --rebase 命令以解決推送被拒絕的問題。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -227,7 +227,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
 
     def run_git_commands_sync() -> bool:
         """
-        一個健壯的、同步的 Git 操作函式，包含了拉取-變基-推送的完整流程。
+        一個健壯的、同步的 Git 操作函式，包含了提交-拉取-變基-推送的完整流程。
         """
         try:
             # 步驟 0: 檢查日誌文件是否存在
@@ -242,7 +242,9 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
 
-            # 步驟 2: Git 操作
+            # [v5.0 核心修正] 調整 Git 命令執行順序
+            
+            # 步驟 2: 將本地變更加入暫存區並提交
             subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
             
             commit_message = f"docs: Update latest_log.txt at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
@@ -250,22 +252,22 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 ["git", "commit", "-m", commit_message], 
                 capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
             )
+            # 如果提交失敗，但原因是“沒有東西可以提交”，則視為成功，直接結束本次推送
             if commit_process.returncode != 0:
                 if "nothing to commit" in commit_process.stdout or "沒有東西可以提交" in commit_process.stdout:
                     return True 
                 else:
+                    # 如果是其他原因導致的提交失敗，則拋出異常
                     raise subprocess.CalledProcessError(
                         commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
                     )
             
-            # 步驟 3: 在推送前，先從遠端拉取並變基
+            # 步驟 3: 在推送前，先從遠端拉取並變基。此時本地變更已提交，不會再有 unstaged changes 錯誤。
             subprocess.run(["git", "pull", "--rebase"], check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8')
             
             # 步驟 4: 推送到遠端倉庫
             subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
             
-            # [v4.0 核心修正] 移除最終的成功日誌，實現完全靜默
-            # print("   ✅ [LOG Pusher] 日誌成功推送到 GitHub。")
             return True
 
         except subprocess.CalledProcessError as e:
@@ -274,8 +276,9 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 print(f"🔥 [LOG Pusher] Git rebase 發生衝突，正在中止變基操作...")
                 subprocess.run(["git", "rebase", "--abort"], cwd=PROJ_DIR, capture_output=True)
             
+            # 忽略“沒有東西可以提交”的“錯誤”
             if "nothing to commit" not in str(error_output) and "沒有東西可以提交" not in str(error_output):
-                print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output}")
+                print(f"🔥 [LOG Pusher] Git指令執行失敗: {error_output.strip()}")
             return False
         except Exception as e:
             print(f"🔥 [LOG Pusher] 執行時發生未知錯誤: {e}")
@@ -462,6 +465,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
