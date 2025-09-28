@@ -410,6 +410,24 @@ class PostGenerationAnalysisResult(BaseModel):
     memory_summary: Optional[str] = Field(default=None, description="對本回合對話的簡潔、無害化總結，用於長期記憶。")
     lore_updates: List[ToolCall] = Field(default_factory=list, description="一個包含多個用於創建或更新LORE的工具呼叫計畫的列表。")
 # src/schemas.py 的 PostGenerationAnalysisResult 類別結束
+
+
+# src/schemas.py 的 SceneLocationExtraction 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「場景範疇界定」架構，創建此模型。它的作用是驗證一個前置的、輕量級LLM調用的輸出，該調用專門用於從使用者指令中判斷並提取一個明確的“敘事意圖地點”。這使得系統能夠區分玩家的“客觀位置”和他们希望讲述的“故事場景”，從根源上解決因地點衝突導致的場景漂移問題。
+class SceneLocationExtraction(BaseModel):
+    """用於包裹从使用者指令中提取出的叙事意图地点的模型。"""
+    has_explicit_location: bool = Field(description="如果使用者指令中包含一個明確的地點或场景描述，则为 true。")
+    location_path: Optional[List[str]] = Field(default=None, description="如果 has_explicit_location 为 true，则此處為提取出的、層級化的地點路徑列表。")
+# src/schemas.py 的 SceneLocationExtraction 類別結束
+
+
+
+
+
+
+
+
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -452,6 +470,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
