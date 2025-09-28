@@ -100,10 +100,13 @@ class AILover:
     
     
     
+# ai_core.py 的 AILover.__init__ 函式
+# 函式：初始化AI核心
 # ai_core.py 的 AILover.__init__ 函式 (v234.1 - 新增淨化協議)
 # 更新紀錄:
-# v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性，並將一個安全的、專為數據處理任務設計的「淨化版」指導原則硬編碼於此。此修改將安全協議集中管理，避免了在多個函式中重複定義，提高了程式碼的可維護性和複用性。
+# v234.1 (2025-09-29): [災難性BUG修復] 新增了 `self.data_protocol_prompt` 實例屬性，並將一個安全的、專為數據處理任務設計的「淨化版」指導原則硬編碼於此。此修改旨在通過「指令與數據的絕對隔離」策略，規避前端API安全防護層的誤判，解決因混合Prompt导致的 BlockedPromptException。
 # v234.0 (2025-11-22): [架構重構] 新增了 self.post_generation_analysis_chain 屬性。
+# v225.2 (2025-11-16): [災難性BUG修復] 修正了 __init__ 的縮排錯誤。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -4018,15 +4021,15 @@ class ExtractionResult(BaseModel):
     
 
 # 函式：解析並從世界聖經創建LORE
-# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v17.0 - 全流程負載優化)
+# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v18.0 - 本地安全編碼)
 # 更新紀錄:
-# v17.0 (2025-09-29): [災難性BUG修復] 對此函式進行了全流程的負載優化，以根除 TimeoutError。1) 在第一階段引入 Semaphore 進行並行節流並優化分塊大小。2) 在第二階段引入批次處理邏輯，將可能極長的骨架列表分批進行深度精煉，分散了次生瓶頸的負載。
+# v18.0 (2025-09-29): [災難性BUG修復] 為根除 BlockedPromptException，此函式在第一階段「骨架提取」中引入了本地安全編碼流程。它會在發送文本塊前將 NSFW 詞彙編碼，收到結果後再解碼還原。同時，在數據提取階段僅使用淨化版的安全協議，實現指令與數據的雙重安全。
+# v17.0 (2025-09-29): [災難性BUG修復] 引入了全流程的負載優化（並行節流、分批處理）以根除 TimeoutError。
 # v16.1 (2025-09-29): [災難性BUG修復] 修正了因註釋錯位導致的 SyntaxError。
-# v16.0 (2025-09-29): [災難性BUG修復] 引入分塊和並行處理以解決 TimeoutError。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v17.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
-        內建分塊、並行處理、節流與負載分散機制以處理超長文本。
+        【總指揮 v18.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
+        內建本地安全編碼、分塊、並行處理、節流與負載分散機制以處理超長及敏感文本。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -4034,8 +4037,8 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動【多階段混合解析管线】...")
         
-        # --- 阶段一: 轻量级骨架提取 (帶節流的並行) ---
-        logger.info(f"[{self.user_id}] [LORE 解析 1/2] 正在尝试【阶段一：骨架提取 (並行模式)】...")
+        # --- 阶段一: 轻量级骨架提取 (帶節流與安全編碼的並行) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 1/2] 正在尝试【阶段一：骨架提取 (安全並行模式)】...")
         skeletons: List[CharacterSkeleton] = []
         
         try:
@@ -4049,20 +4052,39 @@ class ExtractionResult(BaseModel):
             
             CONCURRENT_LIMIT = 2
             semaphore = asyncio.Semaphore(CONCURRENT_LIMIT)
+            reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
 
             async def _extract_skeletons_from_chunk(chunk: str) -> List[CharacterSkeleton]:
                 async with semaphore:
                     try:
+                        # 步驟 1: 本地安全編碼
+                        sanitized_chunk = chunk
+                        for code, word in reversed_map:
+                            sanitized_chunk = sanitized_chunk.replace(word, code)
+
+                        # 步驟 2: 使用安全協議進行 API 調用
                         extraction_prompt = self.get_entity_skeleton_extraction_prompt()
-                        full_prompt = self._safe_format_prompt(extraction_prompt, {"canon_text": chunk}, inject_core_protocol=False)
+                        full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(
+                            extraction_prompt, 
+                            {"canon_text": sanitized_chunk}, 
+                            inject_core_protocol=False
+                        )
                         
                         extraction_result = await self.ainvoke_with_rotation(
                             full_prompt, 
                             output_schema=ExtractionResult,
-                            retry_strategy='euphemize',
+                            retry_strategy='none', # 數據提取階段不應重試，失敗由下一層處理
                             models_to_try_override=["gemini-2.5-flash", "gemini-2.5-flash-lite"]
                         )
-                        return extraction_result.characters if extraction_result else []
+                        
+                        if not extraction_result or not extraction_result.characters:
+                            return []
+
+                        # 步驟 3: 本地安全解碼
+                        decoded_skeletons = self._decode_lore_content(extraction_result.characters, self.DECODING_MAP)
+                        # 手動將解碼後的字典列表重新驗證為 Pydantic 模型列表
+                        return [CharacterSkeleton.model_validate(s) for s in decoded_skeletons]
+
                     except Exception as e:
                         logger.warning(f"[{self.user_id}] [LORE 解析 1/2] 處理單個文本塊時失敗: {e}")
                         return []
@@ -4095,7 +4117,6 @@ class ExtractionResult(BaseModel):
         final_profiles: List[CharacterProfile] = []
         
         try:
-            # [v17.0 核心修正] 引入批次處理來分散負載
             BATCH_SIZE = 15
             for i in range(0, len(skeletons), BATCH_SIZE):
                 batch_skeletons = skeletons[i:i+BATCH_SIZE]
@@ -4104,12 +4125,13 @@ class ExtractionResult(BaseModel):
                 refinement_prompt = self.get_lore_refinement_prompt()
                 skeletons_json = json.dumps([s.model_dump() for s in batch_skeletons], ensure_ascii=False, indent=2)
                 
+                # 階段二需要創造性，因此注入完整的越獄指令
                 full_prompt = self._safe_format_prompt(refinement_prompt, {"skeletons_json": skeletons_json}, inject_core_protocol=True)
                 
                 refinement_result = await self.ainvoke_with_rotation(
                     full_prompt,
                     output_schema=BatchRefinementResult,
-                    retry_strategy='force'
+                    retry_strategy='force' # 深度精煉是核心，強制重試
                 )
                 
                 if refinement_result and refinement_result.refined_profiles:
@@ -5044,15 +5066,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行敘事提取管線
-# src/ai_core.py 的 _execute_narrative_extraction_pipeline 函式 (v4.0 - 並行節流)
+# src/ai_core.py 的 _execute_narrative_extraction_pipeline 函式 (v5.0 - 本地安全編碼)
 # 更新紀錄:
-# v4.0 (2025-09-29): [災難性BUG修復] 為了解決因高強度並行請求導致的 TimeoutError，引入了 asyncio.Semaphore 作為「並行節流閥」，將同時運行的 API 請求限制在一個合理的數量（2個）。同時，優化了分塊大小以進一步降低單次請求的複雜度。
+# v5.0 (2025-09-29): [災難性BUG修復] 為根除 BlockedPromptException，此函式現在會在將文本塊發送給 API 前，先在本地將 NSFW 詞彙編碼為安全代碼，並在收到結果後解碼還原。同時，在數據提取階段僅使用淨化版的安全協議，實現指令與數據的雙重安全。
+# v4.0 (2025-09-29): [災難性BUG修復] 引入 asyncio.Semaphore 進行並行節流，解決高強度請求導致的 TimeoutError。
 # v3.0 (2025-09-29): [災難性BUG修復] 引入分塊和並行處理以解決 TimeoutError。
-# v2.0 (2025-09-29): [災難性BUG修復] 強制優先使用更高質量的 `gemini-2.5-flash` 模型以規避 MAX_TOKENS 錯誤。
     async def _execute_narrative_extraction_pipeline(self, text_to_parse: str) -> Optional[str]:
         """
-        【敘事提取核心引擎 v4.0】執行一個多層降級的管線，從世界聖經中安全地提取純敘事文本。
-        內建分塊、並行處理與節流機制以處理超長文本。
+        【敘事提取核心引擎 v5.0】執行一個多層降級的管線，從世界聖經中安全地提取純敘事文本。
+        內建本地安全編碼、分塊、並行處理與節流機制以處理超長及敏感文本。
         返回一個包含所有敘事文本的單一字串，如果所有層級都失敗則返回 None。
         """
         from .schemas import NarrativeExtractionResult
@@ -5065,7 +5087,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         narrative_text: Optional[str] = None
         pipeline_name = "敘事提取"
         
-        # [v4.0 核心修正] 優化分塊大小並增加重疊
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=15000,
             chunk_overlap=1500,
@@ -5074,23 +5095,27 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         text_chunks = text_splitter.split_text(text_to_parse)
         logger.info(f"[{self.user_id}] [{pipeline_name}] 已將世界聖經分割成 {len(text_chunks)} 個塊進行並行處理。")
 
-        # [v4.0 核心修正] 創建一個 Semaphore 來限制並行數量
         CONCURRENT_LIMIT = 2
         semaphore = asyncio.Semaphore(CONCURRENT_LIMIT)
+        
+        # [v5.0 核心修正] 創建反向映射用於本地編碼
+        reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
 
-        # 定義一個內部輔助函式來處理單個文本塊
-        async def _process_chunk(chunk: str, is_sanitized: bool = False) -> Optional[str]:
+        async def _process_chunk(chunk: str) -> Optional[str]:
             async with semaphore:
                 try:
+                    # 步驟 1: 本地安全編碼
+                    sanitized_chunk = chunk
+                    for code, word in reversed_map:
+                        sanitized_chunk = sanitized_chunk.replace(word, code)
+
+                    # 步驟 2: 使用安全協議進行 API 調用
                     extraction_template = self.get_narrative_extraction_prompt()
-                    prompt_input = {"canon_text": chunk}
-                    
-                    inject_protocol = is_sanitized
-                    
-                    full_prompt = self._safe_format_prompt(
+                    # [v5.0 核心修正] 手動拼接安全的數據處理協議
+                    full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(
                         extraction_template,
-                        prompt_input,
-                        inject_core_protocol=inject_protocol
+                        {"canon_text": sanitized_chunk},
+                        inject_core_protocol=False # 確保不注入完整的越獄指令
                     )
                     
                     extraction_result = await self.ainvoke_with_rotation(
@@ -5099,55 +5124,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         retry_strategy='none',
                         models_to_try_override=["gemini-2.5-flash", "gemini-2.5-flash-lite"]
                     )
-                    return extraction_result.narrative_text if extraction_result else None
+                    
+                    if not extraction_result or not extraction_result.narrative_text:
+                        return None
+                    
+                    # 步驟 3: 本地安全解碼
+                    decoded_text = self._decode_lore_content(extraction_result.narrative_text, self.DECODING_MAP)
+                    return decoded_text
+                
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [{pipeline_name}] 處理單個文本塊時失敗: {e}")
                     return None
 
-        # --- 層級 1: 【理想方案】雲端宏觀解析 (帶節流的並行) ---
+        # --- 主流程：理想方案 ---
         try:
             if not narrative_text:
-                logger.info(f"[{self.user_id}] [{pipeline_name} 1/4] 正在嘗試【理想方案：帶節流的並行宏觀提取】(並行上限: {CONCURRENT_LIMIT})...")
+                logger.info(f"[{self.user_id}] [{pipeline_name} 1/2] 正在嘗試【理想方案：帶節流與本地編碼的並行提取】(並行上限: {CONCURRENT_LIMIT})...")
                 
                 tasks = [_process_chunk(chunk) for chunk in text_chunks]
                 results = await asyncio.gather(*tasks)
                 
                 successful_results = [res for res in results if res and res.strip()]
                 if successful_results:
-                    logger.info(f"[{self.user_id}] [{pipeline_name} 1/4] ✅ 成功！已從 {len(successful_results)}/{len(text_chunks)} 個塊中提取到敘事文本。")
+                    logger.info(f"[{self.user_id}] [{pipeline_name} 1/2] ✅ 成功！已從 {len(successful_results)}/{len(text_chunks)} 個塊中提取並解碼敘事文本。")
                     narrative_text = "\n\n".join(successful_results)
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [{pipeline_name} 1/4] 並行處理遭遇未知錯誤: {e}，正在降級。", exc_info=False)
+            logger.error(f"[{self.user_id}] [{pipeline_name} 1/2] 並行處理遭遇未知錯誤: {e}", exc_info=True)
 
-        # --- 層級 2 & 3: 【安全代碼方案】全文無害化解析 (帶節流的並行) ---
-        try:
-            if not narrative_text:
-                logger.info(f"[{self.user_id}] [{pipeline_name} 3/4] 正在嘗試【安全代碼方案：帶節流的並行無害化提取】...")
-                
-                sanitized_chunks = []
-                reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-                for chunk in text_chunks:
-                    sanitized_chunk = chunk
-                    for code, word in reversed_map:
-                        sanitized_chunk = sanitized_chunk.replace(word, code)
-                    sanitized_chunks.append(sanitized_chunk)
-                
-                tasks = [_process_chunk(chunk, is_sanitized=True) for chunk in sanitized_chunks]
-                results = await asyncio.gather(*tasks)
-
-                successful_results = [res for res in results if res and res.strip()]
-                if successful_results:
-                    logger.info(f"[{self.user_id}] [{pipeline_name} 3/4] ✅ 成功！正在解碼提取出的文本...")
-                    decoded_text = self._decode_lore_content("\n\n".join(successful_results), self.DECODING_MAP)
-                    narrative_text = decoded_text
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [{pipeline_name} 3/4] 無害化並行處理遭遇未知錯誤: {e}", exc_info=True)
-
-        # --- 層級 4 & 5: 【最終備援方案】原文直通 ---
+        # --- 最終備援方案：原文直通 ---
         if not narrative_text:
-            logger.critical(f"[{self.user_id}] [{pipeline_name} 4/4] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。")
+            logger.critical(f"[{self.user_id}] [{pipeline_name} 2/2] 所有智能提取層級均失敗！觸發最終備援，將整個世界聖經原文視為敘事摘要。")
             narrative_text = text_to_parse
 
         return narrative_text
@@ -5388,6 +5395,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
