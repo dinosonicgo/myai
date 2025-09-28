@@ -34,15 +34,17 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
-# --- [v1.3 新增] 混合 NLP 流程所需模型 ---
+# src/schemas.py 的 CharacterSkeleton 和 ExtractionResult 類別 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-28): [全新創建] 根據「多階段混合解析管線」架構，創建這兩個模型。`CharacterSkeleton` 用於定義第一階段（骨架提取）的最小化數據結構（僅含名稱和原始描述），而 `ExtractionResult` 則用於包裹批量的骨架提取結果。此舉將複雜的解析任務分解，確保了第一階段的快速、高效和高成功率。
 class CharacterSkeleton(BaseModel):
     """用於混合 NLP 第一階段，表示一個角色的最基本骨架信息。"""
     name: str = Field(description="角色的名字。必須是文本中明確提到的、最常用的名字。")
-    description: str = Field(description="一句話總結該角色的核心身份、職業或在當前文本塊中的主要作用。")
+    raw_description: str = Field(description="一段包含了所有與該角色相關的、從世界聖經原文中提取出的、未經處理的完整文本片段。")
 
 class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
-    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
+    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的骨架列表。")
 
 # [v2.0 新增] 用於結構化關係的模型
 class RelationshipDetail(BaseModel):
@@ -428,6 +430,8 @@ class SceneLocationExtraction(BaseModel):
 
 
 
+
+
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -470,6 +474,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
