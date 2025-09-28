@@ -3010,21 +3010,36 @@ class ExtractionResult(BaseModel):
 
 
 
-        # 函式：獲取本地模型專用的導演決策器Prompt (v1.0 - 全新創建)
+     # 函式：獲取本地模型專用的導演決策器Prompt (v1.2 - 輸出穩定性終極修復)
     # 更新紀錄:
-    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板，用於在雲端導演決策失敗時執行核心的規則判斷任務。
+    # v1.2 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt，以規避因`}}`和`"""`符號組合觸發的Markdown渲染引擎截斷BUG。
+    # v1.1 (2025-09-28): [架構升級] 根據「最終防線協議」，同步更新了本地備援Prompt的任務。
+    # v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板。
     def get_local_model_director_prompt(self) -> str:
         """獲取為本地LLM設計的、指令簡化的、用於導演決策的備援Prompt模板。"""
         
-        prompt_template = """# TASK: 根據規則決定強制動作。
-# CHARACTERS: {relevant_characters_summary}
-# RULES: {scene_rules_context}
-# USER_INPUT: {user_input}
-# INSTRUCTION: 閱讀 CHARACTERS, RULES, USER_INPUT。如果 RULES 被觸發，在 "mandatory_action" 中描述動作，否則設為 null。在 "scene_summary_for_generation" 中結合 USER_INPUT 和動作。只輸出 JSON。
-# JSON_OUTPUT:
-```json
-"""
-        return prompt_template
+        # 使用字串拼接來避免輸出渲染錯誤
+        prompt_part_1 = "# TASK: 根據規則和用戶輸入，生成一個場景摘要。\n"
+        prompt_part_2 = "# CHARACTERS: {relevant_characters_summary}\n"
+        prompt_part_3 = "# RULES: {scene_rules_context}\n"
+        prompt_part_4 = "# USER_INPUT: {user_input}\n"
+        prompt_part_5 = "# INSTRUCTION: 閱讀所有信息。如果 RULES 被觸發，將其要求的動作作為場景開頭。結合 USER_INPUT，生成一句話的、詳細的場景摘要。將結果填入 \"scene_summary_for_generation\" 字段。只輸出 JSON。\n"
+        prompt_part_6 = "# JSON_OUTPUT:\n"
+        prompt_part_7 = "```json\n"
+        json_example = """{{
+  "scene_summary_for_generation": ""
+}}"""
+        prompt_part_8 = "\n```"
+
+        return (prompt_part_1 +
+                prompt_part_2 +
+                prompt_part_3 +
+                prompt_part_4 +
+                prompt_part_5 +
+                prompt_part_6 +
+                prompt_part_7 +
+                json_example +
+                prompt_part_8)
     # 函式：獲取本地模型專用的導演決策器Prompt
 
 
@@ -5036,6 +5051,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
