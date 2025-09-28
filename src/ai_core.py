@@ -3768,7 +3768,7 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：獲取批量別名交叉驗證器Prompt (v1.5 - 零容忍審計)
+     # 函式：獲取批量別名交叉驗證器Prompt (v1.5 - 零容忍審計)
     # 更新紀錄:
     # v1.5 (2025-09-28): [災難性BUG修復] 引入終極的【零容忍審計強制令】。此修改將驗證器的角色從“校對官”升級為“審計官”，強制要求其不再信任上游傳來的`claimed_aliases`，而是必須獨立地、從頭開始重新解析`context_snippet`，生成一份自己的“理想別名列表”，然後再將兩者合併。此舉旨在通過“獨立重複驗證”的工程原則，根除因初始解析LLM“認知捷徑”而導致的關鍵身份標籤（如“性神教徒”）遺漏的最終頑疾。
     # v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt。
@@ -3823,7 +3823,6 @@ class ExtractionResult(BaseModel):
 """
         return part1 + json_example + part2
     # 函式：獲取批量別名交叉驗證器Prompt
-
 
     
 
@@ -4686,7 +4685,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     # 函式：獲取世界聖經轉換器 Prompt (v3.1 - 身份提取终极强化)
     # 更新紀錄:
-    # v3.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次對【身份別名雙重提取原則】進行終極強化。新版Prompt以更嚴厲的措辭、更清晰的範例，強制要求LLM在解析到`身份: A、B、C`这类结构时，必须将A、B、C三个身份标签一个不漏地、分别独立地同时写入`description`和`aliases`两个字段。此举旨在从源头根除因LLM未能将身份标签识别为别名而导致的关键信息遗漏问题。
+    # v3.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次對【身份別名雙重提取原則】進行終極強化。新版Prompt以更嚴厲的措辭、更清晰的範例，強制要求LLM在解析到`身份: A、B、C`这类结构时，必须将A、B、C三个身份标签一个不漏地、分别独立地同时写入`description`和`aliases`两个字段。此舉旨在從源頭根除因LLM未能將身份标签识别为别名而导致的关键信息遗漏问题。
     # v3.0 (2025-09-28): [災難性BUG修復] 引入了终极强化版的【身份別名雙重提取原則】與【列表窮舉強制令】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
@@ -5225,6 +5224,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
