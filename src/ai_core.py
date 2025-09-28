@@ -4929,13 +4929,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v18.3 - 快速失敗轉向無審查核心)
+    # 函式：檢索並摘要記憶 (v18.4 - RAG 透明度增強)
     # 更新紀錄:
-    # v18.3 (2025-09-28): [根本性重構] 根據持續的BlockedPromptException，徹底廢棄了所有基於雲端模型的備援方案。新策略為「快速失敗並轉向無審查核心」：首先快速嘗試一次雲端模型，如果因內容審查而失敗，則不再進行任何額外的雲端嘗試，而是立即將任務轉交給已知絕對可靠的本地Ollama模型。此修改旨在根除所有因雲端審查導致的延遲和失敗，將系統穩定性提升到最高。
-    # v18.2 (2025-09-28): [災難性BUG修復] 徹底修正了第三層備援（本地模型）的調用邏輯。
+    # v18.4 (2025-09-28): [災難性BUG修復] 根據持續的LORE執行失敗問題，為此函式注入了全面的【透明度日誌】。新版日誌會詳細打印出RAG的每一個關鍵步驟：初步檢索結果、後處理篩選結果、規則與摘要的分離情況，以及最終傳遞給AI導演的`rules_context`的完整內容。此修改旨在提供調試“LORE未執行”問題所需的、最精確的數據流快照。
+    # v18.3 (2025-09-28): [根本性重構] 徹底廢棄了所有基於雲端模型的備援方案，採取「快速失敗並轉向無審查核心」策略。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v18.3 重構) 執行RAG檢索，並通過「快速失敗轉向無審查核心」策略提取事實清單。
+        (v18.4 重構) 執行RAG檢索，注入詳細的透明度日誌，並提取事實清單。
         返回一個字典: {"rules": str, "summary": str}
         """
         from .schemas import RagFactSheet
@@ -4962,19 +4962,41 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
-                
+        
+        # [v18.4 新增] 透明度日誌 Step 1: 打印初步檢索結果
+        logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
+        for i, doc in enumerate(retrieved_docs):
+            logger.info(f"  [Doc {i+1}] Metadata: {doc.metadata}")
+            logger.info(f"  [Doc {i+1}] Content: {doc.page_content[:150]}...")
+        logger.info("----------------------------------------------------")
+
         if not retrieved_docs: return default_return
 
         final_docs_to_process = retrieved_docs
         if filtering_profiles:
             filter_names = set(p.name for p in filtering_profiles) | set(alias for p in filtering_profiles for alias in p.aliases)
             final_docs_to_process = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
+            
+            # [v18.4 新增] 透明度日誌 Step 2: 打印篩選後結果
+            logger.info(f"--- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
+            for i, doc in enumerate(final_docs_to_process):
+                logger.info(f"  [Filtered Doc {i+1}] Metadata: {doc.metadata}")
+            logger.info("----------------------------------------------------")
+
 
         if not final_docs_to_process: return default_return
 
         rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
         other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
+        
+        # [v18.4 新增] 透明度日誌 Step 3: 打印分離結果
+        logger.info(f"--- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---")
+        logger.info(f"  歸類為【規則】的文檔 ({len(rule_docs)} 條): {[doc.metadata.get('key', 'N/A') for doc in rule_docs]}")
+        logger.info(f"  歸類為【待摘要】的文檔 ({len(other_docs)} 條): {[doc.metadata.get('key', 'Memory') for doc in other_docs]}")
+        
         rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
+        logger.info(f"  [最終生成的 rules_context] (傳遞給導演):\n---\n{rules_context}\n---")
+        logger.info("----------------------------------------------------")
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
         docs_to_process = other_docs + rule_docs[3:]
@@ -4983,7 +5005,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             raw_content = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
             fact_sheet: Optional[RagFactSheet] = None
 
-            # --- [v18.3 新策略] ---
             # --- 層級 1: 雲端快速嘗試 ---
             try:
                 logger.info(f"[{self.user_id}] [RAG事實提取-1] 快速嘗試：雲端模型...")
@@ -4993,7 +5014,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
             except BlockedPromptException:
                 logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型因內容審查快速失敗。立即轉向層級 2 (本地無審查核心)...")
-                # [v18.3 核心修正] 不再進行任何雲端備援，直接降級
                 fact_sheet = None 
             
             except Exception as e_api:
@@ -5024,6 +5044,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [RAG事實提取-3] 所有提取層級均失敗！")
                 summary_context = "（記憶摘要因內容審查或系統錯誤而生成失敗）"
         
+        # [v18.4 新增] 透明度日誌 Step 4: 打印最終輸出
+        logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
+        logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
+        logger.info(f"  [最終 summary_context 長度]: {len(summary_context)}")
+        logger.info("--- RAG 流程結束 ---")
+
         return {"rules": rules_context, "summary": summary_context}
     # 函式：檢索並摘要記憶
 
@@ -5122,6 +5148,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
