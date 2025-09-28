@@ -4019,13 +4019,15 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：解析並從世界聖經創建LORE (v14.0 - 多階段混合解析)
-    # 更新紀錄:
-    # v14.0 (2025-09-28): [根本性重構] 引入了终极的【多阶段混合解析管线】。此修改将原本单一、庞大、易错的解析任务，拆分为两个更简单、更可靠的阶段：1.【骨架提取】：一个轻量级LLM调用，快速、批量地从原文中识别所有角色并提取其未经处理的原始描述文本块。2.【深度精炼】：一个更强大、更智能的LLM调用，接收第一阶段的输出，并使用内置了“机械清单协议”和“完美范例”的终极Prompt，对每个角色的原始描述进行深度的、结构化的细节解析。这个新架构兼顾了处理结构化文本和纯叙事长文的能力，是目前最健壮、最具前瞻性的LORE解析方案。
-    # v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字。
+# 函式：解析並從世界聖經創建LORE
+# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v15.0 - 模型升級)
+# 更新紀錄:
+# v15.0 (2025-09-29): [災難性BUG修復] 為了規避處理超長聖經文本時的 MAX_TOKENS 錯誤，此函式在最關鍵的第一階段「骨架提取」中，會強制優先使用更高質量的 `gemini-2.5-flash` 模型，期望其生成更精煉、長度合規的輸出。
+# v14.0 (2025-09-28): [根本性重構] 引入了终极的【多阶段混合解析管线】。
+# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v14.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
+        【總指揮 v15.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -4040,10 +4042,12 @@ class ExtractionResult(BaseModel):
             extraction_prompt = self.get_entity_skeleton_extraction_prompt()
             full_prompt = self._safe_format_prompt(extraction_prompt, {"canon_text": canon_text}, inject_core_protocol=False) # 阶段一不需要完整越狱指令
             
+            # [v15.0 核心修正] 優先使用更高質量的模型來處理長文本，以生成更精煉的輸出
             extraction_result = await self.ainvoke_with_rotation(
                 full_prompt, 
                 output_schema=ExtractionResult,
-                retry_strategy='euphemize' # 允许一次安全备援
+                retry_strategy='euphemize', # 允许一次安全备援
+                models_to_try_override=["gemini-2.5-flash", "gemini-2.5-flash-lite"]
             )
             if extraction_result and extraction_result.characters:
                 skeletons = extraction_result.characters
@@ -4111,7 +4115,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
         await self._load_or_build_rag_retriever(force_rebuild=True)
         logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
-    # 函式：解析並從世界聖經創建LORE
+# 函式：解析並從世界聖經創建LORE
 
 
 
@@ -4998,8 +5002,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # src/ai_core.py 的 _execute_narrative_extraction_pipeline 函式 (v1.0 - 全新創建)
+# src/ai_core.py 的 _execute_narrative_extraction_pipeline 函式 (v2.0 - 模型升級)
 # 更新紀錄:
+# v2.0 (2025-09-29): [災難性BUG修復] 為了規避處理超長聖經文本時的 MAX_TOKENS 錯誤，此函式現在會強制優先使用更高質量的 `gemini-2.5-flash` 模型，期望其生成更精煉、長度合規的輸出。
 # v1.0 (2025-11-22): [全新創建] 根據使用者要求，創建此核心函式，將LORE解析的五層降級安全管線應用於新的「敘事摘要提取」任務，以確保在提取劇情摘要時也能有效對抗內容審查。
     async def _execute_narrative_extraction_pipeline(self, text_to_parse: str) -> Optional[str]:
         """
@@ -5024,8 +5029,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     {"canon_text": text_to_parse},
                     inject_core_protocol=True
                 )
+                # [v2.0 核心修正] 優先使用更高質量的模型來處理長文本
                 extraction_result = await self.ainvoke_with_rotation(
-                    full_prompt, output_schema=NarrativeExtractionResult, retry_strategy='none'
+                    full_prompt, 
+                    output_schema=NarrativeExtractionResult, 
+                    retry_strategy='none',
+                    models_to_try_override=["gemini-2.5-flash", "gemini-2.5-flash-lite"]
                 )
                 if extraction_result and extraction_result.narrative_text:
                     logger.info(f"[{self.user_id}] [{pipeline_name} 1/4] ✅ 成功！")
@@ -5054,8 +5063,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 full_prompt = self._safe_format_prompt(
                     extraction_template, {"canon_text": sanitized_text}, inject_core_protocol=True
                 )
+                # [v2.0 核心修正] 在備援路徑中也優先使用更高質量的模型
                 extraction_result = await self.ainvoke_with_rotation(
-                    full_prompt, output_schema=NarrativeExtractionResult, retry_strategy='none'
+                    full_prompt, 
+                    output_schema=NarrativeExtractionResult, 
+                    retry_strategy='none',
+                    models_to_try_override=["gemini-2.5-flash", "gemini-2.5-flash-lite"]
                 )
                 if extraction_result and extraction_result.narrative_text:
                     logger.info(f"[{self.user_id}] [{pipeline_name} 3/4] ✅ 成功！正在解碼提取出的文本...")
@@ -5072,7 +5085,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             narrative_text = text_to_parse
 
         return narrative_text
-    # 函式：執行敘事提取管線
+# 函式：執行敘事提取管線
 
     
 
@@ -5309,6 +5322,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
