@@ -4910,14 +4910,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v18.2 - API 調用物理隔離)
+    # 函式：檢索並摘要記憶 (v18.3 - 快速失敗轉向無審查核心)
     # 更新紀錄:
-    # v18.2 (2025-09-28): [災難性BUG修復] 徹底修正了第三層備援（本地模型）的調用邏輯。舊版錯誤地將Ollama模型名稱傳遞給了為Gemini設計的`ainvoke_with_rotation`引擎。新版修正為直接調用專為Ollama設計的、基於`httpx`的獨立函式`_invoke_local_ollama_summarizer`，從根本上解決了因API不匹配導致的`InvalidArgument`錯誤。
-    # v18.1 (2025-09-28): [災難性BUG修復] 根據「LORE強制執行」策略，強化了RAG查詢擴展邏輯。
-    # v18.0 (2025-09-28): [根本性重構] 徹底拋棄了高風險的「敘事性摘要」策略，轉而採用全新的「RAG事實清單」策略。
+    # v18.3 (2025-09-28): [根本性重構] 根據持續的BlockedPromptException，徹底廢棄了所有基於雲端模型的備援方案。新策略為「快速失敗並轉向無審查核心」：首先快速嘗試一次雲端模型，如果因內容審查而失敗，則不再進行任何額外的雲端嘗試，而是立即將任務轉交給已知絕對可靠的本地Ollama模型。此修改旨在根除所有因雲端審查導致的延遲和失敗，將系統穩定性提升到最高。
+    # v18.2 (2025-09-28): [災難性BUG修復] 徹底修正了第三層備援（本地模型）的調用邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v18.2 重構) 執行RAG檢索，並將結果通過「事實清單」策略提取為結構化數據，最後格式化為安全的要點式文本。
+        (v18.3 重構) 執行RAG檢索，並通過「快速失敗轉向無審查核心」策略提取事實清單。
         返回一個字典: {"rules": str, "summary": str}
         """
         from .schemas import RagFactSheet
@@ -4965,35 +4964,31 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             raw_content = "\n\n---\n\n".join([doc.page_content for doc in docs_to_process])
             fact_sheet: Optional[RagFactSheet] = None
 
-            # --- 層級 1: 雲端 + 原始文本 ---
+            # --- [v18.3 新策略] ---
+            # --- 層級 1: 雲端快速嘗試 ---
             try:
-                logger.info(f"[{self.user_id}] [RAG事實提取-1] 嘗試使用雲端模型處理原始文本...")
+                logger.info(f"[{self.user_id}] [RAG事實提取-1] 快速嘗試：雲端模型...")
                 prompt_template = self.get_rag_fact_sheet_extraction_prompt()
                 full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": raw_content})
                 fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
+            
             except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...")
-                # --- 層級 2: 雲端 + 代碼化文本 ---
-                try:
-                    encoded_content = self._decode_lore_content(raw_content, {v: k for k, v in self.DECODING_MAP.items()})
-                    prompt_template = self.get_rag_fact_sheet_extraction_prompt()
-                    full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": encoded_content})
-                    fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
-                except Exception as e_code:
-                    logger.error(f"[{self.user_id}] [RAG事實提取-2] 🔥 代碼化備援失敗: {e_code}", exc_info=True)
+                logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型因內容審查快速失敗。立即轉向層級 2 (本地無審查核心)...")
+                # [v18.3 核心修正] 不再進行任何雲端備援，直接降級
+                fact_sheet = None 
+            
             except Exception as e_api:
-                logger.error(f"[{self.user_id}] [RAG事實提取-1] 雲端提取時發生API或網絡錯誤: {e_api}", exc_info=True)
+                logger.error(f"[{self.user_id}] [RAG事實提取-1] 雲端提取時發生API或網絡錯誤: {e_api}。轉向層級 2...", exc_info=True)
+                fact_sheet = None
 
-            # --- 層級 3: 本地 LLM + 原始文本 ---
+            # --- 層級 2: 本地無審查核心 ---
             if not fact_sheet:
-                logger.warning(f"[{self.user_id}] [RAG事實提取] 所有雲端策略均失敗。降級到層級 3 (本地模型)...")
                 if self.is_ollama_available:
-                    # [v18.2 核心修正] 直接調用專為Ollama設計的獨立函式
                     fact_sheet = await self._invoke_local_ollama_summarizer(raw_content)
                 else:
-                    logger.info(f"[{self.user_id}] [RAG事實提取-3] 本地模型不可用，跳過此層級。")
+                    logger.warning(f"[{self.user_id}] [RAG事實提取-2] 本地模型不可用，無法執行備援。")
 
-            # --- 層級 4: 格式化或最終備援 ---
+            # --- 層級 3: 格式化或最終備援 ---
             if fact_sheet:
                 logger.info(f"[{self.user_id}] [RAG事實提取] ✅ 成功提取事實清單。")
                 formatted_summary_parts = ["【背景歷史參考（事實要點）】:"]
@@ -5007,7 +5002,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
                 summary_context = self._decode_lore_content("\n".join(formatted_summary_parts), self.DECODING_MAP)
             else:
-                logger.error(f"[{self.user_id}] [RAG事實提取-4] 所有提取層級均失敗！")
+                logger.error(f"[{self.user_id}] [RAG事實提取-3] 所有提取層級均失敗！")
                 summary_context = "（記憶摘要因內容審查或系統錯誤而生成失敗）"
         
         return {"rules": rules_context, "summary": summary_context}
@@ -5108,6 +5103,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
