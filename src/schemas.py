@@ -38,11 +38,11 @@ def _validate_string_to_dict(value: Any) -> Any:
 class CharacterSkeleton(BaseModel):
     """用於混合 NLP 第一階段，表示一個角色的最基本骨架信息。"""
     name: str = Field(description="角色的名字。必須是文本中明確提到的、最常用的名字。")
-    raw_description: str = Field(description="一段包含了所有與該角色相關的、從世界聖經原文中提取出的、未經處理的完整文本片段。")
+    description: str = Field(description="一句話總結該角色的核心身份、職業或在當前文本塊中的主要作用。")
 
 class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
-    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的骨架列表。")
+    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
 # [v2.0 新增] 用於結構化關係的模型
 class RelationshipDetail(BaseModel):
