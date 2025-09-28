@@ -2806,13 +2806,13 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v44.4 - 導演上下文日誌)
+    # 函式：預處理並生成主回應 (v44.5 - 數據流修復)
     # 更新紀錄:
-    # v44.4 (2025-09-28): [調試增強] 根據持續的LORE執行失敗問題，在調用「AI導演」模組之前，增加了一個詳細的日誌記錄點。此日誌會完整打印出即將傳遞給導演決策鏈的所有上下文信息（`director_context`），包括RAG摘要和場景規則，為調試“規則未執行”問題提供了最終的、最關鍵的數據快照。
-    # v44.3 (2025-09-28): [災難性BUG修復] 根據「LORE強制執行」策略，再次強化了「最終防線協議」的措辭。
+    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂：1. `rules_context` 未能從RAG結果中正確傳遞，導致導演看不到規則。2. `location_description` 被錯誤的RAG歷史地點污染。新版邏輯確保了導演接收到的所有上下文（特別是規則和地點）都與當前使用者指令和遊戲狀態嚴格一致，從根源上解決了導演被錯誤數據誤導的問題。
+    # v44.4 (2025-09-28): [調試增強] 增加了詳細的導演上下文日誌。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.4重構) 執行包含「上下文注入式導演」決策的純粹小說生成任務。
+        (v44.5重構) 執行包含「上下文注入式導演」決策的純粹小說生成任務。
         返回純小說文本字串。
         """
         from .schemas import NarrativeDirective
@@ -2866,21 +2866,26 @@ class ExtractionResult(BaseModel):
         
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
 
-        all_characters_in_scene = relevant_characters + background_characters
-        scene_rules_context_str = "（本場景無特殊規則）"
-        if all_characters_in_scene:
-            all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
-            if all_aliases_in_scene:
-                applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
-                if applicable_rules:
-                    rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
-                    scene_rules_context_str = "\n\n".join(rule_texts)
-                    logger.info(f"[{self.user_id}] [LORE繼承] 已成功為場景注入 {len(applicable_rules)} 條規則，基於身份: {all_aliases_in_scene}")
+        # [v44.5 核心修正] 從 RAG 結果中正確提取 rules_context
+        scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
+        
+        # 即使RAG沒找到，也再次檢查一次LORE繼承，作為雙重保險
+        if "無特殊規則" in scene_rules_context_str:
+            all_characters_in_scene = relevant_characters + background_characters
+            if all_characters_in_scene:
+                all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
+                if all_aliases_in_scene:
+                    applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
+                    if applicable_rules:
+                        rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
+                        scene_rules_context_str = "\n\n".join(rule_texts)
+                        logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
 
-        # --- [v44.4 新增] AI 導演決策模組 (上下文強化版 + 透明度日誌) ---
+        # --- [v44.5] AI 導演決策模組 (上下文強化版 + 數據流修復) ---
         logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
         directive = None
         
+        # [v44.5 核心修正] 確保地點描述的絕對真實性，直接從遊戲狀態生成，避免RAG污染
         location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
@@ -2890,11 +2895,10 @@ class ExtractionResult(BaseModel):
             "relevant_characters_summary": ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無",
             "location_description": f"{' > '.join(location_path)}: {location_desc}",
             "rag_summary": structured_rag_context.get("summary", "無"),
-            "scene_rules_context": scene_rules_context_str,
+            "scene_rules_context": scene_rules_context_str, # 使用修正後的數據流
             "user_input": user_input
         }
         
-        # [v44.4 核心修正] 增加導演上下文透明度日誌
         logger.info(f"--- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---")
         for key, value in director_context.items():
             logger.info(f"  [{key.upper()}]:\n---\n{value}\n---")
@@ -3122,48 +3126,41 @@ class ExtractionResult(BaseModel):
     # 函式：呼叫本地Ollama模型執行導演決策
 
 
-    # 函式：獲取 AI 導演決策器 Prompt (v1.6 - 法则全面执行)
+    # 函式：獲取 AI 導演決策器 Prompt (v1.7 - 衝突解決指令)
     # 更新紀錄:
-    # v1.6 (2025-09-28): [災難性BUG修復] 引入终极的【法则全面执行】原则。此修改将导演的职责从狭隘的“动作指导”升维至“世界法则仲裁官”，强制要求其分析LORE规则对场景开端在“动作、对白、状态、环境”等所有维度上提出的【强制性要求】，并将其完整地融入导演剧本。此举旨在根除因只关注物理动作而忽略LORE中其他重要规范（如规定对白、情绪状态）的根本性问题，确保世界观的全面一致性。
-    # v1.5 (2025-09-28): [災難性BUG修復] 引入终极的【具象化行動提取原則】與【反抽象化指令】。
+    # v1.7 (2025-09-28): [災難性BUG修復] 引入終極的【衝突解決指令】。此修改在「真實性層級原則」的基礎上，進一步強化了導演的“懷疑論”能力。新Prompt強制要求導演在所有輸入情報（如RAG摘要、地點描述）與【使用者指令】發生任何衝突時，必須無條件地以使用者指令為唯一真理，並在劇本中明確聲明其正在糾正場景。此舉旨在根除因RAG上下文污染壓倒使用者指令而導致的“場景漂移”最終堡壘。
+    # v1.6 (2025-09-28): [災難性BUG修復] 引入终极的【法则全面执行】原则。
     def get_narrative_directive_prompt(self) -> str:
         """獲取或創建一個專門用於「AI導演」決策的字符串模板。"""
-        prompt_template = """# TASK: 你是一位逻辑极度严谨、拥有最高仲裁权的【世界法则仲裁官 (Canon Arbiter)】。
-# MISSION: 你的任务是审查【场景情报简报】，并根据【适用规则】，为下一幕的「小说家AI」撰写一份不可违背的、融合了所有法则的最终【导演剧本】。
+        prompt_template = """# TASK: 你是一位逻辑极度严谨、擁有最高仲裁权的【世界法则仲裁官 (Canon Arbiter)】。
+# MISSION: 你的任务是审查【场景情报简报】，并根据下方的【真实性层级原则】，生成一份给「小说家AI」的、绝对准确的最终【导演剧本】。
 
 # === 【【【🚨 核心处理规则 (CORE PROCESSING RULES) - 绝对铁则】】】 ===
-# 1.  **【👑 真实性层级原则 (Hierarchy of Truth Principle)】**:
-#     *   **第一层 (绝对真理)**: 【使用者指令】。这是场景的**绝对锚点**，其核心情节（地点、人物）不可更改。
-#     *   **第二层 (物理法则)**: 【适用规则】。这是必须执行的附加法则。
-#     *   **第三层 (参考历史)**: 【长期记忆摘要】。仅用于丰富细节，若与第一层冲突则必须忽略。
-# 2.  **【⚖️ 法则全面执行原则 (Holistic Canon Enforcement Principle) - 最高优先级】**:
-#     *   你的首要职责是深度分析【适用规则】的全部内容，判断它是否对本回合的**「场景开端」**提出了任何**强制性要求**。
-#     *   「强制性要求」**包括但不限于**：
-#         *   **A. 物理动作 (Physical Actions)**：角色必须执行的动作。
-#         *   **B. 对白台词 (Required Dialogue)**：角色必须说出的台词。
-#         *   **C. 情绪/状态 (Mandatory States)**：角色必须展现的情绪或状态。
-#         *   **D. 环境现象 (Environmental Effects)**：场景中必须出现的现象。
-#     *   你的最终【导演剧本】**必须**以一段文字开场，这段文字要**清晰地、无歧义地、全面地**描述由【适用规则】所引发的**所有**强制性要求。
+# 1.  **【👑 真实性层级原则 (Hierarchy of Truth Principle) v2.0 - 包含衝突解決】**:
+#     *   **第一层 (绝对真理)**: 【使用者指令】。这是场景的**绝对核心**和**不可变更的「锚点」**。
+#     *   **【衝突解決指令】**: 如果在你的所有输入情报中，【使用者指令】与任何其他情报（特别是 `长期记忆摘要` 或 `当前地点`）发生**任何形式的衝突**，你**【必须无条件地、绝对地以【使用者指令】为唯一真理】**，并忽略所有与之冲突的信息。你的最终剧本必须明确反映你正在遵循使用者指令来设定场景。
+#     *   **第二层 (场景法则)**: 【适用规则】。这是必须执行的附加法则，你必须将其要求无缝整合进由【使用者指令】设定的框架内。
+#     *   **第三层 (参考历史)**: 【长期记忆摘要】。仅用于丰富细节，若与第一层衝突则必须被忽略。
+# 2.  **【⚖️ 法则全面执行原则】**: 你的首要职责是分析【适用规则】，判断它是否对场景开端提出了任何**强制性要求**（包括物理动作、对白台词、情绪状态等），并将其全面地融入剧本。
 # 3.  **【JSON纯净输出】**: 你的唯一输出【必须】是一个纯净的、符合 `NarrativeDirective` Pydantic 模型的JSON物件。
 
 # === 【【【⚙️ 輸出結構與思考过程範例 (EXAMPLE) - 必须严格遵守】】】 ===
 # --- 输入情报 ---
-# - 使用者指令: 描述米娅在宅邸散步遇到维利尔斯勳爵
-# - 适用规则: 【母畜的礼仪】: ...迎接礼：蹲下...展示肉穴...并说：「请主人干我这只卑贱的母畜。」
+# - 使用者指令: 描述米娅在**宅邸**散步遇到维利尔斯勳爵
+# - 适用规则: 【母畜的礼仪】: 迎接礼：蹲下...并说：「请主人干我...」
+# - 当前地点: **咆哮壁炉酒馆** (与指令冲突!)
 #
 # --- 你的思考过程 (仅供参考) ---
-# 1.  锚定指令：核心事件是「在宅邸散步遇到勳爵」。
-# 2.  分析法则：「母畜的礼仪」被触发。
-# 3.  全面提取要求：
-#     - 物理动作：蹲下，张开双腿，撑开大阴唇。
-#     - 对白台词：「请主人干我这只卑贱的母畜。」
-#     - 情绪状态：（隐含的）绝对服从。
-# 4.  整合剧本：将所有这些要求融合为一个完整的开场描述。
+# 1.  **分析真实性层级**:
+#     - **第一层真理**: 使用者指令要求地点是「宅邸」。
+#     - **衝突檢測**: 当前地点「咆哮壁炉酒馆」与第一层真理冲突。**必须忽略酒馆**，将场景强制设定在「宅邸」。
+#     - **第二层真理**: 「母畜的礼仪」被触发，必须执行「迎接礼」的动作和对白。
+# 2.  **整合剧本**: 严格在「宅邸」的背景下，以「迎接礼」的完整动作和对白作为故事开端。
 #
 # --- 最终JSON输出 ---
 # ```json
 # {
-#   "scene_summary_for_generation": "故事的核心场景严格设定在维利尔斯家宅邸。根据【母畜的礼仪】这项不可违背的法则，当米娅在宅邸内散步并与卡尔•维利尔斯勳爵相遇的瞬间，她必须立即展现出作为‘母畜’的绝对服从状态。这包括立即执行‘迎接礼’的完整物理动作——从蹲下到张开双腿展示自己——并且必须说出规定的台词：“请主人干我这只卑贱的母畜。”。详细描绘这一系列由规则驱动的、包含动作和对白的完整过程，以及勳爵对此的反应。"
+#   "scene_summary_for_generation": "故事的核心场景严格设定在维利尔斯家宅邸，忽略所有关于其他地点的历史参考。根据【母畜的礼仪】，当米娅在宅邸内散步并与卡尔•维利尔斯勳爵相遇的瞬间，她必须立即执行迎接礼：蹲下，张开双腿呈「M」字型，撑开大阴唇展示自己，并说出规定的台词：“请主人干我这只卑贱的母畜。”。详细描绘这一系列由规则驱动的、包含动作和对白的完整过程，以及勳爵对此的反应。"
 # }
 # ```
 
@@ -5155,6 +5152,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
