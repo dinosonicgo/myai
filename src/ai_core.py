@@ -4726,28 +4726,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取本地模型專用的摘要器Prompt
 
 
-        # 函式：呼叫本地Ollama模型進行摘要 (v1.0 - 全新創建)
-# src/ai_core.py 的 _invoke_local_ollama_summarizer 函式 (v2.0 - 適配變數)
-# 更新紀錄:
-# v2.0 (2025-11-22): [架構優化] 更新此函式，使其使用集中管理的 `self.ollama_model_name` 變數。
-# v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的第二層備援。
-    async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional[str]:
+    # 函式：呼叫本地Ollama模型進行摘要 (v2.0 - 事實清單提取)
+    # 更新紀錄:
+    # v2.0 (2025-09-28): [根本性重構] 根據「RAG事實清單」策略，徹底重寫此函式。它不再返回純文本摘要，而是被賦予了調用本地模型提取結構化`RagFactSheet` JSON物件的職責，使其與雲端模型的功能保持一致，成為一個真正可靠的備援。
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的第二層備援。
+    async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional["RagFactSheet"]:
         """
-        呼叫本地運行的 Ollama 模型來執行純文本摘要任務。
-        成功則返回摘要字串，失敗則返回 None。
+        (v2.0 重構) 呼叫本地運行的 Ollama 模型來執行「事實清單」提取任務。
+        成功則返回一個 RagFactSheet 物件，失敗則返回 None。
         """
         import httpx
+        import json
+        from .schemas import RagFactSheet
+
+        logger.info(f"[{self.user_id}] [RAG事實提取-3] 正在使用本地模型 '{self.ollama_model_name}' 進行事實提取...")
         
-        logger.info(f"[{self.user_id}] [RAG摘要-2A] 正在使用本地模型 '{self.ollama_model_name}' 進行摘要...")
-        
-        prompt_template = self.get_local_model_summarizer_prompt()
+        prompt_template = self.get_local_model_fact_sheet_prompt()
         full_prompt = prompt_template.format(documents=documents_text)
 
         payload = {
-            "model": self.ollama_model_name, # [v2.0 核心修正]
+            "model": self.ollama_model_name,
             "prompt": full_prompt,
+            "format": "json",
             "stream": False,
-            "options": { "temperature": 0.2 }
+            "options": { "temperature": 0.1 }
         }
         
         try:
@@ -4756,25 +4758,36 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 response.raise_for_status()
                 
                 response_data = response.json()
-                summary_text = response_data.get("response")
+                json_string_from_model = response_data.get("response")
                 
-                if not summary_text or not summary_text.strip():
-                    logger.warning(f"[{self.user_id}] [RAG摘要-2A] 本地模型返回了空的摘要內容。")
+                if not json_string_from_model:
+                    logger.warning(f"[{self.user_id}] [RAG事實提取-3] 本地模型返回了空的 'response' 內容。")
                     return None
 
-                logger.info(f"[{self.user_id}] [RAG摘要-2A] ✅ 本地模型摘要成功。")
-                return summary_text.strip()
+                json_match = re.search(r'\{.*\}', json_string_from_model, re.DOTALL)
+                if not json_match:
+                    raise json.JSONDecodeError("未能在本地模型回應中找到JSON物件", json_string_from_model, 0)
+                
+                clean_json_str = json_match.group(0)
+                parsed_json = json.loads(clean_json_str)
+                validated_result = RagFactSheet.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] [RAG事實提取-3] ✅ 本地模型事實清單提取成功。")
+                return validated_result
 
         except httpx.ConnectError:
-            logger.error(f"[{self.user_id}] [RAG摘要-2A] 無法連接到本地 Ollama 伺服器。")
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 無法連接到本地 Ollama 伺服器。")
             return None
         except httpx.HTTPStatusError as e:
-            logger.error(f"[{self.user_id}] [RAG摘要-2A] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
             return None
         except Exception as e:
-            logger.error(f"[{self.user_id}] [RAG摘要-2A] 呼叫本地模型進行摘要時發生未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 呼叫本地模型進行事實提取時發生未知錯誤: {e}", exc_info=True)
             return None
     # 函式：呼叫本地Ollama模型進行摘要
+
+
+
+    
 
 # 函式：獲取敘事提取器 Prompt (v2.0 - 結構範例強化)
 # 更新紀錄:
@@ -4897,13 +4910,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v18.1 - RAG 查詢強化)
+    # 函式：檢索並摘要記憶 (v18.2 - API 調用物理隔離)
     # 更新紀錄:
-    # v18.1 (2025-09-28): [災難性BUG修復] 根據「LORE強制執行」策略，強化了RAG查詢擴展邏輯。現在，系統會將所有在場核心角色的【每一個身份標籤(alias)】都強制性地、無條件地注入到RAG查詢關鍵詞中。此修改旨在最大限度地提高觸發相關LORE規則（如“母畜的禮儀”）的機率，確保AI導演在決策時能夠看到所有必要的規則。
+    # v18.2 (2025-09-28): [災難性BUG修復] 徹底修正了第三層備援（本地模型）的調用邏輯。舊版錯誤地將Ollama模型名稱傳遞給了為Gemini設計的`ainvoke_with_rotation`引擎。新版修正為直接調用專為Ollama設計的、基於`httpx`的獨立函式`_invoke_local_ollama_summarizer`，從根本上解決了因API不匹配導致的`InvalidArgument`錯誤。
+    # v18.1 (2025-09-28): [災難性BUG修復] 根據「LORE強制執行」策略，強化了RAG查詢擴展邏輯。
     # v18.0 (2025-09-28): [根本性重構] 徹底拋棄了高風險的「敘事性摘要」策略，轉而採用全新的「RAG事實清單」策略。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v18.1 重構) 執行RAG檢索，並將結果通過「事實清單」策略提取為結構化數據，最後格式化為安全的要點式文本。
+        (v18.2 重構) 執行RAG檢索，並將結果通過「事實清單」策略提取為結構化數據，最後格式化為安全的要點式文本。
         返回一個字典: {"rules": str, "summary": str}
         """
         from .schemas import RagFactSheet
@@ -4913,14 +4927,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return default_return
         
-        # [v18.1 核心修正] RAG 查詢強化
         expanded_query = query_text
         if contextual_profiles:
             query_keywords = set(re.split(r'\s+', query_text))
             for profile in contextual_profiles:
                 query_keywords.add(profile.name)
                 if profile.aliases:
-                    # 強制將所有身份標籤加入查詢
                     query_keywords.update(profile.aliases)
             expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
             logger.info(f"[{self.user_id}] [RAG查詢強化] 查詢已擴展為: '{expanded_query}'")
@@ -4976,9 +4988,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if not fact_sheet:
                 logger.warning(f"[{self.user_id}] [RAG事實提取] 所有雲端策略均失敗。降級到層級 3 (本地模型)...")
                 if self.is_ollama_available:
-                    # 本地模型的專用調用器
-                    local_prompt = self.get_local_model_fact_sheet_prompt().format(documents=raw_content)
-                    fact_sheet = await self.ainvoke_with_rotation(local_prompt, output_schema=RagFactSheet, models_to_try_override=[self.ollama_model_name])
+                    # [v18.2 核心修正] 直接調用專為Ollama設計的獨立函式
+                    fact_sheet = await self._invoke_local_ollama_summarizer(raw_content)
+                else:
+                    logger.info(f"[{self.user_id}] [RAG事實提取-3] 本地模型不可用，跳過此層級。")
 
             # --- 層級 4: 格式化或最終備援 ---
             if fact_sheet:
@@ -5095,6 +5108,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
