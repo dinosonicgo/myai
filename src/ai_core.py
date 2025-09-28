@@ -2282,6 +2282,46 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [長期記憶寫入] 安全摘要保存完畢。")
     # 更新事後處理的記憶 函式結束
 
+
+
+
+    # 函式：獲取本地模型專用的事實清單提取器Prompt (v1.1 - 輸出穩定性修復)
+    # 更新紀錄:
+    # v1.1 (2025-09-28): [災難性BUG修復] 採用了字串拼接的方式來構建Prompt。此修改旨在規避因特定符號組合（}}"""）觸發Markdown渲染引擎錯誤而導致的程式碼輸出截斷問題，確保程式碼的完整性和可複製性。
+    # v1.0 (2025-09-28): [全新創建] 根據「RAG事實清單」策略，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板。
+    def get_local_model_fact_sheet_prompt(self) -> str:
+        """獲取為本地LLM設計的、指令簡化的、用於提取事實清單的備援Prompt模板。"""
+        
+        # 使用字串拼接來避免輸出渲染錯誤
+        prompt_part_1 = "# TASK: 提取關鍵事實並填寫JSON。\n"
+        prompt_part_2 = "# DOCUMENTS: {documents}\n"
+        prompt_part_3 = "# INSTRUCTION: 閱讀 DOCUMENTS。提取所有角色、地點、物品和核心事件。用最中性的語言描述事件。將結果填寫到下面的JSON結構中。只輸出JSON。\n"
+        prompt_part_4 = "# JSON_OUTPUT:\n"
+        prompt_part_5 = "```json\n"
+        # 將包含特殊字符的JSON範例單獨放在一個字串中
+        json_example = """{{
+  "involved_characters": [],
+  "key_locations": [],
+  "significant_objects": [],
+  "core_events": []
+}}"""
+        prompt_part_6 = "\n```"
+
+        return (prompt_part_1 + 
+                prompt_part_2 + 
+                prompt_part_3 + 
+                prompt_part_4 + 
+                prompt_part_5 + 
+                json_example + 
+                prompt_part_6)
+    # 函式：獲取本地模型專用的事實清單提取器Prompt
+
+
+
+
+
+    
+
 # 函式：執行事後處理的LORE更新 (v2.0 - 安全工具過濾)
 # 更新紀錄:
 # v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。此函式現在會嚴格過濾由主模型生成的工具調用計畫，只允許執行與 LORE 創建/更新相關的、被明確列入白名單的工具。此修改從根本上阻止了主模型通過事後處理流程意外觸發改變玩家狀態（如 change_location）的工具，解決了因此導致的劇情邏輯斷裂和上下文丟失問題。
@@ -5057,6 +5097,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
