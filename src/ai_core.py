@@ -4020,38 +4020,14 @@ class ExtractionResult(BaseModel):
     
 
 # 函式：解析並從世界聖經創建LORE
-# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v15.0 - 模型升級)
+# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v16.1 - 語法修正)
 # 更新紀錄:
-# v15.0 (2025-09-29): [災難性BUG修復] 為了規避處理超長聖經文本時的 MAX_TOKENS 錯誤，此函式在最關鍵的第一階段「骨架提取」中，會強制優先使用更高質量的 `gemini-2.5-flash` 模型，期望其生成更精煉、長度合規的輸出。
-# v14.0 (2025-09-28): [根本性重構] 引入了终极的【多阶段混合解析管线】。
-# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字。
-    async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """
-        【總指揮 v15.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
-        """
-        if not self.profile:
-            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
-            return
-
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動【多階段混合解析管线】...")
-        
-        # --- 阶段一: 轻量级骨架提取 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 1/2] 正在尝试【阶段一：骨架提取】...")
-        skeletons: List[CharacterSkeleton] = []
-        try:
-            extraction_prompt = self.get_entity_skeleton_extraction_prompt()
-            full_prompt = self._safe_format_prompt(extraction_prompt, {"canon_text": canon_text}, inject_core_protocol=False) # 阶段一不需要完整越狱指令
-            
-            # [v15.0 核心修正] 優先使用更高質量的模型來處理長文本，以生成更精煉的輸出
-            extraction_result = await self.ainvoke_with_rotation(# 函式：解析並從世界聖經創建LORE
-# src/ai_core.py 的 parse_and_create_lore_from_canon 函式 (v16.0 - 分塊並行處理)
-# 更新紀錄:
-# v16.0 (2025-09-29): [災難性BUG修復] 為了從根本上解決處理超長聖經文本時的 TimeoutError，此函式的第一階段「骨架提取」被徹底重構。現在它會將長文本分割成多個塊，並行處理所有塊，最後將提取到的角色骨架合併去重。
+# v16.1 (2025-09-29): [災難性BUG修復] 修正了因註釋錯位導致括號未閉合的 SyntaxError。
+# v16.0 (2025-09-29): [災難性BUG修復] 為了從根本上解決處理超長聖經文本時的 TimeoutError，此函式的第一階段「骨架提取」被徹底重構。
 # v15.0 (2025-09-29): [災難性BUG修復] 在關鍵的第一階段「骨架提取」中，強制優先使用更高質量的 `gemini-2.5-flash` 模型以規避 MAX_TOKENS 錯誤。
-# v14.0 (2025-09-28): [根本性重構] 引入了终极的【多阶段混合解析管线】。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v16.0】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
+        【總指揮 v16.1】啟動「多階段混合解析管線」，自動提取、精炼、链接LORE，并触发RAG重建。
         內建分塊與並行處理機制以處理超長文本。
         """
         if not self.profile:
@@ -4173,7 +4149,6 @@ class ExtractionResult(BaseModel):
         await self._load_or_build_rag_retriever(force_rebuild=True)
         logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
 # 函式：解析並從世界聖經創建LORE
-
 
 
 
@@ -5442,6 +5417,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
