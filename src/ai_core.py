@@ -4726,13 +4726,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取本地模型專用的摘要器Prompt
 
 
-    # 函式：呼叫本地Ollama模型進行摘要 (v2.0 - 事實清單提取)
+    # 函式：呼叫本地Ollama模型進行摘要 (v2.1 - 防禦性數據轉換)
     # 更新紀錄:
-    # v2.0 (2025-09-28): [根本性重構] 根據「RAG事實清單」策略，徹底重寫此函式。它不再返回純文本摘要，而是被賦予了調用本地模型提取結構化`RagFactSheet` JSON物件的職責，使其與雲端模型的功能保持一致，成為一個真正可靠的備援。
-    # v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的第二層備援。
+    # v2.1 (2025-09-28): [災難性BUG修復] 增加了對本地模型返回錯誤數據結構的防禦性處理層。在Pydantic驗證前，此版本會遍歷模型返回的JSON，並將列表中不符合規範的字典物件（如`{'name': '米婭'}`）強制轉換為預期的純字串（`'米婭'`）。此修改從根本上解決了因本地模型未嚴格遵守格式要求而導致的ValidationError。
+    # v2.0 (2025-09-28): [根本性重構] 根據「RAG事實清單」策略，徹底重寫此函式。
     async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional["RagFactSheet"]:
         """
-        (v2.0 重構) 呼叫本地運行的 Ollama 模型來執行「事實清單」提取任務。
+        (v2.1 重構) 呼叫本地運行的 Ollama 模型來執行「事實清單」提取任務，並內置數據清洗邏輯。
         成功則返回一個 RagFactSheet 物件，失敗則返回 None。
         """
         import httpx
@@ -4770,6 +4770,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
                 clean_json_str = json_match.group(0)
                 parsed_json = json.loads(clean_json_str)
+
+                # [v2.1 核心修正] 在驗證前對數據進行清洗和規範化
+                for key in ["involved_characters", "key_locations", "significant_objects", "core_events"]:
+                    if key in parsed_json and isinstance(parsed_json[key], list):
+                        clean_list = []
+                        for item in parsed_json[key]:
+                            if isinstance(item, dict):
+                                # 嘗試提取核心名稱或事件描述，如果失敗則將整個字典轉為字串
+                                value = item.get('name') or item.get('event_name') or item.get('description') or str(item)
+                                clean_list.append(str(value))
+                            elif isinstance(item, str):
+                                clean_list.append(item)
+                            # 忽略其他非字串類型
+                        parsed_json[key] = clean_list
+
                 validated_result = RagFactSheet.model_validate(parsed_json)
                 logger.info(f"[{self.user_id}] [RAG事實提取-3] ✅ 本地模型事實清單提取成功。")
                 return validated_result
@@ -5103,6 +5118,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
