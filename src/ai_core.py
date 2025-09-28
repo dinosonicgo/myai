@@ -3693,15 +3693,16 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：獲取批量別名交叉驗證器Prompt (v1.3 - 强制纠错)
+    # 函式：獲取批量別名交叉驗證器Prompt (v1.4 - 輸出穩定性終極修復)
     # 更新紀錄:
-    # v1.3 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次強化【主動糾錯原則】。新版Prompt以更嚴厲的措辭、更清晰的範例，强制要求LLM主動审查`description`字段，查找那些在`claimed_aliases`中被遗漏的、以列表形式存在的身份标签（如“母畜”、“性神教徒”），并将其强制合并到`final_aliases`中。此修改旨在为初始解析的遗漏提供一个强有力的后备纠错保障。
+    # v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt，以規避因`}}`和`"""`符號組合觸發的Markdown渲染引擎截斷BUG，確保函式輸出的絕對完整性。
+    # v1.3 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次強化【主動糾錯原則】。
     # v1.2 (2025-09-28): [災難性BUG修復] 新增了【主動糾錯原則】。
-    # v1.1 (2025-09-28): [災難性BUG修復] 根據 ValidationError 日誌，為Prompt增加了一個結構絕對正確的【輸出結構範例】。
     def get_batch_alias_validator_prompt(self) -> str:
         """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
         
-        prompt_template = """# TASK: 你是一位極其嚴謹、注重細節的【首席情報校對官】，擅長並行處理多個任務。
+        # 使用字串拼接來避免輸出渲染錯誤
+        part1 = """# TASK: 你是一位極其嚴謹、注重細節的【首席情報校對官】，擅長並行處理多個任務。
 # MISSION: 你的任務是接收一份包含【多個校對任務】的批量請求。對於列表中的【每一個角色】，你需要以其對應的【原始情報文本】為唯一依據，對【聲稱的身份列表】進行嚴格的【事實核查】，並返回一份【絕對完整、無遺漏】的最終身份列表。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
@@ -3717,7 +3718,7 @@ class ExtractionResult(BaseModel):
 # === 【【【⚙️ 輸出結構與思考過程範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
 # --- 輸入情報 ---
 # "character_name": "米婭",
-# "context_snippet": "* 米婭 (Mia) - 「聖女」\n   * 身份/外貌: 性神教徒、母畜、聖女。約16歲...",
+# "context_snippet": "* 米婭 (Mia) - 「聖女」\\n   * 身份/外貌: 性神教徒、母畜、聖女。約16歲...",
 # "claimed_aliases": ["Mia", "聖女"]
 #
 # --- 你的思考過程 (僅供參考) ---
@@ -3728,15 +3729,35 @@ class ExtractionResult(BaseModel):
 #
 # --- 最終JSON輸出 (部分) ---
 # ```json
-# {
-#   "validated_aliases": [
-#     {
-#       "character_name": "米婭",
-#       "final_aliases": ["Mia", "聖女", "性神教徒", "母畜"]
-#     }
-#   ]
-# }
-# 
+"""
+        json_example = """{
+  "validated_aliases": [
+    {
+      "character_name": "米婭",
+      "final_aliases": ["Mia", "聖女", "性神教徒", "母畜"]
+    },
+    {
+      "character_name": "絲月",
+      "final_aliases": ["Mia", "勳爵夫人", "啟蒙者"]
+    }
+  ]
+}"""
+        part2 = """
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【批量情報校對任務】:
+{batch_input_json}
+
+# ---
+# 【你校對後的批量結果JSON】:
+"""
+        return part1 + json_example + part2
+    # 函式：獲取批量別名交叉驗證器Prompt
+
+
+    
 
     
 
@@ -5074,6 +5095,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
