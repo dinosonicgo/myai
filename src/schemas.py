@@ -260,8 +260,11 @@ class BatchResolutionResult(BaseModel):
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
+# 類別：工具調用 (v1.1 - 增加別名容錯)
+# 更新紀錄:
+# v1.1 (2025-09-28): [災難性BUG修復] 為 `tool_name` 欄位增加了 `validation_alias=AliasChoices('tool_name', 'tool_code')`。此修改旨在解決因LLM未能嚴格遵守Schema、錯誤地生成了`tool_code`鍵名而導致的致命ValidationError，通過使Pydantic模型能夠兼容兩種鍵名，極大地增強了事後分析流程的健壯性。
 class ToolCall(BaseModel):
-    tool_name: str = Field(..., description="要呼叫的工具的名稱。")
+    tool_name: str = Field(..., description="要呼叫的工具的名稱。", validation_alias=AliasChoices('tool_name', 'tool_code'))
     parameters: Dict[str, Any] = Field(..., description="要傳遞給工具的參數字典。")
 
     @field_validator('parameters', mode='before')
@@ -274,6 +277,7 @@ class ToolCall(BaseModel):
             except json.JSONDecodeError:
                 return value
         return value
+# 類別：工具調用
 
 class WorldGenesisResult(BaseModel):
     location_path: List[str] = Field(description="新生成的出生點的層級式路徑。")
@@ -448,6 +452,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
