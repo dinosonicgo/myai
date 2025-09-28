@@ -377,10 +377,10 @@ class NarrativeExtractionResult(BaseModel):
 
 # src/schemas.py 的 NarrativeDirective 類別 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此模型。它用於驗證導演決策鏈返回的結構化數據，確保主生成流程能夠接收到一個清晰、不可違背的「本回合強制動作指令」。
+# v1.1 (2025-09-28): [架構升級] 根據「最終防線協議」對模型進行了重構。移除了孤立的`mandatory_action`，並將`scene_summary_for_generation`設為核心必需字段。這將AI導演的職責從提供「建議」升級為輸出一個融合了所有邏輯的、完整的「劇本大綱」，確保了下游主生成模型的指令單一性和執行可靠性。
+# v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此模型。
 class NarrativeDirective(BaseModel):
     """用於包裹「AI導演」決策結果的模型。"""
-    mandatory_action: Optional[str] = Field(default=None, description="一個可選的、根據場景規則推斷出的、本回合必須發生的核心動作的自然語言描述。如果沒有必須發生的動作，則為 null。")
     scene_summary_for_generation: str = Field(description="對使用者原始意圖和推斷出的強制動作的簡潔整合，作為給主生成模型的最終、最高優先級的創作指令。")
 # src/schemas.py 的 NarrativeDirective 類別結束
 
@@ -395,7 +395,6 @@ class RagFactSheet(BaseModel):
     key_locations: List[str] = Field(default_factory=list, description="事件發生的關鍵地點列表。")
     significant_objects: List[str] = Field(default_factory=list, description="在事件中扮演重要角色的物品列表。")
     core_events: List[str] = Field(default_factory=list, description="對核心事件的、極度中性且客觀的要點式描述列表。")
-# src/schemas.py 的 RagFactSheet 類別結束
 
 
 
@@ -449,6 +448,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
