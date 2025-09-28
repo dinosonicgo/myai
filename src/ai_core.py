@@ -3671,10 +3671,11 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.1 - 新增結構範例)
-# 更新紀錄:
-# v1.1 (2025-09-28): [災難性BUG修復] 根據 ValidationError 日誌，為Prompt增加了一個結構絕對正確的【輸出結構範例】。此修改為LLM提供了一個清晰的模仿目標，旨在根除因模型隨意命名JSON鍵而導致的驗證失敗問題。
-# v1.0 (2025-09-28): [全新創建] 根據「分批交叉驗證」策略，創建此核心Prompt模板。
+    # 函式：獲取批量別名交叉驗證器Prompt (v1.2 - 强制纠错)
+    # 更新紀錄:
+    # v1.2 (2025-09-28): [災難性BUG修復] 新增了【主動糾錯原則】，强制要求LLM主動审查`description`字段，查找那些在`claimed_aliases`中被遗漏的、以列表形式存在的身份标签（如“母畜”、“性神教徒”），并将其强制合并到`final_aliases`中。此修改旨在为初始解析的遗漏提供一个强有力的后备纠错保障。
+    # v1.1 (2025-09-28): [災難性BUG修復] 根據 ValidationError 日誌，為Prompt增加了一個結構絕對正確的【輸出結構範例】。
+    # v1.0 (2025-09-28): [全新創建] 根據「分批交叉驗證」策略，創建此核心Prompt模板。
     def get_batch_alias_validator_prompt(self) -> str:
         """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
         
@@ -3682,10 +3683,14 @@ class ExtractionResult(BaseModel):
 # MISSION: 你的任務是接收一份包含【多個校對任務】的批量請求。對於列表中的【每一個角色】，你需要以其對應的【原始情報文本】為唯一依據，對【聲稱的身份列表】進行嚴格的【事實核查】，並返回一份【絕對完整、無遺漏】的最終身份列表。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【獨立處理】**: 你必須將每個角色的校對任務視為完全獨立的單元。一個角色的情報文本不能用於推斷另一個角色的身份。
-# 2. **【窮舉提取】**: 在每個角色的獨立上下文中，你【必須】找出所有能描述該角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
-# 3. **【合併與補全】**: 對於每個角色，你需要將你新發現的所有身份，與其【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
-# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`validated_aliases` 列表必須包含對輸入中【所有角色】的處理結果。
+# 1.  **【獨立處理】**: 你必須將每個角色的校對任務視為完全獨立的單元。一個角色的情報文本不能用於推斷另一個角色的身份。
+# 2.  **【窮舉提取】**: 在每個角色的獨立上下文中，你【必須】找出所有能描述該角色的【身份、頭銜、職業、狀態、種族、綽號】，甚至是【技術代碼】（例如 `ROLE-D`）。
+# 3.  **【🚨 主動糾錯原則 (PROACTIVE CORRECTION MANDATE) - 最高優先級】**:
+#     *   你【必須】主動、嚴格地審查每個角色的 `context_snippet`（特別是開頭部分）。
+#     *   如果 `context_snippet` 中存在一個以頓號、逗號或空格分隔的**名詞列表**（例如 `身份/外貌: 性神教徒、母畜、聖女。`），而這些名詞**沒有**完全出現在 `claimed_aliases` 列表中，你【必須】將所有這些被遺漏的名詞**強制添加**到最終的 `final_aliases` 列表中。
+#     *   **這是你的核心職責，任何遺漏都將被視為重大失敗。**
+# 4.  **【合併與補全】**: 對於每個角色，你需要將你新發現的所有身份，與其【聲稱的身份列表】進行合併，生成一個【去重後的、最完整的】最終列表。
+# 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`validated_aliases` 列表必須包含對輸入中【所有角色】的處理結果。
 
 # === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
 # 你的輸出JSON的結構【必須】與下方範例完全一致。鍵名【必須】是 "validated_aliases", "character_name", "final_aliases"。
@@ -3693,12 +3698,12 @@ class ExtractionResult(BaseModel):
 # {
 #   "validated_aliases": [
 #     {
-#       "character_name": "絲月",
-#       "final_aliases": ["Mia", "勳爵夫人", "啟蒙者"]
+#       "character_name": "米婭",
+#       "final_aliases": ["Mia", "聖女", "性神教徒", "母畜"]
 #     },
 #     {
-#       "character_name": "米婭",
-#       "final_aliases": ["Mia", "性神教徒", "母畜", "聖女"]
+#       "character_name": "絲月",
+#       "final_aliases": ["Mia", "勳爵夫人", "啟蒙者"]
 #     }
 #   ]
 # }
@@ -3713,7 +3718,7 @@ class ExtractionResult(BaseModel):
 # 【你校對後的批量結果JSON】:
 """
         return prompt_template
-# 函式：獲取批量別名交叉驗證器Prompt
+    # 函式：獲取批量別名交叉驗證器Prompt
 
 
     
@@ -4573,11 +4578,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 get_canon_transformation_chain 函式 (v2.9 - 終極身份提取強化 II)
-# 更新紀錄:
-# v2.9 (2025-09-28): [災難性BUG修復] 根據最新LORE分析，再次強化【列表窮舉強制令】，措辭更嚴厲，並更新範例以確保LLM完全理解指令，根治aliases提取不全的問題。
-# v2.8 (2025-11-22): [災難性BUG修復] 對【身份別名雙重提取原則】進行了終極強化。
-# v2.7 (2025-11-22): [災難性BUG修復] 強化了【身份別名雙重提取原則】。
+    # 函式：獲取世界聖經轉換器 Prompt (v3.0 - 身份提取终极强化)
+    # 更新紀錄:
+    # v3.0 (2025-09-28): [災難性BUG修復] 引入了终极强化版的【身份別名雙重提取原則】與【列表窮舉強制令】。此修改强制要求LLM在解析到`身份: A、B、C`这类结构时，必须将A、B、C三个身份标签一个不漏地、分别独立地同时写入`description`和`aliases`两个字段。此举旨在从源头根除因LLM未能将身份标签识别为别名而导致的关键信息遗漏问题。
+    # v2.9 (2025-09-28): [災難性BUG修復] 根據最新LORE分析，再次強化【列表窮舉強制令】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         pydantic_definitions = """
@@ -4615,19 +4619,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          }
 #        }
 #        ```
-# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v2.9 - 終極強化版】**:
+# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v3.0 - 终极强化版】**:
 #    - 當你從文本中識別出一個描述角色【核心身份】的關鍵詞時（例如：職業、頭銜、狀態、種族、綽號），你【必須】執行【雙重寫入】操作：
 #      a. 將這個身份作為敘述的一部分，完整地保留在 `description` 欄位中。
 #      b. **同時**，將這個關鍵詞本身作為一個獨立的字串，添加到 `aliases` 列表中。
 #    - **【🚨列表窮舉強制令 (LIST ENUMERATION MANDATE) - 絕不妥協🚨】**: 當身份是以列表形式（如 `身份: A、B、C`）提供時，此規則**【絕對必須】**應用於列表中的**【每一個】**項目。你必須將 A, B, C 三個詞**【一個不漏地、分別地、獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為【災難性的重大失敗】。
-#    - **範例 (v2.9 終極強化範例)**:
-#      - **輸入文本**: `* 米婭 (Mia)\n   * 身份: 性神教徒、母畜、聖女 (於聖露修道院)。`
+#    - **範例 (v3.0 终极强化範例)**:
+#      - **輸入文本**: `* 米婭 (Mia)\n   * 身份/外貌: 性神教徒、母畜、聖女。約16歲...`
 #      - **【【【絕對正確的JSON輸出 (部分)】】】**:
 #        ```json
 #        {
 #          "name": "米婭",
-#          "description": "身份是性神教徒、母畜、以及聖露修道院的聖女。",
-#          "aliases": ["Mia", "性神教徒", "母畜", "聖女"]
+#          "description": "性神教徒、母畜、聖女。約16歲...",
+#          "aliases": ["Mia", "聖女", "性神教徒", "母畜"]
 #        }
 #        ```
 # 4. **【🎯 必需欄位強制令】**:
@@ -4655,7 +4659,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         base_prompt = part1 + part2
         return base_prompt
-# 函式：獲取世界聖經轉換器 Prompt
+    # 函式：獲取世界聖經轉換器 Prompt
 
 
     
@@ -5051,6 +5055,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
