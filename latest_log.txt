@@ -1,27 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-28T13:39:52.026715 ###
+### AI Lover Log - Last updated at 2025-09-28T15:40:52.124167 ###
 
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 7 條訊息。
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] [純粹生成流程] 正在準備上下文...
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] [指令實體提取] 通過 LORE 字典找到實體: {'米婭'}
-2025-09-28 01:49:25 - [INFO] - [512280345618546699] [LORE錨定] 正在為指令中提及的 ['米婭'] 強制查找LORE檔案...
-2025-09-28 01:49:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-28 01:49:29 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭'], 背景角色: []
-2025-09-28 01:49:29 - [INFO] - [512280345618546699] RAG查詢已擴展為: 'Mia 聖女 米婭 描述米婭在宅邸打掃遇到勛爵 聖露修道院 母畜 活神蹟'
-2025-09-28 01:49:29 - [INFO] - [512280345618546699] [RAG後處理篩選] 已將 15 條初步檢索結果精煉為 12 條與核心角色相關的記憶。
-2025-09-28 01:49:29 - [INFO] - [512280345618546699] [RAG摘要-1] 嘗試使用雲端模型處理原始文本...
-2025-09-28 01:49:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-28 01:49:44 - [WARNING] - [512280345618546699] [RAG摘要-1] 雲端模型審查了原始文本。降級到層級 2 (雲端+代碼化)...
-2025-09-28 01:49:58 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-28 01:49:58 - [ERROR] - [512280345618546699] [RAG摘要-2] 🔥 代碼化備援失敗: Prompt blocked due to PROHIBITED_CONTENT
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4941, in retrieve_and_summarize_memories
-    summary = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 791, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 762, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
 google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to PROHIBITED_CONTENT
 
 During handling of the above exception, another exception occurred:
@@ -300,3 +278,25 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-09-28 12:29:57 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-28 12:29:58 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-28 12:29:58 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-28 15:40:37 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-28 15:40:37 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-28 15:40:38 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-28 15:40:38 - [INFO] - Discord Bot is ready!
+2025-09-28 15:40:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-28 15:40:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-28 15:40:42 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-28 15:40:47 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 181 條文檔到 RAG 語料庫。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] (Retriever Builder) 已成功從持久化檔案構建 RAG 檢索器。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-28 15:40:47 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-28 15:40:47 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-28 15:40:48 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-28 15:40:50 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-28 15:40:50 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 1 條場景歷史記錄。
+2025-09-28 15:40:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
