@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-28T23:01:03.693763 ###
+### AI Lover Log - Last updated at 2025-09-28T23:06:34.049170 ###
 
-2025-09-28 22:30:15 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 15 條文檔 ---
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'lore', 'category': 'world_lore', 'key': '母畜在宅邸的禮儀'}
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'memory'}
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 3] Metadata: {'source': 'memory'}
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 4] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 絲月'}
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 5] Metadata: {'source': 'memory'}
-2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 6] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 露比'}
 2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 7] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 泰莎'}
 2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 8] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 聖凱瑟琳學院 > 莉莉絲'}
 2025-09-28 22:30:15 - [INFO] -   [Filtered Doc 9] Metadata: {'source': 'memory'}
@@ -300,3 +293,10 @@ httpx.ReadTimeout
 2025-09-28 22:55:49 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-28 22:55:49 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-28 22:55:50 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-28 23:06:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-28 23:06:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-28 23:06:20 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-28 23:06:20 - [INFO] - Discord Bot is ready!
+2025-09-28 23:06:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-28 23:06:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-28 23:06:23 - [INFO] - 已成功發送啟動成功通知給管理員。
