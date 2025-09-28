@@ -62,7 +62,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet)
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -1512,7 +1512,49 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    
+        # 函式：獲取敘事場景提取器 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-09-28): [全新創建] 根據「場景範疇界定」架構，創建此核心Prompt模板。它被設計為一個前置的、輕量級的LLM調用，唯一職責是判斷使用者指令是否包含一個明確的“敘事意圖地點”，並將其提取為結構化路徑。這是解決“地面實況”與“敘事意圖”衝突的關鍵第一步。
+    def get_scene_location_extraction_prompt(self) -> str:
+        """獲取或創建一個專門用於從使用者指令中提取敘事意圖地點的字符串模板。"""
+        prompt_template = """# TASK: 你是一位高精度的【場景意圖分析儀】。
+# MISSION: 你的任務是分析【使用者指令】，判斷其中是否包含一個明確的【地點或場景描述】，並將其提取為結構化的路徑。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【意圖判斷】**:
+#     *   如果指令明確描述了一個地點（例如「在宅邸」、「前往市場」、「描述森林深處」），則 `has_explicit_location` 必須為 `true`。
+#     *   如果指令是一個沒有地點上下文的動作（例如「攻擊他」、「繼續對話」、「她感覺如何？」），則 `has_explicit_location` 必須為 `false`。
+# 2.  **【路徑提取】**:
+#     *   如果 `has_explicit_location` 為 `true`，你【必須】將地點解析為一個層級化列表，放入 `location_path`。例如：「維利爾斯莊園的書房」應解析為 `["維利爾斯莊園", "書房"]`。
+#     *   如果 `has_explicit_location` 為 `false`，`location_path` 必須為 `null`。
+# 3.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `SceneLocationExtraction` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 範例 1 (有地點) ---
+# ```json
+# {
+#   "has_explicit_location": true,
+#   "location_path": ["維利爾斯家宅邸"]
+# }
+# ```
+# --- 範例 2 (無地點) ---
+# ```json
+# {
+#   "has_explicit_location": false,
+#   "location_path": null
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【使用者指令】:
+{user_input}
+
+# ---
+# 【你分析後的場景意圖JSON】:
+"""
+        return prompt_template
+    # 函式：獲取敘事場景提取器 Prompt
         
 
 
@@ -2812,16 +2854,16 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v44.5 - 數據流修復)
+    # 函式：預處理並生成主回應 (v44.6 - 場景範疇界定)
     # 更新紀錄:
-    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂：1. `rules_context` 未能從RAG結果中正確傳遞，導致導演看不到規則。2. `location_description` 被錯誤的RAG歷史地點污染。新版邏輯確保了導演接收到的所有上下文（特別是規則和地點）都與當前使用者指令和遊戲狀態嚴格一致，從根源上解決了導演被錯誤數據誤導的問題。
-    # v44.4 (2025-09-28): [調試增強] 增加了詳細的導演上下文日誌。
+    # v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。此修改在所有流程之前，增加了一个前置的、輕量級的LLM调用，專門用於判斷並提取使用者指令中的“叙事意图地点”。程式随后会以这个“意图地点”作为本回合的绝对权威场景，覆盖掉数据库中儲存的玩家位置。此舉從根本上解决了因玩家客觀位置（地面实况）与故事希望發生的地點（叙事意图）不一致，而導致的場景漂移和導演决策混乱的致命问题。
+    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.5重構) 執行包含「上下文注入式導演」決策的純粹小說生成任務。
+        (v44.6重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
         返回純小說文本字串。
         """
-        from .schemas import NarrativeDirective
+        from .schemas import NarrativeDirective, SceneLocationExtraction
 
         user_input = input_data["user_input"]
 
@@ -2833,6 +2875,28 @@ class ExtractionResult(BaseModel):
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
+
+        # --- [v44.6 新增] 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
+        logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
+        authoritative_location_path: List[str]
+        try:
+            location_extraction_prompt = self.get_scene_location_extraction_prompt()
+            full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
+            location_result = await self.ainvoke_with_rotation(
+                full_prompt,
+                output_schema=SceneLocationExtraction,
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+            if location_result and location_result.has_explicit_location and location_result.location_path:
+                authoritative_location_path = location_result.location_path
+                logger.info(f"[{self.user_id}] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: {authoritative_location_path}")
+            else:
+                authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                logger.info(f"[{self.user_id}] [場景界定] 未檢測到使用者意圖地點，將使用當前遊戲狀態地點: {authoritative_location_path}")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
+            authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+        # --- 場景範疇界定結束 ---
 
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
@@ -2864,7 +2928,7 @@ class ExtractionResult(BaseModel):
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
 
-        scene_path_tuple = tuple(gs.remote_target_path) if gs.viewing_mode == 'remote' and gs.remote_target_path else tuple(gs.location_path)
+        scene_path_tuple = tuple(authoritative_location_path)
         all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple)
         
         explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
@@ -2872,10 +2936,8 @@ class ExtractionResult(BaseModel):
         
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
 
-        # [v44.5 核心修正] 從 RAG 結果中正確提取 rules_context
         scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
         
-        # 即使RAG沒找到，也再次檢查一次LORE繼承，作為雙重保險
         if "無特殊規則" in scene_rules_context_str:
             all_characters_in_scene = relevant_characters + background_characters
             if all_characters_in_scene:
@@ -2887,12 +2949,11 @@ class ExtractionResult(BaseModel):
                         scene_rules_context_str = "\n\n".join(rule_texts)
                         logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
 
-        # --- [v44.5] AI 導演決策模組 (上下文強化版 + 數據流修復) ---
+        # --- AI 導演決策模組 ---
         logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
         directive = None
         
-        # [v44.5 核心修正] 確保地點描述的絕對真實性，直接從遊戲狀態生成，避免RAG污染
-        location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+        location_path = authoritative_location_path # 使用界定後的權威地點
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
@@ -2901,7 +2962,7 @@ class ExtractionResult(BaseModel):
             "relevant_characters_summary": ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無",
             "location_description": f"{' > '.join(location_path)}: {location_desc}",
             "rag_summary": structured_rag_context.get("summary", "無"),
-            "scene_rules_context": scene_rules_context_str, # 使用修正後的數據流
+            "scene_rules_context": scene_rules_context_str,
             "user_input": user_input
         }
         
@@ -5158,6 +5219,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
