@@ -691,9 +691,10 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.7 - 生成完整性驗證)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.8 - JSON自我修正)
     # 更新紀錄:
-    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。此修改在接收到API的成功響應後，會主動檢查其`finish_reason`。如果停止原因不是自然的“STOP”，而是“MAX_TOKENS”或“SAFETY”等，即使API未報錯，此函式也會將其視為一次“靜默失敗”，並主動拋出異常以觸發重試或模型降級。此舉旨在從根本上解決因API返回被截斷的不完整文本而導致劇情中斷的問題。
+    # v232.8 (2025-09-29): [災難性BUG修復] 引入了【JSON自我修正】重試機制。當首次解析模型返回的JSON失敗時，此函式不再立即拋出錯誤，而是會自動調用一個專門的修正鏈，將格式錯誤的文本再次發送給LLM請求修復，然後再次嘗試解析。此舉旨在解決因模型（特別是小型號）偶爾生成不規範JSON而導致的解析鏈中斷問題，大幅提高長文本解析的成功率。
+    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。
     # v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
     async def ainvoke_with_rotation(
         self,
@@ -737,6 +738,7 @@ class AILover:
                 key_to_use, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
+                    raw_text_result = ""
                     try:
                         genai.configure(api_key=key_to_use)
                         
@@ -760,19 +762,14 @@ class AILover:
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         
-                        # [v232.7 核心修正] 生成完整性驗證
                         if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
                              finish_reason_name = response.candidates[0].finish_reason.name
                              logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                             # 將靜默失敗轉化為可被重試邏輯捕獲的異常
                              if finish_reason_name == 'MAX_TOKENS':
-                                 # 對於 MAX_TOKENS，通常是輸入太長或輸出設置太小，重試意義不大，直接拋出讓上層處理
                                  raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
                              elif finish_reason_name == 'SAFETY':
-                                 # 如果是因為安全原因停止，則觸發內容審查備援
                                  raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                              else:
-                                 # 對於其他原因（如 RECITATION），視為臨時性 API 錯誤
                                  raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
@@ -783,11 +780,42 @@ class AILover:
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
-                            json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
-                            if not json_match:
-                                raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
-                            clean_json_str = json_match.group(0)
-                            return output_schema.model_validate(json.loads(clean_json_str))
+                            try:
+                                json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
+                                if not json_match:
+                                    raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
+                                clean_json_str = json_match.group(0)
+                                return output_schema.model_validate(json.loads(clean_json_str))
+                            except (ValidationError, OutputParserException, json.JSONDecodeError) as parsing_error:
+                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 首次解析失敗: {type(parsing_error).__name__}。啟動【JSON自我修正】重試...")
+                                
+                                correction_prompt_template = self.get_json_correction_chain()
+                                # 為了通用性，我們傳入一個簡化的目標結構描述
+                                correction_prompt = self._safe_format_prompt(
+                                    correction_prompt_template,
+                                    {
+                                        "raw_json_string": raw_text_result,
+                                        "context_name": "General Correction",
+                                    },
+                                    inject_core_protocol=True
+                                )
+                                
+                                corrected_text = await self.ainvoke_with_rotation(
+                                    correction_prompt,
+                                    output_schema=None, # 修正鏈只返回純文本
+                                    retry_strategy='none', # 修正鏈本身不再重試
+                                    use_degradation=False # 使用快速模型
+                                )
+                                
+                                if not corrected_text:
+                                    raise parsing_error # 如果修正失敗，則重新拋出原始錯誤
+
+                                logger.info(f"[{self.user_id}] 【JSON自我修正】成功，正在重新驗證修正後的JSON...")
+                                json_match = re.search(r'\{.*\}|\[.*\]', corrected_text, re.DOTALL)
+                                if not json_match:
+                                     raise OutputParserException("修正後的文本中仍然找不到JSON物件。", llm_output=corrected_text)
+                                clean_json_str = json_match.group(0)
+                                return output_schema.model_validate(json.loads(clean_json_str))
                         else:
                             return raw_text_result
 
@@ -805,7 +833,7 @@ class AILover:
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 在【自我修正】後仍然遭遇解析或驗證錯誤: {type(e).__name__}。")
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
@@ -4456,7 +4484,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-    # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
+     # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
     # 更新紀錄:
     # v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。
@@ -5224,6 +5252,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
