@@ -1,14 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-28T23:34:21.451250 ###
+### AI Lover Log - Last updated at 2025-09-28T23:49:35.686031 ###
 
-    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1629, in send
-    response = await self._send_handling_auth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1657, in _send_handling_auth
-    response = await self._send_handling_redirects(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1694, in _send_handling_redirects
-    response = await self._send_single_request(request)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1730, in _send_single_request
-    response = await transport.handle_async_request(request)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 393, in handle_async_request
     with map_httpcore_exceptions():
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
@@ -300,3 +291,12 @@ httpx.ReadTimeout
 2025-09-28 23:30:48 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
 2025-09-28 23:32:42 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇靜默失敗，生成因 'PROHIBITED_CONTENT' 而提前終止。
 2025-09-28 23:32:42 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.25 秒後進行第 2 次嘗試...
+2025-09-28 23:35:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-09-28 23:35:25 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-09-28 23:49:21 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-28 23:49:21 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-28 23:49:22 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-28 23:49:22 - [INFO] - Discord Bot is ready!
+2025-09-28 23:49:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-28 23:49:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-28 23:49:25 - [INFO] - 已成功發送啟動成功通知給管理員。
