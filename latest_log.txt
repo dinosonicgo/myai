@@ -1,102 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T23:35:51.728767 ###
+### AI Lover Log - Last updated at 2025-09-29T23:38:47.021447 ###
 
-2025-09-29 21:49:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 21:49:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 22:02:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 22:02:06 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 22:02:07 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 22:02:07 - [INFO] - Discord Bot is ready!
-2025-09-29 22:02:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 22:02:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 22:02:10 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 22:02:48 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-29 22:02:48 - [INFO] - [512280345618546699] 正在从数据库删除所有相关数据...
-2025-09-29 22:02:49 - [INFO] - [512280345618546699] 数据库清理完成。
-2025-09-29 22:02:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-29 22:02:58 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-29 22:02:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 22:02:58 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-29 22:02:58 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！
-2025-09-29 22:02:58 - [CRITICAL] - [512280345618546699] 致命錯誤: 未找到核心協議 '00_supreme_directive.txt'！
-2025-09-29 22:02:58 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合雲端模式】...
-2025-09-29 22:02:58 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 22:02:58 - [WARNING] - [512280345618546699] [RAG Mode] 初始化【混合雲端模式】失敗: GoogleGenerativeAIError。正在降級...
-2025-09-29 22:02:58 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合本地模式】（將自動從鏡像源下載）...
-2025-09-29 22:03:02 - [ERROR] - [512280345618546699] [RAG Mode] 初始化【混合本地模式】最終失敗 (可能是模型下載/加載問題): Could not import sentence_transformers python package. Please install it with `pip install sentence-transformers`.
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 225, in embed_documents
-    result = self.client.batch_embed_contents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1365, in batch_embed_contents
-    response = rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
-    result = target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3553, in _configure_pre_requisites
-    await google_embeddings.aembed_query("test")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 79, in aembed_query
-    return await run_in_executor(None, self.embed_query, text)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 590, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 581, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 254, in embed_query
-    return self.embed_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 229, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
 violations {
   quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
   quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
@@ -300,3 +203,100 @@ cannot import name 'EncoderDecoderCache' from 'transformers' (C:\Users\USER\AppD
 2025-09-29 23:35:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 23:35:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 23:35:41 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 23:36:10 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 23:36:10 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 23:36:10 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 23:36:10 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 23:36:10 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 23:36:10 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v3' 實例...
+2025-09-29 23:36:12 - [ERROR] - [512280345618546699] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: infgrad/stella-base-zh-v3 is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `huggingface-cli login` or by passing `token=<your_token>`
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\_http.py", line 409, in hf_raise_for_status
+    response.raise_for_status()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://hf-mirror.com/infgrad/stella-base-zh-v3/resolve/main/config.json
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\hub.py", line 389, in cached_file
+    resolved_file = hf_hub_download(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1008, in hf_hub_download
+    return _hf_hub_download_to_cache_dir(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1115, in _hf_hub_download_to_cache_dir
+    _raise_on_head_call_error(head_call_error, force_download, local_files_only)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1645, in _raise_on_head_call_error
+    raise head_call_error
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1533, in _get_metadata_or_catch_error
+    metadata = get_hf_file_metadata(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\_validators.py", line 114, in _inner_fn
+    return fn(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 1450, in get_hf_file_metadata
+    r = _request_wrapper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 286, in _request_wrapper
+    response = _request_wrapper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\file_download.py", line 310, in _request_wrapper
+    hf_raise_for_status(response)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\huggingface_hub\utils\_http.py", line 459, in hf_raise_for_status
+    raise _format(RepositoryNotFoundError, message, response) from e
+huggingface_hub.errors.RepositoryNotFoundError: 404 Client Error. (Request ID: Root=1-68daa76c-7214f75212e9b9b73c0151b6;5804a773-6a83-488d-94b6-d05b78d982fb)
+
+Repository Not Found for url: https://hf-mirror.com/infgrad/stella-base-zh-v3/resolve/main/config.json.
+Please make sure you specified the correct `repo_id` and `repo_type`.
+If you are trying to access a private or gated repo, make sure you are authenticated. For more details, see https://huggingface.co/docs/huggingface_hub/authentication
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3703, in _create_embeddings_instance
+    embeddings = HuggingFaceEmbeddings(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\_api\deprecation.py", line 215, in warn_if_direct_instance
+    return wrapped(self, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_community\embeddings\huggingface.py", line 79, in __init__
+    self.client = sentence_transformers.SentenceTransformer(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 205, in __init__
+    modules = self._load_auto_model(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 1197, in _load_auto_model
+    transformer_model = Transformer(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 35, in __init__
+    config = AutoConfig.from_pretrained(model_name_or_path, **model_args, cache_dir=cache_dir)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\models\auto\configuration_auto.py", line 1082, in from_pretrained
+    config_dict, unused_kwargs = PretrainedConfig.get_config_dict(pretrained_model_name_or_path, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\configuration_utils.py", line 644, in get_config_dict
+    config_dict, kwargs = cls._get_config_dict(pretrained_model_name_or_path, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\configuration_utils.py", line 699, in _get_config_dict
+    resolved_config_file = cached_file(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\hub.py", line 410, in cached_file
+    raise EnvironmentError(
+OSError: infgrad/stella-base-zh-v3 is not a local folder and is not a valid model identifier listed on 'https://huggingface.co/models'
+If this is a private repository, make sure to pass a token having permission to this repo either by logging in with `huggingface-cli login` or by passing `token=<your_token>`
+2025-09-29 23:36:12 - [ERROR] -    -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。
+2025-09-29 23:36:12 - [ERROR] - [512280345618546699] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。
+2025-09-29 23:36:12 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 23:36:12 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-29 23:36:14 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-29 23:36:15 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-29 23:36:21 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-29 23:38:01 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 23:38:01 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 23:38:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 23:38:01 - [INFO] - Discord Bot is ready!
+2025-09-29 23:38:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 23:38:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 23:38:05 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 23:38:13 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 23:38:13 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 23:38:13 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 23:38:13 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 23:38:13 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 23:38:13 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 23:38:46 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
