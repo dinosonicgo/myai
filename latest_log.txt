@@ -1,104 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:12:45.405485 ###
+### AI Lover Log - Last updated at 2025-09-29T20:18:17.706508 ###
 
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 克拉拉 -> 迪茜 (New Roles: ['擁護者', '擁護'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 菲利普•薩格納 -> 薩格納將軍 (New Roles: ['父親', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 薩格納將軍 -> 菲利普•薩格納 (New Roles: ['兒子', '子女'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 薩格納將軍 -> 布里奇特 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 薩格納將軍 -> 瓦萊麗 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 菲利普•薩格納 -> 瓦萊麗 (Roles: ['兄弟姐妹'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 薩格納將軍 -> 國王埃德蒙三世 (Roles: ['君臣/盟友'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 國王埃德蒙三世 -> 大皇子阿拉里克 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 國王埃德蒙三世 -> 三皇子赫克托 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 菲利普•薩格納 -> 三皇子赫克托 (Roles: ['競爭對手'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 國王埃德蒙三世 -> 二公主塞拉菲娜 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 國王埃德蒙三世 -> 三皇女伊索爾德 (Roles: ['子女', '父母'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 博林勳爵 -> 三皇女伊索爾德 (Roles: ['引導者/轉化者'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 三皇女伊索爾德 -> 博林勳爵 (New Roles: ['轉化者', '引導者', '引導者/轉化者'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 米婭 -> 瓦勒留斯神父 (Roles: ['對手'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 莉莉絲 -> 麥可神父 (Roles: ['焦慮對象'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 62 個實體...
-2025-09-29 12:08:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-09-29 12:08:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 首次解析失敗: ValidationError。啟動【JSON自我修正】重試...
-2025-09-29 12:08:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:08:49 - [INFO] - [512280345618546699] 【JSON自我修正】成功，正在重新驗證修正後的JSON...
-2025-09-29 12:08:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 在【自我修正】後仍然遭遇解析或驗證錯誤: ValidationError。
-2025-09-29 12:08:49 - [ERROR] - [512280345618546699] [實體解析] 批量實體解析鏈執行失敗: 1 validation error for BatchResolutionPlan
-resolutions
-  Field required [type=missing, input_value={'resolution': {'original...根據上下文推斷'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 293, in _resolve_and_save
-    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 837, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 818, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 705, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchResolutionPlan
-resolutions
-  Field required [type=missing, input_value={'resolution': {'original...根據上下文推斷'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.11/v/missing
-2025-09-29 12:08:49 - [WARNING] - [512280345618546699] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。
-2025-09-29 12:08:56 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 3 個實體...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 2 個實體...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 1 個實體...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 6 個實體...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 104 條文檔用於創始構建。
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] (Retriever Builder) 創始構建成功，並已將索引持久化到磁碟。
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
-2025-09-29 12:08:57 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
-2025-09-29 12:09:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:09:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:09:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-29 12:09:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 12:09:00 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
-2025-09-29 12:09:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-29 12:09:01 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-09-29 12:09:01 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-09-29 12:09:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
-2025-09-29 12:09:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-29 12:09:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 12:09:39 - [INFO] - [512280345618546699] [/start] 初始地點 '艾德蒙王國 > 王都 > 聖凱瑟琳學院的偏僻角落' 已成功生成並存入LORE。
-2025-09-29 12:09:39 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
-2025-09-29 12:10:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-09-29 12:10:13 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
-2025-09-29 12:10:14 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
-2025-09-29 12:10:14 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
-2025-09-29 12:10:14 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
-2025-09-29 18:22:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 18:22:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 18:22:17 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 18:22:17 - [INFO] - Discord Bot is ready!
-2025-09-29 18:22:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 18:22:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 18:22:21 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 20:05:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 20:05:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 20:05:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 20:05:11 - [INFO] - Discord Bot is ready!
-2025-09-29 20:05:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 20:05:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 20:05:14 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 20:05:24 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-29 20:05:24 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 20:05:24 - [ERROR] - [512280345618546699] 後台重置任務失敗: (sqlite3.OperationalError) no such column: users.context_snapshot_json
-[SQL: SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.ai_settings AS users_ai_settings, users.affinity AS users_affinity, users.game_state AS users_game_state, users.one_instruction AS users_one_instruction, users.world_settings AS users_world_settings, users.user_profile AS users_user_profile, users.ai_profile AS users_ai_profile, users.response_style_prompt AS users_response_style_prompt, users.context_snapshot_json AS users_context_snapshot_json 
-FROM users 
-WHERE users.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
     raise error
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
     self.await_(_cursor.execute(operation, parameters))
@@ -300,3 +201,102 @@ WHERE users.user_id = ?]
 2025-09-29 20:12:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 20:12:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 20:12:34 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 20:12:50 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:12:50 - [INFO] - [512280345618546699] (Retriever Builder) ✅ BM25 關鍵字檢索器已成功構建，包含 30 條文檔。
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化。
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 成功創建混合檢索器 (Chroma + BM25)。
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:12:51 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-29 20:12:51 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
+2025-09-29 20:12:52 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-29 20:12:54 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-29 20:12:54 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 1 條場景歷史記錄。
+2025-09-29 20:12:58 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 20:13:03 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-29 20:13:04 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 20:13:04 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 460, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 517, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\rust.py", line 165, in get_tenant
+    tenant = self.bindings.get_tenant(name)
+AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 508, in _load_or_build_rag_retriever
+    client=chromadb.PersistentClient(path=self.vector_store_path)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 164, in PersistentClient
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 87, in __init__
+    self._validate_tenant_database(tenant=self.tenant, database=self.database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 469, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-29 20:13:04 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-29 20:13:04 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-29 20:13:04 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:13:05 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-29 20:13:15 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-29 20:13:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-29 20:13:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:13:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-29 20:13:27 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-29 20:13:27 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-29 20:13:27 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:13:30 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-09-29 20:13:30 - [INFO] - [512280345618546699] [後台創世 2/4] 正在補完角色檔案...
+2025-09-29 20:13:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-29 20:13:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-29 20:13:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-29 20:13:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:13:33 - [INFO] - [512280345618546699] [後台創世 3/4] 正在生成世界創世資訊...
+2025-09-29 20:13:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-09-29 20:13:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-29 20:13:37 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:13:37 - [INFO] - [512280345618546699] [/start] 初始地點 '艾瑞亞大陸 > 迷霧森林 > 古樹之心' 已成功生成並存入LORE。
+2025-09-29 20:13:37 - [INFO] - [512280345618546699] [後台創世 4/4] 正在生成開場白...
+2025-09-29 20:14:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-09-29 20:14:05 - [INFO] - [512280345618546699] [後台創世 4/4] 開場白生成完畢。
+2025-09-29 20:14:05 - [INFO] - [512280345618546699] [後台創世] 開場白已成功存入場景 '512280345618546699_local_艾瑞亞大陸_迷霧森林_古樹之心' 的歷史記錄並持久化。
+2025-09-29 20:14:05 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-09-29 20:14:06 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-09-29 20:14:06 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-09-29 20:14:34 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
+2025-09-29 20:14:34 - [INFO] - [512280345618546699] 正在准备生成上下文...
+2025-09-29 20:14:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-29 20:14:36 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['DINO', '碧'], 背景角色: []
+2025-09-29 20:14:36 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '月光蕈是什麼? DINO 碧'
+2025-09-29 20:14:36 - [ERROR] - 處理使用者 512280345618546699 的「純粹生成」流程時發生異常: 'AILover' object has no attribute 'get_unified_generation_chain'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1517, in on_message
+    final_response = await ai_instance.preprocess_and_generate(input_data)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3001, in preprocess_and_generate
+    final_prompt_template = self.get_unified_generation_chain()
+AttributeError: 'AILover' object has no attribute 'get_unified_generation_chain'. Did you mean: 'get_entity_extraction_chain'?
+2025-09-29 20:18:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 20:18:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 20:18:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 20:18:04 - [INFO] - Discord Bot is ready!
+2025-09-29 20:18:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 20:18:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 20:18:07 - [INFO] - 已成功發送啟動成功通知給管理員。
