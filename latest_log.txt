@@ -1,70 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T23:30:20.678891 ###
+### AI Lover Log - Last updated at 2025-09-29T23:35:51.728767 ###
 
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3570, in _configure_pre_requisites
-    self.embeddings = HuggingFaceEmbeddings(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\_api\deprecation.py", line 215, in warn_if_direct_instance
-    return wrapped(self, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_community\embeddings\huggingface.py", line 92, in __init__
-    self.client = sentence_transformers.SentenceTransformer(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 327, in __init__
-    modules, self.module_kwargs = self._load_sbert_model(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 2305, in _load_sbert_model
-    module = module_class.load(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 365, in load
-    return cls(model_name_or_path=model_name_or_path, **init_kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 88, in __init__
-    self._load_model(model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 196, in _load_model
-    self.auto_model = AutoModel.from_pretrained(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\models\auto\auto_factory.py", line 600, in from_pretrained
-    return model_class.from_pretrained(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 311, in _wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 4839, in from_pretrained
-    ) = cls._load_pretrained_model(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 5105, in _load_pretrained_model
-    load_state_dict(checkpoint_files[0], map_location="meta", weights_only=weights_only).keys()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 556, in load_state_dict
-    check_torch_load_is_safe()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1517, in check_torch_load_is_safe
-    raise ValueError(
-ValueError: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
-See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
-2025-09-29 21:49:28 - [CRITICAL] - [512280345618546699] [RAG Mode] 🔥 所有 Embedding 方案均失敗！系統已降級至【純關鍵字模式】。
-2025-09-29 21:49:28 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建 RAG 檢索器 (模式: keyword_only, 強制重建: False)...
-2025-09-29 21:49:28 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 21:49:28 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 語意搜索功能未啟用，跳過初始化 ChromaDB 檢索器。
-2025-09-29 21:49:28 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
-2025-09-29 21:49:28 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒 (當前 RAG 模式: keyword_only)。
-2025-09-29 21:49:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-29 21:49:28 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
 2025-09-29 21:49:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-29 21:49:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 22:02:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
@@ -300,3 +235,68 @@ ImportError: Could not import sentence_transformers python package. Please insta
 2025-09-29 23:30:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 23:30:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 23:30:10 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 23:30:20 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 23:30:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 23:30:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 23:30:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 23:30:21 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v3' 實例...
+2025-09-29 23:30:27 - [ERROR] - [512280345618546699] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: Failed to import transformers.trainer because of the following error (look up to see its traceback):
+cannot import name 'EncoderDecoderCache' from 'transformers' (C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\__init__.py)
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1535, in _get_module
+    return importlib.import_module("." + module_name, self.__name__)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\importlib\__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\trainer.py", line 213, in <module>
+    from peft import PeftModel
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\peft\__init__.py", line 17, in <module>
+    from .auto import (
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\peft\auto.py", line 32, in <module>
+    from .peft_model import (
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\peft\peft_model.py", line 37, in <module>
+    from transformers import Cache, DynamicCache, EncoderDecoderCache, HybridCache, PreTrainedModel
+ImportError: cannot import name 'EncoderDecoderCache' from 'transformers' (C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\__init__.py)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3703, in _create_embeddings_instance
+    embeddings = HuggingFaceEmbeddings(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\_api\deprecation.py", line 215, in warn_if_direct_instance
+    return wrapped(self, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_community\embeddings\huggingface.py", line 71, in __init__
+    import sentence_transformers
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\__init__.py", line 15, in <module>
+    from sentence_transformers.trainer import SentenceTransformerTrainer
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\trainer.py", line 10, in <module>
+    from transformers import EvalPrediction, PreTrainedTokenizerBase, Trainer, TrainerCallback
+  File "<frozen importlib._bootstrap>", line 1075, in _handle_fromlist
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1525, in __getattr__
+    module = self._get_module(self._class_to_module[name])
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1537, in _get_module
+    raise RuntimeError(
+RuntimeError: Failed to import transformers.trainer because of the following error (look up to see its traceback):
+cannot import name 'EncoderDecoderCache' from 'transformers' (C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\__init__.py)
+2025-09-29 23:30:27 - [ERROR] -    -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。
+2025-09-29 23:30:27 - [ERROR] - [512280345618546699] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。
+2025-09-29 23:30:27 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 23:30:27 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-29 23:30:27 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-29 23:30:27 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-29 23:30:27 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-29 23:30:28 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-29 23:30:30 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-29 23:30:30 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-29 23:35:37 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 23:35:37 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 23:35:38 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 23:35:38 - [INFO] - Discord Bot is ready!
+2025-09-29 23:35:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 23:35:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 23:35:41 - [INFO] - 已成功發送啟動成功通知給管理員。
