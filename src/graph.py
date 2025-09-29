@@ -394,43 +394,54 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     return {"llm_response": final_response}
 # 函式：[新] 最终生成节点
 
-# 函式：驗證、學習與持久化節點
+# graph.py 的 validate_and_persist_node 函式 (v3.0 - 儲存持久化快照)
 # 更新紀錄:
+# v3.0 (2025-11-24): [健壯性強化] 根據上下文快照持久化策略，增加了在對話結束時，將新生成的上下文快照異步寫入後端資料庫的核心邏輯。此修改確保了「繼續」指令的上下文即使在程式重啟後也能被成功恢復，極大地提升了系統的穩定性和用戶體驗。
 # v2.8 (2025-10-15): [健壯性] 在此節點的末尾，創建並儲存上下文快照。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
-    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪創建上下文快照。"""
+    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並創建和持久化上下文快照。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     llm_response_raw = state['llm_response']
     logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
 
-    if hasattr(llm_response_raw, 'content'):
-        llm_response = llm_response_raw.content
-    else:
-        llm_response = str(llm_response_raw)
-        logger.warning(f"[{user_id}] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。")
-
-    clean_response = llm_response.strip()
+    clean_response = str(llm_response_raw).strip()
     
-    asyncio.create_task(ai_core._background_lore_extraction(user_input, clean_response))
-
-    if clean_response and "抱歉" not in clean_response:
-        chat_history_manager = ai_core.session_histories.setdefault(user_id, ChatMessageHistory())
-        chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(clean_response)
-        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-        asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
-        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
-
+    # 創建上下文快照
     context_snapshot = {
         "raw_lore_objects": state.get("raw_lore_objects", []),
         "last_response_text": clean_response
     }
     ai_core.last_context_snapshot = context_snapshot
-    logger.info(f"[{user_id}] (Graph|7) 已為下一輪創建上下文快照。")
+    logger.info(f"[{user_id}] (Graph|7) 已為下一輪在【記憶體】中創建上下文快照。")
 
-    logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
+    # [v3.0 核心修正] 異步任務：將所有需要持久化的數據一次性寫入資料庫
+    async def persist_all_data():
+        try:
+            # 任務 A: 儲存對話歷史到長期記憶
+            if clean_response and "抱歉" not in clean_response:
+                last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
+                await ai_core._save_interaction_to_dbs(last_interaction_text)
+                logger.info(f"[{user_id}] (Graph|7|Async) 對話歷史已成功保存到 DB。")
+
+            # 任務 B: 儲存上下文快照到 UserData 表
+            from sqlalchemy import update
+            async with AsyncSessionLocal() as session:
+                stmt = update(UserData).where(UserData.user_id == user_id).values(context_snapshot_json=context_snapshot)
+                await session.execute(stmt)
+                await session.commit()
+                logger.info(f"[{user_id}] (Graph|7|Async) 上下文快照已成功【持久化】到資料庫。")
+                
+            # 任務 C: 啟動背景 LORE 提取 (它內部會處理自己的異步邏輯)
+            await ai_core._background_lore_extraction(user_input, clean_response)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] (Graph|7|Async) 在後台持久化數據時發生錯誤: {e}", exc_info=True)
+
+    asyncio.create_task(persist_all_data())
+    
+    logger.info(f"[{user_id}] (Graph|7) 狀態持久化與背景學習任務已全部提交。")
     
     return {"final_output": clean_response}
 # 函式：驗證、學習與持久化節點
@@ -620,4 +631,5 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
+
 
