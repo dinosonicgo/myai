@@ -1,23 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T01:01:57.660366 ###
+### AI Lover Log - Last updated at 2025-09-30T01:05:57.624796 ###
 
-2025-09-30 00:53:02 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 00:53:02 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
-    return f(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
-    return self._sysdb.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
-    row = cur.execute(sql, params).fetchone()
-sqlite3.OperationalError: no such table: tenants
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 595, in _load_or_build_rag_retriever
     persistent_client = chromadb.Client(settings)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
@@ -300,3 +282,21 @@ RuntimeError: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\
 2025-09-30 01:01:57 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
 2025-09-30 01:01:57 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
 2025-09-30 01:01:57 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (1/5)...
+2025-09-30 01:01:58 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (2/5)...
+2025-09-30 01:01:58 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (3/5)...
+2025-09-30 01:01:59 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (4/5)...
+2025-09-30 01:01:59 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (5/5)...
+2025-09-30 01:02:00 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1759, in start_reset_flow
+    await self._robust_rmtree(vector_store_path)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1714, in _robust_rmtree
+    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
+RuntimeError: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
+2025-09-30 01:05:43 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 01:05:43 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 01:05:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 01:05:44 - [INFO] - Discord Bot is ready!
+2025-09-30 01:05:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 01:05:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 01:05:47 - [INFO] - 已成功發送啟動成功通知給管理員。
