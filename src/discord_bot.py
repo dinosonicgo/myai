@@ -271,7 +271,10 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：处理「贴上世界圣经」按钮点击事件
 
-    # 处理「上传世界圣经」按钮点击事件
+    # 處理「上传世界圣经」按钮点击事件 (v1.7 - 競爭條件修復)
+    # 更新紀錄:
+    # v1.7 (2025-09-29): [災難性BUG修復] 徹底重構了此函式的狀態鎖管理邏輯。現在，此函式只負責【開啟】狀態鎖（將使用者ID加入`active_setups`），而將【關閉】鎖的責任完全轉交給它所啟動的後台任務`_perform_full_setup_flow`。此修改從根本上解決了因主線程過早釋放鎖而導致的致命競爭條件問題。
+    # v1.6 (2025-09-25): [灾难性BUG修復] 彻底重构了所有回调，使其仅负责启动一个独立的、解耦的后台创世任务。
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -279,9 +282,9 @@ class ContinueToCanonSetupView(discord.ui.View):
             await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
             return
 
-        # [v1.7 核心修正] 关键步骤：提前开启防火墙
+        # [v1.7 核心修正] 步驟 1: 提前開啟防火牆/狀態鎖
         self.cog.active_setups.add(user_id)
-        logger.info(f"[{user_id}] [创世流程] 档案上传开始，已设置 active_setups 状态锁。")
+        logger.info(f"[{user_id}] [创世流程] 檔案上傳開始，已設置 active_setups 狀態鎖。")
 
         for item in self.children:
             item.disabled = True
@@ -299,6 +302,8 @@ class ContinueToCanonSetupView(discord.ui.View):
             
             if attachment.size > 5 * 1024 * 1024: # 5MB
                 await interaction.followup.send("❌ 檔案過大！请重新开始 `/start` 流程。", ephemeral=True)
+                # 如果出錯，需要在此處釋放鎖
+                self.cog.active_setups.discard(user_id)
                 return
 
             await interaction.followup.send("✅ 檔案已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
@@ -306,32 +311,22 @@ class ContinueToCanonSetupView(discord.ui.View):
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            # 此处不再需要 add(user_id)，因为已经在前面添加了
+            # [v1.7 核心修正] 步驟 2: 啟動後台任務，並將鎖的控制權完全交給它
             asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
-            # 任务已转交后台，让 View 自然结束即可
             self.stop()
 
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超时。请重新开始 `/start` 流程。", ephemeral=True)
+            # 超時後也必須釋放鎖
+            self.cog.active_setups.discard(user_id)
+            self.stop()
         except Exception as e:
             logger.error(f"[{user_id}] 在等待檔案上傳时发生错误: {e}", exc_info=True)
             await interaction.followup.send(f"处理您的檔案时发生错误: `{e}`。请重新开始 `/start` 流程。", ephemeral=True)
-        finally:
-            # [v1.7 核心修正] 健壮性保证：无论成功、失败还是超时，如果后台任务没有被成功启动，
-            # 就在这里释放锁，以允许用户重试。
-            # 如果后台任务已启动，它将在自己结束时释放锁。
-            # 这里做一个双重保险的检查。
-            if user_id in self.cog.active_setups:
-                # 检查后台任务是否真的在运行（这是一个简化检查，不完全精确但足够好）
-                # 更好的方式是让 _perform_full_setup_flow 返回一个 future，但为了减少改动，我们简化处理
-                # 如果任务已经启动，它会很快地在 finally 中移除 user_id，所以这里做一个延时检查
-                await asyncio.sleep(1) # 短暂等待，看后台任务是否已接管
-                if user_id in self.cog.active_setups:
-                     # 如果 user_id 还在，说明后台任务可能没启动或立即失败了，我们在这里清理
-                    logger.warning(f"[{user_id}] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。")
-                    self.cog.active_setups.discard(user_id)
+            # 發生未知錯誤後也必須釋放鎖
+            self.cog.active_setups.discard(user_id)
             self.stop()
-    # 处理「上传世界圣经」按钮点击事件
+    # 處理「上传世界圣经」按钮点击事件
 
     # 函式：处理「完成设定」按钮点击事件
     @discord.ui.button(label="✅ 完成设定并开始冒险 (跳过圣经)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
@@ -1282,9 +1277,15 @@ class BotCog(commands.Cog):
     def cog_unload(self):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
-    # 函式：执行完整的后台创世流程
+
+    
+    
+    
+    
+    # 函式：执行完整的后台创世流程 (v1.1 - 狀態鎖管理)
     # 更新紀錄:
-    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。它确保了所有步骤都同步执行，并在完成后直接向用户发送开场白，解决了流程中断和 interaction 过期的问题。
+    # v1.1 (2025-09-29): [災難性BUG修復] 為整個函式包裹了`try...finally`塊。現在，此後台任務在結束時（無論是成功還是失敗），都將親自負責從`active_setups`中移除使用者ID，確保狀態鎖的生命週期與創世流程完全同步，從而根除競爭條件。
+    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
         """一个独立的背景任务，负责执行从LORE解析到发送开场白的完整创世流程。"""
         user_id = str(user.id)
@@ -1318,13 +1319,15 @@ class BotCog(commands.Cog):
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
 
-            # --- 最终步骤: 发送开场白并清理 ---
+            # --- 最终步骤: 发送开场白 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
             logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
+            view = RegenerateView(cog=self.cog)
             for i in range(0, len(opening_scene), 2000):
-                await user.send(opening_scene[i:i+2000])
+                current_view = view if i + 2000 >= len(opening_scene) else None
+                await user.send(opening_scene[i:i+2000], view=current_view)
             logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
 
         except Exception as e:
@@ -1334,11 +1337,14 @@ class BotCog(commands.Cog):
             except discord.errors.HTTPException as send_e:
                  logger.error(f"[{user_id}] 无法向使用者发送最终的错误讯息: {send_e}")
         finally:
-            # 无论成功或失败，都从活动设置中移除使用者，允许他们重新开始
-            self.active_setups.discard(user_id)
+            # [v1.1 核心修正] 无论成功或失败，都在后台任务结束时亲手释放锁
+            self.cog.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 后台创世流程结束，状态锁已释放。")
     # 函式：执行完整的后台创世流程
 
+
+
+    
 
     
     # 函式：獲取或創建使用者的 AI 實例 (v52.2 - Ollama健康检查)
@@ -2120,6 +2126,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
