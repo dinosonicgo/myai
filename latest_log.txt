@@ -1,119 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T00:30:59.641218 ###
+### AI Lover Log - Last updated at 2025-09-30T00:36:41.880632 ###
 
-2025-09-30 00:02:52 - [INFO] -   [Doc 16] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 瑪倫'}
-2025-09-30 00:02:52 - [INFO] -   [Doc 16] Content: 【NPC 檔案: 瑪倫】
-- Gender: 女性
-- Age: 年近六十歲
-- Race: 人類
-- Appearance: 外貌蒼老。
-- Skills: 承受痛苦
-- Description: 蒙恩者。里斯 (Rhys) 的母親，年近六十歲，外貌蒼老。長期被嚴重的風濕病所折磨。她的康復將「神恩...
-2025-09-30 00:02:52 - [INFO] -   [Doc 17] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Doc 17] Content: * 身份/外貌: 性神教徒、母畜、蒙恩者。
-
-   * 背景/喜好/慾望: 來自貧民窟，曾因「心痛」（推測為心臟相關疾病）而尋求神恩。
-
-   * 關鍵遭遇: 在工場事故中右大腿被水泥砸成粉碎。在對夏卡爾發出最惡毒的「叛教宣言」後被米婭帶回修道院，經過凱爾與湯姆長達兩天兩夜不間斷的「輪姦治療」後斷腿...
-2025-09-30 00:02:52 - [INFO] -   [Doc 18] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 索菲亞'}
-2025-09-30 00:02:52 - [INFO] -   [Doc 18] Content: 【NPC 檔案: 索菲亞】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
-- Appearance: 未知
-- Skills: 叛教, 重生
-- Description: 性神教徒、母畜、蒙恩者。來自貧民窟，曾因「心痛」（推測為心臟相關疾病）而尋求神恩。在工場事故中右大腿被水泥...
-2025-09-30 00:02:52 - [INFO] -   [Doc 19] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Doc 19] Content: * 漢德瑞克師傅 (Master Hendrick): 洞悉世事、敬畏權威、勸誡大家明哲保身的年長麵包師。
-
-2. 新增劇情:
-
-   * 透過這四位平民的對話，側面描寫了「生命之神」在一般城區的流傳情況：充滿了矛盾、扭曲與半信半疑。
-
-   * 提及了具體的「神蹟」案例，如治癒斷腿的索菲亞 (So...
-2025-09-30 00:02:52 - [INFO] - ----------------------------------------------------
-2025-09-30 00:02:52 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 17 條文檔 ---
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 泰莎'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 卡蓮'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 3] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 4] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯莊園 > 聖凱瑟琳學院 > 莉莉絲'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 5] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 6] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 維利爾斯莊園 > 米婭'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 7] Metadata: {'category': 'location_info', 'key': '聖露修道院', 'source': 'lore'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 8] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 9] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 10] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 艾拉'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 11] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 12] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 凱爾'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 13] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 14] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 里斯'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 15] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 瑪倫'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 16] Metadata: {'source': 'canon'}
-2025-09-30 00:02:52 - [INFO] -   [Filtered Doc 17] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 索菲亞'}
-2025-09-30 00:02:52 - [INFO] - ----------------------------------------------------
-2025-09-30 00:02:52 - [INFO] - --- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---
-2025-09-30 00:02:52 - [INFO] -   歸類為【規則】的文檔 (0 條): []
-2025-09-30 00:02:52 - [INFO] -   歸類為【待摘要】的文檔 (17 條): ['貧民窟 > 聖露修道院 > 泰莎', '貧民窟 > 聖露修道院 > 卡蓮', 'Memory', '維利爾斯莊園 > 聖凱瑟琳學院 > 莉莉絲', 'Memory', '貧民窟 > 聖露修道院 > 維利爾斯莊園 > 米婭', '聖露修道院', 'Memory', 'Memory', '貧民窟 > 聖露修道院 > 艾拉', 'Memory', '貧民窟 > 聖露修道院 > 凱爾', 'Memory', '貧民窟 > 聖露修道院 > 里斯', '貧民窟 > 聖露修道院 > 瑪倫', 'Memory', '貧民窟 > 聖露修道院 > 索菲亞']
-2025-09-30 00:02:52 - [INFO] -   [最終生成的 rules_context] (傳遞給導演):
----
-（當前場景無特定的行為準則或世界觀設定）
----
-2025-09-30 00:02:52 - [INFO] - ----------------------------------------------------
-2025-09-30 00:02:52 - [INFO] - [512280345618546699] [RAG事實提取-1] 快速嘗試：雲端模型...
-2025-09-30 00:03:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 00:03:14 - [INFO] - [512280345618546699] [RAG事實提取] ✅ 成功提取事實清單。
-2025-09-30 00:03:14 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-09-30 00:03:14 - [INFO] -   [最終 rules_context 長度]: 20
-2025-09-30 00:03:14 - [INFO] -   [最終 summary_context 長度]: 15
-2025-09-30 00:03:14 - [INFO] - --- RAG 流程結束 ---
-2025-09-30 00:03:14 - [INFO] - [512280345618546699] [AI導演] 正在啟動導演決策模組...
-2025-09-30 00:03:14 - [INFO] - --- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---
-2025-09-30 00:03:14 - [INFO] -   [WORLD_SETTINGS]:
----
-這是一個魔法的幻想世界。
----
-2025-09-30 00:03:14 - [INFO] -   [RELEVANT_CHARACTERS_SUMMARY]:
----
-米婭 (身份: ['聖女', 'Mia', '活神蹟', '聖露修道院聖女']), DINO (身份: 無)
----
-2025-09-30 00:03:14 - [INFO] -   [LOCATION_DESCRIPTION]:
----
-宅邸: 一個神秘的地方
----
-2025-09-30 00:03:14 - [INFO] -   [RAG_SUMMARY]:
----
-【背景歷史參考（事實要點）】:
----
-2025-09-30 00:03:14 - [INFO] -   [SCENE_RULES_CONTEXT]:
----
-（當前場景無特定的行為準則或世界觀設定）
----
-2025-09-30 00:03:14 - [INFO] -   [USER_INPUT]:
----
-描述米婭在宅邸遇到勛爵
----
-2025-09-30 00:03:14 - [INFO] - ----------------------------------------------------
-2025-09-30 00:03:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-30 00:03:15 - [INFO] - [512280345618546699] [AI導演] 決策完成。最終劇本大綱: '故事发生在宅邸。米娅，一位拥有『圣女』、『Mia』、『活神蹟』、『圣露修道院圣女』身份的角色，在此地遭遇了勋爵。当前场景没有特定的行为准则或世界观设定需要强制执行。请生成一个描述米娅在宅邸中遇到勋爵的场景，并确保场景的细节和发展符合这一核心指令。'
-2025-09-30 00:03:15 - [INFO] - [512280345618546699] [純粹生成流程] 正在執行小說生成...
-2025-09-30 00:03:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
-2025-09-30 00:04:00 - [INFO] - [512280345618546699] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。
-2025-09-30 00:04:01 - [INFO] - [512280345618546699] 回應已發送。正在啟動統一的「事後分析」任務...
-2025-09-30 00:04:03 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析任務...
-2025-09-30 00:04:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 00:04:05 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-09-30 00:04:05 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-09-30 00:04:05 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-09-30 00:04:05 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
-2025-09-30 00:12:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 00:12:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 00:12:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 00:12:11 - [INFO] - Discord Bot is ready!
-2025-09-30 00:12:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 00:12:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 00:12:14 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 00:20:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 00:20:15 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 00:20:15 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-09-30 00:20:15 - [INFO] - Discord Bot is ready!
 2025-09-30 00:20:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 00:20:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
@@ -300,3 +186,117 @@ RuntimeError: 即使在強制重建後，Vector Store 仍然無法初始化。
 2025-09-30 00:30:48 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 00:30:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 00:30:49 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 00:31:02 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 00:31:02 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 00:31:02 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 00:31:02 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 00:31:02 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 00:31:05 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 00:31:05 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-09-30 00:31:10 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 00:31:10 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-30 00:31:10 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
+2025-09-30 00:31:11 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-30 00:31:13 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-30 00:31:13 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-30 00:31:36 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-30 00:31:40 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-30 00:31:40 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 00:31:40 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-30 00:31:40 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 00:31:40 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 00:31:40 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-30 00:31:41 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
+    return f(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
+    return self._sysdb.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
+    row = cur.execute(sql, params).fetchone()
+sqlite3.OperationalError: no such table: tenants
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 584, in _load_or_build_rag_retriever
+    persistent_client = chromadb.PersistentClient(path=self.vector_store_path)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 153, in PersistentClient
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
+    self._validate_tenant_database(tenant=tenant, database=database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-30 00:31:41 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-30 00:31:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:31:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-30 00:31:50 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-30 00:31:50 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-30 00:31:50 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:32:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-30 00:32:28 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-30 00:32:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-30 00:32:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:32:30 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
+2025-09-30 00:32:38 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-30 00:32:41 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
+2025-09-30 00:32:41 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
+2025-09-30 00:32:41 - [ERROR] - [512280345618546699] (Canon Processor) Vector store 未初始化，無法添加世界聖經。
+2025-09-30 00:32:41 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-30 00:32:41 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-30 00:32:41 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
+    return f(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
+    return self._sysdb.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
+    row = cur.execute(sql, params).fetchone()
+sqlite3.OperationalError: no such table: tenants
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 584, in _load_or_build_rag_retriever
+    persistent_client = chromadb.PersistentClient(path=self.vector_store_path)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 153, in PersistentClient
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
+    self._validate_tenant_database(tenant=tenant, database=database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-30 00:32:41 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: 即使在強制重建後，Vector Store 仍然無法初始化。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1303, in _perform_full_setup_flow
+    await ai_instance.add_canon_to_vector_store(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3664, in add_canon_to_vector_store
+    raise RuntimeError("即使在強制重建後，Vector Store 仍然無法初始化。")
+RuntimeError: 即使在強制重建後，Vector Store 仍然無法初始化。
+2025-09-30 00:32:41 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-30 00:36:27 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 00:36:27 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 00:36:28 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 00:36:28 - [INFO] - Discord Bot is ready!
+2025-09-30 00:36:30 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 00:36:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 00:36:31 - [INFO] - 已成功發送啟動成功通知給管理員。
