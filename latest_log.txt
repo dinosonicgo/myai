@@ -1,27 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T23:39:23.252502 ###
+### AI Lover Log - Last updated at 2025-09-29T23:46:35.041972 ###
 
-  File "<frozen importlib._bootstrap>", line 1050, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 73, in <module>
-    from .loss.loss_utils import LOSS_MAPPING
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\loss\loss_utils.py", line 21, in <module>
-    from .loss_d_fine import DFineForObjectDetectionLoss
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\loss\loss_d_fine.py", line 21, in <module>
-    from .loss_for_object_detection import (
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\loss\loss_for_object_detection.py", line 32, in <module>
-    from transformers.image_transforms import center_to_corners_format
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\image_transforms.py", line 22, in <module>
-    from .image_utils import (
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\image_utils.py", line 59, in <module>
-    from torchvision.transforms import InterpolationMode
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\torchvision\__init__.py", line 10, in <module>
-    from torchvision import _meta_registrations, datasets, io, models, ops, transforms, utils  # usort:skip
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\torchvision\_meta_registrations.py", line 164, in <module>
-    def meta_nms(dets, scores, iou_threshold):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\torch\library.py", line 1069, in register
     use_lib._register_fake(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\torch\library.py", line 219, in _register_fake
@@ -300,3 +278,25 @@ If this is a private repository, make sure to pass a token having permission to 
 2025-09-29 23:39:20 - [INFO] - [512280345618546699] AI 實例資源已釋放。
 2025-09-29 23:39:22 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
 2025-09-29 23:39:22 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-29 23:39:27 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 23:39:32 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-29 23:39:33 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 23:39:33 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 23:39:33 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 23:39:33 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 23:39:33 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，創始構建為空。
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-29 23:39:34 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-29 23:39:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 23:46:20 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 23:46:20 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 23:46:21 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 23:46:21 - [INFO] - Discord Bot is ready!
+2025-09-29 23:46:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 23:46:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 23:46:24 - [INFO] - 已成功發送啟動成功通知給管理員。
