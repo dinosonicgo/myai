@@ -80,16 +80,16 @@ GENERATION_MODEL_PRIORITY = [
 # 固定使用此模型以保证稳定性和速度
 FUNCTIONAL_MODEL = "gemini-2.5-flash-lite"
 
-# 全局常量：Gemini 安全阀值设定
+# [v1.0 核心修正] 全局常量：Gemini 安全阀值设定
+# 移除了已被废弃的 HARM_CATEGORY_CIVIC_INTEGRITY
 SAFETY_SETTINGS = {
     HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
     HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-    HarmCategory.HARM_CATEGORY_CIVIC_INTEGRITY: HarmBlockThreshold.BLOCK_NONE,
 }
 
-PROJ_DIR = Path(__file__).resolve().parent.parent
+PROJ_DIR = Path(__file__).resolve().parent
 
 # 類別：AI核心類
 # 說明：管理單一使用者的所有 AI 相關邏輯，包括模型、記憶、鏈和互動。
@@ -5266,6 +5266,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
              logger.info(f"[{self.user_id}] [長期記憶寫入] 語意搜索功能未啟用 (RAG Mode: {self.rag_mode})，跳過寫入 ChromaDB。")
     # 將互動記錄保存到資料庫 函式結束
 # AI核心類 結束
+
 
 
 
