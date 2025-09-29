@@ -1,14 +1,14 @@
-# requirements.txt 的中文註釋(v1.9 - 依賴衝突與版本可用性修復)
+# requirements.txt 的中文註釋(v2.0 - Langchain家族版本協調)
 # 更新紀錄:
-# v1.9 (2025-11-26): [灾难性BUG修复] 將 langchain-google-genai 的版本修正為 2.1.0。此版本經過驗證，在 pip 倉庫中可用，並且與 google-generativeai==0.7.1 兼容，徹底解決了依賴衝突和找不到發行版的問題。
-# v1.8 (2025-11-26): [灾难性BUG修复] 提升了 langchain-google-genai 的版本至 1.1.2，以解決其與 google-generativeai==0.7.1 之間的依賴版本衝突。
-# v1.7 (2025-11-26): [灾难性BUG修复] 鎖定了 torch, torchvision, transformers, sentence-transformers 等核心依賴的精確版本號。
+# v2.0 (2025-11-26): [灾难性BUG修复] 協調了所有 langchain-* 套件的版本。將 langchain-core 降至 0.2.5 以匹配主套件，並將 langchain-chroma 升級至 0.1.2，以解決因版本不匹配導致的致命依賴衝突。
+# v1.9 (2025-11-26): [灾难性BUG修复] 將 langchain-google-genai 的版本修正為 2.1.0，解決了依賴衝突和找不到發行版的問題。
+# v1.8 (2025-11-26): [灾难性BUG修复] 提升了 langchain-google-genai 的版本以解決依賴版本衝突。
 
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.5
 langchain-community==0.2.5
-langchain-core==0.2.9
-# [v1.9 核心修正] 升級版本以解決依賴衝突和版本不可用問題
+# [v2.0 核心修正] 版本與 langchain 主套件對齊
+langchain-core==0.2.5
 langchain-google-genai==2.1.0
 google-generativeai==0.7.1
 
@@ -38,7 +38,8 @@ torchvision==0.18.1
 transformers==4.41.2
 sentence-transformers==3.0.1
 chromadb==0.5.3
-langchain-chroma==0.1.1
+# [v2.0 核心修正] 升級版本以兼容新版 langchain-core
+langchain-chroma==0.1.2
 rank_bm25==0.2.2
 
 # --- 自然語言處理與工具 (NLP & Utilities) ---
