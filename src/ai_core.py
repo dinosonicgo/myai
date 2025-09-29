@@ -1188,6 +1188,67 @@ class AILover:
     # 函式：呼叫本地Ollama模型進行LORE解析
 
 
+
+
+
+
+    # 函式：獲取精細化的 LORE 上下文以注入 Prompt (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-11-24): [全新創建] 根據「上下文感知的 RAG 式 LORE 注入」策略，創建此核心輔助函式。它的职责是接收一个完整的角色档案和当前的用户输入，将档案内容动态分解为可检索的文档块，然后使用用户输入作为查询，只返回与当前互动最相关的 LORE 片段。这从根本上解决了因注入完整 LORE 档案而导致的 Token 浪费和上下文噪音问题。
+    async def _get_fine_grained_lore_for_prompt(self, profile: CharacterProfile, user_input: str) -> str:
+        """
+        为单个角色创建临时的微型 RAG 知识库，并根据用户输入检索最相关的 LORE 片段。
+        """
+        docs = []
+        # 将档案的不同部分创建为独立的 LangChain Document
+        if profile.description:
+            docs.append(Document(page_content=profile.description, metadata={"source_field": "核心描述与情报"}))
+        if profile.appearance:
+            docs.append(Document(page_content=profile.appearance, metadata={"source_field": "外貌总览"}))
+        if profile.skills:
+            skills_text = f"掌握的技能包括：{', '.join(profile.skills)}。"
+            docs.append(Document(page_content=skills_text, metadata={"source_field": "掌握技能"}))
+        if profile.equipment:
+            equipment_text = f"当前穿戴或持有的装备是：{', '.join(profile.equipment)}。"
+            docs.append(Document(page_content=equipment_text, metadata={"source_field": "当前装备"}))
+        if profile.relationships:
+            relations_text_parts = []
+            for name, detail in profile.relationships.items():
+                roles = ', '.join(detail.roles) if detail.roles else detail.type
+                relations_text_parts.append(f"与 {name} 的关系是 {roles}")
+            relations_text = "人际关系： " + "； ".join(relations_text_parts) + "。"
+            docs.append(Document(page_content=relations_text, metadata={"source_field": "人际关系"}))
+
+        if not docs:
+            # 如果角色没有任何文本信息，则返回一个通用提示
+            return f"### 關於「{profile.name}」的强制事实档案 ###\n（此角色的详细档案为空，请基于其名字和别名进行创作。）"
+
+        # 使用轻量级的 BM25Retriever 进行快速的内存检索
+        retriever = BM25Retriever.from_documents(docs)
+        retriever.k = 3 # 每个角色最多检索3条最相关的 LORE 片段
+        
+        retrieved_docs = await retriever.ainvoke(user_input)
+        
+        if not retrieved_docs:
+             # 如果检索不到任何相关信息，返回最核心的描述
+            return f"### 關於「{profile.name}」的强制事实档案 ###\n- 核心描述与情报: {profile.description or '暂无'}"
+
+        # 格式化检索结果以便注入 Prompt
+        formatted_parts = [f"### 關於「{profile.name}」的高度相关情报 ###"]
+        for doc in retrieved_docs:
+            source_field = doc.metadata.get("source_field", "相关情报")
+            formatted_parts.append(f"- {source_field}: {doc.page_content}")
+            
+        return "\n".join(formatted_parts)
+    # 函式：獲取精細化的 LORE 上下文以注入 Prompt
+
+
+
+
+
+
+
+    
     
     
     # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
@@ -2845,14 +2906,13 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：预处理并生成主回应 (v44.0 - 上下文快照)
+    # 函式：预处理并生成主回应 (v45.0 - 精细化LORE注入)
     # 更新纪录:
-    # v44.0 (2025-11-24): [核心重构] 根据「生成即摘要」和「上帝视角」原则，彻底重构了此函式的末端逻辑。在生成最终的小说文本后，它不再直接返回，而是先将本次生成所使用的所有关键上下文（包括RAG结果、场景规则等）打包成一个 `last_context_snapshot` 物件。然后，它会将这个包含了完整创作背景的快照，传递给新启动的背景分析任务，从而实现了从「盲眼提取」到「上下文感知分析」的根本性进化。
-    # v43.0 (2025-11-23): [灾难性BUG修复] 修正了因 `EnsembleRetriever` 返回值不稳定而导致的 `AttributeError`，增加了对 `rag_context` 类型的防御性检查。
-    # v42.0 (2025-11-23): [灾难性BUG修复] 修正了 `_get_relevant_npcs` 的调用方式，确保 `explicitly_mentioned_profiles` 参数能被正确传递。
+    # v45.0 (2025-11-24): [性能优化] 彻底重构了 LORE 档案的注入逻辑。不再将完整的角色档案（JSON）注入Prompt，而是为每个核心角色动态创建一个临时的微型RAG知识库，并使用用户当前的输入作为查询，只检索并注入与当前互动最相关的 LORE 片段。此修改极大地节省了 Token 消耗，消除了上下文噪音，并从根本上避免了因 LORE 档案过长而导致的上下文溢出风险。
+    # v44.0 (2025-11-24): [核心重构] 实现了「生成即摘要」和「上下文快照」的核心逻辑。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.0重构) 执行包含预处理、RAG检索、上下文组装和最终小说生成的完整流程，
+        (v45.0重构) 执行包含预处理、RAG检索、精细化LORE注入和最终小说生成的完整流程，
         并在最后创建并传递一个包含所有创作背景的“上下文快照”给事后分析任务。
         返回纯小说文本字符串。
         """
@@ -2863,17 +2923,14 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] 正在准备生成上下文...")
         
-        # --- 步骤 1: 获取当前状态和相关角色 ---
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # 从用户输入中提取明确提及的实体，以强制注入其LORE档案
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
         found_lores_for_injection: List[Dict[str, Any]] = []
         if explicitly_mentioned_entities:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            # 创建一个查找表，包含所有名字和别名
             lookup_table: Dict[str, Dict] = {}
             for lore in all_lores:
                 main_name = lore.content.get("name") or lore.content.get("title")
@@ -2883,15 +2940,12 @@ class ExtractionResult(BaseModel):
                     if alias:
                         lookup_table[alias] = {"lore": lore, "type": lore.category}
             
-            # 查找被提及的实体
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in lookup_table:
                     found_lore_info = lookup_table[entity_name]
-                    # 避免重复添加同一个LORE条目
                     if not any(f['lore'].id == found_lore_info['lore'].id for f in found_lores_for_injection):
                         found_lores_for_injection.append(found_lore_info)
 
-        # 获取场景中的所有NPC，并筛选出核心与背景角色
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
         
@@ -2901,25 +2955,30 @@ class ExtractionResult(BaseModel):
         
         relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
 
-        # --- 步骤 2: RAG 检索与摘要 ---
-        # 将核心角色传入，以进行查询扩展和智能过滤
         rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters)
 
-        # --- 步骤 3: 组装世界快照 ---
-        # 从RAG结果中分离出规则和摘要
         rag_summary_text = rag_context
         scene_rules_context_str = "（本场景无特殊规则）"
         if isinstance(rag_context, dict):
             rag_summary_text = rag_context.get("summary", "无摘要")
             scene_rules_context_str = rag_context.get("rules", "（无）")
 
-        explicit_character_files_context = "（指令中未明确提及需要调阅档案的核心实体。）"
-        if found_lores_for_injection:
-            explicit_character_files_context = "\n".join([
-                f"### 关于「{info['lore'].content.get('name') or info['lore'].content.get('title', info['lore'].key)}」({info['type']}) 的强制事实档案 ###\n```json\n{json.dumps(info['lore'].content, ensure_ascii=False, indent=2)}\n```\n"
-                for info in found_lores_for_injection
-            ])
+        # [v45.0 核心修正] 开始构建精细化的 LORE 上下文
+        fine_grained_lore_parts = []
+        # 将用户和AI也视为可查询档案的核心角色
+        all_relevant_profiles = relevant_characters
+        if gs.viewing_mode == 'local':
+            all_relevant_profiles.append(user_profile)
+            all_relevant_profiles.append(ai_profile)
+            
+        unique_profiles_to_process = {p.name: p for p in all_relevant_profiles}.values()
 
+        for profile in unique_profiles_to_process:
+            fine_grained_lore = await self._get_fine_grained_lore_for_prompt(profile, user_input)
+            fine_grained_lore_parts.append(fine_grained_lore)
+            
+        explicit_character_files_context = "\n\n".join(fine_grained_lore_parts) if fine_grained_lore_parts else "（指令中未明确提及需要调阅档案的核心实体。）"
+        
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
         location_desc = location_lore.content.get('description', '一个神秘的地方') if location_lore else '一个神秘的地方'
 
@@ -2937,44 +2996,41 @@ class ExtractionResult(BaseModel):
         }
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        # --- 步骤 4: 最终生成 ---
         raw_short_term_history = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history[-6:]])
         
-        final_prompt_template = ai_core.get_unified_generation_chain()
+        final_prompt_template = self.get_unified_generation_chain()
         full_prompt = self._safe_format_prompt(
             final_prompt_template,
             {
                 "core_protocol_prompt": self.core_protocol_prompt,
                 "response_style_prompt": self.profile.response_style_prompt or "预设风格",
-                "plot_anchor": "（无）", # 仅用于连续性指令
+                "plot_anchor": "（无）",
                 "historical_context": raw_short_term_history,
                 "world_snapshot": world_snapshot_filled,
                 "latest_user_input": user_input,
             },
-            inject_core_protocol=False # 模板内部已包含
+            inject_core_protocol=False
         )
         
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         novel_text = raw_novel_output if isinstance(raw_novel_output, str) else str(raw_novel_output)
         final_novel_text = self._decode_lore_content(novel_text, self.DECODING_MAP)
 
-        # --- [v44.0 核心修正] 步骤 5: 创建上下文快照并启动背景分析 ---
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
 
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
-            "rag_context": rag_context, # 传递完整的 RAG 结果
+            "rag_context": rag_context,
             "scene_rules_context": scene_rules_context_str,
-            "relevant_characters": [p.model_dump() for p in relevant_characters] # 传递角色档案
+            "relevant_characters": [p.model_dump() for p in relevant_characters]
         }
         logger.info(f"[{self.user_id}] 小说文本生成成功，并已为事后分析创建详细上下文快照。")
         asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
 
         return final_novel_text
     # 函式：预处理并生成主回应
-
 
 
 
@@ -5128,6 +5184,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
