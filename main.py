@@ -442,14 +442,14 @@ async def start_web_server_task():
         print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
 async def main():
-    MAIN_PY_VERSION = "v12.0" # 版本號更新
+    MAIN_PY_VERSION = "v13.0" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
-    # [v12.0 核心修正] 在所有操作之前，首先設定鏡像源
     _setup_huggingface_mirror()
     
     try:
-        _check_and_install_dependencies()
+        # [v13.0 核心修正] 移除此處的依賴檢查調用
+        # _check_and_install_dependencies()
         
         ollama_model_to_check = "HammerAI/llama-3-lexi-uncensored:latest"
         is_ollama_ready = await _ollama_health_check(ollama_model_to_check)
@@ -458,6 +458,7 @@ async def main():
         print("\n初始化資料庫...")
         await init_db(db_ready_event)
         
+        # ... (后续逻辑保持不变) ...
         core_services = []
         guardian_tasks = []
         mode = sys.argv[1] if len(sys.argv) > 1 else "all"
@@ -490,7 +491,6 @@ async def main():
         traceback.print_exc()
     finally:
         print("主程式 main() 函式已結束。 launcher.py 將在 5 秒後嘗試重啟。")
-
 if __name__ == "__main__":
     try:
         if os.name == 'nt':
@@ -508,6 +508,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
