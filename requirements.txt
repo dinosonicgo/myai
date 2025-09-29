@@ -1,11 +1,10 @@
-# requirements.txt 的中文註釋(v1.5)
+# requirements.txt 的中文註釋(v1.6)
 # 更新紀錄:
+# v1.6 (2025-11-26):
+# 1. [灾难性BUG修复] 新增 torch>=2.6 的版本要求，以解決因 transformers 庫的安全策略更新而導致的本地模型載入失敗問題。
+# 2. [架構擴展] 新增 sentence-transformers，以支持本地 Embedding 模型備援方案。
 # v1.5 (2050-08-01):
-# 1. [註釋強化] 增加註釋，明確各個依賴庫的用途，並再次確認 langchain-chroma 套件已包含在內，以解決 ModuleNotFoundError。
-# v1.4 (2050-07-31):
-# 1. [品質提升] 新增 pydantic-settings，用於創建一個統一的、類型安全的設定管理系統，並在啟動時驗證環境變數。
-# v1.3 (2050-07-31):
-# 1. [RAG整合] 新增 chromadb 和 langchain-chroma。
+# 1. [註釋強化] 增加註釋，明確各個依賴庫的用途，並再次確認 langchain-chroma 套件已包含在內。
 
 # --- 核心框架 (Core Framework) ---
 # LangChain 核心組件，用於構建 LLM 應用
@@ -47,12 +46,22 @@ python-multipart==0.0.9
 # WebSocket 協議的實現，用於即時通訊
 websockets==12.0
 
-# --- 認證 (Authentication) ---
-# 用於處理 JWT (JSON Web Tokens)
-python-jose==3.3.0
-
-# --- 向量儲存 (Vector Store for RAG) ---
-# 用於儲存和檢索向量數據的數據庫
+# --- RAG 系統 (Retrieval-Augmented Generation) ---
+# 向量儲存數據庫
 chromadb>=0.4.22
-# ChromaDB 的 LangChain 整合包 (這是解決 ModuleNotFoundError 的關鍵)
+# ChromaDB 的 LangChain 整合包
 langchain-chroma>=0.1.0
+# 關鍵字檢索算法 (Okapi BM25)
+rank_bm25>=0.2.2
+# [v1.6 新增] 本地 Embedding 模型框架
+sentence-transformers>=2.2.2
+# [v1.6 新增] 深度學習框架 (本地模型依賴)，強制要求安全版本
+torch>=2.6.0
+
+# --- 自然語言處理與工具 (NLP & Utilities) ---
+# 用於快速的本地 NLP 任務（如實體識別）
+spacy>=3.7.2
+# 用於計算字串相似度，以修正工具名稱
+python-Levenshtein>=0.23.0
+# 高性能的異步 HTTP 客戶端，用於與 Ollama 等服務通訊
+httpx>=0.26.0
