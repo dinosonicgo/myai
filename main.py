@@ -130,7 +130,9 @@ async def _ollama_health_check(model_name: str) -> bool:
         return False
 # 函式：Ollama健康檢查與自動下載
 
-# [v12.0 核心修正] 新增輔助函式，用於設定 Hugging Face 鏡像
+# main.py 的 _setup_huggingface_mirror 函式 (v12.0 - 全新創建)
+# 更新紀錄:
+# v12.0 (2025-11-26): [重大架構升級] 創建此輔助函式，用於在程式啟動時自動設定 Hugging Face 相關的環境變數，將模型下載源強制指向國內鏡像。此修改旨在從根本上解決因網路問題導致的本地 Embedding 模型下載失敗或速度過慢的問題，是實現穩健的本地 RAG 系統的關鍵一步。
 def _setup_huggingface_mirror():
     """
     設定 Hugging Face 相關函式庫的環境變數，使其從國內鏡像下載模型。
@@ -508,6 +510,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
