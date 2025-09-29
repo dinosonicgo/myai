@@ -1699,39 +1699,45 @@ class BotCog(commands.Cog):
 
     
     
-    # 函式：開始 /start 指令的重置流程 (v52.3 - 變數重命名修正)
-    # 更新紀錄:
-    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
-    # v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
-    # v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式。
+    # 函式：开始 /start 指令的重置流程 (v52.0 - 健壮删除)
+    # 更新纪录:
+    # v52.0 (2025-11-25): [灾难性BUG修复] 彻底重构了此函式的资源清理逻辑。在删除向量存储目录前，增加了对 `ai_instance.shutdown()` 的显式调用和强制的延时等待。此修改旨在确保 ChromaDB 的后台服务有足够的时间释放对数据库文件的锁定，从而从根本上解决了因文件句柄被占用而导致的 `PermissionError: [WinError 32]` 致命错误。
+    # v51.3 (2025-09-25): [灾难性BUG修复] 将所有对 `self.setup_locks` 的引用更新为 `self.active_setups`。
+    # v51.2 (2025-11-22): [灾难性BUG修复] 修正了因缺少对 SceneHistoryData 模型的导入而导致的 NameError。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-            if not ai_instance:
-                logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
-            
+            # 步骤 1: 优雅地关闭并移除内存中的 AI 实例
             if user_id in self.ai_instances:
+                logger.info(f"[{user_id}] 正在关闭活跃的 AI 实例...")
+                # [v52.0 核心修正] 显式调用 shutdown，请求释放文件句柄
                 await self.ai_instances.pop(user_id).shutdown()
+                # 强制进行垃圾回收
                 gc.collect()
+                # [v52.0 核心修正] 给予一个短暂但关键的延时，等待后台进程完全关闭
                 await asyncio.sleep(1.5)
+                logger.info(f"[{user_id}] 活跃的 AI 实例已关闭并移除。")
 
-            if ai_instance:
-                await ai_instance._clear_scene_histories()
-
+            # 步骤 2: 清理数据库中的所有用户数据
             async with AsyncSessionLocal() as session:
+                logger.info(f"[{user_id}] 正在从数据库删除所有相关数据...")
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
+                logger.info(f"[{user_id}] 数据库清理完成。")
             
-            vector_store_path = Path(f"./data/vector_stores/{user_id}")
+            # 步骤 3: 物理删除向量存储目录
+            vector_store_path = PROJ_DIR / "data" / "vector_stores" / user_id
             if vector_store_path.exists():
-                await asyncio.to_thread(shutil.rmtree, vector_store_path)
+                logger.info(f"[{user_id}] 正在物理删除向量存储目录: {vector_store_path}")
+                await asyncio.to_thread(shutil.rmtree, vector_store_path, ignore_errors=True)
+                logger.info(f"[{user_id}] 向量存储目录删除完成。")
             
+            # 步骤 4: 发送成功消息并显示新的设置流程
             view = StartSetupView(cog=self)
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
@@ -1740,6 +1746,7 @@ class BotCog(commands.Cog):
             )
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
+            # 确保即使失败也能给用户一个反馈
             if not interaction.response.is_done():
                 try:
                     await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
@@ -1748,9 +1755,8 @@ class BotCog(commands.Cog):
             else:
                 await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
-            # [核心修正] 使用新的變數名稱
             self.active_setups.discard(user_id)
-    # 開始 /start 指令的重置流程 函式結束
+    # 开始 /start 指令的重置流程 函式结束
 
 
     
@@ -2130,6 +2136,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
