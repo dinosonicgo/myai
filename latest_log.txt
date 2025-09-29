@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:39:47.708809 ###
+### AI Lover Log - Last updated at 2025-09-29T20:42:23.262062 ###
 
-2025-09-29 20:14:34 - [INFO] - [512280345618546699] 正在准备生成上下文...
-2025-09-29 20:14:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 20:14:36 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['DINO', '碧'], 背景角色: []
-2025-09-29 20:14:36 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '月光蕈是什麼? DINO 碧'
-2025-09-29 20:14:36 - [ERROR] - 處理使用者 512280345618546699 的「純粹生成」流程時發生異常: 'AILover' object has no attribute 'get_unified_generation_chain'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1517, in on_message
     final_response = await ai_instance.preprocess_and_generate(input_data)
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3001, in preprocess_and_generate
     final_prompt_template = self.get_unified_generation_chain()
@@ -300,3 +293,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 617, in _rmtree_unsafe
     os.unlink(fullname)
 PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'data\\vector_stores\\512280345618546699\\chroma_db\\chroma.sqlite3'
+2025-09-29 20:42:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 20:42:09 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 20:42:09 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 20:42:09 - [INFO] - Discord Bot is ready!
+2025-09-29 20:42:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 20:42:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 20:42:13 - [INFO] - 已成功發送啟動成功通知給管理員。
