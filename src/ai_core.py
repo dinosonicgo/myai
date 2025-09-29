@@ -99,10 +99,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v301.5 - 切換安全模型)
+    # 函式：初始化AI核心 (v301.7 - 移除本地路徑依賴)
     # 更新紀錄:
-    # v301.5 (2025-11-26): [灾难性BUG修复] 将本地 Embedding 模型从 `moka-ai/m3e-large` 更换为 `BAAI/bge-large-zh-v1.5`。新模型默认使用 `safetensors` 格式，可以绕过因 `torch` 版本过低而触发的严重安全漏洞检查，从而解决了 `ValueError: Due to a serious vulnerability issue in torch.load` 导致的本地备援方案初始化失败的致命错误。
-    # v301.4 (2025-11-26): [灾难性BUG修复] 修正了 `SyntaxError: unterminated string literal`。
+    # v301.7 (2025-11-26): [架構簡化] 根據全自動鏡像下載策略，移除了 `local_embedding_model_path` 屬性。程式不再依賴手動下載和本地固定路徑，而是回歸到依賴 `sentence-transformers` 函式庫的自動快取機制，由 `main.py` 中設定的鏡像源確保下載的成功和速度。
+    # v301.6 (2025-11-26): [灾难性BUG修复] 引入了「本地化依赖」策略。
+    # v301.5 (2025-11-26): [灾难性BUG修复] 将本地 Embedding 模型更换为 `BAAI/bge-large-zh-v1.5`。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available
@@ -182,10 +183,8 @@ class AILover:
         self.bm25_corpus: List[Document] = []
 
         self.rag_mode: Literal["hybrid_cloud", "hybrid_local", "keyword_only"] = "keyword_only"
-        # [v301.5 核心修正] 切換到一個預設使用 safetensors 的、更安全可靠的中文模型
         self.local_embedding_model_name: str = "BAAI/bge-large-zh-v1.5"
     # 函式：初始化AI核心
-
     
 
 
@@ -3530,10 +3529,10 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：配置前置資源 (v204.1 - 實現 RAG 模式自動檢測)
+    # 函式：配置前置資源 (v204.3 - 回歸自動下載邏輯)
     # 更新紀錄:
-    # v204.1 (2025-11-26): [核心重構] 根據「三模式RAG系統」架構，徹底重寫了此函式。它現在是 RAG 系統的智能大腦，負責在啟動時自動檢測環境、決定工作模式、並初始化對應的 Embedding 模型。它會優先嘗試初始化 Google Embedding，如果因配額等問題失敗，則自動降級嘗試初始化本地 SentenceTransformer 模型，如果再次失敗，則最終降級到純關鍵字模式，確保系統在任何情況下都具備最高的可用性。
-    # v204.0 (2025-11-23): [架構擴展] 新增了對 `_create_embeddings_instance` 的調用。
+    # v204.3 (2025-11-26): [架構簡化] 根據全自動鏡像下載策略，還原了本地模型的初始化邏輯。不再需要檢查本地路徑是否存在，而是直接將模型名稱傳遞給 `HuggingFaceEmbeddings`，由其在 `main.py` 設定的鏡像源指導下，自動完成下載和快取，使程式碼更簡潔、更健壯。
+    # v204.2 (2025-11-26): [灾难性BUG修复] 重構了本地模型的初始化邏輯，使其從本地路徑加載。
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，並智能決定 RAG 的工作模式。
@@ -3547,44 +3546,42 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v204.1 核心修正] RAG 模式自動檢測與初始化
-        # --- 模式 1: 嘗試初始化 Google Cloud Embedding (最高精度) ---
+        # --- RAG 模式自動檢測與初始化 ---
         try:
             logger.info(f"[{self.user_id}] [RAG Mode] 正在嘗試初始化【混合雲端模式】...")
             google_embeddings = self._create_embeddings_instance()
             if google_embeddings:
-                # 執行一個小小的測試查詢以驗證 API 金鑰和配額
                 await google_embeddings.aembed_query("test")
                 self.embeddings = google_embeddings
                 self.rag_mode = "hybrid_cloud"
                 logger.info(f"[{self.user_id}] [RAG Mode] ✅ 成功初始化【混合雲端模式】。")
             else:
-                raise ValueError("未能創建 Google Embedding 實例，可能所有金鑰都在冷卻中。")
+                raise ValueError("未能創建 Google Embedding 實例。")
         except Exception as e:
             logger.warning(f"[{self.user_id}] [RAG Mode] 初始化【混合雲端模式】失敗: {type(e).__name__}。正在降級...")
 
-            # --- 模式 2: 嘗試初始化本地 Embedding (高可用性) ---
             if self.rag_mode != "hybrid_cloud":
                 try:
-                    logger.info(f"[{self.user_id}] [RAG Mode] 正在嘗試初始化【混合本地模式】...")
+                    logger.info(f"[{self.user_id}] [RAG Mode] 正在嘗試初始化【混合本地模式】（將自動從鏡像源下載）...")
                     from langchain_community.embeddings import HuggingFaceEmbeddings
                     
-                    # 這裡使用 HuggingFaceEmbeddings 來加載本地模型
-                    # model_kwargs 指定在 CPU 上運行
+                    # [v204.3 核心修正] 回歸自動下載邏輯。
+                    # `main.py` 中設定的環境變數會引導它從鏡像源下載。
                     self.embeddings = HuggingFaceEmbeddings(
                         model_name=self.local_embedding_model_name,
                         model_kwargs={'device': 'cpu'}
                     )
+                    # 執行一次測試以觸發下載和驗證
+                    self.embeddings.embed_query("test")
+                    
                     self.rag_mode = "hybrid_local"
                     logger.info(f"[{self.user_id}] [RAG Mode] ✅ 成功初始化【混合本地模式】(模型: {self.local_embedding_model_name})。")
                 except Exception as local_e:
                     logger.error(f"[{self.user_id}] [RAG Mode] 初始化【混合本地模式】最終失敗: {local_e}", exc_info=True)
-                    # --- 模式 3: 最終降級到純關鍵字模式 ---
                     self.embeddings = None
                     self.rag_mode = "keyword_only"
                     logger.critical(f"[{self.user_id}] [RAG Mode] 🔥 所有 Embedding 方案均失敗！系統已降級至【純關鍵字模式】。")
 
-        # 調用檢索器構建函式
         self.retriever = await self._load_or_build_rag_retriever()
         
         logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒 (當前 RAG 模式: {self.rag_mode})。")
@@ -5266,6 +5263,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
              logger.info(f"[{self.user_id}] [長期記憶寫入] 語意搜索功能未啟用 (RAG Mode: {self.rag_mode})，跳過寫入 ChromaDB。")
     # 將互動記錄保存到資料庫 函式結束
 # AI核心類 結束
+
 
 
 
