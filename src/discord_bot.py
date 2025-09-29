@@ -1690,10 +1690,10 @@ class BotCog(commands.Cog):
 
     
     
-    # 函式：開始 /start 指令的重置流程 (v52.3 - 變數重命名修正)
+    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.2 - 資源釋放修正)
     # 更新紀錄:
-    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
-    # v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
+    # v52.2 (2025-11-22): [灾难性BUG修复] 在從 `ai_instances` 字典中移除舊實例之前，增加了對 `ai_instance.shutdown()` 的強制調用和等待。此修改確保了在嘗試刪除 ChromaDB 的文件目錄之前，所有對該目錄的文件鎖都已被明確釋放，從而徹底解決了因 `PermissionError: [WinError 32]` 導致的 `/start` 重置失敗問題。
+    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`。
     # v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -1704,10 +1704,13 @@ class BotCog(commands.Cog):
             if not ai_instance:
                 logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
             
+            # [v52.2 核心修正] 在刪除實例和文件之前，先調用 shutdown 釋放資源
             if user_id in self.ai_instances:
-                await self.ai_instances.pop(user_id).shutdown()
+                logger.info(f"[{user_id}] 正在為舊的 AI 實例執行 shutdown...")
+                await self.ai_instances[user_id].shutdown()
+                self.ai_instances.pop(user_id)
                 gc.collect()
-                await asyncio.sleep(1.5)
+                await asyncio.sleep(1.5) # 給予額外時間確保資源完全釋放
 
             if ai_instance:
                 await ai_instance._clear_scene_histories()
@@ -1739,7 +1742,6 @@ class BotCog(commands.Cog):
             else:
                 await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
-            # [核心修正] 使用新的變數名稱
             self.active_setups.discard(user_id)
     # 開始 /start 指令的重置流程 函式結束
 
@@ -2121,6 +2123,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
