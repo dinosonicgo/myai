@@ -134,59 +134,68 @@ async def _ollama_health_check(model_name: str) -> bool:
 
 
 
-# main.py 的 _check_and_install_dependencies 函式 (v12.1 - 新增本地模型依賴)
+# main.py 的 _check_and_install_dependencies 函式 (v12.2 - 強制依賴升級)
 # 更新紀錄:
-# v12.1 (2025-11-26): [架構擴展] 根據「三模式RAG系統」架構，在依賴項檢查器中增加了對 `sentence-transformers` 和 `torch` 的檢查，以支持全新的本地 Embedding 模型備援方案。
-# v12.0 (2025-11-23): [架構擴展] 在依賴項檢查器中增加了對 `chromadb` 和 `langchain-chroma` 的檢查。
-# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
+# v12.2 (2025-11-26): [灾难性BUG修复] 根據本地備援方案的 `ValueError`，在安裝 `torch` 時，明確指定了 `>=2.6` 的版本要求。此修改將在程式首次啟動時，自動將舊版本的 PyTorch 升級到一個安全的、符合 `transformers` 庫要求的版本，從而徹底解決因 `torch.load` 安全漏洞而導致的本地模型初始化失敗問題。
+# v12.1 (2025-11-26): [架構擴展] 新增了對 `sentence-transformers` 和 `torch` 的依賴檢查。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
     
+    # [v12.2 核心修正] 為 torch 指定最低版本，並重構字典結構以提高清晰度
+    # 格式: { 'pip 安裝名': ('導入時的包名', '用於 importlib.metadata 的包名') }
     required_packages = {
-        'uvicorn': 'uvicorn', 'fastapi': 'fastapi', 'SQLAlchemy': 'sqlalchemy',
-        'aiosqlite': 'aiosqlite', 'discord.py': 'discord', 'langchain': 'langchain',
-        'langchain-core': 'langchain_core', 'langchain-google-genai': 'langchain_google_genai',
-        'langchain-community': 'langchain_community', 
-        'langchain-chroma': 'langchain_chroma', 
-        'chromadb': 'chromadb',
-        'langchain-cohere': 'langchain_cohere', 'google-generativeai': 'google.generativeai',
-        'rank_bm25': 'rank_bm25',
-        'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
-        'python-Levenshtein': 'Levenshtein',
-        'spacy': 'spacy', 'httpx': 'httpx',
-        # [v12.1 核心修正] 新增本地 Embedding 模型相關依賴
-        'sentence-transformers': 'sentence_transformers',
-        'torch': 'torch',
+        'torch>=2.6': ('torch', 'torch'), 
+        'uvicorn': ('uvicorn', 'uvicorn'), 
+        'fastapi': ('fastapi', 'fastapi'), 
+        'SQLAlchemy': ('sqlalchemy', 'sqlalchemy'),
+        'aiosqlite': ('aiosqlite', 'aiosqlite'), 
+        'discord.py': ('discord', 'discord.py'),  # 注意導入名和包名的區別
+        'langchain': ('langchain', 'langchain'),
+        'langchain-core': ('langchain_core', 'langchain-core'), 
+        'langchain-google-genai': ('langchain_google_genai', 'langchain-google-genai'),
+        'langchain-community': ('langchain_community', 'langchain-community'), 
+        'langchain-chroma': ('langchain_chroma', 'langchain-chroma'), 
+        'chromadb': ('chromadb', 'chromadb'),
+        'langchain-cohere': ('langchain_cohere', 'langchain-cohere'), 
+        'google-generativeai': ('google.generativeai', 'google-generativeai'),
+        'rank_bm25': ('rank_bm25', 'rank_bm25'),
+        'pydantic-settings': ('pydantic_settings', 'pydantic-settings'), 
+        'Jinja2': ('jinja2', 'Jinja2'),
+        'python-Levenshtein': ('Levenshtein', 'python-Levenshtein'),
+        'spacy': ('spacy', 'spacy'), 
+        'httpx': ('httpx', 'httpx'),
+        'sentence-transformers': ('sentence_transformers', 'sentence-transformers'),
     }
     
     missing_packages = []
-    for package_name, import_name in required_packages.items():
+    for pip_name, (import_name, package_name) in required_packages.items():
         try:
             if importlib.util.find_spec(import_name) is None:
                 raise ImportError
-            if package_name == 'spacy':
-                 importlib.metadata.version(package_name)
+            # 對於需要檢查版本的庫，使用 importlib.metadata
+            importlib.metadata.version(package_name)
         except (ImportError, importlib.metadata.PackageNotFoundError):
-            missing_packages.append(package_name)
+            missing_packages.append(pip_name)
 
     if missing_packages:
-        print("\n⏳ 正在自動安裝缺失的 Python 依賴項...")
-        for package in missing_packages:
+        print("\n⏳ 正在自動安裝或升級缺失的 Python 依賴項...")
+        for pip_name in missing_packages:
             try:
-                print(f"   - 正在安裝 {package}...")
-                # 為 torch 指定額外的索引 URL，如果需要的話
-                if package == 'torch':
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "torch", "torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cpu"])
-                else:
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", package])
-                print(f"   ✅ {package} 安裝成功。")
+                print(f"   - 正在處理 {pip_name}...")
+                command = [sys.executable, "-m", "pip", "install", "--quiet", pip_name]
+                # 為 torch 指定額外的索引 URL 以加速下載
+                if 'torch' in pip_name:
+                    command.extend(["torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cpu"])
+                
+                subprocess.check_call(command)
+                print(f"   ✅ {pip_name} 處理成功。")
             except subprocess.CalledProcessError:
-                print(f"   🔥 {package} 安裝失敗！請手動執行 'pip install {package}'。")
+                print(f"   🔥 {pip_name} 處理失敗！請手動在終端機執行 'pip install \"{pip_name}\"'。")
                 if os.name == 'nt': os.system("pause")
                 sys.exit(1)
-        print("\n🔄 依賴項安裝完畢。需要重啟以加載新模組。")
-        sys.exit(0)
+        print("\n🔄 依賴項安裝/升級完畢。為確保所有模組被正確加載，程式將自動重啟...")
+        sys.exit(0) # 觸發 launcher.py 的重啟機制
 
     try:
         import spacy
@@ -481,6 +490,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
