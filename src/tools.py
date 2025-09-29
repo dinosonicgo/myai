@@ -156,12 +156,11 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
 
 
 # 工具：搜尋知識庫
+# tools.py 的 search_knowledge_base 工具 (v6.0 - 簡化改造)
 # 更新紀錄:
-# v1.0 (2025-08-27): [核心功能] 創建此工具。
-# v2.0 (2025-10-15): [健壯性] 實現了對 Embedding API 失敗的優雅降級，在主檢索器失敗時會自動切換到 BM25 備援方案。
-# v3.0 (2025-10-15): [災難性BUG修復] 修正了 `except` 塊，使其能夠正確捕獲 `GoogleGenerativeAIError`，確保備援方案能被觸發。
-# v4.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，如果沒有可用的 Embedding Key，則直接使用 BM25 備援。
+# v6.0 (2025-11-26): [根本性重構] 根據全新的本地混合檢索架構，徹底簡化了此工具的邏輯。它現在的唯一職責是直接調用穩定可靠的本地 EnsembleRetriever，移除了所有針對 Google API 失敗的複雜備援和降級方案，使程式碼更簡潔、更高效。
 # v5.0 (2025-10-15): [健壯性] 優化了備援流程的日誌敘事。
+# v4.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
 @tool(args_schema=SearchKnowledgeBaseArgs)
 async def search_knowledge_base(query: str, category: Optional[str] = None) -> str:
     """在你行動或回應之前，用來查詢關於任何事物（如 NPC、地點、物品、生物、任務或傳說）的已知資訊。這是你獲取背景知識的主要方式。"""
@@ -170,57 +169,38 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     
     rag_results: Optional[List[Document]] = None
     
-    # [v4.0 核心修正] 檢查是否有可用的 Embedding Key
-    has_available_keys = any(
-        time.time() >= ai_core.key_cooldowns.get(i, 0) for i in range(len(ai_core.api_keys))
-    )
+    if not ai_core.retriever:
+        logger.error(f"[{user_id}] (Tool) 檢索器未初始化，無法執行搜尋。")
+        return "錯誤：知識庫檢索功能當前不可用。"
+    
+    try:
+        logger.info(f"[{user_id}] (Tool) 正在使用本地混合檢索器查詢 '{query}'...")
+        rag_results = await ai_core.retriever.ainvoke(query)
+    except Exception as e:
+        logger.error(f"[{user_id}] (Tool) 本地混合檢索時發生未知錯誤: {e}", exc_info=True)
+        return f"錯誤：在知識庫中檢索 '{query}' 時發生問題。"
 
-    if not has_available_keys:
-        logger.warning(f"[{user_id}] (Tool) [備援直達] 主記憶系統 (Embedding) 因所有 API 金鑰都在冷卻期而跳過。")
-        logger.info(f"[{user_id}] (Tool) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
-        if ai_core.bm25_retriever:
-            rag_results = await ai_core.bm25_retriever.ainvoke(query)
-            logger.info(f"[{user_id}] (Tool) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
-    else:
-        if ai_core.retriever:
-            try:
-                logger.info(f"[{user_id}] (Tool) [主方案] 正在使用主記憶系統 (Embedding + BM25) 查詢 '{query}'...")
-                rag_results = await ai_core.retriever.ainvoke(query)
-            except (ResourceExhausted, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                # [v5.0 核心修正] 優化日誌敘事
-                logger.warning(f"[{user_id}] (Tool) [主方案失敗] 主記憶系統 (Embedding) 因達到 API 配額限制而失敗。錯誤: {type(e).__name__}")
-                logger.info(f"[{user_id}] (Tool) [備援觸發] 正在啟動備援記憶系統 (BM25)...")
-                if ai_core.bm25_retriever:
-                    try:
-                        rag_results = await ai_core.bm25_retriever.ainvoke(query)
-                        logger.info(f"[{user_id}] (Tool) [備援成功] 備援記憶系統 (BM25) 檢索成功。")
-                    except Exception as bm25_e:
-                        logger.error(f"[{user_id}] (Tool) [備援失敗] 備援記憶系統 (BM25) 在檢索時發生錯誤: {bm25_e}", exc_info=True)
-                else:
-                    logger.warning(f"[{user_id}] (Tool) [備援失敗] 備援記憶系統 (BM25) 未初始化。")
-            except Exception as e:
-                logger.error(f"[{user_id}] (Tool) 檢索時發生未知錯誤: {e}", exc_info=True)
-
-    # --- 步驟 2: 查詢結構化 LORE (如果提供了 category) ---
+    # --- 查詢結構化 LORE (如果提供了 category) ---
     lore_result: Optional[lore_book.Lore] = None
     if category:
         try:
+            # 為了更精準，我們使用 query 作為主鍵來查詢
             lore_result = await lore_book.get_lore(user_id, category, query)
         except Exception as e:
             logger.error(f"[{user_id}] (Tool) 查詢結構化 LORE 時發生錯誤: {e}", exc_info=True)
 
-    # --- 步驟 3: 組合結果 ---
+    # --- 組合結果 ---
     output_parts = []
     if lore_result:
-        output_parts.append(f"【結構化資料庫 (Lore) 查詢結果 for '{query}' in '{category}'】:\n" + json.dumps(lore_result.content, ensure_ascii=False, indent=2))
+        output_parts.append(f"【結構化資料庫 (Lore) 精確查詢結果 for Key='{query}' in '{category}'】:\n" + json.dumps(lore_result.content, ensure_ascii=False, indent=2))
     elif category:
-        output_parts.append(f"【結構化資料庫 (Lore) 查詢結果】: 在類別 '{category}' 中找不到關於 '{query}' 的精確條目。")
+        output_parts.append(f"【結構化資料庫 (Lore) 查詢結果】: 在類別 '{category}' 中找不到 Key 為 '{query}' 的精確條目。")
     
     if rag_results:
         rag_content = "\n\n---\n\n".join([doc.page_content for doc in rag_results])
-        output_parts.append(f"【背景知識庫 (記憶/聖經) 相關資訊 for '{query}'】:\n{rag_content}")
+        output_parts.append(f"【知識庫 RAG 檢索相關資訊 for '{query}'】:\n{rag_content}")
     else:
-        output_parts.append(f"【背景知識庫 (記憶/聖經) 相關資訊】: 未找到與 '{query}' 相關的背景資訊。")
+        output_parts.append(f"【知識庫 RAG 檢索相關資訊】: 未找到與 '{query}' 相關的背景資訊。")
         
     final_output = "\n\n".join(output_parts)
     logger.info(f"[{user_id}] 執行了統一知識庫查詢 for '{query}', Category: {category}。結果長度: {len(final_output)}")
@@ -491,6 +471,7 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
 
 
