@@ -473,14 +473,14 @@ class AILover:
 
 
 # 函式：加載或構建 RAG 檢索器
-    # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.1 - 縮排修正)
+    # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.2 - 空知識庫初始化修復)
     # 更新紀錄:
-    # v204.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
-    # v204.0 (2025-11-26): [根本性重構] 根據「本地混合檢索」策略徹底重寫此函式。它現在負責：1. 使用本地 Embedding 模型初始化 ChromaDB 向量儲存；2. 創建 BM25 檢索器；3. 將兩者整合成一個 EnsembleRetriever。
-    # v210.1 (2025-09-24): [災難性BUG修復] 恢復了 force_rebuild 參數並增加了相應的處理邏輯。
+    # v204.2 (2025-11-26): [灾难性BUG修复] 在處理知識庫為空 (all_docs is empty) 的邏輯分支中，新增了對一個空的 Chroma 實例的初始化。此修改確保了 self.vector_store 在任何情況下都會被賦值為一個有效物件，從根源上解決了在空資料庫上執行創世流程時因 vector_store 未定義而導致的 RuntimeError。
+    # v204.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
+    # v204.0 (2025-11-26): [根本性重構] 根據「本地混合檢索」策略徹底重寫此函式。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v204.1 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
+        (v204.2 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
@@ -578,8 +578,19 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 在創始構建期間發生嚴重錯誤: {e}", exc_info=True)
                 self.retriever = RunnableLambda(lambda x: [])
         else:
-            self.retriever = RunnableLambda(lambda x: [])
-            logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，創始構建為空。")
+            # [v204.2 核心修正] 即使文檔為空，也要初始化一個空的 Chroma 實例
+            try:
+                self.vector_store = Chroma(
+                    embedding_function=self.embeddings,
+                    persist_directory=self.vector_store_path
+                )
+                self.retriever = RunnableLambda(lambda x: [])
+                logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，已創始化一個空的 RAG 系統。")
+            except Exception as e:
+                logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: {e}", exc_info=True)
+                self.vector_store = None
+                self.retriever = RunnableLambda(lambda x: [])
+
 
         return self.retriever
     # 函式：加載或構建 RAG 檢索器
@@ -5281,6 +5292,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
