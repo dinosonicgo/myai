@@ -3529,10 +3529,10 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：配置前置資源 (v204.3 - 回歸自動下載邏輯)
+    # 函式：配置前置資源 (v204.4 - 簡化錯誤處理)
     # 更新紀錄:
-    # v204.3 (2025-11-26): [架構簡化] 根據全自動鏡像下載策略，還原了本地模型的初始化邏輯。不再需要檢查本地路徑是否存在，而是直接將模型名稱傳遞給 `HuggingFaceEmbeddings`，由其在 `main.py` 設定的鏡像源指導下，自動完成下載和快取，使程式碼更簡潔、更健壯。
-    # v204.2 (2025-11-26): [灾难性BUG修复] 重構了本地模型的初始化邏輯，使其從本地路徑加載。
+    # v204.4 (2025-11-26): [架構簡化] 根據「啟動器前置依賴檢查」策略，簡化了本地模型初始化的錯誤處理。由於 launcher.py 確保了 torch 版本絕對正確，此處不再需要捕獲 `ValueError`，只需處理常規的模型下載或加載失敗即可。
+    # v204.3 (2025-11-26): [架構簡化] 還原了本地模型的自動下載邏輯。
     async def _configure_pre_requisites(self):
         """
         配置並準備好所有構建鏈所需的前置資源，並智能決定 RAG 的工作模式。
@@ -3546,7 +3546,6 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # --- RAG 模式自動檢測與初始化 ---
         try:
             logger.info(f"[{self.user_id}] [RAG Mode] 正在嘗試初始化【混合雲端模式】...")
             google_embeddings = self._create_embeddings_instance()
@@ -3565,19 +3564,18 @@ class ExtractionResult(BaseModel):
                     logger.info(f"[{self.user_id}] [RAG Mode] 正在嘗試初始化【混合本地模式】（將自動從鏡像源下載）...")
                     from langchain_community.embeddings import HuggingFaceEmbeddings
                     
-                    # [v204.3 核心修正] 回歸自動下載邏輯。
-                    # `main.py` 中設定的環境變數會引導它從鏡像源下載。
                     self.embeddings = HuggingFaceEmbeddings(
                         model_name=self.local_embedding_model_name,
                         model_kwargs={'device': 'cpu'}
                     )
-                    # 執行一次測試以觸發下載和驗證
                     self.embeddings.embed_query("test")
                     
                     self.rag_mode = "hybrid_local"
                     logger.info(f"[{self.user_id}] [RAG Mode] ✅ 成功初始化【混合本地模式】(模型: {self.local_embedding_model_name})。")
+                
+                # [v204.4 核心修正] 簡化錯誤處理，因為版本問題已在 launcher 層面解決
                 except Exception as local_e:
-                    logger.error(f"[{self.user_id}] [RAG Mode] 初始化【混合本地模式】最終失敗: {local_e}", exc_info=True)
+                    logger.error(f"[{self.user_id}] [RAG Mode] 初始化【混合本地模式】最終失敗 (可能是模型下載/加載問題): {local_e}", exc_info=True)
                     self.embeddings = None
                     self.rag_mode = "keyword_only"
                     logger.critical(f"[{self.user_id}] [RAG Mode] 🔥 所有 Embedding 方案均失敗！系統已降級至【純關鍵字模式】。")
@@ -5263,6 +5261,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
              logger.info(f"[{self.user_id}] [長期記憶寫入] 語意搜索功能未啟用 (RAG Mode: {self.rag_mode})，跳過寫入 ChromaDB。")
     # 將互動記錄保存到資料庫 函式結束
 # AI核心類 結束
+
 
 
 
