@@ -99,11 +99,10 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v301.4 - 語法修正)
+    # 函式：初始化AI核心 (v301.5 - 切換安全模型)
     # 更新紀錄:
-    # v301.4 (2025-11-26): [灾难性BUG修复] 修正了因複製貼上錯誤導致的 `SyntaxError: unterminated string literal`。恢復了 `DECODING_MAP` 字典和 `data_protocol_prompt` 字串的正確結構，確保程式能夠成功解析和啟動。
-    # v301.3 (2025-11-26): [架構擴展] 新增了 RAG 模式管理屬性。
-    # v301.2 (2025-11-25): [健壮性强化] 引入了全自动的 API 金钥管理和持久化冷卻系统。
+    # v301.5 (2025-11-26): [灾难性BUG修复] 将本地 Embedding 模型从 `moka-ai/m3e-large` 更换为 `BAAI/bge-large-zh-v1.5`。新模型默认使用 `safetensors` 格式，可以绕过因 `torch` 版本过低而触发的严重安全漏洞检查，从而解决了 `ValueError: Due to a serious vulnerability issue in torch.load` 导致的本地备援方案初始化失败的致命错误。
+    # v301.4 (2025-11-26): [灾难性BUG修复] 修正了 `SyntaxError: unterminated string literal`。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available
@@ -120,7 +119,6 @@ class AILover:
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
 
-        # [v301.4 核心修正] 恢復 DECODING_MAP 的正確結構
         self.DECODING_MAP = {
             "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
             "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
@@ -154,7 +152,6 @@ class AILover:
         self.post_generation_analysis_chain: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
-        # [v301.4 核心修正] 恢復 data_protocol_prompt 的正確結構
         self.data_protocol_prompt: str = """# ==============================================================================
 # == 📖 AI 數據處理程式指導原則 v1.0 (安全版) 📖
 # ==============================================================================
@@ -185,7 +182,8 @@ class AILover:
         self.bm25_corpus: List[Document] = []
 
         self.rag_mode: Literal["hybrid_cloud", "hybrid_local", "keyword_only"] = "keyword_only"
-        self.local_embedding_model_name: str = "moka-ai/m3e-large"
+        # [v301.5 核心修正] 切換到一個預設使用 safetensors 的、更安全可靠的中文模型
+        self.local_embedding_model_name: str = "BAAI/bge-large-zh-v1.5"
     # 函式：初始化AI核心
 
     
@@ -5268,6 +5266,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
              logger.info(f"[{self.user_id}] [長期記憶寫入] 語意搜索功能未啟用 (RAG Mode: {self.rag_mode})，跳過寫入 ChromaDB。")
     # 將互動記錄保存到資料庫 函式結束
 # AI核心類 結束
+
 
 
 
