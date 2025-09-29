@@ -49,12 +49,13 @@ def _run_command(command, working_dir=None):
 
 # 函式：主啟動邏輯 (v4.1 - 健壯性鎖定修復)
 # 更新紀錄:
-# v4.1 (2025-09-23): [災難性BUG修復] 增加了自動化的 Git 鎖定檔案清理機制。在執行任何 Git 操作前，此版本會檢查並強制移除殘留的 .git/index.lock 檔案，從根本上解決了因進程衝突或崩潰導致的啟動失敗問題。
-# v4.0 (2025-09-10): [架構重構] 徹底重構了熔斷機制。現在，在連續失敗後，守護進程將進入長時冷却模式並持續嘗試重啟，而不是直接退出，以確保遠程修復通道的絕對可用性。
-# v3.2 (2025-09-04): [灾难性BUG修复] 提供了完整的文件内容。
+# v5.0 (2025-11-26): [灾难性BUG修复] 引入了「啟動器前置依賴檢查」機制。將依賴項的安裝職責從 main.py 提升至 launcher.py。現在，啟動器會在同步程式碼後、啟動主應用前，強制執行 `pip install -r requirements.txt`，確保主應用總是在一個依賴版本絕對正確的環境中啟動。此修改從根本上解決了因環境未更新而導致的一系列頑固錯誤。
+# v4.1 (2025-09-23): [災難性BUG修復] 增加了自動化的 Git 鎖定檔案清理機制。
+# v4.0 (2025-09-10): [架構重構] 徹底重構了熔斷機制。
 def main():
-    """主啟動函式，包含守護進程和熔斷機制。"""
+    """主啟動函式，包含守護進程、前置依賴檢查和熔斷機制。"""
     current_dir = Path(__file__).resolve().parent
+    requirements_path = current_dir / "requirements.txt"
 
     print("--- AI Lover 啟動器 ---")
 
@@ -62,52 +63,54 @@ def main():
     last_failure_time = 0.0
     FAILURE_THRESHOLD = 5
     FAILURE_WINDOW = 60 
-    COOLDOWN_SECONDS = 300 # 進入冷却模式後的等待時間 (5分鐘)
+    COOLDOWN_SECONDS = 300
 
     while True:
-        print("\n--- 步驟 1/3: 檢查 Git 環境 ---")
+        print("\n--- 步驟 1/4: 檢查 Git 環境與鎖定 ---")
         if not _run_command(["git", "--version"], working_dir=current_dir):
             return
-
-        # [v4.1 核心修正] Git 鎖定檔案自動清理機制
-        print("\n--- 步驟 1.5/3: 檢查並清理 Git 鎖定 ---")
+        
         lock_file = current_dir / ".git" / "index.lock"
         if lock_file.is_file():
-            print("   ⚠️ 警告: 偵測到殘留的 Git 鎖定檔案 (.git/index.lock)。")
-            print("   -> 可能是上一個 Git 進程崩潰導致的。")
-            print("   -> 將在短暫等待後嘗試自動移除...")
-            time.sleep(2) # 給予正常進程結束的機會
+            print("   ⚠️ 警告: 偵測到殘留的 Git 鎖定檔案，將嘗試自動移除...")
             try:
-                if lock_file.is_file(): # 再次檢查
-                    lock_file.unlink()
-                    print("   ✅ 殘留的鎖定檔案已成功移除。")
+                lock_file.unlink()
+                print("   ✅ 殘留的鎖定檔案已成功移除。")
             except OSError as e:
                 print(f"   🔥 錯誤: 自動移除鎖定檔案失敗: {e}")
-                print("   請手動刪除 'D:/DINO/SD/ComfyUI/personal_server/ai_lover_service/.git/index.lock' 檔案後再試。")
-                if os.name == 'nt':
-                    os.system("pause")
+                if os.name == 'nt': os.system("pause")
                 return
         else:
-            print("   ✅ Git 倉庫狀態正常，無殘留鎖定。")
+            print("   ✅ Git 倉庫狀態正常。")
 
-
-        print("\n--- 步驟 2/3: 正在從 GitHub 同步最新程式碼 ---")
+        print("\n--- 步驟 2/4: 正在從 GitHub 同步最新程式碼 ---")
         if not _run_command(["git", "fetch"], working_dir=current_dir):
             print("   ⚠️ 警告: 'git fetch' 失敗，將嘗試繼續...")
-        print("   -> 正在強制同步本地倉庫至遠端最新版本...")
         if not _run_command(["git", "reset", "--hard", "origin/main"], working_dir=current_dir):
-            print("   🔥 錯誤: 強制同步失敗。請手動檢查您的 Git 倉庫狀態。")
-            if os.name == 'nt':
-                os.system("pause")
+            print("   🔥 錯誤: 強制同步失敗。")
+            if os.name == 'nt': os.system("pause")
             return
-        print("✅ 程式碼已強制同步至最新版本。")
+        print("✅ 程式碼已同步至最新版本。")
 
-        print(f"\n--- 步驟 3/3: 啟動主應用程式 ---")
+        # [v5.0 核心修正] 新增前置依賴檢查步驟
+        print("\n--- 步驟 3/4: 正在檢查並安裝/升級 Python 依賴項 ---")
+        if not requirements_path.is_file():
+            print(f"   🔥 錯誤: 找不到 'requirements.txt' 檔案。")
+            if os.name == 'nt': os.system("pause")
+            return
+        
+        # 使用 --upgrade 確保即使已安裝，也會檢查並升級到 requirements.txt 中指定的版本
+        if not _run_command([sys.executable, "-m", "pip", "install", "--upgrade", "-r", str(requirements_path)], working_dir=current_dir):
+            print(f"   🔥 錯誤: 依賴項安裝失敗。請檢查 pip 的錯誤訊息。")
+            if os.name == 'nt': os.system("pause")
+            return
+        print("✅ Python 環境依賴項已是最新。")
+
+        print(f"\n--- 步驟 4/4: 啟動主應用程式 ---")
         main_py_path = current_dir / "main.py"
         if not main_py_path.is_file():
-            print(f"🔥 致命錯誤: 在當前目錄中找不到 'main.py'。")
-            if os.name == 'nt':
-                os.system("pause")
+            print(f"🔥 致命錯誤: 找不到 'main.py'。")
+            if os.name == 'nt': os.system("pause")
             sys.exit(1)
 
         args_to_pass = sys.argv[1:]
@@ -120,7 +123,6 @@ def main():
             print("-" * 50)
             process = subprocess.Popen(command_to_run, text=True, encoding='utf-8')
             return_code = process.wait()
-
         except KeyboardInterrupt:
             print("\n[啟動器] 偵測到使用者中斷，正在關閉...")
             if process:
@@ -136,32 +138,28 @@ def main():
                 failure_count = 0 
             else:
                 print(f"\n[啟動器] 偵測到主程式異常退出 (返回碼: {return_code})。")
-                
                 if current_time - last_failure_time < FAILURE_WINDOW:
                     failure_count += 1
                 else:
                     failure_count = 1
-                
                 last_failure_time = current_time
-                
-                # [v4.0 核心修正] 重構熔斷機制為長時冷却
                 if failure_count >= FAILURE_THRESHOLD:
                     print(f"🔥🔥🔥 [啟動器冷却模式] 在 {FAILURE_WINDOW} 秒內連續失敗 {failure_count} 次！")
-                    print(f"[啟動器] 系統可能存在持續性BUG。為防止資源耗盡，將進入 {COOLDOWN_SECONDS} 秒的長時冷却。")
-                    print(f"[啟動器] 在此期間，您可以推送修復到GitHub倉庫。冷却結束後，系統將自動拉取最新程式碼並嘗試重啟。")
+                    print(f"   將進入 {COOLDOWN_SECONDS} 秒的長時冷却...")
                     time.sleep(COOLDOWN_SECONDS)
-                    failure_count = 0 # 冷却結束後重置計數器，給予新程式碼一個完整的重試機會
-                    continue # 跳過下方的短時等待，直接進入下一個循環
+                    failure_count = 0
+                    continue
             
             print(f"[啟動器] 將在 5 秒後嘗試重啟...")
             time.sleep(5)
 
     if os.name == 'nt':
         print("\n----------------------------------------------------")
-        print("[AI Lover Launcher] 程式已結束。您可以按任意鍵關閉此視窗。")
+        print("[AI Lover Launcher] 程式已結束。")
         os.system("pause")
-# 函式：主啟動邏輯 (v4.1 - 健壯性鎖定修復)
+# 函式：主啟動邏輯
 
 if __name__ == "__main__":
     main()
+
 
