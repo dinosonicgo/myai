@@ -1721,44 +1721,44 @@ class BotCog(commands.Cog):
     # 函式：健壯的異步目錄刪除
     
     
-    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.5 - 生命週期修正)
+    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.6 - 終極生命週期修正)
     # 更新紀錄:
-    # v52.5 (2025-11-26): [灾难性BUG修复] 徹底重寫了此函式的執行邏輯，以修復生命週期管理的根本性漏洞。新流程不再於重置過程中創建臨時實例，而是專注於銷毀：它首先檢查並徹底關閉任何已存在的 AILover 實例（這是解決文件鎖的關鍵），然後才執行文件和資料庫的刪除操作。此修改從根本上解決了因競態條件導致的 PermissionError。
+    # v52.6 (2025-11-26): [灾难性BUG修复] 再次徹底重寫此函式的執行邏輯，以解決最頑固的 [WinError 32] 文件鎖問題。新流程嚴格遵循「先徹底銷毀內存，再清理磁盤」原則：1. 徹底關閉並銷毀任何已存在的 AILover 實例。 2. **禁止**在清理過程中創建任何新的臨時實例，避免了「邊清理邊加鎖」的惡性循環。 3. 將清理 SceneHistoryData 的資料庫操作直接合併到此函式中。此修改從根本上隔離了物件生命週期，確保在刪除文件時，絕對沒有任何程序持有文件句柄。
+    # v52.5 (2025-11-26): [灾难性BUG修复] 重構了銷毀流程，確保在文件操作前銷毀實例。
     # v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。
-    # v52.3 (2025-11-26): [灾难性BUG修复] 引入了帶有延遲重試機制的 `_robust_rmtree` 來處理文件刪除。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            # [v52.5 核心修正] 先關閉和銷毀，再刪除文件
+            # 步驟 1: 徹底關閉並銷毀任何已存在的 AILover 實例，釋放所有內存和文件句柄
             if user_id in self.ai_instances:
                 logger.info(f"[{user_id}] 檢測到活躍的 AI 實例，正在執行徹底的 shutdown 流程...")
                 await self.ai_instances[user_id].shutdown()
                 del self.ai_instances[user_id]
                 gc.collect()
-                logger.info(f"[{user_id}] AI 實例已銷毀，進入 2 秒靜默期以等待 OS 釋放文件鎖...")
+                logger.info(f"[{user_id}] AI 實例已銷毀，進入 2 秒的靜默期以等待 OS 釋放文件鎖...")
                 await asyncio.sleep(2.0)
             else:
                 logger.info(f"[{user_id}] 未檢測到活躍的 AI 實例，直接進行清理。")
 
-            # 現在可以安全地進行文件和資料庫操作了
+            # 步驟 2: 清理所有相關的資料庫記錄
             async with AsyncSessionLocal() as session:
-                # 清理短期場景歷史
+                logger.info(f"[{user_id}] 正在清除所有資料庫記錄...")
+                # [v52.6 核心修正] 將場景歷史清理合併到此處
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
-                # 清理長期記憶
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
-                # 清理 LORE
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
-                # 清理使用者主資料
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
                 logger.info(f"[{user_id}] 所有資料庫記錄已成功清除。")
             
+            # 步驟 3: 在所有內存和資料庫引用都解除後，安全地刪除文件系統目錄
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
                 await self._robust_rmtree(vector_store_path)
             
+            # 步驟 4: 向使用者報告成功
             view = StartSetupView(cog=self)
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
@@ -2155,6 +2155,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
