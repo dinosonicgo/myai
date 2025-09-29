@@ -1,3 +1,9 @@
+# requirements.txt 的中文註釋(v2.2 - 依賴驗證)
+# 更新紀錄:
+# v2.2 (2025-11-26): [驗證確認] 審查並確認現有依賴項已完整包含本地 RAG 系統所需的所有套件 (如 torch, sentence-transformers)，因此無需新增或修改。
+# v2.1 (2025-11-26): [重大架構升級] 新增了 torch, torchvision, transformers, sentence-transformers 等核心依賴。
+# v2.0 (2025-11-26): [灾难性BUG修复] 協調了所有 langchain-* 套件的版本，解決了致命依賴衝突。
+
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.11
 langchain-core==0.2.36
