@@ -1,172 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T09:34:31.701512 ###
+### AI Lover Log - Last updated at 2025-09-29T09:39:34.845579 ###
 
-    with map_httpcore_exceptions():
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
-    self.gen.throw(typ, value, traceback)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
-    raise mapped_exc(message) from exc
-httpx.ReadTimeout
-2025-09-29 09:10:27 - [ERROR] - [512280345618546699] [摘要備援] 本地模型也未能為任務 #2 生成摘要。
-2025-09-29 09:10:27 - [INFO] - [512280345618546699] [LORE 解析 3/6 - 步驟B] 最終成功生成 3 份 LORE 事實摘要。
-2025-09-29 09:10:27 - [INFO] - [512280345618546699] [LORE 解析 3/6 - 步驟C] 正在並行解析 3 份摘要...
-2025-09-29 09:10:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:10:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [分塊合併] 已成功將 3 個分塊結果合併並去重。
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [LORE 解析 3/6] ✅ 成功！分塊摘要處理並合併了LORE。
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [混合式安全驗證器 v5.1] 正在啟動，對 65 個NPC檔案進行最終校驗...
-2025-09-29 09:10:46 - [WARNING] - [512280345618546699] [驗證器-地點] 檢測到角色 '亞瑟' 的地點 '聖凱瑟琳學院' 為幻覺，已強制移除。
-2025-09-29 09:10:46 - [WARNING] - [512280345618546699] [驗證器-地點] 檢測到角色 '馬丁' 的地點 '聖凱瑟琳學院' 為幻覺，已強制移除。
-2025-09-29 09:10:46 - [WARNING] - [512280345618546699] [驗證器-地點] 檢測到角色 '朱利安' 的地點 '聖凱瑟琳學院' 為幻覺，已強制移除。
-2025-09-29 09:10:46 - [WARNING] - [512280345618546699] [驗證器-地點] 檢測到角色 '阿利斯特' 的地點 '聖凱瑟琳學院' 為幻覺，已強制移除。
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 1/7...
-2025-09-29 09:10:46 - [INFO] - [512280345618546699] [驗證器-身份] 批次 1: 正在啟動 AI 身份自識別...
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '絲月' 成功補全了 2 個遺漏的身份標籤: ['聖女', '勳爵夫人']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '卡爾•維利爾斯勳爵' 成功補全了 3 個遺漏的身份標籤: ['新·性神教', '聖露修道院', '斷手重生']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '莉莉絲' 成功補全了 3 個遺漏的身份標籤: ['性神儀式所生', '學生領袖', '聖女']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '薩格納將軍' 成功補全了 4 個遺漏的身份標籤: ['軍事統帥', '轉化', '收藏品', '性神教徒']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '菲利普' 成功補全了 3 個遺漏的身份標籤: ['三皇子', '將軍之子', '聖女']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '艾莉諾' 成功補全了 3 個遺漏的身份標籤: ['將軍的妻子', '園丁', '公豬']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '埃德蒙三世' 成功補全了 2 個遺漏的身份標籤: ['性神教徒', '國王']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '阿拉里克' 成功補全了 1 個遺漏的身份標籤: ['大皇子']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '赫克托' 成功補全了 1 個遺漏的身份標籤: ['三皇子']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '伊索爾德' 成功補全了 3 個遺漏的身份標籤: ['聖軍', '三皇女', '矛']
-2025-09-29 09:10:47 - [INFO] - [512280345618546699] [別名審計] 批次 1: 正在啟動別名審計...
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '絲月' 成功補全了 2 個遺漏的別名: ['維利爾斯勳爵夫人絲月', '艾莉諾']
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '卡爾•維利爾斯勳爵' 成功補全了 1 個遺漏的別名: ['Lord Karl Veriers']
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '莉莉絲' 成功補全了 2 個遺漏的別名: ['維利爾斯家女兒', 'Lilith - 「聖女」']
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '薩格納將軍' 成功補全了 1 個遺漏的別名: ['General Sagnac - 「血斧」']
-2025-09-29 09:10:49 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '菲利普' 成功補全了 3 個遺漏的別名: ['Philip Sagnac', '靈光戰斧', '薩格納']
-2025-09-29 09:10:54 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 2/7...
-2025-09-29 09:10:54 - [INFO] - [512280345618546699] [驗證器-身份] 批次 2: 正在啟動 AI 身份自識別...
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '博林' 成功補全了 2 個遺漏的身份標籤: ['矛', '皇家衛隊總司令']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '米婭' 成功補全了 4 個遺漏的身份標籤: ['神父', '祭司', '守護者', '信徒']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '克拉拉' 成功補全了 3 個遺漏的身份標籤: ['光明神夏卡爾的虔誠信徒', '聖凱瑟琳學院學生領袖', '夏卡爾教義捍衛者']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '高爾' 成功補全了 2 個遺漏的身份標籤: ['克拉拉的親信', '光明神夏卡爾的信徒']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '翠絲' 成功補全了 1 個遺漏的身份標籤: ['光明神夏卡爾的信徒']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '迪茜' 成功補全了 2 個遺漏的身份標籤: ['克拉拉最忠實的擁護者', '光明神夏卡爾的狂熱信徒']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '亞瑟' 成功補全了 3 個遺漏的身份標籤: ['性神教義', '信徒', '快樂派系']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '馬丁' 成功補全了 2 個遺漏的身份標籤: ['性神教義', '快樂派系']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '朱利安' 成功補全了 1 個遺漏的身份標籤: ['貴族學生']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '阿利斯特' 成功補全了 1 個遺漏的身份標籤: ['觀察者']
-2025-09-29 09:10:56 - [INFO] - [512280345618546699] [別名審計] 批次 2: 正在啟動別名審計...
-2025-09-29 09:10:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:10:58 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '博林' 成功補全了 2 個遺漏的別名: ['Lord Borin', '勳爵']
-2025-09-29 09:10:58 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '阿利斯特' 成功補全了 1 個遺漏的別名: ['先生']
-2025-09-29 09:11:03 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 3/7...
-2025-09-29 09:11:03 - [INFO] - [512280345618546699] [驗證器-身份] 批次 3: 正在啟動 AI 身份自識別...
-2025-09-29 09:11:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瑪莉' 成功補全了 1 個遺漏的身份標籤: ['凡人男性']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '老羅' 成功補全了 3 個遺漏的身份標籤: ['母畜', '凡人男性', '肉販']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '馬克' 成功補全了 4 個遺漏的身份標籤: ['凡人', '母畜', '麵包師', '勳爵']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '費奇' 成功補全了 2 個遺漏的身份標籤: ['老高的摯友', '傳教者']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '愛蓮娜' 成功補全了 1 個遺漏的身份標籤: ['兒女']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '老高' 成功補全了 2 個遺漏的身份標籤: ['園丁', '栽培者']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '里斯' 成功補全了 1 個遺漏的身份標籤: ['掘井人']
-2025-09-29 09:11:05 - [INFO] - [512280345618546699] [別名審計] 批次 3: 正在啟動別名審計...
-2025-09-29 09:11:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:07 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '里斯' 成功補全了 2 個遺漏的別名: ['孝子', '聖殿守護者']
-2025-09-29 09:11:12 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 4/7...
-2025-09-29 09:11:12 - [INFO] - [512280345618546699] [驗證器-身份] 批次 4: 正在啟動 AI 身份自識別...
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瑪倫' 成功補全了 1 個遺漏的身份標籤: ['掘井人']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '凱爾' 成功補全了 2 個遺漏的身份標籤: ['修道院的核心管理者', '妓女']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '艾拉' 成功補全了 2 個遺漏的身份標籤: ['妹妹', '修道院的核心管理者']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '卡蓮' 成功補全了 1 個遺漏的身份標籤: ['妓女']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瓦勒留斯神父' 成功補全了 1 個遺漏的身份標籤: ['聖光明教會的神父']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '蘇菲' 成功補全了 1 個遺漏的身份標籤: ['活體酒桶']
-2025-09-29 09:11:13 - [INFO] - [512280345618546699] [別名審計] 批次 4: 正在啟動別名審計...
-2025-09-29 09:11:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:15 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '凱爾' 成功補全了 2 個遺漏的別名: ['掘井人', '聖殿守護者']
-2025-09-29 09:11:15 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '艾拉' 成功補全了 2 個遺漏的別名: ['女祭司', '第一蒙恩者']
-2025-09-29 09:11:15 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '卡蓮' 成功補全了 2 個遺漏的別名: ['活教典', '第二聖女']
-2025-09-29 09:11:15 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '澤拉' 成功補全了 1 個遺漏的別名: ['受虐']
-2025-09-29 09:11:20 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 5/7...
-2025-09-29 09:11:20 - [INFO] - [512280345618546699] [驗證器-身份] 批次 5: 正在啟動 AI 身份自識別...
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '市集攤販' 成功補全了 2 個遺漏的身份標籤: ['莊園母畜', '性神教徒']
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '蓋博' 成功補全了 1 個遺漏的身份標籤: ['舊世界道德觀代表']
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '菲利普•薩格納' 成功補全了 2 個遺漏的身份標籤: ['薩格納將軍長子', '性神教狂熱信徒']
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '布里奇特' 成功補全了 2 個遺漏的身份標籤: ['武家母畜', '戰士母畜']
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瓦萊麗' 成功補全了 1 個遺漏的身份標籤: ['武家母畜']
-2025-09-29 09:11:21 - [INFO] - [512280345618546699] [別名審計] 批次 5: 正在啟動別名審計...
-2025-09-29 09:11:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:23 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '麥可' 成功補全了 1 個遺漏的別名: ['神父']
-2025-09-29 09:11:23 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '市集攤販' 成功補全了 2 個遺漏的別名: ['麵包師', '肉販']
-2025-09-29 09:11:23 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '蓋博' 成功補全了 1 個遺漏的別名: ['太太']
-2025-09-29 09:11:23 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '瓦萊麗' 成功補全了 1 個遺漏的別名: ['肉穴']
-2025-09-29 09:11:28 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 6/7...
-2025-09-29 09:11:28 - [INFO] - [512280345618546699] [驗證器-身份] 批次 6: 正在啟動 AI 身份自識別...
-2025-09-29 09:11:29 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.44 秒後進行第 2 次嘗試...
-2025-09-29 09:11:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 09:11:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 09:11:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 09:11:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 09:11:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '國王埃德蒙三世' 成功補全了 2 個遺漏的身份標籤: ['王國最高統治者', '性神教徒']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '大皇子阿拉里克' 成功補全了 3 個遺漏的身份標籤: ['強悍戰士', '王國第一順位繼承人', '病秧子']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '三皇子赫克托' 成功補全了 3 個遺漏的身份標籤: ['王子', '皇家劍術大師', '性神聖戰領袖']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '二公主塞拉菲娜' 成功補全了 1 個遺漏的身份標籤: ['祭品']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '三皇女伊索爾德' 成功補全了 2 個遺漏的身份標籤: ['聖軍計畫', '皇家衛隊總司令']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '博林勳爵' 成功補全了 4 個遺漏的身份標籤: ['國王下屬', '性神教狂信徒', '聖光明教會狂信徒', '聖軍計畫目標']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '大主教安布羅斯' 成功補全了 2 個遺漏的身份標籤: ['舊世界秩序維護者', '聖光明教會最高領袖']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瓦勒留斯 神父' 成功補全了 2 個遺漏的身份標籤: ['教會神父', '聖女']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '麥可 神父' 成功補全了 1 個遺漏的身份標籤: ['神學老師']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '巴納比' 成功補全了 1 個遺漏的身份標籤: ['年輕學徒']
-2025-09-29 09:11:32 - [INFO] - [512280345618546699] [別名審計] 批次 6: 正在啟動別名審計...
 2025-09-29 09:11:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
 2025-09-29 09:11:33 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '博林勳爵' 成功補全了 1 個遺漏的別名: ['已叛教']
 2025-09-29 09:11:33 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '巴納比' 成功補全了 2 個遺漏的別名: ['對傳聞感到興奮', '消息靈通']
@@ -300,3 +133,170 @@ httpx.ReadTimeout
 2025-09-29 09:14:24 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
 2025-09-29 09:14:24 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
 2025-09-29 09:14:24 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-29 09:38:55 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
+2025-09-29 09:38:55 - [INFO] - [512280345618546699] [純粹生成流程] 正在準備上下文...
+2025-09-29 09:38:55 - [INFO] - [512280345618546699] [場景界定] 正在從使用者指令中提取敘事意圖地點...
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: ['宅邸']
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [指令實體提取] 通過 LORE 字典找到實體: {'米婭', '勳爵'}
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭'], 背景角色: ['馬克']
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '描述米婭在宅邸散步遇到勳爵 性神教徒 Mia 守護者 信徒 神父 聖女 祭司 母畜 米婭'
+2025-09-29 09:38:56 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 15 條文檔 ---
+2025-09-29 09:38:56 - [INFO] -   [Doc 1] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 1] Content: * 關鍵遭遇/備註: 儘管他尚未在我們的劇情中直接登場，但根據設定集，他已對「聖露修道院」與「維利爾斯家族」的異動產生了高度警惕。他正在暗中集結力量，並計劃在最關鍵的時刻，向國王施壓，召喚教會最強大的武裝力量——「聖十字軍」，對所有異端進行一場毀滅性的「聖戰」。
+ * 瓦勒留斯 (Valerius)...
+2025-09-29 09:38:56 - [INFO] -   [Doc 2] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 2] Content: 隨著，大皇子阿拉里克，在維利爾斯的莊園，同樣，完成了，脫胎換骨的『新生』，並，在北境戰場上，展現出，天神下凡般的武勇後，國王，終於，下定了，最後的決心。
+ * 皇家的皈依：國王，向所有子女，公開了「生命之神」的真相，並，以君王的絕對意志，宣布，整個埃德蒙王室，將，徹底，背棄夏卡爾，皈依新神！在，那，...
+2025-09-29 09:38:56 - [INFO] -   [Doc 3] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 3] Content: * 舞台的搭建：勳爵，命令湯姆 (Tom) 與絲月 (Siyue)，在貧民窟，購置並修繕了一座，帶有地下室的廢棄石屋。它，被漆成聖潔的白色，門口，掛上了，象徵著「女神滴露」的神秘圖案。這座，名為「聖露修道院」的神秘建築，在建立之初，便引發了，貧民窟居民們的，無盡猜測與議論。
+ * 活神蹟的鍛造 - ...
+2025-09-29 09:38:56 - [INFO] -   [Doc 4] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 安娜'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 4] Content: 【NPC 檔案: 安娜】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 未知
+- Description: 維利爾斯莊園的母畜之一，被維利爾斯家族從貧民窟「揀選」。散發「永恆發情」氣味，對凡人男性構成誘惑，但受勳爵命令禁止暴露身份或隨意發生性關係，引...
+2025-09-29 09:38:56 - [INFO] -   [Doc 5] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 瑪莉'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 5] Content: 【NPC 檔案: 瑪莉】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 未知
+- Description: 維利爾斯莊園的母畜之一，被維利爾斯家族從貧民窟「揀選」。散發「永恆發情」氣味，對凡人男性構成誘惑，但受勳爵命令禁止暴露身份或隨意發生性關係，引...
+2025-09-29 09:38:56 - [INFO] -   [Doc 6] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '瓦勒留斯神父'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 6] Content: 【NPC 檔案: 瓦勒留斯神父】
+- Gender: 男性
+- Age: 未知
+- Race: 人類
+- Appearance: 未知
+- Skills: 神學辯論
+- Description: 聖光明教會的神父，被米婭以神學辯論擊敗。
+- Relationships: 米婭: {'type': '...
+2025-09-29 09:38:56 - [INFO] -   [Doc 7] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 7] Content: * 背景/皈依狀態/慾望: 對「生」的渴望讓她成為王室皈依時最強烈的支持者。皈依後身體早已康復，並且對成為最極致的「祭品」產生了狂熱的渴望。
+   * 關鍵遭遇/備註: 她是第一個向父王提議，在皇宮內也建造一座「神宮花開」的皇女。
+ * 三皇女伊索爾德 (Third Princess Isolde)...
+2025-09-29 09:38:56 - [INFO] -   [Doc 8] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 8] Content: * 背景/身份: 過去曾是一個肥胖醜陋的女孩。
+   * 背景/喜好/慾望: 核心慾望源於對「變回醜陋垃圾」的恐懼，存在的價值完全建立在被恩澤改造的「美麗」與因此換來的「被使用」的機會之上。
+米婭 (Mia) - 「聖女」
+   * 身份/外貌: 性神教徒、母畜、聖女。約16歲。在獲得神恩重生後，外...
+2025-09-29 09:38:56 - [INFO] -   [Doc 9] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '蘇菲'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 9] Content: 【NPC 檔案: 蘇菲】
+- Gender: 女
+- Age: 20多歲
+- Race: 人類
+- Description: 性神教徒、母畜、女僕，20多歲，核心慾望源於對酒精的憎恨，轉化為病態的征服慾，自願成為「活體酒桶」。
+- Relationships: DINO: {'type': '天選主...
+2025-09-29 09:38:56 - [INFO] -   [Doc 10] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貝拉'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 10] Content: 【NPC 檔案: 貝拉】
+- Gender: 女
+- Age: 20歲左右
+- Race: 人類
+- Description: 性神教徒、母畜、蒙恩者，20歲左右，核心慾望為競爭心，享受在「人形旗桿」上挑戰極限。
+- Relationships: DINO: {'type': '天選主角關係', '...
+2025-09-29 09:38:56 - [INFO] -   [Doc 11] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '澤拉'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 11] Content: 【NPC 檔案: 澤拉】
+- Gender: 女
+- Age: 18歲左右
+- Race: 人類
+- Description: 性神教徒、母畜、女僕，18歲左右，核心慾望為被虐 (Masochism)，快樂需依賴痛苦與害怕。
+- Relationships: DINO: {'type': '天選主角...
+2025-09-29 09:38:56 - [INFO] -   [Doc 12] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '莉娜'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 12] Content: 【NPC 檔案: 莉娜】
+- Gender: 女
+- Age: 年齡不詳
+- Race: 人類
+- Appearance: 氣質空靈
+- Description: 性神教徒、母畜、蒙恩者，年齡不詳，氣質空靈，核心慾望為與自然融合，崇拜「天恩灌溉系統」。
+- Relationships: DINO: ...
+2025-09-29 09:38:56 - [INFO] -   [Doc 13] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '卡萊兒'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 13] Content: 【NPC 檔案: 卡萊兒】
+- Gender: 女
+- Age: 年齡不詳
+- Race: 人類
+- Appearance: 過去曾肥胖醜陋，現被恩澤改造
+- Description: 性神教徒、母畜、蒙恩者，年齡不詳，過去曾肥胖醜陋，核心慾望源於對變回醜陋的恐懼，存在價值建立在被恩澤改造的美麗與被...
+2025-09-29 09:38:56 - [INFO] -   [Doc 14] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '諾拉'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 14] Content: 【NPC 檔案: 諾拉】
+- Gender: 女
+- Age: 年齡不詳
+- Race: 人類
+- Appearance: 氣質內向
+- Description: 性神教徒、母畜、女僕，年齡不詳，氣質內向，核心慾望為瘋狂的創造力與黑暗幻想，是三大裝置的靈感來源之一。
+- Relationships:...
+2025-09-29 09:38:56 - [INFO] -   [Doc 15] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '艾蜜莉'}
+2025-09-29 09:38:56 - [INFO] -   [Doc 15] Content: 【NPC 檔案: 艾蜜莉】
+- Gender: 女
+- Age: 年齡不詳
+- Race: 人類
+- Appearance: 樣貌普通
+- Description: 性神教徒、母畜、女僕，年齡不詳，樣貌普通，核心慾望為討好與變得有用，存在價值建立在功能性之上。
+- Relationships: DI...
+2025-09-29 09:38:56 - [INFO] - ----------------------------------------------------
+2025-09-29 09:38:56 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 15 條文檔 ---
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 3] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 4] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 安娜'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 5] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 瑪莉'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 6] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '瓦勒留斯神父'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 7] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 8] Metadata: {'source': 'memory'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 9] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '蘇菲'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 10] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '貝拉'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 11] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '澤拉'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 12] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '莉娜'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 13] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '卡萊兒'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 14] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '諾拉'}
+2025-09-29 09:38:56 - [INFO] -   [Filtered Doc 15] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '艾蜜莉'}
+2025-09-29 09:38:56 - [INFO] - ----------------------------------------------------
+2025-09-29 09:38:56 - [INFO] - --- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---
+2025-09-29 09:38:56 - [INFO] -   歸類為【規則】的文檔 (0 條): []
+2025-09-29 09:38:56 - [INFO] -   歸類為【待摘要】的文檔 (15 條): ['Memory', 'Memory', 'Memory', '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 安娜', '維利爾斯莊園 > 城鎮市集區 > 貧民窟 > 瑪莉', '瓦勒留斯神父', 'Memory', 'Memory', '蘇菲', '貝拉', '澤拉', '莉娜', '卡萊兒', '諾拉', '艾蜜莉']
+2025-09-29 09:38:56 - [INFO] -   [最終生成的 rules_context] (傳遞給導演):
+---
+（當前場景無特定的行為準則或世界觀設定）
+---
+2025-09-29 09:38:56 - [INFO] - ----------------------------------------------------
+2025-09-29 09:38:56 - [INFO] - [512280345618546699] [RAG事實提取-1] 快速嘗試：雲端模型...
+2025-09-29 09:39:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-29 09:39:07 - [INFO] - [512280345618546699] [RAG事實提取] ✅ 成功提取事實清單。
+2025-09-29 09:39:07 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-09-29 09:39:07 - [INFO] -   [最終 rules_context 長度]: 20
+2025-09-29 09:39:07 - [INFO] -   [最終 summary_context 長度]: 15
+2025-09-29 09:39:07 - [INFO] - --- RAG 流程結束 ---
+2025-09-29 09:39:07 - [INFO] - [512280345618546699] [AI導演] 正在啟動導演決策模組...
+2025-09-29 09:39:07 - [INFO] - --- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---
+2025-09-29 09:39:07 - [INFO] -   [WORLD_SETTINGS]:
+---
+這是一個魔法的幻想世界。
+---
+2025-09-29 09:39:07 - [INFO] -   [RELEVANT_CHARACTERS_SUMMARY]:
+---
+米婭 (身份: ['信徒', '神父', 'Mia', '守護者', '性神教徒', '聖女', '祭司', '母畜'])
+---
+2025-09-29 09:39:07 - [INFO] -   [LOCATION_DESCRIPTION]:
+---
+宅邸: 一個神秘的地方
+---
+2025-09-29 09:39:07 - [INFO] -   [RAG_SUMMARY]:
+---
+【背景歷史參考（事實要點）】:
+---
+2025-09-29 09:39:07 - [INFO] -   [SCENE_RULES_CONTEXT]:
+---
+（當前場景無特定的行為準則或世界觀設定）
+---
+2025-09-29 09:39:07 - [INFO] -   [USER_INPUT]:
+---
+描述米婭在宅邸散步遇到勳爵
+---
+2025-09-29 09:39:07 - [INFO] - ----------------------------------------------------
+2025-09-29 09:39:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-29 09:39:08 - [INFO] - [512280345618546699] [AI導演] 決策完成。最終劇本大綱: '故事发生在宅邸内，米娅正在其中散步。她遇到了勋爵。请详细描绘米娅在宅邸散步时遇到勋爵的场景，并包含她对其的反应。'
+2025-09-29 09:39:08 - [INFO] - [512280345618546699] [純粹生成流程] 正在執行小說生成...
+2025-09-29 09:39:08 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 57623 秒)。
