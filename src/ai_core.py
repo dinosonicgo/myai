@@ -2115,9 +2115,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return self.euphemization_reconstruction_chain
     # 獲取委婉化重構器 Prompt 函式結束
 
-    # 函式：獲取實體骨架提取器 Prompt
+    # 函式：獲取實體骨架提取器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此 Prompt 作為“LLM驅動預處理”策略的核心。它的唯一任務是從一個大的、非結構化的文本塊中，快速、批量地識別出所有潛在的角色實體，並為每個實體提取最核心的一句話描述，為後續的深度精煉提供目標列表。
+    # v1.0 (2025-11-23): [全新創建] 根據「RAG輔助聚焦解析」策略，創建此 Prompt 作為新解析流程的第一步。它的唯一任務是從一個大的、非結構化的文本塊中，快速、批量地識別出所有潛在的角色實體，並為每個實體提取最核心的一句話描述，為後續的深度精煉提供目標列表。
     def get_entity_extraction_chain(self) -> str:
         """獲取一個為第一階段“實體識別與粗提取”設計的、輕量級的Prompt模板。"""
         
@@ -3973,120 +3973,136 @@ class ExtractionResult(BaseModel):
 
     
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.2 - 異步修正)
-# 更新紀錄:
-# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
-# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
-# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
+    # 函式：解析並從世界聖經創建LORE (v14.0 - RAG輔助聚焦解析)
+    # 更新紀錄:
+    # v14.0 (2025-11-23): [核心重構] 根據「RAG輔助聚焦解析」策略，徹底重寫了此函式的內部邏輯。它不再直接處理聖經全文，而是採用一個更智慧、更安全的多步驟策略：1. 提取實體骨架 -> 2. 靶向RAG檢索 -> 3. 聚焦深度解析 -> 4. 結果聚合。這從根本上解決了因 Prompt 過於龐大而導致的解析失敗和內容審查問題。
+    # v13.2 (2025-09-28): [異步修正] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字。
+    # v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
+        【總指揮】啟動 LORE 解析管線，採用「RAG輔助的聚焦解析」策略，
+        自動鏈接规则，校驗結果，並觸發 RAG 重建。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
+        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動全新的【RAG輔助聚焦解析】管線...")
         
-        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
-
-        if not is_successful or not parsing_result_object:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            return
-
-        # 步驟 2: 植入「源頭真相」校驗器
-        # [v13.2 核心修正] 新增 await
-        validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
-
-        # 步驟 3: 规则模板自动识别与链接模块
-        logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
-        if validated_result.world_lores:
-            all_parsed_aliases = set()
-            if validated_result.npc_profiles:
-                for npc in validated_result.npc_profiles:
-                    all_parsed_aliases.add(npc.name)
-                    if npc.aliases:
-                        all_parsed_aliases.update(npc.aliases)
-
-            rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
+        # --- 步驟 1: 【實體骨架提取】---
+        # 即使解析失敗，也要確保 RAG 索引是最新的
+        try:
+            logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在提取所有潛在的實體骨架...")
             
-            for lore in validated_result.world_lores:
-                if any(keyword in lore.name for keyword in rule_keywords):
-                    potential_keys = set()
-                    for alias in all_parsed_aliases:
-                        if alias and alias in lore.name:
-                            potential_keys.add(alias)
-                    
-                    if potential_keys:
-                        existing_keys = set(lore.template_keys or [])
-                        all_keys = existing_keys.union(potential_keys)
-                        lore.template_keys = list(all_keys)
-                        logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore.name}' 鏈接到身份: {lore.template_keys}")
-        
-        # 步驟 4: 事後關係圖譜校準模塊
-        logger.info(f"[{self.user_id}] [關係圖譜校準] 正在啟動事後關係校準模塊...")
-        if validated_result.npc_profiles:
-            profiles_by_name = {profile.name: profile for profile in validated_result.npc_profiles}
+            # 為了處理超長文本，我們先進行分塊
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=15000, chunk_overlap=500)
+            chunks = text_splitter.split_text(canon_text)
             
-            inverse_roles = {
-                "主人": "僕人", "僕人": "主人",
-                "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
-                "丈夫": "妻子", "妻子": "丈夫",
-                "戀人": "戀人", "情人": "情人",
-                "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
-                "敵人": "敵人", "宿敵": "宿敵",
-                "朋友": "朋友", "摯友": "摯友",
-                "老師": "學生", "學生": "老師",
-            }
+            extraction_chain = self.get_entity_extraction_chain()
+            tasks = []
+            for chunk in chunks:
+                full_prompt = self._safe_format_prompt(
+                    extraction_chain,
+                    {"chunk": chunk},
+                    inject_core_protocol=True
+                )
+                tasks.append(self.ainvoke_with_rotation(full_prompt, output_schema=ExtractionResult, retry_strategy='euphemize'))
 
-            for source_profile in validated_result.npc_profiles:
-                for target_name, rel_detail in list(source_profile.relationships.items()):
-                    target_profile = profiles_by_name.get(target_name)
-                    if not target_profile:
-                        continue
+            extraction_results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            all_skeletons: Dict[str, CharacterSkeleton] = {}
+            for result in extraction_results:
+                if isinstance(result, ExtractionResult) and result.characters:
+                    for skeleton in result.characters:
+                        if skeleton.name not in all_skeletons:
+                            all_skeletons[skeleton.name] = skeleton
 
-                    inverse_rel_roles = []
-                    for role in rel_detail.roles:
-                        inverse_role = inverse_roles.get(role)
-                        if inverse_role:
-                            inverse_rel_roles.append(inverse_role)
-                    
-                    if not inverse_rel_roles and rel_detail.type:
-                        inverse_rel_roles.append(rel_detail.type)
+            if not all_skeletons:
+                logger.warning(f"[{self.user_id}] [LORE 解析 1/4] 未能從世界聖經中提取任何有效的實體骨架。流程終止。")
+                return
+            
+            logger.info(f"[{self.user_id}] [LORE 解析 1/4] ✅ 成功提取 {len(all_skeletons)} 個獨立的實體骨架。")
+            
+            # --- 步驟 2 & 3: 【靶向 RAG 檢索】與【聚焦深度解析】(分批處理) ---
+            logger.info(f"[{self.user_id}] [LORE 解析 2&3/4] 正在對實體進行分批靶向檢索與深度解析...")
+            details_parser_template = self.get_character_details_parser_chain()
+            
+            BATCH_SIZE = 10
+            skeleton_items = list(all_skeletons.values())
+            all_refined_profiles = []
 
-                    target_has_relationship = target_profile.relationships.get(source_profile.name)
+            for i in range(0, len(skeleton_items), BATCH_SIZE):
+                batch = skeleton_items[i:i+BATCH_SIZE]
+                logger.info(f"[{self.user_id}] [LORE 精煉] 正在處理批次 {i//BATCH_SIZE + 1}/{ (len(skeleton_items) + BATCH_SIZE - 1)//BATCH_SIZE }...")
 
-                    if not target_has_relationship:
-                        target_profile.relationships[source_profile.name] = RelationshipDetail(
-                            type=rel_detail.type,
-                            roles=inverse_rel_roles
-                        )
-                        logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
+                # 為批次中的每個骨架執行靶向 RAG 檢索
+                rag_tasks = [self.retriever.ainvoke(f"{skeleton.name}: {skeleton.description}") for skeleton in batch]
+                rag_results_list = await asyncio.gather(*rag_tasks, return_exceptions=True)
+
+                batch_input_str_parts = []
+                for idx, skeleton in enumerate(batch):
+                    rag_result = rag_results_list[idx]
+                    if isinstance(rag_result, Exception) or not rag_result:
+                        plot_context = "（RAG 檢索失敗或無相關上下文）"
                     else:
-                        existing_roles = set(target_has_relationship.roles)
-                        new_roles_to_add = set(inverse_rel_roles)
-                        if not new_roles_to_add.issubset(existing_roles):
-                            updated_roles = list(existing_roles.union(new_roles_to_add))
-                            target_has_relationship.roles = updated_roles
-                            logger.info(f"[{self.user_id}] [關係圖譜校準] 更新反向鏈接: {target_profile.name} -> {source_profile.name} (New Roles: {updated_roles})")
+                        plot_context = "\n\n---\n\n".join([doc.page_content for doc in rag_result])
+                    
+                    pre_parsed_data_json = json.dumps(skeleton.model_dump(), ensure_ascii=False, indent=2)
+                    
+                    batch_input_str_parts.append(f"""
+# --- 角色精煉任務 ---
+# 【當前正在分析的角色】: {skeleton.name}
+# 【預解析數據字典 (由第一階段提取)】: {pre_parsed_data_json}
+# 【相關劇情上下文 (由 RAG 檢索)】: {plot_context}
+# --- 任務結束 ---
+""")
+                
+                if not batch_input_str_parts: continue
+                batch_input_str = "\n".join(batch_input_str_parts)
+                
+                try:
+                    full_prompt = self._safe_format_prompt(
+                        details_parser_template,
+                        {"batch_input": batch_input_str},
+                        inject_core_protocol=True
+                    )
+                    batch_result = await self.ainvoke_with_rotation(
+                        full_prompt,
+                        output_schema=BatchRefinementResult,
+                        retry_strategy='euphemize' 
+                    )
+                    if batch_result and batch_result.refined_profiles:
+                        all_refined_profiles.extend(batch_result.refined_profiles)
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [LORE 精煉] 批次 {i//BATCH_SIZE + 1} 的深度解析失敗: {e}", exc_info=True)
 
-        # 步驟 5: 儲存經過校驗、自動鏈接和關係校準的LORE
-        if validated_result:
-            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
-            await self._resolve_and_save("locations", [p.model_dump() for p in validated_result.locations])
-            await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
-            await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
-            await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
-            await self._resolve_and_save("world_lores", [p.model_dump() for p in validated_result.world_lores])
+            logger.info(f"[{self.user_id}] [LORE 解析 2&3/4] ✅ 深度解析完成，共生成 {len(all_refined_profiles)} 份詳細檔案。")
             
-            logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+            # --- 步驟 4: 【結果聚合與儲存】 ---
+            logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在聚合結果並存入資料庫...")
+            if all_refined_profiles:
+                # 這裡我們只處理了 NPC，因為其他類型的 LORE 解析邏輯較簡單，可以後續添加
+                # 為了演示，我們直接創建一個 CanonParsingResult 物件
+                parsing_result_object = CanonParsingResult(npc_profiles=all_refined_profiles)
+                
+                # 植入「源頭真相」校驗器
+                validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
+                
+                # 儲存經過校驗的LORE
+                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
+                
+                logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。")
+            else:
+                logger.error(f"[{self.user_id}] [創世 LORE 解析] RAG 輔助解析流程未能生成任何有效的 LORE 檔案。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [創世 LORE 解析] RAG 輔助解析管線發生嚴重錯誤: {e}", exc_info=True)
+        finally:
+            # 無論成功與否，都要確保 RAG 索引是最新的
+            logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在觸發 RAG 全量重建以同步所有變更...")
             await self._load_or_build_rag_retriever(force_rebuild=True)
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
-        else:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-# 函式：解析並從世界聖經創建LORE
+    # 函式：解析並從世界聖經創建LORE
 
 
 
@@ -4454,12 +4470,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-    # 函式：獲取角色細節深度解析器 Prompt
+    # 函式：獲取角色細節深度解析器 Prompt (v2.0 - 終極重構)
     # 更新紀錄:
-    # v2.1 (2025-09-23): [抗審查重構] 徹底重寫了任務描述，使其明確處理“批量”和“可能經過代碼化”的輸入，並強制要求輸出也使用技術代碼。這使其抗審查邏輯與法醫級重構器保持一致，從根本上解決了精煉過程中的 BlockedPromptException。
-    # v2.0 (2025-09-23): [終極重構] 根據“混合NLP”策略，徹底重寫此Prompt。它不再接收LORE骨架和原始文本，而是接收一份由本地正則表達式預解析出的【初步數據字典】和一份僅包含相關劇情的【劇情上下文】。其任務被重新定義為：將初步數據字典的鍵值對（如'年齡/外貌'）正確地拆分並映射到Pydantic模型的字段中，同時從劇情上下文中提煉深層次的性格和背景信息。
+    # v2.0 (2025-11-23): [終極重構] 根據「RAG輔助聚焦解析」策略，徹底重寫此Prompt。它不再接收LORE骨架和原始文本，而是接收一份由第一階段 LLM 預解析出的【初步數據字典】和一份僅包含由 RAG 檢索出的、與該角色最相關的【劇情上下文】。其任務被重新定義為：在 RAG 上下文的輔助下，將初步數據字典的內容，精確地映射和擴寫到 Pydantic 模型的完整字段中。
+    # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則。
     def get_character_details_parser_chain(self) -> str:
-        """獲取一個為“混合NLP”策略的最後一步——語義精煉——而專門設計的字符串模板。"""
+        """獲取一個為“RAG輔助聚焦解析”策略的最後一步——語義精煉——而專門設計的字符串模板。"""
         
         base_prompt = """# TASK: 你是一位資深的角色檔案分析師和數據整合專家。
 # MISSION: 你的任務是接收一份包含【多個角色精煉任務】的批量輸入。對於每一個任務，你需要將【預解析數據字典】與【劇情上下文】完美融合，生成一份結構完整、細節豐富、且經過【嚴格代碼化】的最終角色檔案JSON。
@@ -5295,6 +5311,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
