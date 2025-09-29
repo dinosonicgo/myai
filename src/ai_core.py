@@ -473,14 +473,14 @@ class AILover:
 
 
 # 函式：加載或構建 RAG 檢索器
-    # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.4 - ChromaDB終極初始化修正)
+    # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.5 - 強制清理重建)
     # 更新紀錄:
-    # v204.4 (2025-11-26): [灾难性BUG修复] 採用了最底層、最明確的 ChromaDB 初始化方案。改為手動創建一個 `chromadb.Settings` 物件並強制設定 `is_persistent=True`，再將其傳遞給 `chromadb.Client`。此修改旨在徹底解決在某些環境下，即使使用 PersistentClient 依然會發生的 `sqlite3.OperationalError: no such table: tenants` 的頑固問題。
+    # v204.5 (2025-11-26): [灾难性BUG修复] 根據深入分析，在所有需要執行全量創始構建的路徑前，都增加了強制刪除並重建向量儲存目錄 (`shutil.rmtree`) 的邏輯。此修改旨在徹底清除任何可能已損壞或初始化不完整的舊 ChromaDB 檔案，強制 ChromaDB 在一個絕對乾淨的環境下重新創建所有必要的資料庫表格（如 tenants），從根源上解決 `sqlite3.OperationalError: no such table` 的問題。
+    # v204.4 (2025-11-26): [灾难性BUG修复] 採用了最底層、最明確的 ChromaDB 初始化方案，手動創建 Settings 和 Client。
     # v204.3 (2025-11-26): [灾难性BUG修复] 改為使用 `chromadb.PersistentClient` 來嘗試修復初始化時的資料庫建表問題。
-    # v204.2 (2025-11-26): [灾难性BUG修复] 在處理知識庫為空的分支中，新增了對一個空的 Chroma 實例的初始化。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v204.4 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
+        (v204.5 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
@@ -528,15 +528,23 @@ class AILover:
 
             except Exception as e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 加載現有索引時發生錯誤: {e}。將觸發全量重建。", exc_info=True)
-                # 清理可能已損壞的舊索引
+                # [v204.5 核心修正] 清理可能已損壞的舊索引
                 if Path(self.vector_store_path).exists():
+                    logger.warning(f"[{self.user_id}] (Retriever Builder) 正在清理已損壞的索引目錄: {self.vector_store_path}")
                     shutil.rmtree(self.vector_store_path)
-                Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
+                # 此處不需要重建目錄，因為後續的創始構建流程會處理
 
 
         # --- 步驟 2: 執行全量創始構建 ---
         log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
         logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行全量創始構建...")
+
+        # [v204.5 核心修正] 在創始構建前，強制清理並重建目錄
+        if Path(self.vector_store_path).exists():
+            logger.info(f"[{self.user_id}] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...")
+            shutil.rmtree(self.vector_store_path)
+        Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已確保向量儲存目錄為全新狀態。")
         
         all_docs = []
         async with AsyncSessionLocal() as session:
@@ -578,18 +586,13 @@ class AILover:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 在創始構建期間發生嚴重錯誤: {e}", exc_info=True)
                 self.retriever = RunnableLambda(lambda x: [])
         else:
-            # [v204.4 核心修正] 採用最底層、最明確的初始化方式
+            # 知識庫為空的情況，依然使用最穩健的方式初始化
             try:
-                # 步驟 A: 手動創建 Settings 物件，明確指定持久化
                 settings = chromadb.Settings(
                     is_persistent=True,
                     persist_directory=self.vector_store_path
                 )
-                
-                # 步驟 B: 使用此 Settings 物件創建 Client
                 persistent_client = chromadb.Client(settings)
-                
-                # 步驟 C: 將這個已初始化的客戶端傳遞給 Chroma 類
                 self.vector_store = Chroma(
                     client=persistent_client,
                     embedding_function=self.embeddings,
@@ -5302,6 +5305,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
