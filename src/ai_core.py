@@ -785,9 +785,10 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.7 - 生成完整性驗證)
+    # ai_core.py 的 ainvoke_with_rotation 函式 (v232.8 - 防禦性修正)
     # 更新紀錄:
-    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。此修改在接收到API的成功響應後，會主動檢查其`finish_reason`。如果停止原因不是自然的“STOP”，而是“MAX_TOKENS”或“SAFETY”等，即使API未報錯，此函式也會將其視為一次“靜默失敗”，並主動拋出異常以觸發重試或模型降級。此舉旨在從根本上解決因API返回被截斷的不完整文本而導致劇情中斷的問題。
+    # v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。在某些情況下，API 可能返回一個整數而不是預期的 Enum 物件。新邏輯會在訪問 `.name` 屬性前進行判斷，如果不是 Enum，則直接將其轉換為字串，從根源上解決了因此導致的 `AttributeError: 'int' object has no attribute 'name'` 的問題。
+    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制，以解決 API 返回被截斷的不完整文本的問題。
     # v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
     async def ainvoke_with_rotation(
         self,
@@ -852,21 +853,23 @@ class AILover:
                         )
                         
                         if response.prompt_feedback.block_reason:
-                            raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+                            # [v232.8 核心修正] 防禦性檢查 block_reason 的類型
+                            block_reason = response.prompt_feedback.block_reason
+                            if hasattr(block_reason, 'name'):
+                                reason_str = block_reason.name
+                            else:
+                                reason_str = str(block_reason) # 如果是 int 或其他類型，直接轉為字串
+                            raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
                         # [v232.7 核心修正] 生成完整性驗證
                         if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
                              finish_reason_name = response.candidates[0].finish_reason.name
                              logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                             # 將靜默失敗轉化為可被重試邏輯捕獲的異常
                              if finish_reason_name == 'MAX_TOKENS':
-                                 # 對於 MAX_TOKENS，通常是輸入太長或輸出設置太小，重試意義不大，直接拋出讓上層處理
                                  raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
                              elif finish_reason_name == 'SAFETY':
-                                 # 如果是因為安全原因停止，則觸發內容審查備援
                                  raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                              else:
-                                 # 對於其他原因（如 RECITATION），視為臨時性 API 錯誤
                                  raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
@@ -935,6 +938,10 @@ class AILover:
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
     # 函式：帶輪換和備援策略的原生 API 調用引擎
+
+
+
+    
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -5335,6 +5342,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
