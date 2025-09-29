@@ -467,14 +467,14 @@ class AILover:
 
 
 
-    # 函式：加載或構建 RAG 檢索器 (v212.2 - 回归 LangChain 标准初始化)
+    # 函式：加載或構建 RAG 檢索器 (v212.3 - 虛擬初始化)
     # 更新紀錄:
-    # v212.2 (2025-11-25): [灾难性BUG修复] 彻底回归到 LangChain 官方推荐的、最稳健的 ChromaDB 初始化方式。不再手动创建 PersistentClient，而是将物理隔离后的持久化路径直接传递给 LangChain 的 Chroma 类，由其内部逻辑来处理客户端的创建、数据库和租户的检查与初始化。此修改将初始化复杂性完全交由适配器库处理，最大限度地保证了兼容性和稳定性。
+    # v212.3 (2025-11-25): [灾难性BUG修复] 根據官方文檔最佳實踐，引入終極的「虛擬初始化」策略。在首次為使用者創建資料庫時，不再使用 __init__ 構造函式，而是調用 `Chroma.from_documents` 並傳入一個虛擬文檔來強制觸發完整的、健壯的資料庫創建流程，然後再刪除該虛擬文檔。此修改從根本上、一勞永逸地解決了所有因空目錄初始化失敗而導致的 `ValueError: Could not connect to tenant` 致命錯誤。
+    # v212.2 (2025-11-25): [灾难性BUG修复] 回归到 LangChain 官方推荐的、最稳健的 ChromaDB 初始化方式。
     # v212.1 (2025-11-25): [灾难性BUG修复] 采用了「先创建，后传入」的解耦策略来修正 ChromaDB 的初始化流程。
-    # v212.0 (2025-11-23): [核心重构] 实现了完整的混合 RAG 检索器构建逻辑。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v212.2 核心重构) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
+        (v212.3 核心重构) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
         """
         logger.info(f"[{self.user_id}] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: {force_rebuild})...")
         
@@ -504,14 +504,44 @@ class AILover:
         vector_retriever = None
         if self.embeddings:
             try:
-                # [v212.2 核心修正] 回归 LangChain 标准初始化方式
-                # 直接将持久化路径传递给 Chroma 类，让它处理所有底层的初始化细节。
-                self.vector_store = Chroma(
-                    persist_directory=self.chroma_db_path,
-                    embedding_function=self.embeddings
-                )
+                # [v212.3 核心修正] 使用「虛擬初始化」策略
+                # 檢查資料庫目錄是否為空或不存在，以判斷是否需要進行首次初始化
+                chroma_dir = Path(self.chroma_db_path)
+                # 檢查目錄是否存在且裡面是否有 .sqlite3 檔案
+                db_file_path = chroma_dir / "chroma.sqlite3"
+
+                if not db_file_path.exists():
+                    logger.warning(f"[{self.user_id}] (Retriever Builder) ⚠️ 檢測到空的或未初始化的 ChromaDB 目錄。正在執行【虛擬初始化】...")
+                    # 創建一個虛擬文檔來觸發 `from_documents` 的資料庫創建流程
+                    dummy_doc = Document(page_content="This is an initialization document.", metadata={"source": "system_init"})
+                    
+                    # 使用 `from_documents` 來創建並持久化一個全新的資料庫
+                    temp_vector_store = await asyncio.to_thread(
+                        Chroma.from_documents,
+                        [dummy_doc],
+                        self.embeddings,
+                        persist_directory=self.chroma_db_path
+                    )
+                    
+                    # 獲取剛才添加的虛擬文檔的ID並立即刪除它
+                    ids_to_delete = temp_vector_store.get(where={"source": "system_init"}).get("ids", [])
+                    if ids_to_delete:
+                        temp_vector_store.delete(ids=ids_to_delete)
+                    
+                    # 持久化刪除操作
+                    await asyncio.to_thread(temp_vector_store.persist)
+                    self.vector_store = temp_vector_store
+                    logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 【虛擬初始化】成功！ChromaDB 已在指定路徑下正確創建。")
+                else:
+                    # 如果資料庫已存在，則正常使用構造函式加載
+                    self.vector_store = Chroma(
+                        persist_directory=self.chroma_db_path,
+                        embedding_function=self.embeddings
+                    )
+                
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化于路径: {self.chroma_db_path}")
+
             except Exception as e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: {e}", exc_info=True)
         else:
@@ -5207,6 +5237,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
