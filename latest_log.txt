@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-30T01:19:18.076736 ###
+### AI Lover Log - Last updated at 2025-09-30T01:25:02.611673 ###
 
-2025-09-30 00:58:37 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 00:58:37 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 00:58:38 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-30 00:58:44 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 00:58:47 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-30 00:58:47 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-30 00:58:47 - [ERROR] - [512280345618546699] (Canon Processor) Vector store 未初始化，無法添加世界聖經。
-2025-09-30 00:58:47 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 00:58:47 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 00:58:47 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
+validated_aliases.21.aliases
+  Field required [type=missing, input_value={'character_name': '卡..., '活教典', 'Karen']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.22.aliases
+  Field required [type=missing, input_value={'character_name': '艾..., '女祭司', 'Elara']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.23.aliases
+  Field required [type=missing, input_value={'character_name': '凱...', '掘井人', 'Kael']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.24.aliases
+  Field required [type=missing, input_value={'character_name': '里...者', '孝子', 'Rhys']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.25.aliases
+  Field required [type=missing, input_value={'character_name': '瑪... ['蒙恩者', 'Maren']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.26.aliases
+  Field required [type=missing, input_value={'character_name': '索...['蒙恩者', 'Sophia']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.27.aliases
+  Field required [type=missing, input_value={'character_name': '泰... ['蒙恩者', 'Tessa']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.28.aliases
+  Field required [type=missing, input_value={'character_name': '露...: ['蒙恩者', 'Ruby']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.29.aliases
+  Field required [type=missing, input_value={'character_name': '老...老闆', 'Old Hemlock']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.30.aliases
+  Field required [type=missing, input_value={'character_name': '葛...nal_aliases': ['Greta']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.31.aliases
+  Field required [type=missing, input_value={'character_name': '芬...inal_aliases': ['Finn']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.32.aliases
+  Field required [type=missing, input_value={'character_name': '老...'聖戰士', 'Old Gao']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.33.aliases
+  Field required [type=missing, input_value={'character_name': '亞...系核心', 'Arthur']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.34.aliases
+  Field required [type=missing, input_value={'character_name': '馬...系核心', 'Martin']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.35.aliases
+  Field required [type=missing, input_value={'character_name': '克...派系領袖', 'Klara']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.36.aliases
+  Field required [type=missing, input_value={'character_name': '高...inal_aliases': ['Gore']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.37.aliases
+  Field required [type=missing, input_value={'character_name': '翠...nal_aliases': ['Triss']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.38.aliases
+  Field required [type=missing, input_value={'character_name': '迪...nal_aliases': ['Dixie']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.39.aliases
+  Field required [type=missing, input_value={'character_name': '阿...史老師', 'Alistair']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.40.aliases
+  Field required [type=missing, input_value={'character_name': '麥...學老師', 'Michael']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.41.aliases
+  Field required [type=missing, input_value={'character_name': '費...nal_aliases': ['Fitch']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.42.aliases
+  Field required [type=missing, input_value={'character_name': '老...al_aliases': ['肉販']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.43.aliases
+  Field required [type=missing, input_value={'character_name': '馬...: ['麵包師', 'Mark']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.44.aliases
+  Field required [type=missing, input_value={'character_name': '蓋...辣老闆娘', 'Gable']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.45.aliases
+  Field required [type=missing, input_value={'character_name': '薩...斧', 'General Sagnac']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.46.aliases
+  Field required [type=missing, input_value={'character_name': '艾...族母畜', 'Eleonora']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.47.aliases
+  Field required [type=missing, input_value={'character_name': '菲...斧', 'Philip Sagnac']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.48.aliases
+  Field required [type=missing, input_value={'character_name': '布...idget', '武勇ROLE-D']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.49.aliases
+  Field required [type=missing, input_value={'character_name': '瓦...lerie', '技巧ROLE-D']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.50.aliases
+  Field required [type=missing, input_value={'character_name': '國...s': ['King Edmund III']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.51.aliases
+  Field required [type=missing, input_value={'character_name': '阿...['大皇子', 'Alaric']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.52.aliases
+  Field required [type=missing, input_value={'character_name': '赫...['三皇子', 'Hector']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.53.aliases
+  Field required [type=missing, input_value={'character_name': '塞...公主', 'Seraphina']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.54.aliases
+  Field required [type=missing, input_value={'character_name': '伊...['三皇女', 'Isolde']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.55.aliases
+  Field required [type=missing, input_value={'character_name': '博...rd Borin', '已叛教']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.56.aliases
+  Field required [type=missing, input_value={'character_name': '大...nd Archbishop Ambrose']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.57.aliases
+  Field required [type=missing, input_value={'character_name': '瓦... ['神父', 'Valerius']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.58.aliases
+  Field required [type=missing, input_value={'character_name': '巴...: ['學徒', 'Barnaby']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.59.aliases
+  Field required [type=missing, input_value={'character_name': '奧...': ['鐵匠', 'Oswald']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.60.aliases
+  Field required [type=missing, input_value={'character_name': '艾...l_aliases': ['Eleanor']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.61.aliases
+  Field required [type=missing, input_value={'character_name': '漢...', 'Master Hendrick']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.62.aliases
+  Field required [type=missing, input_value={'character_name': '湯...al_aliases': ['Thomas']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.63.aliases
+  Field required [type=missing, input_value={'character_name': '愛...nal_aliases': ['Elena']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+validated_aliases.64.aliases
+  Field required [type=missing, input_value={'character_name': '連...inal_aliases': ['Liam']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。將啟用本地備援...
+2025-09-30 01:19:49 - [INFO] - [512280345618546699] [別名驗證-備援] 正在啟動本地LLM逐個驗證...
+2025-09-30 01:19:49 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '卡爾•維利爾斯勳爵' 進行交叉驗證...
+2025-09-30 01:20:00 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:01 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '絲月' 進行交叉驗證...
+2025-09-30 01:20:03 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:04 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '莉莉絲' 進行交叉驗證...
+2025-09-30 01:20:06 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:07 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '湯姆' 進行交叉驗證...
+2025-09-30 01:20:08 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:09 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '班恩' 進行交叉驗證...
+2025-09-30 01:20:10 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:11 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '里奧' 進行交叉驗證...
+2025-09-30 01:20:11 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:12 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '賈斯伯' 進行交叉驗證...
+2025-09-30 01:20:13 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:14 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '提姆' 進行交叉驗證...
+2025-09-30 01:20:15 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:16 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '安東尼' 進行交叉驗證...
+2025-09-30 01:20:17 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:18 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '米婭' 進行交叉驗證...
+2025-09-30 01:20:19 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:20 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '瑪莎' 進行交叉驗證...
+2025-09-30 01:20:21 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:22 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '瑪莉' 進行交叉驗證...
+2025-09-30 01:20:23 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:24 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '愛莉莎' 進行交叉驗證...
+2025-09-30 01:20:25 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:25 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '安娜' 進行交叉驗證...
+2025-09-30 01:20:27 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:27 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '澤拉' 進行交叉驗證...
+2025-09-30 01:20:29 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:29 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '蘇菲' 進行交叉驗證...
+2025-09-30 01:20:31 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:31 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '貝拉' 進行交叉驗證...
+2025-09-30 01:20:32 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:33 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '莉娜' 進行交叉驗證...
+2025-09-30 01:20:34 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:35 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '諾拉' 進行交叉驗證...
+2025-09-30 01:20:36 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:37 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '艾蜜莉' 進行交叉驗證...
+2025-09-30 01:20:38 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:38 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '卡萊兒' 進行交叉驗證...
+2025-09-30 01:20:40 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:40 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '米婭' 進行交叉驗證...
+2025-09-30 01:20:42 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:42 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '卡蓮' 進行交叉驗證...
+2025-09-30 01:20:44 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:44 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '艾拉' 進行交叉驗證...
+2025-09-30 01:20:46 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:46 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '凱爾' 進行交叉驗證...
+2025-09-30 01:20:48 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:49 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '里斯' 進行交叉驗證...
+2025-09-30 01:20:50 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:51 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '瑪倫' 進行交叉驗證...
+2025-09-30 01:20:52 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:53 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '索菲亞' 進行交叉驗證...
+2025-09-30 01:20:54 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:55 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '泰莎' 進行交叉驗證...
+2025-09-30 01:20:56 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:57 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '露比' 進行交叉驗證...
+2025-09-30 01:20:58 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:20:59 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '老漢姆' 進行交叉驗證...
+2025-09-30 01:21:01 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:01 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '葛瑞塔' 進行交叉驗證...
+2025-09-30 01:21:02 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:03 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '芬恩' 進行交叉驗證...
+2025-09-30 01:21:03 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:04 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '莉莉絲' 進行交叉驗證...
+2025-09-30 01:21:06 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:07 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '老高' 進行交叉驗證...
+2025-09-30 01:21:08 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:09 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '亞瑟' 進行交叉驗證...
+2025-09-30 01:21:10 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:11 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '馬丁' 進行交叉驗證...
+2025-09-30 01:21:12 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:13 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '克拉拉' 進行交叉驗證...
+2025-09-30 01:21:14 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:15 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '高爾' 進行交叉驗證...
+2025-09-30 01:21:16 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:16 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '翠絲' 進行交叉驗證...
+2025-09-30 01:21:17 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:17 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '迪茜' 進行交叉驗證...
+2025-09-30 01:21:18 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:19 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '阿利斯特' 進行交叉驗證...
+2025-09-30 01:21:20 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:21 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '麥可' 進行交叉驗證...
+2025-09-30 01:21:22 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:23 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '費奇' 進行交叉驗證...
+2025-09-30 01:21:23 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:24 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '老羅' 進行交叉驗證...
+2025-09-30 01:21:25 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:25 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '馬克' 進行交叉驗證...
+2025-09-30 01:21:27 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:27 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '蓋博' 進行交叉驗證...
+2025-09-30 01:21:29 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:29 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '薩格納將軍' 進行交叉驗證...
+2025-09-30 01:21:31 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:31 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '艾莉諾' 進行交叉驗證...
+2025-09-30 01:21:33 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:34 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '菲利普•薩格納' 進行交叉驗證...
+2025-09-30 01:21:35 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:36 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '布里奇特' 進行交叉驗證...
+2025-09-30 01:21:38 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:38 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '瓦萊麗' 進行交叉驗證...
+2025-09-30 01:21:40 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:41 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '國王埃德蒙三世' 進行交叉驗證...
+2025-09-30 01:21:42 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:42 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '阿拉里克' 進行交叉驗證...
+2025-09-30 01:21:43 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:44 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '赫克托' 進行交叉驗證...
+2025-09-30 01:21:45 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:45 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '塞拉菲娜' 進行交叉驗證...
+2025-09-30 01:21:46 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:47 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '伊索爾德' 進行交叉驗證...
+2025-09-30 01:21:48 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:48 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '博林勳爵' 進行交叉驗證...
+2025-09-30 01:21:49 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:50 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '大主教安布羅斯' 進行交叉驗證...
+2025-09-30 01:21:50 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:51 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '瓦勒留斯' 進行交叉驗證...
+2025-09-30 01:21:52 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:53 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '麥可' 進行交叉驗證...
+2025-09-30 01:21:54 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:55 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '巴納比' 進行交叉驗證...
+2025-09-30 01:21:56 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:21:57 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '奧斯華' 進行交叉驗證...
+2025-09-30 01:21:59 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:00 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '艾諾拉' 進行交叉驗證...
+2025-09-30 01:22:00 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:01 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '漢德瑞克師傅' 進行交叉驗證...
+2025-09-30 01:22:06 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:06 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '索菲亞' 進行交叉驗證...
+2025-09-30 01:22:08 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:08 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '卡蓮' 進行交叉驗證...
+2025-09-30 01:22:10 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:17 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '湯瑪斯' 進行交叉驗證...
+2025-09-30 01:22:18 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:52 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '愛蓮娜' 進行交叉驗證...
+2025-09-30 01:22:53 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:54 - [INFO] - [512280345618546699] [別名驗證-備援] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '連恩' 進行交叉驗證...
+2025-09-30 01:22:54 - [INFO] - [512280345618546699] [別名驗證-備援] ✅ 本地模型驗證成功。
+2025-09-30 01:22:55 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: 1 validation error for AliasValidation
+aliases
+  Field required [type=missing, input_value={'character_name': '卡..., '維利爾斯勳爵']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1304, in _perform_full_setup_flow
-    await ai_instance.add_canon_to_vector_store(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3681, in add_canon_to_vector_store
-    await self._load_or_build_rag_retriever(force_rebuild=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 545, in _load_or_build_rag_retriever
-    shutil.rmtree(self.vector_store_path)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 749, in rmtree
-    return _rmtree_unsafe(path, onerror)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 619, in _rmtree_unsafe
-    onerror(os.unlink, fullname, sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 617, in _rmtree_unsafe
-    os.unlink(fullname)
-PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
-2025-09-30 00:58:47 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
-2025-09-30 00:59:00 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 00:59:00 - [INFO] - [512280345618546699] 正在為舊的 AI 實例執行 shutdown...
-2025-09-30 00:59:00 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-30 00:59:01 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-30 00:59:03 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 00:59:03 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 00:59:03 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (1/5)...
-2025-09-30 00:59:03 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (2/5)...
-2025-09-30 00:59:04 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (3/5)...
-2025-09-30 00:59:04 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (4/5)...
-2025-09-30 00:59:05 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (5/5)...
-2025-09-30 00:59:05 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1752, in start_reset_flow
-    await self._robust_rmtree(vector_store_path)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1714, in _robust_rmtree
-    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-RuntimeError: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-2025-09-30 00:59:20 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 00:59:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 00:59:20 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 00:59:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 00:59:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 00:59:20 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 00:59:21 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 00:59:21 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-09-30 00:59:21 - [ERROR] - [512280345618546699] (Retriever Builder) 加載現有索引時發生錯誤: Could not connect to tenant default_tenant. Are you sure it exists?。將觸發全量重建。
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
-    return f(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
-    return self._sysdb.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
-    row = cur.execute(sql, params).fetchone()
-sqlite3.OperationalError: no such table: tenants
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 495, in _load_or_build_rag_retriever
-    self.vector_store = Chroma(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 194, in __init__
-    self._client = chromadb.Client(_client_settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
-    self._validate_tenant_database(tenant=tenant, database=database)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-2025-09-30 00:59:21 - [WARNING] - [512280345618546699] (Retriever Builder) 正在清理已損壞的索引目錄: D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699
-2025-09-30 00:59:21 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
-    return f(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
-    return self._sysdb.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
-    row = cur.execute(sql, params).fetchone()
-sqlite3.OperationalError: no such table: tenants
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 495, in _load_or_build_rag_retriever
-    self.vector_store = Chroma(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 194, in __init__
-    self._client = chromadb.Client(_client_settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
-    self._validate_tenant_database(tenant=tenant, database=database)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1369, in get_or_create_ai_instance
-    await ai_instance._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3655, in _configure_pre_requisites
-    self.retriever = await self._load_or_build_rag_retriever()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 534, in _load_or_build_rag_retriever
-    shutil.rmtree(self.vector_store_path)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 749, in rmtree
-    return _rmtree_unsafe(path, onerror)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 619, in _rmtree_unsafe
-    onerror(os.unlink, fullname, sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 617, in _rmtree_unsafe
-    os.unlink(fullname)
-PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
-2025-09-30 00:59:21 - [INFO] - [512280345618546699] 正在為舊的 AI 實例執行 shutdown...
-2025-09-30 00:59:21 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-30 00:59:22 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-30 00:59:23 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 00:59:23 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 00:59:23 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (1/5)...
-2025-09-30 00:59:24 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (2/5)...
-2025-09-30 00:59:24 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (3/5)...
-2025-09-30 00:59:25 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (4/5)...
-2025-09-30 00:59:25 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (5/5)...
-2025-09-30 00:59:26 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1752, in start_reset_flow
-    await self._robust_rmtree(vector_store_path)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1714, in _robust_rmtree
-    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-RuntimeError: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-2025-09-30 01:01:38 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 01:01:38 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 01:01:38 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 01:01:38 - [INFO] - Discord Bot is ready!
-2025-09-30 01:01:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 01:01:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 01:01:41 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 01:01:47 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 01:01:47 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 01:01:47 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 01:01:47 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 01:01:47 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 01:01:47 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 01:01:50 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 01:01:50 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-09-30 01:01:57 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
-2025-09-30 01:01:57 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
-2025-09-30 01:01:57 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 01:01:57 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 01:01:57 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 01:01:57 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (1/5)...
-2025-09-30 01:01:58 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (2/5)...
-2025-09-30 01:01:58 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (3/5)...
-2025-09-30 01:01:59 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (4/5)...
-2025-09-30 01:01:59 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 0.5 秒後重試 (5/5)...
-2025-09-30 01:02:00 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1759, in start_reset_flow
-    await self._robust_rmtree(vector_store_path)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1714, in _robust_rmtree
-    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-RuntimeError: 在 5 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-2025-09-30 01:05:43 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 01:05:43 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 01:05:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 01:05:44 - [INFO] - Discord Bot is ready!
-2025-09-30 01:05:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 01:05:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 01:05:47 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 01:05:57 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 01:05:57 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 01:05:57 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 01:05:57 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 01:05:57 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 01:05:57 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 01:06:00 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 01:06:00 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-09-30 01:06:01 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
-2025-09-30 01:06:01 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
-2025-09-30 01:06:01 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 01:06:01 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 01:06:01 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 01:06:01 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 01:06:01 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (1/10)...
-2025-09-30 01:06:02 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (2/10)...
-2025-09-30 01:06:03 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (3/10)...
-2025-09-30 01:06:04 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (4/10)...
-2025-09-30 01:06:05 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (5/10)...
-2025-09-30 01:06:06 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (6/10)...
-2025-09-30 01:06:07 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (7/10)...
-2025-09-30 01:06:09 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (8/10)...
-2025-09-30 01:06:10 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (9/10)...
-2025-09-30 01:06:11 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (10/10)...
-2025-09-30 01:06:12 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 10 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1762, in start_reset_flow
-    await self._robust_rmtree(vector_store_path)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1717, in _robust_rmtree
-    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-RuntimeError: 在 10 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-2025-09-30 01:10:43 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 01:10:43 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 01:10:43 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 01:10:43 - [INFO] - Discord Bot is ready!
-2025-09-30 01:10:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 01:10:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 01:10:47 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 01:11:13 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 01:11:13 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 01:11:13 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 01:11:13 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 01:11:13 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 01:11:13 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-09-30 01:11:16 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 01:11:16 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 01:11:16 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (1/10)...
-2025-09-30 01:11:17 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (2/10)...
-2025-09-30 01:11:18 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (3/10)...
-2025-09-30 01:11:19 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (4/10)...
-2025-09-30 01:11:21 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (5/10)...
-2025-09-30 01:11:22 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (6/10)...
-2025-09-30 01:11:23 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (7/10)...
-2025-09-30 01:11:24 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (8/10)...
-2025-09-30 01:11:25 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (9/10)...
-2025-09-30 01:11:26 - [WARNING] - [512280345618546699] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 1.0 秒後重試 (10/10)...
-2025-09-30 01:11:27 - [ERROR] - [512280345618546699] 後台重置任務失敗: 在 10 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1762, in start_reset_flow
-    await self._robust_rmtree(vector_store_path)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1717, in _robust_rmtree
-    raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-RuntimeError: 在 10 次嘗試後，仍然無法刪除目錄: data\vector_stores\512280345618546699。請手動檢查文件鎖定。
-2025-09-30 01:14:00 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 01:14:00 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 01:14:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 01:14:01 - [INFO] - Discord Bot is ready!
-2025-09-30 01:14:03 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 01:14:03 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 01:14:04 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 01:14:42 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 01:14:42 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 01:14:42 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 01:14:42 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 01:14:42 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 01:14:47 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 01:14:52 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 01:14:52 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 01:14:52 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 01:14:52 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 01:14:52 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 01:14:52 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 01:14:55 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 01:14:55 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
-2025-09-30 01:14:55 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 01:14:55 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-09-30 01:14:55 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 01:14:59 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動配置的 Client 創始化一個空的 RAG 系統。
-2025-09-30 01:14:59 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 01:14:59 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 01:14:59 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 01:14:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 01:15:01 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 01:15:11 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 01:15:11 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 01:15:11 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 01:15:15 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 01:15:27 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 01:15:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 01:15:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 01:15:30 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-30 01:15:39 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 01:15:42 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-30 01:15:42 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-30 01:15:42 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 01:15:43 - [WARNING] - [512280345618546699] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。
-2025-09-30 01:16:27 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 01:16:27 - [INFO] - [512280345618546699] (Canon Processor) ✅ BM25 索引已同步更新。
-2025-09-30 01:16:27 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
-2025-09-30 01:16:27 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
-2025-09-30 01:16:27 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-09-30 01:18:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
-2025-09-30 01:18:43 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1306, in _perform_full_setup_flow
+    await ai_instance.parse_and_create_lore_from_canon(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4027, in parse_and_create_lore_from_canon
+    validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3835, in _programmatic_lore_validator
+    validated_aliases=[
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3836, in <listcomp>
+    AliasValidation(character_name=name, final_aliases=aliases)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 193, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AliasValidation
+aliases
+  Field required [type=missing, input_value={'character_name': '卡..., '維利爾斯勳爵']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-09-30 01:22:57 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-30 01:24:47 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 01:24:47 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 01:24:47 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 01:24:47 - [INFO] - Discord Bot is ready!
+2025-09-30 01:24:50 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 01:24:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 01:24:51 - [INFO] - 已成功發送啟動成功通知給管理員。
