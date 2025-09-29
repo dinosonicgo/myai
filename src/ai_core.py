@@ -3678,16 +3678,17 @@ class ExtractionResult(BaseModel):
     
 
     
-    # ai_core.py 的 _create_embeddings_instance 函式 (v2.2 - 修正模型名稱)
+    # ai_core.py 的 _create_embeddings_instance 函式 (v2.3 - 消除棄用警告)
     # 更新紀錄:
-    # v2.2 (2025-11-26): [灾难性BUG修复] 將本地 Embedding 模型名稱從不存在的 'stella-base-zh-v3' 修正為正確的 'stella-base-zh-v2'，解決了因模型名稱錯誤導致的 RepositoryNotFoundError。
-    # v2.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
-    # v2.0 (2025-11-26): [根本性重構] 徹底重寫此函式，將其從創建 Google API 實例，改造為創建一個基於 `sentence-transformers` 的本地化 `HuggingFaceEmbeddings` 實例。
+    # v2.3 (2025-11-26): [架構優化] 根據 LangChain 的棄用警告，將 HuggingFaceEmbeddings 的導入來源從舊的 `langchain_community` 遷移到新的 `langchain_huggingface` 套件，確保程式碼的未來兼容性。
+    # v2.2 (2025-11-26): [灾难性BUG修复] 修正了本地 Embedding 模型名稱。
+    # v2.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.2 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
+        (v2.3 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
         """
-        from langchain_community.embeddings import HuggingFaceEmbeddings
+        # [v2.3 核心修正] 從新的、官方推薦的套件導入
+        from langchain_huggingface import HuggingFaceEmbeddings
         
         # [v2.2 核心修正] 修正模型名稱，v3 不存在，正確的名稱是 v2
         model_name = "infgrad/stella-base-zh-v2"
@@ -5298,6 +5299,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
