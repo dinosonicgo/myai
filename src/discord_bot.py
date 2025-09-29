@@ -1687,14 +1687,39 @@ class BotCog(commands.Cog):
     # 函式：在背景處理世界聖經文本
 
 
-
-    
-    
-    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.2 - 資源釋放修正)
+    # discord_bot.py 的 BotCog._robust_rmtree 函式 (v52.3 - 全新創建)
     # 更新紀錄:
-    # v52.2 (2025-11-22): [灾难性BUG修复] 在從 `ai_instances` 字典中移除舊實例之前，增加了對 `ai_instance.shutdown()` 的強制調用和等待。此修改確保了在嘗試刪除 ChromaDB 的文件目錄之前，所有對該目錄的文件鎖都已被明確釋放，從而徹底解決了因 `PermissionError: [WinError 32]` 導致的 `/start` 重置失敗問題。
+    # v52.3 (2025-11-26): [全新創建] 根據深入的錯誤分析，創建此帶有延遲重試機制的異步安全刪除函式。它旨在解決在 Windows 環境下，因底層資料庫文件句柄釋放延遲而導致的 `PermissionError: [WinError 32]` 的頑固問題，為 `/start` 重置流程提供必要的魯棒性。
+    async def _robust_rmtree(self, path: Path, retries: int = 5, delay: float = 0.5):
+        """
+        一個健壯的異步 shutil.rmtree 版本，帶有延遲和重試機制以處理文件鎖定問題。
+        """
+        for i in range(retries):
+            try:
+                await asyncio.to_thread(shutil.rmtree, path)
+                logger.info(f"[{path.name}] (Robust Delete) 成功刪除目錄: {path}")
+                return
+            except PermissionError as e:
+                logger.warning(f"[{path.name}] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 {delay} 秒後重試 ({i+1}/{retries})...")
+                await asyncio.sleep(delay)
+            except FileNotFoundError:
+                logger.info(f"[{path.name}] (Robust Delete) 目錄已不存在，無需刪除: {path}")
+                return
+            except Exception as e:
+                logger.error(f"[{path.name}] (Robust Delete) 刪除時發生未預期的錯誤: {e}", exc_info=True)
+                # 對於其他未知錯誤，可能重試也無用，直接拋出
+                raise RuntimeError(f"刪除目錄 {path} 時發生不可恢復的錯誤: {e}") from e
+        
+        # 如果所有重試都失敗了
+        raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
+    # 函式：健壯的異步目錄刪除
+    
+    
+    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.3 - 健壯性刪除)
+    # 更新紀錄:
+    # v52.3 (2025-11-26): [灾难性BUG修复] 將原本不健壯的 `shutil.rmtree` 調用，替換為對新增的、帶有延遲重試機制的 `_robust_rmtree` 輔助函式的調用。此修改旨在徹底解決因 Windows 文件鎖釋放延遲而導致的 `PermissionError`，確保 `/start` 重置流程的穩定執行。
+    # v52.2 (2025-11-22): [灾难性BUG修复] 在移除舊實例前，增加了對 `ai_instance.shutdown()` 的強制調用和等待，以釋放資源。
     # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`。
-    # v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
@@ -1704,13 +1729,12 @@ class BotCog(commands.Cog):
             if not ai_instance:
                 logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
             
-            # [v52.2 核心修正] 在刪除實例和文件之前，先調用 shutdown 釋放資源
             if user_id in self.ai_instances:
                 logger.info(f"[{user_id}] 正在為舊的 AI 實例執行 shutdown...")
                 await self.ai_instances[user_id].shutdown()
                 self.ai_instances.pop(user_id)
                 gc.collect()
-                await asyncio.sleep(1.5) # 給予額外時間確保資源完全釋放
+                await asyncio.sleep(1.5)
 
             if ai_instance:
                 await ai_instance._clear_scene_histories()
@@ -1724,7 +1748,8 @@ class BotCog(commands.Cog):
             
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
-                await asyncio.to_thread(shutil.rmtree, vector_store_path)
+                # [v52.3 核心修正] 使用帶有重試機制的健壯刪除函式
+                await self._robust_rmtree(vector_store_path)
             
             view = StartSetupView(cog=self)
             await interaction.followup.send(
@@ -2123,6 +2148,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
