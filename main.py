@@ -134,11 +134,11 @@ async def _ollama_health_check(model_name: str) -> bool:
 
 
 
-# main.py 的中文註釋(v12.0 - ChromaDB依賴)
+# main.py 的 _check_and_install_dependencies 函式 (v12.1 - 新增本地模型依賴)
 # 更新紀錄:
-# v12.0 (2025-11-23): [架構擴展] 在依賴項檢查器中增加了對 `chromadb` 和 `langchain-chroma` 的檢查，以支持全新的 ChromaDB 混合 RAG 系統。
+# v12.1 (2025-11-26): [架構擴展] 根據「三模式RAG系統」架構，在依賴項檢查器中增加了對 `sentence-transformers` 和 `torch` 的檢查，以支持全新的本地 Embedding 模型備援方案。
+# v12.0 (2025-11-23): [架構擴展] 在依賴項檢查器中增加了對 `chromadb` 和 `langchain-chroma` 的檢查。
 # v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
-# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
@@ -148,14 +148,16 @@ def _check_and_install_dependencies():
         'aiosqlite': 'aiosqlite', 'discord.py': 'discord', 'langchain': 'langchain',
         'langchain-core': 'langchain_core', 'langchain-google-genai': 'langchain_google_genai',
         'langchain-community': 'langchain_community', 
-        # [v12.0 核心修正] 新增 ChromaDB 相關依賴
         'langchain-chroma': 'langchain_chroma', 
         'chromadb': 'chromadb',
         'langchain-cohere': 'langchain_cohere', 'google-generativeai': 'google.generativeai',
         'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
         'python-Levenshtein': 'Levenshtein',
-        'spacy': 'spacy', 'httpx': 'httpx'
+        'spacy': 'spacy', 'httpx': 'httpx',
+        # [v12.1 核心修正] 新增本地 Embedding 模型相關依賴
+        'sentence-transformers': 'sentence_transformers',
+        'torch': 'torch',
     }
     
     missing_packages = []
@@ -173,7 +175,11 @@ def _check_and_install_dependencies():
         for package in missing_packages:
             try:
                 print(f"   - 正在安裝 {package}...")
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", package])
+                # 為 torch 指定額外的索引 URL，如果需要的話
+                if package == 'torch':
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", "torch", "torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cpu"])
+                else:
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", package])
                 print(f"   ✅ {package} 安裝成功。")
             except subprocess.CalledProcessError:
                 print(f"   🔥 {package} 安裝失敗！請手動執行 'pip install {package}'。")
@@ -475,6 +481,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
