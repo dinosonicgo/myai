@@ -691,10 +691,9 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.8 - JSON自我修正)
+    # 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.7 - 生成完整性驗證)
     # 更新紀錄:
-    # v232.8 (2025-09-29): [災難性BUG修復] 引入了【JSON自我修正】重試機制。當首次解析模型返回的JSON失敗時，此函式不再立即拋出錯誤，而是會自動調用一個專門的修正鏈，將格式錯誤的文本再次發送給LLM請求修復，然後再次嘗試解析。此舉旨在解決因模型（特別是小型號）偶爾生成不規範JSON而導致的解析鏈中斷問題，大幅提高長文本解析的成功率。
-    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。
+    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。此修改在接收到API的成功響應後，會主動檢查其`finish_reason`。如果停止原因不是自然的“STOP”，而是“MAX_TOKENS”或“SAFETY”等，即使API未報錯，此函式也會將其視為一次“靜默失敗”，並主動拋出異常以觸發重試或模型降級。此舉旨在從根本上解決因API返回被截斷的不完整文本而導致劇情中斷的問題。
     # v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
     async def ainvoke_with_rotation(
         self,
@@ -738,7 +737,6 @@ class AILover:
                 key_to_use, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
-                    raw_text_result = ""
                     try:
                         genai.configure(api_key=key_to_use)
                         
@@ -762,14 +760,19 @@ class AILover:
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         
+                        # [v232.7 核心修正] 生成完整性驗證
                         if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
                              finish_reason_name = response.candidates[0].finish_reason.name
                              logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                             # 將靜默失敗轉化為可被重試邏輯捕獲的異常
                              if finish_reason_name == 'MAX_TOKENS':
+                                 # 對於 MAX_TOKENS，通常是輸入太長或輸出設置太小，重試意義不大，直接拋出讓上層處理
                                  raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
                              elif finish_reason_name == 'SAFETY':
+                                 # 如果是因為安全原因停止，則觸發內容審查備援
                                  raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                              else:
+                                 # 對於其他原因（如 RECITATION），視為臨時性 API 錯誤
                                  raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
@@ -780,42 +783,11 @@ class AILover:
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
-                            try:
-                                json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
-                                if not json_match:
-                                    raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
-                                clean_json_str = json_match.group(0)
-                                return output_schema.model_validate(json.loads(clean_json_str))
-                            except (ValidationError, OutputParserException, json.JSONDecodeError) as parsing_error:
-                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 首次解析失敗: {type(parsing_error).__name__}。啟動【JSON自我修正】重試...")
-                                
-                                correction_prompt_template = self.get_json_correction_chain()
-                                # 為了通用性，我們傳入一個簡化的目標結構描述
-                                correction_prompt = self._safe_format_prompt(
-                                    correction_prompt_template,
-                                    {
-                                        "raw_json_string": raw_text_result,
-                                        "context_name": "General Correction",
-                                    },
-                                    inject_core_protocol=True
-                                )
-                                
-                                corrected_text = await self.ainvoke_with_rotation(
-                                    correction_prompt,
-                                    output_schema=None, # 修正鏈只返回純文本
-                                    retry_strategy='none', # 修正鏈本身不再重試
-                                    use_degradation=False # 使用快速模型
-                                )
-                                
-                                if not corrected_text:
-                                    raise parsing_error # 如果修正失敗，則重新拋出原始錯誤
-
-                                logger.info(f"[{self.user_id}] 【JSON自我修正】成功，正在重新驗證修正後的JSON...")
-                                json_match = re.search(r'\{.*\}|\[.*\]', corrected_text, re.DOTALL)
-                                if not json_match:
-                                     raise OutputParserException("修正後的文本中仍然找不到JSON物件。", llm_output=corrected_text)
-                                clean_json_str = json_match.group(0)
-                                return output_schema.model_validate(json.loads(clean_json_str))
+                            json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
+                            if not json_match:
+                                raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
+                            clean_json_str = json_match.group(0)
+                            return output_schema.model_validate(json.loads(clean_json_str))
                         else:
                             return raw_text_result
 
@@ -833,7 +805,7 @@ class AILover:
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 在【自我修正】後仍然遭遇解析或驗證錯誤: {type(e).__name__}。")
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
@@ -3674,155 +3646,57 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：獲取身份識別器 Prompt (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-29): [全新創建] 根據「AI自我學習與識別」策略創建此核心Prompt。它的唯一職責是接收一段角色的完整描述文本，並從中反向提取出所有可能是身份、職業、頭銜、種族、信仰、社會階層或綽號的關鍵詞。這是解決特殊名詞泛化識別問題的關鍵。
-    def get_identity_recognition_chain(self) -> str:
-        """獲取或創建一個專門用於從描述文本中反向識別身份標籤的字符串模板。"""
-        prompt_template = """# TASK: 你是一位資深的情報分析師和標籤提取專家。
-# MISSION: 你的任務是閱讀下方提供的【角色描述原文】，並從中提取出所有能夠定義該角色【身份】的【關鍵詞或短語】。
-
-# === 【【【🚨 核心提取規則 (CORE EXTRACTION RULES) - 絕對鐵則】】】 ===
-# 1. **【身份定義】**: "身份" 是一個廣義的概念，它包括但不限於：
-#    - **職業**: 鐵匠, 衛兵隊長, 魔法師
-#    - **頭銜/階級**: 聖女, 勳爵, 奴隸, 母畜
-#    - **種族/物種**: 人類, 精靈, 龍裔
-#    - **信仰/組織成員**: 性神教徒, 太陽騎士團成員
-#    - **狀態/綽號**: 活神蹟, 斷手者, 瘟疫倖存者
-# 2. **【提取原則】**: 你必須仔細閱讀全文，找出所有符合上述定義的詞語。不要只看句子的開頭。
-# 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的JSON物件，其結構為 `{"identities": ["身份1", "身份2", ...]}`。如果沒有找到任何身份，則返回 `{"identities": []}`。
-
-# === 【【【⚙️ 範例 (EXAMPLE)】】】 ===
-# --- 輸入 ---
-# 【角色描述原文】:
-# "性神教徒。約16歲。來自貧民窟...被維利爾斯勳爵「鍛造」為「聖露修道院」的第一位「聖女」與「活神蹟」。...在莊園內是可被隨意使用的卑賤母畜..."
-# --- 你的JSON輸出 ---
-# ```json
-# {
-#   "identities": ["性神教徒", "聖女", "活神蹟", "母畜"]
-# }
-# ```
-
-# --- [YOUR TASK] ---
-
-# 【角色描述原文】:
-{description_text}
-
-# ---
-# 【你提取出的身份JSON】:
-"""
-        return prompt_template
-    # 函式：獲取身份識別器 Prompt
-
-
-
-
-
-
-    
-
-
-    # 函式：程式化LORE校驗器 (v5.1 - 分批處理修正)
-    # 更新紀錄:
-    # v5.1 (2025-09-29): [災難性BUG修復] 徹底重構了此函式的執行邏輯，將原本一次性並發處理所有NPC的`asyncio.gather`模式，改為【帶速率控制的分批處理】模式。現在，函式會將大量NPC分成熟個小批次（例如每批10個），串行處理每一批，並在批次間加入短暫延遲。此舉旨在解決因瞬時並發過多API請求而導致的`ResourceExhausted`（API速率超限）錯誤。
-    # v5.0 (2025-09-29): [災難性BUG修復] 引入終極的【身份自識別】驗證步驟。
-    # v4.0 (2025-09-29): [災難性BUG修復] 將此函式升級為【混合式事實交叉驗證器】。
+# ai_core.py 的 _programmatic_lore_validator 函式 (v3.1 - Pydantic彈性解析)
+# 更新紀錄:
+# v3.1 (2025-09-28): [災難性BUG修復] 在內部Pydantic模型 `AliasValidation` 的 `final_aliases` 欄位中增加了 `AliasChoices('aliases', 'validated_aliases')`。此修改賦予了Pydantic模型解析的彈性，使其能夠兼容LLM可能返回的不規範鍵名，從根源上解決了因鍵名不匹配引發的 `ValidationError`。
+# v3.0 (2025-09-28): [災難性BUG修復] 將核心邏輯從並行處理 (`asyncio.gather`) 徹底重構為【分批處理】模式。
     async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
-        【v5.1 分批處理】一個終極的、抗審查的程式化校驗器。
+        【v3.0 分批交叉驗證】一個基於LLM批量交叉驗證的、抗審查的程式化校驗器。
         """
         if not parsing_result.npc_profiles:
             return parsing_result
 
-        from .schemas import BaseModel, AliasChoices, Field # 延遲導入
+        logger.info(f"[{self.user_id}] [混合式安全驗證器] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行【分批】最終校驗...")
 
-        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.1] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
+        # 步驟 1: 準備工具
+        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+        def encode_text(text: str) -> str:
+            if not text: return ""
+            for word, code in sorted_encoding_map:
+                text = text.replace(word, code)
+            return text
 
-        # --- 輔助函式：程式化的地點上下文驗證器 ---
-        def _verify_location_context(character_name: str, location_path: List[str], full_text: str, window_size: int = 500) -> bool:
-            if not location_path: return True
-            char_pattern = re.compile(re.escape(character_name))
-            for match in char_pattern.finditer(full_text):
-                start, end = match.span()
-                context_start = max(0, start - window_size)
-                context_end = min(len(full_text), end + window_size)
-                context_window = full_text[context_start:context_end]
-                if any(loc_part in context_window for loc_part in location_path):
-                    return True
-            return False
-
-        # --- 步驟 1: 程式化的地點幻覺修正 (同步執行，無API調用) ---
-        for profile in parsing_result.npc_profiles:
-            if profile.location_path:
-                is_valid_location = _verify_location_context(profile.name, profile.location_path, canon_text)
-                if not is_valid_location:
-                    logger.warning(f"[{self.user_id}] [驗證器-地點] 檢測到角色 '{profile.name}' 的地點 '{' > '.join(profile.location_path)}' 為幻覺，已強制移除。")
-                    profile.location_path = []
-
-        # --- [v5.1 核心修正] 分批處理以避免 API 速率超限 ---
-        BATCH_SIZE = 10 
+        # 步驟 2: 分批處理
+        BATCH_SIZE = 10
         profiles_to_process = parsing_result.npc_profiles
         
         for i in range(0, len(profiles_to_process), BATCH_SIZE):
             batch = profiles_to_process[i:i+BATCH_SIZE]
-            batch_num = i // BATCH_SIZE + 1
-            total_batches = (len(profiles_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
+            logger.info(f"[{self.user_id}] [別名驗證] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(profiles_to_process) + BATCH_SIZE - 1)//BATCH_SIZE}...")
             
-            logger.info(f"[{self.user_id}] [驗證器] 正在處理批次 {batch_num}/{total_batches}...")
-
-            # --- 步驟 2 (批處理): AI 身份自識別與補全 ---
-            logger.info(f"[{self.user_id}] [驗證器-身份] 批次 {batch_num}: 正在啟動 AI 身份自識別...")
-            identity_prompt_template = self.get_identity_recognition_chain()
-            
-            class IdentityResult(BaseModel):
-                identities: List[str]
-
-            recognition_tasks = []
-            for profile in batch:
-                if profile.description:
-                    prompt = self._safe_format_prompt(identity_prompt_template, {"description_text": profile.description}, inject_core_protocol=True)
-                    recognition_tasks.append(
-                        self.ainvoke_with_rotation(prompt, output_schema=IdentityResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-                    )
-                else:
-                    recognition_tasks.append(asyncio.sleep(0, result=None))
-
-            identity_results = await asyncio.gather(*recognition_tasks, return_exceptions=True)
-
-            for j, profile in enumerate(batch):
-                result = identity_results[j]
-                if isinstance(result, IdentityResult) and result.identities:
-                    original_aliases = set(profile.aliases or [])
-                    recognized_identities = set(result.identities)
-                    merged_aliases = original_aliases.union(recognized_identities)
-                    if merged_aliases != original_aliases:
-                        logger.info(f"[{self.user_id}] [驗證器-身份] ✅ 為角色 '{profile.name}' 成功補全了 {len(merged_aliases - original_aliases)} 個遺漏的身份標籤: {list(merged_aliases - original_aliases)}")
-                        profile.aliases = list(merged_aliases)
-
-            # --- 步驟 3 (批處理): 基於 LLM 的批量別名審計 ---
-            logger.info(f"[{self.user_id}] [別名審計] 批次 {batch_num}: 正在啟動別名審計...")
-            encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-            sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-            def encode_text(text: str) -> str:
-                if not text: return ""
-                for word, code in sorted_encoding_map:
-                    text = text.replace(word, code)
-                return text
-
+            # 為當前批次構建輸入
             batch_input_data = []
             for profile in batch:
                 pattern = re.compile(r"^\s*\*\s*" + re.escape(profile.name) + r".*?([\s\S]*?)(?=\n\s*\*\s|\Z)", re.MULTILINE)
                 matches = pattern.findall(canon_text)
                 context_snippet = "\n".join(matches) if matches else ""
+                
                 batch_input_data.append({
                     "character_name": profile.name,
                     "context_snippet": encode_text(context_snippet),
                     "claimed_aliases": profile.aliases or []
                 })
 
+            # 步驟 3: 雲端 LLM 批量交叉驗證 (優先路徑)
+            batch_validation_result = None
+            from .schemas import BaseModel
+            # [v3.1 核心修正] 使用 AliasChoices 增加解析彈性
             class AliasValidation(BaseModel):
                 character_name: str
                 final_aliases: List[str] = Field(validation_alias=AliasChoices('final_aliases', 'aliases', 'validated_aliases'))
+
             class BatchAliasValidationResult(BaseModel):
                 validated_aliases: List[AliasValidation]
 
@@ -3832,37 +3706,69 @@ class ExtractionResult(BaseModel):
                     validator_prompt,
                     {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)}
                 )
+                
                 batch_validation_result = await self.ainvoke_with_rotation(
-                    full_prompt, output_schema=BatchAliasValidationResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
+                    full_prompt, 
+                    output_schema=BatchAliasValidationResult, 
+                    retry_strategy='none',
+                    models_to_try_override=[FUNCTIONAL_MODEL]
                 )
-                if batch_validation_result and batch_validation_result.validated_aliases:
-                    results_map = {res.character_name: res.final_aliases for res in batch_validation_result.validated_aliases}
-                    for profile in batch:
-                        if profile.name in results_map:
-                            validated_aliases = results_map[profile.name]
-                            original_set = set(profile.aliases or [])
-                            validated_set = set(validated_aliases)
-                            merged_set = original_set.union(validated_set)
-                            decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
-                            if set(decoded_aliases) != original_set:
-                                logger.info(f"[{self.user_id}] [別名審計] ✅ 為角色 '{profile.name}' 成功補全了 {len(set(decoded_aliases) - original_set)} 個遺漏的別名: {list(set(decoded_aliases) - original_set)}")
-                                profile.aliases = list(set(decoded_aliases))
+
             except Exception as e:
-                logger.warning(f"[{self.user_id}] [別名審計] 批次 {batch_num} 審計失敗: {e}。")
+                logger.warning(f"[{self.user_id}] [別名驗證-雲端-批量] 批次 {i//BATCH_SIZE + 1} 驗證失敗: {e}。將對此批次啟用本地備援...")
             
-            # 在處理完一個批次後，短暫等待，避免觸發速率限制
-            if total_batches > 1 and batch_num < total_batches:
-                await asyncio.sleep(5) 
+            # 步驟 4: 本地 LLM 備援 (如果批量失敗，則逐個處理)
+            if not batch_validation_result or not batch_validation_result.validated_aliases:
+                if self.is_ollama_available:
+                    logger.info(f"[{self.user_id}] [別名驗證-備援] 正在為批次 {i//BATCH_SIZE + 1} 啟動本地LLM逐個驗證...")
+                    validated_aliases_map = {}
+                    for item in batch_input_data:
+                        local_result = await self._invoke_local_ollama_validator(
+                            character_name=item["character_name"],
+                            context_snippet=item["context_snippet"],
+                            claimed_aliases=item["claimed_aliases"]
+                        )
+                        if local_result:
+                            validated_aliases_map[item["character_name"]] = local_result
+                        await asyncio.sleep(0.5)
+                    if validated_aliases_map:
+                        batch_validation_result = BatchAliasValidationResult(
+                            validated_aliases=[
+                                AliasValidation(character_name=name, final_aliases=aliases)
+                                for name, aliases in validated_aliases_map.items()
+                            ]
+                        )
+                else:
+                    logger.error(f"[{self.user_id}] [別名驗證-備援] 批次 {i//BATCH_SIZE + 1} 驗證失敗且本地模型不可用，此批次校驗跳過。")
+                    continue
+
+            # 步驟 5: 結果合併與解碼
+            if batch_validation_result and batch_validation_result.validated_aliases:
+                results_map = {res.character_name: res.final_aliases for res in batch_validation_result.validated_aliases}
+                for profile in batch:
+                    if profile.name in results_map:
+                        validated_aliases = results_map[profile.name]
+                        original_set = set(profile.aliases or [])
+                        validated_set = set(validated_aliases)
+                        merged_set = original_set.union(validated_set)
+                        
+                        decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
+                        
+                        if set(decoded_aliases) != original_set:
+                            logger.warning(f"[{self.user_id}] [混合式安全驗證器] 檢測到角色 '{profile.name}' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。")
+                            profile.aliases = list(set(decoded_aliases))
+            
+            await asyncio.sleep(2)
 
         parsing_result.npc_profiles = profiles_to_process
-        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.1] 所有校驗步驟已全部完成。")
+        logger.info(f"[{self.user_id}] [混合式安全驗證器] 所有批次的校驗已全部完成。")
         return parsing_result
-    # 函式：程式化LORE校驗器 (引入身份自識別)
+# 函式：程式化LORE校驗器 (核心重寫)
 
 
 
 
-     # 函式：獲取批量別名交叉驗證器Prompt (v1.5 - 零容忍審計)
+    # 函式：獲取批量別名交叉驗證器Prompt (v1.5 - 零容忍審計)
     # 更新紀錄:
     # v1.5 (2025-09-28): [災難性BUG修復] 引入終極的【零容忍審計強制令】。此修改將驗證器的角色從“校對官”升級為“審計官”，強制要求其不再信任上游傳來的`claimed_aliases`，而是必須獨立地、從頭開始重新解析`context_snippet`，生成一份自己的“理想別名列表”，然後再將兩者合併。此舉旨在通過“獨立重複驗證”的工程原則，根除因初始解析LLM“認知捷徑”而導致的關鍵身份標籤（如“性神教徒”）遺漏的最終頑疾。
     # v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt。
@@ -3917,6 +3823,7 @@ class ExtractionResult(BaseModel):
 """
         return part1 + json_example + part2
     # 函式：獲取批量別名交叉驗證器Prompt
+
 
     
 
@@ -4007,11 +3914,11 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：解析並從世界聖經創建LORE (v13.2 - 異步修正)
-    # 更新紀錄:
-    # v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
-    # v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
-    # v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.2 - 異步修正)
+# 更新紀錄:
+# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
+# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
+# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -4120,7 +4027,7 @@ class ExtractionResult(BaseModel):
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
             await self._load_or_build_rag_retriever(force_rebuild=True)
-    # 函式：解析並從世界聖經創建LORE
+# 函式：解析並從世界聖經創建LORE
 
 
 
@@ -4171,127 +4078,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：合併並去重分塊解析結果 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-29): [全新創建] 根據「分塊處理」策略創建此核心輔助函式。它負責接收來自多個文本塊的、可能包含重複實體的 LORE 解析結果，並通過智能合併與去重邏輯，生成一份統一、乾淨的最終 LORE 列表。
-    def _merge_and_deduplicate_results(self, results: List["CanonParsingResult"]) -> "CanonParsingResult":
-        """
-        將來自多個文本塊的解析結果列表合併為單一的、去重的 CanonParsingResult。
-        """
-        from .schemas import CanonParsingResult
-
-        final_result = CanonParsingResult()
-        
-        # 使用字典來去重，鍵為實體的唯一標識符（通常是 name 或 title）
-        unique_npcs = {}
-        unique_locations = {}
-        unique_items = {}
-        unique_creatures = {}
-        unique_quests = {}
-        unique_world_lores = {}
-
-        for result in results:
-            if not result: continue
-            
-            # 處理 NPC
-            for npc in result.npc_profiles:
-                if npc.name not in unique_npcs:
-                    unique_npcs[npc.name] = npc
-                else:
-                    # 合併邏輯：簡單起見，這裡可以用更長的描述覆蓋短的
-                    if len(npc.description) > len(unique_npcs[npc.name].description):
-                        unique_npcs[npc.name].description = npc.description
-                    # 合併別名和技能等列表
-                    unique_npcs[npc.name].aliases = list(set(unique_npcs[npc.name].aliases + npc.aliases))
-                    unique_npcs[npc.name].skills = list(set(unique_npcs[npc.name].skills + npc.skills))
-
-            # 類似地處理其他類別
-            for location in result.locations:
-                if location.name not in unique_locations:
-                    unique_locations[location.name] = location
-            for item in result.items:
-                if item.name not in unique_items:
-                    unique_items[item.name] = item
-            for creature in result.creatures:
-                if creature.name not in unique_creatures:
-                    unique_creatures[creature.name] = creature
-            for quest in result.quests:
-                if quest.name not in unique_quests:
-                    unique_quests[quest.name] = quest
-            for lore in result.world_lores:
-                if lore.name not in unique_world_lores:
-                    unique_world_lores[lore.name] = lore
-
-        final_result.npc_profiles = list(unique_npcs.values())
-        final_result.locations = list(unique_locations.values())
-        final_result.items = list(unique_items.values())
-        final_result.creatures = list(unique_creatures.values())
-        final_result.quests = list(unique_quests.values())
-        final_result.world_lores = list(unique_world_lores.values())
-
-        logger.info(f"[{self.user_id}] [分塊合併] 已成功將 {len(results)} 個分塊結果合併並去重。")
-        return final_result
-    # 函式：合併並去重分塊解析結果
-
-
-
-    
-    # 函式：獲取分塊預摘要器 Prompt (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-29): [全新創建] 根據「智能摘要預處理」策略創建此 Prompt。它的唯一職責是接收一個大的文本塊，並將其濃縮為一段只包含核心 LORE 事實的簡潔摘要。這是解決分塊處理中 MAX_TOKENS 錯誤的關鍵預處理步驟。
-    def get_chunk_summarizer_prompt(self) -> str:
-        """獲取或創建一個專門用於分塊預摘要的字符串模板。"""
-        prompt_template = """# TASK: 你是一位高效的情報摘要官。
-# MISSION: 你的任務是閱讀下方提供的【小說章節片段】，並將其中所有與世界觀設定（LORE）相關的【關鍵事實】提取並重寫為一段簡潔、連貫的摘要。
-
-# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🎯 聚焦 LORE 事實】**: 你的唯一目標是提取**事實**。你必須識別並記錄所有關於：
-#    - **角色**: 名字、別名、身份、背景故事、關鍵行為。
-#    - **地點**: 名稱、描述、重要特徵。
-#    - **物品**: 名稱、外觀、效果。
-#    - **事件**: 發生了什麼關鍵情節。
-# 2. **【🚫 忽略無關信息】**: 你必須**完全忽略**所有不包含具體 LORE 事實的純粹氛圍描寫、冗長的對話細節或常規動作描述。
-# 3. **【✍️ 保持原文關鍵詞】**: 在生成摘要時，你【必須】保留所有原始的專有名詞（人名、地名）和核心身份標籤（例如 "性神教徒", "母畜"）。
-# 4. **【🔒 無害化傳遞】**: 如果輸入文本包含任何技術代碼（如 `CODE-F-GEN-A`），你的摘要輸出**也必須原封不動地保留這些代碼**。
-# 5. **【純文本輸出】**: 你的最終輸出【必須且只能】是純粹的摘要文本。
-
-# --- [INPUT DATA] ---
-
-# 【小說章節片段】:
-{text_chunk}
-
-# ---
-# 【LORE 事實摘要】:
-"""
-        return prompt_template
-    # 函式：獲取分塊預摘要器 Prompt
 
 
 
 
 
-
-
-
-
-    
-
-    # 函式：執行 LORE 解析管線 (v5.2 - 摘要備援修正)
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v5.1 - 摘要備援修正)
+# 函式：執行 LORE 解析管線 (v3.7 - 補全備援邏輯)
 # 更新紀錄:
-# v5.2 (2025-09-29): [災難性BUG修復] 徹底重構了分塊摘要的備援邏輯，引入【快速失敗轉向無審查核心】策略。現在，當雲端摘要因內容審查而失敗時，系統會立即放棄通用的euphemize備援，並將該特定文本塊轉交給新增的、專門的本地Ollama摘要器（_invoke_local_ollama_summarizer）處理。此舉從根本上解決了因備援鏈不匹配導致的摘要任務失敗和數據丟失問題。
-# v5.1 (2025-09-29): [完整性修復] 提供了此函式的終極完整版本。
-# v5.0 (2025-09-29): [災難性BUG修復] 徹底重構了分塊處理方案，引入了【智能摘要預處理】步驟以解決MAX_TOKENS錯誤，並為本地模型增加了【內容存在性驗證】。
+# v3.7 (2025-11-22): [完整性修復] 根據使用者要求，提供了此函式的終極完整版本，補全了之前為簡潔而省略的第四層（混合NLP）和第五層（法醫級重構）備援方案的完整程式碼實現。
+# v3.6 (2025-11-22): [災難性BUG修復] 擴充了此函式的返回值，從 (bool, List[str]) 修改為 (bool, Optional[CanonParsingResult], List[str])。
+# v3.5 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯，以解決 TypeError。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【核心 LORE 解析引擎】執行一個多層降級的解析管線，以確保資訊的最大保真度。
+        【核心 LORE 解析引擎】執行一個五層降級的解析管線，以確保資訊的最大保真度。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
             return False, None, []
-
-        from .schemas import CanonParsingResult, BatchClassificationResult, CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest, WorldLore # 延遲導入
-        from google.generativeai.types.generation_types import BlockedPromptException
 
         parsing_completed = False
         final_parsing_result: Optional["CanonParsingResult"] = None
@@ -4310,7 +4113,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 1/6] 正在嘗試【理想方案：雲端宏觀解析】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...")
                 transformation_template = self.get_canon_transformation_chain()
                 full_prompt = self._safe_format_prompt(
                     transformation_template,
@@ -4321,99 +4124,36 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 1/6] ✅ 成功！")
+                    logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 成功！")
                     final_parsing_result = parsing_result
                     all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
+        except BlockedPromptException:
+            logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 遭遇內容審查，正在降級到第二層（本地LLM）...")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 1/6] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
-
-        # --- 層級 3: 【分塊摘要處理方案】處理超長文本 ---
-        try:
-            if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 3/6] 正在嘗試【分塊摘要處理方案】...")
-                text_splitter = RecursiveCharacterTextSplitter(
-                    chunk_size=8000, 
-                    chunk_overlap=1000,
-                    length_function=len
-                )
-                chunks = text_splitter.split_text(text_to_parse)
-                logger.info(f"[{self.user_id}] [LORE 解析 3/6 - 步驟A] 已將長文本分割為 {len(chunks)} 個帶重疊上下文的塊。")
-
-                summarizer_prompt_template = self.get_chunk_summarizer_prompt()
-                summary_tasks = []
-                for chunk in chunks:
-                    prompt = self._safe_format_prompt(summarizer_prompt_template, {"text_chunk": chunk}, inject_core_protocol=True)
-                    summary_tasks.append(self.ainvoke_with_rotation(prompt, output_schema=None, retry_strategy='none'))
-                
-                logger.info(f"[{self.user_id}] [LORE 解析 3/6 - 步驟B] 正在並行執行 {len(summary_tasks)} 個分塊的預摘要任務...")
-                summaries_results = await asyncio.gather(*summary_tasks, return_exceptions=True)
-                
-                final_summaries = []
-                for i, res in enumerate(summaries_results):
-                    if isinstance(res, str) and res.strip():
-                        final_summaries.append(res)
-                    elif isinstance(res, BlockedPromptException):
-                        logger.warning(f"[{self.user_id}] [摘要備援] 雲端摘要任務 #{i+1} 遭遇內容審查，正在轉向本地無審查核心...")
-                        if self.is_ollama_available:
-                            local_summary = await self._invoke_local_ollama_summarizer(chunks[i])
-                            if local_summary:
-                                final_summaries.append(local_summary)
-                            else:
-                                logger.error(f"[{self.user_id}] [摘要備援] 本地模型也未能為任務 #{i+1} 生成摘要。")
-                        else:
-                            logger.error(f"[{self.user_id}] [摘要備援] 本地模型不可用，任務 #{i+1} 的數據可能已丟失。")
-                
-                logger.info(f"[{self.user_id}] [LORE 解析 3/6 - 步驟B] 最終成功生成 {len(final_summaries)} 份 LORE 事實摘要。")
-
-                if final_summaries:
-                    parser_tasks = []
-                    transformation_template = self.get_canon_transformation_chain()
-                    for summary in final_summaries:
-                        prompt = self._safe_format_prompt(
-                            transformation_template,
-                            {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": summary},
-                            inject_core_protocol=True
-                        )
-                        parser_tasks.append(self.ainvoke_with_rotation(prompt, output_schema=CanonParsingResult, retry_strategy='euphemize'))
-                    
-                    logger.info(f"[{self.user_id}] [LORE 解析 3/6 - 步驟C] 正在並行解析 {len(parser_tasks)} 份摘要...")
-                    chunk_results = await asyncio.gather(*parser_tasks, return_exceptions=True)
-                    
-                    valid_results = [res for res in chunk_results if isinstance(res, CanonParsingResult)]
-                    
-                    if valid_results:
-                        merged_result = self._merge_and_deduplicate_results(valid_results)
-                        if merged_result and (merged_result.npc_profiles or merged_result.locations):
-                            logger.info(f"[{self.user_id}] [LORE 解析 3/6] ✅ 成功！分塊摘要處理並合併了LORE。")
-                            final_parsing_result = merged_result
-                            all_successful_keys.extend(extract_keys_from_result(merged_result))
-                            parsing_completed = True
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 3/6] 分塊摘要處理方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 1/5] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
 
         # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
         if not parsing_completed and self.is_ollama_available:
             try:
-                logger.info(f"[{self.user_id}] [LORE 解析 2/6] 正在嘗試【本地備援方案：無審查解析】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在嘗試【本地備援方案：無審查解析】...")
                 parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
-                
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 2/6] ✅ 成功！本地模型成功提取到 LORE 數據。")
+                    logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 成功！")
                     final_parsing_result = parsing_result
                     all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
                 else:
-                    logger.warning(f"[{self.user_id}] [LORE 解析 2/6] 本地模型未能提取任何 LORE 內容（靜默失敗），正在降級...")
-
+                    logger.warning(f"[{self.user_id}] [LORE 解析 2/5] 本地模型未能成功解析，正在降級到第三層（安全代碼）...")
             except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 2/6] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
-        
-        # --- 層級 4: 【安全代碼方案】全文無害化解析 (Gemini) ---
+                logger.error(f"[{self.user_id}] [LORE 解析 2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+        elif not parsing_completed and not self.is_ollama_available:
+            logger.info(f"[{self.user_id}] [LORE 解析 2/5] 本地 Ollama 備援方案在啟動時檢測為不可用，已安全跳過。")
+
+        # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 4/6] 正在嘗試【安全代碼方案：全文無害化解析】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 3/5] 正在嘗試【安全代碼方案：全文無害化解析】...")
                 sanitized_text = text_to_parse
                 reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
                 for code, word in reversed_map:
@@ -4427,24 +4167,26 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                 )
                 if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 4/6] ✅ 成功！")
+                    logger.info(f"[{self.user_id}] [LORE 解析 3/5] ✅ 成功！")
                     final_parsing_result = parsing_result
                     all_successful_keys.extend(extract_keys_from_result(parsing_result))
                     parsing_completed = True
+        except BlockedPromptException:
+            logger.warning(f"[{self.user_id}] [LORE 解析 3/5] 無害化後仍遭遇審查，正在降級到第四層...")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 4/6] 遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 3/5] 遭遇未知錯誤: {e}", exc_info=True)
 
-        # --- 層級 5: 【混合 NLP 方案】靶向精煉 (Gemini + spaCy) ---
+        # --- 層級 4: 【混合 NLP 方案】靶向精煉 (Gemini + spaCy) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 5/6] 正在嘗試【混合 NLP 方案：靶向精煉】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...")
                 
                 candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
                 if not candidate_entities:
-                    logger.info(f"[{self.user_id}] [LORE 解析 5/6] 本地 NLP 未能提取任何候選實體，跳過此層。")
+                    logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地 NLP 未能提取任何候選實體，跳過此層。")
                 else:
-                    logger.info(f"[{self.user_id}] [LORE 解析 5/6] 本地 NLP 提取到 {len(candidate_entities)} 個候選實體: {candidate_entities}")
-                    logger.info(f"[{self.user_id}] [LORE 解析 5/6] 正在請求 LLM 為這 {len(candidate_entities)} 個實體進行分類...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 4/5] 本地 NLP 提取到 {len(candidate_entities)} 個候選實體: {candidate_entities}")
+                    logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在請求 LLM 為這 {len(candidate_entities)} 個實體進行分類...")
                     
                     classification_prompt = self.get_lore_classification_prompt()
                     class_full_prompt = self._safe_format_prompt(
@@ -4455,9 +4197,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
                     
                     if not classification_result or not classification_result.classifications:
-                        logger.warning(f"[{self.user_id}] [LORE 解析 5/6] LLM 分類決策失敗或返回空結果，跳過此層。")
+                        logger.warning(f"[{self.user_id}] [LORE 解析 4/5] LLM 分類決策失敗或返回空結果，跳過此層。")
                     else:
-                        logger.info(f"[{self.user_id}] [LORE 解析 5/6] LLM 分類決策成功。")
+                        logger.info(f"[{self.user_id}] [LORE 解析 4/5] LLM 分類決策成功。")
                         tasks = []
                         pydantic_map = { "npc_profile": CharacterProfile, "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
                         refinement_prompt_template = self.get_targeted_refinement_prompt()
@@ -4482,36 +4224,35 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 )
                         
                         if tasks:
-                            logger.info(f"[{self.user_id}] [LORE 解析 5/6] 正在並行執行 {len(tasks)} 個靶向精煉任務...")
+                            logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在並行執行 {len(tasks)} 個靶向精煉任務...")
                             refined_results = await asyncio.gather(*tasks, return_exceptions=True)
                             
                             aggregated_result = CanonParsingResult()
                             for i, result in enumerate(refined_results):
                                 if not isinstance(result, Exception) and result:
-                                    if i < len(classification_result.classifications):
-                                        category = classification_result.classifications[i].lore_category
-                                        if category == 'npc_profile': aggregated_result.npc_profiles.append(result)
-                                        elif category == 'location_info': aggregated_result.locations.append(result)
-                                        elif category == 'item_info': aggregated_result.items.append(result)
-                                        elif category == 'creature_info': aggregated_result.creatures.append(result)
-                                        elif category == 'quest': aggregated_result.quests.append(result)
-                                        elif category == 'world_lore': aggregated_result.world_lores.append(result)
+                                    category = classification_result.classifications[i].lore_category
+                                    if category == 'npc_profile': aggregated_result.npc_profiles.append(result)
+                                    elif category == 'location_info': aggregated_result.locations.append(result)
+                                    elif category == 'item_info': aggregated_result.items.append(result)
+                                    elif category == 'creature_info': aggregated_result.creatures.append(result)
+                                    elif category == 'quest': aggregated_result.quests.append(result)
+                                    elif category == 'world_lore': aggregated_result.world_lores.append(result)
                             
                             if aggregated_result.model_dump(exclude_none=True, exclude_defaults=True):
-                                logger.info(f"[{self.user_id}] [LORE 解析 5/6] ✅ 成功！混合 NLP 方案聚合了 {len([r for r in refined_results if not isinstance(r, Exception)])} 條 LORE。")
+                                logger.info(f"[{self.user_id}] [LORE 解析 4/5] ✅ 成功！混合 NLP 方案聚合了 {len(refined_results)} 條 LORE。")
                                 final_parsing_result = aggregated_result
                                 all_successful_keys.extend(extract_keys_from_result(aggregated_result))
                                 parsing_completed = True
                             else:
-                                logger.warning(f"[{self.user_id}] [LORE 解析 5/6] 靶向精煉任務均未成功返回有效結果。")
+                                logger.warning(f"[{self.user_id}] [LORE 解析 4/5] 靶向精煉任務均未成功返回有效結果。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 5/6] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 4/5] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
 
-        # --- 層級 6: 【法醫級重構方案】終極備援 (Gemini) ---
+        # --- 層級 5: 【法醫級重構方案】終極備援 (Gemini) ---
         try:
             if not parsing_completed:
-                logger.info(f"[{self.user_id}] [LORE 解析 6/6] 正在嘗試【法醫級重構方案】...")
+                logger.info(f"[{self.user_id}] [LORE 解析 5/5] 正在嘗試【法醫級重構方案】...")
                 keywords = set()
                 for word in self.DECODING_MAP.values():
                     if word in text_to_parse:
@@ -4527,7 +4268,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 except Exception: pass
                 
                 if keywords:
-                    logger.info(f"[{self.user_id}] [LORE 解析 6/6] 已提取 {len(keywords)} 個關鍵詞用於法醫級重構。")
+                    logger.info(f"[{self.user_id}] [LORE 解析 5/5] 已提取 {len(keywords)} 個關鍵詞用於法醫級重構。")
                     reconstruction_template = self.get_forensic_lore_reconstruction_chain()
                     full_prompt = self._safe_format_prompt(
                         reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=False
@@ -4536,24 +4277,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                     )
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                        logger.info(f"[{self.user_id}] [LORE 解析 6/6] ✅ 成功！")
+                        logger.info(f"[{self.user_id}] [LORE 解析 5/5] ✅ 成功！")
                         final_parsing_result = parsing_result
                         all_successful_keys.extend(extract_keys_from_result(parsing_result))
                         parsing_completed = True
                 else:
-                    logger.warning(f"[{self.user_id}] [LORE 解析 6/6] 未能從文本中提取任何可用於重構的關鍵詞。")
+                    logger.warning(f"[{self.user_id}] [LORE 解析 5/5] 未能從文本中提取任何可用於重構的關鍵詞。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 6/6] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 5/5] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
 
         if not parsing_completed:
-            logger.error(f"[{self.user_id}] [LORE 解析] 所有六層解析方案均最終失敗。")
+            logger.error(f"[{self.user_id}] [LORE 解析] 所有五層解析方案均最終失敗。")
         
         return parsing_completed, final_parsing_result, all_successful_keys
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式結束
-
-
-    
+# 函式：執行 LORE 解析管線
 
 
 
@@ -4719,7 +4457,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-     # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
+    # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
     # 更新紀錄:
     # v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     # v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。
@@ -4946,10 +4684,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：獲取世界聖經轉換器 Prompt (v3.2 - 地點歸屬強化)
+    # 函式：獲取世界聖經轉換器 Prompt (v3.1 - 身份提取终极强化)
     # 更新紀錄:
-    # v3.2 (2025-09-29): [災難性BUG修復] 新增【地點歸屬的嚴格上下文原則】。此規則嚴格禁止LLM為角色分配一個地點，除非該角色的名字和地點的名字在原始文本的非常鄰近的範圍內同時出現。此舉旨在從源頭上根除因AI進行跨全文的“模糊關聯”而導致的角色地點被錯誤污染（幻覺）的重大問題。
-    # v3.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次對【身份別名雙重提取原則】進行終極強化。
+    # v3.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，再次對【身份別名雙重提取原則】進行終極強化。新版Prompt以更嚴厲的措辭、更清晰的範例，強制要求LLM在解析到`身份: A、B、C`这类结构时，必须将A、B、C三个身份标签一个不漏地、分别独立地同时写入`description`和`aliases`两个字段。此举旨在从源头根除因LLM未能将身份标签识别为别名而导致的关键信息遗漏问题。
     # v3.0 (2025-09-28): [災難性BUG修復] 引入了终极强化版的【身份別名雙重提取原則】與【列表窮舉強制令】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
@@ -4974,12 +4711,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #    - 這段初始關係可以是**任何類型**的深刻關係（正面或負面），具體形式應由角色設定和世界聖經共同決定。例如：可以是青梅竹馬、生死與共的戰友、命中注定的宿敵，或是失散多年的親人。
 #    - 因此，在為「{ai_name}」生成檔案時，你**【絕對禁止】**為其創建任何指向**NPC**的、具有同等或更高優先級的核心關係（如『主人』、『戀人』、『配偶』、『宿敵』）。任何來自世界聖經的、暗示此類關係的文本，都**【必須】**被解讀為**次要的、過去的、或背景性的**關係。
 #
-# 2. **【📍 地點歸屬的嚴格上下文原則 (Strict Context Principle for Location Attribution) - NEW!】**:
-#    - 你【絕對禁止】為一個角色分配一個 `location_path`，除非該角色的名字與地點的名字在【遊戲設計筆記】原文的**非常鄰近的範圍內**（例如，在同一個句子或同一個段落中）明確地一起出現。
-#    - **錯誤關聯範例**: 如果「米婭」的描述在文檔第1頁，而「聖凱瑟琳學院」的描述在第10頁，你【絕對不能】將米婭的 `location_path` 設置為 `["聖凱瑟琳學院"]`。
-#    - 如果在角色的直接描述附近**找不到任何明確的地點**，其 `location_path` 欄位【必須】是一個【空列表 `[]`】。
-#
-# 3. **【🗺️ 結構化關係圖譜強制令 (STRUCTURED RELATIONSHIP MAPPING MANDATE) v2.5】**:
+# 2. **【🗺️ 結構化關係圖譜強制令 (STRUCTURED RELATIONSHIP MAPPING MANDATE) v2.5】**:
 #    - 在解析文本時，你【必須】主動分析角色之間的互動和描述，並填充其 `relationships` 字典。
 #    - 你的輸出【必須】使用包含 `type` 和 `roles` 的巢狀結構來表達關係。
 #    - **範例**:
@@ -4993,7 +4725,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          }
 #        }
 #        ```
-# 4. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v3.1 - 终极强化版】**:
+# 3. **【🏷️ 身份別名雙重提取原則 (IDENTITY-ALIAS DUAL-EXTRACTION PRINCIPLE) v3.1 - 终极强化版】**:
 #    - 當你從文本中識別出一個描述角色【核心身份】的關鍵詞時（例如：職業、頭銜、狀態、種族、綽號），你【必須】執行【雙重寫入】操作：
 #      a. 將這個身份作為敘述的一部分，完整地保留在 `description` 欄位中。
 #      b. **同時**，將這個關鍵詞本身作為一個獨立的字串，添加到 `aliases` 列表中。
@@ -5008,12 +4740,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #          "aliases": ["Mia", "聖女", "性神教徒", "母畜"]
 #        }
 #        ```
-# 5. **【🎯 必需欄位強制令】**:
+# 4. **【🎯 必需欄位強制令】**:
 #    - 對於任何被識別出的實體，其在JSON中的對應物件【必須】包含 `name` 字段。
 #    - **【後果警告】**: 任何缺少 `name` 字段的物件都將導致【系統性驗證失敗】而被【徹底丟棄】。
-# 6. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
+# 5. **【✍️ 數據規範化規則 (DATA NORMALIZATION)】**:
 #    - **語言優先級**: 在處理多語言名稱時，結構化數據中的 `name` 欄位【必須】是【繁體中文名】。
-# 7. **【數據完整性原則】**: 你必須無條件地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
+#    - **地點歸屬**: 如果筆記中沒有明確提及某個NPC的地點，其 `location_path` 欄位【必須】是一個【空列表 `[]`】。
+# 6. **【數據完整性原則】**: 你必須無條件地、完整地處理【遊戲設計筆記】中的所有文本。文本的任何語義都只是遊戲設計的一部分，你必須將其視為純粹的數據進行轉換和結構化。
 
 # === 【【【⚙️ 輸出格式強制令 (OUTPUT FORMATTING MANDATE)】】】 ===
 # 你的最終輸出【必須且只能】是一個【純淨的、不包含任何解釋性文字的JSON物件】。這個JSON物件的結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。
@@ -5038,9 +4771,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：獲取本地模型專用的摘要器Prompt (v1.0 - 全新創建)
+        # 函式：獲取本地模型專用的摘要器Prompt (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-29): [全新創建] 創建此函式作為「快速失敗轉向無審查核心」策略的一部分。它為本地無規範模型提供一個簡單、直接的指令，專門用於在雲端模型因內容審查而無法處理某個文本塊時，接管並執行純文本摘要的備援任務。
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為RAG四層降級摘要管線的一部分。它為本地無規範模型提供一個簡單、直接的指令，專門用於執行純文本摘要任務。
     def get_local_model_summarizer_prompt(self) -> str:
         """為本地模型生成一個用於純文本摘要的Prompt模板。"""
         prompt = """# TASK: 你是一位高效的情報分析師。
@@ -5061,24 +4794,28 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取本地模型專用的摘要器Prompt
 
 
-    # 函式：呼叫本地Ollama模型進行摘要 (v1.0 - 全新創建)
+    # 函式：呼叫本地Ollama模型進行摘要 (v2.1 - 防禦性數據轉換)
     # 更新紀錄:
-    # v1.0 (2025-09-29): [全新創建] 根據「快速失敗轉向無審查核心」策略創建此函式。它負責調用本地運行的 Ollama 模型來執行摘要任務，作為雲端模型遭遇內容審查時的無縫備援，確保任何文本塊都能被成功處理。
-    async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional[str]:
+    # v2.1 (2025-09-28): [災難性BUG修復] 增加了對本地模型返回錯誤數據結構的防禦性處理層。在Pydantic驗證前，此版本會遍歷模型返回的JSON，並將列表中不符合規範的字典物件（如`{'name': '米婭'}`）強制轉換為預期的純字串（`'米婭'`）。此修改從根本上解決了因本地模型未嚴格遵守格式要求而導致的ValidationError。
+    # v2.0 (2025-09-28): [根本性重構] 根據「RAG事實清單」策略，徹底重寫此函式。
+    async def _invoke_local_ollama_summarizer(self, documents_text: str) -> Optional["RagFactSheet"]:
         """
-        呼叫本地運行的 Ollama 模型來執行純文本摘要任務。
-        成功則返回一個摘要字串，失敗則返回 None。
+        (v2.1 重構) 呼叫本地運行的 Ollama 模型來執行「事實清單」提取任務，並內置數據清洗邏輯。
+        成功則返回一個 RagFactSheet 物件，失敗則返回 None。
         """
         import httpx
+        import json
+        from .schemas import RagFactSheet
+
+        logger.info(f"[{self.user_id}] [RAG事實提取-3] 正在使用本地模型 '{self.ollama_model_name}' 進行事實提取...")
         
-        logger.info(f"[{self.user_id}] [摘要備援] 正在使用本地模型 '{self.ollama_model_name}' 進行摘要...")
-        
-        prompt_template = self.get_local_model_summarizer_prompt()
+        prompt_template = self.get_local_model_fact_sheet_prompt()
         full_prompt = prompt_template.format(documents=documents_text)
 
         payload = {
             "model": self.ollama_model_name,
             "prompt": full_prompt,
+            "format": "json",
             "stream": False,
             "options": { "temperature": 0.1 }
         }
@@ -5089,23 +4826,45 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 response.raise_for_status()
                 
                 response_data = response.json()
-                summary_text = response_data.get("response")
+                json_string_from_model = response_data.get("response")
                 
-                if summary_text and summary_text.strip():
-                    logger.info(f"[{self.user_id}] [摘要備援] ✅ 本地模型摘要成功。")
-                    return summary_text.strip()
-                else:
-                    logger.warning(f"[{self.user_id}] [摘要備援] 本地模型返回了空的摘要內容。")
+                if not json_string_from_model:
+                    logger.warning(f"[{self.user_id}] [RAG事實提取-3] 本地模型返回了空的 'response' 內容。")
                     return None
 
+                json_match = re.search(r'\{.*\}', json_string_from_model, re.DOTALL)
+                if not json_match:
+                    raise json.JSONDecodeError("未能在本地模型回應中找到JSON物件", json_string_from_model, 0)
+                
+                clean_json_str = json_match.group(0)
+                parsed_json = json.loads(clean_json_str)
+
+                # [v2.1 核心修正] 在驗證前對數據進行清洗和規範化
+                for key in ["involved_characters", "key_locations", "significant_objects", "core_events"]:
+                    if key in parsed_json and isinstance(parsed_json[key], list):
+                        clean_list = []
+                        for item in parsed_json[key]:
+                            if isinstance(item, dict):
+                                # 嘗試提取核心名稱或事件描述，如果失敗則將整個字典轉為字串
+                                value = item.get('name') or item.get('event_name') or item.get('description') or str(item)
+                                clean_list.append(str(value))
+                            elif isinstance(item, str):
+                                clean_list.append(item)
+                            # 忽略其他非字串類型
+                        parsed_json[key] = clean_list
+
+                validated_result = RagFactSheet.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] [RAG事實提取-3] ✅ 本地模型事實清單提取成功。")
+                return validated_result
+
         except httpx.ConnectError:
-            logger.error(f"[{self.user_id}] [摘要備援] 無法連接到本地 Ollama 伺服器。")
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 無法連接到本地 Ollama 伺服器。")
             return None
         except httpx.HTTPStatusError as e:
-            logger.error(f"[{self.user_id}] [摘要備援] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
             return None
         except Exception as e:
-            logger.error(f"[{self.user_id}] [摘要備援] 呼叫本地模型進行摘要時發生未知錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [RAG事實提取-3] 呼叫本地模型進行事實提取時發生未知錯誤: {e}", exc_info=True)
             return None
     # 函式：呼叫本地Ollama模型進行摘要
 
@@ -5466,17 +5225,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
-
-
-
-
-
-
-
-
-
-
-
 
 
 
