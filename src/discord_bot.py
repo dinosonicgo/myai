@@ -1282,11 +1282,11 @@ class BotCog(commands.Cog):
     
     
     
-    # 函式：执行完整的后台创世流程 (v1.2 - 屬性引用修正)
+    # 函式：执行完整的后台创世流程 (v1.3 - 變數引用修正)
     # 更新紀錄:
-    # v1.2 (2025-09-29): [災難性BUG修復] 修正了`finally`塊中對`active_setups`的錯誤引用。將`self.cog.active_setups`更正為`self.active_setups`，解決了導致後台任務崩潰的`AttributeError`。
+    # v1.3 (2025-09-29): [災難性BUG修復] 修正了函式內部日誌記錄時對使用者ID的錯誤引用。將所有`self.user_id`更正為局部變數`user_id`，解決了導致後台任務在步驟3/4崩潰的`AttributeError`。
+    # v1.2 (2025-09-29): [災難性BUG修復] 修正了`finally`塊中對`active_setups`的錯誤引用。
     # v1.1 (2025-09-29): [災難性BUG修復] 為整個函式包裹了`try...finally`塊，確保狀態鎖在任務結束時一定會被釋放。
-    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
         """一个独立的背景任务，负责执行从LORE解析到发送开场白的完整创世流程。"""
         user_id = str(user.id)
@@ -1312,13 +1312,16 @@ class BotCog(commands.Cog):
             await ai_instance.complete_character_profiles()
             
             # --- 步骤 3: 生成世界创世资讯 ---
-            logger.info(f"[{self.user_id}] [后台创世 3/4] 正在生成世界创世资讯...")
+            # [v1.3 核心修正] 使用局部變數 user_id
+            logger.info(f"[{user_id}] [后台创世 3/4] 正在生成世界创世资讯...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
             
             # --- 步骤 4: 生成开场白 ---
-            logger.info(f"[{self.user_id}] [后台创世 4/4] 正在生成开场白...")
+            # [v1.3 核心修正] 使用局部變數 user_id
+            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{self.user_id}] [后台创世 4/4] 开场白生成完毕。")
+            # [v1.3 核心修正] 使用局部變數 user_id
+            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
 
             # --- 最终步骤: 发送开场白 ---
             scene_key = ai_instance._get_scene_key()
@@ -1338,10 +1341,10 @@ class BotCog(commands.Cog):
             except discord.errors.HTTPException as send_e:
                  logger.error(f"[{user_id}] 无法向使用者发送最终的错误讯息: {send_e}")
         finally:
-            # [v1.2 核心修正] 使用 self.active_setups 而不是 self.cog.active_setups
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 后台创世流程结束，状态锁已释放。")
     # 函式：执行完整的后台创世流程
+
 
 
 
@@ -2127,6 +2130,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
