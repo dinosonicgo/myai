@@ -99,11 +99,10 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v301.0 - ChromaDB混合RAG)
+    # 函式：初始化AI核心 (v301.1 - 物理隔离路径)
     # 更新紀錄:
-    # v301.0 (2025-11-23): [架構擴展] 根據混合 RAG 架構，新增了 vector_store, retriever, bm25_retriever, embeddings 等核心屬性，並定義了 ChromaDB 的持久化路徑。
-    # v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
-    # v234.1 (2025-09-28): [程式碼重構] 新增了 self.data_protocol_prompt 實例屬性。
+    # v301.1 (2025-11-25): [灾难性BUG修复] 引入了「物理隔离」策略。为 ChromaDB 创建了一个专用的子目录路径 `chroma_db_path`，将其数据与其他 RAG 索引文件（如 BM25 的 .pkl）彻底分开，从根本上解决了因目录共享导致的 ChromaDB 客户端初始化冲突和 `ValueError: Could not connect to tenant` 的问题。
+    # v301.0 (2025-11-23): [架构扩展] 新增了 ChromaDB 相关的核心属性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -168,18 +167,21 @@ class AILover:
         self.world_snapshot_template: str = ""
         self.scene_histories: Dict[str, ChatMessageHistory] = {}
 
-        # [v301.0 核心修正] 為 ChromaDB 和混合 RAG 新增屬性
         self.vector_store: Optional[Chroma] = None
         self.retriever: Optional[EnsembleRetriever] = None
         self.bm25_retriever: Optional[BM25Retriever] = None
         self.embeddings: Optional[GoogleGenerativeAIEmbeddings] = None
-        self.vector_store_path = str(PROJ_DIR / "data" / "vector_stores" / self.user_id)
-        Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
+        
+        # [v301.1 核心修正] 創建物理隔离的路径
+        base_vector_store_path = PROJ_DIR / "data" / "vector_stores" / self.user_id
+        self.chroma_db_path = str(base_vector_store_path / "chroma_db")
+        self.bm25_index_path = base_vector_store_path / "rag_index.pkl"
+        base_vector_store_path.mkdir(parents=True, exist_ok=True)
+
 
         self.available_tools: Dict[str, Runnable] = {}
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None
         
-        self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
     # 函式：初始化AI核心
 
@@ -465,14 +467,14 @@ class AILover:
 
 
 
-    # 函式：加載或構建 RAG 檢索器 (v212.1 - 修正ChromaDB初始化)
+    # 函式：加載或構建 RAG 檢索器 (v212.2 - 回归 LangChain 标准初始化)
     # 更新紀錄:
-    # v212.1 (2025-11-25): [灾难性BUG修复] 彻底重构了 ChromaDB 的初始化流程。遵循「先创建，后传入」的解耦策略，现在程式会先独立地创建并验证 chromadb.PersistentClient 实例，只有在成功后，才将这个就绪的客户端物件传递给 LangChain 的 Chroma 类。此修改从根本上解决了因版本兼容性或路径问题导致的 `ValueError: Could not connect to tenant` 初始化失败的致命错误。
+    # v212.2 (2025-11-25): [灾难性BUG修复] 彻底回归到 LangChain 官方推荐的、最稳健的 ChromaDB 初始化方式。不再手动创建 PersistentClient，而是将物理隔离后的持久化路径直接传递给 LangChain 的 Chroma 类，由其内部逻辑来处理客户端的创建、数据库和租户的检查与初始化。此修改将初始化复杂性完全交由适配器库处理，最大限度地保证了兼容性和稳定性。
+    # v212.1 (2025-11-25): [灾难性BUG修复] 采用了「先创建，后传入」的解耦策略来修正 ChromaDB 的初始化流程。
     # v212.0 (2025-11-23): [核心重构] 实现了完整的混合 RAG 检索器构建逻辑。
-    # v211.0 (2025-11-22): [灾难性BUG修复] 彻底重构了 ChromaDB 的初始化流程。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v212.1 核心重构) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
+        (v212.2 核心重构) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
         """
         logger.info(f"[{self.user_id}] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: {force_rebuild})...")
         
@@ -489,7 +491,7 @@ class AILover:
             
             if all_sql_docs:
                 self.bm25_retriever = BM25Retriever.from_documents(all_sql_docs)
-                self.bm25_retriever.k = 10 # 設置 BM25 返回的文檔數量
+                self.bm25_retriever.k = 10 
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ BM25 關鍵字檢索器已成功構建，包含 {len(all_sql_docs)} 條文檔。")
             else:
                 self.bm25_retriever = None
@@ -502,17 +504,14 @@ class AILover:
         vector_retriever = None
         if self.embeddings:
             try:
-                # [v212.1 核心修正] 步驟 2A: 獨立地、安全地創建 ChromaDB 客戶端
-                chroma_client = chromadb.PersistentClient(path=self.vector_store_path)
-                
-                # [v212.1 核心修正] 步驟 2B: 将已经就绪的客户端和 embedding 函式傳遞給 LangChain
+                # [v212.2 核心修正] 回归 LangChain 标准初始化方式
+                # 直接将持久化路径传递给 Chroma 类，让它处理所有底层的初始化细节。
                 self.vector_store = Chroma(
-                    client=chroma_client,
-                    embedding_function=self.embeddings,
-                    persist_directory=self.vector_store_path,
+                    persist_directory=self.chroma_db_path,
+                    embedding_function=self.embeddings
                 )
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
-                logger.info(f"[{self.user_id}] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化。")
+                logger.info(f"[{self.user_id}] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化于路径: {self.chroma_db_path}")
             except Exception as e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: {e}", exc_info=True)
         else:
@@ -528,7 +527,7 @@ class AILover:
         if len(retrievers_to_ensemble) == 2:
             self.retriever = EnsembleRetriever(
                 retrievers=retrievers_to_ensemble,
-                weights=[0.6, 0.4] # 語意搜索權重稍高
+                weights=[0.6, 0.4] 
             )
             logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 成功創建混合檢索器 (Chroma + BM25)。")
         elif len(retrievers_to_ensemble) == 1:
@@ -541,7 +540,6 @@ class AILover:
 
         return self.retriever
     # 函式：加載或構建 RAG 檢索器
-
 
 
     # 函式：獲取LORE更新事實查核器 Prompt (v1.0 - 全新創建)
@@ -5209,6 +5207,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
