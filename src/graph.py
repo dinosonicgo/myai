@@ -27,10 +27,9 @@ from langchain_core.output_parsers import StrOutputParser
 
 # --- [v32.0 新架构] 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# graph.py 的 perceive_scene_node 函式 (v3.0 - 讀取持久化快照)
+# 函式：[新] 场景感知与上下文恢复节点
 # 更新紀錄:
-# v3.0 (2025-11-24): [健壯性強化] 根據上下文快照持久化策略，增加了在處理「繼續」指令時，如果記憶體快照丟失，則嘗試從資料庫中讀取持久化快照的備援邏輯。此修改確保了即使在程式重啟後，連續性指令依然能夠無縫銜接劇情。
-# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略。
+# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略，以解決在連續性指令（如“继续”）下，場景視角被錯誤重置的問題。同時整合了上下文快照的恢復邏輯。
 # v1.0 (2025-10-05): [重大架構重構] 根據 v7.0 藍圖創建此節點。
 async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     """[1] (入口) 分析用户输入，處理連續性指令，恢復上下文快照，並保持場景視角的連貫性。"""
@@ -48,8 +47,9 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     # --- 步驟 1: 處理連續性指令與上下文恢復 ---
     continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
     if any(user_input.lower().startswith(kw) for kw in continuation_keywords):
-        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態並嘗試恢復上下文快照。")
+        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態並恢復上下文快照。")
         
+        # 繼承上一輪的視角狀態
         scene_analysis = SceneAnalysisResult(
             viewing_mode=gs.viewing_mode,
             reasoning="繼承上一輪的場景狀態。",
@@ -57,55 +57,61 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
             action_summary=user_input
         )
         
-        # [v3.0 核心修正] 優先從記憶體恢復，失敗則從資料庫恢復
+        # 嘗試從快照恢復上下文
         if ai_core.last_context_snapshot:
-            logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功從【記憶體】恢復上一輪的上下文快照。")
-            return { "scene_analysis": scene_analysis, **ai_core.last_context_snapshot }
+            logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功恢復上一輪的上下文快照。")
+            return {
+                "scene_analysis": scene_analysis,
+                "raw_lore_objects": ai_core.last_context_snapshot.get("raw_lore_objects", []),
+                "last_response_text": ai_core.last_context_snapshot.get("last_response_text", None)
+            }
         else:
-            logger.warning(f"[{user_id}] (Graph|1) [上下文恢復] 未在記憶體中找到快照，正在嘗試從【資料庫】讀取...")
-            async with AsyncSessionLocal() as session:
-                user_data = await session.get(UserData, user_id)
-                if user_data and user_data.context_snapshot_json:
-                    logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功從【資料庫】恢復持久化的上下文快照。")
-                    # 將從資料庫讀取的快照加載到當前 AI 實例的記憶體中，以供後續節點使用
-                    ai_core.last_context_snapshot = user_data.context_snapshot_json
-                    return { "scene_analysis": scene_analysis, **user_data.context_snapshot_json }
-                else:
-                    logger.error(f"[{user_id}] (Graph|1) [上下文恢復] 災難性失敗：記憶體和資料庫中均未找到任何上下文快照，無法完美銜接劇情。")
-                    return {"scene_analysis": scene_analysis}
+            logger.warning(f"[{user_id}] (Graph|1) [上下文恢復] 未找到上一輪的上下文快照，將重新查詢 LORE。")
+            return {"scene_analysis": scene_analysis}
 
     # --- 步驟 2: 處理常規指令的視角更新 ---
-    # (此部分邏輯不變，保持原樣)
     new_viewing_mode = 'local'
     new_target_path = None
+
+    # 使用 LLM 進行智能推斷
     try:
         location_chain = ai_core.get_contextual_location_chain()
+        # 為了節省 Token，這裡可以傳入一個空的上下文
         location_result = await ai_core.ainvoke_with_rotation(
             location_chain, 
             {"user_input": user_input, "world_settings": ai_core.profile.world_settings or "未设定", "scene_context_json": "[]"},
             retry_strategy='euphemize'
         )
         if location_result and location_result.location_path:
+            logger.info(f"[{user_id}] (Graph|1) LLM 感知成功。推斷出的目標地點: {location_result.location_path}")
             new_target_path = location_result.location_path
             new_viewing_mode = 'remote'
     except Exception as e:
         logger.warning(f"[{user_id}] (Graph|1) 地點推斷鏈失敗: {e}，將回退到基本邏輯。")
 
+    # --- 步驟 3: 應用「遠程優先」的狀態保持邏輯 ---
     final_viewing_mode = gs.viewing_mode
     final_target_path = gs.remote_target_path
+
     if gs.viewing_mode == 'remote':
         is_explicit_local_move = any(user_input.startswith(kw) for kw in ["去", "前往", "移動到", "旅行到"])
         is_direct_ai_interaction = ai_core.profile.ai_profile.name in user_input
         if is_explicit_local_move or is_direct_ai_interaction:
             final_viewing_mode = 'local'
             final_target_path = None
+            logger.info(f"[{user_id}] (Graph|1) 檢測到明確的本地指令，導演視角從 'remote' 切換回 'local'。")
         elif new_viewing_mode == 'remote' and new_target_path and new_target_path != gs.remote_target_path:
             final_target_path = new_target_path
-    else:
+            logger.info(f"[{user_id}] (Graph|1) 在遠程模式下，更新了觀察目標地點為: {final_target_path}")
+        else:
+            logger.info(f"[{user_id}] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。")
+    else: # gs.viewing_mode == 'local'
         if new_viewing_mode == 'remote' and new_target_path:
             final_viewing_mode = 'remote'
             final_target_path = new_target_path
-    
+            logger.info(f"[{user_id}] (Graph|1) 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {final_target_path}")
+
+    # 更新並持久化遊戲狀態
     if gs.viewing_mode != final_viewing_mode or gs.remote_target_path != final_target_path:
         gs.viewing_mode = final_viewing_mode
         gs.remote_target_path = final_target_path
@@ -117,13 +123,8 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
         target_location_path=gs.remote_target_path,
         action_summary=user_input
     )
-    # 清空上一輪的記憶體快照，為本輪生成新的快照做準備
-    ai_core.last_context_snapshot = None
     return {"scene_analysis": scene_analysis}
 # 函式：[新] 场景感知与上下文恢复节点
-
-
-
 
 # 函式：[新] 記憶與 LORE 查詢節點
 # 更新紀錄:
@@ -394,54 +395,43 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     return {"llm_response": final_response}
 # 函式：[新] 最终生成节点
 
-# graph.py 的 validate_and_persist_node 函式 (v3.0 - 儲存持久化快照)
+# 函式：驗證、學習與持久化節點
 # 更新紀錄:
-# v3.0 (2025-11-24): [健壯性強化] 根據上下文快照持久化策略，增加了在對話結束時，將新生成的上下文快照異步寫入後端資料庫的核心邏輯。此修改確保了「繼續」指令的上下文即使在程式重啟後也能被成功恢復，極大地提升了系統的穩定性和用戶體驗。
 # v2.8 (2025-10-15): [健壯性] 在此節點的末尾，創建並儲存上下文快照。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
-    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並創建和持久化上下文快照。"""
+    """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪創建上下文快照。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     llm_response_raw = state['llm_response']
     logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
 
-    clean_response = str(llm_response_raw).strip()
+    if hasattr(llm_response_raw, 'content'):
+        llm_response = llm_response_raw.content
+    else:
+        llm_response = str(llm_response_raw)
+        logger.warning(f"[{user_id}] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。")
+
+    clean_response = llm_response.strip()
     
-    # 創建上下文快照
+    asyncio.create_task(ai_core._background_lore_extraction(user_input, clean_response))
+
+    if clean_response and "抱歉" not in clean_response:
+        chat_history_manager = ai_core.session_histories.setdefault(user_id, ChatMessageHistory())
+        chat_history_manager.add_user_message(user_input)
+        chat_history_manager.add_ai_message(clean_response)
+        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
+        asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
+        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
+
     context_snapshot = {
         "raw_lore_objects": state.get("raw_lore_objects", []),
         "last_response_text": clean_response
     }
     ai_core.last_context_snapshot = context_snapshot
-    logger.info(f"[{user_id}] (Graph|7) 已為下一輪在【記憶體】中創建上下文快照。")
+    logger.info(f"[{user_id}] (Graph|7) 已為下一輪創建上下文快照。")
 
-    # [v3.0 核心修正] 異步任務：將所有需要持久化的數據一次性寫入資料庫
-    async def persist_all_data():
-        try:
-            # 任務 A: 儲存對話歷史到長期記憶
-            if clean_response and "抱歉" not in clean_response:
-                last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-                await ai_core._save_interaction_to_dbs(last_interaction_text)
-                logger.info(f"[{user_id}] (Graph|7|Async) 對話歷史已成功保存到 DB。")
-
-            # 任務 B: 儲存上下文快照到 UserData 表
-            from sqlalchemy import update
-            async with AsyncSessionLocal() as session:
-                stmt = update(UserData).where(UserData.user_id == user_id).values(context_snapshot_json=context_snapshot)
-                await session.execute(stmt)
-                await session.commit()
-                logger.info(f"[{user_id}] (Graph|7|Async) 上下文快照已成功【持久化】到資料庫。")
-                
-            # 任務 C: 啟動背景 LORE 提取 (它內部會處理自己的異步邏輯)
-            await ai_core._background_lore_extraction(user_input, clean_response)
-
-        except Exception as e:
-            logger.error(f"[{user_id}] (Graph|7|Async) 在後台持久化數據時發生錯誤: {e}", exc_info=True)
-
-    asyncio.create_task(persist_all_data())
-    
-    logger.info(f"[{user_id}] (Graph|7) 狀態持久化與背景學習任務已全部提交。")
+    logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     
     return {"final_output": clean_response}
 # 函式：驗證、學習與持久化節點
@@ -631,5 +621,3 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     return graph.compile()
 # 函式：創建設定圖
-
-

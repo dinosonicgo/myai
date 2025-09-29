@@ -1282,72 +1282,62 @@ class BotCog(commands.Cog):
     def cog_unload(self):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
-
-    
-    
-    
-    
-    
-    # 函式：執行完整的後台創世流程 (v2.0 - 修正開場白上下文斷裂)
+    # 函式：执行完整的后台创世流程
     # 更新紀錄:
-    # v2.0 (2025-11-24): [災難性BUG修復] 在生成開場白後，增加了將其作為 AIMessage 立即存入場景歷史的核心步驟。此修改從根本上解決了 AI 在使用者第一次回覆時「忘記」自己說過的開場白，從而導致對話上下文斷裂的嚴重問題。
-    # v1.0 (2025-09-25): [全新創建] 這是一個專用的、獨立的背景任務，用於執行完整的/start創世流程。
+    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。它确保了所有步骤都同步执行，并在完成后直接向用户发送开场白，解决了流程中断和 interaction 过期的问题。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
+        """一个独立的背景任务，负责执行从LORE解析到发送开场白的完整创世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
+            logger.info(f"[{user_id}] 独立的后台创世流程已为用户启动。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
-                logger.error(f"[{user_id}] 在後台創世流程中，AI核心初始化失敗。")
-                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+                logger.error(f"[{user_id}] 在后台创世流程中，AI核心初始化失败。")
+                await user.send("❌ 错误：无法初始化您的 AI 核心以进行创世。")
                 return
 
-            # --- 步驟 1: 世界聖經處理 (如果提供) ---
+            # --- 步骤 1: 世界圣经处理 (如果提供) ---
             if canon_text:
-                logger.info(f"[{user_id}] [後台創世 1/4] 正在處理世界聖經...")
+                logger.info(f"[{user_id}] [后台创世 1/4] 正在处理世界圣经...")
                 await ai_instance.add_canon_to_vector_store(canon_text)
-                logger.info(f"[{user_id}] [後台創世 1/4] 正在進行 LORE 智能解析...")
+                logger.info(f"[{user_id}] [后台创世 1/4] 正在进行 LORE 智能解析...")
                 await ai_instance.parse_and_create_lore_from_canon(canon_text)
-                logger.info(f"[{user_id}] [後台創世 1/4] LORE 智能解析已同步完成。")
+                logger.info(f"[{user_id}] [后台创世 1/4] LORE 智能解析已同步完成。")
             
-            # --- 步驟 2: 補完角色檔案 ---
-            logger.info(f"[{user_id}] [後台創世 2/4] 正在補完角色檔案...")
+            # --- 步骤 2: 补完角色档案 ---
+            logger.info(f"[{user_id}] [后台创世 2/4] 正在补完角色档案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步驟 3: 生成世界創世資訊 ---
-            logger.info(f"[{user_id}] [後台創世 3/4] 正在生成世界創世資訊...")
+            # --- 步骤 3: 生成世界创世资讯 ---
+            logger.info(f"[{user_id}] [后台创世 3/4] 正在生成世界创世资讯...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
             
-            # --- 步驟 4: 生成開場白 ---
-            logger.info(f"[{user_id}] [後台創世 4/4] 正在生成開場白...")
+            # --- 步骤 4: 生成开场白 ---
+            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [後台創世 4/4] 開場白生成完畢。")
+            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
 
-            # --- [v2.0 核心修正] 最終步驟 A: 將開場白存入短期記憶 ---
-            # 這是解決上下文斷裂的關鍵一步，確保 AI 記得自己的開場白。
+            # --- 最终步骤: 发送开场白并清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
-            logger.info(f"[{user_id}] [後台創世] 開場白已成功存入場景 '{scene_key}' 的歷史記錄並持久化。")
             
-            # --- 最終步驟 B: 發送開場白並清理 ---
-            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
+            logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
             for i in range(0, len(opening_scene), 2000):
                 await user.send(opening_scene[i:i+2000])
-            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
+            logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 后台创世流程发生严重错误: {e}", exc_info=True)
             try:
-                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
+                await user.send(f"❌ **创世失败**：在后台执行时发生了未预期的严重错误: `{e}`")
             except discord.errors.HTTPException as send_e:
-                 logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
+                 logger.error(f"[{user_id}] 无法向使用者发送最终的错误讯息: {send_e}")
         finally:
-            # 無論成功或失敗，都從活動設置中移除使用者，允許他們重新開始
+            # 无论成功或失败，都从活动设置中移除使用者，允许他们重新开始
             self.active_setups.discard(user_id)
-            logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-    # 函式：執行完整的後台創世流程
+            logger.info(f"[{user_id}] 后台创世流程结束，状态锁已释放。")
+    # 函式：执行完整的后台创世流程
 
 
     
@@ -1699,45 +1689,39 @@ class BotCog(commands.Cog):
 
     
     
-    # 函式：开始 /start 指令的重置流程 (v52.0 - 健壮删除)
-    # 更新纪录:
-    # v52.0 (2025-11-25): [灾难性BUG修复] 彻底重构了此函式的资源清理逻辑。在删除向量存储目录前，增加了对 `ai_instance.shutdown()` 的显式调用和强制的延时等待。此修改旨在确保 ChromaDB 的后台服务有足够的时间释放对数据库文件的锁定，从而从根本上解决了因文件句柄被占用而导致的 `PermissionError: [WinError 32]` 致命错误。
-    # v51.3 (2025-09-25): [灾难性BUG修复] 将所有对 `self.setup_locks` 的引用更新为 `self.active_setups`。
-    # v51.2 (2025-11-22): [灾难性BUG修复] 修正了因缺少对 SceneHistoryData 模型的导入而导致的 NameError。
+    # 函式：開始 /start 指令的重置流程 (v52.3 - 變數重命名修正)
+    # 更新紀錄:
+    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`，以匹配 `__init__` 中的重構，解決 AttributeError。
+    # v52.2 (2025-11-22): [災難性BUG修復] 修正了因缺少對 SceneHistoryData 模型的導入而導致的 NameError。
+    # v52.1 (2025-11-22): [災難性BUG修復] 修正了獲取使用者 ID 的方式。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            # 步骤 1: 优雅地关闭并移除内存中的 AI 实例
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance:
+                logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
+            
             if user_id in self.ai_instances:
-                logger.info(f"[{user_id}] 正在关闭活跃的 AI 实例...")
-                # [v52.0 核心修正] 显式调用 shutdown，请求释放文件句柄
                 await self.ai_instances.pop(user_id).shutdown()
-                # 强制进行垃圾回收
                 gc.collect()
-                # [v52.0 核心修正] 给予一个短暂但关键的延时，等待后台进程完全关闭
                 await asyncio.sleep(1.5)
-                logger.info(f"[{user_id}] 活跃的 AI 实例已关闭并移除。")
 
-            # 步骤 2: 清理数据库中的所有用户数据
+            if ai_instance:
+                await ai_instance._clear_scene_histories()
+
             async with AsyncSessionLocal() as session:
-                logger.info(f"[{user_id}] 正在从数据库删除所有相关数据...")
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
-                logger.info(f"[{user_id}] 数据库清理完成。")
             
-            # 步骤 3: 物理删除向量存储目录
-            vector_store_path = PROJ_DIR / "data" / "vector_stores" / user_id
+            vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
-                logger.info(f"[{user_id}] 正在物理删除向量存储目录: {vector_store_path}")
-                await asyncio.to_thread(shutil.rmtree, vector_store_path, ignore_errors=True)
-                logger.info(f"[{user_id}] 向量存储目录删除完成。")
+                await asyncio.to_thread(shutil.rmtree, vector_store_path)
             
-            # 步骤 4: 发送成功消息并显示新的设置流程
             view = StartSetupView(cog=self)
             await interaction.followup.send(
                 content="✅ 重置完成！請點擊下方按鈕開始全新的設定流程。", 
@@ -1746,7 +1730,6 @@ class BotCog(commands.Cog):
             )
         except Exception as e:
             logger.error(f"[{user_id}] 後台重置任務失敗: {e}", exc_info=True)
-            # 确保即使失败也能给用户一个反馈
             if not interaction.response.is_done():
                 try:
                     await interaction.response.send_message(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
@@ -1755,8 +1738,9 @@ class BotCog(commands.Cog):
             else:
                 await interaction.followup.send(f"執行重置時發生未知的嚴重錯誤: {e}", ephemeral=True)
         finally:
+            # [核心修正] 使用新的變數名稱
             self.active_setups.discard(user_id)
-    # 开始 /start 指令的重置流程 函式结束
+    # 開始 /start 指令的重置流程 函式結束
 
 
     
@@ -2136,8 +2120,6 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
-
-
 
 
 
