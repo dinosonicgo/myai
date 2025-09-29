@@ -4007,11 +4007,11 @@ class ExtractionResult(BaseModel):
 
     
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.2 - 異步修正)
-# 更新紀錄:
-# v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
-# v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
-# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
+    # 函式：解析並從世界聖經創建LORE (v13.2 - 異步修正)
+    # 更新紀錄:
+    # v13.2 (2025-09-28): [災難性BUG修復] 在呼叫 `_programmatic_lore_validator` 的地方增加了 `await` 關鍵字，以適應其 v2.1 版本變更為異步函式，解決 `SyntaxError` 的連鎖問題。
+    # v13.1 (2025-11-22): [災難性BUG修復] 修正了因變數名稱不匹配而導致的致命 NameError。
+    # v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -4120,7 +4120,7 @@ class ExtractionResult(BaseModel):
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
             await self._load_or_build_rag_retriever(force_rebuild=True)
-# 函式：解析並從世界聖經創建LORE
+    # 函式：解析並從世界聖經創建LORE
 
 
 
@@ -5466,6 +5466,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
