@@ -3722,21 +3722,21 @@ class ExtractionResult(BaseModel):
     
 
 
-    # 函式：程式化LORE校驗器 (v5.0 - 引入身份自識別)
+    # 函式：程式化LORE校驗器 (v5.1 - 分批處理修正)
     # 更新紀錄:
-    # v5.0 (2025-09-29): [災難性BUG修復] 引入終極的【身份自識別】驗證步驟。在原有的地點驗證和別名審計之間，新增了一個核心環節：調用全新的`get_identity_recognition_chain`，讓AI重新審視自己生成的`description`文本，並從中反向提取所有可能的身份標籤。然後將這些新發現的標籤與已有的`aliases`合併。此舉旨在解決AI因“認知偏見”而無法將描述性文本（如“性神教徒”）泛化識別為獨立身份標籤的根本性問題。
-    # v4.0 (2025-09-29): [災難性BUG修復] 徹底重構此函式，將其升級為【混合式事實交叉驗證器】。
-    # v3.1 (2025-09-28): [災難性BUG修復] 在內部Pydantic模型 `AliasValidation` 的 `final_aliases` 欄位中增加了 `AliasChoices`。
+    # v5.1 (2025-09-29): [災難性BUG修復] 徹底重構了此函式的執行邏輯，將原本一次性並發處理所有NPC的`asyncio.gather`模式，改為【帶速率控制的分批處理】模式。現在，函式會將大量NPC分成熟個小批次（例如每批10個），串行處理每一批，並在批次間加入短暫延遲。此舉旨在解決因瞬時並發過多API請求而導致的`ResourceExhausted`（API速率超限）錯誤。
+    # v5.0 (2025-09-29): [災難性BUG修復] 引入終極的【身份自識別】驗證步驟。
+    # v4.0 (2025-09-29): [災難性BUG修復] 將此函式升級為【混合式事實交叉驗證器】。
     async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
         """
-        【v5.0 混合式事實交叉驗證 + 身份自識別】一個終極的、抗審查的程式化校驗器。
+        【v5.1 分批處理】一個終極的、抗審查的程式化校驗器。
         """
         if not parsing_result.npc_profiles:
             return parsing_result
 
         from .schemas import BaseModel, AliasChoices, Field # 延遲導入
 
-        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.0] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
+        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.1] 正在啟動，對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
 
         # --- 輔助函式：程式化的地點上下文驗證器 ---
         def _verify_location_context(character_name: str, location_path: List[str], full_text: str, window_size: int = 500) -> bool:
@@ -3751,7 +3751,7 @@ class ExtractionResult(BaseModel):
                     return True
             return False
 
-        # --- 步驟 1: 程式化的地點幻覺修正 ---
+        # --- 步驟 1: 程式化的地點幻覺修正 (同步執行，無API調用) ---
         for profile in parsing_result.npc_profiles:
             if profile.location_path:
                 is_valid_location = _verify_location_context(profile.name, profile.location_path, canon_text)
@@ -3759,70 +3759,70 @@ class ExtractionResult(BaseModel):
                     logger.warning(f"[{self.user_id}] [驗證器-地點] 檢測到角色 '{profile.name}' 的地點 '{' > '.join(profile.location_path)}' 為幻覺，已強制移除。")
                     profile.location_path = []
 
-        # --- [v5.0 新增] 步驟 2: AI 身份自識別與補全 ---
-        logger.info(f"[{self.user_id}] [驗證器-身份] 正在啟動 AI 身份自識別與補全...")
-        identity_prompt_template = self.get_identity_recognition_chain()
-        
-        class IdentityResult(BaseModel):
-            identities: List[str]
-
-        recognition_tasks = []
-        for profile in parsing_result.npc_profiles:
-            if profile.description:
-                prompt = self._safe_format_prompt(identity_prompt_template, {"description_text": profile.description}, inject_core_protocol=True)
-                recognition_tasks.append(
-                    self.ainvoke_with_rotation(prompt, output_schema=IdentityResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-                )
-            else:
-                recognition_tasks.append(asyncio.sleep(0, result=None)) # 添加一個空任務以保持索引對應
-
-        identity_results = await asyncio.gather(*recognition_tasks, return_exceptions=True)
-
-        for i, profile in enumerate(parsing_result.npc_profiles):
-            result = identity_results[i]
-            if isinstance(result, IdentityResult) and result.identities:
-                original_aliases = set(profile.aliases or [])
-                recognized_identities = set(result.identities)
-                
-                merged_aliases = original_aliases.union(recognized_identities)
-                
-                if merged_aliases != original_aliases:
-                    logger.info(f"[{self.user_id}] [驗證器-身份] ✅ 為角色 '{profile.name}' 成功補全了 {len(merged_aliases - original_aliases)} 個遺漏的身份標籤: {list(merged_aliases - original_aliases)}")
-                    profile.aliases = list(merged_aliases)
-
-        # --- 步驟 3: 基於 LLM 的批量別名審計 (最終防線) ---
-        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-        def encode_text(text: str) -> str:
-            if not text: return ""
-            for word, code in sorted_encoding_map:
-                text = text.replace(word, code)
-            return text
-
-        BATCH_SIZE = 10
+        # --- [v5.1 核心修正] 分批處理以避免 API 速率超限 ---
+        BATCH_SIZE = 10 
         profiles_to_process = parsing_result.npc_profiles
         
         for i in range(0, len(profiles_to_process), BATCH_SIZE):
             batch = profiles_to_process[i:i+BATCH_SIZE]
-            logger.info(f"[{self.user_id}] [別名審計] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(profiles_to_process) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+            batch_num = i // BATCH_SIZE + 1
+            total_batches = (len(profiles_to_process) + BATCH_SIZE - 1) // BATCH_SIZE
             
+            logger.info(f"[{self.user_id}] [驗證器] 正在處理批次 {batch_num}/{total_batches}...")
+
+            # --- 步驟 2 (批處理): AI 身份自識別與補全 ---
+            logger.info(f"[{self.user_id}] [驗證器-身份] 批次 {batch_num}: 正在啟動 AI 身份自識別...")
+            identity_prompt_template = self.get_identity_recognition_chain()
+            
+            class IdentityResult(BaseModel):
+                identities: List[str]
+
+            recognition_tasks = []
+            for profile in batch:
+                if profile.description:
+                    prompt = self._safe_format_prompt(identity_prompt_template, {"description_text": profile.description}, inject_core_protocol=True)
+                    recognition_tasks.append(
+                        self.ainvoke_with_rotation(prompt, output_schema=IdentityResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
+                    )
+                else:
+                    recognition_tasks.append(asyncio.sleep(0, result=None))
+
+            identity_results = await asyncio.gather(*recognition_tasks, return_exceptions=True)
+
+            for j, profile in enumerate(batch):
+                result = identity_results[j]
+                if isinstance(result, IdentityResult) and result.identities:
+                    original_aliases = set(profile.aliases or [])
+                    recognized_identities = set(result.identities)
+                    merged_aliases = original_aliases.union(recognized_identities)
+                    if merged_aliases != original_aliases:
+                        logger.info(f"[{self.user_id}] [驗證器-身份] ✅ 為角色 '{profile.name}' 成功補全了 {len(merged_aliases - original_aliases)} 個遺漏的身份標籤: {list(merged_aliases - original_aliases)}")
+                        profile.aliases = list(merged_aliases)
+
+            # --- 步驟 3 (批處理): 基於 LLM 的批量別名審計 ---
+            logger.info(f"[{self.user_id}] [別名審計] 批次 {batch_num}: 正在啟動別名審計...")
+            encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+            sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+            def encode_text(text: str) -> str:
+                if not text: return ""
+                for word, code in sorted_encoding_map:
+                    text = text.replace(word, code)
+                return text
+
             batch_input_data = []
             for profile in batch:
                 pattern = re.compile(r"^\s*\*\s*" + re.escape(profile.name) + r".*?([\s\S]*?)(?=\n\s*\*\s|\Z)", re.MULTILINE)
                 matches = pattern.findall(canon_text)
                 context_snippet = "\n".join(matches) if matches else ""
-                
                 batch_input_data.append({
                     "character_name": profile.name,
                     "context_snippet": encode_text(context_snippet),
                     "claimed_aliases": profile.aliases or []
                 })
 
-            batch_validation_result = None
             class AliasValidation(BaseModel):
                 character_name: str
                 final_aliases: List[str] = Field(validation_alias=AliasChoices('final_aliases', 'aliases', 'validated_aliases'))
-
             class BatchAliasValidationResult(BaseModel):
                 validated_aliases: List[AliasValidation]
 
@@ -3832,36 +3832,30 @@ class ExtractionResult(BaseModel):
                     validator_prompt,
                     {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)}
                 )
-                
                 batch_validation_result = await self.ainvoke_with_rotation(
-                    full_prompt, 
-                    output_schema=BatchAliasValidationResult, 
-                    retry_strategy='none',
-                    models_to_try_override=[FUNCTIONAL_MODEL]
+                    full_prompt, output_schema=BatchAliasValidationResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
                 )
-
+                if batch_validation_result and batch_validation_result.validated_aliases:
+                    results_map = {res.character_name: res.final_aliases for res in batch_validation_result.validated_aliases}
+                    for profile in batch:
+                        if profile.name in results_map:
+                            validated_aliases = results_map[profile.name]
+                            original_set = set(profile.aliases or [])
+                            validated_set = set(validated_aliases)
+                            merged_set = original_set.union(validated_set)
+                            decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
+                            if set(decoded_aliases) != original_set:
+                                logger.info(f"[{self.user_id}] [別名審計] ✅ 為角色 '{profile.name}' 成功補全了 {len(set(decoded_aliases) - original_set)} 個遺漏的別名: {list(set(decoded_aliases) - original_set)}")
+                                profile.aliases = list(set(decoded_aliases))
             except Exception as e:
-                logger.warning(f"[{self.user_id}] [別名審計-雲端-批量] 批次 {i//BATCH_SIZE + 1} 審計失敗: {e}。")
+                logger.warning(f"[{self.user_id}] [別名審計] 批次 {batch_num} 審計失敗: {e}。")
             
-            if batch_validation_result and batch_validation_result.validated_aliases:
-                results_map = {res.character_name: res.final_aliases for res in batch_validation_result.validated_aliases}
-                for profile in batch:
-                    if profile.name in results_map:
-                        validated_aliases = results_map[profile.name]
-                        original_set = set(profile.aliases or [])
-                        validated_set = set(validated_aliases)
-                        merged_set = original_set.union(validated_set)
-                        
-                        decoded_aliases = [self._decode_lore_content(alias, self.DECODING_MAP) for alias in merged_set]
-                        
-                        if set(decoded_aliases) != original_set:
-                            logger.info(f"[{self.user_id}] [別名審計] ✅ 為角色 '{profile.name}' 成功補全了 {len(set(decoded_aliases) - original_set)} 個遺漏的別名: {list(set(decoded_aliases) - original_set)}")
-                            profile.aliases = list(set(decoded_aliases))
-            
-            await asyncio.sleep(1)
+            # 在處理完一個批次後，短暫等待，避免觸發速率限制
+            if total_batches > 1 and batch_num < total_batches:
+                await asyncio.sleep(5) 
 
         parsing_result.npc_profiles = profiles_to_process
-        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.0] 所有校驗步驟已全部完成。")
+        logger.info(f"[{self.user_id}] [混合式安全驗證器 v5.1] 所有校驗步驟已全部完成。")
         return parsing_result
     # 函式：程式化LORE校驗器 (引入身份自識別)
 
@@ -5469,6 +5463,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
