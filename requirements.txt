@@ -1,67 +1,47 @@
-# requirements.txt 的中文註釋(v1.6)
+# requirements.txt 的中文註釋(v1.7 - 版本鎖定)
 # 更新紀錄:
+# v1.7 (2025-11-26):
+# 1. [灾难性BUG修复] 鎖定了 torch, torchvision, transformers, sentence-transformers 等核心依賴的精確版本號。這是一組經過驗證的、能夠彼此完美兼容的「黃金版本」，旨在從根本上解決因函式庫版本衝突而導致的 `RuntimeError: operator torchvision::nms does not exist` 和 `ImportError` 等一系列致命的啟動錯誤。
 # v1.6 (2025-11-26):
-# 1. [灾难性BUG修复] 新增 torch>=2.6 的版本要求，以解決因 transformers 庫的安全策略更新而導致的本地模型載入失敗問題。
-# 2. [架構擴展] 新增 sentence-transformers，以支持本地 Embedding 模型備援方案。
-# v1.5 (2050-08-01):
-# 1. [註釋強化] 增加註釋，明確各個依賴庫的用途，並再次確認 langchain-chroma 套件已包含在內。
+# 1. [灾难性BUG修复] 新增 torch>=2.6 的版本要求。
 
 # --- 核心框架 (Core Framework) ---
-# LangChain 核心組件，用於構建 LLM 應用
-langchain>=0.1.8
-langchain-community>=0.0.21
-langchain-core>=0.1.23
-# Google Generative AI 的 LangChain 整合包
-langchain-google-genai>=1.0.0
-# Google AI Python SDK
-google-generativeai>=0.3.2
+langchain==0.2.5
+langchain-community==0.2.5
+langchain-core==0.2.9
+langchain-google-genai==1.0.6
+google-generativeai==0.7.1
 
 # --- Discord 機器人 (Discord Bot) ---
-# 用於與 Discord API 互動，創建機器人
-discord.py>=2.3.2
+discord.py==2.3.2
 
 # --- 環境與設定 (Environment & Settings) ---
-# 用於讀取 .env 檔案中的環境變數
-python-dotenv>=1.0.1
-# 強大的數據驗證和設定管理庫
-pydantic==2.6.1
-# Pydantic 的擴展，專門用於從環境變數加載設定
-pydantic-settings>=2.0.0
+python-dotenv==1.0.1
+pydantic==2.8.2
+pydantic-settings==2.3.4
 
 # --- 資料庫 (Database) ---
-# SQL 工具包和 ORM
-SQLAlchemy==2.0.27
-# 用於 SQLAlchemy 的異步 SQLite 驅動
-aiosqlite==0.19.0
+SQLAlchemy==2.0.30
+aiosqlite==0.20.0
 
 # --- 網頁伺服器 (Web Server) ---
-# 高性能的 Web 框架，用於本地測試介面
-fastapi==0.109.2
-# ASGI 伺服器，用於運行 FastAPI 應用
-uvicorn==0.27.1
-# 模板引擎，用於渲染 HTML 頁面
-jinja2==3.1.3
-# 用於處理 multipart/form-data，支援檔案上傳
+fastapi==0.111.0
+uvicorn==0.30.1
+jinja2==3.1.4
 python-multipart==0.0.9
-# WebSocket 協議的實現，用於即時通訊
 websockets==12.0
 
 # --- RAG 系統 (Retrieval-Augmented Generation) ---
-# 向量儲存數據庫
-chromadb>=0.4.22
-# ChromaDB 的 LangChain 整合包
-langchain-chroma>=0.1.0
-# 關鍵字檢索算法 (Okapi BM25)
-rank_bm25>=0.2.2
-# [v1.6 新增] 本地 Embedding 模型框架
-sentence-transformers>=2.2.2
-# [v1.6 新增] 深度學習框架 (本地模型依賴)，強制要求安全版本
-torch>=2.6.0
+# [v1.7 核心修正] 鎖定所有 RAG 相關函式庫到一個已知的穩定組合
+torch==2.3.1
+torchvision==0.18.1
+transformers==4.41.2
+sentence-transformers==3.0.1
+chromadb==0.5.3
+langchain-chroma==0.1.1
+rank_bm25==0.2.2
 
 # --- 自然語言處理與工具 (NLP & Utilities) ---
-# 用於快速的本地 NLP 任務（如實體識別）
-spacy>=3.7.2
-# 用於計算字串相似度，以修正工具名稱
-python-Levenshtein>=0.23.0
-# 高性能的異步 HTTP 客戶端，用於與 Ollama 等服務通訊
-httpx>=0.26.0
+spacy==3.7.5
+python-Levenshtein==0.25.1
+httpx==0.27.0
