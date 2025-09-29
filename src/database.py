@@ -82,55 +82,63 @@ class SceneHistoryData(Base):
     timestamp = Column(Float, default=time.time, nullable=False)
 # 短期場景歷史數據模型 類別結束
 
-# database.py 的 init_db 函式 (v6.1 - 增加日誌清晰度)
+# database.py 的 init_db 函式 (v6.2 - 修正异步检查错误)
 # 更新紀錄:
-# v6.1 (2025-11-25): [健壯性強化] 增加了更詳細的日誌輸出，以便在應用程式啟動時，能明確地觀察到資料庫遷移檢查是否被觸發和執行，從而簡化問題診斷流程。
-# v6.0 (2025-11-24): [災難性BUG修復] 引入了輕量級的資料庫遷移機制以解決 `OperationalError: no such column` 的問題。
-# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
+# v6.2 (2025-11-25): [灾难性BUG修复] 彻底重构了轻量级迁移的实现方式，遵循 SQLAlchemy 的异步编程规范。将所有需要同步连接的 `inspect` 操作封装在一个独立的同步函式中，并通过 `conn.run_sync` 来安全地调用，从而解决了 `Inspection on an AsyncConnection is not supported` 的致命错误。
+# v6.1 (2025-11-25): [健壮性强化] 增加了更详细的日誌输出。
+# v6.0 (2025-11-24): [灾难性BUG修复] 引入了轻量级资料库迁移机制。
 async def init_db(db_ready_event: asyncio.Event):
     """
-    初始化資料庫。
-    首先確保所有表格都已創建，然後執行輕量級的遷移檢查，
-    確保現有表格的結構與最新的模型定義保持一致。
+    初始化资料库。
+    首先确保所有表格都已创建，然后执行轻量级的迁移检查，
+    确保现有表格的结构与最新的模型定义保持一致。
     """
-    print("--- 正在初始化資料庫與執行結構驗證 ---")
-    async with engine.begin() as conn:
-        # 步驟 1: 確保所有在 Base 中定義的表格都存在
-        print("   [DB Init] 步驟 1/3: 確保所有資料表已創建...")
-        await conn.run_sync(Base.metadata.create_all)
-        print("   [DB Init] 步驟 1/3: 資料表創建檢查完成。")
-        
-        # [v6.1 核心修正] 步驟 2: 執行輕量級的資料庫遷移
-        print("   [DB Init] 步驟 2/3: 檢查 'users' 表結構是否需要升級...")
-        try:
-            from sqlalchemy import inspect, text
+    print("--- 正在初始化资料库与执行结构验证 ---")
 
-            # 創建一個 Inspector 來檢查資料庫的實際結構
-            inspector = inspect(conn)
+    # [v6.2 核心修正] 定义一个同步函式来执行所有需要同步连接的检查操作
+    def _inspect_and_migrate_sync(connection):
+        """
+        在同步上下文中执行资料库结构检查和迁移。
+        """
+        from sqlalchemy import inspect, text
+
+        print("   [DB Init] 步骤 2/3: 检查 'users' 表结构是否需要升级...")
+        try:
+            # 在同步连接上创建 Inspector
+            inspector = inspect(connection)
             
-            # 異步獲取 'users' 表的所有欄位資訊
-            columns = await conn.run_sync(inspector.get_columns, "users")
+            # 获取 'users' 表的所有栏位资讯
+            columns = inspector.get_columns("users")
             
-            # 將欄位資訊轉換為一個簡單的名稱集合，以便快速查找
+            # 将栏位资讯转换为一个简单的名称集合，以便快速查找
             column_names = {c['name'] for c in columns}
 
-            # 檢查 'context_snapshot_json' 欄位是否存在
+            # 检查 'context_snapshot_json' 栏位是否存在
             if 'context_snapshot_json' not in column_names:
-                print("   ⚠️ [資料庫遷移] 檢測到 'users' 表缺少 'context_snapshot_json' 欄位，正在自動新增...")
-                # 如果不存在，則執行 ALTER TABLE 命令來新增它
-                await conn.execute(text('ALTER TABLE users ADD COLUMN context_snapshot_json JSON'))
-                print("   ✅ [資料庫遷移] 'context_snapshot_json' 欄位已成功新增。")
+                print("   ⚠️ [资料库迁移] 检测到 'users' 表缺少 'context_snapshot_json' 栏位，正在自动新增...")
+                # 在同步事务中，可以直接使用 connection 执行命令
+                connection.execute(text('ALTER TABLE users ADD COLUMN context_snapshot_json JSON'))
+                print("   ✅ [资料库迁移] 'context_snapshot_json' 栏位已成功新增。")
             else:
-                print("   [DB Init] 步驟 2/3: 'users' 表結構已是最新，無需升級。")
+                print("   [DB Init] 步骤 2/3: 'users' 表结构已是最新，无需升级。")
 
         except Exception as e:
-            # 如果在遷移過程中發生任何錯誤，記錄下來但不要讓整個程式崩潰
-            print(f"   🔥 [資料庫遷移] 在嘗試升級 'users' 表結構時發生嚴重錯誤: {e}")
+            # 如果在迁移过程中发生任何错误，记录下来但不要让整个程式崩溃
+            print(f"   🔥 [资料库迁移] 在尝试升级 'users' 表结构时发生严重错误: {e}")
 
-    # 步驟 3: 發出資料庫就緒信號
+    async with engine.begin() as conn:
+        # 步骤 1: 确保所有在 Base 中定义的表格都存在
+        print("   [DB Init] 步骤 1/3: 确保所有资料表已创建...")
+        await conn.run_sync(Base.metadata.create_all)
+        print("   [DB Init] 步骤 1/3: 资料表创建检查完成。")
+        
+        # [v6.2 核心修正] 使用 conn.run_sync 来安全地执行同步的检查函式
+        await conn.run_sync(_inspect_and_migrate_sync)
+
+    # 步骤 3: 发出资料库就绪信号
     db_ready_event.set()
-    print("✅ 數據庫初始化與結構驗證完成，並已發出就緒信號。")
-# 初始化資料庫 函式結束
+    print("✅ 数据库初始化与结构验证完成，并已发出就绪信号。")
+# 初始化资料库 函式结束
 
 
 
@@ -140,6 +148,7 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
 
 
 
