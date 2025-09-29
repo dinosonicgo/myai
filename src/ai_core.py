@@ -4233,6 +4233,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return final_result
     # 函式：合併並去重分塊解析結果
 
+
+
+    
     # 函式：獲取分塊預摘要器 Prompt (v1.0 - 全新創建)
     # 更新紀錄:
     # v1.0 (2025-09-29): [全新創建] 根據「智能摘要預處理」策略創建此 Prompt。它的唯一職責是接收一個大的文本塊，並將其濃縮為一段只包含核心 LORE 事實的簡潔摘要。這是解決分塊處理中 MAX_TOKENS 錯誤的關鍵預處理步驟。
@@ -5463,6 +5466,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
