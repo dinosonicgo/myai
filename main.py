@@ -130,8 +130,23 @@ async def _ollama_health_check(model_name: str) -> bool:
         return False
 # 函式：Ollama健康檢查與自動下載
 
-
-
+# [v12.0 核心修正] 新增輔助函式，用於設定 Hugging Face 鏡像
+def _setup_huggingface_mirror():
+    """
+    設定 Hugging Face 相關函式庫的環境變數，使其從國內鏡像下載模型。
+    這是為了解決直接連接 Hugging Face 官方伺服器速度緩慢或被阻斷的問題。
+    """
+    try:
+        # 設定鏡像地址
+        HF_MIRROR_ENDPOINT = "https://hf-mirror.com"
+        # 為 huggingface_hub 設定端點
+        os.environ['HF_ENDPOINT'] = HF_MIRROR_ENDPOINT
+        # 為 sentence-transformers 的舊版本可能需要的變數也設定一下（雙重保險）
+        os.environ['SENTENCE_TRANSFORMERS_HOME'] = str(PROJ_DIR / 'models' / 'sentence_transformers')
+        
+        print(f"✅ [環境配置] 已成功將 Hugging Face 模型下載源設定為鏡像: {HF_MIRROR_ENDPOINT}")
+    except Exception as e:
+        print(f"🔥 [環境配置] 設定 Hugging Face 鏡像時發生錯誤: {e}")
 
 
 # main.py 的 _check_and_install_dependencies 函式 (v12.2 - 強制依賴升級)
@@ -427,8 +442,11 @@ async def start_web_server_task():
         print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
 async def main():
-    MAIN_PY_VERSION = "v11.1" # 版本號更新
+    MAIN_PY_VERSION = "v12.0" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
+    
+    # [v12.0 核心修正] 在所有操作之前，首先設定鏡像源
+    _setup_huggingface_mirror()
     
     try:
         _check_and_install_dependencies()
@@ -490,6 +508,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
