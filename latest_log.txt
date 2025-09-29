@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T23:27:32.249061 ###
+### AI Lover Log - Last updated at 2025-09-29T23:30:20.678891 ###
 
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 254, in embed_query
-    return self.embed_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 229, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
 * Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
 * Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
 * Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
@@ -300,3 +293,10 @@ ImportError: Could not import sentence_transformers python package. Please insta
 2025-09-29 23:27:21 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 23:27:21 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 23:27:22 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 23:30:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 23:30:06 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 23:30:06 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 23:30:06 - [INFO] - Discord Bot is ready!
+2025-09-29 23:30:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 23:30:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 23:30:10 - [INFO] - 已成功發送啟動成功通知給管理員。
