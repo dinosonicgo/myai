@@ -271,6 +271,11 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：处理「贴上世界圣经」按钮点击事件
 
+    # discord_bot.py 的 ContinueToCanonSetupView.upload_canon 函式 (v1.9 - 狀態鎖管理修正)
+    # 更新紀錄:
+    # v1.9 (2025-11-26): [灾难性BUG修复] 徹底重構了此函式的狀態鎖管理邏輯。移除了其 `finally` 區塊中所有釋放鎖的程式碼，將鎖的生命週期管理權完全交給由它啟動的後台任務 `_perform_full_setup_flow`。此修改遵循了「鎖的創建者與釋放者應為同一流程」的原則，從根源上解決了因競態條件導致狀態鎖被提前釋放的致命問題。
+    # v1.8 (2025-11-26): [灾难性BUG修复] 修正了多行字串的語法錯誤。
+    # v1.7 (2025-09-26): [灾难性BUG修复] 引入了 `try...finally` 塊和提前設置狀態鎖的機制。
     # 处理「上传世界圣经」按钮点击事件
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -279,7 +284,7 @@ class ContinueToCanonSetupView(discord.ui.View):
             await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，请耐心等候。", ephemeral=True)
             return
 
-        # [v1.7 核心修正] 关键步骤：提前开启防火墙
+        # [v1.9 核心修正] 前端流程只負責「加鎖」，不再負責釋放
         self.cog.active_setups.add(user_id)
         logger.info(f"[{user_id}] [创世流程] 档案上传开始，已设置 active_setups 状态锁。")
 
@@ -299,38 +304,29 @@ class ContinueToCanonSetupView(discord.ui.View):
             
             if attachment.size > 5 * 1024 * 1024: # 5MB
                 await interaction.followup.send("❌ 檔案過大！请重新开始 `/start` 流程。", ephemeral=True)
+                # 如果這裡失敗，需要釋放鎖
+                self.cog.active_setups.discard(user_id)
                 return
 
-            # [v1.8 核心修正] 將多行字串修正為語法正確的單行字串
             await interaction.followup.send("✅ 檔案已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
             
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            # 此处不再需要 add(user_id)，因为已经在前面添加了
+            # 將創世任務交給後台，後台任務將負責在結束時釋放鎖
             asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
-            # 任务已转交后台，让 View 自然结束即可
-            self.stop()
-
+            
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超时。请重新开始 `/start` 流程。", ephemeral=True)
+            # 超時也需要釋放鎖
+            self.cog.active_setups.discard(user_id)
         except Exception as e:
             logger.error(f"[{user_id}] 在等待檔案上傳时发生错误: {e}", exc_info=True)
             await interaction.followup.send(f"处理您的檔案时发生错误: `{e}`。请重新开始 `/start` 流程。", ephemeral=True)
+            # 發生未知錯誤也需要釋放鎖
+            self.cog.active_setups.discard(user_id)
         finally:
-            # [v1.7 核心修正] 健壮性保证：无论成功、失败还是超时，如果后台任务没有被成功启动，
-            # 就在这里释放锁，以允许用户重试。
-            # 如果后台任务已启动，它将在自己结束时释放锁。
-            # 这里做一个双重保险的检查。
-            if user_id in self.cog.active_setups:
-                # 检查后台任务是否真的在运行（这是一个简化检查，不完全精确但足够好）
-                # 更好的方式是让 _perform_full_setup_flow 返回一个 future，但为了减少改动，我们简化处理
-                # 如果任务已经启动，它会很快地在 finally 中移除 user_id，所以这里做一个延时检查
-                await asyncio.sleep(1) # 短暂等待，看后台任务是否已接管
-                if user_id in self.cog.active_setups:
-                     # 如果 user_id 还在，说明后台任务可能没启动或立即失败了，我们在这里清理
-                    logger.warning(f"[{user_id}] [创世流程] 档案上传流程结束/异常，但后台任务未接管状态锁，在此处释放。")
-                    self.cog.active_setups.discard(user_id)
+            # [v1.9 核心修正] 前端 UI 流程的 finally 區塊只負責停止視圖，不再管理鎖
             self.stop()
     # 处理「上传世界圣经」按钮点击事件
 
@@ -2159,6 +2155,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
