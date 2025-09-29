@@ -3678,22 +3678,19 @@ class ExtractionResult(BaseModel):
     
 
     
-    # 函式：創建 Embeddings 實例 (v1.1 - 適配冷卻系統)
-    # ai_core.py 的 _create_embeddings_instance 函式 (v2.1 - 縮排修正)
+    # ai_core.py 的 _create_embeddings_instance 函式 (v2.2 - 修正模型名稱)
     # 更新紀錄:
+    # v2.2 (2025-11-26): [灾难性BUG修复] 將本地 Embedding 模型名稱從不存在的 'stella-base-zh-v3' 修正為正確的 'stella-base-zh-v2'，解決了因模型名稱錯誤導致的 RepositoryNotFoundError。
     # v2.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
     # v2.0 (2025-11-26): [根本性重構] 徹底重寫此函式，將其從創建 Google API 實例，改造為創建一個基於 `sentence-transformers` 的本地化 `HuggingFaceEmbeddings` 實例。
-    # v1.1 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.1 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
+        (v2.2 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
         """
         from langchain_community.embeddings import HuggingFaceEmbeddings
         
-        # 推薦模型：輕量、高效、中英雙語支持
-        # 首次運行時，HuggingFaceEmbeddings 會自動從網路下載此模型
-        # model_name = "moka-ai/m3e-base"
-        model_name = "infgrad/stella-base-zh-v3"
+        # [v2.2 核心修正] 修正模型名稱，v3 不存在，正確的名稱是 v2
+        model_name = "infgrad/stella-base-zh-v2"
 
         model_kwargs = {'device': 'cpu'} # 強制使用 CPU，避免在無 GPU 環境下出錯
         encode_kwargs = {'normalize_embeddings': False}
@@ -3712,6 +3709,9 @@ class ExtractionResult(BaseModel):
             logger.error(f"   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。")
             return None
     # 創建 Embeddings 實例 函式結束
+
+
+    
     
     # ==============================================================================
     # == ⛓️ Prompt 模板的延遲加載 (Lazy Loading) 構建器 v300.0 ⛓️
@@ -5298,6 +5298,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
