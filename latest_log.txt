@@ -1,156 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T21:46:00.876451 ###
+### AI Lover Log - Last updated at 2025-09-29T21:51:04.181871 ###
 
-2025-09-29 21:15:14 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-29 21:15:14 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-29 21:15:14 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合雲端模式】...
-2025-09-29 21:15:14 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 21:15:14 - [WARNING] - [512280345618546699] [RAG Mode] 初始化【混合雲端模式】失敗: GoogleGenerativeAIError。正在降級...
-2025-09-29 21:15:14 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合本地模式】...
-2025-09-29 21:15:20 - [ERROR] - [512280345618546699] [RAG Mode] 初始化【混合本地模式】最終失敗: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
-See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
-    result = self.client.batch_embed_contents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
-    response = rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
-    return wrapped_func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
-    return retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
-    result = target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
-    raise exceptions.from_grpc_error(exc) from exc
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3559, in _configure_pre_requisites
-    await google_embeddings.aembed_query("test")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 78, in aembed_query
-    return await run_in_executor(None, self.embed_query, text)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 617, in run_in_executor
-    return await asyncio.get_running_loop().run_in_executor(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
-    result = self.fn(*self.args, **self.kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 608, in wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 256, in embed_query
-    return self.embed_documents(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
-    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
-langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
-* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
-}
-violations {
-  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
-  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-]
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3576, in _configure_pre_requisites
-    self.embeddings = HuggingFaceEmbeddings(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\_api\deprecation.py", line 222, in warn_if_direct_instance
-    return wrapped(self, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_community\embeddings\huggingface.py", line 92, in __init__
-    self.client = sentence_transformers.SentenceTransformer(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 339, in __init__
-    modules = self._load_auto_model(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 2112, in _load_auto_model
-    transformer_model = Transformer(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 88, in __init__
-    self._load_model(model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 196, in _load_model
-    self.auto_model = AutoModel.from_pretrained(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\models\auto\auto_factory.py", line 600, in from_pretrained
-    return model_class.from_pretrained(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 311, in _wrapper
-    return func(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 4839, in from_pretrained
-    ) = cls._load_pretrained_model(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 5105, in _load_pretrained_model
-    load_state_dict(checkpoint_files[0], map_location="meta", weights_only=weights_only).keys()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 556, in load_state_dict
-    check_torch_load_is_safe()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1517, in check_torch_load_is_safe
-    raise ValueError(
-ValueError: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
-See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
-2025-09-29 21:15:20 - [CRITICAL] - [512280345618546699] [RAG Mode] 🔥 所有 Embedding 方案均失敗！系統已降級至【純關鍵字模式】。
-2025-09-29 21:15:20 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建 RAG 檢索器 (模式: keyword_only, 強制重建: False)...
-2025-09-29 21:15:20 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 21:15:20 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 語意搜索功能未啟用，跳過初始化 ChromaDB 檢索器。
-2025-09-29 21:15:20 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
-2025-09-29 21:15:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒 (當前 RAG 模式: keyword_only)。
-2025-09-29 21:15:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-29 21:15:20 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-29 21:15:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 21:24:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 21:24:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 21:24:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 21:24:41 - [INFO] - Discord Bot is ready!
-2025-09-29 21:24:43 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 21:24:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 21:24:44 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 21:25:07 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-29 21:25:07 - [INFO] - [512280345618546699] 正在从数据库删除所有相关数据...
-2025-09-29 21:25:07 - [INFO] - [512280345618546699] 数据库清理完成。
-2025-09-29 21:25:07 - [INFO] - [512280345618546699] 正在物理删除向量存储目录: D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699
-2025-09-29 21:25:07 - [INFO] - [512280345618546699] 向量存储目录删除完成。
-2025-09-29 21:25:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-29 21:25:22 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-29 21:25:22 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-09-29 21:25:22 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
 2025-09-29 21:25:22 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！
 2025-09-29 21:25:22 - [CRITICAL] - [512280345618546699] 致命錯誤: 未找到核心協議 '00_supreme_directive.txt'！
@@ -300,3 +149,154 @@ See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-3243
 2025-09-29 21:45:28 - [INFO] - 已成功發送啟動成功通知給管理員。
 2025-09-29 21:45:46 - [INFO] - 所有持久化 UI 視圖已成功註冊。
 2025-09-29 21:45:46 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 21:46:24 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 21:46:24 - [INFO] - Discord Bot is ready!
+2025-09-29 21:46:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 21:46:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 21:46:28 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 21:46:28 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 21:46:28 - [INFO] - [512280345618546699] 正在从数据库删除所有相关数据...
+2025-09-29 21:46:28 - [INFO] - [512280345618546699] 数据库清理完成。
+2025-09-29 21:46:30 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 21:46:36 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-29 21:46:37 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 21:46:37 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 21:46:37 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！
+2025-09-29 21:46:37 - [CRITICAL] - [512280345618546699] 致命錯誤: 未找到核心協議 '00_supreme_directive.txt'！
+2025-09-29 21:46:37 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合雲端模式】...
+2025-09-29 21:46:37 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 21:46:37 - [WARNING] - [512280345618546699] [RAG Mode] 初始化【混合雲端模式】失敗: GoogleGenerativeAIError。正在降級...
+2025-09-29 21:46:37 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合本地模式】（將自動從鏡像源下載）...
+2025-09-29 21:49:28 - [ERROR] - [512280345618546699] [RAG Mode] 初始化【混合本地模式】最終失敗: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
+See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 225, in embed_documents
+    result = self.client.batch_embed_contents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1365, in batch_embed_contents
+    response = rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
+    result = target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3554, in _configure_pre_requisites
+    await google_embeddings.aembed_query("test")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\embeddings\embeddings.py", line 79, in aembed_query
+    return await run_in_executor(None, self.embed_query, text)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 590, in run_in_executor
+    return await asyncio.get_running_loop().run_in_executor(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\runnables\config.py", line 581, in wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 254, in embed_query
+    return self.embed_documents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 229, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3570, in _configure_pre_requisites
+    self.embeddings = HuggingFaceEmbeddings(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\_api\deprecation.py", line 215, in warn_if_direct_instance
+    return wrapped(self, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_community\embeddings\huggingface.py", line 92, in __init__
+    self.client = sentence_transformers.SentenceTransformer(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 327, in __init__
+    modules, self.module_kwargs = self._load_sbert_model(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\SentenceTransformer.py", line 2305, in _load_sbert_model
+    module = module_class.load(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 365, in load
+    return cls(model_name_or_path=model_name_or_path, **init_kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 88, in __init__
+    self._load_model(model_name_or_path, config, cache_dir, backend, is_peft_model, **model_args)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sentence_transformers\models\Transformer.py", line 196, in _load_model
+    self.auto_model = AutoModel.from_pretrained(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\models\auto\auto_factory.py", line 600, in from_pretrained
+    return model_class.from_pretrained(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 311, in _wrapper
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 4839, in from_pretrained
+    ) = cls._load_pretrained_model(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 5105, in _load_pretrained_model
+    load_state_dict(checkpoint_files[0], map_location="meta", weights_only=weights_only).keys()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\modeling_utils.py", line 556, in load_state_dict
+    check_torch_load_is_safe()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\transformers\utils\import_utils.py", line 1517, in check_torch_load_is_safe
+    raise ValueError(
+ValueError: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
+See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
+2025-09-29 21:49:28 - [CRITICAL] - [512280345618546699] [RAG Mode] 🔥 所有 Embedding 方案均失敗！系統已降級至【純關鍵字模式】。
+2025-09-29 21:49:28 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建 RAG 檢索器 (模式: keyword_only, 強制重建: False)...
+2025-09-29 21:49:28 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 21:49:28 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 語意搜索功能未啟用，跳過初始化 ChromaDB 檢索器。
+2025-09-29 21:49:28 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
+2025-09-29 21:49:28 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒 (當前 RAG 模式: keyword_only)。
+2025-09-29 21:49:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-29 21:49:28 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-29 21:49:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 21:49:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
