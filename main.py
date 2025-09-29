@@ -134,10 +134,11 @@ async def _ollama_health_check(model_name: str) -> bool:
 
 
 
-# 函式：檢查並安裝依賴項 (v1.1 - 縮排修正)
+# main.py 的中文註釋(v12.0 - ChromaDB依賴)
 # 更新紀錄:
-# v1.1 (2025-09-26): [災難性BUG修復] 修正了函式定義前的意外縮排，解決了 `IndentationError`。
-# v1.0 (2025-09-26): [全新創建] 模組化依賴檢查。
+# v12.0 (2025-11-23): [架構擴展] 在依賴項檢查器中增加了對 `chromadb` 和 `langchain-chroma` 的檢查，以支持全新的 ChromaDB 混合 RAG 系統。
+# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
+# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
@@ -146,9 +147,12 @@ def _check_and_install_dependencies():
         'uvicorn': 'uvicorn', 'fastapi': 'fastapi', 'SQLAlchemy': 'sqlalchemy',
         'aiosqlite': 'aiosqlite', 'discord.py': 'discord', 'langchain': 'langchain',
         'langchain-core': 'langchain_core', 'langchain-google-genai': 'langchain_google_genai',
-        'langchain-community': 'langchain_community', 'langchain-chroma': 'langchain_chroma',
+        'langchain-community': 'langchain_community', 
+        # [v12.0 核心修正] 新增 ChromaDB 相關依賴
+        'langchain-chroma': 'langchain_chroma', 
+        'chromadb': 'chromadb',
         'langchain-cohere': 'langchain_cohere', 'google-generativeai': 'google.generativeai',
-        'chromadb': 'chromadb', 'rank_bm25': 'rank_bm25',
+        'rank_bm25': 'rank_bm25',
         'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
         'python-Levenshtein': 'Levenshtein',
         'spacy': 'spacy', 'httpx': 'httpx'
@@ -194,6 +198,12 @@ def _check_and_install_dependencies():
             
     print("✅ 所有依賴項和模型均已準備就緒。")
 # 函式：檢查並安裝依賴項
+
+
+
+
+
+
 # --- 本地應用模組導入 ---
 from src.database import init_db
 from src.config import settings
@@ -465,6 +475,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
