@@ -1687,27 +1687,30 @@ class BotCog(commands.Cog):
     # 函式：在背景處理世界聖經文本
 
 
-    # discord_bot.py 的 BotCog._robust_rmtree 函式 (v52.3 - 全新創建)
+    # discord_bot.py 的 BotCog._robust_rmtree 函式 (v52.4 - 終極強化重試)
     # 更新紀錄:
-    # v52.3 (2025-11-26): [全新創建] 根據深入的錯誤分析，創建此帶有延遲重試機制的異步安全刪除函式。它旨在解決在 Windows 環境下，因底層資料庫文件句柄釋放延遲而導致的 `PermissionError: [WinError 32]` 的頑固問題，為 `/start` 重置流程提供必要的魯棒性。
-    async def _robust_rmtree(self, path: Path, retries: int = 5, delay: float = 0.5):
+    # v52.4 (2025-11-26): [灾难性BUG修复] 根據持續的 PermissionError，對此函式進行終極強化。將重試次數提升至 10 次，間隔延長至 1 秒，並在每一次重試循環前都強制調用 `gc.collect()`。此舉旨在用最長的耐心和最徹底的清理手段，來應對 Windows 系統下頑固的、延遲釋放的文件鎖，是解決此問題的最終程式化方案。
+    # v52.3 (2025-11-26): [全新創建] 創建此帶有延遲重試機制的異步安全刪除函式。
+    async def _robust_rmtree(self, path: Path, retries: int = 10, delay: float = 1.0):
         """
-        一個健壯的異步 shutil.rmtree 版本，帶有延遲和重試機制以處理文件鎖定問題。
+        一個極度健壯的異步 shutil.rmtree 版本，帶有更長的延遲、更多的重試次數和強制垃圾回收，以處理頑固的文件鎖定問題。
         """
+        logger.info(f"[{path.name}] (Robust Delete) 正在啟動對目錄 {path} 的健壯刪除流程...")
         for i in range(retries):
             try:
+                # [v52.4 核心修正] 在每次嘗試前都強制進行垃圾回收
+                gc.collect()
                 await asyncio.to_thread(shutil.rmtree, path)
-                logger.info(f"[{path.name}] (Robust Delete) 成功刪除目錄: {path}")
+                logger.info(f"[{path.name}] (Robust Delete) ✅ 在第 {i+1} 次嘗試中成功刪除目錄: {path}")
                 return
             except PermissionError as e:
-                logger.warning(f"[{path.name}] (Robust Delete) 刪除時遇到權限錯誤 (可能是文件鎖)，準備在 {delay} 秒後重試 ({i+1}/{retries})...")
+                logger.warning(f"[{path.name}] (Robust Delete) 刪除時遇到權限錯誤 (文件鎖)，準備在 {delay} 秒後重試 ({i+1}/{retries})...")
                 await asyncio.sleep(delay)
             except FileNotFoundError:
                 logger.info(f"[{path.name}] (Robust Delete) 目錄已不存在，無需刪除: {path}")
                 return
             except Exception as e:
                 logger.error(f"[{path.name}] (Robust Delete) 刪除時發生未預期的錯誤: {e}", exc_info=True)
-                # 對於其他未知錯誤，可能重試也無用，直接拋出
                 raise RuntimeError(f"刪除目錄 {path} 時發生不可恢復的錯誤: {e}") from e
         
         # 如果所有重試都失敗了
@@ -2154,6 +2157,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
