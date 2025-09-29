@@ -1,33 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:33:26.973712 ###
+### AI Lover Log - Last updated at 2025-09-29T20:35:38.304073 ###
 
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: users.context_snapshot_json
-[SQL: SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.ai_settings AS users_ai_settings, users.affinity AS users_affinity, users.game_state AS users_game_state, users.one_instruction AS users_one_instruction, users.world_settings AS users_world_settings, users.user_profile AS users_user_profile, users.ai_profile AS users_ai_profile, users.response_style_prompt AS users_response_style_prompt, users.context_snapshot_json AS users_context_snapshot_json 
-FROM users 
-WHERE users.user_id = ?]
-[parameters: ('512280345618546699',)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-09-29 20:07:49 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 20:07:49 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 20:07:49 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 20:07:49 - [INFO] - Discord Bot is ready!
-2025-09-29 20:07:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 20:07:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 20:07:53 - [INFO] - 已成功發送啟動成功通知給管理員。
 2025-09-29 20:08:16 - [INFO] - [512280345618546699] 後台重置任務開始...
@@ -300,3 +272,31 @@ ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
 2025-09-29 20:33:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
 2025-09-29 20:33:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-29 20:33:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-29 20:33:31 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-29 20:33:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-29 20:33:32 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:35:24 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 20:35:24 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 20:35:24 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 20:35:24 - [INFO] - Discord Bot is ready!
+2025-09-29 20:35:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 20:35:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 20:35:28 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 20:35:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:35:32 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化于路径: D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699\chroma_db
+2025-09-29 20:35:33 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 僅有一個檢索器可用，系統已降級為純 Chroma 檢索。
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:35:33 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-29 20:35:33 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
+2025-09-29 20:35:34 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-29 20:35:36 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-29 20:35:36 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
