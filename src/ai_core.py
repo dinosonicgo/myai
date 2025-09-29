@@ -3450,31 +3450,40 @@ class ExtractionResult(BaseModel):
     # 獲取場景中的相關 NPC 函式結束
     
 
-    # 函式：關閉 AI 實例並釋放資源 (v198.2 - 完成重構)
-    # 更新紀錄:
-    # v198.2 (2025-11-22): [災難性BUG修復] 將 session_histories 的引用更新為 scene_histories。
-    # v198.1 (2025-09-02): [災難性BUG修復] 徹底重構了 ChromaDB 的關閉邏輯。
-    # v198.0 (2025-09-02): [重大架構重構] 移除了所有 LangGraph 相關的清理邏輯。
+    # 函式：关闭 AI 实例并释放资源 (v198.0 - 显式关闭)
+    # 更新纪录:
+    # v198.0 (2025-11-25): [灾难性BUG修复] 彻底重构了 ChromaDB 的关闭逻辑。不再仅仅是将 vector_store 设为 None，而是通过调用其内部的 `_client._system.stop()` 方法，来显式地、强制地请求 ChromaDB 的后台服务停止并释放其对 .sqlite3 文件的锁定。此修改从根本上解决了在 `/start` 重置流程中因文件句柄未释放而导致的 `PermissionError`。
+    # v197.0 (2025-11-24): [灾难性BUG修复] 修正了因缺少对 SceneHistoryData 模型的导入而导致的 NameError。
+    # v196.0 (2025-11-22): [重大架构重构] 移除了所有 LangGraph 相关的清理逻辑。
     async def shutdown(self):
-        logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放資源...")
+        """关闭 AI 实例并显式地释放所有资源，特别是 ChromaDB 的文件句柄。"""
+        logger.info(f"[{self.user_id}] 正在关闭 AI 实例并释放资源...")
         
-        if self.vector_store:
+        # [v198.0 核心修正] 显式地关闭 ChromaDB 客户端
+        if self.vector_store and hasattr(self.vector_store, '_client'):
             try:
+                # 获取底层的 chromadb 客户端实例
                 client = self.vector_store._client
+                # 调用内部的 stop 方法来请求关闭后台服务
                 if client and hasattr(client, '_system') and hasattr(client._system, 'stop'):
+                    # 这是非公开API，但对于确保资源释放至关重要
                     client._system.stop()
-                    logger.info(f"[{self.user_id}] ChromaDB 後台服務已請求停止。")
+                    logger.info(f"[{self.user_id}] 已成功向 ChromaDB 后台服务发送停止请求。")
             except Exception as e:
-                logger.warning(f"[{self.user_id}] 關閉 ChromaDB 客戶端時發生非致命錯誤: {e}", exc_info=True)
+                logger.warning(f"[{self.user_id}] 在尝试显式关闭 ChromaDB 客户端时发生非致命错误: {e}", exc_info=True)
         
         self.vector_store = None
         self.retriever = None
+        self.bm25_retriever = None
+        self.embeddings = None
     
+        # 强制进行垃圾回收
         gc.collect()
         
+        # 给予后台进程一点时间来完全关闭
         await asyncio.sleep(1.0)
         
-        # 清理所有緩存的 PromptTemplate
+        # 清理所有缓存的 PromptTemplate
         self.canon_parser_chain = None
         self.batch_entity_resolution_chain = None
         self.single_entity_resolution_chain = None
@@ -3489,8 +3498,11 @@ class ExtractionResult(BaseModel):
         
         self.scene_histories.clear()
         
-        logger.info(f"[{self.user_id}] AI 實例資源已釋放。")
-    # 關閉 AI 實例並釋放資源 函式結束
+        logger.info(f"[{self.user_id}] AI 实例资源已释放。")
+    # 关闭 AI 实例并释放资源 函式结束
+
+
+    
     
     # 函式：加載所有模板檔案 (v175.0 - 回歸單一最高指令)
     # 更新紀錄:
@@ -5237,6 +5249,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
