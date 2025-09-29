@@ -1,8 +1,8 @@
-# requirements.txt 的中文註釋(v2.4 - 消除棄用警告)
+# requirements.txt 的中文註釋(v2.5 - 穩定性回退)
 # 更新紀錄:
-# v2.4 (2025-11-26): [架構優化] 新增 langchain-huggingface 依賴。根據 LangChain 官方的棄用警告，將 HuggingFaceEmbeddings 的來源遷移到這個新的獨立套件，以確保未來的兼容性並消除警告日誌。
-# v2.3 (2025-11-26): [灾难性BUG修复] 鎖定 RAG 相關函式庫到一個已知的穩定組合，解決 'EncoderDecoderCache' ImportError。
-# v2.2 (2025-11-26): [驗證確認] 確認現有依賴項已完整包含本地 RAG 系統所需的所有套件。
+# v2.5 (2025-11-26): [灾难性BUG修复] 移除了 langchain-huggingface 依賴。該套件與 transformers==4.36.2 存在不可調和的依賴衝突。回退此修改以確保系統穩定性為最優先，接受 DeprecationWarning。
+# v2.4 (2025-11-26): [架構優化] 新增 langchain-huggingface 依賴以消除棄用警告。
+# v2.3 (2025-11-26): [灾难性BUG修复] 鎖定 RAG 相關函式庫到一個已知的穩定組合。
 
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.11
@@ -10,8 +10,6 @@ langchain-core==0.2.36
 langchain-community==0.2.10
 langchain-google-genai==1.0.10
 google-generativeai==0.7.1
-# [v2.4 新增] 根據官方建議，用於本地 Embedding 的新套件
-langchain-huggingface==0.0.3
 
 # --- Discord 機器人 (Discord Bot) ---
 discord.py==2.3.2
