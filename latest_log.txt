@@ -1,47 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T01:30:35.843550 ###
+### AI Lover Log - Last updated at 2025-09-30T01:35:38.947238 ###
 
-  Field required [type=missing, input_value={'character_name': '凱...', '掘井人', 'Kael']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.24.aliases
-  Field required [type=missing, input_value={'character_name': '里...者', '孝子', 'Rhys']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.25.aliases
-  Field required [type=missing, input_value={'character_name': '瑪... ['蒙恩者', 'Maren']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.26.aliases
-  Field required [type=missing, input_value={'character_name': '索...['蒙恩者', 'Sophia']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.27.aliases
-  Field required [type=missing, input_value={'character_name': '泰... ['蒙恩者', 'Tessa']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.28.aliases
-  Field required [type=missing, input_value={'character_name': '露...: ['蒙恩者', 'Ruby']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.29.aliases
-  Field required [type=missing, input_value={'character_name': '老...老闆', 'Old Hemlock']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.30.aliases
-  Field required [type=missing, input_value={'character_name': '葛...nal_aliases': ['Greta']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.31.aliases
-  Field required [type=missing, input_value={'character_name': '芬...inal_aliases': ['Finn']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.32.aliases
-  Field required [type=missing, input_value={'character_name': '老...'聖戰士', 'Old Gao']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.33.aliases
-  Field required [type=missing, input_value={'character_name': '亞...系核心', 'Arthur']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.34.aliases
-  Field required [type=missing, input_value={'character_name': '馬...系核心', 'Martin']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.35.aliases
-  Field required [type=missing, input_value={'character_name': '克...派系領袖', 'Klara']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.36.aliases
-  Field required [type=missing, input_value={'character_name': '高...inal_aliases': ['Gore']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-validated_aliases.37.aliases
   Field required [type=missing, input_value={'character_name': '翠...nal_aliases': ['Triss']}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 validated_aliases.38.aliases
@@ -300,3 +258,45 @@ aliases
 2025-09-30 01:30:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 01:30:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 01:30:25 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 01:31:20 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 01:31:20 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-09-30 01:31:22 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-09-30 01:31:22 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-09-30 01:31:22 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-09-30 01:31:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-30 01:31:29 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-30 01:31:29 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 01:31:29 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-30 01:31:29 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 01:31:29 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 01:31:29 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 01:31:36 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 01:31:36 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-30 01:31:36 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-09-30 01:31:36 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-09-30 01:31:36 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-30 01:31:40 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動配置的 Client 創始化一個空的 RAG 系統。
+2025-09-30 01:31:40 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 01:31:40 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-30 01:31:40 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-30 01:31:40 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 01:31:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-30 01:31:52 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-30 01:31:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-30 01:31:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 01:31:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-30 01:32:08 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-30 01:32:08 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-30 01:32:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 01:32:10 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
+2025-09-30 01:32:16 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-30 01:32:19 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
+2025-09-30 01:32:19 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
+2025-09-30 01:32:19 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
+2025-09-30 01:32:56 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
+2025-09-30 01:32:56 - [INFO] - [512280345618546699] (Canon Processor) ✅ BM25 索引已同步更新。
+2025-09-30 01:32:56 - [INFO] - [512280345618546699] [后台创世 1/4] 正在进行 LORE 智能解析...
+2025-09-30 01:32:56 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
+2025-09-30 01:32:56 - [INFO] - [512280345618546699] [LORE 解析 1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 01:35:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-09-30 01:35:04 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
