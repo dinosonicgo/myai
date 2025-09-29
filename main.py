@@ -151,67 +151,45 @@ def _setup_huggingface_mirror():
         print(f"🔥 [環境配置] 設定 Hugging Face 鏡像時發生錯誤: {e}")
 
 
-# main.py 的 _check_and_install_dependencies 函式 (v12.2 - 強制依賴升級)
+# main.py 的 _check_and_install_dependencies 函式 (v12.1 - 新增依賴檢查)
 # 更新紀錄:
-# v12.2 (2025-11-26): [灾难性BUG修复] 根據本地備援方案的 `ValueError`，在安裝 `torch` 時，明確指定了 `>=2.6` 的版本要求。此修改將在程式首次啟動時，自動將舊版本的 PyTorch 升級到一個安全的、符合 `transformers` 庫要求的版本，從而徹底解決因 `torch.load` 安全漏洞而導致的本地模型初始化失敗問題。
-# v12.1 (2025-11-26): [架構擴展] 新增了對 `sentence-transformers` 和 `torch` 的依賴檢查。
+# v12.1 (2025-11-26): [架構擴展] 新增了對 `sentence-transformers` 和 `torch` 的依賴檢查。這是為了配合全新的本地 RAG 系統，確保在程式啟動時，所有必要的深度學習函式庫都已正確安裝，從而避免運行時的 `ImportError`。
+# v12.0 (2025-11-26): [重大架構升級] 創建此輔助函式。
 def _check_and_install_dependencies():
     """檢查並安裝缺失的 Python 依賴項，包括 spaCy 和其模型。"""
     import importlib.util
     
-    # [v12.2 核心修正] 為 torch 指定最低版本，並重構字典結構以提高清晰度
-    # 格式: { 'pip 安裝名': ('導入時的包名', '用於 importlib.metadata 的包名') }
     required_packages = {
-        'torch>=2.6': ('torch', 'torch'), 
-        'uvicorn': ('uvicorn', 'uvicorn'), 
-        'fastapi': ('fastapi', 'fastapi'), 
-        'SQLAlchemy': ('sqlalchemy', 'sqlalchemy'),
-        'aiosqlite': ('aiosqlite', 'aiosqlite'), 
-        'discord.py': ('discord', 'discord.py'),  # 注意導入名和包名的區別
-        'langchain': ('langchain', 'langchain'),
-        'langchain-core': ('langchain_core', 'langchain-core'), 
-        'langchain-google-genai': ('langchain_google_genai', 'langchain-google-genai'),
-        'langchain-community': ('langchain_community', 'langchain-community'), 
-        'langchain-chroma': ('langchain_chroma', 'langchain-chroma'), 
-        'chromadb': ('chromadb', 'chromadb'),
-        'langchain-cohere': ('langchain_cohere', 'langchain-cohere'), 
-        'google-generativeai': ('google.generativeai', 'google-generativeai'),
-        'rank_bm25': ('rank_bm25', 'rank_bm25'),
-        'pydantic-settings': ('pydantic_settings', 'pydantic-settings'), 
-        'Jinja2': ('jinja2', 'Jinja2'),
-        'python-Levenshtein': ('Levenshtein', 'python-Levenshtein'),
-        'spacy': ('spacy', 'spacy'), 
-        'httpx': ('httpx', 'httpx'),
-        'sentence-transformers': ('sentence_transformers', 'sentence-transformers'),
+        'uvicorn': 'uvicorn', 'fastapi': 'fastapi', 'SQLAlchemy': 'sqlalchemy',
+        'aiosqlite': 'aiosqlite', 'discord.py': 'discord', 'langchain': 'langchain',
+        'langchain-core': 'langchain_core', 'langchain-google-genai': 'langchain_google_genai',
+        'langchain-community': 'langchain_community', 'langchain-chroma': 'langchain_chroma', 'chromadb': 'chromadb',
+        'langchain-cohere': 'langchain_cohere', 'google-generativeai': 'google.generativeai',
+        'rank_bm25': 'rank_bm25', 'pydantic-settings': 'pydantic_settings', 'Jinja2': 'jinja2',
+        'python-Levenshtein': 'Levenshtein',
+        'spacy': 'spacy', 'httpx': 'httpx',
+        # [v12.1 新增] 本地 RAG 依賴
+        'sentence-transformers': 'sentence_transformers',
+        'torch': 'torch',
     }
     
     missing_packages = []
-    for pip_name, (import_name, package_name) in required_packages.items():
-        try:
-            if importlib.util.find_spec(import_name) is None:
-                raise ImportError
-            # 對於需要檢查版本的庫，使用 importlib.metadata
-            importlib.metadata.version(package_name)
-        except (ImportError, importlib.metadata.PackageNotFoundError):
-            missing_packages.append(pip_name)
+    for package, import_name in required_packages.items():
+        if importlib.util.find_spec(import_name) is None:
+            missing_packages.append(package)
 
     if missing_packages:
-        print("\n⏳ 正在自動安裝或升級缺失的 Python 依賴項...")
-        for pip_name in missing_packages:
+        print("\n⏳ 正在自動安裝缺失的 Python 依賴項...")
+        for package in missing_packages:
             try:
-                print(f"   - 正在處理 {pip_name}...")
-                command = [sys.executable, "-m", "pip", "install", "--quiet", pip_name]
-                # 為 torch 指定額外的索引 URL 以加速下載
-                if 'torch' in pip_name:
-                    command.extend(["torchvision", "torchaudio", "--index-url", "https://download.pytorch.org/whl/cpu"])
-                
-                subprocess.check_call(command)
-                print(f"   ✅ {pip_name} 處理成功。")
+                print(f"   - 正在安裝 {package}...")
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "--quiet", package])
+                print(f"   ✅ {package} 安裝成功。")
             except subprocess.CalledProcessError:
-                print(f"   🔥 {pip_name} 處理失敗！請手動在終端機執行 'pip install \"{pip_name}\"'。")
+                print(f"   🔥 {package} 安裝失敗！請手動在終端機執行 'pip install {package}'。")
                 if os.name == 'nt': os.system("pause")
                 sys.exit(1)
-        print("\n🔄 依賴項安裝/升級完畢。為確保所有模組被正確加載，程式將自動重啟...")
+        print("\n🔄 依賴項安裝完畢。為確保所有模組被正確加載，程式將自動重啟...")
         sys.exit(0) # 觸發 launcher.py 的重啟機制
 
     try:
@@ -443,14 +421,20 @@ async def start_web_server_task():
     finally:
         print("🔴 [Web Server] 核心服務任務已結束。守護任務將繼續獨立運行。")
 
+# main.py 的 main 函式 (v13.0 - 移除依賴檢查)
+# 更新紀錄:
+# v13.0 (2025-11-26): [重大架構重構] 徹底移除了在 `main.py` 中直接調用 `_check_and_install_dependencies` 的邏輯。此職責已被更上游的 `launcher.py` 完全接管。此修改遵循了「關注點分離」原則，讓啟動器專注於環境準備，而主程式專注於應用邏輯，使架構更清晰、更健壯。
+# v12.0 (2025-11-26): [重大架構升級] 在程式啟動的最開始，增加了對 `_setup_huggingface_mirror()` 和 `_check_and_install_dependencies()` 的調用。
+# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
 async def main():
     MAIN_PY_VERSION = "v13.0" # 版本號更新
     print(f"--- AI Lover 主程式 ({MAIN_PY_VERSION}) ---")
     
+    # [v12.0 新增] 設定鏡像並檢查依賴
     _setup_huggingface_mirror()
     
     try:
-        # [v13.0 核心修正] 移除此處的依賴檢查調用
+        # [v13.0 核心修正] 移除此處的依賴檢查調用，此職責已移至 launcher.py
         # _check_and_install_dependencies()
         
         ollama_model_to_check = "HammerAI/llama-3-lexi-uncensored:latest"
@@ -493,6 +477,10 @@ async def main():
         traceback.print_exc()
     finally:
         print("主程式 main() 函式已結束。 launcher.py 將在 5 秒後嘗試重啟。")
+
+
+
+
 if __name__ == "__main__":
     try:
         if os.name == 'nt':
@@ -510,6 +498,7 @@ if __name__ == "__main__":
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
         if os.name == 'nt': os.system("pause")
+
 
 
 
