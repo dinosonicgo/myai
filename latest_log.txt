@@ -1,110 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:08:03.912919 ###
+### AI Lover Log - Last updated at 2025-09-29T20:11:12.452309 ###
 
-2025-09-29 12:06:21 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '莉莉絲' 成功補全了 2 個遺漏的別名: ['維利爾斯家女兒', '風雲人物']
-2025-09-29 12:06:21 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '老高' 成功補全了 1 個遺漏的別名: ['獵手']
-2025-09-29 12:06:26 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 4/7...
-2025-09-29 12:06:26 - [INFO] - [512280345618546699] [驗證器-身份] 批次 4: 正在啟動 AI 身份自識別...
-2025-09-29 12:06:27 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.21 秒後進行第 2 次嘗試...
-2025-09-29 12:06:27 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.31 秒後進行第 2 次嘗試...
-2025-09-29 12:06:27 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.42 秒後進行第 2 次嘗試...
-2025-09-29 12:06:27 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.22 秒後進行第 2 次嘗試...
-2025-09-29 12:06:27 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.11 秒後進行第 2 次嘗試...
-2025-09-29 12:06:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '亞瑟' 成功補全了 2 個遺漏的身份標籤: ['快樂派系核心', '性神教義腐化']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '馬丁' 成功補全了 2 個遺漏的身份標籤: ['快樂派系核心', '性神教義腐化']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '克拉拉' 成功補全了 2 個遺漏的身份標籤: ['光明神夏卡爾虔誠信徒', '學院學生領袖']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '阿利斯特' 成功補全了 2 個遺漏的身份標籤: ['觀察者', '歷史老師']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '麥可' 成功補全了 1 個遺漏的身份標籤: ['學院神學老師']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '費奇' 成功補全了 3 個遺漏的身份標籤: ['傳教者', '普通居民', '摯友']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '老羅' 成功補全了 2 個遺漏的身份標籤: ['普通市民', '莊園母畜']
-2025-09-29 12:06:29 - [INFO] - [512280345618546699] [別名審計] 批次 4: 正在啟動別名審計...
-2025-09-29 12:06:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:31 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '亞瑟' 成功補全了 1 個遺漏的別名: ['Martin']
-2025-09-29 12:06:31 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '馬丁' 成功補全了 1 個遺漏的別名: ['Arthur']
-2025-09-29 12:06:36 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 5/7...
-2025-09-29 12:06:36 - [INFO] - [512280345618546699] [驗證器-身份] 批次 5: 正在啟動 AI 身份自識別...
-2025-09-29 12:06:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '馬克' 成功補全了 2 個遺漏的身份標籤: ['市民', '莊園母畜']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '蓋博' 成功補全了 1 個遺漏的身份標籤: ['舊世界道德觀代表']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '薩格納將軍' 成功補全了 4 個遺漏的身份標籤: ['國王信任的戰友', '轉化者', '收藏品', '性神教徒']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '艾莉諾' 成功補全了 5 個遺漏的身份標籤: ['將軍之妻', '公豬', '母畜', '貴族', '園丁']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '菲利普•薩格納' 成功補全了 3 個遺漏的身份標籤: ['教官', '將軍長子', '性神教徒']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '布里奇特' 成功補全了 3 個遺漏的身份標籤: ['武家母畜', '戰士母畜', '大女兒']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瓦萊麗' 成功補全了 2 個遺漏的身份標籤: ['武家母畜', '薩格納二女兒']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '國王埃德蒙三世' 成功補全了 3 個遺漏的身份標籤: ['性神教徒', '聖軍計畫', '王國最高統治者']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '大皇子阿拉里克' 成功補全了 2 個遺漏的身份標籤: ['戰士', '王國第一順位繼承人']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '三皇子赫克托' 成功補全了 3 個遺漏的身份標籤: ['國王健康兒子', '未來王位繼承者', '性神聖戰領導者']
-2025-09-29 12:06:38 - [INFO] - [512280345618546699] [別名審計] 批次 5: 正在啟動別名審計...
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '蓋博' 成功補全了 1 個遺漏的別名: ['(Gable) 太太']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '薩格納將軍' 成功補全了 1 個遺漏的別名: ['(General Sagnac) - 「血斧」']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '艾莉諾' 成功補全了 1 個遺漏的別名: ['(Eleonora)']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '菲利普•薩格納' 成功補全了 1 個遺漏的別名: ['(Philip Sagnac) - 「靈光戰斧」']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '布里奇特' 成功補全了 2 個遺漏的別名: ['(Bridget)', '(Bridget) - 「武勇母畜」']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '瓦萊麗' 成功補全了 2 個遺漏的別名: ['(Valerie) - 「技巧母畜」', '(Valerie)']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '國王埃德蒙三世' 成功補全了 1 個遺漏的別名: ['(King Edmund III)']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '大皇子阿拉里克' 成功補全了 1 個遺漏的別名: ['(Crown Prince Alaric)']
-2025-09-29 12:06:40 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '三皇子赫克托' 成功補全了 1 個遺漏的別名: ['(Hector)']
-2025-09-29 12:06:45 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 6/7...
-2025-09-29 12:06:45 - [INFO] - [512280345618546699] [驗證器-身份] 批次 6: 正在啟動 AI 身份自識別...
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '二公主塞拉菲娜' 成功補全了 1 個遺漏的身份標籤: ['祭品']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '三皇女伊索爾德' 成功補全了 2 個遺漏的身份標籤: ['聖軍計畫提出者', '皇家衛隊總司令博林皈依引領者']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '博林勳爵' 成功補全了 3 個遺漏的身份標籤: ['聖光明教會狂信徒', '聖軍計畫轉化目標', '性神教徒']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '大主教安布羅斯' 成功補全了 3 個遺漏的身份標籤: ['舊世界秩序維護者', '聖光明教會最高領袖', '聖十字軍']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '瓦勒留斯神父' 成功補全了 2 個遺漏的身份標籤: ['神父', '聖女']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '麥可神父' 成功補全了 2 個遺漏的身份標籤: ['神學老師', '理論派']
-2025-09-29 12:06:46 - [INFO] - [512280345618546699] [別名審計] 批次 6: 正在啟動別名審計...
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '二公主塞拉菲娜' 成功補全了 1 個遺漏的別名: ['Second Princess Seraphina']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '三皇女伊索爾德' 成功補全了 1 個遺漏的別名: ['Third Princess Isolde']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '博林勳爵' 成功補全了 2 個遺漏的別名: ['已叛教', 'Lord Borin']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '大主教安布羅斯' 成功補全了 1 個遺漏的別名: ['Grand Archbishop Ambrose']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '巴納比' 成功補全了 2 個遺漏的別名: ['消息靈通、對傳聞感到興奮的年輕學徒', 'Barnaby']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '奧斯華' 成功補全了 2 個遺漏的別名: ['Oswald', '務實、憤世嫉俗的懷疑論者鐵匠']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '艾諾拉' 成功補全了 2 個遺漏的別名: ['Eleanor', '因家人患病而對傳聞抱有絕望希望的膽怯女裁縫']
-2025-09-29 12:06:48 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '漢德瑞克師傅' 成功補全了 2 個遺漏的別名: ['Master Hendrick', '洞悉世事、敬畏權威、勸誡大家明哲保身的年長麵包師']
-2025-09-29 12:06:53 - [INFO] - [512280345618546699] [驗證器] 正在處理批次 7/7...
-2025-09-29 12:06:53 - [INFO] - [512280345618546699] [驗證器-身份] 批次 7: 正在啟動 AI 身份自識別...
-2025-09-29 12:06:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-29 12:06:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-29 12:06:54 - [INFO] - [512280345618546699] [驗證器-身份] ✅ 為角色 '絲月' 成功補全了 1 個遺漏的身份標籤: ['活體神聖燈塔']
-2025-09-29 12:06:54 - [INFO] - [512280345618546699] [別名審計] 批次 7: 正在啟動別名審計...
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [別名審計] ✅ 為角色 '絲月' 成功補全了 4 個遺漏的別名: ['艾莉諾', 'Siyue', 'Eleonora', '絲月']
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [混合式安全驗證器 v5.1] 所有校驗步驟已全部完成。
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 正在啟動事後關係校準模塊...
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 凱爾 -> 艾拉 (New Roles: ['妹妹', '性伴侶', '亂倫/禁忌'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 艾拉 -> 凱爾 (New Roles: ['兄長', '性伴侶', '亂倫/禁忌'])
-2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 瑪倫 -> 里斯 (New Roles: ['兒子', '子女'])
 2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 里斯 -> 瑪倫 (New Roles: ['父母', '母親'])
 2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 凱爾 -> 索菲亞 (Roles: ['輪姦治療'])
 2025-09-29 12:06:55 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 米婭 -> 泰莎 (Roles: ['模仿對象'])
@@ -300,3 +195,108 @@ WHERE users.user_id = ?]
 2025-09-29 20:07:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 20:07:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 20:07:53 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 20:08:16 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 20:08:16 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:08:16 - [ERROR] - [512280345618546699] 後台重置任務失敗: (sqlite3.OperationalError) no such column: users.context_snapshot_json
+[SQL: SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.ai_settings AS users_ai_settings, users.affinity AS users_affinity, users.game_state AS users_game_state, users.one_instruction AS users_one_instruction, users.world_settings AS users_world_settings, users.user_profile AS users_user_profile, users.ai_profile AS users_ai_profile, users.response_style_prompt AS users_response_style_prompt, users.context_snapshot_json AS users_context_snapshot_json 
+FROM users 
+WHERE users.user_id = ?]
+[parameters: ('512280345618546699',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
+    raise error
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
+    value = await result
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
+    return await future
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
+    result = function()
+sqlite3.OperationalError: no such column: users.context_snapshot_json
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1712, in start_reset_flow
+    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1367, in get_or_create_ai_instance
+    if await ai_instance.initialize():
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2313, in initialize
+    result = await session.get(UserData, self.user_id)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 595, in get
+    return await greenlet_spawn(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 197, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 3637, in get
+    return self._get_impl(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 3817, in _get_impl
+    return db_load_fn(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\loading.py", line 694, in load_on_pk_identity
+    session.execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
+    return self._execute_internal(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2191, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
+    result = conn.execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1408, in execute
+    return meth(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 513, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1630, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1839, in _execute_context
+    return self._exec_single_context(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1979, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2335, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
+    raise error
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
+    value = await result
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
+    return await future
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
+    result = function()
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: users.context_snapshot_json
+[SQL: SELECT users.user_id AS users_user_id, users.username AS users_username, users.ai_name AS users_ai_name, users.ai_settings AS users_ai_settings, users.affinity AS users_affinity, users.game_state AS users_game_state, users.one_instruction AS users_one_instruction, users.world_settings AS users_world_settings, users.user_profile AS users_user_profile, users.ai_profile AS users_ai_profile, users.response_style_prompt AS users_response_style_prompt, users.context_snapshot_json AS users_context_snapshot_json 
+FROM users 
+WHERE users.user_id = ?]
+[parameters: ('512280345618546699',)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-09-29 20:10:58 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 20:10:58 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 20:10:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 20:10:58 - [INFO] - Discord Bot is ready!
+2025-09-29 20:11:01 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 20:11:01 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 20:11:02 - [INFO] - 已成功發送啟動成功通知給管理員。
