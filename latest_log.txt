@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T00:44:06.685337 ###
+### AI Lover Log - Last updated at 2025-09-30T00:47:29.904625 ###
 
-    self.vector_store = Chroma(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 194, in __init__
-    self._client = chromadb.Client(_client_settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
-    self._validate_tenant_database(tenant=tenant, database=database)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
     raise ValueError(
 ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
@@ -300,3 +293,10 @@ Traceback (most recent call last):
     raise RuntimeError("即使在強制重建後，Vector Store 仍然無法初始化。")
 RuntimeError: 即使在強制重建後，Vector Store 仍然無法初始化。
 2025-09-30 00:40:53 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-30 00:47:15 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 00:47:15 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 00:47:16 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 00:47:16 - [INFO] - Discord Bot is ready!
+2025-09-30 00:47:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 00:47:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 00:47:19 - [INFO] - 已成功發送啟動成功通知給管理員。
