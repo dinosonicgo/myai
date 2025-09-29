@@ -301,9 +301,8 @@ class ContinueToCanonSetupView(discord.ui.View):
                 await interaction.followup.send("❌ 檔案過大！请重新开始 `/start` 流程。", ephemeral=True)
                 return
 
-            await interaction.followup.send("✅ 檔案已接收！創世流程已在後台啟動，完成後您將收到開場白。這可能需要數分鐘，請耐心等候。
-
-[1](comet://newtab/)", ephemeral=True)
+            # [v1.8 核心修正] 將多行字串修正為語法正確的單行字串
+            await interaction.followup.send("✅ 檔案已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
             
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
@@ -2122,6 +2121,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
