@@ -1,64 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:28:23.914253 ###
+### AI Lover Log - Last updated at 2025-09-29T20:33:26.973712 ###
 
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 127, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 192, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 133, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 106, in run
-    result = function()
-sqlite3.OperationalError: no such column: users.context_snapshot_json
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1712, in start_reset_flow
-    ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1367, in get_or_create_ai_instance
-    if await ai_instance.initialize():
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2313, in initialize
-    result = await session.get(UserData, self.user_id)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 595, in get
-    return await greenlet_spawn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 197, in greenlet_spawn
-    result = context.throw(*sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 3637, in get
-    return self._get_impl(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 3817, in _get_impl
-    return db_load_fn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\loading.py", line 694, in load_on_pk_identity
-    session.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2306, in execute
-    return self._execute_internal(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2191, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
-    result = conn.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1408, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 513, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1630, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1839, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1979, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2335, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1960, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
     self._adapt_connection._handle_exception(error)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
     raise error
@@ -300,3 +241,62 @@ AttributeError: 'AILover' object has no attribute 'get_unified_generation_chain'
 2025-09-29 20:18:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 20:18:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 20:18:07 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 20:32:56 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:32:56 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化。
+2025-09-29 20:32:59 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 僅有一個檢索器可用，系統已降級為純 Chroma 檢索。
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:32:59 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-29 20:32:59 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
+2025-09-29 20:33:00 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-29 20:33:01 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-29 20:33:02 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 1 條場景歷史記錄。
+2025-09-29 20:33:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-29 20:33:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 20:33:09 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 460, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 517, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\rust.py", line 165, in get_tenant
+    tenant = self.bindings.get_tenant(name)
+AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 506, in _load_or_build_rag_retriever
+    chroma_client = chromadb.PersistentClient(path=self.vector_store_path)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 164, in PersistentClient
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 87, in __init__
+    self._validate_tenant_database(tenant=self.tenant, database=self.database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 469, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-29 20:33:09 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-29 20:33:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-29 20:33:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:33:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-29 20:33:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-29 20:33:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-29 20:33:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-29 20:33:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
