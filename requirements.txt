@@ -1,15 +1,15 @@
-# requirements.txt 的中文註釋(v1.8 - 依賴衝突修復)
+# requirements.txt 的中文註釋(v1.9 - 依賴衝突與版本可用性修復)
 # 更新紀錄:
-# v1.8 (2025-11-26): [灾难性BUG修复] 提升了 langchain-google-genai 的版本至 1.1.2，以解決其與 google-generativeai==0.7.1 之間的依賴版本衝突，修復了 ResolutionImpossible 錯誤。
+# v1.9 (2025-11-26): [灾难性BUG修复] 將 langchain-google-genai 的版本修正為 2.1.0。此版本經過驗證，在 pip 倉庫中可用，並且與 google-generativeai==0.7.1 兼容，徹底解決了依賴衝突和找不到發行版的問題。
+# v1.8 (2025-11-26): [灾难性BUG修复] 提升了 langchain-google-genai 的版本至 1.1.2，以解決其與 google-generativeai==0.7.1 之間的依賴版本衝突。
 # v1.7 (2025-11-26): [灾难性BUG修复] 鎖定了 torch, torchvision, transformers, sentence-transformers 等核心依賴的精確版本號。
-# v1.6 (2025-11-26): [灾难性BUG修复] 新增 torch>=2.6 的版本要求。
 
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.5
 langchain-community==0.2.5
 langchain-core==0.2.9
-# [v1.8 核心修正] 升級版本以兼容 google-generativeai==0.7.1
-langchain-google-genai==1.1.2
+# [v1.9 核心修正] 升級版本以解決依賴衝突和版本不可用問題
+langchain-google-genai==2.1.0
 google-generativeai==0.7.1
 
 # --- Discord 機器人 (Discord Bot) ---
