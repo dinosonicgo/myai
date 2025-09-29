@@ -4274,10 +4274,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
     # 函式：執行 LORE 解析管線 (v5.2 - 摘要備援修正)
-    # 更新紀錄:
-    # v5.2 (2025-09-29): [災難性BUG修復] 徹底重構了分塊摘要的備援邏輯，引入【快速失敗轉向無審查核心】策略。現在，當雲端摘要因內容審查而失敗時，系統會立即放棄通用的euphemize備援，並將該特定文本塊轉交給新增的、專門的本地Ollama摘要器（_invoke_local_ollama_summarizer）處理。此舉從根本上解決了因備援鏈不匹配導致的摘要任務失敗和數據丟失問題。
-    # v5.1 (2025-09-29): [完整性修復] 提供了此函式的終極完整版本。
-    # v5.0 (2025-09-29): [災難性BUG修復] 徹底重構了分塊處理方案，引入了【智能摘要預處理】步驟以解決MAX_TOKENS錯誤，並為本地模型增加了【內容存在性驗證】。
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v5.1 - 摘要備援修正)
+# 更新紀錄:
+# v5.2 (2025-09-29): [災難性BUG修復] 徹底重構了分塊摘要的備援邏輯，引入【快速失敗轉向無審查核心】策略。現在，當雲端摘要因內容審查而失敗時，系統會立即放棄通用的euphemize備援，並將該特定文本塊轉交給新增的、專門的本地Ollama摘要器（_invoke_local_ollama_summarizer）處理。此舉從根本上解決了因備援鏈不匹配導致的摘要任務失敗和數據丟失問題。
+# v5.1 (2025-09-29): [完整性修復] 提供了此函式的終極完整版本。
+# v5.0 (2025-09-29): [災難性BUG修復] 徹底重構了分塊處理方案，引入了【智能摘要預處理】步驟以解決MAX_TOKENS錯誤，並為本地模型增加了【內容存在性驗證】。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
         【核心 LORE 解析引擎】執行一個多層降級的解析管線，以確保資訊的最大保真度。
@@ -4324,23 +4325,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE 解析 1/6] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
 
-        # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
-        if not parsing_completed and self.is_ollama_available:
-            try:
-                logger.info(f"[{self.user_id}] [LORE 解析 2/6] 正在嘗試【本地備援方案：無審查解析】...")
-                parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
-                
-                if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                    logger.info(f"[{self.user_id}] [LORE 解析 2/6] ✅ 成功！本地模型成功提取到 LORE 數據。")
-                    final_parsing_result = parsing_result
-                    all_successful_keys.extend(extract_keys_from_result(parsing_result))
-                    parsing_completed = True
-                else:
-                    logger.warning(f"[{self.user_id}] [LORE 解析 2/6] 本地模型未能提取任何 LORE 內容（靜默失敗），正在降級...")
-
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 2/6] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
-        
         # --- 層級 3: 【分塊摘要處理方案】處理超長文本 ---
         try:
             if not parsing_completed:
@@ -4406,7 +4390,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE 解析 3/6] 分塊摘要處理方案遭遇未知錯誤: {e}", exc_info=True)
 
+        # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
+        if not parsing_completed and self.is_ollama_available:
+            try:
+                logger.info(f"[{self.user_id}] [LORE 解析 2/6] 正在嘗試【本地備援方案：無審查解析】...")
+                parsing_result = await self._invoke_local_ollama_parser(text_to_parse)
+                
+                if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
+                    logger.info(f"[{self.user_id}] [LORE 解析 2/6] ✅ 成功！本地模型成功提取到 LORE 數據。")
+                    final_parsing_result = parsing_result
+                    all_successful_keys.extend(extract_keys_from_result(parsing_result))
+                    parsing_completed = True
+                else:
+                    logger.warning(f"[{self.user_id}] [LORE 解析 2/6] 本地模型未能提取任何 LORE 內容（靜默失敗），正在降級...")
 
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [LORE 解析 2/6] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+        
         # --- 層級 4: 【安全代碼方案】全文無害化解析 (Gemini) ---
         try:
             if not parsing_completed:
@@ -4547,7 +4547,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.error(f"[{self.user_id}] [LORE 解析] 所有六層解析方案均最終失敗。")
         
         return parsing_completed, final_parsing_result, all_successful_keys
-    # 函式：執行 LORE 解析管線
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式結束
 
 
     
@@ -5463,6 +5463,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
