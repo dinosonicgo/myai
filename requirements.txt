@@ -1,15 +1,8 @@
-# requirements.txt 的中文註釋(v2.0 - Langchain家族版本協調)
-# 更新紀錄:
-# v2.0 (2025-11-26): [灾难性BUG修复] 協調了所有 langchain-* 套件的版本。將 langchain-core 降至 0.2.5 以匹配主套件，並將 langchain-chroma 升級至 0.1.2，以解決因版本不匹配導致的致命依賴衝突。
-# v1.9 (2025-11-26): [灾难性BUG修复] 將 langchain-google-genai 的版本修正為 2.1.0，解決了依賴衝突和找不到發行版的問題。
-# v1.8 (2025-11-26): [灾难性BUG修复] 提升了 langchain-google-genai 的版本以解決依賴版本衝突。
-
 # --- 核心框架 (Core Framework) ---
-langchain==0.2.5
-langchain-community==0.2.5
-# [v2.0 核心修正] 版本與 langchain 主套件對齊
-langchain-core==0.2.5
-langchain-google-genai==2.1.0
+langchain==0.2.11
+langchain-core==0.2.36
+langchain-community==0.2.10
+langchain-google-genai==1.0.10
 google-generativeai==0.7.1
 
 # --- Discord 機器人 (Discord Bot) ---
@@ -32,13 +25,11 @@ python-multipart==0.0.9
 websockets==12.0
 
 # --- RAG 系統 (Retrieval-Augmented Generation) ---
-# [v1.7 核心修正] 鎖定所有 RAG 相關函式庫到一個已知的穩定組合
 torch==2.3.1
 torchvision==0.18.1
 transformers==4.41.2
 sentence-transformers==3.0.1
 chromadb==0.5.3
-# [v2.0 核心修正] 升級版本以兼容新版 langchain-core
 langchain-chroma==0.1.2
 rank_bm25==0.2.2
 
