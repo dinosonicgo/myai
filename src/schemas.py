@@ -50,6 +50,11 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
     roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
 
+# schemas.py 的 CharacterProfile 模型 (v2.1 - 新增備用名稱)
+# 更新紀錄:
+# v2.1 (2025-09-28): [架構擴展] 新增了 alternative_names 欄位。此欄位由程式化的「LORE校驗器」在後台填充，為 LLM 提供一組在主名稱衝突或不明確時可以安全使用的備用標準名稱，旨在提高後續 LORE 合併與更新的準確性。
+# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
+# v1.4 (2025-09-26): [災難性BUG修復] 在文件頂部增加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -119,6 +124,7 @@ class CharacterProfile(BaseModel):
             else:
                 normalized_dict[str(k)] = RelationshipDetail(roles=[str(v)])
         return normalized_dict
+# CharacterProfile 模型結束
 
 class BatchRefinementResult(BaseModel):
     """包裹第二階段批量深度精煉結果的模型。"""
@@ -470,6 +476,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
