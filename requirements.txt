@@ -1,8 +1,8 @@
-# requirements.txt 的中文註釋(v2.3 - RAG黃金版本鎖定)
+# requirements.txt 的中文註釋(v2.4 - 消除棄用警告)
 # 更新紀錄:
-# v2.3 (2025-11-26): [灾难性BUG修复] 將 transformers 和 sentence-transformers 降級到一個已知的穩定組合 (4.36.2 和 2.7.0)，並新增 peft==0.9.0 作為直接依賴。此舉旨在徹底解決因版本不匹配導致的 'EncoderDecoderCache' ImportError。
-# v2.2 (2025-11-26): [驗證確認] 審查並確認現有依賴項已完整包含本地 RAG 系統所需的所有套件。
-# v2.1 (2025-11-26): [重大架構升級] 新增了 torch, torchvision, transformers, sentence-transformers 等核心依賴。
+# v2.4 (2025-11-26): [架構優化] 新增 langchain-huggingface 依賴。根據 LangChain 官方的棄用警告，將 HuggingFaceEmbeddings 的來源遷移到這個新的獨立套件，以確保未來的兼容性並消除警告日誌。
+# v2.3 (2025-11-26): [灾难性BUG修复] 鎖定 RAG 相關函式庫到一個已知的穩定組合，解決 'EncoderDecoderCache' ImportError。
+# v2.2 (2025-11-26): [驗證確認] 確認現有依賴項已完整包含本地 RAG 系統所需的所有套件。
 
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.11
@@ -10,6 +10,8 @@ langchain-core==0.2.36
 langchain-community==0.2.10
 langchain-google-genai==1.0.10
 google-generativeai==0.7.1
+# [v2.4 新增] 根據官方建議，用於本地 Embedding 的新套件
+langchain-huggingface==0.0.3
 
 # --- Discord 機器人 (Discord Bot) ---
 discord.py==2.3.2
