@@ -3545,28 +3545,33 @@ class ExtractionResult(BaseModel):
     # 獲取場景中的相關 NPC 函式結束
     
 
-    # 函式：關閉 AI 實例並釋放資源 (v198.2 - 完成重構)
+    # ai_core.py 的 shutdown 函式 (v198.1 - 資源釋放修正)
     # 更新紀錄:
-    # v198.2 (2025-11-22): [災難性BUG修復] 將 session_histories 的引用更新為 scene_histories。
-    # v198.1 (2025-09-02): [災難性BUG修復] 徹底重構了 ChromaDB 的關閉邏輯。
+    # v198.1 (2025-09-02): [灾难性BUG修复] 徹底重構了 ChromaDB 的關閉邏輯。新邏輯會深入到 LangChain 的 Chroma 對象內部，獲取底層的 chromadb 客戶端實例，並直接調用其 `_system.stop()` 方法。此修改旨在強制關閉所有到 sqlite 文件的連接，釋放文件句柄，從根源上解決在 `/start` 重置流程中因文件被鎖定而導致的 `PermissionError: [WinError 32]` 和連鎖的初始化失敗問題。
     # v198.0 (2025-09-02): [重大架構重構] 移除了所有 LangGraph 相關的清理邏輯。
+    # v198.2 (2025-11-22): [災難性BUG修復] 將 session_histories 的引用更新為 scene_histories。
     async def shutdown(self):
         logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放資源...")
         
         if self.vector_store:
             try:
+                # 深入內部獲取 chromadb 的原生 client
                 client = self.vector_store._client
                 if client and hasattr(client, '_system') and hasattr(client._system, 'stop'):
+                    # 調用底層系統的停止方法，這是最可靠的關閉方式
                     client._system.stop()
                     logger.info(f"[{self.user_id}] ChromaDB 後台服務已請求停止。")
             except Exception as e:
                 logger.warning(f"[{self.user_id}] 關閉 ChromaDB 客戶端時發生非致命錯誤: {e}", exc_info=True)
         
+        # 釋放對象引用
         self.vector_store = None
         self.retriever = None
     
+        # 觸發垃圾回收
         gc.collect()
         
+        # 給予一點時間讓作業系統釋放文件句柄
         await asyncio.sleep(1.0)
         
         # 清理所有緩存的 PromptTemplate
@@ -3586,6 +3591,11 @@ class ExtractionResult(BaseModel):
         
         logger.info(f"[{self.user_id}] AI 實例資源已釋放。")
     # 關閉 AI 實例並釋放資源 函式結束
+
+
+
+
+    
     
     # 函式：加載所有模板檔案 (v175.0 - 回歸單一最高指令)
     # 更新紀錄:
@@ -5305,6 +5315,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
