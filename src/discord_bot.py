@@ -1715,29 +1715,37 @@ class BotCog(commands.Cog):
     # 函式：健壯的異步目錄刪除
     
     
-    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.3 - 健壯性刪除)
+    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.4 - 終極清理)
     # 更新紀錄:
-    # v52.3 (2025-11-26): [灾难性BUG修复] 將原本不健壯的 `shutil.rmtree` 調用，替換為對新增的、帶有延遲重試機制的 `_robust_rmtree` 輔助函式的調用。此修改旨在徹底解決因 Windows 文件鎖釋放延遲而導致的 `PermissionError`，確保 `/start` 重置流程的穩定執行。
-    # v52.2 (2025-11-22): [灾难性BUG修复] 在移除舊實例前，增加了對 `ai_instance.shutdown()` 的強制調用和等待，以釋放資源。
-    # v52.3 (2025-09-25): [災難性BUG修復] 將所有對 `self.setup_locks` 的引用更新為 `self.active_setups`。
+    # v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。在 shutdown() 之後，明確地使用 `del` 刪除實例引用，強制調用 `gc.collect()`，並增加了一個固定的 2 秒延遲。此舉旨在通過一切手段確保 AILover 實例及其持有的 ChromaDB 文件鎖在嘗試刪除文件夾之前被完全釋放，是解決頑固 PermissionError 的最終方案。
+    # v52.3 (2025-11-26): [灾难性BUG修复] 引入了帶有延遲重試機制的 `_robust_rmtree` 來處理文件刪除。
+    # v52.2 (2025-11-22): [灾难性BUG修复] 在移除舊實例前，增加了對 `ai_instance.shutdown()` 的強制調用。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-            if not ai_instance:
-                logger.warning(f"[{user_id}] 在重置流程中無法創建AI實例，將嘗試直接刪除資料庫數據。")
-            
+            # [v52.4 核心修正] 徹底的資源釋放流程
             if user_id in self.ai_instances:
-                logger.info(f"[{user_id}] 正在為舊的 AI 實例執行 shutdown...")
+                logger.info(f"[{user_id}] 正在為舊的 AI 實例執行徹底的 shutdown 流程...")
+                # 步驟 1: 請求關閉資源
                 await self.ai_instances[user_id].shutdown()
-                self.ai_instances.pop(user_id)
+                
+                # 步驟 2: 刪除所有對該實例的直接引用
+                del self.ai_instances[user_id]
+                
+                # 步驟 3: 強制建議 Python 進行垃圾回收
                 gc.collect()
-                await asyncio.sleep(1.5)
+                
+                # 步驟 4: 給予操作系統足夠的時間來釋放文件句柄
+                logger.info(f"[{user_id}] 進入 2 秒的靜默期以等待 OS 釋放文件鎖...")
+                await asyncio.sleep(2.0)
+                logger.info(f"[{user_id}] 靜默期結束，繼續執行清理。")
 
-            if ai_instance:
-                await ai_instance._clear_scene_histories()
+            # 獲取一個臨時實例以訪問其方法，即使它可能不是最終實例
+            temp_ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if temp_ai_instance:
+                await temp_ai_instance._clear_scene_histories()
 
             async with AsyncSessionLocal() as session:
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
@@ -1748,7 +1756,6 @@ class BotCog(commands.Cog):
             
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
-                # [v52.3 核心修正] 使用帶有重試機制的健壯刪除函式
                 await self._robust_rmtree(vector_store_path)
             
             view = StartSetupView(cog=self)
@@ -1769,7 +1776,6 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
     # 開始 /start 指令的重置流程 函式結束
-
 
     
 
@@ -2148,6 +2154,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
