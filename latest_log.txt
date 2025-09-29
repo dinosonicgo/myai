@@ -1,138 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T20:42:23.262062 ###
+### AI Lover Log - Last updated at 2025-09-29T20:47:26.659475 ###
 
-    final_response = await ai_instance.preprocess_and_generate(input_data)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3001, in preprocess_and_generate
-    final_prompt_template = self.get_unified_generation_chain()
-AttributeError: 'AILover' object has no attribute 'get_unified_generation_chain'. Did you mean: 'get_entity_extraction_chain'?
-2025-09-29 20:18:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 20:18:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 20:18:04 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 20:18:04 - [INFO] - Discord Bot is ready!
-2025-09-29 20:18:07 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 20:18:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 20:18:07 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-29 20:32:56 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
-2025-09-29 20:32:56 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化。
-2025-09-29 20:32:59 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 僅有一個檢索器可用，系統已降級為純 Chroma 檢索。
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-29 20:32:59 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-29 20:32:59 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
-2025-09-29 20:33:00 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-29 20:33:01 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-29 20:33:02 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 1 條場景歷史記錄。
-2025-09-29 20:33:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-29 20:33:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 20:33:09 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: Could not connect to tenant default_tenant. Are you sure it exists?
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 460, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 517, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\rust.py", line 165, in get_tenant
-    tenant = self.bindings.get_tenant(name)
-AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 506, in _load_or_build_rag_retriever
-    chroma_client = chromadb.PersistentClient(path=self.vector_store_path)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 164, in PersistentClient
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 87, in __init__
-    self._validate_tenant_database(tenant=self.tenant, database=self.database)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 469, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-2025-09-29 20:33:09 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-29 20:33:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-29 20:33:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 20:33:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-29 20:33:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-29 20:33:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-29 20:33:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 20:33:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-29 20:33:31 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-29 20:33:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-29 20:33:32 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-29 20:35:24 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-29 20:35:24 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-29 20:35:24 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-29 20:35:24 - [INFO] - Discord Bot is ready!
-2025-09-29 20:35:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-29 20:35:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-29 20:35:28 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-29 20:35:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
-2025-09-29 20:35:32 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化于路径: D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699\chroma_db
-2025-09-29 20:35:33 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 僅有一個檢索器可用，系統已降級為純 Chroma 檢索。
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-29 20:35:33 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-29 20:35:33 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
-2025-09-29 20:35:34 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-29 20:35:36 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-29 20:35:36 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-29 20:35:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-29 20:35:43 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
-2025-09-29 20:35:43 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: Could not connect to tenant default_tenant. Are you sure it exists?
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 460, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 517, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\rust.py", line 165, in get_tenant
-    tenant = self.bindings.get_tenant(name)
-AttributeError: 'RustBindingsAPI' object has no attribute 'bindings'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 509, in _load_or_build_rag_retriever
-    self.vector_store = Chroma(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 370, in __init__
-    self._client = chromadb.PersistentClient(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 164, in PersistentClient
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 87, in __init__
-    self._validate_tenant_database(tenant=self.tenant, database=self.database)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 469, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-2025-09-29 20:35:43 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
-2025-09-29 20:35:43 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
 2025-09-29 20:35:43 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
 2025-09-29 20:35:43 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
 2025-09-29 20:35:43 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
@@ -300,3 +167,136 @@ PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另�
 2025-09-29 20:42:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-29 20:42:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-29 20:42:13 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-29 20:42:36 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-29 20:42:36 - [INFO] - [512280345618546699] 正在从数据库删除所有相关数据...
+2025-09-29 20:42:36 - [INFO] - [512280345618546699] 数据库清理完成。
+2025-09-29 20:42:36 - [INFO] - [512280345618546699] 正在物理删除向量存储目录: D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699
+2025-09-29 20:42:36 - [INFO] - [512280345618546699] 向量存储目录删除完成。
+2025-09-29 20:42:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 20:42:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-29 20:42:47 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-29 20:42:48 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: False)...
+2025-09-29 20:42:48 - [INFO] - [512280345618546699] (Retriever Builder) ⚠️ SQL 知識庫為空，BM25 檢索器未初始化。
+2025-09-29 20:42:48 - [WARNING] - [512280345618546699] (Retriever Builder) ⚠️ 檢測到空的或未初始化的 ChromaDB 目錄。正在執行【虛擬初始化】...
+2025-09-29 20:42:49 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 227, in embed_documents
+    result = self.client.batch_embed_contents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1392, in batch_embed_contents
+    response = rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
+    result = target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 519, in _load_or_build_rag_retriever
+    temp_vector_store = await asyncio.to_thread(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 1371, in from_documents
+    return cls.from_texts(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 1304, in from_texts
+    chroma_collection.add_texts(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 606, in add_texts
+    embeddings = self._embedding_function.embed_documents(texts)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 231, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-09-29 20:42:49 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 所有檢索器均初始化失敗！RAG 系統將返回空結果。
+2025-09-29 20:42:49 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-29 20:42:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-29 20:42:49 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-29 20:42:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
