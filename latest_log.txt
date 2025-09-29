@@ -1,119 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T00:47:29.904625 ###
+### AI Lover Log - Last updated at 2025-09-30T00:52:51.827676 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-2025-09-30 00:27:20 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 00:27:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 00:27:20 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 00:27:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 00:27:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 00:27:33 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 00:27:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 00:27:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 00:27:34 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 00:27:45 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 00:27:45 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 00:27:46 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 00:27:48 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
-2025-09-30 00:27:55 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 00:27:58 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
-2025-09-30 00:27:58 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
-2025-09-30 00:27:58 - [ERROR] - [512280345618546699] (Canon Processor) Vector store 未初始化，無法添加世界聖經。
-2025-09-30 00:27:58 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 00:27:58 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 00:27:58 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
-    return f(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
-    return self._sysdb.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
-    row = cur.execute(sql, params).fetchone()
-sqlite3.OperationalError: no such table: tenants
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 583, in _load_or_build_rag_retriever
-    self.vector_store = Chroma(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 194, in __init__
-    self._client = chromadb.Client(_client_settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
-    self._validate_tenant_database(tenant=tenant, database=database)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
-    raise ValueError(
-ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
-2025-09-30 00:27:58 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: 即使在強制重建後，Vector Store 仍然無法初始化。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1303, in _perform_full_setup_flow
-    await ai_instance.add_canon_to_vector_store(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3660, in add_canon_to_vector_store
-    raise RuntimeError("即使在強制重建後，Vector Store 仍然無法初始化。")
-RuntimeError: 即使在強制重建後，Vector Store 仍然無法初始化。
-2025-09-30 00:27:58 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
-2025-09-30 00:30:45 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 00:30:45 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 00:30:45 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 00:30:45 - [INFO] - Discord Bot is ready!
-2025-09-30 00:30:48 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 00:30:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 00:30:49 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 00:31:02 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 00:31:02 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 00:31:02 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 00:31:02 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 00:31:02 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 00:31:05 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 00:31:05 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-09-30 00:31:10 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
-2025-09-30 00:31:10 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
-2025-09-30 00:31:10 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
-2025-09-30 00:31:11 - [INFO] - [512280345618546699] AI 實例資源已釋放。
-2025-09-30 00:31:13 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
-2025-09-30 00:31:13 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
-2025-09-30 00:31:36 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 00:31:40 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 00:31:40 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 00:31:40 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 00:31:40 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 00:31:40 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 00:31:40 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 00:31:41 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 00:31:41 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
-2025-09-30 00:31:41 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 00:31:41 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
-    self._admin_client.get_tenant(name=tenant)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
-    return self._server.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
-    return f(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
-    return self._sysdb.get_tenant(name=name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
-    row = cur.execute(sql, params).fetchone()
-sqlite3.OperationalError: no such table: tenants
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 584, in _load_or_build_rag_retriever
-    persistent_client = chromadb.PersistentClient(path=self.vector_store_path)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 153, in PersistentClient
-    return ClientCreator(tenant=tenant, database=database, settings=settings)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
     self._validate_tenant_database(tenant=tenant, database=database)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
@@ -300,3 +186,117 @@ RuntimeError: 即使在強制重建後，Vector Store 仍然無法初始化。
 2025-09-30 00:47:18 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 00:47:18 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 00:47:19 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 00:47:32 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 00:47:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 00:47:32 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 00:47:32 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 00:47:32 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 00:47:35 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 00:47:35 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-09-30 00:47:46 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 00:47:46 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-30 00:47:46 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
+2025-09-30 00:47:47 - [INFO] - [512280345618546699] AI 實例資源已釋放。
+2025-09-30 00:47:49 - [INFO] - [512280345618546699] 正在清除所有短期場景記憶...
+2025-09-30 00:47:49 - [INFO] - [512280345618546699] 已成功從資料庫中刪除 0 條場景歷史記錄。
+2025-09-30 00:47:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-30 00:47:55 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-30 00:47:55 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 00:47:55 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-30 00:47:55 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 00:47:55 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 00:47:55 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行全量創始構建...
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-09-30 00:47:56 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始化空的 RAG 系統時發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
+    return f(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
+    return self._sysdb.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
+    row = cur.execute(sql, params).fetchone()
+sqlite3.OperationalError: no such table: tenants
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 595, in _load_or_build_rag_retriever
+    persistent_client = chromadb.Client(settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
+    self._validate_tenant_database(tenant=tenant, database=database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-30 00:47:56 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-30 00:47:56 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:47:58 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-30 00:48:07 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-30 00:48:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-30 00:48:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:48:09 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-30 00:48:18 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-30 00:48:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-30 00:48:18 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 00:48:20 - [INFO] - [512280345618546699] [创世流程] 档案上传开始，已设置 active_setups 状态锁。
+2025-09-30 00:48:27 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-30 00:48:30 - [INFO] - [512280345618546699] 独立的后台创世流程已为用户启动。
+2025-09-30 00:48:30 - [INFO] - [512280345618546699] [后台创世 1/4] 正在处理世界圣经...
+2025-09-30 00:48:30 - [ERROR] - [512280345618546699] (Canon Processor) Vector store 未初始化，無法添加世界聖經。
+2025-09-30 00:48:30 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-30 00:48:30 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-09-30 00:48:30 - [ERROR] - [512280345618546699] 后台创世流程发生严重错误: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1304, in _perform_full_setup_flow
+    await ai_instance.add_canon_to_vector_store(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3671, in add_canon_to_vector_store
+    await self._load_or_build_rag_retriever(force_rebuild=True)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 545, in _load_or_build_rag_retriever
+    shutil.rmtree(self.vector_store_path)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 749, in rmtree
+    return _rmtree_unsafe(path, onerror)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 619, in _rmtree_unsafe
+    onerror(os.unlink, fullname, sys.exc_info())
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\shutil.py", line 617, in _rmtree_unsafe
+    os.unlink(fullname)
+PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\chroma.sqlite3'
+2025-09-30 00:48:30 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-30 00:52:31 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 00:52:31 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 00:52:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 00:52:31 - [INFO] - Discord Bot is ready!
+2025-09-30 00:52:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 00:52:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 00:52:35 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 00:52:42 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 00:52:42 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 00:52:42 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 00:52:42 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 00:52:42 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 00:52:45 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 00:52:45 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-09-30 00:52:51 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] 所有構建鏈的前置資源已準備就緒。
+2025-09-30 00:52:51 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] 正在為舊的 AI 實例執行 shutdown...
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放資源...
+2025-09-30 00:52:51 - [INFO] - [512280345618546699] ChromaDB 後台服務已請求停止。
