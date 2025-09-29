@@ -18,7 +18,11 @@ engine = create_async_engine(DATABASE_URL, echo=False)
 AsyncSessionLocal = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 Base = declarative_base()
 
-# 類別：用戶核心數據模型
+# database.py 的 UserData 類別 (v5.4 - 新增快照持久化欄位)
+# 更新紀錄:
+# v5.4 (2025-11-24): [健壯性強化] 新增了 context_snapshot_json 欄位。此修改旨在將上一輪對話生成的、用於恢復上下文的快照持久化到資料庫，從根本上解決了因程式重啟導致記憶體中快照丟失，從而使「繼續」等指令失效的問題。
+# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
+# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。
 class UserData(Base):
     __tablename__ = "users"
     
@@ -33,6 +37,8 @@ class UserData(Base):
     user_profile = Column(JSON, nullable=True)
     ai_profile = Column(JSON, nullable=True)
     response_style_prompt = Column(String, nullable=True)
+    # [v5.4 核心修正] 新增上下文快照欄位
+    context_snapshot_json = Column(JSON, nullable=True)
 # 用戶核心數據模型 類別結束
 
 # 類別：長期記憶數據模型
@@ -90,4 +96,5 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
 
