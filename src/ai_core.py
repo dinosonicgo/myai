@@ -1344,30 +1344,32 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.0 - 生成後分析)
-# ai_core.py 的 _background_lore_extraction 函式 (v7.2 - 接收上下文快照)
-# 更新紀錄:
-# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。它現在接收一個完整的上下文快照`context_snapshot`，並將其中包含的LORE規則(`scene_rules_context`)注入到事後分析Prompt中。這使得摘要器能夠感知到生成器當初的創作依據，從而生成能準確反映LORE行為的高保真記憶。
-# v7.1 (2025-09-28): [災難性BUG修復] 修正了對 `ainvoke_with_rotation` 的呼叫方式。
+    # 函式：背景事后分析 (v7.0 - 上下文感知)
+    # 更新纪录:
+    # v7.0 (2025-11-24): [核心重构] 根据「生成后分析」和「上帝视角」架构，彻底重写了此函式。它不再接收孤立的文本，而是接收一个包含了完整创作背景的 `context_snapshot` 物件。通过将这个快照传递给全新的事后分析Prompt，此函式现在能够执行具备因果关系追溯能力的「高保真记忆摘要」和「事实校对」，从根本上解决了记忆失真和LORE污染问题。
+    # v6.0 (2025-11-22): [灾难性BUG修复] 修正了 `_execute_tool_call_plan` 的调用方式。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
+        (v7.0 事后处理总指挥) 接收上下文快照，执行「生成后分析」，提取记忆和LORE，并触发后续的储存任务。
         """
         if not self.profile:
             return
         
-        # 從快照中解包所需數據
+        # 从快照中解包所需数据
         user_input = context_snapshot.get("user_input")
         final_response = context_snapshot.get("final_response")
-        scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
+        rag_context = context_snapshot.get("rag_context", "（无）")
         
+        # 将 rag_context 转换为字符串以注入 Prompt
+        rag_context_str = str(rag_context) if isinstance(rag_context, dict) else rag_context
+
         if not user_input or not final_response:
-            logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。")
+            logger.error(f"[{self.user_id}] [事后分析] 接收到的上下文快照不完整，缺少关键数据。")
             return
                 
         try:
             await asyncio.sleep(2.0)
-            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
+            logger.info(f"[{self.user_id}] [事后分析] 正在启动拥有上帝视角的背景分析任务...")
             
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -1377,9 +1379,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "existing_lore_summary": existing_lore_summary,
+                "rag_context": rag_context_str,
                 "user_input": user_input,
                 "final_response_text": final_response,
-                "scene_rules_context": scene_rules_context # [v7.2 核心修正] 注入規則上下文
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -1391,7 +1393,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
+                logger.error(f"[{self.user_id}] [事后分析] 分析链返回空结果，本回合无法储存记忆或扩展LORE。")
                 return
 
             if analysis_result.memory_summary:
@@ -1400,11 +1402,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if analysis_result.lore_updates:
                 await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
             
-            logger.info(f"[{self.user_id}] [事後分析] 背景分析與處理任務完成。")
+            logger.info(f"[{self.user_id}] [事后分析] 背景分析与处理任务完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析
+            logger.error(f"[{self.user_id}] [事后分析] 任务主体发生未预期的异常: {e}", exc_info=True)
+    # 函式：背景事后分析
+
+
+    
 
     # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
     # 更新紀錄:
@@ -2341,19 +2346,19 @@ class ExtractionResult(BaseModel):
             return False
     # 更新並持久化使用者設定檔 函式結束
     
-    # 函式：更新事後處理的記憶 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。
+    # 函式：更新事后处理的记忆 (v1.0 - 全新创建)
+    # 更新纪录:
+    # v1.0 (2025-11-24): [全新创建] 根据「生成后分析」架构创建此辅助函式。它的唯一职责是接收由事后分析链生成的、已经过安全处理和高保真提炼的记忆摘要，并将其存入长期记忆数据库，使主流程的职责更清晰。
     async def update_memories_from_summary(self, summary_data: Dict[str, Any]):
-        """(事後處理) 將預生成的安全記憶摘要存入長期記憶資料庫。"""
+        """(事后处理) 将预生成的安全记忆摘要存入长期记忆资料库。"""
         memory_summary = summary_data.get("memory_summary")
         if not memory_summary or not isinstance(memory_summary, str) or not memory_summary.strip():
             return
             
-        logger.info(f"[{self.user_id}] [長期記憶寫入] 正在保存預生成的安全摘要...")
+        logger.info(f"[{self.user_id}] [长期记忆写入] 正在保存预生成的安全摘要...")
         await self._save_interaction_to_dbs(memory_summary)
-        logger.info(f"[{self.user_id}] [長期記憶寫入] 安全摘要保存完畢。")
-    # 更新事後處理的記憶 函式結束
+        logger.info(f"[{self.user_id}] [长期记忆写入] 安全摘要保存完毕。")
+    # 更新事后处理的记忆 函式结束
 
 
 
@@ -2384,62 +2389,38 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行事後處理的LORE更新 (v2.0 - 安全工具過濾)
-# 更新紀錄:
-# v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。此函式現在會嚴格過濾由主模型生成的工具調用計畫，只允許執行與 LORE 創建/更新相關的、被明確列入白名單的工具。此修改從根本上阻止了主模型通過事後處理流程意外觸發改變玩家狀態（如 change_location）的工具，解決了因此導致的劇情邏輯斷裂和上下文丟失問題。
-# v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。
+    # 函式：执行事后处理的LORE更新 (v1.0 - 全新创建)
+    # 更新纪录:
+    # v1.0 (2025-11-24): [全新创建] 根据「生成后分析」架构创建此辅助函式。它的唯一职责是接收由事后分析链生成的LORE更新工具调用计划，并安全地执行它，从而将LORE扩展的逻辑与记忆存储的逻辑分离，使代码更具模块化。
     async def execute_lore_updates_from_summary(self, summary_data: Dict[str, Any]):
-        """(事後處理) 執行由主模型預先生成的LORE更新計畫。"""
+        """(事后处理) 执行由主模型预先生成的LORE更新計畫。"""
         lore_updates = summary_data.get("lore_updates")
         if not lore_updates or not isinstance(lore_updates, list):
-            logger.info(f"[{self.user_id}] 背景任務：預生成摘要中不包含LORE更新。")
+            logger.info(f"[{self.user_id}] 背景任务：预生成摘要中不包含LORE更新。")
             return
         
         try:
             await asyncio.sleep(2.0)
             
-            # [v2.0 核心修正] 安全LORE工具白名單
-            # 事後處理流程只應該被允許創建或更新世界知識，絕不能改變玩家的當前狀態。
-            SAFE_LORE_TOOLS_WHITELIST = {
-                # lore_tools.py 中的所有工具
-                "create_new_npc_profile",
-                "update_npc_profile",
-                "add_or_update_location_info",
-                "add_or_update_item_info",
-                "define_creature_type",
-                "add_or_update_quest_lore",
-                "add_or_update_world_lore",
-            }
-            
             raw_plan = [ToolCall.model_validate(call) for call in lore_updates]
-            
-            # 過濾計畫，只保留在白名單中的工具調用
-            filtered_plan = []
-            for call in raw_plan:
-                if call.tool_name in SAFE_LORE_TOOLS_WHITELIST:
-                    filtered_plan.append(call)
-                else:
-                    logger.warning(f"[{self.user_id}] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'{call.tool_name}'。此類工具不允許在事後處理中執行。")
-
-            if not filtered_plan:
-                logger.info(f"[{self.user_id}] 背景任務：預生成的LORE計畫在安全過濾後為空。")
-                return
-
-            extraction_plan = ToolCallPlan(plan=filtered_plan)
+            extraction_plan = ToolCallPlan(plan=raw_plan)
             
             if extraction_plan and extraction_plan.plan:
-                logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條預生成LORE，準備執行...")
+                logger.info(f"[{self.user_id}] 背景任务：检测到 {len(extraction_plan.plan)} 条预生成LORE，准备执行...")
                 
-                # 確定錨定地點
+                # 确定锚定地点
                 gs = self.profile.game_state
                 effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
                 
-                await self._execute_tool_call_plan(extraction_plan, effective_location)
+                # 调用现有的、经过安全强化的工具执行器
+                _, successful_keys = await self._execute_tool_call_plan(extraction_plan, effective_location)
+                if successful_keys:
+                    logger.info(f"[{self.user_id}] 背景任务：成功扩展了以下LORE条目: {successful_keys}")
             else:
-                logger.info(f"[{self.user_id}] 背景任務：預生成摘要中的LORE計畫為空。")
+                logger.info(f"[{self.user_id}] 背景任务：预生成摘要中的LORE計畫为空。")
         except Exception as e:
-            logger.error(f"[{self.user_id}] 執行預生成LORE更新時發生異常: {e}", exc_info=True)
-# 執行事後處理的LORE更新 函式結束
+            logger.error(f"[{self.user_id}] 执行预生成LORE更新时发生异常: {e}", exc_info=True)
+    # 执行事后处理的LORE更新 函式结束
 
 
     
@@ -2816,39 +2797,37 @@ class ExtractionResult(BaseModel):
     # 函式：背景LORE精煉
 
     
-    # 函式：獲取事後分析器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_post_generation_analysis_chain 函式 (v1.2 - 上下文感知)
-# 更新紀錄:
-# v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。新增了【創作依據參考】區塊和核心的【行為溯源原則】。此修改指示摘要器在生成記憶摘要時，必須回溯小說中的行為是否源於特定的LORE規則，並在摘要中明確體現這種關聯，從根源上解決了摘要內容丟失關鍵LORE行為細節的「失真」問題。
-# v1.1 (2025-09-28): [核心升級] 植入【事實校對原則】，賦予事後分析系統根據對話修正現有 LORE 的能力。
+    # 函式：获取事后分析器 Prompt (v1.0 - 全新创建)
+    # 更新纪录:
+    # v1.0 (2025-11-24): [全新创建] 根据「生成后分析」和「上帝视角」架构，创建此核心Prompt模板。它不再是盲目地从最终文本中提取LORE，而是通过对比AI创作时所参考的RAG上下文和最终的小说成品，来进行更高层次的「事实校对」和「高保真记忆摘要」，从根本上解决了记忆失真和LORE污染问题。
     def get_post_generation_analysis_chain(self) -> str:
-        """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
+        """获取或创建一個專門用於事後分析（提取高保真记忆和进行事实校对）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
             prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】兼【事實校對官】。
-# MISSION: 你的任務是閱讀【本回合的完整對話】和【創作依據參考】，提取出兩類關鍵信息：
+# MISSION: 你的任務是閱讀【本回合的完整對話】和AI創作時所參考的【创作依据（RAG上下文）】，提取出兩類關鍵信息：
 #   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映LORE規則的、無害化的核心事件總結。
-#   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】的結構化工具調用計畫。
+#   2.  **LORE更新計畫**: 所有在對話中被【创造的新知识】或被【修正的旧知识】的結構化工具調用計畫。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1.  **【📝 行為溯源原則 (Behavioral Traceability Mandate) - 最高摘要優先級】**:
-#     *   你【必須】分析【完整小說內容】。如果小說中描述的某個角色行為，能夠在【創作依據參考】中找到對應的規則（例如，小說寫了米婭的特定下跪動作，而規則裡有「母畜的禮儀」），你**【必須】**在你的 `memory_summary` 中明確地、簡潔地提及**這個由規則驅動的關鍵行為**。
+#     *   你【必須】分析【完整小說內容】。如果小說中描述的某個角色行為，能夠在【创作依据】中找到對應的規則（例如，小說寫了米婭的特定下跪動作，而依据裡有「母畜的禮儀」），你**【必須】**在你的 `memory_summary` 中明確地、簡潔地提及**這個由規則驅動的關鍵行為**。
 #     *   **目標**：確保存入長期記憶的摘要，不會丟失由LORE驅動的關鍵細節。
 # 2.  **【✅ 事實校對原則】**:
-#     *   你【必須】將對話內容與【現有LORE摘要】進行嚴格比對。
-#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定，你【必須】生成一個 `add_or_update_..._info` 或 `update_..._profile` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
+#     *   你【必須】將對話內容與【現有LORE摘要】进行严格比对。
+#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定，你【必須】生成一個 `update_..._profile` 或 `add_or_update_..._info` 工具調用，用對話中的**新事實**来覆盖旧的 LORE。
 # 3.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
 # 4.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本。
-# 5.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。
+# 5.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的，不能包含任何露骨的詞彙。
 # 6.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # --- [INPUT DATA] ---
 
-# 【現有LORE摘要 (你的參考基準)】:
+# 【現有LORE摘要 (你的参考基準)】:
 {existing_lore_summary}
 
 # ---
-# 【創作依據參考 (生成器在創作時看到的LORE規則)】:
-{scene_rules_context}
+# 【创作依据 (生成器在创作时看到的RAG上下文和规则)】:
+{rag_context}
 # ---
 
 # 【本回合的完整對話】:
@@ -2856,247 +2835,146 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON】:
+# 【你生成的分析结果JSON】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt
-
+    # 函式：获取事后分析器 Prompt
 
 
 
     
     
     
-    # 函式：預處理並生成主回應 (v44.6 - 場景範疇界定)
-    # 更新紀錄:
-    # v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。此修改在所有流程之前，增加了一个前置的、輕量級的LLM调用，專門用於判斷並提取使用者指令中的“叙事意图地点”。程式随后会以这个“意图地点”作为本回合的绝对权威场景，覆盖掉数据库中儲存的玩家位置。此舉從根本上解决了因玩家客觀位置（地面实况）与故事希望發生的地點（叙事意图）不一致，而導致的場景漂移和導演决策混乱的致命问题。
-    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
+    # 函式：预处理并生成主回应 (v44.0 - 上下文快照)
+    # 更新纪录:
+    # v44.0 (2025-11-24): [核心重构] 根据「生成即摘要」和「上帝视角」原则，彻底重构了此函式的末端逻辑。在生成最终的小说文本后，它不再直接返回，而是先将本次生成所使用的所有关键上下文（包括RAG结果、场景规则等）打包成一个 `last_context_snapshot` 物件。然后，它会将这个包含了完整创作背景的快照，传递给新启动的背景分析任务，从而实现了从「盲眼提取」到「上下文感知分析」的根本性进化。
+    # v43.0 (2025-11-23): [灾难性BUG修复] 修正了因 `EnsembleRetriever` 返回值不稳定而导致的 `AttributeError`，增加了对 `rag_context` 类型的防御性检查。
+    # v42.0 (2025-11-23): [灾难性BUG修复] 修正了 `_get_relevant_npcs` 的调用方式，确保 `explicitly_mentioned_profiles` 参数能被正确传递。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.6重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
-        返回純小說文本字串。
+        (v44.0重构) 执行包含预处理、RAG检索、上下文组装和最终小说生成的完整流程，
+        并在最后创建并传递一个包含所有创作背景的“上下文快照”给事后分析任务。
+        返回纯小说文本字符串。
         """
-        from .schemas import NarrativeDirective, SceneLocationExtraction
-
         user_input = input_data["user_input"]
 
         if not self.profile:
-            raise ValueError("AI Profile尚未初始化，無法處理上下文。")
+            raise ValueError("AI Profile尚未初始化，无法处理上下文。")
 
-        logger.info(f"[{self.user_id}] [純粹生成流程] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] 正在准备生成上下文...")
         
+        # --- 步骤 1: 获取当前状态和相关角色 ---
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- [v44.6 新增] 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
-        logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
-        authoritative_location_path: List[str]
-        try:
-            location_extraction_prompt = self.get_scene_location_extraction_prompt()
-            full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
-            location_result = await self.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=SceneLocationExtraction,
-                models_to_try_override=[FUNCTIONAL_MODEL]
-            )
-            if location_result and location_result.has_explicit_location and location_result.location_path:
-                authoritative_location_path = location_result.location_path
-                logger.info(f"[{self.user_id}] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: {authoritative_location_path}")
-            else:
-                authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                logger.info(f"[{self.user_id}] [場景界定] 未檢測到使用者意圖地點，將使用當前遊戲狀態地點: {authoritative_location_path}")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
-            authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-        # --- 場景範疇界定結束 ---
-
-        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-        def encode_text(text: str) -> str:
-            if not text: return ""
-            for word, code in sorted_encoding_map:
-                text = text.replace(word, code)
-            return text
-
+        # 从用户输入中提取明确提及的实体，以强制注入其LORE档案
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
         found_lores_for_injection: List[Dict[str, Any]] = []
         if explicitly_mentioned_entities:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            # 创建一个查找表，包含所有名字和别名
             lookup_table: Dict[str, Dict] = {}
-
             for lore in all_lores:
                 main_name = lore.content.get("name") or lore.content.get("title")
                 if main_name:
                     lookup_table[main_name] = {"lore": lore, "type": lore.category}
                 for alias in lore.content.get("aliases", []):
-                    if alias: lookup_table[alias] = {"lore": lore, "type": lore.category}
-
+                    if alias:
+                        lookup_table[alias] = {"lore": lore, "type": lore.category}
+            
+            # 查找被提及的实体
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in lookup_table:
                     found_lore_info = lookup_table[entity_name]
+                    # 避免重复添加同一个LORE条目
                     if not any(f['lore'].id == found_lore_info['lore'].id for f in found_lores_for_injection):
                         found_lores_for_injection.append(found_lore_info)
 
+        # 获取场景中的所有NPC，并筛选出核心与背景角色
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
-
-        scene_path_tuple = tuple(authoritative_location_path)
-        all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple)
+        
+        all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: tuple(c.get('location_path', [])) == tuple(gs.location_path))
         
         explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
+        
         relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
-        
-        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
 
-        scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
-        
-        if "無特殊規則" in scene_rules_context_str:
-            all_characters_in_scene = relevant_characters + background_characters
-            if all_characters_in_scene:
-                all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
-                if all_aliases_in_scene:
-                    applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
-                    if applicable_rules:
-                        rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
-                        scene_rules_context_str = "\n\n".join(rule_texts)
-                        logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
+        # --- 步骤 2: RAG 检索与摘要 ---
+        # 将核心角色传入，以进行查询扩展和智能过滤
+        rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters)
 
-        # --- AI 導演決策模組 ---
-        logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
-        directive = None
-        
-        location_path = authoritative_location_path # 使用界定後的權威地點
-        location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
-        location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-        
-        director_context = {
-            "world_settings": self.profile.world_settings or "未設定",
-            "relevant_characters_summary": ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無",
-            "location_description": f"{' > '.join(location_path)}: {location_desc}",
-            "rag_summary": structured_rag_context.get("summary", "無"),
-            "scene_rules_context": scene_rules_context_str,
-            "user_input": user_input
-        }
-        
-        logger.info(f"--- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---")
-        for key, value in director_context.items():
-            logger.info(f"  [{key.upper()}]:\n---\n{value}\n---")
-        logger.info("----------------------------------------------------")
+        # --- 步骤 3: 组装世界快照 ---
+        # 从RAG结果中分离出规则和摘要
+        rag_summary_text = rag_context
+        scene_rules_context_str = "（本场景无特殊规则）"
+        if isinstance(rag_context, dict):
+            rag_summary_text = rag_context.get("summary", "无摘要")
+            scene_rules_context_str = rag_context.get("rules", "（无）")
 
-        try:
-            director_prompt_template = self.get_narrative_directive_prompt()
-            director_prompt = self._safe_format_prompt(director_prompt_template, director_context, inject_core_protocol=True)
-            directive = await self.ainvoke_with_rotation(director_prompt, output_schema=NarrativeDirective, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] [AI導演] 雲端導演決策失敗: {e}。正在啟動本地備援...")
-        
-        if not directive:
-            if self.is_ollama_available:
-                directive = await self._invoke_local_ollama_director(director_context["relevant_characters_summary"], director_context["scene_rules_context"], director_context["user_input"])
-            else:
-                logger.error(f"[{self.user_id}] [AI導演] 本地備援不可用，導演決策最終失敗。")
-        
-        if not directive:
-            directive = NarrativeDirective(scene_summary_for_generation=user_input)
-            logger.critical(f"[{self.user_id}] [AI導演] 所有導演決策層級均失敗，已觸發最終備援。")
-        
-        logger.info(f"[{self.user_id}] [AI導演] 決策完成。最終劇本大綱: '{directive.scene_summary_for_generation}'")
-        
-        # --- 主生成流程 ---
-        raw_short_term_history = "（這是此場景的開端）\n"
-        if chat_history: raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
-        
-        explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心實體。）"
+        explicit_character_files_context = "（指令中未明确提及需要调阅档案的核心实体。）"
         if found_lores_for_injection:
-            explicit_character_files_context = "\n".join([f"### 關於「{info['lore'].content.get('name') or info['lore'].content.get('title', info['lore'].key)}」({info['type']}) 的強制事實檔案 ###\n```json\n{json.dumps(info['lore'].content, ensure_ascii=False, indent=2)}\n```\n" for info in found_lores_for_injection])
-        
-        def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
-            parts = [f"名稱: {profile.name}"]
-            if profile.aliases: parts.append(f"別名/身份: {', '.join(profile.aliases)}")
-            if profile.status: parts.append(f"當前狀態: {profile.status}")
-            if profile.description: parts.append(f"核心描述與情报: {profile.description}")
-            return "\n".join(f"- {p}" for p in parts)
-        
-        background_npc_context_str = "\n\n".join([format_character_profile_for_prompt(p) for p in background_characters]) or "（此地沒有其他背景角色）"
+            explicit_character_files_context = "\n".join([
+                f"### 关于「{info['lore'].content.get('name') or info['lore'].content.get('title', info['lore'].key)}」({info['type']}) 的强制事实档案 ###\n```json\n{json.dumps(info['lore'].content, ensure_ascii=False, indent=2)}\n```\n"
+                for info in found_lores_for_injection
+            ])
+
+        location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(gs.location_path))
+        location_desc = location_lore.content.get('description', '一个神秘的地方') if location_lore else '一个神秘的地方'
 
         snapshot_params = {
-            "world_settings": encode_text(self.profile.world_settings),
-            "ai_settings": encode_text(ai_profile.description),
-            "retrieved_context": encode_text(structured_rag_context.get("summary", "無摘要")),
-            "scene_rules_context": encode_text(scene_rules_context_str),
-            "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
-            "quests_context": "當前無活躍任務",
-            "explicit_character_files_context": encode_text(explicit_character_files_context),
-            "relevant_npc_context": "\n\n".join([encode_text(format_character_profile_for_prompt(p)) for p in relevant_characters]) or "（場景中無明確互動目標）",
-            "npc_context": encode_text(background_npc_context_str),
-            "location_context": f"當前地點: {' > '.join(location_path)}\n地點描述: {encode_text(location_desc)}"
+            "world_settings": self.profile.world_settings,
+            "ai_settings": ai_profile.description,
+            "retrieved_context": rag_summary_text,
+            "scene_rules_context": scene_rules_context_str,
+            "possessions_context": f"金钱: {gs.money}\n库存: {', '.join(gs.inventory) if gs.inventory else '无'}",
+            "quests_context": "当前无活跃任务",
+            "location_context": f"当前地点: {' > '.join(gs.location_path)}\n地点描述: {location_desc}",
+            "npc_context": "\n".join([f"- {p.name}: {p.description}" for p in background_characters]) or "（此地没有其他背景角色）",
+            "explicit_character_files_context": explicit_character_files_context,
+            "relevant_npc_context": "\n".join([f"- {p.name}: {p.description}" for p in relevant_characters]) or "（场景中无明确互动目标）"
         }
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
-        style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+        # --- 步骤 4: 最终生成 ---
+        raw_short_term_history = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history[-6:]])
         
-        final_safeguard_template = """# ==============================================================================
-# == 🚨 最終防線協議 (FINAL SAFEGUARD PROTOCOL) v3.1 (導演劇本版) 🚨 ==
-# ==============================================================================
-#
-# === 【【【🎬 本回合導演劇本 (DIRECTOR'S SCRIPT FOR THIS TURN) - 絕對創作核心 🎬】】】 ===
-# 【警告】: 你是一位專業的小說擴寫作家。你的【唯一任務】，就是將下方這段由導演提供的【劇本大綱】，擴寫成一篇精彩、詳細、且符合所有背景設定的小說。
-# 你的所有創作都【必須】是為了實現這個劇本的核心情節。【絕對禁止】偏離、質疑或忽略此劇本。
-# ---
-# 【導演劇本】: {{director_scene_summary}}
-# ---
-#
-# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
-# 你的最終輸出【必須且只能】是純粹的小說文本本身。
-# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
-#
-# ------------------------------------------------------------------------------
-# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
-"""
-        final_prompt_params = { 
-            "username": user_profile.name, 
-            "ai_name": ai_profile.name, 
-            "world_snapshot": world_snapshot_filled, 
-            "historical_context": raw_short_term_history, 
-            "director_scene_summary": directive.scene_summary_for_generation
-        }
+        final_prompt_template = ai_core.get_unified_generation_chain()
+        full_prompt = self._safe_format_prompt(
+            final_prompt_template,
+            {
+                "core_protocol_prompt": self.core_protocol_prompt,
+                "response_style_prompt": self.profile.response_style_prompt or "预设风格",
+                "plot_anchor": "（无）", # 仅用于连续性指令
+                "historical_context": raw_short_term_history,
+                "world_snapshot": world_snapshot_filled,
+                "latest_user_input": user_input,
+            },
+            inject_core_protocol=False # 模板内部已包含
+        )
         
-        full_template = "\n".join([ 
-            self.core_protocol_prompt, 
-            "{world_snapshot}", 
-            "\n# --- 最新對話歷史 ---", 
-            "{historical_context}", 
-            style_mandate, 
-            final_safeguard_template
-        ])
-        full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
-
-        logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
-        
-        novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
-        if raw_novel_output and raw_novel_output.strip():
-            novel_text = raw_novel_output.strip()
+        novel_text = raw_novel_output if isinstance(raw_novel_output, str) else str(raw_novel_output)
+        final_novel_text = self._decode_lore_content(novel_text, self.DECODING_MAP)
 
-        final_novel_text = self._decode_lore_content(re.sub(r'^\s*[\*`\n]+|[\*`\n]+\s*$', '', novel_text.split("【", 1)[0]).strip(), self.DECODING_MAP)
-        
+        # --- [v44.0 核心修正] 步骤 5: 创建上下文快照并启动背景分析 ---
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
-        
+
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
+            "rag_context": rag_context, # 传递完整的 RAG 结果
             "scene_rules_context": scene_rules_context_str,
-            "relevant_characters": [p.model_dump() for p in relevant_characters]
+            "relevant_characters": [p.model_dump() for p in relevant_characters] # 传递角色档案
         }
-        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。")
+        logger.info(f"[{self.user_id}] 小说文本生成成功，并已为事后分析创建详细上下文快照。")
+        asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
 
         return final_novel_text
-    # 函式：預處理並生成主回應
-
+    # 函式：预处理并生成主回应
 
 
 
@@ -5251,6 +5129,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
