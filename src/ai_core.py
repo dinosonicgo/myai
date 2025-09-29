@@ -4,6 +4,12 @@
 # v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
 # v225.2 (2025-11-16): [災難性BUG修復] 修正了 __init__ 的縮排錯誤。
 
+# ai_core.py 的中文註釋(v301.0 - 移除無用導入)
+# 更新紀錄:
+# v301.0 (2025-11-26): [灾难性BUG修复] 移除了對 `chromadb.errors.InternalError` 的導入。在新版 `chromadb` 中該錯誤類別已被移除，且程式碼中並未使用此導入，導致了啟動時的 ImportError。
+# v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
+# v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
+
 import re
 import json
 import time
@@ -45,7 +51,8 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, AliasCh
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 import chromadb
-from chromadb.errors import InternalError
+# [v301.0 核心修正] 移除了以下這行，因為 InternalError 在新版 chromadb 中已不存在，且程式碼中並未使用
+# from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 # [核心修正] 将 "retrievs" 修正为 "retrievers"
 from langchain.retrievers import EnsembleRetriever
@@ -5225,6 +5232,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
