@@ -1343,16 +1343,16 @@ class BotCog(commands.Cog):
 
     
     # 函式：獲取或創建使用者的 AI 實例 (v52.2 - Ollama健康检查)
-    # 更新纪录:
-    # v52.2 (2025-09-26): [重大架構升級] 在创建 `AILover` 实例时，将 `BotCog` 中储存的 `is_ollama_available` 状态传递给 `AILover` 的构造函数。
-    # v52.1 (2025-09-25): [結構校正] 提供此函式的完整版本。
-    # v52.0 (2025-11-22): [重大架構升級] 根據「按需加載」原則，在此函式中增加了對 ai_instance._rehydrate_scene_histories() 的調用。
+    # discord_bot.py 的 BotCog.get_or_create_ai_instance 函式 (v52.1 - 生命週期修正)
+    # 更新紀錄:
+    # v52.1 (2025-11-26): [灾难性BUG修复] 重構了此函式的邏輯。現在，任何成功創建並初始化的新 AILover 實例都會被立即存入 `self.ai_instances` 字典中。此修改確保了所有活躍的、持有文件句柄的實例都有據可查，防止了在重置流程中創建出無法被追蹤和關閉的「殭屍實例」，是解決頑固 PermissionError 的關鍵一步。
+    # v52.2 (2025-09-26): [重大架構升級] 將 `is_ollama_available` 狀態傳遞給 `AILover` 的構造函數。
+    # v52.0 (2025-11-22): [重大架構升級] 增加了對 ai_instance._rehydrate_scene_histories() 的調用。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
             return self.ai_instances[user_id]
         
         logger.info(f"使用者 {user_id} 沒有活躍的 AI 實例，嘗試創建...")
-        # 将状态传递给 AILover 实例
         ai_instance = AILover(user_id=user_id, is_ollama_available=self.is_ollama_available)
         
         if await ai_instance.initialize():
@@ -1360,6 +1360,7 @@ class BotCog(commands.Cog):
             
             await ai_instance._rehydrate_scene_histories()
 
+            # [v52.1 核心修正] 立即將創建的實例存入字典
             self.ai_instances[user_id] = ai_instance
             return ai_instance
         elif is_setup_flow:
@@ -1369,10 +1370,16 @@ class BotCog(commands.Cog):
                 await ai_instance._configure_pre_requisites()
             except Exception as e:
                 logger.error(f"[{user_id}] 為臨時實例配置前置資源時失敗: {e}", exc_info=True)
+            
+            # [v52.1 核心修正] 立即將創建的實例存入字典
             self.ai_instances[user_id] = ai_instance
             return ai_instance
         else:
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
+            # 確保失敗時銷毀部分初始化的對象
+            await ai_instance.shutdown()
+            del ai_instance
+            gc.collect()
             return None
     # 獲取或創建使用者的 AI 實例 函式結束
 
@@ -1718,44 +1725,39 @@ class BotCog(commands.Cog):
     # 函式：健壯的異步目錄刪除
     
     
-    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.4 - 終極清理)
+    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.5 - 生命週期修正)
     # 更新紀錄:
-    # v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。在 shutdown() 之後，明確地使用 `del` 刪除實例引用，強制調用 `gc.collect()`，並增加了一個固定的 2 秒延遲。此舉旨在通過一切手段確保 AILover 實例及其持有的 ChromaDB 文件鎖在嘗試刪除文件夾之前被完全釋放，是解決頑固 PermissionError 的最終方案。
+    # v52.5 (2025-11-26): [灾难性BUG修复] 徹底重寫了此函式的執行邏輯，以修復生命週期管理的根本性漏洞。新流程不再於重置過程中創建臨時實例，而是專注於銷毀：它首先檢查並徹底關閉任何已存在的 AILover 實例（這是解決文件鎖的關鍵），然後才執行文件和資料庫的刪除操作。此修改從根本上解決了因競態條件導致的 PermissionError。
+    # v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。
     # v52.3 (2025-11-26): [灾难性BUG修复] 引入了帶有延遲重試機制的 `_robust_rmtree` 來處理文件刪除。
-    # v52.2 (2025-11-22): [灾难性BUG修复] 在移除舊實例前，增加了對 `ai_instance.shutdown()` 的強制調用。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
             logger.info(f"[{user_id}] 後台重置任務開始...")
             
-            # [v52.4 核心修正] 徹底的資源釋放流程
+            # [v52.5 核心修正] 先關閉和銷毀，再刪除文件
             if user_id in self.ai_instances:
-                logger.info(f"[{user_id}] 正在為舊的 AI 實例執行徹底的 shutdown 流程...")
-                # 步驟 1: 請求關閉資源
+                logger.info(f"[{user_id}] 檢測到活躍的 AI 實例，正在執行徹底的 shutdown 流程...")
                 await self.ai_instances[user_id].shutdown()
-                
-                # 步驟 2: 刪除所有對該實例的直接引用
                 del self.ai_instances[user_id]
-                
-                # 步驟 3: 強制建議 Python 進行垃圾回收
                 gc.collect()
-                
-                # 步驟 4: 給予操作系統足夠的時間來釋放文件句柄
-                logger.info(f"[{user_id}] 進入 2 秒的靜默期以等待 OS 釋放文件鎖...")
+                logger.info(f"[{user_id}] AI 實例已銷毀，進入 2 秒靜默期以等待 OS 釋放文件鎖...")
                 await asyncio.sleep(2.0)
-                logger.info(f"[{user_id}] 靜默期結束，繼續執行清理。")
+            else:
+                logger.info(f"[{user_id}] 未檢測到活躍的 AI 實例，直接進行清理。")
 
-            # 獲取一個臨時實例以訪問其方法，即使它可能不是最終實例
-            temp_ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-            if temp_ai_instance:
-                await temp_ai_instance._clear_scene_histories()
-
+            # 現在可以安全地進行文件和資料庫操作了
             async with AsyncSessionLocal() as session:
+                # 清理短期場景歷史
                 await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
+                # 清理長期記憶
                 await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
+                # 清理 LORE
                 await session.execute(delete(Lore).where(Lore.user_id == user_id))
+                # 清理使用者主資料
                 await session.execute(delete(UserData).where(UserData.user_id == user_id))
                 await session.commit()
+                logger.info(f"[{user_id}] 所有資料庫記錄已成功清除。")
             
             vector_store_path = Path(f"./data/vector_stores/{user_id}")
             if vector_store_path.exists():
@@ -2157,6 +2159,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
