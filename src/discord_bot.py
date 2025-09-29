@@ -301,7 +301,9 @@ class ContinueToCanonSetupView(discord.ui.View):
                 await interaction.followup.send("❌ 檔案過大！请重新开始 `/start` 流程。", ephemeral=True)
                 return
 
-            await interaction.followup.send("✅ 檔案已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
+            await interaction.followup.send("✅ 檔案已接收！創世流程已在後台啟動，完成後您將收到開場白。這可能需要數分鐘，請耐心等候。
+
+[1](comet://newtab/)", ephemeral=True)
             
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
@@ -334,7 +336,7 @@ class ContinueToCanonSetupView(discord.ui.View):
     # 处理「上传世界圣经」按钮点击事件
 
     # 函式：处理「完成设定」按钮点击事件
-    @discord.ui.button(label="✅ 完成设定并开始冒险 (跳过圣经)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
+    @discord.ui.button(label="✅ 完成設定並開始冒險（跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
         if user_id in self.cog.active_setups:
@@ -513,7 +515,7 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
                 await original_message.edit(view=view)
             except (discord.errors.NotFound, AttributeError): pass
         
-        await interaction.response.send_message("✅ 文字已接收！创世流程已在后台启动，完成后您将收到开场白。这可能需要数分钟，请耐心等候。", ephemeral=True)
+        await interaction.response.send_message("✅ 文字已接收！創世流程已在後台啟動，完成後您將收到開場白。這可能需要數分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
         asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=self.canon_text.value))
@@ -2120,6 +2122,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
