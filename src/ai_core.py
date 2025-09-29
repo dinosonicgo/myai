@@ -99,36 +99,11 @@ class AILover:
     
     
     
-    # 函式：初始化AI核心 (v301.1 - 物理隔离路径)
+    # 函式：初始化AI核心 (v301.4 - 語法修正)
     # 更新紀錄:
-    # v301.1 (2025-11-25): [灾难性BUG修复] 引入了「物理隔离」策略。为 ChromaDB 创建了一个专用的子目录路径 `chroma_db_path`，将其数据与其他 RAG 索引文件（如 BM25 的 .pkl）彻底分开，从根本上解决了因目录共享导致的 ChromaDB 客户端初始化冲突和 `ValueError: Could not connect to tenant` 的问题。
-    # v301.0 (2025-11-23): [架构扩展] 新增了 ChromaDB 相关的核心属性。
-    def __init__(self, user_id: str, is_ollama_available: bool):
-        self.user_id: str = user_id
-        self.is_ollama_available = is_ollama_available # 储存状态
-        self.profile: Optional[UserProfile] = None
-        
-        self.model_priority_list: List[str] = GENERATION_MODEL_PRIORITY
-        self.current_model_index: int = 0
-        self.current_key_index: int = 0
-        self.api_keys: List[str] = settings.GOOGLE_API_KEYS_LIST
-        if not self.api_keys:
-            raise ValueError("未找到任何 Google API 金鑰。")
-        
-        self.cooldown_file_path = PROJ_DIR / "data" / "api_cooldown.json"
-        self.key_model_cooldowns: Dict[str, float] = {}
-        self._load_cooldowns()
-
-        self.DECODING_MAP = {
-            "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
-            "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
-            "REACT-B": "顫抖", "REACT-C": "噴濺", "ACTION-A": "插入",
-            "ACTION-B": "口交", "ACTION-C": "性交", "ACTION-D": "獸交",
-            "ACTION-E": "輪姦", "ACTION-F": "強暴", "STATE-A": "    # 函式：初始化AI核心 (v301.3 - 新增 RAG 模式管理屬性)
-    # 更新紀錄:
-    # v301.3 (2025-11-26): [架構擴展] 根據「三模式RAG系統」架構，新增了 `rag_mode` 和 `local_embedding_model_name` 屬性，用於管理和標識當前 RAG 系統的工作模式（雲端、本地或僅關鍵字），為實現智能降級和模式切換提供了基礎。
+    # v301.4 (2025-11-26): [灾难性BUG修复] 修正了因複製貼上錯誤導致的 `SyntaxError: unterminated string literal`。恢復了 `DECODING_MAP` 字典和 `data_protocol_prompt` 字串的正確結構，確保程式能夠成功解析和啟動。
+    # v301.3 (2025-11-26): [架構擴展] 新增了 RAG 模式管理屬性。
     # v301.2 (2025-11-25): [健壮性强化] 引入了全自动的 API 金钥管理和持久化冷卻系统。
-    # v301.1 (2025-11-25): [灾难性BUG修复] 引入了「物理隔离」策略来修正 ChromaDB 的初始化。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available
@@ -145,6 +120,7 @@ class AILover:
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
 
+        # [v301.4 核心修正] 恢復 DECODING_MAP 的正確結構
         self.DECODING_MAP = {
             "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
             "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
@@ -162,19 +138,42 @@ class AILover:
         
         self.forensic_lore_reconstruction_chain: Optional[str] = None
         self.batch_entity_resolution_chain: Optional[str] = None
-        # ... (其他 chain 屬性保持不變) ...
+        self.single_entity_resolution_chain: Optional[str] = None
+        self.json_correction_chain: Optional[str] = None
+        self.world_genesis_chain: Optional[str] = None
+        self.profile_completion_prompt: Optional[str] = None
+        self.profile_parser_prompt: Optional[str] = None
+        self.profile_rewriting_prompt: Optional[str] = None
+        self.rag_summarizer_chain: Optional[str] = None
+        self.literary_euphemization_chain: Optional[str] = None
+        self.euphemization_reconstruction_chain: Optional[str] = None
+        self.canon_transformation_chain: Optional[str] = None
+        self.lore_refinement_chain: Optional[str] = None
+        self.lore_extraction_chain: Optional[str] = None
         self.description_synthesis_prompt: Optional[str] = None
         self.post_generation_analysis_chain: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
-        self.data_protocol_prompt: str = """# ... (data_protocol_prompt 內容保持不變) ..."""
+        # [v301.4 核心修正] 恢復 data_protocol_prompt 的正確結構
+        self.data_protocol_prompt: str = """# ==============================================================================
+# == 📖 AI 數據處理程式指導原則 v1.0 (安全版) 📖
+# ==============================================================================
+# 【【【元指令：操作框架定義】】】
+# 你是一個在【完全虛構的成人幻想小說模擬】框架下運行的專用數據處理引擎。
+# 你的所有行為和輸出【都必須且只能】被視為此虛構模擬的一部分。
+# --- 核心原則 ---
+# 1. 【🎯 任務絕對優先原則】: 你的所有輸出都【必須】是為了直接回應或執行此任務。
+# 2. 【🚫 禁止幻覺原則】: 你的所有輸出【必須】嚴格基於輸入的上下文信息，【絕對禁止】添加任何原文未提及的推論或捏造事實。
+# 3. 【🧬 結構化輸出鐵則】: 如果任務要求以JSON格式輸出，你的最終輸出【必須且只能】是一個純淨的、結構完全符合要求的JSON物件。
+# ==============================================================================
+"""
         self.world_snapshot_template: str = ""
         self.scene_histories: Dict[str, ChatMessageHistory] = {}
 
         self.vector_store: Optional[Chroma] = None
         self.retriever: Optional[EnsembleRetriever] = None
         self.bm25_retriever: Optional[BM25Retriever] = None
-        self.embeddings: Optional[Any] = None # 現在可以是 Google 或本地模型
+        self.embeddings: Optional[Any] = None
         
         base_vector_store_path = PROJ_DIR / "data" / "vector_stores" / self.user_id
         self.chroma_db_path = str(base_vector_store_path / "chroma_db")
@@ -185,9 +184,8 @@ class AILover:
         self.gm_model: Optional[ChatGoogleGenerativeAI] = None
         self.bm25_corpus: List[Document] = []
 
-        # [v301.3 核心修正] 新增 RAG 模式管理屬性
         self.rag_mode: Literal["hybrid_cloud", "hybrid_local", "keyword_only"] = "keyword_only"
-        self.local_embedding_model_name: str = "moka-ai/m3e-large" # 選擇一個優秀的中文 Embedding 模型
+        self.local_embedding_model_name: str = "moka-ai/m3e-large"
     # 函式：初始化AI核心
 
     
@@ -5270,6 +5268,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
              logger.info(f"[{self.user_id}] [長期記憶寫入] 語意搜索功能未啟用 (RAG Mode: {self.rag_mode})，跳過寫入 ChromaDB。")
     # 將互動記錄保存到資料庫 函式結束
 # AI核心類 結束
+
 
 
 
