@@ -1,7 +1,7 @@
 # ai_core.py 的中文註釋(v300.0 - 原生SDK重構整合)
 
 
-【【【請注意，目前LangChain的LLM安全閥值應用有BUG，調用LLM的功能必須使用原生GEMINI API才能正確應用安全閥值，不能使用LangChain】】】
+#【【【請注意，目前LangChain的LLM安全閥值應用有BUG，調用LLM的功能必須使用原生GEMINI API才能正確應用安全閥值，不能使用LangChain】】】
 
 import re
 import json
@@ -5184,6 +5184,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
