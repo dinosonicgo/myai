@@ -82,22 +82,26 @@ class SceneHistoryData(Base):
     timestamp = Column(Float, default=time.time, nullable=False)
 # 短期場景歷史數據模型 類別結束
 
-# database.py 的 init_db 函式 (v6.0 - 引入輕量級資料庫遷移)
+# database.py 的 init_db 函式 (v6.1 - 增加日誌清晰度)
 # 更新紀錄:
-# v6.0 (2025-11-24): [災難性BUG修復] 引入了輕量級的資料庫遷移機制。此版本會在每次啟動時檢查 `users` 表是否包含所有必要的欄位（特別是 `context_snapshot_json`），如果不存在，則會自動執行 `ALTER TABLE` 來新增缺失的欄位。這從根本上解決了因模型更新與現有資料庫結構不匹配而導致的 `OperationalError: no such column` 致命錯誤。
+# v6.1 (2025-11-25): [健壯性強化] 增加了更詳細的日誌輸出，以便在應用程式啟動時，能明確地觀察到資料庫遷移檢查是否被觸發和執行，從而簡化問題診斷流程。
+# v6.0 (2025-11-24): [災難性BUG修復] 引入了輕量級的資料庫遷移機制以解決 `OperationalError: no such column` 的問題。
 # v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
-# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。
 async def init_db(db_ready_event: asyncio.Event):
     """
     初始化資料庫。
     首先確保所有表格都已創建，然後執行輕量級的遷移檢查，
     確保現有表格的結構與最新的模型定義保持一致。
     """
+    print("--- 正在初始化資料庫與執行結構驗證 ---")
     async with engine.begin() as conn:
         # 步驟 1: 確保所有在 Base 中定義的表格都存在
+        print("   [DB Init] 步驟 1/3: 確保所有資料表已創建...")
         await conn.run_sync(Base.metadata.create_all)
+        print("   [DB Init] 步驟 1/3: 資料表創建檢查完成。")
         
-        # [v6.0 核心修正] 步驟 2: 執行輕量級的資料庫遷移
+        # [v6.1 核心修正] 步驟 2: 執行輕量級的資料庫遷移
+        print("   [DB Init] 步驟 2/3: 檢查 'users' 表結構是否需要升級...")
         try:
             from sqlalchemy import inspect, text
 
@@ -112,26 +116,31 @@ async def init_db(db_ready_event: asyncio.Event):
 
             # 檢查 'context_snapshot_json' 欄位是否存在
             if 'context_snapshot_json' not in column_names:
-                print("⚠️ [資料庫遷移] 檢測到 'users' 表缺少 'context_snapshot_json' 欄位，正在自動新增...")
+                print("   ⚠️ [資料庫遷移] 檢測到 'users' 表缺少 'context_snapshot_json' 欄位，正在自動新增...")
                 # 如果不存在，則執行 ALTER TABLE 命令來新增它
-                # 使用 text() 來安全地執行原生 SQL
                 await conn.execute(text('ALTER TABLE users ADD COLUMN context_snapshot_json JSON'))
-                print("✅ [資料庫遷移] 'context_snapshot_json' 欄位已成功新增。")
+                print("   ✅ [資料庫遷移] 'context_snapshot_json' 欄位已成功新增。")
+            else:
+                print("   [DB Init] 步驟 2/3: 'users' 表結構已是最新，無需升級。")
 
         except Exception as e:
             # 如果在遷移過程中發生任何錯誤，記錄下來但不要讓整個程式崩潰
-            print(f"🔥 [資料庫遷移] 在嘗試升級 'users' 表結構時發生錯誤: {e}")
+            print(f"   🔥 [資料庫遷移] 在嘗試升級 'users' 表結構時發生嚴重錯誤: {e}")
 
     # 步驟 3: 發出資料庫就緒信號
     db_ready_event.set()
     print("✅ 數據庫初始化與結構驗證完成，並已發出就緒信號。")
 # 初始化資料庫 函式結束
+
+
+
         
 # 函式：獲取資料庫會話
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
 
 
 
