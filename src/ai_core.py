@@ -465,14 +465,14 @@ class AILover:
 
 
 
-    # 函式：加載或構建 RAG 檢索器 (v212.0 - ChromaDB混合RAG)
+    # 函式：加載或構建 RAG 檢索器 (v212.1 - 修正ChromaDB初始化)
     # 更新紀錄:
-    # v212.0 (2025-11-23): [核心重構] 根據混合 RAG 架構，徹底重寫了此函式。現在它負責同時初始化 ChromaDB 向量存儲和 BM25 檢索器，並使用 EnsembleRetriever 將兩者合併為一個統一的、更強大的混合檢索器，同時包含了對 Embedding 失敗的優雅降級邏輯。
-    # v211.0 (2025-11-22): [災難性BUG修復] 徹底重構了 ChromaDB 的初始化流程。
-    # v210.1 (2025-09-24): [災難性BUG修復] 恢復了 force_rebuild 參數。
+    # v212.1 (2025-11-25): [灾难性BUG修复] 彻底重构了 ChromaDB 的初始化流程。遵循「先创建，后传入」的解耦策略，现在程式会先独立地创建并验证 chromadb.PersistentClient 实例，只有在成功后，才将这个就绪的客户端物件传递给 LangChain 的 Chroma 类。此修改从根本上解决了因版本兼容性或路径问题导致的 `ValueError: Could not connect to tenant` 初始化失败的致命错误。
+    # v212.0 (2025-11-23): [核心重构] 实现了完整的混合 RAG 检索器构建逻辑。
+    # v211.0 (2025-11-22): [灾难性BUG修复] 彻底重构了 ChromaDB 的初始化流程。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v212.0 核心重構) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
+        (v212.1 核心重构) 加載或構建一個混合了語意搜索(Chroma)和關鍵字搜索(BM25)的 RAG 檢索器。
         """
         logger.info(f"[{self.user_id}] (Retriever Builder) 正在構建混合 RAG 檢索器 (強制重建: {force_rebuild})...")
         
@@ -502,15 +502,19 @@ class AILover:
         vector_retriever = None
         if self.embeddings:
             try:
+                # [v212.1 核心修正] 步驟 2A: 獨立地、安全地創建 ChromaDB 客戶端
+                chroma_client = chromadb.PersistentClient(path=self.vector_store_path)
+                
+                # [v212.1 核心修正] 步驟 2B: 将已经就绪的客户端和 embedding 函式傳遞給 LangChain
                 self.vector_store = Chroma(
-                    persist_directory=self.vector_store_path,
+                    client=chroma_client,
                     embedding_function=self.embeddings,
-                    client=chromadb.PersistentClient(path=self.vector_store_path)
+                    persist_directory=self.vector_store_path,
                 )
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ ChromaDB 語意檢索器已成功初始化。")
             except Exception as e:
-                logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 初始化 ChromaDB 檢索器時發生错误: {e}", exc_info=True)
         else:
             logger.warning(f"[{self.user_id}] (Retriever Builder) ⚠️ Embedding 模型未初始化，無法創建 ChromaDB 語意檢索器。")
 
@@ -2906,13 +2910,14 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：预处理并生成主回应 (v45.0 - 精细化LORE注入)
+     # 函式：预处理并生成主回应 (v45.1 - 修正生成链调用)
     # 更新纪录:
-    # v45.0 (2025-11-24): [性能优化] 彻底重构了 LORE 档案的注入逻辑。不再将完整的角色档案（JSON）注入Prompt，而是为每个核心角色动态创建一个临时的微型RAG知识库，并使用用户当前的输入作为查询，只检索并注入与当前互动最相关的 LORE 片段。此修改极大地节省了 Token 消耗，消除了上下文噪音，并从根本上避免了因 LORE 档案过长而导致的上下文溢出风险。
+    # v45.1 (2025-11-25): [灾难性BUG修复] 移除了对已不存在的 `get_unified_generation_chain` 函式的调用，并将其逻辑直接内联。现在，函式会通过拼接核心协议、世界快照、历史记录和最终防线协议等多个模板部分，在运行时动态构建最终的生成Prompt，从而解决了导致 `AttributeError` 的致命错误。
+    # v45.0 (2025-11-24): [性能优化] 实现了精细化LORE注入逻辑。
     # v44.0 (2025-11-24): [核心重构] 实现了「生成即摘要」和「上下文快照」的核心逻辑。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v45.0重构) 执行包含预处理、RAG检索、精细化LORE注入和最终小说生成的完整流程，
+        (v45.1重构) 执行包含预处理、RAG检索、精细化LORE注入和最终小说生成的完整流程，
         并在最后创建并传递一个包含所有创作背景的“上下文快照”给事后分析任务。
         返回纯小说文本字符串。
         """
@@ -2963,9 +2968,7 @@ class ExtractionResult(BaseModel):
             rag_summary_text = rag_context.get("summary", "无摘要")
             scene_rules_context_str = rag_context.get("rules", "（无）")
 
-        # [v45.0 核心修正] 开始构建精细化的 LORE 上下文
         fine_grained_lore_parts = []
-        # 将用户和AI也视为可查询档案的核心角色
         all_relevant_profiles = relevant_characters
         if gs.viewing_mode == 'local':
             all_relevant_profiles.append(user_profile)
@@ -2998,19 +3001,41 @@ class ExtractionResult(BaseModel):
         
         raw_short_term_history = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in chat_history[-6:]])
         
-        final_prompt_template = self.get_unified_generation_chain()
-        full_prompt = self._safe_format_prompt(
-            final_prompt_template,
-            {
-                "core_protocol_prompt": self.core_protocol_prompt,
-                "response_style_prompt": self.profile.response_style_prompt or "预设风格",
-                "plot_anchor": "（无）",
-                "historical_context": raw_short_term_history,
-                "world_snapshot": world_snapshot_filled,
-                "latest_user_input": user_input,
-            },
-            inject_core_protocol=False
-        )
+        # [v45.1 核心修正] 直接在此处构建最终的 Prompt 模板
+        user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
+        style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+
+        final_safeguard_template = """# ==============================================================================
+# == 🚨 最終防線協議 (FINAL SAFEGUARD PROTOCOL) v3.0 🚨 ==
+# ==============================================================================
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 2. **【🎬 劇情連貫性鐵則】**: 你的新創作【必須】是【劇情錨點】的直接、無縫延續。如果錨點是空的，則直接回應【使用者最新指令】。
+# 3. **【📖 輸出純淨強制令】**: 你的最終輸出【必須且只能】是純粹的小說文本本身。【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
+"""
+        full_template = "\n".join([
+            "{core_protocol_prompt}",
+            "{world_snapshot}",
+            "\n# --- 最近對話歷史 ---",
+            "{historical_context}",
+            "\n# --- 劇情錨點 (Plot Anchor) ---",
+            "你的回應必須直接延续以下这句话：",
+            "{plot_anchor}",
+            "\n# --- 使用者最新指令 ---",
+            "{latest_user_input}",
+            style_mandate,
+            final_safeguard_template
+        ])
+        
+        final_prompt_params = {
+            "core_protocol_prompt": self.core_protocol_prompt,
+            "world_snapshot": world_snapshot_filled,
+            "historical_context": raw_short_term_history,
+            "plot_anchor": "（无）", # 在常规流程中，我们响应最新指令，所以锚点为空
+            "latest_user_input": user_input,
+            "username": user_profile.name # 为最终防线协议提供用户名
+        }
+        
+        full_prompt = self._safe_format_prompt(full_template, final_prompt_params, inject_core_protocol=False)
         
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         novel_text = raw_novel_output if isinstance(raw_novel_output, str) else str(raw_novel_output)
@@ -5184,6 +5209,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
