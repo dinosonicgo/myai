@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-29T21:56:08.232401 ###
+### AI Lover Log - Last updated at 2025-09-29T22:02:20.645469 ###
 
-2025-09-29 21:25:22 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-29 21:25:22 - [ERROR] - [512280345618546699] 致命錯誤: 未找到核心數據模板 'world_snapshot_template.txt'！
-2025-09-29 21:25:22 - [CRITICAL] - [512280345618546699] 致命錯誤: 未找到核心協議 '00_supreme_directive.txt'！
-2025-09-29 21:25:22 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合雲端模式】...
-2025-09-29 21:25:22 - [INFO] - [512280345618546699] 正在創建 Embedding 模型實例 (API Key index: 0)
-2025-09-29 21:25:22 - [WARNING] - [512280345618546699] [RAG Mode] 初始化【混合雲端模式】失敗: GoogleGenerativeAIError。正在降級...
-2025-09-29 21:25:22 - [INFO] - [512280345618546699] [RAG Mode] 正在嘗試初始化【混合本地模式】...
 2025-09-29 21:28:06 - [ERROR] - [512280345618546699] [RAG Mode] 初始化【混合本地模式】最終失敗: Due to a serious vulnerability issue in `torch.load`, even with `weights_only=True`, we now require users to upgrade torch to at least v2.6 in order to use the function. This version restriction does not apply when loading files with safetensors.
 See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-32434
 Traceback (most recent call last):
@@ -300,3 +293,10 @@ See the vulnerability report here https://nvd.nist.gov/vuln/detail/CVE-2025-3243
 2025-09-29 21:49:28 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
 2025-09-29 21:49:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-09-29 21:49:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 22:02:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-29 22:02:06 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-29 22:02:07 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-29 22:02:07 - [INFO] - Discord Bot is ready!
+2025-09-29 22:02:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-29 22:02:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-29 22:02:10 - [INFO] - 已成功發送啟動成功通知給管理員。
