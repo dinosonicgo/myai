@@ -129,9 +129,17 @@ class WorldLoreItem(BaseModel):
     world_lore: "WorldLore" = Field(validation_alias=AliasChoices('world_lore', 'world_lore_info'))
 # schemas.py 的 WorldLoreItem 模型
 
+# schemas.py 的 BatchWorldLoresResult 模型 (v4.1 - 結構統一)
+# 更新紀錄:
+# v4.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，將此模型的 `results` 欄位類型修正為 `List[WorldLoreItem]`，確保其結構與其他批量結果模型（如 `BatchAliasesResult`）完全一致，解決因 Pydantic 驗證失敗導致的 LORE 數據丟失問題。
+# v4.0 (2025-09-30): [重大架構重構] 為專職解析流水線創建了此模型。
 class BatchWorldLoresResult(BaseModel):
     """包裹批量世界传说信息提取结果的模型"""
     results: List[WorldLoreItem]
+# schemas.py 的 BatchWorldLoresResult 模型
+
+
+
 # --- LORE 基础模型 ---
 
 class AppearanceDetails(BaseModel):
@@ -551,6 +559,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
