@@ -3929,10 +3929,10 @@ class ExtractionResult(BaseModel):
 
 
 
-    # ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.5 - 零容忍審計)
-    # 更新紀錄:
-    # v1.5 (2025-09-28): [災難性BUG修復] 引入終極的【零容忍審計強制令】。此修改將驗證器的角色從“校對官”升級為“審計官”，強制要求其不再信任上游傳來的`claimed_aliases`，而是必須獨立地、從頭開始重新解析`context_snippet`，生成一份自己的“理想別名列表”，然後再將兩者合併。此舉旨在通過“獨立重複驗證”的工程原則，根除因初始解析LLM“認知捷徑”而導致的關鍵身份標籤（如“性神教徒”）遺漏的最終頑疾。
-    # v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt。
+# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.5 - 零容忍審計)
+# 更新紀錄:
+# v1.5 (2025-09-28): [災難性BUG修復] 引入終極的【零容忍審計強制令】。此修改將驗證器的角色從“校對官”升級為“審計官”，強制要求其不再信任上游傳來的`claimed_aliases`，而是必須獨立地、從頭開始重新解析`context_snippet`，生成一份自己的“理想別名列表”，然後再將兩者合併。此舉旨在通過“獨立重複驗證”的工程原則，根除因初始解析LLM“認知捷徑”而導致的關鍵身份標籤（如“性神教徒”）遺漏的最終頑疾。
+# v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt。
     def get_batch_alias_validator_prompt(self) -> str:
         """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
         
@@ -3983,8 +3983,7 @@ class ExtractionResult(BaseModel):
 # 【你審計後的批量結果JSON】:
 """
         return part1 + json_example + part2
-    # 函式：獲取批量別名交叉驗證器Prompt
-
+# 函式：獲取批量別名交叉驗證器Prompt
     
 
     
@@ -5423,6 +5422,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
