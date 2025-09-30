@@ -700,11 +700,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.9 - 串行化解析)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v2.0 - 終極串行化改造)
 # 更新紀錄:
-# v1.9 (2025-09-30): [災難性BUG修復] 根據大量的 ResourceExhausted (429) 錯誤，將 LORE 類別的解析流程從並行 (`asyncio.gather`) 徹底重構為串行 (`for` 迴圈)。此修改確保了每次只處理一個 LORE 類別，並在類別之間增加了延遲，從根本上解決了因並發請求過多而導致的 API 速率超限問題。
+# v2.0 (2025-09-30): [災難性BUG修復] 根據持續的 ResourceExhausted 錯誤，對 `run_category_pipeline` 內部邏輯進行了終極重構。移除了所有並行操作，將 RAG 查詢和 LLM 解析流程徹底改造為【小批量、全串行】模式。現在，程式會將同一類別下的實體分批處理，確保 API 請求以平滑、可控的速率發出，從根本上解決所有速率超限問題。
+# v1.9 (2025-09-30): [災難性BUG修復] 將 LORE 類別的解析流程從並行改為串行。
 # v1.8 (2025-09-30): [災難性BUG修復] 修正了 NameError。
-# v1.7 (2025-09-30): [重大架構升級] 將其升級為一個真正的「全面 LORE 解析引擎」。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v1.7 终极 LORE 解析引擎】执行一个能够处理所有 LORE 类型的、RAG 驱动的专职流水线。
@@ -775,54 +775,77 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             },
         }
 
+        # [v2.0 核心修正] 彻底重构 run_category_pipeline 为小批量、全串行模式
         async def run_category_pipeline(category: str, names: List[str]):
             config = parser_configs.get(category)
             if not config: return None
 
-            # 步骤 2.1: 批量 RAG 上下文聚合
-            rag_query_tasks = [self.retriever.ainvoke(f"{name} {category} 詳細資訊") for name in names]
-            rag_results = await asyncio.gather(*rag_query_tasks, return_exceptions=True)
-            
-            batch_input_data = []
-            for name, result in zip(names, rag_results):
-                context = "\n\n---\n\n".join([doc.page_content for doc in result]) if not isinstance(result, Exception) else "错误：RAG检索失败"
-                batch_input_data.append({"entity_name": name, "rag_context": context})
-            
-            batch_input_json = json.dumps(batch_input_data, ensure_ascii=False)
+            BATCH_SIZE = 5  # 每次处理5个实体
+            all_pipeline_results = defaultdict(list)
+            original_names_processed = []
 
-            # 步骤 2.2: 串行执行该类别的专职流水线
-            pipeline_results = {}
-            for key, focus, pydantic_schema in config["pipeline"]:
-                logger.info(f"[{self.user_id}] [专职流水线 - {category}] 任务 '{focus}' 已启动...")
-                parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
+            for i in range(0, len(names), BATCH_SIZE):
+                batch_names = names[i:i + BATCH_SIZE]
+                logger.info(f"[{self.user_id}] [专职流水线 - {category}] 正在处理批次 {i//BATCH_SIZE + 1}/{(len(names) + BATCH_SIZE - 1)//BATCH_SIZE}...")
                 
-                # 动态生成 Pydantic Schema 字符串，用于注入 Prompt
-                schema_str = json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2)
+                # 步骤 2.1: 串行 RAG 上下文聚合
+                batch_input_data = []
+                for name in batch_names:
+                    try:
+                        result = await self.retriever.ainvoke(f"{name} {category} 詳細資訊")
+                        context = "\n\n---\n\n".join([doc.page_content for doc in result]) if result else "错误：RAG检索无结果"
+                    except Exception as e:
+                        logger.error(f"[{self.user_id}] [RAG查询] 为 '{name}' 查询时失败: {e}")
+                        context = "错误：RAG检索失败"
+                    batch_input_data.append({"entity_name": name, "rag_context": context})
+                    await asyncio.sleep(1.0) # 在每个RAG查询后增加延时
 
-                full_prompt = self._safe_format_prompt(
-                    parser_prompt_template,
-                    {"parsing_focus": focus, "pydantic_schema_str": schema_str, "batch_input_json": batch_input_json},
-                    inject_core_protocol=True
-                )
-                try:
-                    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-                    pipeline_results[key] = result
-                    logger.info(f"[{self.user_id}] [专职流水线 - {category}] ✅ 任务 '{focus}' 成功完成。")
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [专职流水线 - {category}] 🔥 任务 '{focus}' 提取失败: {e}", exc_info=True)
-                    pipeline_results[key] = None
-                await asyncio.sleep(2.0)
+                batch_input_json = json.dumps(batch_input_data, ensure_ascii=False)
+
+                # 步骤 2.2: 串行执行该类别的专职流水线
+                for key, focus, pydantic_schema in config["pipeline"]:
+                    logger.info(f"[{self.user_id}] [专职流水线 - {category}] 批次 {i//BATCH_SIZE + 1} 的任务 '{focus}' 已启动...")
+                    parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
+                    schema_str = json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2)
+
+                    full_prompt = self._safe_format_prompt(
+                        parser_prompt_template,
+                        {"parsing_focus": focus, "pydantic_schema_str": schema_str, "batch_input_json": batch_input_json},
+                        inject_core_protocol=True
+                    )
+                    try:
+                        result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+                        
+                        # 假设所有批量结果模型都有一个名为 'results' 的列表字段
+                        if result and hasattr(result, 'results'):
+                             all_pipeline_results[key].extend(result.results)
+                        
+                        logger.info(f"[{self.user_id}] [专职流水线 - {category}] ✅ 批次 {i//BATCH_SIZE + 1} 的任务 '{focus}' 成功完成。")
+                    except Exception as e:
+                        logger.error(f"[{self.user_id}] [专职流水线 - {category}] 🔥 批次 {i//BATCH_SIZE + 1} 的任务 '{focus}' 提取失败: {e}", exc_info=True)
+                    
+                    await asyncio.sleep(5.0) # 在每个LLM调用后增加更长的延时
+                
+                original_names_processed.extend(batch_names)
+
+            # 将收集到的结果重新组装成期望的格式
+            final_pipeline_results = {}
+            for key, pydantic_list in all_pipeline_results.items():
+                # 找到对应的批量结果模型，例如 BatchAliasesResult
+                pydantic_schema = next((s for k, f, s in config["pipeline"] if k == key), None)
+                if pydantic_schema:
+                    # 重新创建一个包含所有结果的父模型实例
+                    final_pipeline_results[key] = pydantic_schema(results=pydantic_list)
             
-            return names, pipeline_results
+            return original_names_processed, final_pipeline_results
 
-        # [v1.9 核心修正] 将并行执行改为串行，以避免 API 速率超限
         all_category_results = []
         for cat, name_list in categorized_entities.items():
             logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 正在串行处理类别: '{cat}'...")
             result = await run_category_pipeline(cat, name_list)
             all_category_results.append(result)
-            # 在处理完一个大的类别后增加额外的延迟，进一步降低速率超限风险
-            await asyncio.sleep(3.0) 
+            logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 类别 '{cat}' 处理完毕。")
+            await asyncio.sleep(5.0) 
 
         # --- 阶段三：确定性数据合并 ---
         logger.info(f"[{self.user_id}] [RAG驱动解析 3/3] 正在合并所有类别的流水线结果...")
@@ -868,7 +891,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     
                     target_list.append(CharacterProfile.model_validate(profile_data))
 
-            else: # 处理其他单步解析的 LORE 类别
+            else: 
                 parsed_data = results.get("full_parse")
                 if not parsed_data or not hasattr(parsed_data, 'results') or not parsed_data.results: continue
                 
@@ -5723,6 +5746,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
