@@ -1,52 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T19:29:20.694622 ###
+### AI Lover Log - Last updated at 2025-09-30T19:34:54.385881 ###
 
-resolutions.117
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '麥可...ardized_name': '麥可'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.118
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '克拉...ized_name': '克拉拉'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.123
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '莉娜...ardized_name': '莉娜'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.124
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '索菲...ized_name': '索菲亞'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.125
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡蓮...ardized_name': '卡蓮'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.126
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '莉娜...ardized_name': '莉娜'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.127
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '貝拉...ardized_name': '貝拉'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.128
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '絲月...ardized_name': '絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.129
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '諾拉...ardized_name': '諾拉'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 301, in _resolve_and_save
-    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 901, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 882, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 67 validation errors for BatchResolutionPlan
-resolutions.3
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡爾...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.5
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '菲利...'菲利普•薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.19
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '老高...ardized_name': '高爾'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.20
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '莉莉...ized_name': '莉莉絲'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/value_error
 resolutions.30
@@ -300,3 +253,50 @@ resolutions.129
 2025-09-30 19:29:14 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
 2025-09-30 19:29:14 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
 2025-09-30 19:29:16 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-30 19:29:20 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-30 19:29:21 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 19:29:21 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-30 19:29:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 19:29:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 19:29:21 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 19:29:53 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 19:29:53 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-09-30 19:29:53 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-30 19:29:53 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-30 19:29:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 19:29:56 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-09-30 19:30:04 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-09-30 19:30:05 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-09-30 19:30:05 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 19:30:33 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-09-30 19:30:44 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-09-30 19:30:44 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-09-30 19:30:45 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 19:30:46 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-09-30 19:30:52 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] [後台創世 1/5] 正在進行 LORE 智能解析...
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] [創世 LORE 解析] 正在啟動多層降級解析管線...
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-09-30 19:30:54 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:31:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-30 19:31:12 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] ✅ 成功！
+2025-09-30 19:31:12 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
+2025-09-30 19:31:12 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:31:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-30 19:31:30 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] ✅ 成功！
+2025-09-30 19:31:30 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
+2025-09-30 19:31:30 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:31:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-30 19:31:43 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] ✅ 成功！
+2025-09-30 19:31:43 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
+2025-09-30 19:31:43 - [INFO] - [512280345618546699] [LORE 解析 4-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:32:04 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 'int' object has no attribute 'name'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 887, in ainvoke_with_rotation
+    if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
+AttributeError: 'int' object has no attribute 'name'
+2025-09-30 19:32:04 - [ERROR] - [512280345618546699] [LORE 解析 4-1/5] 遭遇未知錯誤: 'int' object has no attribute 'name'，正在降級。
+2025-09-30 19:32:04 - [INFO] - [512280345618546699] [LORE 解析 4-2/5] 正在嘗試【本地備援方案：無審查解析】...
+2025-09-30 19:32:04 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
