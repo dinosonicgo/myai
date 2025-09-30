@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T23:50:25.573771 ###
+### AI Lover Log - Last updated at 2025-09-30T23:56:03.653887 ###
 
-    return await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1343, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1324, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchAliasesResult
 results
   Field required [type=missing, input_value={'npc_profiles': [{'name'...y': 'Cultural Ritual'}]}, input_type=dict]
@@ -300,3 +293,10 @@ results.45.description
 2025-09-30 23:48:59 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
 2025-09-30 23:49:01 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-09-30 23:49:01 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-09-30 23:55:49 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 23:55:49 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 23:55:50 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 23:55:50 - [INFO] - Discord Bot is ready!
+2025-09-30 23:55:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 23:55:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 23:55:53 - [INFO] - 已成功發送啟動成功通知給管理員。
