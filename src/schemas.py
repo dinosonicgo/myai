@@ -76,6 +76,51 @@ class BatchCoreInfoResult(BaseModel):
     """包裹批量核心信息提取结果的模型"""
     results: List[CoreInfoItem]
 
+
+class LocationItem(BaseModel):
+    """包裹单个地点信息的模型"""
+    name: str
+    location_info: "LocationInfo"
+
+class BatchLocationsResult(BaseModel):
+    """包裹批量地点信息提取结果的模型"""
+    results: List[LocationItem]
+
+class ItemItem(BaseModel):
+    """包裹单个物品信息的模型"""
+    name: str
+    item_info: "ItemInfo"
+
+class BatchItemsResult(BaseModel):
+    """包裹批量物品信息提取结果的模型"""
+    results: List[ItemItem]
+
+class CreatureItem(BaseModel):
+    """包裹单个生物信息的模型"""
+    name: str
+    creature_info: "CreatureInfo"
+
+class BatchCreaturesResult(BaseModel):
+    """包裹批量生物信息提取结果的模型"""
+    results: List[CreatureItem]
+
+class QuestItem(BaseModel):
+    """包裹单个任务信息的模型"""
+    name: str
+    quest_info: "Quest"
+
+class BatchQuestsResult(BaseModel):
+    """包裹批量任务信息提取结果的模型"""
+    results: List[QuestItem]
+
+class WorldLoreItem(BaseModel):
+    """包裹单个世界传说信息的模型"""
+    name: str
+    world_lore_info: "WorldLore"
+
+class BatchWorldLoresResult(BaseModel):
+    """包裹批量世界传说信息提取结果的模型"""
+    results: List[WorldLoreItem]
 # --- LORE 基础模型 ---
 
 class AppearanceDetails(BaseModel):
@@ -470,3 +515,15 @@ NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 IdentifiedEntity.model_rebuild()
 BatchIdentifiedEntitiesResult.model_rebuild()
+
+LocationItem.model_rebuild()
+BatchLocationsResult.model_rebuild()
+ItemItem.model_rebuild()
+BatchItemsResult.model_rebuild()
+CreatureItem.model_rebuild()
+BatchCreaturesResult.model_rebuild()
+QuestItem.model_rebuild()
+BatchQuestsResult.model_rebuild()
+WorldLoreItem.model_rebuild()
+BatchWorldLoresResult.model_rebuild()
+
