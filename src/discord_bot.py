@@ -35,6 +35,8 @@ from .models import UserProfile, GameState
 from src.config import settings
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
+# [v57.1 核心修正] 增加缺失的导入
+from langchain_community.retrievers import BM25Retriever, EnsembleRetriever
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -1864,5 +1866,6 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
