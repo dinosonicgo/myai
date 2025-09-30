@@ -1,40 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T19:34:54.385881 ###
+### AI Lover Log - Last updated at 2025-09-30T19:38:11.596730 ###
 
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '莉莉...ized_name': '莉莉絲'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.30
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '絲月...ardized_name': '絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.31
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '瑪莉...ardized_name': '瑪莉'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.33
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '安娜...ardized_name': '安娜'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.35
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '米婭...ardized_name': '米婭'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.42
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '維利...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.43
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '維利...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.45
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '絲月...ardized_name': '絲月'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.46
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '艾莉...ized_name': '艾莉諾'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.50
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '菲利...'菲利普•薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.51
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '阿拉...d_name': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.52
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '薩格...'菲利普•薩格納'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
 resolutions.53
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡爾...'卡爾•維利爾斯'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/value_error
@@ -300,3 +265,38 @@ AttributeError: 'int' object has no attribute 'name'
 2025-09-30 19:32:04 - [ERROR] - [512280345618546699] [LORE 解析 4-1/5] 遭遇未知錯誤: 'int' object has no attribute 'name'，正在降級。
 2025-09-30 19:32:04 - [INFO] - [512280345618546699] [LORE 解析 4-2/5] 正在嘗試【本地備援方案：無審查解析】...
 2025-09-30 19:32:04 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-09-30 19:35:06 - [INFO] - [512280345618546699] 本地模型在首次嘗試中成功解析並驗證了LORE數據。
+2025-09-30 19:35:06 - [WARNING] - [512280345618546699] [LORE 解析 4-2/5] 本地模型未能成功解析，正在降級...
+2025-09-30 19:35:06 - [INFO] - [512280345618546699] [LORE 解析 4-3/5] 層級3邏輯已合併至層級1，跳過。
+2025-09-30 19:35:06 - [INFO] - [512280345618546699] [LORE 解析 4-4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...
+2025-09-30 19:35:09 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-09-30 19:35:09 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-09-30 19:35:09 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-09-30 19:35:09 - [INFO] - [512280345618546699] [LORE 解析 4-5/5] 正在嘗試【法醫級重構方案】...
+2025-09-30 19:35:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-30 19:35:12 - [INFO] - [512280345618546699] [LORE 解析 4-5/5] ✅ 成功！
+2025-09-30 19:35:12 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-09-30 19:35:12 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:35:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-30 19:35:26 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] ✅ 成功！
+2025-09-30 19:35:26 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 6/8...
+2025-09-30 19:35:26 - [INFO] - [512280345618546699] [LORE 解析 6-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-09-30 19:35:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-09-30 19:35:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: JSONDecodeError。
+2025-09-30 19:35:43 - [ERROR] - [512280345618546699] [LORE 解析 6-1/5] 遭遇未知錯誤: Expecting property name enclosed in double quotes: line 849 column 7 (char 17315)，正在降級。
+2025-09-30 19:35:43 - [INFO] - [512280345618546699] [LORE 解析 6-2/5] 正在嘗試【本地備援方案：無審查解析】...
+2025-09-30 19:35:43 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-09-30 19:37:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 19:37:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 19:37:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 19:37:57 - [INFO] - Discord Bot is ready!
+2025-09-30 19:38:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 19:38:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 19:38:01 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 19:38:05 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 19:38:05 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-09-30 19:38:05 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-09-30 19:38:06 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-09-30 19:38:06 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-09-30 19:38:06 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-09-30 19:38:07 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
