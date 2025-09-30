@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T19:38:11.596730 ###
+### AI Lover Log - Last updated at 2025-09-30T19:43:19.234933 ###
 
-resolutions.53
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '卡爾...'卡爾•維利爾斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.54
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '湯姆...ardized_name': '湯姆'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.55
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '班恩...ardized_name': '班恩'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.60
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '絲月...ardized_name': '絲月'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/value_error
 resolutions.61
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '莉莉...ized_name': '莉莉絲'}, input_type=dict]
@@ -300,3 +289,14 @@ AttributeError: 'int' object has no attribute 'name'
 2025-09-30 19:38:06 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
 2025-09-30 19:38:06 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
 2025-09-30 19:38:07 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-09-30 19:38:12 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-09-30 19:38:12 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 19:38:12 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-09-30 19:38:12 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 19:38:12 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 19:38:12 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 19:38:19 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 19:38:19 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-09-30 19:38:19 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-09-30 19:38:19 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-09-30 19:38:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
