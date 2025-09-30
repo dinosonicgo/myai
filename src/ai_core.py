@@ -2307,12 +2307,17 @@ class ExtractionResult(BaseModel):
         
         logger.info(f"[{self.user_id}] [事後處理] 記憶更新完成。")
     # 更新短期與長期記憶 函式結束
+
+
+
+
     
-   # 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
-    # 更新紀錄:
-    # v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。
-    # v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
-    # v204.0 (2025-11-20): [重大架構重構] 徹底移除了對已過時的 `_rehydrate_short_term_memory` 函式的呼叫。
+    
+# ai_core.py 的 AILover.initialize 函式 (v206.1 - 簡化職責)
+# 更新紀錄:
+# v206.1 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_configure_pre_requisites` 的調用。`initialize` 的唯一職責被簡化為：從 SQL 資料庫加載用戶的核心 Profile 數據。所有其他資源的配置將由更高層的協調器（如 discord_bot.py）在正確的時機觸發。
+# v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。
+# v205.0 (2025-11-22): [重大架構升級] 在函式開頭增加了對 _rehydrate_scene_histories 的調用。
     async def initialize(self) -> bool:
         """從資料庫加載使用者數據並初始化 AI 核心。這是啟動時的關鍵方法。"""
         async with AsyncSessionLocal() as session:
@@ -2343,13 +2348,15 @@ class ExtractionResult(BaseModel):
                 game_state=GameState.model_validate(result.game_state or {})
             )
         
-        try:
-            await self._configure_pre_requisites()
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 配置前置資源時發生致命錯誤: {e}", exc_info=True)
-            return False
+        # [v206.1 核心修正] 移除對 _configure_pre_requisites 的調用
+        # try:
+        #     await self._configure_pre_requisites()
+        # except Exception as e:
+        #     logger.error(f"[{self.user_id}] 配置前置資源時發生致命錯誤: {e}", exc_info=True)
+        #     return False
+            
         return True
-    # 函式：初始化AI實例 (v206.0 - 移除自動記憶恢復)
+# 函式：初始化AI實例
 
 
 
@@ -5380,6 +5387,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
