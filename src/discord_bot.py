@@ -1791,34 +1791,40 @@ class BotCog(commands.Cog):
 
     
 
-# 指令：開始全新的冒險（重置所有資料） (v53.0 - 視圖生命週期修正)
-# 更新紀錄:
-# v53.1 (2025-09-25): [架構簡化] 移除了对 setup_locks 的检查，因为重复启动的问题已由 UI 回调和 active_setups 机制更可靠地处理。
-# v53.0 (2025-11-22): [災難性BUG修復] 彻底重构了此视图的实现方式。
-    @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
-    async def start(self, interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
-        if not isinstance(interaction.channel, discord.DMChannel):
-            await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
-            return
-        
-        # 检查是否已有流程正在进行
-        if user_id in self.active_setups:
-            await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，无法重复开始。请耐心等候或联系管理员。", ephemeral=True)
-            return
-            
-        view = ConfirmStartView(cog=self)
-        view.original_interaction_user_id = interaction.user.id
-        # 将 view.message 储存起来，以便在 on_timeout 中使用
-        await interaction.response.send_message(
-            "⚠️ **警告** ⚠️\n您確定要開始一段全新的冒險嗎？\n這將會**永久刪除**您當前所有的角色、世界、記憶和進度。", 
-            view=view, 
-            ephemeral=True
-        )
-        view.message = await interaction.original_response()
-        
-        await view.wait()
+# 指令：開始全新的冒險（重置所有資料） - 修正版本
+@app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
+async def start(self, interaction: discord.Interaction):
+    """處理 /start 指令，開始全新的冒險流程"""
+    user_id = str(interaction.user.id)
+    
+    # 檢查是否在私訊頻道中使用
+    if not isinstance(interaction.channel, discord.DMChannel):
+        await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
+        return
+    
+    # 檢查是否已有流程正在進行
+    if user_id in self.active_setups:
+        await interaction.response.send_message("⏳ 您已经有一个创世流程正在后台执行，无法重复开始。请耐心等候或联系管理员。", ephemeral=True)
+        return
+    
+    # 創建確認視圖
+    view = ConfirmStartView(cog=self)
+    view.original_interaction_user_id = interaction.user.id  # 【修正重點】設定原始互動使用者ID
+    
+    # 發送確認訊息並儲存訊息引用
+    await interaction.response.send_message(
+        "⚠️ **警告** ⚠️\n您確定要開始一段全新的冒險嗎？\n這將會**永久刪除**您當前所有的角色、世界、記憶和進度。",
+        view=view,
+        ephemeral=True
+    )
+    
+    # 【修正重點】將訊息引用儲存到視圖中，用於超時處理
+    view.message = await interaction.original_response()
+    
+    # 等待使用者操作
+    await view.wait()
 # 開始全新的冒險（重置所有資料） 指令結束
+
 
     # 指令：進入設定中心
     @app_commands.command(name="settings", description="進入設定中心，管理你的角色、AI戀人與世界觀")
@@ -2166,6 +2172,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
