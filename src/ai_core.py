@@ -472,12 +472,11 @@ class AILover:
 
 
 
-# 函式：加載或構建 RAG 檢索器
-    # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.5 - 強制清理重建)
-    # 更新紀錄:
-    # v204.5 (2025-11-26): [灾难性BUG修复] 根據深入分析，在所有需要執行全量創始構建的路徑前，都增加了強制刪除並重建向量儲存目錄 (`shutil.rmtree`) 的邏輯。此修改旨在徹底清除任何可能已損壞或初始化不完整的舊 ChromaDB 檔案，強制 ChromaDB 在一個絕對乾淨的環境下重新創建所有必要的資料庫表格（如 tenants），從根源上解決 `sqlite3.OperationalError: no such table` 的問題。
-    # v204.4 (2025-11-26): [灾难性BUG修复] 採用了最底層、最明確的 ChromaDB 初始化方案，手動創建 Settings 和 Client。
-    # v204.3 (2025-11-26): [灾难性BUG修复] 改為使用 `chromadb.PersistentClient` 來嘗試修復初始化時的資料庫建表問題。
+# ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.5 - 強制清理重建)
+# 更新紀錄:
+# v204.5 (2025-11-26): [灾难性BUG修复] 根據深入分析，在所有需要執行全量創始構建的路徑前，都增加了強制刪除並重建向量儲存目錄 (`shutil.rmtree`) 的邏輯。此修改旨在徹底清除任何可能已損壞或初始化不完整的舊 ChromaDB 檔案，強制 ChromaDB 在一個絕對乾淨的環境下重新創建所有必要的資料庫表格（如 tenants），從根源上解決 `sqlite3.OperationalError: no such table` 的問題。
+# v204.4 (2025-11-26): [灾难性BUG修复] 採用了最底層、最明確的 ChromaDB 初始化方案，手動創建 Settings 和 Client。
+# v204.3 (2025-11-26): [灾难性BUG修复] 改為使用 `chromadb.PersistentClient` 來嘗試修復初始化時的資料庫建表問題。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
         (v204.5 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
@@ -606,7 +605,7 @@ class AILover:
 
 
         return self.retriever
-    # 函式：加載或構建 RAG 檢索器
+# 函式：加載或構建 RAG 檢索器
 
 
 
@@ -3552,11 +3551,11 @@ class ExtractionResult(BaseModel):
     # 獲取場景中的相關 NPC 函式結束
     
 
-    # ai_core.py 的 shutdown 函式 (v198.2 - 強制等待資源釋放)
-    # 更新紀錄:
-    # v198.2 (2025-11-26): [灾难性BUG修复] 在請求 ChromaDB 系統停止後，增加了一個固定的 1 秒異步等待。此修改旨在給予 ChromaDB 的後台進程足夠的時間來完全終止並釋放對資料庫文件的鎖定，是解決頑固的 `PermissionError` 的終極手段。
-    # v198.1 (2025-09-02): [灾难性BUG修复] 徹底重構了 ChromaDB 的關閉邏輯，改為調用底層的 `_system.stop()` 方法。
-    # v198.0 (2025-09-02): [重大架構重構] 移除了所有 LangGraph 相關的清理邏輯。
+# ai_core.py 的 AILover.shutdown 函式 (v198.2 - 強制等待資源釋放)
+# 更新紀錄:
+# v198.2 (2025-11-26): [灾难性BUG修复] 在請求 ChromaDB 系統停止後，增加了一個固定的 1 秒異步等待。此修改旨在給予 ChromaDB 的後台進程足夠的時間來完全終止並釋放對資料庫文件的鎖定，是解決頑固的 `PermissionError` 的終極手段。
+# v198.1 (2025-09-02): [灾难性BUG修复] 徹底重構了 ChromaDB 的關閉邏輯，改為調用底層的 `_system.stop()` 方法。
+# v198.0 (2025-09-02): [重大架構重構] 移除了所有 LangGraph 相關的清理邏輯。
     async def shutdown(self):
         logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放資源...")
         
@@ -3595,7 +3594,7 @@ class ExtractionResult(BaseModel):
         self.scene_histories.clear()
         
         logger.info(f"[{self.user_id}] AI 實例資源已釋放。")
-    # 關閉 AI 實例並釋放資源 函式結束
+# 關閉 AI 實例並釋放資源 函式結束
 
 
 
@@ -5342,6 +5341,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
