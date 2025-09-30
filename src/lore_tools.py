@@ -309,8 +309,10 @@ async def update_lore_template_keys(lore_category: str, lore_key: str, template_
 # --- 工具列表導出 ---
 
 # 函式：獲取所有 LORE 工具 (v3.5 - 新增規則工具)
+# lore_tools.py 的 get_lore_tools 函式 (v3.6 - 註冊新工具)
 # 更新紀錄:
-# v3.5 (2025-11-22): [架構擴展] 將新增的 update_lore_template_keys 工具加入到返回的工具列表中，使其能被AI的工具調用系統正式使用。
+# v3.6 (2025-10-01): [架構擴展] 將新增的 `update_lore_template_keys` 工具加入到返回的工具列表中，使其能被AI的工具調用系統正式使用，完成了 LORE 繼承功能的閉環。
+# v3.5 (2025-11-22): [架構擴展] 新增了 update_lore_template_keys 工具。
 def get_lore_tools() -> List[Tool]:
     """返回一個列表，包含所有用於管理世界 LORE 的工具。"""
     return [
@@ -323,6 +325,8 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
         update_lore_template_keys,
     ]
+# lore_tools.py 的 get_lore_tools 函式
 # 函式：獲取所有 LORE 工具
+
 
 
