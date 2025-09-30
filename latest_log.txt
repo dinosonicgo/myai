@@ -1,36 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T01:49:59.948095 ###
+### AI Lover Log - Last updated at 2025-10-01T01:55:03.203722 ###
 
-2025-10-01 01:09:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:09:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:09:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 01:09:11 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-01 01:09:11 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ACTION-C', 'ACTION-E', 'ROLE-D', 'CODE-F-GEN-A', 'ROLE-B', 'CODE-F-GEN-C']
-2025-10-01 01:09:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-01 01:09:20 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 01:09:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 01:09:23 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.35 秒後進行第 2 次嘗試...
-2025-10-01 01:09:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-01 01:09:24 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 01:09:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 01:09:25 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-01 01:09:25 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-B', 'ACTION-E', 'ROLE-D']
-2025-10-01 01:09:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 01:09:27 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.36 秒後進行第 3 次嘗試...
-2025-10-01 01:09:31 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 01:09:31 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-10-01 01:09:35 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 01:09:35 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.21 秒後進行第 2 次嘗試...
-2025-10-01 01:09:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-01 01:09:38 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAppearanceResult)...
-2025-10-01 01:09:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
-2025-10-01 01:09:38 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchCoreInfoResult)...
-2025-10-01 01:09:39 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 26/40] ✅ 處理成功。
-2025-10-01 01:09:39 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 28/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:09:39 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 01:09:39 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-01 01:09:39 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-A', 'ROLE-D']
-2025-10-01 01:09:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 72838 秒)。
-2025-10-01 01:09:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 76481 秒)。
 2025-10-01 01:09:39 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
 2025-10-01 01:09:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
 2025-10-01 01:09:41 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.12 秒後進行第 3 次嘗試...
@@ -300,3 +269,34 @@ google.api_core.exceptions.InternalServerError: 500 Generation stopped due to fi
 2025-10-01 01:47:47 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
 2025-10-01 01:49:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
 2025-10-01 01:49:51 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:51:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:51:53 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:54:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:54:02 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:54:02 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None Generation stopped due to finish_reason: MAX_TOKENS
+2025-10-01 01:54:02 - [ERROR] - [512280345618546699] [专职流水线 - npc_profile] 🔥 任务 '提取背景故事、性格、技能和人际关系' 提取失败: None Generation stopped due to finish_reason: MAX_TOKENS
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 806, in run_category_pipeline
+    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1334, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1264, in ainvoke_with_rotation
+    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+google.api_core.exceptions.GoogleAPICallError: None Generation stopped due to finish_reason: MAX_TOKENS
+2025-10-01 01:54:02 - [INFO] - [512280345618546699] [专职流水线 - location_info] 任务 '提取地点的完整信息' 已启动...
+2025-10-01 01:54:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:54:07 - [INFO] - [512280345618546699] [专职流水线 - world_lore] 任务 '提取世界传说的完整信息' 已启动...
+2025-10-01 01:54:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:54:31 - [INFO] - [512280345618546699] [专职流水线 - item_info] 任务 '提取物品的完整信息' 已启动...
+2025-10-01 01:54:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:54:36 - [INFO] - [512280345618546699] [专职流水线 - quest] 任务 '提取任务的完整信息' 已启动...
+2025-10-01 01:54:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:54:39 - [INFO] - [512280345618546699] [RAG驱动解析 4/4] 正在合并所有类别的流水线结果...
+2025-10-01 01:54:39 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 'NoneType' object has no attribute 'results'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1167, in _perform_full_setup_flow
+    parsing_result_from_pipeline = await ai_instance._rag_driven_lore_creation(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 835, in _rag_driven_lore_creation
+    core_info_map = {item.character_name: item for item in results.get("core_info", BatchCoreInfoResult(results=[])).results}
+AttributeError: 'NoneType' object has no attribute 'results'
+2025-10-01 01:54:39 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
