@@ -1,19 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T19:25:43.941911 ###
+### AI Lover Log - Last updated at 2025-09-30T19:29:20.694622 ###
 
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '阿拉...d_name': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.111
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '赫克...ized_name': '赫克托'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.113
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '伊索...d_name': '伊索爾德'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.114
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '博林...ardized_name': '博林'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.116
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '瓦勒...d_name': '瓦勒留斯'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
 resolutions.117
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '麥可...ardized_name': '麥可'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/value_error
@@ -300,3 +286,17 @@ resolutions.129
 2025-09-30 19:25:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 19:25:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 19:25:33 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 19:29:06 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 19:29:06 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 19:29:06 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 19:29:06 - [INFO] - Discord Bot is ready!
+2025-09-30 19:29:09 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 19:29:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 19:29:10 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-09-30 19:29:14 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-09-30 19:29:16 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
