@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-09-30T22:19:51.643705 ###
+### AI Lover Log - Last updated at 2025-09-30T22:24:55.061615 ###
 
-2025-09-30 21:22:27 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 21:22:35 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
-2025-09-30 21:22:35 - [INFO] - [512280345618546699] [後台創世 1/7] 空的 RAG 容器已準備就緒。
-2025-09-30 21:22:35 - [INFO] - [512280345618546699] [後台創世 2/7] 正在將世界聖經原文填充進 RAG 索引...
-2025-09-30 21:22:35 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 21:23:12 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 21:23:12 - [INFO] - [512280345618546699] [後台創世 2/7] RAG 索引填充並重載完成。
-2025-09-30 21:23:12 - [INFO] - [512280345618546699] [後台創世 3/7] 正在啟動 RAG 驅動的 LORE 深度解析...
-2025-09-30 21:23:12 - [INFO] - [512280345618546699] [確定性解析器] 已成功從世界聖經中解析出 5 個角色的「地面實況」身份數據。
-2025-09-30 21:23:12 - [INFO] - [512280345618546699] [RAG驅動解析] 正在為 5 個角色並行執行 RAG 檢索...
-2025-09-30 21:23:13 - [INFO] - [512280345618546699] [RAG驅動解析] 正在啟動首次批量 LLM 解析任務...
-2025-09-30 21:23:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 21:23:18 - [INFO] - [512280345618546699] [RAG驅動解析] ✅ 首次批量解析成功處理了 5/5 個角色。
-2025-09-30 21:23:18 - [INFO] - [512280345618546699] [最終校準] 正在啟動基於「地面實況」的身份強制校準模組...
-2025-09-30 21:23:19 - [INFO] - [512280345618546699] [確定性解析器] 已成功從世界聖經中解析出 5 個角色的「地面實況」身份數據。
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '第一次交鋒' 遺漏了 4 個身份標籤: {'母畜', '聖女', '性神教徒', 'Siyue'}。正在強制修正...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '第一次交鋒' 產生了 1 個幻覺身份: {'第一次交鋒'}。正在移除...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '卡蓮' 遺漏了 5 個身份標籤: {'母畜', '第二聖女 / 活教典', '性神教徒', 'Karen', 'Siyue'}。正在強制修正...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '卡蓮' 產生了 2 個幻覺身份: {'卡蓮', '活教典'}。正在移除...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '艾拉' 遺漏了 5 個身份標籤: {'母畜', '性神教徒', 'Siyue', 'Elara', '第一蒙恩者 / 女祭司'}。正在強制修正...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '艾拉' 產生了 2 個幻覺身份: {'艾拉', '第一蒙恩者'}。正在移除...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '里斯' 遺漏了 3 個身份標籤: {'Rhys', 'Siyue', '聖殿守護者 / 孝子'}。正在強制修正...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '里斯' 產生了 4 個幻覺身份: {'掘井人', '里斯', '孝子', '聖殿守護者'}。正在移除...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '凱爾' 遺漏了 4 個身份標籤: {'Kael', '性神教徒', '聖殿守護者 / 掘井人', 'Siyue'}。正在強制修正...
-2025-09-30 21:23:19 - [WARNING] - [512280345618546699] [最終校準] 檢測到角色 '凱爾' 產生了 2 個幻覺身份: {'掘井人', '凱爾'}。正在移除...
-2025-09-30 21:23:19 - [INFO] - [512280345618546699] [最終校準] 身份強制校準完成。
-2025-09-30 21:23:19 - [INFO] - [512280345618546699] [後台創世 3/7] RAG 驅動的 LORE 深度解析完成。
-2025-09-30 21:23:19 - [INFO] - [512280345618546699] [後台創世 4/7] 正在補完使用者與 AI 的角色檔案...
-2025-09-30 21:23:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 21:23:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 21:23:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-09-30 21:23:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:23:22 - [INFO] - [512280345618546699] [後台創世 5/7] 正在生成世界創世資訊...
-2025-09-30 21:23:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-30 21:23:23 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-09-30 21:23:23 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-09-30 21:23:31 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.12 秒後進行第 2 次嘗試...
-2025-09-30 21:23:32 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.29 秒後進行第 3 次嘗試...
-2025-09-30 21:23:37 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 21:23:37 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #4 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
-2025-09-30 21:24:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
-2025-09-30 21:24:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-09-30 21:24:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:24:16 - [INFO] - [512280345618546699] [/start] 初始地點 '王國 > 王都城鎮區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
-2025-09-30 21:24:16 - [INFO] - [512280345618546699] [後台創世 6/7] 正在生成開場白...
-2025-09-30 21:25:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-09-30 21:25:19 - [INFO] - [512280345618546699] [後台創世 6/7] 開場白生成完毕。
-2025-09-30 21:25:21 - [INFO] - [512280345618546699] [後台創世 7/7] 正在向使用者私訊發送最終開場白...
-2025-09-30 21:25:22 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白發送完畢。
-2025-09-30 21:25:22 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-09-30 21:47:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 21:47:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 21:47:26 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 21:47:26 - [INFO] - Discord Bot is ready!
-2025-09-30 21:47:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 21:47:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 21:47:29 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 21:53:01 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 21:53:01 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 21:53:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 21:53:01 - [INFO] - Discord Bot is ready!
-2025-09-30 21:53:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 21:53:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 21:53:05 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 21:53:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 21:53:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 21:54:01 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 21:54:01 - [INFO] - Discord Bot is ready!
-2025-09-30 21:54:04 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 21:54:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 21:54:05 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 21:54:17 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 21:54:19 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 21:54:23 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 21:54:24 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 21:54:24 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 21:54:24 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 21:54:24 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 21:54:24 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 21:54:27 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 21:54:27 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-09-30 21:54:27 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 21:54:27 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 21:54:27 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:54:30 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 21:54:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 21:54:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 21:54:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:54:40 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 21:54:50 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 21:54:50 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 21:54:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:54:52 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-09-30 21:54:57 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-09-30 21:55:00 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 21:55:08 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
-2025-09-30 21:55:08 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
-2025-09-30 21:55:08 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
-2025-09-30 21:55:08 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 21:55:50 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 21:55:50 - [INFO] - [512280345618546699] [後台創世 2/6] RAG 索引填充並重載完成。
-2025-09-30 21:55:50 - [INFO] - [512280345618546699] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...
-2025-09-30 21:55:50 - [INFO] - [512280345618546699] [RAG驅動解析 1/4] 正在使用 LLM 提取所有角色名稱...
-2025-09-30 21:55:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 21:55:53 - [INFO] - [512280345618546699] [RAG驅動解析 1/4] 成功識別出 59 個角色任務。
-2025-09-30 21:55:53 - [INFO] - [512280345618546699] [RAG驅動解析 2/4] 正在為 59 個角色並行執行 RAG 檢索...
-2025-09-30 21:55:55 - [INFO] - [512280345618546699] [RAG驅動解析 3/4] 正在並行啟動專職 LLM 提取流水線...
-2025-09-30 21:55:55 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: name 'AppearanceDetails' is not defined
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 35
+}
+]
+2025-09-30 22:22:22 - [ERROR] - [512280345618546699] [專職流水線] 焦點 '提取所有外觀細節到 appearance_details 模型' 提取失敗: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 35.451509561s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 35
+}
+]
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1174, in _perform_full_setup_flow
-    parsing_result_from_pipeline = await ai_instance._rag_driven_lore_creation(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 708, in _rag_driven_lore_creation
-    class BatchAppearanceResult(BaseModel):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 709, in BatchAppearanceResult
-    results: List[Dict[str, AppearanceDetails]] = Field(description="[{'character_name': 'name', 'appearance_details': {...}}, ...]")
-NameError: name 'AppearanceDetails' is not defined
-2025-09-30 21:55:55 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-09-30 21:58:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 21:58:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 21:58:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 21:58:58 - [INFO] - Discord Bot is ready!
-2025-09-30 21:59:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 21:59:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 21:59:01 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 21:59:08 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 21:59:08 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 21:59:08 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-09-30 21:59:08 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 21:59:08 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 21:59:09 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 21:59:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 21:59:15 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 21:59:16 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 21:59:16 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 21:59:16 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 21:59:16 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 21:59:16 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 21:59:18 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 21:59:18 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-09-30 21:59:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 21:59:18 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 21:59:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:59:20 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 21:59:27 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 21:59:27 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 21:59:27 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:59:28 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 21:59:40 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 21:59:40 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 21:59:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 21:59:42 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-09-30 21:59:49 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-09-30 21:59:52 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 21:59:59 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
-2025-09-30 21:59:59 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
-2025-09-30 21:59:59 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
-2025-09-30 21:59:59 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 22:00:37 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 22:00:37 - [INFO] - [512280345618546699] [後台創世 2/6] RAG 索引填充並重載完成。
-2025-09-30 22:00:37 - [INFO] - [512280345618546699] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...
-2025-09-30 22:00:37 - [INFO] - [512280345618546699] [RAG驅動解析 1/4] 正在使用 LLM 提取所有角色名稱...
-2025-09-30 22:00:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 22:00:38 - [INFO] - [512280345618546699] [RAG驅動解析 1/4] 成功識別出 57 個角色任務。
-2025-09-30 22:00:38 - [INFO] - [512280345618546699] [RAG驅動解析 2/4] 正在為 57 個角色並行執行 RAG 檢索...
-2025-09-30 22:00:40 - [INFO] - [512280345618546699] [RAG驅動解析 3/4] 正在並行啟動專職 LLM 提取流水線...
-2025-09-30 22:00:45 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.18 秒後進行第 2 次嘗試...
-2025-09-30 22:00:46 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.49 秒後進行第 2 次嘗試...
-2025-09-30 22:00:46 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.49 秒後進行第 2 次嘗試...
-2025-09-30 22:00:48 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.16 秒後進行第 3 次嘗試...
-2025-09-30 22:00:49 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.15 秒後進行第 3 次嘗試...
-2025-09-30 22:00:51 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.38 秒後進行第 3 次嘗試...
-2025-09-30 22:00:52 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:00:54 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.24 秒後進行第 2 次嘗試...
-2025-09-30 22:00:55 - [ERROR] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:00:55 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:00:57 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.31 秒後進行第 2 次嘗試...
-2025-09-30 22:00:58 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.24 秒後進行第 3 次嘗試...
-2025-09-30 22:00:58 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.15 秒後進行第 2 次嘗試...
-2025-09-30 22:01:00 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.19 秒後進行第 3 次嘗試...
-2025-09-30 22:01:02 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.27 秒後進行第 3 次嘗試...
-2025-09-30 22:01:03 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:01:05 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.30 秒後進行第 2 次嘗試...
-2025-09-30 22:01:06 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:01:06 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:01:07 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.32 秒後進行第 2 次嘗試...
-2025-09-30 22:01:11 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.45 秒後進行第 3 次嘗試...
-2025-09-30 22:01:11 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.28 秒後進行第 3 次嘗試...
-2025-09-30 22:01:11 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.40 秒後進行第 2 次嘗試...
-2025-09-30 22:01:15 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.25 秒後進行第 3 次嘗試...
-2025-09-30 22:01:19 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:01:19 - [ERROR] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:01:21 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.41 秒後進行第 2 次嘗試...
-2025-09-30 22:01:21 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.46 秒後進行第 2 次嘗試...
-2025-09-30 22:13:45 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 22:13:45 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 22:13:45 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 22:13:45 - [INFO] - Discord Bot is ready!
-2025-09-30 22:13:48 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 22:13:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 22:13:49 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 22:13:56 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 22:13:58 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 22:14:03 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 22:14:03 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 22:14:03 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 22:14:03 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 22:14:03 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 22:14:03 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 22:14:06 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 22:14:06 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-09-30 22:14:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 22:14:06 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 22:14:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 22:14:08 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 22:14:15 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 22:14:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 22:14:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 22:14:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 22:14:27 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 22:14:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 22:14:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 22:14:29 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-09-30 22:14:35 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-09-30 22:14:38 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 22:14:43 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
-2025-09-30 22:14:43 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
-2025-09-30 22:14:43 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
-2025-09-30 22:14:43 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 22:15:21 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 22:15:21 - [INFO] - [512280345618546699] [後台創世 2/6] RAG 索引填充並重載完成。
-2025-09-30 22:15:21 - [INFO] - [512280345618546699] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...
-2025-09-30 22:15:21 - [INFO] - [512280345618546699] [RAG驱动解析 1/4] 正在使用 LLM 提取所有角色名称...
-2025-09-30 22:15:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 22:15:23 - [INFO] - [512280345618546699] [RAG驱动解析 1/4] 成功识别出 52 个角色任务。
-2025-09-30 22:15:23 - [INFO] - [512280345618546699] [RAG驱动解析 2/4] 正在为 52 个角色并行执行 RAG 检索...
-2025-09-30 22:15:24 - [INFO] - [512280345618546699] [RAG驱动解析 3/4] 正在启动【带节流的智能并行】LLM 提取流水线...
-2025-09-30 22:15:25 - [INFO] - [512280345618546699] [专职流水线] 任务 '提取所有外观细节到 appearance_details 模型' (延迟 0.59s) 已启动...
-2025-09-30 22:15:25 - [INFO] - [512280345618546699] [专职流水线] 任务 '提取角色的背景故事、性格、技能和人际关系' (延迟 0.84s) 已启动...
-2025-09-30 22:15:26 - [INFO] - [512280345618546699] [专职流水线] 任务 '提取所有身份、头衔、绰号和别名到 aliases 列表' (延迟 1.35s) 已启动...
-2025-09-30 22:15:27 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.14 秒後進行第 2 次嘗試...
-2025-09-30 22:15:28 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.46 秒後進行第 2 次嘗試...
-2025-09-30 22:15:28 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.11 秒後進行第 2 次嘗試...
-2025-09-30 22:15:31 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.18 秒後進行第 3 次嘗試...
-2025-09-30 22:15:31 - [WARNING] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.45 秒後進行第 3 次嘗試...
-2025-09-30 22:15:32 - [WARNING] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.14 秒後進行第 3 次嘗試...
-2025-09-30 22:15:34 - [ERROR] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:15:36 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:15:37 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:15:37 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.15 秒後進行第 2 次嘗試...
-2025-09-30 22:15:39 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.23 秒後進行第 2 次嘗試...
-2025-09-30 22:15:39 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.12 秒後進行第 2 次嘗試...
-2025-09-30 22:15:40 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.38 秒後進行第 3 次嘗試...
-2025-09-30 22:15:41 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.44 秒後進行第 3 次嘗試...
-2025-09-30 22:15:43 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.23 秒後進行第 3 次嘗試...
-2025-09-30 22:15:45 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-09-30 22:19:37 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 22:19:37 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 22:19:37 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 22:19:37 - [INFO] - Discord Bot is ready!
-2025-09-30 22:19:40 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 22:19:40 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 22:19:41 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 22:19:49 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 22:19:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 735, in run_pipeline_task_with_semaphore
+    return await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1256, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1159, in ainvoke_with_rotation
+    response = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 35.451509561s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 35
+}
+]
+2025-09-30 22:22:24 - [ERROR] - [512280345618546699] Key #3 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-30 22:22:24 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.34 秒後進行第 2 次嘗試...
+2025-09-30 22:22:25 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
+2025-09-30 22:22:26 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.33 秒後進行第 3 次嘗試...
+2025-09-30 22:22:28 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.29 秒後進行第 3 次嘗試...
+2025-09-30 22:22:30 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-30 22:22:30 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 27.558544815s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 27
+}
+]
+2025-09-30 22:22:30 - [ERROR] - [512280345618546699] [專職流水線] 焦點 '提取角色的背景故事、性格、技能和人際關係' 提取失敗: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 27.558544815s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 27
+}
+]
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 735, in run_pipeline_task_with_semaphore
+    return await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1256, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1159, in ainvoke_with_rotation
+    response = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 27.558544815s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 27
+}
+]
+2025-09-30 22:22:31 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-30 22:22:31 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 26.278481783s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 26
+}
+]
+2025-09-30 22:22:31 - [ERROR] - [512280345618546699] [專職流水線] 焦點 '提取所有身份、頭銜、綽號和別名到 aliases 列表' 提取失敗: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 26.278481783s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 26
+}
+]
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 735, in run_pipeline_task_with_semaphore
+    return await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1256, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1159, in ainvoke_with_rotation
+    response = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 26.278481783s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 26
+}
+]
+2025-09-30 22:22:31 - [INFO] - [512280345618546699] [RAG驅動解析 4/4] 正在合併流水線結果...
+2025-09-30 22:22:31 - [INFO] - [512280345618546699] [RAG驅動解析 4/4] 數據合併完成，生成了 54 個完整的角色檔案。
+2025-09-30 22:22:31 - [INFO] - [512280345618546699] [後台創世 3/6] 專職流水線解析完成。
+2025-09-30 22:22:31 - [INFO] - [512280345618546699] [後台創世 4/6] 正在將解析出的 LORE 結果持久化到資料庫...
+2025-09-30 22:22:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 54 個實體...
+2025-09-30 22:23:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-09-30 22:23:46 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 54 條決策。
+2025-09-30 22:24:03 - [INFO] - [512280345618546699] [後台創世 4/6] LORE 持久化完成。
+2025-09-30 22:24:03 - [INFO] - [512280345618546699] [後台創世 5/6] 正在補完使用者與 AI 的角色檔案...
+2025-09-30 22:24:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-09-30 22:24:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-09-30 22:24:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-30 22:24:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 22:24:07 - [INFO] - [512280345618546699] [後台創世 6/6] 正在生成世界創世資訊...
+2025-09-30 22:24:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-09-30 22:24:07 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-09-30 22:24:07 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-09-30 22:24:16 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.42 秒後進行第 2 次嘗試...
+2025-09-30 22:24:18 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.17 秒後進行第 3 次嘗試...
+2025-09-30 22:24:21 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-09-30 22:24:21 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #5 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
