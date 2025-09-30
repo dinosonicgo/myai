@@ -496,7 +496,227 @@ class AILover:
         action = "更新" if found else "添加"
         logger.info(f"[{self.user_id}] [RAG增量更新] 已成功 {action} LORE '{key_to_update}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
 
+# ai_core.py 的 get_batch_rag_driven_parser_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-30): [重大架構升級] 根據「批量 RAG 驅動」策略，創建此全新的終極 Prompt 模板。它被設計為接收一個包含多個角色的、經過 RAG 增強的上下文包 JSON，並指示 LLM 在單次調用中，為所有角色並行生成結構化的 CharacterProfile 數據，是兼顧解析質量與 API 效率的核心。
+    def get_batch_rag_driven_parser_prompt(self) -> str:
+        """獲取為「批量 RAG 驅動」策略設計的終極 Prompt 模板。"""
+        
+        pydantic_definitions = """
+class AppearanceDetails(BaseModel): height: Optional[str]; body_type: Optional[str]; hair_style: Optional[str]; eye_color: Optional[str]; skin_tone: Optional[str]; distinctive_features: List[str] = []; age_appearance: Optional[str]; clothing_style: Optional[str]; overall_impression: Optional[str]
+class RelationshipDetail(BaseModel): type: str = "社交關係"; roles: List[str] = []
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; appearance_details: AppearanceDetails = Field(default_factory=AppearanceDetails); skills: List[str] = []; relationships: Dict[str, RelationshipDetail] = {}
+# 最終輸出的包裹模型
+class BatchCharacterParsingResult(BaseModel):
+    npc_profiles: List[CharacterProfile]
+"""
+        prompt_template = f"""# TASK: 你是一位頂級的數據分析師與情報整合專家，專精於從海量情報中批量提取結構化數據。
+# MISSION: 你的任務是接收一份【批量情報簡報 JSON】，其中包含了多個角色的情報片段。你需要【並行處理】列表中的【每一個角色】，根據為其提供的專屬【RAG情報上下文】，生成一份極其詳細、準確、且結構化的【角色檔案 (CharacterProfile)】。
 
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🔁 批量處理強制令】**: 你【必須】遍歷輸入的 JSON 數組中的【每一個條目】，不得遺漏。
+# 2. **【🎯 上下文聚焦原則】**: 在處理每一個角色時，你【只能】使用其對應的 `rag_context` 作為信息來源。禁止將一個角色的情報串擾到另一個角色上。
+# 3. **【🏷️ 身份別名雙重提取原則】**: 從上下文中識別出的所有身份、頭銜、綽號，【必須】同時寫入 `description` (作為描述) 和 `aliases` (作為標籤列表)。
+# 4. **【🎨 深度外觀提取原則】**: 【必須】仔細閱讀上下文，將所有外觀描述詞語，提取並填充到 `appearance_details` 的結構化字段中。
+# 5. **【🚫 絕對無害化輸入/輸出強制令】**: 輸入的 `rag_context` 可能包含技術代碼。你的 JSON 輸出【必須】原樣保留這些代碼。
+# 6. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchCharacterParsingResult` Pydantic 模型的單一 JSON 物件。
+
+# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
+# ```python
+{pydantic_definitions}
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【批量情報簡報 JSON】:
+{{batch_input_json}}
+
+# ---
+# 【你生成的批量角色檔案JSON】:
+"""
+        return prompt_template
+# 函式：獲取批量 RAG 驅動解析器 Prompt
+
+
+    # ai_core.py 的 get_single_rag_driven_parser_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-30): [重大架構升級] 根據「分層靶向容錯」策略，創建此全新的 Prompt 模板。它被設計為在批量解析失敗時，作為單體、聚焦的重試工具。它接收單個角色的上下文，並包含一個可選的 `is_sanitized` 參數，用於指示 LLM 正在處理經過安全代碼化的文本，是實現精細化重試和抗審查的核心。
+    def get_single_rag_driven_parser_prompt(self) -> str:
+        """獲取為「單體靶向重試」設計的、帶安全模式的 Prompt 模板。"""
+
+        pydantic_definitions = """
+class AppearanceDetails(BaseModel): height: Optional[str]; body_type: Optional[str]; hair_style: Optional[str]; eye_color: Optional[str]; skin_tone: Optional[str]; distinctive_features: List[str] = []; age_appearance: Optional[str]; clothing_style: Optional[str]; overall_impression: Optional[str]
+class RelationshipDetail(BaseModel): type: str = "社交關係"; roles: List[str] = []
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; gender: Optional[str] = "未知"; race: Optional[str] = "未知"; status: str = "未知"; age: Optional[str] = "未知"; appearance: str = ""; appearance_details: AppearanceDetails = Field(default_factory=AppearanceDetails); skills: List[str] = []; relationships: Dict[str, RelationshipDetail] = {}
+"""
+        prompt_template = f"""# TASK: 你是一位頂級的數據分析師與情報整合專家，專精於從情報中提取結構化數據。
+# MISSION: 你的任務是接收一份關於指定角色的【RAG情報上下文】，並從中生成一份極其詳細、準確、且結構化的【角色檔案 (CharacterProfile)】。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 上下文聚焦原則】**: 你【只能】使用提供的 `rag_context` 作為信息來源。
+# 2. **【🏷️ 身份別名雙重提取原則】**: 從上下文中識別出的所有身份、頭銜、綽號，【必須】同時寫入 `description` 和 `aliases`。
+# 3. **【🎨 深度外觀提取原則】**: 【必須】仔細閱讀上下文，將所有外觀描述填充到 `appearance_details` 的結構化字段中。
+# 4. **【🚫 安全模式指令】**: {{safety_mode_instruction}}
+# 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CharacterProfile` Pydantic 模型的單一 JSON 物件。
+
+# === 【【【目標Pydantic模型 (TARGET PYDANTIC MODELS)】】】 ===
+# ```python
+{pydantic_definitions}
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【目標角色名稱】:
+{{character_name}}
+
+# ---
+# 【RAG情報上下文】:
+{{rag_context}}
+
+# ---
+# 【你生成的角色檔案JSON】:
+"""
+        return prompt_template
+# 函式：獲取單體 RAG 驅動解析器 Prompt
+
+
+
+    # ai_core.py 的 _rag_driven_lore_creation 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-30): [重大架構升級] 創建此全新的終極 LORE 解析引擎。它徹底顛覆了舊的解析流程，實現了「批量 RAG 驅動 + 分層靶向容錯」的終極策略。其流程包括：批量 RAG 查詢 -> 首次批量 LLM 解析 -> 錯誤隔離 -> 針對性單體重試（含安全代碼化）-> 機械式備援 -> 最終數據合併與校準。這是兼顧解析質量、效率、成本和可靠性的最優工程實踐。
+    async def _rag_driven_lore_creation(self, canon_text: str) -> Optional[List[CharacterProfile]]:
+        """
+        【v1.0 終極 LORE 解析引擎】執行「批量 RAG 驅動 + 分層靶向容錯」管線。
+        """
+        if not self.profile or not self.retriever:
+            logger.error(f"[{self.user_id}] [RAG驅動解析] 致命錯誤: Profile 或 Retriever 未初始化。")
+            return None
+
+        # 步驟 1: 確定性實體提取 (獲取任務列表)
+        ground_truth_data = self._parse_canon_structure(canon_text)
+        if not ground_truth_data:
+            logger.info(f"[{self.user_id}] [RAG驅動解析] 確定性解析器未在世界聖經中找到任何符合結構的角色。")
+            return []
+
+        # 步驟 2: 批量 RAG 上下文聚合
+        logger.info(f"[{self.user_id}] [RAG驅動解析] 正在為 {len(ground_truth_data)} 個角色並行執行 RAG 檢索...")
+        rag_query_tasks = [self.retriever.ainvoke(f"{name} 身份 背景 經歷 外貌") for name in ground_truth_data.keys()]
+        rag_results = await asyncio.gather(*rag_query_tasks, return_exceptions=True)
+        
+        batch_input_data = []
+        for name, result in zip(ground_truth_data.keys(), rag_results):
+            if isinstance(result, Exception):
+                logger.error(f"[{self.user_id}] [RAG驅動解析] 為角色 '{name}' 檢索上下文時失敗: {result}")
+                rag_context = "錯誤：RAG 檢索失敗。"
+            else:
+                rag_context = "\n\n---\n\n".join([doc.page_content for doc in result])
+            batch_input_data.append({"character_name": name, "rag_context": rag_context})
+
+        # 步驟 3: 首次批量 LLM 解析
+        logger.info(f"[{self.user_id}] [RAG驅動解析] 正在啟動首次批量 LLM 解析任務...")
+        parsed_profiles: Dict[str, CharacterProfile] = {}
+        failed_characters: List[Dict[str, Any]] = []
+        
+        class BatchCharacterParsingResult(BaseModel):
+            npc_profiles: List[CharacterProfile]
+
+        try:
+            batch_prompt_template = self.get_batch_rag_driven_parser_prompt()
+            full_prompt = self._safe_format_prompt(
+                batch_prompt_template,
+                {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False)},
+                inject_core_protocol=True
+            )
+            batch_result = await self.ainvoke_with_rotation(
+                full_prompt,
+                output_schema=BatchCharacterParsingResult,
+                retry_strategy='none'
+            )
+            if batch_result and batch_result.npc_profiles:
+                for profile in batch_result.npc_profiles:
+                    parsed_profiles[profile.name] = profile
+                logger.info(f"[{self.user_id}] [RAG驅動解析] ✅ 首次批量解析成功處理了 {len(parsed_profiles)}/{len(batch_input_data)} 個角色。")
+            
+            # 找出批量解析中被 LLM 遺漏的角色
+            parsed_names = set(parsed_profiles.keys())
+            all_names = set(ground_truth_data.keys())
+            missing_names = all_names - parsed_names
+            if missing_names:
+                logger.warning(f"[{self.user_id}] [RAG驅動解析] 批量 LLM 遺漏了 {len(missing_names)} 個角色: {missing_names}。將進行靶向重試。")
+                for name in missing_names:
+                    item = next((item for item in batch_input_data if item["character_name"] == name), None)
+                    if item:
+                        failed_characters.append({"reason": "omitted", "data": item})
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [RAG驅動解析] 🔥 首次批量 LLM 解析遭遇致命錯誤: {e}。所有角色將進入靶向重試流程。", exc_info=True)
+            for item in batch_input_data:
+                failed_characters.append({"reason": e, "data": item})
+
+        # 步驟 4: 分層靶向重試
+        if failed_characters:
+            logger.info(f"[{self.user_id}] [RAG驅動解析-重試] 正在為 {len(failed_characters)} 個失敗的角色啟動靶向重試...")
+            single_prompt_template = self.get_single_rag_driven_parser_prompt()
+            
+            for failure in failed_characters:
+                item_data = failure["data"]
+                char_name = item_data["character_name"]
+                rag_context = item_data["rag_context"]
+                reason = failure["reason"]
+                
+                try:
+                    is_sanitized = False
+                    safety_instruction = "輸入的 RAG 情報上下文是原始文本。請直接分析。"
+                    # 如果是因為內容審查失敗，則啟用安全代碼化重試
+                    if isinstance(reason, BlockedPromptException):
+                        rag_context = self._decode_lore_content(rag_context, {v: k for k, v in self.DECODING_MAP.items()}) # Encode
+                        is_sanitized = True
+                        safety_instruction = "輸入的 RAG 情報上下文【已經過安全代碼化】。你的 JSON 輸出【必須】也使用這些技術代碼。"
+
+                    full_prompt = self._safe_format_prompt(
+                        single_prompt_template,
+                        {
+                            "safety_mode_instruction": safety_instruction,
+                            "character_name": char_name,
+                            "rag_context": rag_context
+                        },
+                        inject_core_protocol=True
+                    )
+                    
+                    retry_result = await self.ainvoke_with_rotation(
+                        full_prompt,
+                        output_schema=CharacterProfile,
+                        retry_strategy='none' # 重試只做一次
+                    )
+
+                    if retry_result:
+                        final_profile = retry_result
+                        if is_sanitized:
+                            # 如果是代碼化模式，需要解碼回來
+                            final_profile = CharacterProfile.model_validate(self._decode_lore_content(retry_result.model_dump(), self.DECODING_MAP))
+                        
+                        parsed_profiles[char_name] = final_profile
+                        logger.info(f"[{self.user_id}] [RAG驅動解析-重試] ✅ 角色 '{char_name}' 重試成功。")
+                    else:
+                         raise Exception("重試返回了空結果")
+
+                except Exception as retry_e:
+                    logger.error(f"[{self.user_id}] [RAG驅動解析-重試] 🔥 角色 '{char_name}' 即使在靶向重試後也最終失敗: {retry_e}。正在啟用機械式備援...")
+                    # 步驟 5: 機械式備援
+                    gt_info = ground_truth_data.get(char_name, {})
+                    backup_profile = CharacterProfile(
+                        name=char_name,
+                        aliases=list(gt_info.get("aliases_ground_truth", [])),
+                        description=f"【系統警告：LLM解析失敗，此為機械式備援數據】\n\n{rag_context}"
+                    )
+                    parsed_profiles[char_name] = backup_profile
+
+        # 步驟 6: 最終合併與校準
+        final_profiles = list(parsed_profiles.values())
+        calibrated_result = self._force_calibrate_identities(CanonParsingResult(npc_profiles=final_profiles), canon_text)
+        
+        return calibrated_result.npc_profiles
+# 函式：RAG 驅動的 LORE 創建
 
 
 # ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.7 - 終極手動初始化)
@@ -5482,6 +5702,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
