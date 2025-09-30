@@ -261,8 +261,9 @@ class UpdateLoreTemplateKeysArgs(BaseToolArgs):
 # lore_tools.py 的 UpdateLoreTemplateKeysArgs 類別
 
 # 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
+# lore_tools.py 的 update_lore_template_keys 工具 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「LORE繼承系統」的需求，創建此核心工具。它允許AI（或使用者）為一條世界傳說（world_lore）設置觸發繼承的關鍵詞，從而將靜態的LORE變為動態的、可驅動角色行為的規則。
+# v1.0 (2025-10-01): [全新創建] 根據「LORE繼承系統」的需求，創建此核心工具。它允許AI（或使用者）為一條世界傳說（world_lore）設置觸發繼承的關鍵詞（例如為「母畜的禮儀」設置 `template_keys=['母畜']`），從而將靜態的LORE變為動態的、可驅動角色行為的規則，是實現知識圖譜關聯的關鍵執行器。
 @tool(args_schema=UpdateLoreTemplateKeysArgs)
 async def update_lore_template_keys(lore_category: str, lore_key: str, template_keys: List[str]) -> str:
     """【規則引擎專用】為一條現有的LORE（通常是世界傳說或行為規範）設置繼承觸發器。當一個角色的身份(alias)匹配了template_keys中的任何一個詞，該角色就會自動繼承這條LORE的內容作為其行為準則。"""
@@ -302,6 +303,7 @@ async def update_lore_template_keys(lore_category: str, lore_key: str, template_
             await ai_core._update_rag_for_single_lore(updated_lore)
 
     return f"已成功為 LORE '{lore_key}' 設置繼承觸發器為: {template_keys}。"
+# lore_tools.py 的 update_lore_template_keys 工具
 # 工具：更新 LORE 繼承規則
 
 # --- 工具列表導出 ---
@@ -322,4 +324,5 @@ def get_lore_tools() -> List[Tool]:
         update_lore_template_keys,
     ]
 # 函式：獲取所有 LORE 工具
+
 
