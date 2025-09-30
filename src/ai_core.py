@@ -720,14 +720,14 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v3.0 - 終極 RAG 驅動專職流水線)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v3.1 - 終極分布式實體解析)
 # 更新紀錄:
-# v3.0 (2025-10-01): [災難性BUG修復] 根據持續的 MAX_TOKENS 和性能問題，徹底重寫此函式，實現了終極的「分層式、RAG 驅動的專職流水線」架構。新流程通過「輕量級實體識別」、「臨時 RAG 上下文聚合」和「專職 LLM 流水線」三個階段，將一個巨大的單體任務分解為多個小而精的、受控並行的子任務，從根本上解決了所有已知的性能瓶頸、穩定性問題和解析精度問題。
+# v3.1 (2025-10-01): [災難性BUG修復] 根據持續的 MAX_TOKENS 和 AttributeError，再次徹底重構此函式，實現了終極的【分布式實體解析】架構。新流程放棄了所有複雜的批量處理邏輯，回歸到一個更健壯的模型：為每個識別出的實體創建一個獨立的、端到端的解析任務，並使用 Semaphore 嚴格控制並發執行的任務數量。同時，數據合併階段增加了全面的防禦性檢查，以處理部分任務失敗的情況。此修改從根本上杜絕了因批量過大導致的錯誤，並確保了系統的最終穩定性。
+# v3.0 (2025-10-01): [災難性BUG修復] 實現了「分層式、RAG 驅動的專職流水線」架構。
 # v2.3 (2025-10-01): [災難性BUG修復] 減小了 BATCH_SIZE 並修正了數據合併邏輯。
-# v2.2 (2025-09-30): [性能與穩定性終極重構] 引入了【受控並行的批量處理】模式。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
-        【v3.0 终极 LORE 解析引擎】执行一个分層式的、RAG 驅動的、能夠處理小說式文本的專職流水線。
+        【v3.1 终极 LORE 解析引擎】执行一个分層式的、RAG 驅動的、使用 Semaphore 控制並發的【分布式實體解析】流水線。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] [RAG驱动解析] 致命错误: Profile 未初始化。")
@@ -761,14 +761,13 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         docs = text_splitter.create_documents([canon_text])
         temp_retriever = BM25Retriever.from_documents(docs)
-        temp_retriever.k = 5 # 每個實體最多檢索 5 個最相關的片段
+        temp_retriever.k = 5
 
-        # --- 阶段三：按类别分发，执行 RAG 驱动的专职解析流水线 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 3/4] 正在按类别分发任务，并启动所有专职解析流水线...")
+        # --- 阶段三：分布式实体解析 ---
+        logger.info(f"[{self.user_id}] [RAG驱动解析 3/4] 正在為 {len(identified_entities)} 個實體啟動【分布式並行解析】...")
         
-        categorized_entities = defaultdict(list)
-        for entity in identified_entities:
-            categorized_entities[entity.category].append(entity.name)
+        CONCURRENT_TASKS = 5  # 最多同時處理 5 個實體
+        sem = asyncio.Semaphore(CONCURRENT_TASKS)
 
         parser_configs = {
             "npc_profile": {"pipeline": [("aliases", "提取所有身份、头衔、绰号和别名", BatchAliasesResult), ("appearance", "提取所有外观细节", BatchAppearanceResult), ("core_info", "提取背景故事、性格、技能和人际关系", BatchCoreInfoResult)], "target_list_in_final_result": "npc_profiles"},
@@ -779,91 +778,98 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             "world_lore": {"pipeline": [("full_parse", "提取世界传说的完整信息", BatchWorldLoresResult)], "target_list_in_final_result": "world_lores"},
         }
 
-        async def run_category_pipeline(category: str, names: List[str]):
-            config = parser_configs.get(category)
-            if not config: return None
+        async def process_entity_task(entity: IdentifiedEntity):
+            async with sem:
+                category, name = entity.category, entity.name
+                logger.info(f"[{self.user_id}] [分布式 Worker] 開始處理實體 '{name}' ({category})...")
+                config = parser_configs.get(category)
+                if not config: return entity, None
 
-            rag_contexts = await temp_retriever.abatch(names)
-            
-            batch_input_data = []
-            for name, context_docs in zip(names, rag_contexts):
-                context = "\n\n---\n\n".join([doc.page_content for doc in context_docs])
-                batch_input_data.append({"entity_name": name, "rag_context": context})
-            
-            batch_input_json = json.dumps(batch_input_data, ensure_ascii=False)
-
-            pipeline_results = {}
-            for key, focus, pydantic_schema in config["pipeline"]:
-                logger.info(f"[{self.user_id}] [专职流水线 - {category}] 任务 '{focus}' 已启动...")
-                parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
-                schema_str = json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2)
-                full_prompt = self._safe_format_prompt(
-                    parser_prompt_template,
-                    {"parsing_focus": focus, "pydantic_schema_str": schema_str, "batch_input_json": batch_input_json},
-                    inject_core_protocol=True
-                )
                 try:
-                    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-                    pipeline_results[key] = result
+                    context_docs = await temp_retriever.ainvoke(name)
+                    context = "\n\n---\n\n".join([doc.page_content for doc in context_docs])
+                    batch_input_json = json.dumps([{"entity_name": name, "rag_context": context}], ensure_ascii=False)
+                    
+                    pipeline_results = {}
+                    for key, focus, pydantic_schema in config["pipeline"]:
+                        parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
+                        schema_str = json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2)
+                        full_prompt = self._safe_format_prompt(
+                            parser_prompt_template,
+                            {"parsing_focus": focus, "pydantic_schema_str": schema_str, "batch_input_json": batch_input_json},
+                            inject_core_protocol=True
+                        )
+                        result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+                        pipeline_results[key] = result
+                        await asyncio.sleep(0.5)
+                    
+                    logger.info(f"[{self.user_id}] [分布式 Worker] ✅ 實體 '{name}' ({category}) 處理成功。")
+                    return entity, pipeline_results
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [专职流水线 - {category}] 🔥 任务 '{focus}' 提取失败: {e}", exc_info=True)
-                    pipeline_results[key] = None
-            
-            return names, pipeline_results
+                    logger.error(f"[{self.user_id}] [分布式 Worker] 🔥 處理實體 '{name}' ({category}) 時發生嚴重錯誤: {e}", exc_info=True)
+                    return entity, None
 
-        all_category_results = {}
-        for cat, name_list in categorized_entities.items():
-            all_category_results[cat] = await run_category_pipeline(cat, name_list)
-        
+        tasks = [process_entity_task(entity) for entity in identified_entities]
+        all_results = await asyncio.gather(*tasks)
+
         # --- 阶段四：确定性数据合并 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 4/4] 正在合并所有类别的流水线结果...")
+        logger.info(f"[{self.user_id}] [RAG驱动解析 4/4] 正在合并所有 {len(all_results)} 條实体解析流水线结果...")
         final_result = CanonParsingResult()
 
-        for category, category_result in all_category_results.items():
-            if not category_result: continue
-            names, results = category_result
-            if not names or not results: continue
+        for entity, results in all_results:
+            if not results: continue # 如果該實體的任何步驟失敗，則跳過
 
+            category = entity.category
+            name = entity.name
             config = parser_configs.get(category)
             if not config: continue
+            
             target_list_name = config["target_list_in_final_result"]
             target_list = getattr(final_result, target_list_name)
 
-            if category == "npc_profile":
-                aliases_map = {item.character_name: item.aliases for item in results.get("aliases", BatchAliasesResult(results=[])).results}
-                appearance_map = {item.character_name: item.appearance_details for item in results.get("appearance", BatchAppearanceResult(results=[])).results}
-                core_info_map = {item.character_name: item for item in results.get("core_info", BatchCoreInfoResult(results=[])).results}
-                for name in names:
+            try:
+                if category == "npc_profile":
                     profile_data = {"name": name}
-                    profile_data['aliases'] = aliases_map.get(name, [])
-                    profile_data['appearance_details'] = appearance_map.get(name, AppearanceDetails())
-                    core_info = core_info_map.get(name)
-                    if core_info:
+                    
+                    aliases_res = results.get("aliases")
+                    profile_data['aliases'] = aliases_res.results[0].aliases if aliases_res and aliases_res.results else []
+                    
+                    appearance_res = results.get("appearance")
+                    profile_data['appearance_details'] = appearance_res.results[0].appearance_details if appearance_res and appearance_res.results else AppearanceDetails()
+
+                    core_info_res = results.get("core_info")
+                    if core_info_res and core_info_res.results:
+                        core_info = core_info_res.results[0]
                         profile_data['description'] = core_info.description or ""
                         profile_data['skills'] = core_info.skills
                         profile_data['relationships'] = core_info.relationships
                     else:
                         profile_data['description'], profile_data['skills'], profile_data['relationships'] = "", [], {}
+                    
                     target_list.append(CharacterProfile.model_validate(profile_data))
-            else:
-                parsed_data = results.get("full_parse")
-                if parsed_data and parsed_data.results:
-                    info_key_name_map = {
-                        "location_info": "location_info", "item_info": "item_info",
-                        "creature_info": "creature_info", "quest": "quest",
-                        "world_lore": "world_lore"
-                    }
-                    info_key_name = info_key_name_map.get(category)
-                    if not info_key_name: continue
-                    info_map = {item.name: getattr(item, info_key_name) for item in parsed_data.results if hasattr(item, 'name') and hasattr(item, info_key_name)}
-                    for name in names:
-                        if name in info_map:
-                            target_list.append(info_map[name])
+                else:
+                    parsed_data = results.get("full_parse")
+                    if parsed_data and parsed_data.results:
+                        info_key_name_map = {
+                            "location_info": "location_info", "item_info": "item_info",
+                            "creature_info": "creature_info", "quest": "quest",
+                            "world_lore": "world_lore"
+                        }
+                        info_key_name = info_key_name_map.get(category)
+                        if info_key_name and hasattr(parsed_data.results[0], info_key_name):
+                            info_obj = getattr(parsed_data.results[0], info_key_name)
+                            if info_obj:
+                                target_list.append(info_obj)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [數據合併] 合併實體 '{name}' ({category}) 時發生錯誤: {e}", exc_info=True)
 
         logger.info(f"[{self.user_id}] [RAG驱动解析 4/4] ✅ 数据合并完成。")
         return final_result
 # ai_core.py 的 _rag_driven_lore_creation 函式
-# 函式：RAG 驅動的 LORE 創建
+
+
+
+            
     
 
 
@@ -5686,6 +5692,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
