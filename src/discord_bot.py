@@ -1339,11 +1339,11 @@ class BotCog(commands.Cog):
 
     
     # 函式：獲取或創建使用者的 AI 實例 (v52.2 - Ollama健康检查)
-    # discord_bot.py 的 BotCog.get_or_create_ai_instance 函式 (v52.1 - 生命週期修正)
-    # 更新紀錄:
-    # v52.1 (2025-11-26): [灾难性BUG修复] 重構了此函式的邏輯。現在，任何成功創建並初始化的新 AILover 實例都會被立即存入 `self.ai_instances` 字典中。此修改確保了所有活躍的、持有文件句柄的實例都有據可查，防止了在重置流程中創建出無法被追蹤和關閉的「殭屍實例」，是解決頑固 PermissionError 的關鍵一步。
-    # v52.2 (2025-09-26): [重大架構升級] 將 `is_ollama_available` 狀態傳遞給 `AILover` 的構造函數。
-    # v52.0 (2025-11-22): [重大架構升級] 增加了對 ai_instance._rehydrate_scene_histories() 的調用。
+# discord_bot.py 的 BotCog.get_or_create_ai_instance 函式 (v52.1 - 生命週期修正)
+# 更新紀錄:
+# v52.1 (2025-11-26): [灾难性BUG修复] 重構了此函式的邏輯。現在，任何成功創建並初始化的新 AILover 實例都會被立即存入 `self.ai_instances` 字典中。此修改確保了所有活躍的、持有文件句柄的實例都有據可查，防止了在重置流程中創建出無法被追蹤和關閉的「殭屍實例」，是解決頑固 PermissionError 的關鍵一步。
+# v52.2 (2025-09-26): [重大架構升級] 將 `is_ollama_available` 狀態傳遞給 `AILover` 的構造函數。
+# v52.0 (2025-11-22): [重大架構升級] 增加了對 ai_instance._rehydrate_scene_histories() 的調用。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
             return self.ai_instances[user_id]
@@ -1377,7 +1377,7 @@ class BotCog(commands.Cog):
             del ai_instance
             gc.collect()
             return None
-    # 獲取或創建使用者的 AI 實例 函式結束
+# 獲取或創建使用者的 AI 實例 函式結束
 
     
 
@@ -1690,10 +1690,10 @@ class BotCog(commands.Cog):
     # 函式：在背景處理世界聖經文本
 
 
-    # discord_bot.py 的 BotCog._robust_rmtree 函式 (v52.4 - 終極強化重試)
-    # 更新紀錄:
-    # v52.4 (2025-11-26): [灾难性BUG修复] 根據持續的 PermissionError，對此函式進行終極強化。將重試次數提升至 10 次，間隔延長至 1 秒，並在每一次重試循環前都強制調用 `gc.collect()`。此舉旨在用最長的耐心和最徹底的清理手段，來應對 Windows 系統下頑固的、延遲釋放的文件鎖，是解決此問題的最終程式化方案。
-    # v52.3 (2025-11-26): [全新創建] 創建此帶有延遲重試機制的異步安全刪除函式。
+# discord_bot.py 的 BotCog._robust_rmtree 函式 (v52.4 - 終極強化重試)
+# 更新紀錄:
+# v52.4 (2025-11-26): [灾难性BUG修复] 根據持續的 PermissionError，對此函式進行終極強化。將重試次數提升至 10 次，間隔延長至 1 秒，並在每一次重試循環前都強制調用 `gc.collect()`。此舉旨在用最長的耐心和最徹底的清理手段，來應對 Windows 系統下頑固的、延遲釋放的文件鎖，是解決此問題的最終程式化方案。
+# v52.3 (2025-11-26): [全新創建] 創建此帶有延遲重試機制的異步安全刪除函式。
     async def _robust_rmtree(self, path: Path, retries: int = 10, delay: float = 1.0):
         """
         一個極度健壯的異步 shutil.rmtree 版本，帶有更長的延遲、更多的重試次數和強制垃圾回收，以處理頑固的文件鎖定問題。
@@ -1718,14 +1718,14 @@ class BotCog(commands.Cog):
         
         # 如果所有重試都失敗了
         raise RuntimeError(f"在 {retries} 次嘗試後，仍然無法刪除目錄: {path}。請手動檢查文件鎖定。")
-    # 函式：健壯的異步目錄刪除
+# 函式：健壯的異步目錄刪除
     
     
-    # discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.6 - 終極生命週期修正)
-    # 更新紀錄:
-    # v52.6 (2025-11-26): [灾难性BUG修复] 再次徹底重寫此函式的執行邏輯，以解決最頑固的 [WinError 32] 文件鎖問題。新流程嚴格遵循「先徹底銷毀內存，再清理磁盤」原則：1. 徹底關閉並銷毀任何已存在的 AILover 實例。 2. **禁止**在清理過程中創建任何新的臨時實例，避免了「邊清理邊加鎖」的惡性循環。 3. 將清理 SceneHistoryData 的資料庫操作直接合併到此函式中。此修改從根本上隔離了物件生命週期，確保在刪除文件時，絕對沒有任何程序持有文件句柄。
-    # v52.5 (2025-11-26): [灾难性BUG修复] 重構了銷毀流程，確保在文件操作前銷毀實例。
-    # v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。
+# discord_bot.py 的 BotCog.start_reset_flow 函式 (v52.6 - 終極生命週期修正)
+# 更新紀錄:
+# v52.6 (2025-11-26): [灾难性BUG修复] 再次徹底重寫此函式的執行邏輯，以解決最頑固的 [WinError 32] 文件鎖問題。新流程嚴格遵循「先徹底銷毀內存，再清理磁盤」原則：1. 徹底關閉並銷毀任何已存在的 AILover 實例。 2. **禁止**在清理過程中創建任何新的臨時實例，避免了「邊清理邊加鎖」的惡性循環。 3. 將清理 SceneHistoryData 的資料庫操作直接合併到此函式中。此修改從根本上隔離了物件生命週期，確保在刪除文件時，絕對沒有任何程序持有文件句柄。
+# v52.5 (2025-11-26): [灾难性BUG修复] 重構了銷毀流程，確保在文件操作前銷毀實例。
+# v52.4 (2025-11-26): [灾难性BUG修复] 引入了終極的、最徹底的資源清理流程。
     async def start_reset_flow(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         try:
@@ -2155,6 +2155,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
