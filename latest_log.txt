@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T19:20:07.122285 ###
+### AI Lover Log - Last updated at 2025-09-30T19:25:43.941911 ###
 
-resolutions.108
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '國王...ame': '埃德蒙三世'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.109
-  Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '阿拉...d_name': '阿拉里克'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/value_error
-resolutions.110
   Value error, 如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。 [type=value_error, input_value={'original_name': '阿拉...d_name': '阿拉里克'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/value_error
 resolutions.111
@@ -300,3 +293,10 @@ resolutions.129
 2025-09-30 19:19:55 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 19:19:55 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 19:19:56 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 19:25:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 19:25:29 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 19:25:30 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 19:25:30 - [INFO] - Discord Bot is ready!
+2025-09-30 19:25:33 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 19:25:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 19:25:33 - [INFO] - 已成功發送啟動成功通知給管理員。
