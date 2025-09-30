@@ -1,28 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T01:15:48.607474 ###
+### AI Lover Log - Last updated at 2025-10-01T01:34:50.360505 ###
 
-2025-10-01 01:06:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 01:06:05 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-01 01:06:05 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-B', 'ACTION-E', 'ROLE-D']
-2025-10-01 01:06:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:06:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:06:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:06:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 13/40] ✅ 處理成功。
-2025-10-01 01:06:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 15/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:06:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-10-01 01:06:32 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 01:06:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:06:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:06:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 14/40] ✅ 處理成功。
-2025-10-01 01:06:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 16/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:06:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
-2025-10-01 01:06:52 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
-2025-10-01 01:06:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:06:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:06:58 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 8/40] ✅ 處理成功。
-2025-10-01 01:06:58 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 17/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:07:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:07:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:07:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
 2025-10-01 01:07:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 16/40] ✅ 處理成功。
 2025-10-01 01:07:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 18/40] 已獲取許可，開始處理 3 個實體...
 2025-10-01 01:07:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
@@ -300,3 +277,26 @@ google.api_core.exceptions.InternalServerError: 500 Generation stopped due to fi
 2025-10-01 01:15:27 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
 2025-10-01 01:15:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
 2025-10-01 01:15:46 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:16:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:16:59 - [INFO] - [512280345618546699] [专职流水线 - world_lore] [批次 21/33] ✅ 處理成功。
+2025-10-01 01:16:59 - [INFO] - [512280345618546699] [专职流水线 - world_lore] [批次 22/33] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:17:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:17:05 - [INFO] - [512280345618546699] [专职流水线 - world_lore] [批次 22/33] ✅ 處理成功。
+2025-10-01 01:17:05 - [INFO] - [512280345618546699] [专职流水线 - world_lore] [批次 23/33] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:17:40 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:17:40 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:17:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:17:54 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:34:36 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 01:34:36 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 01:34:36 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 01:34:36 - [INFO] - Discord Bot is ready!
+2025-10-01 01:34:39 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 01:34:39 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 01:34:39 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 01:34:49 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-01 01:34:49 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-01 01:34:49 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-01 01:34:50 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-01 01:34:50 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-01 01:34:50 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
