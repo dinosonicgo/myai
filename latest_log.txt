@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T07:50:30.682643 ###
+### AI Lover Log - Last updated at 2025-10-01T07:56:30.674323 ###
 
-2025-10-01 01:09:39 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
-2025-10-01 01:09:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 01:09:41 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.12 秒後進行第 3 次嘗試...
-2025-10-01 01:09:41 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.47 秒後進行第 3 次嘗試...
-2025-10-01 01:09:43 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-10-01 01:09:43 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #0 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
-2025-10-01 01:09:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 81398 秒)。
 2025-10-01 01:09:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
 2025-10-01 01:09:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 25/40] ✅ 處理成功。
 2025-10-01 01:09:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 29/40] 已獲取許可，開始處理 3 個實體...
@@ -300,3 +293,10 @@ Traceback (most recent call last):
     core_info_map = {item.character_name: item for item in results.get("core_info", BatchCoreInfoResult(results=[])).results}
 AttributeError: 'NoneType' object has no attribute 'results'
 2025-10-01 01:54:39 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 07:56:16 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 07:56:16 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 07:56:16 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 07:56:16 - [INFO] - Discord Bot is ready!
+2025-10-01 07:56:19 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 07:56:19 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 07:56:20 - [INFO] - 已成功發送啟動成功通知給管理員。
