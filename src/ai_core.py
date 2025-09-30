@@ -4385,126 +4385,7 @@ class ExtractionResult(BaseModel):
     
 
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.5 - 整合確定性校準)
-# 更新紀錄:
-# v13.5 (2025-09-30): [重大架構升級] 在 LORE 解析管線的末端，增加了對新增的 `_force_calibrate_identities` 函式的強制調用。此修改引入了一個基於確定性 Regex 的最終權威驗證層，用於在數據存儲前，強制修正所有由 LLM 造成的身份標籤遺漏或幻覺錯誤，從根本上確保了 LORE 數據的完整性。
-# v13.4 (2025-09-30): [重大架構重構] 移除了此函式末尾所有與 RAG 資源管理相關的程式碼。
-# v13.3 (2025-09-30): [災難性BUG修復] 增加了對 `_release_rag_resources()` 的調用。
-    async def parse_and_create_lore_from_canon(self, canon_text: str):
-        """
-        【總指揮】啟動 LORE 解析管線，執行最終校準，並將結果存入 SQL 資料庫。
-        """
-        if not self.profile:
-            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
-            return
 
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
-        
-        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
-
-        if not is_successful or not parsing_result_object:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-            return
-
-        # 步驟 2: 植入「源頭真相」校驗器 (LLM 層面的校驗)
-        validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
-
-        # 步驟 2.5: 增加程式化的【最終防線過濾器】
-        if validated_result.npc_profiles:
-            user_name_lower = self.profile.user_profile.name.lower()
-            ai_name_lower = self.profile.ai_profile.name.lower()
-            
-            original_count = len(validated_result.npc_profiles)
-            
-            filtered_profiles = [
-                p for p in validated_result.npc_profiles 
-                if p.name.lower() not in {user_name_lower, ai_name_lower}
-            ]
-            
-            removed_count = original_count - len(filtered_profiles)
-            if removed_count > 0:
-                logger.warning(f"[{self.user_id}] [最終防線] 已成功過濾並移除了 {removed_count} 個被錯誤識別為NPC的核心主角檔案。")
-            
-            validated_result.npc_profiles = filtered_profiles
-
-        # [v13.5 核心修正] 步驟 3: 執行基於確定性 Regex 的最終強制校準
-        calibrated_result = self._force_calibrate_identities(validated_result, canon_text)
-        
-        # 步驟 4: 规则模板自动识别与链接模块
-        logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
-        if calibrated_result.world_lores:
-            all_parsed_aliases = set()
-            if calibrated_result.npc_profiles:
-                for npc in calibrated_result.npc_profiles:
-                    all_parsed_aliases.add(npc.name)
-                    if npc.aliases:
-                        all_parsed_aliases.update(npc.aliases)
-
-            rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
-            
-            for lore in calibrated_result.world_lores:
-                lore_name = lore.name if hasattr(lore, 'name') else getattr(lore, 'title', '')
-                if any(keyword in lore_name for keyword in rule_keywords):
-                    potential_keys = set()
-                    for alias in all_parsed_aliases:
-                        if alias and alias in lore_name:
-                            potential_keys.add(alias)
-                    
-                    if potential_keys:
-                        existing_keys = set(lore.template_keys or [])
-                        all_keys = existing_keys.union(potential_keys)
-                        lore.template_keys = list(all_keys)
-                        logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore_name}' 鏈接到身份: {lore.template_keys}")
-        
-        # 步驟 5: 事後關係圖譜校準模塊
-        logger.info(f"[{self.user_id}] [關係圖譜校準] 正在啟動事後關係校準模塊...")
-        if calibrated_result.npc_profiles:
-            profiles_by_name = {profile.name: profile for profile in calibrated_result.npc_profiles}
-            
-            inverse_roles = {
-                "主人": "僕人", "僕人": "主人", "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
-                "丈夫": "妻子", "妻子": "丈夫", "戀人": "戀人", "情人": "情人", "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
-                "敵人": "敵人", "宿敵": "宿敵", "朋友": "朋友", "摯友": "摯友", "老師": "學生", "學生": "老師",
-            }
-
-            for source_profile in calibrated_result.npc_profiles:
-                for target_name, rel_detail in list(source_profile.relationships.items()):
-                    target_profile = profiles_by_name.get(target_name)
-                    if not target_profile: continue
-
-                    inverse_rel_roles = []
-                    for role in rel_detail.roles:
-                        inverse_role = inverse_roles.get(role)
-                        if inverse_role: inverse_rel_roles.append(inverse_role)
-                    
-                    if not inverse_rel_roles and rel_detail.type: inverse_rel_roles.append(rel_detail.type)
-
-                    target_has_relationship = target_profile.relationships.get(source_profile.name)
-
-                    if not target_has_relationship:
-                        target_profile.relationships[source_profile.name] = RelationshipDetail(type=rel_detail.type, roles=inverse_rel_roles)
-                        logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
-                    else:
-                        existing_roles = set(target_has_relationship.roles)
-                        new_roles_to_add = set(inverse_rel_roles)
-                        if not new_roles_to_add.issubset(existing_roles):
-                            updated_roles = list(existing_roles.union(new_roles_to_add))
-                            target_has_relationship.roles = updated_roles
-                            logger.info(f"[{self.user_id}] [關係圖譜校準] 更新反向鏈接: {target_profile.name} -> {source_profile.name} (New Roles: {updated_roles})")
-
-        # 步驟 6: 儲存最終校準後的LORE
-        if calibrated_result:
-            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in calibrated_result.npc_profiles])
-            await self._resolve_and_save("locations", [p.model_dump() for p in calibrated_result.locations])
-            await self._resolve_and_save("items", [p.model_dump() for p in calibrated_result.items])
-            await self._resolve_and_save("creatures", [p.model_dump() for p in calibrated_result.creatures])
-            await self._resolve_and_save("quests", [p.model_dump() for p in calibrated_result.quests])
-            await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in calibrated_result.world_lores])
-            
-            logger.info(f"[{self.user_id}] [創世 LORE 解析] LORE 已成功解析、校準並存入 SQL 資料庫。")
-        else:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
-# 函式：解析並從世界聖經創建LORE
 
 
 
@@ -5702,6 +5583,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
