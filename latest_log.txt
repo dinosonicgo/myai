@@ -1,68 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T11:00:16.672598 ###
+### AI Lover Log - Last updated at 2025-09-30T11:05:19.650033 ###
 
-2025-09-30 10:59:02 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 7/14...
-2025-09-30 10:59:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '瑪莎' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '瑪莉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '愛莉莎' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '安娜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '澤拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '蘇菲' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '貝拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '莉娜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '諾拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:03 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '艾蜜莉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:05 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 8/14...
-2025-09-30 10:59:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '卡萊兒' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '卡萊兒' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '米婭' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '卡蓮' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '艾拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:07 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '索菲亞' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:09 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 9/14...
-2025-09-30 10:59:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '葛瑞塔' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '芬恩' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '莉莉絲' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '亞瑟' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '馬丁' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '亞瑟' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:10 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '馬丁' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:12 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 10/14...
-2025-09-30 10:59:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-30 10:59:14 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '克拉拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:16 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 11/14...
-2025-09-30 10:59:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 10:59:18 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '艾莉諾' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:18 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '布里奇特' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:18 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '瓦萊麗' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:20 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 12/14...
-2025-09-30 10:59:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '大主教安布羅斯' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '瓦勒留斯' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '麥可' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '克拉拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '博林勳爵' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '巴納比' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '奧斯華' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:21 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '艾諾拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:23 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 13/14...
-2025-09-30 10:59:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '漢德瑞克師傅' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '大皇子阿拉里克' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '三皇子赫克托' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '二公主塞拉菲娜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '三皇女伊索爾德' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '莉娜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '索菲亞' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '卡蓮' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '高爾' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:25 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '翠絲' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:27 - [INFO] - [512280345618546699] [別名驗證] 正在處理批次 14/14...
-2025-09-30 10:59:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 10:59:28 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '迪茜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
-2025-09-30 10:59:28 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '莉莉絲' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
 2025-09-30 10:59:28 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '莉娜' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
 2025-09-30 10:59:28 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '貝拉' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
 2025-09-30 10:59:28 - [WARNING] - [512280345618546699] [混合式安全驗證器] 檢測到角色 '絲月' 的身份遺漏或偏差，已強制從原文交叉驗證後修正 aliases 列表。
@@ -300,3 +237,66 @@
 2025-09-30 10:59:30 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 湯姆 -> 絲月 (Roles: ['助手'])
 2025-09-30 10:59:30 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 里奧 -> 絲月 (New Roles: ['ROLE-D', '參與者/對象', '勳爵夫人', '對象/參與者'])
 2025-09-30 10:59:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 136 個實體...
+2025-09-30 11:01:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-09-30 11:01:22 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 136 條決策。
+2025-09-30 11:01:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 36 個實體...
+2025-09-30 11:01:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 7 個實體...
+2025-09-30 11:01:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
+2025-09-30 11:01:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 3 個實體...
+2025-09-30 11:01:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 75 個實體...
+2025-09-30 11:01:45 - [INFO] - [512280345618546699] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...
+2025-09-30 11:01:45 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
+2025-09-30 11:01:45 - [INFO] - [512280345618546699] [資源管理] 正在向 ChromaDB 發送停止信號...
+2025-09-30 11:01:45 - [INFO] - [512280345618546699] [資源管理] 進入 1 秒靜默期以等待 ChromaDB 後台進程完全終止...
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 150 條文檔用於創始構建。
+2025-09-30 11:01:46 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在創始構建期間發生嚴重錯誤: Could not connect to tenant default_tenant. Are you sure it exists?
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 351, in _validate_tenant_database
+    self._admin_client.get_tenant(name=tenant)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 399, in get_tenant
+    return self._server.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\telemetry\opentelemetry\__init__.py", line 146, in wrapper
+    return f(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\segment.py", line 144, in get_tenant
+    return self._sysdb.get_tenant(name=name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\db\mixins\sysdb.py", line 132, in get_tenant
+    row = cur.execute(sql, params).fetchone()
+sqlite3.OperationalError: no such table: tenants
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 565, in _load_or_build_rag_retriever
+    persistent_client = chromadb.Client(client_settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\__init__.py", line 334, in Client
+    return ClientCreator(tenant=tenant, database=database, settings=settings)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 60, in __init__
+    self._validate_tenant_database(tenant=tenant, database=database)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\chromadb\api\client.py", line 360, in _validate_tenant_database
+    raise ValueError(
+ValueError: Could not connect to tenant default_tenant. Are you sure it exists?
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] [創世 LORE 解析] RAG 索引全量重建完成。
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] [后台创世 1/4] LORE 智能解析已同步完成。
+2025-09-30 11:01:46 - [INFO] - [512280345618546699] [后台创世 2/4] 正在补完角色档案...
+2025-09-30 11:01:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-09-30 11:01:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-09-30 11:01:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-09-30 11:01:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 11:01:49 - [INFO] - [512280345618546699] [后台创世 3/4] 正在生成世界创世资讯...
+2025-09-30 11:01:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-09-30 11:01:49 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-09-30 11:01:49 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-09-30 11:02:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-09-30 11:02:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-30 11:02:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 11:02:20 - [INFO] - [512280345618546699] [/start] 初始地點 '埃德蒙王國 > 王都城鎮區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
+2025-09-30 11:02:20 - [INFO] - [512280345618546699] [后台创世 4/4] 正在生成开场白...
+2025-09-30 11:02:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-09-30 11:02:52 - [INFO] - [512280345618546699] [后台创世 4/4] 开场白生成完毕。
+2025-09-30 11:02:52 - [INFO] - [512280345618546699] [后台创世] 正在向使用者私讯发送最终开场白...
+2025-09-30 11:02:53 - [INFO] - [512280345618546699] [后台创世] 开场白发送完毕。
+2025-09-30 11:02:53 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
