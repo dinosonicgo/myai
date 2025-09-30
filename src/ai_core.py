@@ -581,12 +581,13 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-    # ai_core.py 的 _rag_driven_lore_creation 函式 (v1.0 - 全新創建)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.1 - 返回完整結果)
 # 更新紀錄:
-# v1.0 (2025-09-30): [重大架構升級] 創建此全新的終極 LORE 解析引擎。它徹底顛覆了舊的解析流程，實現了「批量 RAG 驅動 + 分層靶向容錯」的終極策略。其流程包括：批量 RAG 查詢 -> 首次批量 LLM 解析 -> 錯誤隔離 -> 針對性單體重試（含安全代碼化）-> 機械式備援 -> 最終數據合併與校準。這是兼顧解析質量、效率、成本和可靠性的最優工程實踐。
-    async def _rag_driven_lore_creation(self, canon_text: str) -> Optional[List[CharacterProfile]]:
+# v1.1 (2025-09-30): [災難性BUG修復] 根據 LORE 零創建問題，修改了此函式的返回值。它現在不再只返回 `npc_profiles` 列表，而是返回一個完整的 `CanonParsingResult` 物件。此修改確保了所有類型的 LORE（包括地點、物品等）都能被正確地傳遞到下一個處理階段，而不是在函式返回時被丟棄。
+# v1.0 (2025-09-30): [重大架構升級] 創建此全新的終極 LORE 解析引擎。
+    async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
-        【v1.0 終極 LORE 解析引擎】執行「批量 RAG 驅動 + 分層靶向容錯」管線。
+        【v1.1 終極 LORE 解析引擎】執行「批量 RAG 驅動 + 分層靶向容錯」管線。
         """
         if not self.profile or not self.retriever:
             logger.error(f"[{self.user_id}] [RAG驅動解析] 致命錯誤: Profile 或 Retriever 未初始化。")
@@ -596,7 +597,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         ground_truth_data = self._parse_canon_structure(canon_text)
         if not ground_truth_data:
             logger.info(f"[{self.user_id}] [RAG驅動解析] 確定性解析器未在世界聖經中找到任何符合結構的角色。")
-            return []
+            return CanonParsingResult() # 返回一個空的結果物件
 
         # 步驟 2: 批量 RAG 上下文聚合
         logger.info(f"[{self.user_id}] [RAG驅動解析] 正在為 {len(ground_truth_data)} 個角色並行執行 RAG 檢索...")
@@ -637,7 +638,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     parsed_profiles[profile.name] = profile
                 logger.info(f"[{self.user_id}] [RAG驅動解析] ✅ 首次批量解析成功處理了 {len(parsed_profiles)}/{len(batch_input_data)} 個角色。")
             
-            # 找出批量解析中被 LLM 遺漏的角色
             parsed_names = set(parsed_profiles.keys())
             all_names = set(ground_truth_data.keys())
             missing_names = all_names - parsed_names
@@ -667,7 +667,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                 try:
                     is_sanitized = False
                     safety_instruction = "輸入的 RAG 情報上下文是原始文本。請直接分析。"
-                    # 如果是因為內容審查失敗，則啟用安全代碼化重試
                     if isinstance(reason, BlockedPromptException):
                         rag_context = self._decode_lore_content(rag_context, {v: k for k, v in self.DECODING_MAP.items()}) # Encode
                         is_sanitized = True
@@ -686,13 +685,12 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     retry_result = await self.ainvoke_with_rotation(
                         full_prompt,
                         output_schema=CharacterProfile,
-                        retry_strategy='none' # 重試只做一次
+                        retry_strategy='none'
                     )
 
                     if retry_result:
                         final_profile = retry_result
                         if is_sanitized:
-                            # 如果是代碼化模式，需要解碼回來
                             final_profile = CharacterProfile.model_validate(self._decode_lore_content(retry_result.model_dump(), self.DECODING_MAP))
                         
                         parsed_profiles[char_name] = final_profile
@@ -702,7 +700,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
                 except Exception as retry_e:
                     logger.error(f"[{self.user_id}] [RAG驅動解析-重試] 🔥 角色 '{char_name}' 即使在靶向重試後也最終失敗: {retry_e}。正在啟用機械式備援...")
-                    # 步驟 5: 機械式備援
                     gt_info = ground_truth_data.get(char_name, {})
                     backup_profile = CharacterProfile(
                         name=char_name,
@@ -713,9 +710,13 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
         # 步驟 6: 最終合併與校準
         final_profiles = list(parsed_profiles.values())
-        calibrated_result = self._force_calibrate_identities(CanonParsingResult(npc_profiles=final_profiles), canon_text)
+        # 雖然我們主要處理 NPC，但為了數據結構一致，我們將結果包裹在 CanonParsingResult 中
+        final_result_object = CanonParsingResult(npc_profiles=final_profiles)
         
-        return calibrated_result.npc_profiles
+        calibrated_result = self._force_calibrate_identities(final_result_object, canon_text)
+        
+        # [v1.1 核心修正] 返回完整的 CanonParsingResult 物件
+        return calibrated_result
 # 函式：RAG 驅動的 LORE 創建
 
 
@@ -5589,6 +5590,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
