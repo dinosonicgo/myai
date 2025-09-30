@@ -1,24 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T23:56:03.653887 ###
+### AI Lover Log - Last updated at 2025-09-30T23:57:41.035080 ###
 
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchAliasesResult
-results
-  Field required [type=missing, input_value={'npc_profiles': [{'name'...y': 'Cultural Ritual'}]}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-09-30 23:33:20 - [ERROR] - [512280345618546699] [专职流水线 - npc_profile] 🔥 批次 1 的任务 '提取所有身份、头衔、绰号和别名到 aliases 列表' 提取失败: 1 validation error for BatchAliasesResult
-results
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 817, in run_category_pipeline
-    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1334, in ainvoke_with_rotation
-    return await self._euphemize_and_retry(full_prompt, output_schema, e)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1548, in _euphemize_and_retry
-    return output_schema() if output_schema else None
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 193, in __init__
-    self.__pydantic_validator__.validate_python(data, self_instance=self)
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchAliasesResult
-results
   Field required [type=missing, input_value={}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 2025-09-30 23:33:25 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] 批次 1 的任务 '提取所有外观细节到 appearance_details 模型' 已启动...
@@ -300,3 +281,22 @@ results.45.description
 2025-09-30 23:55:52 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 23:55:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 23:55:53 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 23:57:23 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 23:57:23 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 23:57:24 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 23:57:24 - [INFO] - Discord Bot is ready!
+2025-09-30 23:57:26 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 23:57:26 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 23:57:27 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 23:57:37 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-09-30 23:57:37 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-09-30 23:57:37 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-09-30 23:57:37 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-09-30 23:57:37 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-09-30 23:57:40 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-09-30 23:57:40 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
