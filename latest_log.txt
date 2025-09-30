@@ -1,19 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T23:29:00.439020 ###
+### AI Lover Log - Last updated at 2025-09-30T23:31:10.951615 ###
 
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
-  quota_value: 250000
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-, retry_delay {
   seconds: 52
 }
 ]
@@ -300,3 +286,17 @@ Please retry in 54.702440643s. [violations {
 2025-09-30 23:28:49 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-09-30 23:28:49 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-09-30 23:28:49 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 23:30:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 23:30:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 23:30:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 23:30:57 - [INFO] - Discord Bot is ready!
+2025-09-30 23:30:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 23:30:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 23:31:00 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-09-30 23:31:05 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-09-30 23:31:06 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
