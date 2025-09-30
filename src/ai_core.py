@@ -466,35 +466,62 @@ class AILover:
                 return False
         return False
 
-    # 函式：增量更新 RAG 索引 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。它負責處理單條LORE的新增或更新，在記憶體中對語料庫進行操作，然後觸發索引的輕量級重建和持久化。
+# ai_core.py 的 _update_rag_for_single_lore 函式 (v2.0 - 混合索引同步)
+# 更新紀錄:
+# v2.0 (2025-09-30): [重大架構重構] 根據全新的「混合檢索」架構，徹底重寫了此函式。新版本實現了一個完整的「upsert」邏輯，能夠將單條 LORE 的變更同時、原子地同步到 ChromaDB（向量索引）和 BM25（關鍵字索引）中。它通過使用唯一的 ID 來更新 ChromaDB，並在記憶體中替換文檔後重新初始化 BM25 檢索器，確保了 RAG 索引在增量更新後的一致性。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。
     async def _update_rag_for_single_lore(self, lore: Lore):
-        """為單個LORE條目增量更新RAG索引。"""
-        new_doc = self._format_lore_into_document(lore)
-        key_to_update = lore.key
+        """為單個LORE條目增量更新RAG的混合索引（ChromaDB 和 BM25）。"""
+        if not self.vector_store or not self.bm25_retriever or not self.retriever:
+            logger.warning(f"[{self.user_id}] [RAG增量更新] 檢索器未完全初始化，跳過對 LORE '{lore.key}' 的增量更新。")
+            return
+
+        logger.info(f"[{self.user_id}] [RAG增量更新] 正在為 LORE '{lore.key}' 同步混合索引...")
         
-        # 在記憶體語料庫中查找並替換或追加
-        found = False
+        # 步驟 1: 將 LORE 格式化為標準 Document
+        new_doc = self._format_lore_into_document(lore)
+        # 為 ChromaDB 的 upsert 機制創建一個唯一的 ID
+        unique_id = f"lore_{lore.user_id}_{lore.category}_{lore.key}"
+        
+        # 步驟 2: 更新 ChromaDB (向量索引)
+        try:
+            # add_documents 使用 ids 參數時，會執行 upsert 操作
+            await asyncio.to_thread(self.vector_store.add_documents, [new_doc], ids=[unique_id])
+            logger.info(f"[{self.user_id}] [RAG增量更新] ✅ ChromaDB 向量索引已同步。")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [RAG增量更新] 🔥 更新 ChromaDB 時發生錯誤: {e}", exc_info=True)
+            # 即使向量部分失敗，我們仍然嘗試更新關鍵字部分
+        
+        # 步驟 3: 更新 BM25 (關鍵字索引)
+        found_in_corpus = False
         for i, doc in enumerate(self.bm25_corpus):
-            if doc.metadata.get("key") == key_to_update:
+            if doc.metadata.get("key") == lore.key and doc.metadata.get("category") == lore.category:
                 self.bm25_corpus[i] = new_doc
-                found = True
+                found_in_corpus = True
                 break
         
-        if not found:
+        if not found_in_corpus:
             self.bm25_corpus.append(new_doc)
 
-        # 從更新後的記憶體語料庫輕量級重建檢索器
+        # 從更新後的記憶體語料庫重新初始化 BM25 檢索器
         if self.bm25_corpus:
             self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
-            self.bm25_retriever.k = 15
-            self.retriever = self.bm25_retriever
+            self.bm25_retriever.k = 10 # 保持 k 值一致
+            
+            # 重新組合 EnsembleRetriever
+            vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
+            self.retriever = EnsembleRetriever(
+                retrievers=[self.bm25_retriever, vector_retriever],
+                weights=[0.5, 0.5]
+            )
+            logger.info(f"[{self.user_id}] [RAG增量更新] ✅ BM25 關鍵字索引已重新初始化。")
         
-        # 將更新後的語料庫持久化到磁碟
+        # 步驟 4: 將更新後的語料庫持久化到磁碟
         self._save_bm25_corpus()
-        action = "更新" if found else "添加"
-        logger.info(f"[{self.user_id}] [RAG增量更新] 已成功 {action} LORE '{key_to_update}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
+        
+        action = "更新" if found_in_corpus else "添加"
+        logger.info(f"[{self.user_id}] [RAG增量更新] 完成。已成功 {action} LORE '{lore.key}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
+# 函式：增量更新 RAG 索引
 
 
 
@@ -5585,6 +5612,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
