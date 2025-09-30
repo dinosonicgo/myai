@@ -4042,14 +4042,14 @@ class ExtractionResult(BaseModel):
 
     
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.3 - 先釋放後重建)
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.4 - 移除RAG重建)
 # 更新紀錄:
-# v13.3 (2025-09-30): [災難性BUG修復] 根據「先釋放，後刪除」原則，在調用 `_load_or_build_rag_retriever(force_rebuild=True)` 之前，強制增加了對 `_release_rag_resources()` 的調用。此修改確保在嘗試刪除和重建 RAG 索引之前，所有對舊索引文件的鎖定都已被徹底釋放，從而根除 PermissionError。
+# v13.4 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式末尾所有與 RAG 資源管理（釋放、重建）相關的程式碼。此函式的職責被重新定義為：純粹的 LORE 解析與 SQL 數據庫寫入。RAG 的創建/重建將由更高層的協調器在所有數據準備就緒後統一觸發。
+# v13.3 (2025-09-30): [災難性BUG修復] 增加了對 `_release_rag_resources()` 的調用，以遵循「先釋放，後刪除」原則。
 # v13.2 (2025-09-30): [災難性BUG修復] 在函式中增加了程式化的【最終防線過濾器】。
-# v13.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，在此函式的核心流程中植入了全新的「源頭真相」校驗器 `_programmatic_lore_validator`。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
+        【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並將結果存入 SQL 資料庫。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -4061,9 +4061,7 @@ class ExtractionResult(BaseModel):
 
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-            # 即使解析失敗，也需要確保RAG索引被正確創建
-            await self._release_rag_resources()
-            await self._load_or_build_rag_retriever(force_rebuild=True)
+            # [v13.4 核心修正] 移除 RAG 相關操作
             return
 
         # 步驟 2: 植入「源頭真相」校驗器
@@ -4076,7 +4074,6 @@ class ExtractionResult(BaseModel):
             
             original_count = len(validated_result.npc_profiles)
             
-            # 過濾掉任何與核心主角同名的NPC條目
             filtered_profiles = [
                 p for p in validated_result.npc_profiles 
                 if p.name.lower() not in {user_name_lower, ai_name_lower}
@@ -4101,7 +4098,6 @@ class ExtractionResult(BaseModel):
             rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
             
             for lore in validated_result.world_lores:
-                # [v3.0 統一為 name]
                 lore_name = lore.name if hasattr(lore, 'name') else getattr(lore, 'title', '')
                 if any(keyword in lore_name for keyword in rule_keywords):
                     potential_keys = set()
@@ -4121,38 +4117,27 @@ class ExtractionResult(BaseModel):
             profiles_by_name = {profile.name: profile for profile in validated_result.npc_profiles}
             
             inverse_roles = {
-                "主人": "僕人", "僕人": "主人",
-                "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
-                "丈夫": "妻子", "妻子": "丈夫",
-                "戀人": "戀人", "情人": "情人",
-                "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
-                "敵人": "敵人", "宿敵": "宿敵",
-                "朋友": "朋友", "摯友": "摯友",
-                "老師": "學生", "學生": "老師",
+                "主人": "僕人", "僕人": "主人", "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
+                "丈夫": "妻子", "妻子": "丈夫", "戀人": "戀人", "情人": "情人", "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
+                "敵人": "敵人", "宿敵": "宿敵", "朋友": "朋友", "摯友": "摯友", "老師": "學生", "學生": "老師",
             }
 
             for source_profile in validated_result.npc_profiles:
                 for target_name, rel_detail in list(source_profile.relationships.items()):
                     target_profile = profiles_by_name.get(target_name)
-                    if not target_profile:
-                        continue
+                    if not target_profile: continue
 
                     inverse_rel_roles = []
                     for role in rel_detail.roles:
                         inverse_role = inverse_roles.get(role)
-                        if inverse_role:
-                            inverse_rel_roles.append(inverse_role)
+                        if inverse_role: inverse_rel_roles.append(inverse_role)
                     
-                    if not inverse_rel_roles and rel_detail.type:
-                        inverse_rel_roles.append(rel_detail.type)
+                    if not inverse_rel_roles and rel_detail.type: inverse_rel_roles.append(rel_detail.type)
 
                     target_has_relationship = target_profile.relationships.get(source_profile.name)
 
                     if not target_has_relationship:
-                        target_profile.relationships[source_profile.name] = RelationshipDetail(
-                            type=rel_detail.type,
-                            roles=inverse_rel_roles
-                        )
+                        target_profile.relationships[source_profile.name] = RelationshipDetail(type=rel_detail.type, roles=inverse_rel_roles)
                         logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
                     else:
                         existing_roles = set(target_has_relationship.roles)
@@ -4169,20 +4154,18 @@ class ExtractionResult(BaseModel):
             await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
             await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
             await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
-            await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in validated_result.world_lores]) # by_alias=True 確保 'name' 被正確序列化
+            await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in validated_result.world_lores])
             
-            logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+            logger.info(f"[{self.user_id}] [創世 LORE 解析] LORE 已成功解析並存入 SQL 資料庫。")
             
-            # [v13.3 核心修正] 先釋放舊資源，再強制重建
-            await self._release_rag_resources()
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            
-            logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
+            # [v13.4 核心修正] 移除所有 RAG 相關操作
+            # logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+            # await self._release_rag_resources()
+            # await self._load_or_build_rag_retriever(force_rebuild=True)
+            # logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
-            # 即使解析失敗，也需要確保RAG索引被正確創建
-            await self._release_rag_resources()
-            await self._load_or_build_rag_retriever(force_rebuild=True)
+            # [v13.4 核心修正] 移除所有 RAG 相關操作
 # 函式：解析並從世界聖經創建LORE
 
 
@@ -5386,6 +5369,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
