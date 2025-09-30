@@ -721,11 +721,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v2.3 - `None` 值安全處理)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v2.3 - 縮小批次大小與合併邏輯修正)
 # 更新紀錄:
-# v2.3 (2025-09-30): [災難性BUG修復] 根據 ValidationError 的修復策略，在最終的數據合併階段增加了對 `core_info.description` 的 `None` 值檢查。如果從 LLM 返回的描述為 None，則會將其安全地轉換為空字符串 ""，確保了後續數據處理的類型一致性和健壯性。
+# v2.3 (2025-10-01): [災難性BUG修復] 根據 MAX_TOKENS 和 ValidationError 錯誤，將 BATCH_SIZE 從 5 減小到 3，以降低單次 API 請求的負載。同時，修正了數據合併階段對 `world_lore` 類別的處理邏輯，使其能夠正確地從修正後的 `WorldLoreItem` 結構中提取數據。
 # v2.2 (2025-09-30): [性能與穩定性終極重構] 引入了【受控並行的批量處理】模式。
-# v2.1 (2025-09-30): [性能與穩定性終極重構] 引入 asyncio.Semaphore（信號量）機制，實現了【受控並行】。
+# v2.1 (2025-09-30): [性能與穩定性終極重構] 引入 asyncio.Semaphore（信號量）機制。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v2.2 终极 LORE 解析引擎】执行一个能够处理所有 LORE 类型的、使用 Semaphore 控制并发批次的、RAG 驱动的专职流水线。
@@ -813,7 +813,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     return batch_names, None
 
         all_tasks = []
-        BATCH_SIZE = 5
+        BATCH_SIZE = 3 # [v2.3 核心修正] 減小批次大小以避免 MAX_TOKENS
         for category, names in categorized_entities.items():
             total_batches = (len(names) + BATCH_SIZE - 1) // BATCH_SIZE
             for i in range(0, len(names), BATCH_SIZE):
@@ -830,12 +830,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         categorized_batch_results = defaultdict(list)
         temp_entity_map = {entity.name: entity for entity in identified_entities}
         for batch_names, pipeline_results in all_batch_results:
-            if pipeline_results:
-                if batch_names:
-                    sample_name = batch_names[0]
-                    category = temp_entity_map.get(sample_name, lambda: None)
-                    if category:
-                         categorized_batch_results[category.category].append((batch_names, pipeline_results))
+            if pipeline_results and batch_names:
+                sample_name = batch_names[0]
+                entity = temp_entity_map.get(sample_name)
+                if entity:
+                    categorized_batch_results[entity.category].append((batch_names, pipeline_results))
 
         for category, batch_results_list in categorized_batch_results.items():
             config = parser_configs.get(category)
@@ -854,7 +853,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         profile_data['appearance_details'] = appearance_map.get(name, AppearanceDetails())
                         core_info = core_info_map.get(name)
                         if core_info:
-                            # [v2.3 核心修正] 安全處理可能為 None 的 description
                             profile_data['description'] = core_info.description or ""
                             profile_data['skills'] = core_info.skills
                             profile_data['relationships'] = core_info.relationships
@@ -864,7 +862,15 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                 else:
                     parsed_data = results.get("full_parse")
                     if parsed_data and parsed_data.results:
-                        info_key_name = f"{category.replace('_profile', '')}_info"
+                        # [v2.3 核心修正] 統一所有單步解析LORE的提取邏輯
+                        info_key_name_map = {
+                            "location_info": "location_info", "item_info": "item_info",
+                            "creature_info": "creature_info", "quest": "quest_info",
+                            "world_lore": "world_lore" # 修正 schema 後的鍵名
+                        }
+                        info_key_name = info_key_name_map.get(category)
+                        if not info_key_name: continue
+
                         info_map = {item.name: getattr(item, info_key_name) for item in parsed_data.results if hasattr(item, 'name') and hasattr(item, info_key_name)}
                         for name in names:
                             if name in info_map:
@@ -872,6 +878,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
         logger.info(f"[{self.user_id}] [RAG驱动解析 3/3] 数据合并完成。")
         return final_result
+# 函式：RAG 驅動的 LORE 創建
 # 函式：RAG 驅動的 LORE 創建
     
 
@@ -5743,6 +5750,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
