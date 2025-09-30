@@ -1279,62 +1279,70 @@ class BotCog(commands.Cog):
     def cog_unload(self):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
+   
+    
+    
+    
     # 函式：执行完整的后台创世流程
-    # 更新紀錄:
-    # v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。它确保了所有步骤都同步执行，并在完成后直接向用户发送开场白，解决了流程中断和 interaction 过期的问题。
+# discord_bot.py 的 _perform_full_setup_flow 函式 (v1.1 - RAG 時序修正)
+# 更新紀錄:
+# v1.1 (2025-09-30): [重大架構重構] 根據時序重構策略，此函式現在成為 RAG 創建的最高協調器。它會在所有 LORE 解析和角色補完（即所有 SQL 數據寫入）全部完成之後，才觸發 `_load_or_build_rag_retriever(force_rebuild=True)`。這個「先準備數據，後創建索引」的流程從根本上解決了所有初始化競爭條件和檔案鎖定問題。
+# v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务，用于执行完整的/start创世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
         """一个独立的背景任务，负责执行从LORE解析到发送开场白的完整创世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] 独立的后台创世流程已为用户启动。")
+            logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
-                logger.error(f"[{user_id}] 在后台创世流程中，AI核心初始化失败。")
-                await user.send("❌ 错误：无法初始化您的 AI 核心以进行创世。")
+                logger.error(f"[{user_id}] 在後台創世流程中，AI核心初始化失敗。")
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- 步骤 1: 世界圣经处理 (如果提供) ---
+            # --- 步驟 1: 世界聖經處理 (如果提供)，僅寫入 SQL ---
             if canon_text:
-                logger.info(f"[{user_id}] [后台创世 1/4] 正在处理世界圣经...")
-                await ai_instance.add_canon_to_vector_store(canon_text)
-                logger.info(f"[{user_id}] [后台创世 1/4] 正在进行 LORE 智能解析...")
+                logger.info(f"[{user_id}] [後台創世 1/5] 正在進行 LORE 智能解析...")
                 await ai_instance.parse_and_create_lore_from_canon(canon_text)
-                logger.info(f"[{user_id}] [后台创世 1/4] LORE 智能解析已同步完成。")
+                logger.info(f"[{user_id}] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。")
             
-            # --- 步骤 2: 补完角色档案 ---
-            logger.info(f"[{user_id}] [后台创世 2/4] 正在补完角色档案...")
+            # --- 步驟 2: 補完角色檔案 ---
+            logger.info(f"[{user_id}] [後台創世 2/5] 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步骤 3: 生成世界创世资讯 ---
-            logger.info(f"[{user_id}] [后台创世 3/4] 正在生成世界创世资讯...")
+            # --- [v1.1 核心修正] 步驟 3: RAG 索引全量創始構建 ---
+            logger.info(f"[{user_id}] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...")
+            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
+            logger.info(f"[{user_id}] [後台創世 3/5] RAG 索引全量創始構建完成。")
+
+            # --- 步驟 4: 生成世界創世資訊 ---
+            logger.info(f"[{user_id}] [後台創世 4/5] 正在生成世界創世資訊...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
             
-            # --- 步骤 4: 生成开场白 ---
-            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
+            # --- 步驟 5: 生成開場白 ---
+            logger.info(f"[{user_id}] [後台創世 5/5] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
+            logger.info(f"[{user_id}] [後台創世 5/5] 開場白生成完毕。")
 
-            # --- 最终步骤: 发送开场白并清理 ---
+            # --- 最終步驟: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
-            logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
+            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
             for i in range(0, len(opening_scene), 2000):
                 await user.send(opening_scene[i:i+2000])
-            logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
+            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 后台创世流程发生严重错误: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
             try:
-                await user.send(f"❌ **创世失败**：在后台执行时发生了未预期的严重错误: `{e}`")
+                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
             except discord.errors.HTTPException as send_e:
-                 logger.error(f"[{user_id}] 无法向使用者发送最终的错误讯息: {send_e}")
+                 logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
-            # 无论成功或失败，都从活动设置中移除使用者，允许他们重新开始
             self.active_setups.discard(user_id)
-            logger.info(f"[{user_id}] 后台创世流程结束，状态锁已释放。")
-    # 函式：执行完整的后台创世流程
+            logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
+# 函式：執行完整的後台創世流程
 
 
     
@@ -2158,6 +2166,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
