@@ -1339,10 +1339,10 @@ class BotCog(commands.Cog):
 
     
     # 函式：獲取或創建使用者的 AI 實例 (v52.2 - Ollama健康检查)
-# discord_bot.py 的 BotCog.get_or_create_ai_instance 函式 (v52.1 - 生命週期修正)
+# discord_bot.py 的 BotCog.get_or_create_ai_instance 函式 (v52.2 - 時序重構)
 # 更新紀錄:
-# v52.1 (2025-11-26): [灾难性BUG修复] 重構了此函式的邏輯。現在，任何成功創建並初始化的新 AILover 實例都會被立即存入 `self.ai_instances` 字典中。此修改確保了所有活躍的、持有文件句柄的實例都有據可查，防止了在重置流程中創建出無法被追蹤和關閉的「殭屍實例」，是解決頑固 PermissionError 的關鍵一步。
-# v52.2 (2025-09-26): [重大架構升級] 將 `is_ollama_available` 狀態傳遞給 `AILover` 的構造函數。
+# v52.2 (2025-09-30): [重大架構重構] 根據時序重構策略，此函式現在會在 `initialize` 和 `_configure_pre_requisites` 之後，立即為【非創世流程】的既有使用者觸發一次 RAG 的加載或構建。這確保了常規對話流程能夠在第一時間擁有可用的 RAG 檢索器。創世流程的 RAG 創建則被延遲到更高層處理。
+# v52.1 (2025-11-26): [灾难性BUG修复] 重構了此函式的邏輯，確保任何成功創建的實例都會被立即存入 `self.ai_instances` 字典。
 # v52.0 (2025-11-22): [重大架構升級] 增加了對 ai_instance._rehydrate_scene_histories() 的調用。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
         if user_id in self.ai_instances:
@@ -1353,12 +1353,16 @@ class BotCog(commands.Cog):
         
         if await ai_instance.initialize():
             logger.info(f"為使用者 {user_id} 成功創建並初始化 AI 實例。")
+            await ai_instance._configure_pre_requisites()
             
-            await ai_instance._rehydrate_scene_histories()
+            # [v52.2 核心修正] 為常規對話流程（非創世）預先加載 RAG
+            if not is_setup_flow:
+                await ai_instance._load_or_build_rag_retriever()
 
-            # [v52.1 核心修正] 立即將創建的實例存入字典
+            await ai_instance._rehydrate_scene_histories()
             self.ai_instances[user_id] = ai_instance
             return ai_instance
+            
         elif is_setup_flow:
             logger.info(f"[{user_id}] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。")
             ai_instance.profile = UserProfile(user_id=user_id, user_profile=CharacterProfile(name=""), ai_profile=CharacterProfile(name=""))
@@ -1367,12 +1371,11 @@ class BotCog(commands.Cog):
             except Exception as e:
                 logger.error(f"[{user_id}] 為臨時實例配置前置資源時失敗: {e}", exc_info=True)
             
-            # [v52.1 核心修正] 立即將創建的實例存入字典
             self.ai_instances[user_id] = ai_instance
             return ai_instance
+            
         else:
             logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
-            # 確保失敗時銷毀部分初始化的對象
             await ai_instance.shutdown()
             del ai_instance
             gc.collect()
@@ -2155,6 +2158,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
