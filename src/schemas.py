@@ -50,20 +50,35 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
     roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
 
-# schemas.py 的 CharacterProfile 模型 (v2.2 - 親和力驗證修正)
-# 更新紀錄:
-# v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。此驗證器會在 Pydantic 進行類型檢查前，自動將傳入的浮點數（如 0.75）強制轉換為整數，從根本上解決了因 LLM 生成非標準數據類型而導致的 ValidationError。
-# v2.1 (2025-09-28): [架構擴展] 新增了 alternative_names 欄位。
-# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
+# [v2.3 核心修正] 新增 AppearanceDetails 模型
+class AppearanceDetails(BaseModel):
+    """角色的結構化外觀細節"""
+    height: Optional[str] = Field(default=None, description="身高")
+    body_type: Optional[str] = Field(default=None, description="體型或身材描述")
+    hair_style: Optional[str] = Field(default=None, description="髮型與髮色")
+    eye_color: Optional[str] = Field(default=None, description="瞳色與眼神特徵")
+    skin_tone: Optional[str] = Field(default=None, description="膚色與皮膚特徵")
+    distinctive_features: List[str] = Field(default_factory=list, description="顯著特徵，如疤痕、紋身、胎記等")
+    age_appearance: Optional[str] = Field(default=None, description="外觀看上去的年齡")
+    clothing_style: Optional[str] = Field(default=None, description="通常的服裝風格")
+    overall_impression: Optional[str] = Field(default=None, description="給人的整體印象或氣質")
+
+    @field_validator('distinctive_features', mode='before')
+    @classmethod
+    def _validate_string_to_list_fields(cls, value: Any) -> Any:
+        return _validate_string_to_list(value)
+# AppearanceDetails 模型結束
+
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
-    aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
+    aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知稱呼、身份標籤、頭銜或綽號。")
     alternative_names: List[str] = Field(default_factory=list, description="一个由AI预先生成的、用于在主名称冲突时备用的名称列表。")
     gender: str = Field(default="未設定", description="角色的性別。")
     age: str = Field(default="未知", description="角色的年齡或年齡段。")
     race: str = Field(default="未知", description="角色的種族。")
     appearance: str = Field(default="", description="角色的外貌特徵的總體描述。")
-    appearance_details: Dict[str, Any] = Field(default_factory=dict, description="角色的具體外貌細節，值可以是字串或列表。")
+    # [v2.3 核心修正] 更新 appearance_details 的類型
+    appearance_details: AppearanceDetails = Field(default_factory=AppearanceDetails, description="角色的結構化具體外貌細節。")
     likes: List[str] = Field(default_factory=list, description="角色喜歡的事物列表。")
     dislikes: List[str] = Field(default_factory=list, description="角色不喜歡的事物列表。")
     equipment: List[str] = Field(default_factory=list, description="角色【當前穿戴或持有】的裝備列表。")
@@ -83,18 +98,18 @@ class CharacterProfile(BaseModel):
             return [part.strip() for part in re.split(r'\s*>\s*|/', value)]
         return _validate_string_to_list(value)
 
+    # [v2.3 核心修正] 修改驗證器以處理新的模型
     @field_validator('appearance_details', mode='before')
     @classmethod
     def _validate_string_to_dict_fields(cls, value: Any) -> Any:
+        # 如果傳入的是已經實例化的模型，直接返回
+        if isinstance(value, AppearanceDetails):
+            return value
         return _validate_string_to_dict(value)
 
     @field_validator('relationships', mode='before')
     @classmethod
     def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        """
-        一個強大的驗證器，用於處理和規範化 'relationships' 字典。
-        它可以向下兼容舊的扁平化字串格式，並將其自動轉換為新的 RelationshipDetail 結構。
-        """
         if isinstance(value, str):
             value = _validate_string_to_dict(value)
         if not isinstance(value, dict):
@@ -117,11 +132,9 @@ class CharacterProfile(BaseModel):
                 normalized_dict[str(k)] = RelationshipDetail(roles=[str(v)])
         return normalized_dict
 
-    # [v2.2 核心修正] 新增親和力欄位的驗證器
     @field_validator('affinity', mode='before')
     @classmethod
     def _coerce_affinity_to_int(cls, value: Any) -> Any:
-        """在驗證前，將 affinity 欄位的值強制轉換為整數，以兼容 LLM 可能輸出的浮點數。"""
         if isinstance(value, float):
             return int(value)
         return value
@@ -483,6 +496,7 @@ NarrativeExtractionResult.model_rebuild()
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
 
+AppearanceDetails.model_rebuild()
 
 
 
