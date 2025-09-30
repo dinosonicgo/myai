@@ -3549,34 +3549,45 @@ class ExtractionResult(BaseModel):
         
         return relevant_characters, background_characters
     # 獲取場景中的相關 NPC 函式結束
-    
 
-# ai_core.py 的 AILover.shutdown 函式 (v198.2 - 強制等待資源釋放)
+
+    # ai_core.py 的 _release_rag_resources 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v198.2 (2025-11-26): [灾难性BUG修复] 在請求 ChromaDB 系統停止後，增加了一個固定的 1 秒異步等待。此修改旨在給予 ChromaDB 的後台進程足夠的時間來完全終止並釋放對資料庫文件的鎖定，是解決頑固的 `PermissionError` 的終極手段。
-# v198.1 (2025-09-02): [灾难性BUG修复] 徹底重構了 ChromaDB 的關閉邏輯，改為調用底層的 `_system.stop()` 方法。
-# v198.0 (2025-09-02): [重大架構重構] 移除了所有 LangGraph 相關的清理邏輯。
-    async def shutdown(self):
-        logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放資源...")
-        
+# v1.0 (2025-09-30): [災難性BUG修復] 創建此核心輔助函式，專門負責安全地關閉 ChromaDB 連線並釋放所有相關資源。此函式作為「先釋放，後刪除」策略的執行者，旨在從根本上解決因檔案鎖定導致的 PermissionError。
+    async def _release_rag_resources(self):
+        """
+        安全地關閉並釋放所有與 RAG (ChromaDB, Retrievers) 相關的資源。
+        """
+        logger.info(f"[{self.user_id}] [資源管理] 正在釋放 RAG 資源...")
         if self.vector_store:
             try:
                 client = self.vector_store._client
                 if client and hasattr(client, '_system') and hasattr(client._system, 'stop'):
-                    logger.info(f"[{self.user_id}] 正在向 ChromaDB 發送停止信號...")
+                    logger.info(f"[{self.user_id}] [資源管理] 正在向 ChromaDB 發送停止信號...")
                     client._system.stop()
-                    # [v198.2 核心修正] 在請求關閉後，給予後台進程足夠的時間來完全終止並釋放文件句柄。
-                    logger.info(f"[{self.user_id}] 進入 1 秒靜默期以等待 ChromaDB 後台進程完全終止...")
+                    logger.info(f"[{self.user_id}] [資源管理] 進入 1 秒靜默期以等待 ChromaDB 後台進程完全終止...")
                     await asyncio.sleep(1.0)
-                    logger.info(f"[{self.user_id}] ChromaDB 靜默期結束。")
             except Exception as e:
-                logger.warning(f"[{self.user_id}] 關閉 ChromaDB 客戶端時發生非致命錯誤: {e}", exc_info=True)
+                logger.warning(f"[{self.user_id}] [資源管理] 關閉 ChromaDB 客戶端時發生非致命錯誤: {e}", exc_info=True)
         
         self.vector_store = None
         self.retriever = None
-        self.bm25_retriever = None # 確保所有檢索器都被清理
-    
+        self.bm25_retriever = None
+        self.bm25_corpus = []
         gc.collect()
+        logger.info(f"[{self.user_id}] [資源管理] RAG 資源已成功釋放。")
+# 函式：釋放 RAG 資源
+    
+
+# ai_core.py 的 shutdown 函式 (v198.3 - 職責分離)
+# 更新紀錄:
+# v198.3 (2025-09-30): [架構重構] 重構了此函式，將其核心的 RAG 資源釋放邏輯剝離到新的 `_release_rag_resources` 輔助函式中。現在此函式只負責調用該輔助函式並清理其他非 RAG 資源，使程式碼職責更清晰、更易於維護。
+# v198.2 (2025-11-26): [灾难性BUG修复] 在請求 ChromaDB 系統停止後，增加了一個固定的 1 秒異步等待。
+# v198.1 (2025-09-02): [灾难性BUG修复] 徹底重構了 ChromaDB 的關閉邏輯。
+    async def shutdown(self):
+        logger.info(f"[{self.user_id}] 正在關閉 AI 實例並釋放所有資源...")
+        
+        await self._release_rag_resources()
         
         # 清理所有緩存的 PromptTemplate
         self.canon_parser_chain = None
@@ -3593,7 +3604,7 @@ class ExtractionResult(BaseModel):
         
         self.scene_histories.clear()
         
-        logger.info(f"[{self.user_id}] AI 實例資源已釋放。")
+        logger.info(f"[{self.user_id}] AI 實例所有資源已成功釋放。")
 # 關閉 AI 實例並釋放資源 函式結束
 
 
@@ -5365,6 +5376,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
