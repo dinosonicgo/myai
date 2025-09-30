@@ -1391,6 +1391,10 @@ class BotCog(commands.Cog):
     # 函式：監聽並處理所有符合條件的訊息
 
     # 函式：在背景處理世界聖經文本
+# discord_bot.py 的 _background_process_canon 函式 (v1.1 - 適配新LORE管線)
+# 更新紀錄:
+# v1.1 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將此函式中對已廢棄的 `parse_and_create_lore_from_canon` 的調用，替換為對新版 LORE 解析管線 (`_execute_lore_parsing_pipeline`) 和持久化函式 (`_resolve_and_save`) 的正確調用流程。此修改確保了通過指令更新世界聖經時，能夠使用最新的、最健壯的解析與儲存邏輯。
+# v1.0 (2025-09-30): [全新創建] 創建此函式。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -1399,6 +1403,12 @@ class BotCog(commands.Cog):
             if not ai_instance:
                 await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
                 return
+
+            # 對於非 /start 流程，我們需要確保 RAG 索引是最新的
+            if not is_setup_flow:
+                logger.info(f"[{user_id}] [Canon Update] 正在為聖經更新重建 RAG 索引...")
+                await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
+
             if len(content_text) > 5000:
                 await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
             
@@ -1411,13 +1421,30 @@ class BotCog(commands.Cog):
 
             await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行終極智能解析，將其轉化為結構化的 LORE 數據庫...")
             
-            await ai_instance.parse_and_create_lore_from_canon(content_text)
+            # [v1.1 核心修正] 使用新的 LORE 解析與儲存管線
+            success, parsing_result, successful_keys = await ai_instance._execute_lore_parsing_pipeline(content_text)
             
-            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+            if success and parsing_result:
+                logger.info(f"[{user_id}] [Canon Update] 管道解析成功，準備儲存所有LORE類別...")
+                await ai_instance._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
+                await ai_instance._resolve_and_save("locations", [loc.model_dump() for loc in parsing_result.locations])
+                await ai_instance._resolve_and_save("items", [item.model_dump() for item in parsing_result.items])
+                await ai_instance._resolve_and_save("creatures", [creature.model_dump() for creature in parsing_result.creatures])
+                await ai_instance._resolve_and_save("quests", [q.model_dump() for q in parsing_result.quests], title_key='name')
+                await ai_instance._resolve_and_save("world_lores", [wl.model_dump() for wl in parsing_result.world_lores], title_key='name')
+                
+                await user.send(f"✅ **智能解析與儲存完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。共處理了 {len(successful_keys)} 個LORE實體。")
+            else:
+                logger.error(f"[{user_id}] [Canon Update] LORE 解析管道執行失敗或未返回任何結果。")
+                await user.send("❌ **解析失敗！**\nAI 未能從您提供的世界聖經中成功提取任何結構化 LORE。請檢查文本格式或聯繫管理員。")
+
         except Exception as e:
             logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
             await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
-    # 函式：在背景處理世界聖經文本
+# 函式：在背景處理世界聖經文本
+
+
+    
 
     # 函式：健壯的異步目錄刪除
     async def _robust_rmtree(self, path: Path, retries: int = 10, delay: float = 1.0):
@@ -1871,6 +1898,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
