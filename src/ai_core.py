@@ -3938,23 +3938,21 @@ class ExtractionResult(BaseModel):
     
 
     # 函式：將世界聖經添加到知識庫 (v15.0 - 移除RAG冗餘)
-    # ai_core.py 的 add_canon_to_vector_store 函式 (v13.1 - 縮排修正)
-    # 更新紀錄:
-    # v13.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
-    # v13.0 (2025-11-26): [根本性重構] 徹底重寫此函式以適應本地 RAG 架構。它現在負責將世界聖經文本分割後，使用本地 Embedding 模型進行向量化，並將結果存入 ChromaDB，同時也更新 BM25 的語料庫。
-    # v15.0 (2025-11-22): [架構優化] 移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。
+# ai_core.py 的 add_canon_to_vector_store 函式 (v13.1 - 職責簡化)
+# 更新紀錄:
+# v13.1 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式內部所有關於 RAG 索引重建的邏輯。其職責被極簡化為：接收文本，將其分割，然後將文檔塊添加到【已經存在】的 vector_store 和 bm25_corpus 中。它不再關心 RAG 索引的創建時機，成為一個純粹的「數據填充」工具。
+# v13.0 (2025-11-26): [根本性重構] 徹底重寫此函式以適應本地 RAG 架構。
+# v15.0 (2025-11-22): [架構優化] 移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """
-        (v13.1 本地化改造) 將世界聖經文本分割、本地向量化，並存儲到 ChromaDB 和 BM25 索引中。
+        (v13.1 職責簡化) 將世界聖經文本分割，並填充到【已存在】的 RAG 索引中。
         """
         if not text_content or not self.profile:
             return 0
         if not self.vector_store:
-            logger.error(f"[{self.user_id}] (Canon Processor) Vector store 未初始化，無法添加世界聖經。")
-            # 嘗試觸發一次重建
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            if not self.vector_store:
-                 raise RuntimeError("即使在強制重建後，Vector Store 仍然無法初始化。")
+            logger.error(f"[{self.user_id}] (Canon Processor) 致命錯誤: Vector store 未初始化，無法添加世界聖經。")
+            # 拋出異常以中斷流程，因為這是一個不應發生的狀態
+            raise RuntimeError("add_canon_to_vector_store 被調用時，Vector Store 必須已經被初始化。")
 
         try:
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
@@ -3971,17 +3969,13 @@ class ExtractionResult(BaseModel):
 
             # 同步更新 BM25 索引
             self.bm25_corpus.extend(docs)
-            if self.bm25_retriever:
-                self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
-                self.bm25_retriever.k = 10
-            self._save_bm25_corpus()
-            logger.info(f"[{self.user_id}] (Canon Processor) ✅ BM25 索引已同步更新。")
+            # 注意：這裡不再重建 retriever，重建將由更高層的協調器在所有數據填充完畢後統一執行
             
             return len(docs)
         except Exception as e:
             logger.error(f"[{self.user_id}] (Canon Processor) 添加世界聖經到 RAG 索引時發生嚴重錯誤: {e}", exc_info=True)
             raise
-    # 將世界聖經添加到知識庫 函式結束
+# 將世界聖經添加到知識庫 函式結束
 
 
     
@@ -4295,20 +4289,22 @@ class ExtractionResult(BaseModel):
     # 函式：獲取本地別名交叉驗證器Prompt (本地專用)
 
 
-# ai_core.py 的 _parse_canon_structure 函式 (v1.0 - 全新創建)
+# ai_core.py 的 _parse_canon_structure 函式 (v1.1 - 多行兼容修正)
 # 更新紀錄:
-# v1.0 (2025-09-30): [重大架構升級] 根據資訊遺漏問題的終極解決方案，創建此核心輔助函式。它使用一個強大的、確定性的正則表達式，將遵循特定格式的世界聖經文本，一次性解析為一個結構化的字典。此函式的輸出將作為「地面實況(Ground Truth)」，用於校準和修正 LLM 的解析結果。
+# v1.1 (2025-09-30): [災難性BUG修復] 根據 LORE 零創建問題，徹底重寫了此函式的正則表達式。新的 Regex 能夠正確處理每個段落（身份/外貌、背景、關鍵遭遇）包含多行文本的情況，通過非貪婪匹配直到下一個 `*` 標籤或區塊結束，確保了對結構化世界聖經的完整、準確解析，是解決「地面實況」生成失敗的關鍵。
+# v1.0 (2025-09-30): [重大架構升級] 創建此核心輔助函式。
     def _parse_canon_structure(self, canon_text: str) -> Dict[str, Dict[str, Any]]:
         """
         使用 Regex 解析遵循特定格式的世界聖經，返回一個結構化的字典作為「地面實況」。
         """
         characters = {}
-        # 這個正則表達式匹配以 `* 角色名` 開頭，並包含 `身份/外貌`, `背景/喜好/慾望`, `關鍵遭遇` 的完整區塊
+        # [v1.1 核心修正] 新的 Regex，能夠處理多行內容
+        # 它匹配每個區塊，直到下一個 `   * ` 或整個角色區塊的結束
         char_pattern = re.compile(
-            r"^\*\s*(?P<name>[^\n(]+?)\s*(?:\((?P<eng_name>[^)]+)\))?\s*-\s*[「『](?P<title>[^」』]+)[」』].*?\n"
-            r"\s+\*\s*身份/外貌:\s*(?P<identity_section>.*?)\n"
-            r"\s+\*\s*背景/喜好/慾望:\s*(?P<background_section>.*?)\n"
-            r"\s+\*\s*關鍵遭遇:\s*(?P<encounters_section>.*?)(?=\n\s*\*|$)",
+            r"^\s*\*\s*(?P<name>[^\n(]+?)\s*(?:\((?P<eng_name>[^)]+)\))?\s*-\s*[「『](?P<title>[^」』]+)[」』].*?\n"
+            r"\s+\*\s*身份/外貌:\s*(?P<identity_section>.*?)(?=\n\s+\*\s*背景/喜好/慾望:|\Z)\n"
+            r"\s+\*\s*背景/喜好/慾望:\s*(?P<background_section>.*?)(?=\n\s+\*\s*關鍵遭遇:|\Z)\n"
+            r"\s+\*\s*關鍵遭遇:\s*(?P<encounters_section>.*?)(?=\n\s*\n*\s*\*|\Z)",
             re.MULTILINE | re.DOTALL
         )
         
@@ -4318,16 +4314,26 @@ class ExtractionResult(BaseModel):
             data = match.groupdict()
             name = data['name'].strip()
             
+            identity_full_text = data.get('identity_section', '').strip()
+            if not identity_full_text:
+                continue
+
             # 從身份/外貌段落的第一句提取所有身份標籤
-            identity_full_text = data['identity_section'].strip()
             identity_first_sentence = identity_full_text.split('。')[0]
             
             identities = re.split(r'[、,，]', identity_first_sentence)
             # 過濾掉空字串和過長的描述性文字，只保留短標籤
-            filtered_identities = [i.strip() for i in identities if i.strip() and len(i.strip()) < 15]
+            filtered_identities = {i.strip() for i in identities if i.strip() and len(i.strip()) < 15}
+            
+            # 將英文名和稱號也加入
+            if data.get('eng_name'):
+                filtered_identities.add(data['eng_name'].strip())
+            if data.get('title'):
+                filtered_identities.add(data['title'].strip())
 
             characters[name] = {
-                "aliases_ground_truth": set(filtered_identities)
+                "aliases_ground_truth": filtered_identities
+                # 未來可以擴展，將其他 section 的原文也存儲起來
             }
         
         logger.info(f"[{self.user_id}] [確定性解析器] 已成功從世界聖經中解析出 {len(characters)} 個角色的「地面實況」身份數據。")
@@ -5583,6 +5589,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
