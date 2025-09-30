@@ -3409,12 +3409,14 @@ class ExtractionResult(BaseModel):
     
     
     # 函式：預處理並生成主回應 (v44.6 - 場景範疇界定)
-    # 更新紀錄:
-    # v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。此修改在所有流程之前，增加了一个前置的、輕量級的LLM调用，專門用於判斷並提取使用者指令中的“叙事意图地点”。程式随后会以这个“意图地点”作为本回合的绝对权威场景，覆盖掉数据库中儲存的玩家位置。此舉從根本上解决了因玩家客觀位置（地面实况）与故事希望發生的地點（叙事意图）不一致，而導致的場景漂移和導演决策混乱的致命问题。
-    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
+# ai_core.py 的 preprocess_and_generate 函式 (v44.7 - LORE 繼承注入)
+# 更新紀錄:
+# v44.7 (2025-10-01): [重大架構升級] 根據 LORE 關聯需求，在此函式中增加了【LORE 繼承注入】的雙重保險邏輯。在 RAG 檢索之後，如果 `scene_rules_context` 仍為空，此函式會主動收集場景中所有角色的身份標籤，並使用 `lore_book.get_lores_by_template_keys` 進行反向查詢，將匹配到的規則（如「母畜的禮儀」）強制注入到上下文中。此修改確保了角色的行為能被其身份所對應的規則動態驅動。
+# v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。
+# v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.6重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
+        (v44.7重構) 執行包含「LORE繼承注入」、「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
         返回純小說文本字串。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
@@ -3430,8 +3432,6 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- [v44.6 新增] 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
-        logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
         authoritative_location_path: List[str]
         try:
             location_extraction_prompt = self.get_scene_location_extraction_prompt()
@@ -3443,15 +3443,11 @@ class ExtractionResult(BaseModel):
             )
             if location_result and location_result.has_explicit_location and location_result.location_path:
                 authoritative_location_path = location_result.location_path
-                logger.info(f"[{self.user_id}] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: {authoritative_location_path}")
             else:
                 authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                logger.info(f"[{self.user_id}] [場景界定] 未檢測到使用者意圖地點，將使用當前遊戲狀態地點: {authoritative_location_path}")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
             authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-        # --- 場景範疇界定結束 ---
-
+        
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -3492,7 +3488,8 @@ class ExtractionResult(BaseModel):
 
         scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
         
-        if "無特殊規則" in scene_rules_context_str:
+        # [v44.7 核心修正] LORE 繼承注入雙重保險
+        if "無特殊規則" in scene_rules_context_str or "無特定的行為準則" in scene_rules_context_str:
             all_characters_in_scene = relevant_characters + background_characters
             if all_characters_in_scene:
                 all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
@@ -3503,11 +3500,10 @@ class ExtractionResult(BaseModel):
                         scene_rules_context_str = "\n\n".join(rule_texts)
                         logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
 
-        # --- AI 導演決策模組 ---
         logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
         directive = None
         
-        location_path = authoritative_location_path # 使用界定後的權威地點
+        location_path = authoritative_location_path
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
@@ -3520,31 +3516,17 @@ class ExtractionResult(BaseModel):
             "user_input": user_input
         }
         
-        logger.info(f"--- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---")
-        for key, value in director_context.items():
-            logger.info(f"  [{key.upper()}]:\n---\n{value}\n---")
-        logger.info("----------------------------------------------------")
-
         try:
             director_prompt_template = self.get_narrative_directive_prompt()
             director_prompt = self._safe_format_prompt(director_prompt_template, director_context, inject_core_protocol=True)
             directive = await self.ainvoke_with_rotation(director_prompt, output_schema=NarrativeDirective, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
         except Exception as e:
-            logger.warning(f"[{self.user_id}] [AI導演] 雲端導演決策失敗: {e}。正在啟動本地備援...")
-        
-        if not directive:
             if self.is_ollama_available:
                 directive = await self._invoke_local_ollama_director(director_context["relevant_characters_summary"], director_context["scene_rules_context"], director_context["user_input"])
-            else:
-                logger.error(f"[{self.user_id}] [AI導演] 本地備援不可用，導演決策最終失敗。")
         
         if not directive:
             directive = NarrativeDirective(scene_summary_for_generation=user_input)
-            logger.critical(f"[{self.user_id}] [AI導演] 所有導演決策層級均失敗，已觸發最終備援。")
         
-        logger.info(f"[{self.user_id}] [AI導演] 決策完成。最終劇本大綱: '{directive.scene_summary_for_generation}'")
-        
-        # --- 主生成流程 ---
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history: raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
         
@@ -3614,7 +3596,6 @@ class ExtractionResult(BaseModel):
         ])
         full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
 
-        logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
@@ -3632,10 +3613,9 @@ class ExtractionResult(BaseModel):
             "scene_rules_context": scene_rules_context_str,
             "relevant_characters": [p.model_dump() for p in relevant_characters]
         }
-        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。")
-
+        
         return final_novel_text
-    # 函式：預處理並生成主回應
+# ai_core.py 的 preprocess_and_generate 函式
 
 
 
@@ -5240,11 +5220,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：獲取世界聖經轉換器 Prompt (v3.1 - 身份提取终极强化)
-# ai_core.py 的 get_canon_transformation_chain 函式 (v3.4 - 深度解析指令)
+# ai_core.py 的 get_canon_transformation_chain 函式 (v3.5 - 終極解析強化)
 # 更新紀錄:
-# v3.4 (2025-09-30): [重大架構升級] 根據資訊遺漏問題，對 Prompt 進行了終極強化。新增了【深度外觀提取原則】，強制 LLM 必須解析文本並填充結構化的 `appearance_details` 模型。同時，再次強化了【身份別名雙重提取原則】，使用更嚴厲的措辭和範例，確保所有並列的身份標籤都被完整提取到 `aliases` 列表中。
+# v3.5 (2025-10-01): [重大架構升級] 為了解決 LORE 資訊缺失與關聯失敗的根本問題，對此 Prompt 進行了終極強化。新增了【強制身份窮舉】、【強制規則識別】、【強制關係圖譜構建】和【強制語言規範化】四條最高優先級指令。此修改旨在將 LORE 解析器從一個簡單的資訊提取器，升級為一個能夠構建結構化、關聯化知識圖譜的智能分析引擎。
+# v3.4 (2025-09-30): [重大架構升級] 根據資訊遺漏問題，對 Prompt 進行了終極強化。
 # v3.3 (2025-09-30): [災難性BUG修復] 引入了【無害化輸入/輸出強制令】以解決內容審查問題。
-# v3.2 (2025-09-30): [災 nạn性BUG修復] 增加了更高優先級的【主角排除原則】。
     def get_canon_transformation_chain(self) -> str:
         """獲取或創建一個專門的模板，將LORE提取任務偽裝成一個安全的、單一目標的格式轉換任務。"""
         pydantic_definitions = """
@@ -5255,42 +5235,37 @@ class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: 
 class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"; effect: str = "無"
 class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; abilities: List[str] = []
 class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""; status: str = "未知"
-class WorldLore(BaseModel): name: str; aliases: List[str] = []; content: str = ""; category: str = "未知"
+class WorldLore(BaseModel): name: str; aliases: List[str] = []; content: str = ""; category: str = "未知"; template_keys: Optional[List[str]] = None
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
         
-        part1 = """# TASK: 你是一位遊戲開發團隊的數據工程師兼劇情分析師，擁有超凡的細節洞察力。
-# MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】。
+        part1 = """# TASK: 你是一位遊戲開發團隊的數據工程師兼劇情分析師，擁有超凡的細節洞察力與知識圖譜構建能力。
+# MISSION: 你的任務是將一份非結構化的【遊戲設計筆記】轉換為結構化的【遊戲數據JSON】，並構建實體間的關聯。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【🚫 絕對無害化輸入/輸出強制令】**: 你處理的文本已將敏感詞替換為技術代碼 (如 `ROLE-D`)。你的 JSON 輸出【必須】原樣保留這些代碼。
-# 2. **【🛑 主角排除原則】**: 【絕對禁止】為主角「{username}」或「{ai_name}」創建任何 LORE 條目。
-# 3. **【👑 主角中心宇宙原則】**: AI角色「{ai_name}」的核心關係【必須】與使用者「{username}」強制錨定。
-#
-# 4. **【🏷️ 身份別名雙重提取原則 v3.2 - 終極窮舉】**:
-#    - 當你從文本中識別出描述角色【核心身份】的關鍵詞列表時（例如 `身份: A、B、C`），你【必須】執行【雙重窮舉寫入】操作：
-#      a. 將完整的身份描述 `A、B、C` 作為敘述，保留在 `description` 欄位中。
-#      b. **同時**，將 A, B, C 三個詞**【一個不漏地、分別獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為【災難性的重大失敗】。
-#    - **範例**:
-#      - **輸入**: `* 米婭 (Mia)\n   * 身份/外貌: 性神教徒、母畜、聖女。`
-#      - **aliases 輸出**: `["Mia", "聖女", "性神教徒", "母畜"]`
-#
-# 5. **【🎨 深度外觀提取原則 (DEEP APPEARANCE EXTRACTION) - 新增】**:
-#    - 你【必須】仔細閱讀「身份/外貌」段落，並將所有描述性的詞語，提取並填充到 `appearance_details` 的結構化字段中。
-#    - **範例**:
-#      - **輸入**: `* 身份/外貌: ...約16歲。外貌變得極為美麗、聖潔，皮膚光潔如玉，眼神平靜卻又帶著洞悉一切的智慧。`
-#      - **appearance_details 輸出**:
-#        ```json
-#        "appearance_details": {
-#          "age_appearance": "約16歲",
-#          "skin_tone": "光潔如玉",
-#          "eye_color": "眼神平靜卻又帶著洞悉一切的智慧",
-#          "overall_impression": "極為美麗、聖潔"
-#        }
-#        ```
-#
-# 6. **【🗺️ 結構化關係圖譜強制令】**: 必須使用巢狀結構填充 `relationships` 字典。
-# 7. **【其他數據完整性原則】**: `name` 欄位必須存在；優先使用繁體中文；無地點的NPC `location_path` 為空列表 `[]`。
+# 1.  **【✍️ 強制語言規範化 (Language Normalization Mandate) - 最高優先級】**: 你的所有輸出，特別是 `name` 和 `title` 欄位，【必須且只能】使用【繁體中文】。如果原文提供了英文名，應將其放入 `aliases` 列表。
+# 2.  **【🚫 絕對無害化輸入/輸出強制令】**: 你處理的文本已將敏感詞替換為技術代碼 (如 `ROLE-D`)。你的 JSON 輸出【必須】原樣保留這些代碼。
+# 3.  **【🛑 主角排除原則】**: 【絕對禁止】為主角「{username}」或「{ai_name}」創建任何 LORE 條目。
+
+# 4.  **【🏷️ 強制身份窮舉原則 (Identity Exhaustion Mandate)】**:
+#     *   當你從文本中識別出描述角色【核心身份】的並列關鍵詞列表時（例如 `身份: A、B、C`），你【必須】將 A, B, C 三個詞**【一個不漏地、分別獨立地】**全部添加到 `aliases` 列表中。任何遺漏都將被視為【災難性的重大失敗】。
+#     *   **範例**:
+#       - **輸入**: `* 身份/外貌: 性神教徒、母畜、聖女。`
+#       - **aliases 輸出**: `["性神教徒", "母畜", "聖女"]` (如果原文有英文名 Mia, 則應為 `["Mia", "性神教徒", "母畜", "聖女"]`)
+
+# 5.  **【⚖️ 強制規則識別原則 (Rule Identification Mandate)】**:
+#     *   當你識別到一段描述【行為規範、禮儀、法則或教條】的文本時（通常不直接隸屬於某個角色），你【必須】將其創建為一個獨立的 `world_lore` 條目。
+#     *   你【必須】從該規則的名稱或內容中，提取出其適用的【身份關鍵詞】，並填入 `template_keys` 列表中。
+#     *   **範例**:
+#       - **輸入**: `* 母畜的禮儀 (The Rite of Submission)\n   * 迎接禮: ...`
+#       - **world_lores 輸出**: `{{ "name": "母畜的禮儀", "content": "迎接禮: ...", "template_keys": ["母畜"] }}`
+
+# 6.  **【🗺️ 強制關係圖譜構建原則 (Relationship Graph Mandate)】**:
+#     *   你【必須】仔細分析角色之間的互動和描述，推斷出他們之間的【結構化關係】。
+#     *   關係的 `type` 應從 '家庭', '主從', '敵對', '戀愛', '社交' 中選擇。`roles` 則是對方在此關係中的具體稱謂。
+#     *   **範例**:
+#       - **輸入**: `...被維利爾斯勳爵親自「鍛造」...她最大的渴望是能為勳爵懷上「神之子」...`
+#       - **米婭的 relationships 輸出**: `{{ "卡爾•維利爾斯勳爵": {{ "type": "主從", "roles": ["主人", "鍛造者"] }} }}`
 
 # === 【【【⚙️ 輸出格式強制令】】】 ===
 # 你的最終輸出【必須且只能】是一個【純淨的JSON物件】，其結構【必須】完全符合下方 `CanonParsingResult` 的Pydantic模型定義。
@@ -5304,10 +5279,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【遊戲設計筆記】:
 {{canon_text}}
 ---
-# 立即開始你的格式轉換與關係推理任務。"""
+# 立即開始你的格式轉換與知識圖譜構建任務。"""
         
         base_prompt = part1 + part2
         return base_prompt
+# ai_core.py 的 get_canon_transformation_chain 函式
 # 函式：獲取世界聖經轉換器 Prompt
     
 
@@ -5767,6 +5743,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
