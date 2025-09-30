@@ -807,11 +807,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# ai_core.py 的 ainvoke_with_rotation 函式 (v232.8 - 防禦性修正)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v232.9 - 終極防禦性修正)
 # 更新紀錄:
-# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。在某些情況下，API 可能返回一個整數而不是預期的 Enum 物件。新邏輯會在訪問 `.name` 屬性前進行判斷，如果不是 Enum，則直接將其轉換為字串，從根源上解決了因此導致的 `AttributeError: 'int' object has no attribute 'name'` 的問題。
-# v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制，以解決 API 返回被截斷的不完整文本的問題。
-# v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
+# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。現在，程式在訪問 `.name` 屬性前，會同時檢查 `block_reason` 和 `finish_reason` 的類型，確保即使 Google API 返回未知的整數代碼，程式也能正常處理而不會崩潰。
+# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
+# v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -875,24 +875,29 @@ class AILover:
                         )
                         
                         if response.prompt_feedback.block_reason:
-                            # [v232.8 核心修正] 防禦性檢查 block_reason 的類型
                             block_reason = response.prompt_feedback.block_reason
                             if hasattr(block_reason, 'name'):
                                 reason_str = block_reason.name
                             else:
-                                reason_str = str(block_reason) # 如果是 int 或其他類型，直接轉為字串
+                                reason_str = str(block_reason)
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
-                        # [v232.7 核心修正] 生成完整性驗證
-                        if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
-                             finish_reason_name = response.candidates[0].finish_reason.name
-                             logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                             if finish_reason_name == 'MAX_TOKENS':
-                                 raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                             elif finish_reason_name == 'SAFETY':
-                                 raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
-                             else:
-                                 raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                        # [v232.9 核心修正] 對 finish_reason 應用同樣的防禦性檢查
+                        if response.candidates:
+                            finish_reason = response.candidates[0].finish_reason
+                            if hasattr(finish_reason, 'name'):
+                                finish_reason_name = finish_reason.name
+                            else:
+                                finish_reason_name = str(finish_reason) # 如果是 int 或其他類型，直接轉為字串
+
+                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']: # '0' for unspecified
+                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                                if finish_reason_name == 'MAX_TOKENS':
+                                    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                elif finish_reason_name in ['SAFETY', '4']: # '4' for safety
+                                    raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
+                                else:
+                                    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
 
@@ -5418,6 +5423,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
