@@ -784,11 +784,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-    # ai_core.py 的 ainvoke_with_rotation 函式 (v232.8 - 防禦性修正)
-    # 更新紀錄:
-    # v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。在某些情況下，API 可能返回一個整數而不是預期的 Enum 物件。新邏輯會在訪問 `.name` 屬性前進行判斷，如果不是 Enum，則直接將其轉換為字串，從根源上解決了因此導致的 `AttributeError: 'int' object has no attribute 'name'` 的問題。
-    # v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制，以解決 API 返回被截斷的不完整文本的問題。
-    # v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
+# ai_core.py 的 ainvoke_with_rotation 函式 (v232.8 - 防禦性修正)
+# 更新紀錄:
+# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。在某些情況下，API 可能返回一個整數而不是預期的 Enum 物件。新邏輯會在訪問 `.name` 屬性前進行判斷，如果不是 Enum，則直接將其轉換為字串，從根源上解決了因此導致的 `AttributeError: 'int' object has no attribute 'name'` 的問題。
+# v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制，以解決 API 返回被截斷的不完整文本的問題。
+# v232.6 (2025-09-28): [核心升級] 新增了`generation_config_override`可選參數。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -936,7 +936,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-    # 函式：帶輪換和備援策略的原生 API 調用引擎
+# 函式：帶輪換和備援策略的原生 API 調用引擎
 
 
 
@@ -5365,6 +5365,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
