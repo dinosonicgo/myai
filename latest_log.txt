@@ -1,123 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T00:00:49.133603 ###
+### AI Lover Log - Last updated at 2025-10-01T00:08:40.076439 ###
 
-  Field required [type=missing, input_value={'npc_profiles': [{'name'...y': 'Cultural Ritual'}]}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。將觸發安全備援。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1539, in _euphemize_and_retry
-    return await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1343, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1324, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchCoreInfoResult
-results
-  Field required [type=missing, input_value={'npc_profiles': [{'name'...y': 'Cultural Ritual'}]}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-09-30 23:34:17 - [ERROR] - [512280345618546699] [专职流水线 - npc_profile] 🔥 批次 1 的任务 '提取角色的背景故事、性格、技能和人际关系' 提取失败: 1 validation error for BatchCoreInfoResult
-results
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 817, in run_category_pipeline
-    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1334, in ainvoke_with_rotation
-    return await self._euphemize_and_retry(full_prompt, output_schema, e)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1548, in _euphemize_and_retry
-    return output_schema() if output_schema else None
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 193, in __init__
-    self.__pydantic_validator__.validate_python(data, self_instance=self)
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchCoreInfoResult
-results
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-09-30 23:34:22 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] 正在处理批次 2/14...
-2025-09-30 23:34:27 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] 批次 2 的任务 '提取所有身份、头衔、绰号和别名到 aliases 列表' 已启动...
-2025-09-30 23:34:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 23:34:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] ✅ 批次 2 的任务 '提取所有身份、头衔、绰号和别名到 aliases 列表' 成功完成。
-2025-09-30 23:40:04 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-09-30 23:40:04 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-09-30 23:40:05 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-09-30 23:40:05 - [INFO] - Discord Bot is ready!
-2025-09-30 23:40:08 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-09-30 23:40:08 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-09-30 23:40:09 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-09-30 23:40:34 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-09-30 23:40:37 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-09-30 23:40:43 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-09-30 23:40:44 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-09-30 23:40:44 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-09-30 23:40:44 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-09-30 23:40:44 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-09-30 23:40:44 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-09-30 23:40:47 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-09-30 23:40:47 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-09-30 23:40:47 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-09-30 23:40:47 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-09-30 23:40:47 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 23:40:48 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-09-30 23:40:55 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-09-30 23:40:55 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-09-30 23:40:56 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 23:40:57 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-09-30 23:41:09 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-09-30 23:41:10 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-09-30 23:41:10 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-09-30 23:41:12 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-09-30 23:41:17 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-09-30 23:41:20 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
-2025-09-30 23:41:26 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
-2025-09-30 23:41:26 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
-2025-09-30 23:41:26 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
-2025-09-30 23:41:26 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
-2025-09-30 23:42:09 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
-2025-09-30 23:42:09 - [INFO] - [512280345618546699] [後台創世 2/6] RAG 索引填充並重載完成。
-2025-09-30 23:42:09 - [INFO] - [512280345618546699] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...
-2025-09-30 23:42:09 - [INFO] - [512280345618546699] [RAG驱动解析 1/3] 正在使用 LLM 提取并分类所有 LORE 实体...
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [RAG驱动解析 1/3] 成功识别出 74 个 LORE 任务。
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [RAG驱动解析 2/3] 正在按类别分发任务，并使用【受控並行批量處理】模式启动所有专职解析流水线...
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 1/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 2/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:15 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 3/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 23:42:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 23:42:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 23:42:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-30 23:42:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-30 23:42:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 23:42:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 23:42:27 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 2/13] ✅ 處理成功。
-2025-09-30 23:42:27 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 4/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-30 23:42:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 23:42:30 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 3/13] ✅ 處理成功。
-2025-09-30 23:42:30 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 5/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 23:42:33 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 1/13] ✅ 處理成功。
-2025-09-30 23:42:33 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 6/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-09-30 23:42:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-09-30 23:42:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-09-30 23:42:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 23:42:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-09-30 23:42:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 4/13] ✅ 處理成功。
-2025-09-30 23:42:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 7/13] 已獲取許可，開始處理 5 個實體...
-2025-09-30 23:42:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-09-30 23:42:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
 2025-09-30 23:42:51 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 5/13] ✅ 處理成功。
 2025-09-30 23:42:51 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 8/13] 已獲取許可，開始處理 5 個實體...
 2025-09-30 23:42:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
@@ -300,3 +182,121 @@ AttributeError: 'AILover' object has no attribute 'parse_and_create_lore_from_ca
 2025-10-01 00:00:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 00:00:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 00:00:39 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 00:00:49 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 00:00:49 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-01 00:00:49 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 00:00:49 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 00:00:49 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] [Canon Update] 正在為聖經更新重建 RAG 索引...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-10-01 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 2 條文檔用於創始構建。
+2025-10-01 00:00:54 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器創始構建成功，並已將索引持久化到磁碟。
+2025-10-01 00:00:54 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
+2025-10-01 00:01:35 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
+2025-10-01 00:01:36 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-01 00:01:36 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-01 00:01:36 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:01:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 00:01:59 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] ✅ 成功！
+2025-10-01 00:01:59 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
+2025-10-01 00:01:59 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:02:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 00:02:18 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] ✅ 成功！
+2025-10-01 00:02:18 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
+2025-10-01 00:02:18 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:02:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 00:02:18 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 00:02:18 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D', 'CODE-F-GEN-B', 'STATE-A', 'CODE-M-GEN-A', 'CODE-F-GEN-A', 'ROLE-B']
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (CanonParsingResult)...
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] ✅ 成功！
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] [LORE 解析 4-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:02:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 00:02:47 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D', 'CODE-F-GEN-C', 'ACTION-C', 'ACTION-E', 'CODE-F-GEN-A', 'ROLE-B']
+2025-10-01 00:02:47 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 80494 秒)。
+2025-10-01 00:03:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-01 00:03:07 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (CanonParsingResult)...
+2025-10-01 00:03:07 - [INFO] - [512280345618546699] [LORE 解析 4-1/5] ✅ 成功！
+2025-10-01 00:03:07 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-10-01 00:03:07 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:03:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 00:03:20 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] ✅ 成功！
+2025-10-01 00:03:20 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 6/8...
+2025-10-01 00:03:20 - [INFO] - [512280345618546699] [LORE 解析 6-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:03:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 00:03:39 - [INFO] - [512280345618546699] [LORE 解析 6-1/5] ✅ 成功！
+2025-10-01 00:03:39 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 7/8...
+2025-10-01 00:03:39 - [INFO] - [512280345618546699] [LORE 解析 7-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-01 00:04:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 00:04:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇解析或驗證錯誤: ValidationError。
+2025-10-01 00:04:00 - [ERROR] - [512280345618546699] [LORE 解析 7-1/5] 遭遇未知錯誤: 11 validation errors for CanonParsingResult
+npc_profiles.7.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.8.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.9.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.10.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.12.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.13.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.14.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.16.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.17.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.18.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+npc_profiles.20.appearance
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type，正在降級。
+2025-10-01 00:04:00 - [INFO] - [512280345618546699] [LORE 解析 7-2/5] 正在嘗試【本地備援方案：無審查解析】...
+2025-10-01 00:04:00 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-01 00:08:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 00:08:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 00:08:18 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 00:08:18 - [INFO] - Discord Bot is ready!
+2025-10-01 00:08:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 00:08:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 00:08:21 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 00:08:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 00:08:31 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-01 00:08:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 00:08:31 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 00:08:31 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 2 條文檔到 RAG 語料庫。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] [Canon Update] 正在為聖經更新重建 RAG 索引...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-10-01 00:08:38 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 2 條文檔用於創始構建。
