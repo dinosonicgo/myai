@@ -754,59 +754,67 @@ class ForceRestartView(discord.ui.View):
     # 函式：處理「取消」按鈕點擊事件
 # 類別：強制重啟 /start 流程的視圖
 
-# 類別：確認 /start 重置的視圖 (v53.0 - 臨時視圖修正)
-# 更新紀錄:
-# v53.1 (2025-09-25): [災難性BUG修復] 将 start_reset_flow 的调用从 asyncio.create_task 改为直接 await，确保在按钮回调的生命周期内完成所有耗时操作和后续回应，从而解决“该应用未受回应”的超时问题。
-# v53.0 (2025-11-22): [災難性BUG修復] 彻底重构了此视图的实现方式。
+# 類別：確認 /start 重置的視圖 - 修正版本
 class ConfirmStartView(discord.ui.View):
+    
     # 函式：初始化 ConfirmStartView
     def __init__(self, *, cog: "BotCog"):
+        """初始化確認開始視圖"""
         super().__init__(timeout=180.0)
         self.cog = cog
-        self.original_interaction_user_id = None
+        self.original_interaction_user_id = None  # 【修正重點】儲存原始使用者ID
+        self.message = None  # 【修正重點】儲存訊息引用
     # 初始化 ConfirmStartView 函式結束
-        
+
     # 函式：檢查互動是否來自原始使用者
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        if interaction.user.id != self.original_interaction_user_id:
+        """檢查操作者是否為指令發起者"""
+        if self.original_interaction_user_id and interaction.user.id != self.original_interaction_user_id:
             await interaction.response.send_message("你無法操作不屬於你的指令。", ephemeral=True)
             return False
         return True
     # 檢查互動是否來自原始使用者 函式結束
-        
+
     # 函式：處理「確認重置」按鈕點擊事件
     @discord.ui.button(label="【確認重置並開始】", style=discord.ButtonStyle.danger)
     async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        # 步骤 1: 立即回应互动，并禁用按钮，提供即时反馈
+        """處理確認重置按鈕的點擊事件"""
+        # 步驟 1: 立即回應互動，並禁用按鈕，提供即時反馈
         for item in self.children:
             item.disabled = True
-        await interaction.response.edit_message(content="⏳ 正在為您重置所有資料，此过程可能需要一点时间，请稍候...", view=self)
+        await interaction.response.edit_message(
+            content="⏳ 正在為您重置所有資料，此过程可能需要一点时间，请稍候...", 
+            view=self
+        )
         
-        # 步骤 2: 【核心修正】直接 await 耗时任务，而不是作为背景任务
-        # interaction.followup 将用于在 reset 流程结束后发送最终消息
+        # 步驟 2: 【核心修正】直接 await 耗時任務，而不是作為背景任務
+        # interaction.followup 將用於在 reset 流程結束後發送最終消息
         await self.cog.start_reset_flow(interaction)
         self.stop()
     # 處理「確認重置」按鈕點擊事件 函式結束
-        
+
     # 函式：處理「取消」按鈕點擊事件
     @discord.ui.button(label="取消", style=discord.ButtonStyle.secondary)
     async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        """處理取消按鈕的點擊事件"""
         await interaction.response.edit_message(content="操作已取消。", view=None)
         self.stop()
     # 處理「取消」按鈕點擊事件 函式結束
-        
+
     # 函式：處理視圖超時事件
     async def on_timeout(self):
+        """當視圖超時時執行的清理操作"""
         for item in self.children:
             item.disabled = True
         try:
-            # 尝试编辑原始消息，告知用户操作已超时
+            # 嘗試編輯原始消息，告知用戶操作已超時
             if self.message:
                 await self.message.edit(content="操作已超時，請重新發起指令。", view=self)
         except discord.HTTPException:
             pass
     # 處理視圖超時事件 函式結束
 # 確認 /start 重置的視圖 類別結束
+
 
 
 
@@ -2172,6 +2180,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
