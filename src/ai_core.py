@@ -4040,11 +4040,11 @@ class ExtractionResult(BaseModel):
 
     
 
- # ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.2 - 程式化主角過濾)
+# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.3 - 先釋放後重建)
 # 更新紀錄:
-# v13.2 (2025-09-30): [災難性BUG修復] 在函式中增加了程式化的【最終防線過濾器】。在LORE存儲之前，此過濾器會強制遍歷所有由LLM生成的NPC檔案，並移除任何與使用者或AI角色同名的條目，從程式碼層面徹底杜絕核心主角被錯誤存為NPC的問題。
+# v13.3 (2025-09-30): [災難性BUG修復] 根據「先釋放，後刪除」原則，在調用 `_load_or_build_rag_retriever(force_rebuild=True)` 之前，強制增加了對 `_release_rag_resources()` 的調用。此修改確保在嘗試刪除和重建 RAG 索引之前，所有對舊索引文件的鎖定都已被徹底釋放，從而根除 PermissionError。
+# v13.2 (2025-09-30): [災難性BUG修復] 在函式中增加了程式化的【最終防線過濾器】。
 # v13.1 (2025-09-28): [災難性BUG修復] 根據使用者反饋，在此函式的核心流程中植入了全新的「源頭真相」校驗器 `_programmatic_lore_validator`。
-# v13.0 (2025-11-22): [重大架構升級] 植入了全新的「事後關係校準」模塊。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並觸發 RAG 重建。
@@ -4059,13 +4059,15 @@ class ExtractionResult(BaseModel):
 
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+            # 即使解析失敗，也需要確保RAG索引被正確創建
+            await self._release_rag_resources()
             await self._load_or_build_rag_retriever(force_rebuild=True)
             return
 
         # 步驟 2: 植入「源頭真相」校驗器
         validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
 
-        # [v13.2 核心修正] 步驟 2.5: 增加程式化的【最終防線過濾器】
+        # 步驟 2.5: 增加程式化的【最終防線過濾器】
         if validated_result.npc_profiles:
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
@@ -4168,10 +4170,16 @@ class ExtractionResult(BaseModel):
             await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in validated_result.world_lores]) # by_alias=True 確保 'name' 被正確序列化
             
             logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
+            
+            # [v13.3 核心修正] 先釋放舊資源，再強制重建
+            await self._release_rag_resources()
             await self._load_or_build_rag_retriever(force_rebuild=True)
+            
             logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
+            # 即使解析失敗，也需要確保RAG索引被正確創建
+            await self._release_rag_resources()
             await self._load_or_build_rag_retriever(force_rebuild=True)
 # 函式：解析並從世界聖經創建LORE
 
@@ -5376,6 +5384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
