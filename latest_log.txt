@@ -1,19 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T23:57:41.035080 ###
+### AI Lover Log - Last updated at 2025-10-01T00:00:49.133603 ###
 
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-09-30 23:33:25 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] 批次 1 的任务 '提取所有外观细节到 appearance_details 模型' 已启动...
-2025-09-30 23:33:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-09-30 23:33:28 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] ✅ 批次 1 的任务 '提取所有外观细节到 appearance_details 模型' 成功完成。
-2025-09-30 23:33:33 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] 批次 1 的任务 '提取角色的背景故事、性格、技能和人际关系' 已启动...
-2025-09-30 23:33:33 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-30 23:33:33 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-30 23:33:33 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ACTION-E', 'ACTION-C', 'CODE-F-GEN-C', 'ROLE-B', 'ROLE-D', 'CODE-F-GEN-A']
-2025-09-30 23:33:33 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 82247 秒)。
-2025-09-30 23:34:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-09-30 23:34:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-09-30 23:34:17 - [ERROR] - [512280345618546699] 【通用化解構】策略最終失敗: 1 validation error for BatchCoreInfoResult
-results
   Field required [type=missing, input_value={'npc_profiles': [{'name'...y': 'Cultural Ritual'}]}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing。將觸發安全備援。
 Traceback (most recent call last):
@@ -300,3 +286,17 @@ results.45.description
 2025-09-30 23:57:40 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
 2025-09-30 23:57:40 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
 2025-09-30 23:57:40 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-09-30 23:57:41 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
+2025-09-30 23:58:20 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
+2025-09-30 23:58:21 - [ERROR] - [512280345618546699] 背景處理世界聖經時發生錯誤: 'AILover' object has no attribute 'parse_and_create_lore_from_canon'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1414, in _background_process_canon
+    await ai_instance.parse_and_create_lore_from_canon(content_text)
+AttributeError: 'AILover' object has no attribute 'parse_and_create_lore_from_canon'
+2025-10-01 00:00:35 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 00:00:35 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 00:00:35 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 00:00:35 - [INFO] - Discord Bot is ready!
+2025-10-01 00:00:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 00:00:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 00:00:39 - [INFO] - 已成功發送啟動成功通知給管理員。
