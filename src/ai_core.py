@@ -700,11 +700,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v2.2 - 受控並行批量處理)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v2.3 - `None` 值安全處理)
 # 更新紀錄:
-# v2.2 (2025-09-30): [性能與穩定性終極重構] 根據使用者對效率的追求，引入了【受控並行的批量處理】模式。此版本結合了 v2.0 的批量處理和 v2.1 的 Semaphore 機制。現在，程式會將實體分批，並使用 Semaphore 控制同時運行的【批次數量】。這在最大化利用 API 批量處理效率的同時，也嚴格控制了並發請求總數，達到了速度與穩定性的最佳平衡。
+# v2.3 (2025-09-30): [災難性BUG修復] 根據 ValidationError 的修復策略，在最終的數據合併階段增加了對 `core_info.description` 的 `None` 值檢查。如果從 LLM 返回的描述為 None，則會將其安全地轉換為空字符串 ""，確保了後續數據處理的類型一致性和健壯性。
+# v2.2 (2025-09-30): [性能與穩定性終極重構] 引入了【受控並行的批量處理】模式。
 # v2.1 (2025-09-30): [性能與穩定性終極重構] 引入 asyncio.Semaphore（信號量）機制，實現了【受控並行】。
-# v2.0 (2025-09-30): [災難性BUG修復] 將 RAG 查詢和 LLM 解析流程徹底改造為【小批量、全串行】模式。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v2.2 终极 LORE 解析引擎】执行一个能够处理所有 LORE 类型的、使用 Semaphore 控制并发批次的、RAG 驱动的专职流水线。
@@ -739,7 +739,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         # --- 阶段二：按类别分发，使用 Semaphore 控制并发批次 ---
         logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 正在按类别分发任务，并使用【受控並行批量處理】模式启动所有专职解析流水线...")
         
-        CONCURRENT_BATCHES = 3  # 最多同時處理 3 個批次
+        CONCURRENT_BATCHES = 3
         sem = asyncio.Semaphore(CONCURRENT_BATCHES)
 
         categorized_entities = defaultdict(list)
@@ -747,12 +747,12 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             categorized_entities[entity.category].append(entity.name)
 
         parser_configs = {
-            "npc_profile": {"pipeline": [("aliases", "...", BatchAliasesResult), ("appearance", "...", BatchAppearanceResult), ("core_info", "...", BatchCoreInfoResult)], "target_list_in_final_result": "npc_profiles"},
-            "location_info": {"pipeline": [("full_parse", "...", BatchLocationsResult)], "target_list_in_final_result": "locations"},
-            "item_info": {"pipeline": [("full_parse", "...", BatchItemsResult)], "target_list_in_final_result": "items"},
-            "creature_info": {"pipeline": [("full_parse", "...", BatchCreaturesResult)], "target_list_in_final_result": "creatures"},
-            "quest": {"pipeline": [("full_parse", "...", BatchQuestsResult)], "target_list_in_final_result": "quests"},
-            "world_lore": {"pipeline": [("full_parse", "...", BatchWorldLoresResult)], "target_list_in_final_result": "world_lores"},
+            "npc_profile": {"pipeline": [("aliases", "提取所有身份、头衔、绰号和别名到 aliases 列表", BatchAliasesResult), ("appearance", "提取所有外观细节到 appearance_details 模型", BatchAppearanceResult), ("core_info", "提取角色的背景故事、性格、技能和人际关系", BatchCoreInfoResult)], "target_list_in_final_result": "npc_profiles"},
+            "location_info": {"pipeline": [("full_parse", "提取地点的完整信息到 LocationInfo 模型", BatchLocationsResult)], "target_list_in_final_result": "locations"},
+            "item_info": {"pipeline": [("full_parse", "提取物品的完整信息到 ItemInfo 模型", BatchItemsResult)], "target_list_in_final_result": "items"},
+            "creature_info": {"pipeline": [("full_parse", "提取生物的完整信息到 CreatureInfo 模型", BatchCreaturesResult)], "target_list_in_final_result": "creatures"},
+            "quest": {"pipeline": [("full_parse", "提取任务的完整信息到 Quest 模型", BatchQuestsResult)], "target_list_in_final_result": "quests"},
+            "world_lore": {"pipeline": [("full_parse", "提取世界传说的完整信息到 WorldLore 模型", BatchWorldLoresResult)], "target_list_in_final_result": "world_lores"},
         }
         
         async def process_batch_task(category: str, batch_names: List[str], batch_num: int, total_batches: int):
@@ -810,11 +810,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         temp_entity_map = {entity.name: entity for entity in identified_entities}
         for batch_names, pipeline_results in all_batch_results:
             if pipeline_results:
-                # 确定这个批次属于哪个类别
                 if batch_names:
                     sample_name = batch_names[0]
-                    category = temp_entity_map[sample_name].category
-                    categorized_batch_results[category].append((batch_names, pipeline_results))
+                    category = temp_entity_map.get(sample_name, lambda: None)
+                    if category:
+                         categorized_batch_results[category.category].append((batch_names, pipeline_results))
 
         for category, batch_results_list in categorized_batch_results.items():
             config = parser_configs.get(category)
@@ -833,7 +833,8 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         profile_data['appearance_details'] = appearance_map.get(name, AppearanceDetails())
                         core_info = core_info_map.get(name)
                         if core_info:
-                            profile_data['description'] = core_info.description
+                            # [v2.3 核心修正] 安全處理可能為 None 的 description
+                            profile_data['description'] = core_info.description or ""
                             profile_data['skills'] = core_info.skills
                             profile_data['relationships'] = core_info.relationships
                         else:
@@ -5745,6 +5746,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
