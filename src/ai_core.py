@@ -268,11 +268,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# ai_core.py 的 _resolve_and_save 函式 (v5.2 - 數據流修正)
+# ai_core.py 的 _resolve_and_save 函式 (v5.3 - 儲存前數據清洗)
 # 更新紀錄:
-# v5.2 (2025-09-30): [災難性BUG修復] 根據 LORE 大量丟失的問題，徹底重構了此函式的數據流。現在，在批量實體解析後，程式會明確地將所有【未被解析計畫提及】的實體自動歸類為待創建項。此修改從根本上解決了因解析計畫不完整而導致大量 LORE 數據被意外丟棄的致命缺陷。
+# v5.3 (2025-10-01): [災難性BUG修復] 根據 ValidationError，在數據最終存入資料庫之前，增加了一個【數據清洗】步驟。此步驟會遍歷所有準備儲存的 LORE 數據，並將所有值為 `None` 的欄位安全地轉換為其預設值（如空字符串 `""` 或 `"未知"`），從根本上確保了數據庫的類型一致性，並解決了因 Pydantic 模型放寬驗證規則後可能導致的下游數據處理問題。
+# v5.2 (2025-09-30): [災難性BUG修復] 重構了數據流，確保沒有數據丟失。
 # v5.1 (2025-09-30): [災難性BUG修復] 增加了「自我修正」循環。
-# v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -335,7 +335,6 @@ class AILover:
             items_to_create = []
             updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
-            # [v5.2 核心修正] 數據流重構，確保沒有數據丟失
             processed_names = set()
             if resolution_plan and resolution_plan.resolutions:
                 logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
@@ -350,7 +349,6 @@ class AILover:
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                         updates_to_merge[resolution.matched_key].append(original_item)
             
-            # 將所有未被解析計畫提及的NPC，默認視為新創建項
             unprocessed_items = [item for item in new_npcs_from_parser if item.get("name") not in processed_names]
             if unprocessed_items:
                 logger.warning(f"[{self.user_id}] [實體解析] 檢測到 {len(unprocessed_items)} 個未被解析計畫覆蓋的實體，已將其自動歸類為待創建項。")
@@ -437,16 +435,30 @@ class AILover:
 
         for item_data in items:
             try:
-                name = item_data.get(title_key)
+                # [v5.3 核心修正] 在儲存前進行最終的數據清洗
+                cleaned_item_data = item_data.copy()
+                if actual_category == 'npc_profile':
+                    defaults = CharacterProfile.model_construct().model_dump()
+                    for key, default_value in defaults.items():
+                        # 如果鍵存在且值為 None，則替換為 Pydantic 的預設值
+                        if key in cleaned_item_data and cleaned_item_data[key] is None:
+                            cleaned_item_data[key] = default_value
+
+                name = cleaned_item_data.get(title_key)
                 if not name: continue
-                location_path = item_data.get('location_path')
+                
+                location_path = cleaned_item_data.get('location_path')
                 lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
-                final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
+                final_content_to_save = self._decode_lore_content(cleaned_item_data, self.DECODING_MAP)
                 await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
 # 函式：解析並儲存LORE實體
+
+
+
+    
 
 
     # 函式：保存 BM25 語料庫到磁碟 (v1.0 - 全新創建)
@@ -5747,6 +5759,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
