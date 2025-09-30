@@ -1121,8 +1121,13 @@ class BotCog(commands.Cog):
     # 函式：Cog 卸載時執行的清理
 
     # 函式：執行完整的後台創世流程
+# discord_bot.py 的 _perform_full_setup_flow 函式 (v1.2 - 終極 RAG 驅動)
+# 更新紀錄:
+# v1.2 (2025-09-30): [重大架構重構] 根據「先建 RAG，後深度解析」的終極策略，徹底重構了創世流程。此函式現在的職責是：1. 創建一個空的 AI 實例。2. 立即將世界聖經注入 RAG 創建初始索引。3. 調用全新的、以 RAG 為核心的 `_rag_driven_lore_creation` 函式來完成所有角色的深度解析。4. 最後再執行角色補完、世界生成等後續步驟。
+# v1.1 (2025-09-30): [重大架構重構] 此函式現在成為 RAG 創建的最高協調器。
+# v1.0 (2025-09-25): [全新创建] 这是一个专用的、独立的背景任务。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
+        """一個獨立的背景任務，負責執行全新的「RAG驅動」創世流程。"""
         user_id = str(user.id)
         try:
             logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
@@ -1133,21 +1138,26 @@ class BotCog(commands.Cog):
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- 步驟 1: 世界聖經處理 (如果提供)，僅寫入 SQL ---
+            # --- [v1.2 核心修正] 新流程 ---
+
+            # --- 步驟 1: RAG 索引的快速創始 (Bootstrap) ---
             if canon_text:
-                logger.info(f"[{user_id}] [後台創世 1/5] 正在進行 LORE 智能解析...")
-                await ai_instance.parse_and_create_lore_from_canon(canon_text)
-                logger.info(f"[{user_id}] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。")
+                logger.info(f"[{user_id}] [後台創世 1/5] 正在將世界聖經快速注入 RAG 索引...")
+                await ai_instance.add_canon_to_vector_store(canon_text)
+                await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
+                logger.info(f"[{user_id}] [後台創世 1/5] RAG 索引快速創始完成。")
             
-            # --- 步驟 2: 補完角色檔案 ---
-            logger.info(f"[{user_id}] [後台創世 2/5] 正在補完角色檔案...")
+            # --- 步驟 2: RAG 驅動的 LORE 深度創建 ---
+            if canon_text:
+                logger.info(f"[{user_id}] [後台創世 2/5] 正在啟動 RAG 驅動的 LORE 深度解析...")
+                # 這個新函式會處理所有 NPC 的解析和存儲
+                await ai_instance._rag_driven_lore_creation(canon_text)
+                logger.info(f"[{user_id}] [後台創世 2/5] RAG 驅動的 LORE 深度解析完成。")
+            
+            # --- 步驟 3: 補完角色檔案 ---
+            logger.info(f"[{user_id}] [後台創世 3/5] 正在補完使用者與 AI 的角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步驟 3: RAG 索引全量創始構建 ---
-            logger.info(f"[{user_id}] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...")
-            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
-            logger.info(f"[{user_id}] [後台創世 3/5] RAG 索引全量創始構建完成。")
-
             # --- 步驟 4: 生成世界創世資訊 ---
             logger.info(f"[{user_id}] [後台創世 4/5] 正在生成世界創世資訊...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
@@ -1175,7 +1185,8 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-    # 函式：執行完整的後台創世流程
+# 函式：執行完整的後台創世流程
+
 
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
@@ -1836,3 +1847,4 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
