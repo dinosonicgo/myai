@@ -1,193 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T01:05:42.201801 ###
+### AI Lover Log - Last updated at 2025-10-01T01:10:45.253514 ###
 
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.28.world_lore_info
-  Field required [type=missing, input_value={'name': '「聖露修道... ['維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.29.world_lore_info
-  Field required [type=missing, input_value={'name': '舊神', 'alias...ntities': ['夏卡爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.30.world_lore_info
-  Field required [type=missing, input_value={'name': '平民的視角...['索菲亞', '卡蓮']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.31.world_lore_info
-  Field required [type=missing, input_value={'name': '維利爾斯家...•維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.32.world_lore_info
-  Field required [type=missing, input_value={'name': '「維利爾斯...', '國王', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.33.world_lore_info
-  Field required [type=missing, input_value={'name': '「聖女」莉..., '維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.34.world_lore_info
-  Field required [type=missing, input_value={'name': '「獵手 / 聖...', '馬丁', '亞瑟']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.35.world_lore_info
-  Field required [type=missing, input_value={'name': '「快樂派系...': ['亞瑟', '馬丁']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.36.world_lore_info
-  Field required [type=missing, input_value={'name': '「規矩派系...莉絲', '夏卡爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.37.world_lore_info
-  Field required [type=missing, input_value={'name': '費奇與其子...瑪斯', '愛蓮娜']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.38.world_lore_info
-  Field required [type=missing, input_value={'name': '蓋博太太', ...博太太', '提姆']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.39.world_lore_info
-  Field required [type=missing, input_value={'name': '薩格納將軍..., '維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.40.world_lore_info
-  Field required [type=missing, input_value={'name': '艾莉諾', 'al...', '薩格納將軍']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.41.world_lore_info
-  Field required [type=missing, input_value={'name': '菲利普', 'al...', '薩格納將軍']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.42.world_lore_info
-  Field required [type=missing, input_value={'name': '阿拉里克', ... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.43.world_lore_info
-  Field required [type=missing, input_value={'name': '赫克托皇子...s': ['赫克托皇子']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.44.world_lore_info
-  Field required [type=missing, input_value={'name': '三皇女伊索...ties': ['伊索爾德']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.45.world_lore_info
-  Field required [type=missing, input_value={'name': '博林', 'alias...d_entities': ['博林']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.46.world_lore_info
-  Field required [type=missing, input_value={'name': '卡爾•維利...•維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.47.world_lore_info
-  Field required [type=missing, input_value={'name': '絲月', 'alias... '莉莉絲', '湯姆']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.48.world_lore_info
-  Field required [type=missing, input_value={'name': '湯姆', 'alias...斯勳爵', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.49.world_lore_info
-  Field required [type=missing, input_value={'name': '米婭', 'alias...爵', '瓦勒留斯']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.50.world_lore_info
-  Field required [type=missing, input_value={'name': '卡蓮', 'alias...', '凱爾', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.51.world_lore_info
-  Field required [type=missing, input_value={'name': '凱爾', 'alias...', '米婭', '艾拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.52.world_lore_info
-  Field required [type=missing, input_value={'name': '艾拉', 'alias...': ['艾拉', '凱爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.53.world_lore_info
-  Field required [type=missing, input_value={'name': '瓦勒留斯神...勒留斯', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.54.world_lore_info
-  Field required [type=missing, input_value={'name': '索菲亞', 'al... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.55.world_lore_info
-  Field required [type=missing, input_value={'name': '漢德瑞克師... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.56.world_lore_info
-  Field required [type=missing, input_value={'name': '奧斯華', 'al... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.57.world_lore_info
-  Field required [type=missing, input_value={'name': '艾諾拉', 'al... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.58.world_lore_info
-  Field required [type=missing, input_value={'name': '巴納比', 'al... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.59.world_lore_info
-  Field required [type=missing, input_value={'name': '莉娜', 'alias... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.60.world_lore_info
-  Field required [type=missing, input_value={'name': '貝拉', 'alias... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.61.world_lore_info
-  Field required [type=missing, input_value={'name': '諾拉', 'alias... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.62.world_lore_info
-  Field required [type=missing, input_value={'name': '澤拉', 'alias...': ['澤拉', '班恩']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.63.world_lore_info
-  Field required [type=missing, input_value={'name': '班恩', 'alias...': ['班恩', '澤拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.64.world_lore_info
-  Field required [type=missing, input_value={'name': '布里奇特', ...ties': ['布里奇特']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.65.world_lore_info
-  Field required [type=missing, input_value={'name': '瓦萊麗', 'al...ntities': ['瓦萊麗']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.66.world_lore_info
-  Field required [type=missing, input_value={'name': '高爾', 'alias...['高爾', '克拉拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.67.world_lore_info
-  Field required [type=missing, input_value={'name': '翠絲', 'alias...['翠絲', '克拉拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.68.world_lore_info
-  Field required [type=missing, input_value={'name': '迪茜', 'alias...['迪茜', '克拉拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.69.world_lore_info
-  Field required [type=missing, input_value={'name': '朱利安', 'al...利安', '莉莉絲']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.70.world_lore_info
-  Field required [type=missing, input_value={'name': '阿利斯特', ...斯特', '莉莉絲']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.71.world_lore_info
-  Field required [type=missing, input_value={'name': '瑪莉', 'alias...': ['瑪莉', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.72.world_lore_info
-  Field required [type=missing, input_value={'name': '愛莉莎', 'al...['愛莉莎', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.73.world_lore_info
-  Field required [type=missing, input_value={'name': '安娜', 'alias...': ['安娜', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.74.world_lore_info
-  Field required [type=missing, input_value={'name': '里斯', 'alias...': ['里斯', '瑪倫']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.75.world_lore_info
-  Field required [type=missing, input_value={'name': '瑪倫', 'alias...': ['瑪倫', '里斯']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.76.world_lore_info
-  Field required [type=missing, input_value={'name': '提姆', 'alias...姆', '蓋博太太']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] [RAG驱动解析 3/3] 正在合并所有 20 個批次的解析結果...
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] [RAG驱动解析 3/3] 数据合并完成。
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] [後台創世 3/6] 專職流水線解析完成。
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] [後台創世 4/6] 正在將解析出的 LORE 結果持久化到資料庫...
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 65 個實體...
-2025-10-01 00:50:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 77618 秒)。
-2025-10-01 00:52:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-01 00:52:25 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 65 條決策。
-2025-10-01 00:52:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 3 個實體...
-2025-10-01 00:52:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 11 個實體...
-2025-10-01 00:52:35 - [INFO] - [512280345618546699] [後台創世 4/6] LORE 持久化完成。
-2025-10-01 00:52:35 - [INFO] - [512280345618546699] [後台創世 5/6] 正在補完使用者與 AI 的角色檔案...
-2025-10-01 00:52:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 00:52:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 00:52:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-01 00:52:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 00:52:39 - [INFO] - [512280345618546699] [後台創世 6/6] 正在生成世界創世資訊...
-2025-10-01 00:52:40 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 00:52:40 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-10-01 00:52:40 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-10-01 00:52:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 73858 秒)。
-2025-10-01 00:52:40 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 77501 秒)。
-2025-10-01 00:53:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-01 00:53:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-01 00:53:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 00:53:27 - [INFO] - [512280345618546699] [/start] 初始地點 '王都 > 城鎮市集區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
-2025-10-01 00:53:27 - [INFO] - [512280345618546699] [後台創世 7/7] 正在生成開場白...
-2025-10-01 00:53:27 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 82375 秒)。
-2025-10-01 00:53:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
-2025-10-01 00:53:58 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
-2025-10-01 00:53:59 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-01 00:53:59 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 01:00:24 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 01:00:24 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 01:00:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 01:00:25 - [INFO] - Discord Bot is ready!
-2025-10-01 01:00:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 01:00:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 01:00:29 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 01:01:35 - [INFO] - [512280345618546699] 後台重置任務開始...
 2025-10-01 01:01:35 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
 2025-10-01 01:01:35 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
 2025-10-01 01:01:36 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
@@ -300,3 +112,191 @@ results.76.world_lore_info
 2025-10-01 01:05:21 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D']
 2025-10-01 01:05:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-01 01:05:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:05:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-10-01 01:05:43 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAppearanceResult)...
+2025-10-01 01:05:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:06:00 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 12/40] ✅ 處理成功。
+2025-10-01 01:06:00 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 13/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:06:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:06:05 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 11/40] ✅ 處理成功。
+2025-10-01 01:06:05 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 14/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:06:05 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:06:05 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:06:05 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-B', 'ACTION-E', 'ROLE-D']
+2025-10-01 01:06:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:06:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:06:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:06:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 13/40] ✅ 處理成功。
+2025-10-01 01:06:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 15/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:06:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-10-01 01:06:32 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
+2025-10-01 01:06:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:06:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:06:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 14/40] ✅ 處理成功。
+2025-10-01 01:06:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 16/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:06:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:06:52 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:06:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:06:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:06:58 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 8/40] ✅ 處理成功。
+2025-10-01 01:06:58 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 17/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:07:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:07:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:07:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:07:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 16/40] ✅ 處理成功。
+2025-10-01 01:07:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 18/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:07:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:07:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:07:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:07:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:07:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 17/40] ✅ 處理成功。
+2025-10-01 01:07:43 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 19/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:07:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:07:44 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 18/40] ✅ 處理成功。
+2025-10-01 01:07:44 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 20/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:07:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:07:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:07:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:07:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:07:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:08:00 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 20/40] ✅ 處理成功。
+2025-10-01 01:08:00 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 21/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:08:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:08:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:08:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-01 01:08:17 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。
+2025-10-01 01:08:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:08:18 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 21/40] ✅ 處理成功。
+2025-10-01 01:08:18 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 22/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:08:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:08:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:08:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:08:26 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:08:26 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-A', 'ROLE-D']
+2025-10-01 01:08:26 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 81475 秒)。
+2025-10-01 01:08:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:08:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:08:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 19/40] ✅ 處理成功。
+2025-10-01 01:08:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 23/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:08:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:08:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 22/40] ✅ 處理成功。
+2025-10-01 01:08:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 24/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:08:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:08:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:08:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:08:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-10-01 01:08:48 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAppearanceResult)...
+2025-10-01 01:08:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:08:51 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 24/40] ✅ 處理成功。
+2025-10-01 01:08:51 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 25/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:08:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:08:52 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:08:52 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-B', 'ACTION-E', 'ROLE-D']
+2025-10-01 01:08:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 76529 秒)。
+2025-10-01 01:08:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:08:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:08:54 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 15/40] ✅ 處理成功。
+2025-10-01 01:08:54 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 26/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:09:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:09:01 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 23/40] ✅ 處理成功。
+2025-10-01 01:09:01 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 27/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:09:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:09:02 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:09:02 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D']
+2025-10-01 01:09:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 72875 秒)。
+2025-10-01 01:09:02 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 76519 秒)。
+2025-10-01 01:09:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:09:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:09:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:09:11 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:09:11 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ACTION-C', 'ACTION-E', 'ROLE-D', 'CODE-F-GEN-A', 'ROLE-B', 'CODE-F-GEN-C']
+2025-10-01 01:09:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-01 01:09:20 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
+2025-10-01 01:09:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:23 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.35 秒後進行第 2 次嘗試...
+2025-10-01 01:09:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-01 01:09:24 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
+2025-10-01 01:09:25 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:09:25 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:09:25 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-B', 'ACTION-E', 'ROLE-D']
+2025-10-01 01:09:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:27 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.36 秒後進行第 3 次嘗試...
+2025-10-01 01:09:31 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:31 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:09:35 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:35 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.21 秒後進行第 2 次嘗試...
+2025-10-01 01:09:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-01 01:09:38 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAppearanceResult)...
+2025-10-01 01:09:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-10-01 01:09:38 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchCoreInfoResult)...
+2025-10-01 01:09:39 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 26/40] ✅ 處理成功。
+2025-10-01 01:09:39 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 28/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:09:39 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:09:39 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:09:39 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-A', 'ROLE-D']
+2025-10-01 01:09:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 72838 秒)。
+2025-10-01 01:09:39 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 76481 秒)。
+2025-10-01 01:09:39 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.35 秒後進行第 2 次嘗試...
+2025-10-01 01:09:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:41 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.12 秒後進行第 3 次嘗試...
+2025-10-01 01:09:41 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.47 秒後進行第 3 次嘗試...
+2025-10-01 01:09:43 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:09:43 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #0 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
+2025-10-01 01:09:43 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 81398 秒)。
+2025-10-01 01:09:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:09:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 25/40] ✅ 處理成功。
+2025-10-01 01:09:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 29/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:09:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:47 - [ERROR] - [512280345618546699] Key #1 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:09:47 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.12 秒後進行第 2 次嘗試...
+2025-10-01 01:09:52 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:09:52 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.40 秒後進行第 3 次嘗試...
+2025-10-01 01:09:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:10:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:00 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:10:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-10-01 01:10:02 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
+2025-10-01 01:10:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:03 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.43 秒後進行第 2 次嘗試...
+2025-10-01 01:10:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:10:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:10:09 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:09 - [WARNING] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.12 秒後進行第 3 次嘗試...
+2025-10-01 01:10:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:13 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:10:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:15 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.17 秒後進行第 2 次嘗試...
+2025-10-01 01:10:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:18 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.21 秒後進行第 3 次嘗試...
+2025-10-01 01:10:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:21 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:10:24 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:24 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.23 秒後進行第 2 次嘗試...
+2025-10-01 01:10:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:10:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:10:26 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 29/40] ✅ 處理成功。
+2025-10-01 01:10:26 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 30/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:10:27 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 28/40] ✅ 處理成功。
+2025-10-01 01:10:27 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 31/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:10:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:27 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.10 秒後進行第 3 次嘗試...
+2025-10-01 01:10:31 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-01 01:10:31 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
+2025-10-01 01:10:31 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 500 Generation stopped due to finish_reason: 8
+2025-10-01 01:10:31 - [ERROR] - [512280345618546699] [专职流水线 - npc_profile] [批次 27/40] 🔥 處理時發生嚴重錯誤: 500 Generation stopped due to finish_reason: 8
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 805, in process_batch_task
+    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1350, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1284, in ainvoke_with_rotation
+    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+google.api_core.exceptions.InternalServerError: 500 Generation stopped due to finish_reason: 8
+2025-10-01 01:10:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 32/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:10:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:10:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:10:37 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.42 秒後進行第 2 次嘗試...
+2025-10-01 01:10:39 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.29 秒後進行第 3 次嘗試...
+2025-10-01 01:10:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:10:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:10:41 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
