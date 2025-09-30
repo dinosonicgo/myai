@@ -62,6 +62,8 @@ from Levenshtein import ratio as levenshtein_ratio
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
+
+
 from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
                       BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
                       UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
@@ -69,7 +71,14 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult, AppearanceDetails)
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult, AppearanceDetails,
+                      # [v1.0 核心修正] 補全以下所有 LORE 解析管線所需的 Pydantic 模型
+                      BatchIdentifiedEntitiesResult, BatchAliasesResult, BatchAppearanceResult, 
+                      BatchCoreInfoResult, BatchLocationsResult, BatchItemsResult, 
+                      BatchCreaturesResult, BatchQuestsResult, BatchWorldLoresResult
+                      )
+
+
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
@@ -691,11 +700,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.7 - 真正全面的解析)
-# 更新纪录:
-# v1.7 (2025-09-30): [重大架构升级] 根据“仅解析 NPC”的重大缺陷，彻底重写了此函式，将其升級為一個真正的「全面 LORE 解析引擎」。新流程通过扩展 `parser_configs` 字典和数据合并逻辑，现在能够对所有 LORE 类别（NPC、地点、物品、任务等）进行分类，并为每个类别并行执行专属的 RAG 驱动批量解析流水线，确保了世界圣经中的所有类型实体都能被完整、准确地提取。
-# v1.6 (2025-09-30): [重大架构升级] 此函式被重构，以实现一个能够处理所有 LORE 类型的全面解析流程。
-# v1.5 (2025-09-30): [灾难性BUG修复] 彻底重构了专职流水线，改為完全串行执行。
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.8 - 依賴導入修正)
+# 更新紀錄:
+# v1.8 (2025-09-30): [災難性BUG修復] 修正了 NameError。此函式的邏輯本身是正確的，但由於外部缺少對 `BatchIdentifiedEntitiesResult` 及其他相關模型的導入，導致無法執行。此版本確保在修正導入後函式能正常運行。
+# v1.7 (2025-09-30): [重大架構升級] 根據「僅解析 NPC」的重大缺陷，徹底重寫了此函式，將其升級為一個真正的「全面 LORE 解析引擎」。
+# v1.6 (2025-09-30): [重大架構升級] 此函式被重構，以實現一個能夠處理所有 LORE 類型的全面解析流程。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v1.7 终极 LORE 解析引擎】执行一个能够处理所有 LORE 类型的、RAG 驱动的专职流水线。
@@ -831,18 +840,25 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     profile_data['aliases'] = aliases_map.get(name, [])
                     profile_data['appearance_details'] = appearance_map.get(name, AppearanceDetails())
                     core_info = core_info_map.get(name, {})
-                    profile_data['description'] = core_info.get('description', '')
-                    profile_data['skills'] = core_info.get('skills', [])
-                    profile_data['relationships'] = core_info.get('relationships', {})
+                    if isinstance(core_info, dict):
+                        profile_data['description'] = core_info.get('description', '')
+                        profile_data['skills'] = core_info.get('skills', [])
+                        profile_data['relationships'] = core_info.get('relationships', {})
+                    else: # Handle cases where core_info might not be a dict
+                        profile_data['description'] = ''
+                        profile_data['skills'] = []
+                        profile_data['relationships'] = {}
+
                     target_list.append(CharacterProfile.model_validate(profile_data))
             else: # 处理其他单步解析的 LORE 类别
                 # 'full_parse' 的结果是一个包含 .results 列表的 Pydantic 对象
                 parsed_data = results.get("full_parse")
-                if not parsed_data or not parsed_data.results: continue
+                if not parsed_data or not hasattr(parsed_data, 'results') or not parsed_data.results: continue
                 
                 # result.results 是一个 Item 对象的列表，例如 [LocationItem(name='...', location_info=...), ...]
                 # 我们需要提取其中的 info 对象
-                info_map = {item.name: getattr(item, f"{category.replace('_profile', '')}_info") for item in parsed_data.results}
+                info_key_name = f"{category.replace('_profile', '')}_info"
+                info_map = {item.name: getattr(item, info_key_name) for item in parsed_data.results if hasattr(item, info_key_name)}
                 
                 for name in names:
                     if name in info_map:
@@ -5693,6 +5709,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
