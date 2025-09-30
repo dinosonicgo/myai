@@ -260,10 +260,11 @@ class AILover:
 
 
 # 函式：解析並儲存LORE實體 (v5.0 - 移除舊校驗器)
+# ai_core.py 的 _resolve_and_save 函式 (v5.1 - 自我修正)
 # 更新紀錄:
-# v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。該邏輯已被全新的、更上游的「源頭真相」校驗器 `_programmatic_lore_validator` 所取代，使此函式職責更單一。
+# v5.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，為批量實體解析流程增加了「自我修正」循環。現在，當 Pydantic 驗證失敗時，程式會捕獲異常，自動調用新的 JSON 修正鏈，將錯誤報告反饋給 LLM 進行修正，然後再進行一次嘗試。此修改極大地增強了處理大量、複雜 LORE 解析任務時的健壯性。
+# v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。
 # v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。
-# v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了描述合併的備援邏輯。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -280,27 +281,54 @@ class AILover:
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
-        # [v5.0 核心修正] 移除了舊的、基於description的校驗邏輯，因為它已被更可靠的 `_programmatic_lore_validator` 取代。
-        
         if actual_category == 'npc_profile':
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
             
             resolution_plan = None
             if new_npcs_from_parser:
+                # [v5.1 核心修正] 引入自我修正循環
                 try:
+                    # 第一次嘗試
                     resolution_prompt_template = self.get_batch_entity_resolution_prompt()
+                    new_entities_json = json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False)
+                    existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
+                    
                     resolution_prompt = self._safe_format_prompt(
                         resolution_prompt_template,
                         {
-                            "new_entities_json": json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False),
-                            "existing_entities_json": json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
+                            "new_entities_json": new_entities_json,
+                            "existing_entities_json": existing_entities_json
                         },
                         inject_core_protocol=True
                     )
                     resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+                
+                except ValidationError as e:
+                    logger.warning(f"[{self.user_id}] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...")
+                    try:
+                        # 提取LLM返回的原始、錯誤的JSON字符串
+                        raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取原始JSON"
+
+                        # 第二次嘗試：調用修正鏈
+                        correction_prompt_template = self.get_json_correction_chain()
+                        correction_prompt = self._safe_format_prompt(
+                            correction_prompt_template,
+                            {
+                                "existing_entities_json": existing_entities_json,
+                                "raw_json_string": raw_error_json,
+                                "validation_error": str(e)
+                            },
+                            inject_core_protocol=True
+                        )
+                        resolution_plan = await self.ainvoke_with_rotation(correction_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
+                        logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 自我修正成功！")
+                    except Exception as correction_e:
+                        logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
+                        resolution_plan = None # 確保在失敗後 plan 為 None
+
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行失敗: {e}", exc_info=True)
+                    logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行時發生未知嚴重錯誤: {e}", exc_info=True)
             
             items_to_create = []
             updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
@@ -409,7 +437,6 @@ class AILover:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
 # 函式：解析並儲存LORE實體
-
 
 
     # 函式：保存 BM25 語料庫到磁碟 (v1.0 - 全新創建)
@@ -4591,47 +4618,67 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-    # 函式：獲取JSON修正器 Prompt (v1.1 - 原生模板重構)
-    # 更新紀錄:
-    # v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
-    # v1.0 (2025-11-18): [全新創建] 創建此輔助鏈，作為「兩階段自我修正」策略的核心。
+# ai_core.py 的 get_json_correction_chain 函式 (v1.2 - 自我修正)
+# 更新紀錄:
+# v1.2 (2025-09-30): [災難性BUG修復] 根據 ValidationError，創建此全新的 Prompt 模板。它作為「自我修正」循環的核心，專門用於接收格式錯誤的 JSON 和 Pydantic 錯誤報告，並指示 LLM 修正其自身的錯誤，極大地提高了複雜 JSON 生成任務的健壯性。
+# v1.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件。
+# v1.0 (2025-11-18): [全新創建] 創建此輔助鏈。
     def get_json_correction_chain(self) -> str:
         """獲取或創建一個專門用於修正格式錯誤的 JSON 的字符串模板。"""
         if self.json_correction_chain is None:
-            prompt_template = """# ROLE: 你是一個精確的數據結構修正引擎。
-# MISSION: 讀取一段【格式錯誤的原始 JSON】和【目標 Pydantic 模型】，並將其轉換為一個【結構完全正確】的純淨 JSON 物件。
-# RULES:
-# 1. **SEMANTIC_INFERENCE**: 你必須從原始 JSON 的鍵名和值中，智能推斷出它們應該對應到目標模型中的哪個欄位。
-#    - 例如，如果原始 JSON 有 `{"type": "NEW"}`，而目標模型需要 `{"decision": "NEW"}`，你必須進行正確的映射。
-#    - 例如，如果原始 JSON 有 `{"entity_name": "絲月"}`，而目標模型需要 `{"original_name": "絲月"}`，你必須進行正確的映射。
-# 2. **FILL_DEFAULTS**: 如果目標模型中的某些必需欄位在原始 JSON 中完全找不到對應資訊，你必須為其提供合理的預設值。
-#    - 對於 `reasoning` 欄位，如果缺失，可以填寫 "根據上下文推斷"。
-# 3. **OUTPUT_PURITY**: 你的最終輸出【必須且只能】是一個純淨的、符合目標 Pydantic 模型結構的 JSON 物件。禁止包含任何額外的解釋或註釋。
-# --- SOURCE DATA ---
-# 【格式錯誤的原始 JSON】:
-# ```json
-{raw_json_string}
-# ```
-# --- TARGET SCHEMA ---
-# 【目標 Pydantic 模型】:
+            prompt_template = """# TASK: 你是一個高精度的 JSON 修正與驗證引擎。
+# MISSION: 你先前生成的 JSON 數據未能通過 Pydantic 模型的驗證。你的任務是仔細閱讀【原始錯誤 JSON】和【Pydantic 驗證錯誤報告】，並生成一個【完全修正後的、純淨的】JSON 物件。
+
+# === 【【【🚨 核心修正規則 (CORE CORRECTION RULES) - 絕對鐵則】】】 ===
+# 1. **【錯誤分析】**: 仔細閱讀【Pydantic 驗證錯誤報告】，理解錯誤的根本原因。常見錯誤包括：
+#    - **缺失必要欄位**: 例如，`'decision': 'MERGE'` 但缺少 `'matched_key'`。
+#    - **數據類型錯誤**: 例如，需要一個 `integer` 但提供了一個 `string`。
+#    - **錯誤的鍵名**: 例如，使用了 `'name'` 而不是 `'original_name'`。
+# 2. **【邏輯補全】**: 基於錯誤報告和上下文，補全缺失的數據。
+#    - 如果錯誤是缺少 `'matched_key'`，你【必須】重新審視上下文（特別是`existing_entities_json`），為該條目找到最合適的 `matched_key` 並補上。
+# 3. **【結構對齊】**: 確保最終輸出的 JSON 的結構與【目標 Pydantic 模型】完全一致。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、修正後的、有效的 JSON 物件。絕對禁止包含任何解釋性文字或註釋。
+
+# --- [INPUT DATA] ---
+
+# 【目標 Pydantic 模型 (你的輸出必須符合此結構)】:
 # ```python
-# class SingleResolutionResult(BaseModel):
+# class BatchResolutionResult(BaseModel):
 #     original_name: str
-#     decision: Literal['NEW', 'EXISTING']
-#     standardized_name: Optional[str] = None
-#     matched_key: Optional[str] = None
+#     decision: str
 #     reasoning: str
+#     matched_key: Optional[str] = None
+#     standardized_name: str
 #
-# class SingleResolutionPlan(BaseModel):
-#     resolution: SingleResolutionResult
+#     @model_validator(mode='after')
+#     def check_consistency(self) -> 'BatchResolutionResult':
+#         if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
+#             raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。")
+#         return self
+#
+# class BatchResolutionPlan(BaseModel):
+#     resolutions: List[BatchResolutionResult]
 # ```
-# --- CONTEXT ---
-# 【上下文提示：正在處理的原始實體名稱是】:
-{context_name}
-# --- YOUR OUTPUT (Must be a pure, valid JSON object matching SingleResolutionPlan) ---"""
+
+# ---
+# 【上下文：現有實體數據庫 (用於查找缺失的 matched_key)】:
+# {existing_entities_json}
+# ---
+# 【原始錯誤 JSON (你需要修正的對象)】:
+# ```json
+# {raw_json_string}
+# ```
+# ---
+# 【Pydantic 驗證錯誤報告】:
+# ```
+# {validation_error}
+# ```
+# ---
+# 【你修正後的純淨 JSON 輸出】:
+"""
             self.json_correction_chain = prompt_template
         return self.json_correction_chain
-    # 獲取JSON修正器 Prompt 函式結束
+# 獲取JSON修正器 Prompt 函式結束
 
 
 
@@ -5369,6 +5416,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
