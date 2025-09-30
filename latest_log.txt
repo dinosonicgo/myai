@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T00:57:42.742293 ###
+### AI Lover Log - Last updated at 2025-10-01T01:00:39.061862 ###
 
-results.67.world_lore_info
-  Field required [type=missing, input_value={'name': '翠絲', 'alias...['翠絲', '克拉拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.68.world_lore_info
-  Field required [type=missing, input_value={'name': '迪茜', 'alias...['迪茜', '克拉拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.69.world_lore_info
   Field required [type=missing, input_value={'name': '朱利安', 'al...利安', '莉莉絲']}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 results.70.world_lore_info
@@ -300,3 +293,10 @@ results.76.world_lore_info
 2025-10-01 00:53:58 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
 2025-10-01 00:53:59 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-01 00:53:59 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 01:00:24 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 01:00:24 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 01:00:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 01:00:25 - [INFO] - Discord Bot is ready!
+2025-10-01 01:00:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 01:00:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 01:00:29 - [INFO] - 已成功發送啟動成功通知給管理員。
