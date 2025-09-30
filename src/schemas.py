@@ -65,12 +65,17 @@ class BatchAppearanceResult(BaseModel):
     """包裹批量外观细节提取结果的模型"""
     results: List[AppearanceItem]
     
+# schemas.py 的 CoreInfoItem 模型 (v4.1 - 容錯 description)
+# 更新紀錄:
+# v4.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，將 description 欄位的類型從 str 修改為 Optional[str]。此修改允許 LLM 在找不到描述時返回 null，從而避免驗證失敗，提高了 LORE 解析管線的健壯性。
+# v4.0 (2025-09-30): [重大架構重構] 根據資訊遺失問題，為專職解析流水線創建了此模型。
 class CoreInfoItem(BaseModel):
     """包裹单个角色核心信息（描述、技能、关系）的模型"""
     character_name: str
-    description: str = ""
+    description: Optional[str] = "" # [v4.1 核心修正] 允許 description 為 None
     skills: List[str] = Field(default_factory=list)
     relationships: Dict[str, "RelationshipDetail"] = Field(default_factory=dict)
+# schemas.py 的 CoreInfoItem 模型
 
 class BatchCoreInfoResult(BaseModel):
     """包裹批量核心信息提取结果的模型"""
@@ -526,4 +531,5 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
