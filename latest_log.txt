@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T00:38:51.096013 ###
+### AI Lover Log - Last updated at 2025-10-01T00:42:33.217090 ###
 
-results.12.description
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-results.45.description
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 784, in process_batch_task
     result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1288, in ainvoke_with_rotation
@@ -300,3 +293,10 @@ npc_profiles.20.appearance
 2025-10-01 00:19:02 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 1 個實體...
 2025-10-01 00:19:02 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 1 個實體...
 2025-10-01 00:19:02 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 30 個實體...
+2025-10-01 00:42:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 00:42:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 00:42:21 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 00:42:21 - [INFO] - Discord Bot is ready!
+2025-10-01 00:42:24 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 00:42:24 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 00:42:24 - [INFO] - 已成功發送啟動成功通知給管理員。
