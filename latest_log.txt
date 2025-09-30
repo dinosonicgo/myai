@@ -1,18 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T09:11:40.408635 ###
+### AI Lover Log - Last updated at 2025-09-30T09:17:25.104855 ###
 
-2025-09-30 08:46:10 - [ERROR] - [512280345618546699] [LORE 解析 4-3/5] 遭遇未知錯誤: Prompt blocked due to 4
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4317, in _execute_lore_parsing_pipeline
-    parsing_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 894, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 861, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-09-30 08:46:10 - [INFO] - [512280345618546699] [LORE 解析 4-4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...
-2025-09-30 08:46:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-09-30 08:46:13 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-09-30 08:46:13 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
 2025-09-30 08:46:13 - [INFO] - [512280345618546699] [LORE 解析 4-5/5] 正在嘗試【法醫級重構方案】...
 2025-09-30 08:46:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
 2025-09-30 08:46:18 - [INFO] - [512280345618546699] [LORE 解析 4-5/5] ✅ 成功！
@@ -300,3 +287,16 @@ Traceback (most recent call last):
     os.unlink(fullname)
 PermissionError: [WinError 32] 程序無法存取檔案，因為檔案正由另一個程序使用。: 'D:\\DINO\\SD\\ComfyUI\\personal_server\\ai_lover_service\\data\\vector_stores\\512280345618546699\\9eb54fd7-c517-4813-a3da-980146934649\\data_level0.bin'
 2025-09-30 08:50:32 - [INFO] - [512280345618546699] 后台创世流程结束，状态锁已释放。
+2025-09-30 09:17:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-09-30 09:17:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-09-30 09:17:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-09-30 09:17:11 - [INFO] - Discord Bot is ready!
+2025-09-30 09:17:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-09-30 09:17:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-09-30 09:17:14 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-09-30 09:17:24 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
