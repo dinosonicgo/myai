@@ -138,7 +138,98 @@ class BatchWorldLoresResult(BaseModel):
     results: List[WorldLoreItem]
 # schemas.py 的 BatchWorldLoresResult 模型
 
+# schemas.py 的專職流水線核心模型 (v4.0 - 全新創建)
+# 更新紀錄:
+# v4.0 (2025-10-01): [重大架構重構] 為實現「分層式、RAG 驅動的專職流水線」，創建了一整套全新的、層次分明的 Pydantic 模型。這些模型為流水線的每個階段（實體識別、專職解析）提供了嚴格的數據契約，從根本上確保了數據在複雜流程中的結構一致性和可合併性，是解決 MAX_TOKENS 和解析精度的核心基礎設施。
 
+# --- 流水线核心模型 ---
+
+# 階段一：实体识别
+class IdentifiedEntity(BaseModel):
+    """代表一个从原文中识别出的、待处理的 LORE 实体"""
+    name: str = Field(description="实体的专有名称")
+    category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore'] = Field(description="实体的 LORE 类别")
+
+class BatchIdentifiedEntitiesResult(BaseModel):
+    """包裹批量实体识别结果的模型"""
+    entities: List[IdentifiedEntity]
+
+# 階段三：专职流水线输出模型
+class AliasItem(BaseModel):
+    """包裹单个角色别名/身份列表的模型"""
+    character_name: str
+    aliases: List[str]
+
+class BatchAliasesResult(BaseModel):
+    """包裹批量别名/身份提取结果的模型"""
+    results: List[AliasItem]
+
+class AppearanceItem(BaseModel):
+    """包裹单个角色结构化外观细节的模型"""
+    character_name: str
+    appearance_details: "AppearanceDetails"
+
+class BatchAppearanceResult(BaseModel):
+    """包裹批量外观细节提取结果的模型"""
+    results: List[AppearanceItem]
+    
+class CoreInfoItem(BaseModel):
+    """包裹单个角色核心信息（描述、技能、关系）的模型"""
+    character_name: str
+    description: Optional[str] = ""
+    skills: List[str] = Field(default_factory=list)
+    relationships: Dict[str, "RelationshipDetail"] = Field(default_factory=dict)
+
+class BatchCoreInfoResult(BaseModel):
+    """包裹批量核心信息提取结果的模型"""
+    results: List[CoreInfoItem]
+
+
+class LocationItem(BaseModel):
+    """包裹单个地点信息的模型"""
+    name: str
+    location_info: "LocationInfo"
+
+class BatchLocationsResult(BaseModel):
+    """包裹批量地点信息提取结果的模型"""
+    results: List[LocationItem]
+
+class ItemItem(BaseModel):
+    """包裹单个物品信息的模型"""
+    name: str
+    item_info: "ItemInfo"
+
+class BatchItemsResult(BaseModel):
+    """包裹批量物品信息提取结果的模型"""
+    results: List[ItemItem]
+
+class CreatureItem(BaseModel):
+    """包裹单个生物信息的模型"""
+    name: str
+    creature_info: "CreatureInfo"
+
+class BatchCreaturesResult(BaseModel):
+    """包裹批量生物信息提取结果的模型"""
+    results: List[CreatureItem]
+
+class QuestItem(BaseModel):
+    """包裹单个任务信息的模型"""
+    name: str
+    quest: "Quest" # 修正: 欄位名應與其類型匹配以便於 getattr 訪問
+
+class BatchQuestsResult(BaseModel):
+    """包裹批量任务信息提取结果的模型"""
+    results: List[QuestItem]
+
+class WorldLoreItem(BaseModel):
+    """包裹单个世界传说信息的模型"""
+    name: str
+    world_lore: "WorldLore" # 修正: 欄位名應與其類型匹配以便於 getattr 訪問
+
+class BatchWorldLoresResult(BaseModel):
+    """包裹批量世界传说信息提取结果的模型"""
+    results: List[WorldLoreItem]
+# schemas.py 的專職流水線核心模型
 
 # --- LORE 基础模型 ---
 
@@ -559,6 +650,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
