@@ -1,15 +1,5 @@
-### AI Lover Log - Last updated at 2025-09-30T22:24:55.061615 ###
+### AI Lover Log - Last updated at 2025-09-30T22:29:58.227194 ###
 
-  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
-  quota_dimensions {
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
-  quota_value: 250000
 }
 , links {
   description: "Learn more about Gemini API quotas"
@@ -300,3 +290,13 @@ Please retry in 26.278481783s. [violations {
 2025-09-30 22:24:18 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.17 秒後進行第 3 次嘗試...
 2025-09-30 22:24:21 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-pro) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
 2025-09-30 22:24:21 - [CRITICAL] - [512280345618546699] [持久化冷卻] API Key #5 (模型: gemini-2.5-pro) 已被置入冷卻狀態，持續 24 小時。
+2025-09-30 22:25:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-09-30 22:25:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-09-30 22:25:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-09-30 22:25:14 - [INFO] - [512280345618546699] [/start] 初始地點 '王國 > 城鎮區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
+2025-09-30 22:25:14 - [INFO] - [512280345618546699] [後台創世 7/7] 正在生成開場白...
+2025-09-30 22:25:25 - [WARNING] - [512280345618546699] Key #1 (模型: gemini-2.5-pro) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.22 秒後進行第 2 次嘗試...
+2025-09-30 22:26:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-09-30 22:26:06 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
+2025-09-30 22:26:07 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-09-30 22:26:07 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
