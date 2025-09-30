@@ -268,11 +268,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# ai_core.py 的 _resolve_and_save 函式 (v5.3 - 儲存前數據清洗)
+# ai_core.py 的 _resolve_and_save 函式 (v5.4 - 異步化改造)
 # 更新紀錄:
-# v5.3 (2025-10-01): [災難性BUG修復] 根據 ValidationError，在數據最終存入資料庫之前，增加了一個【數據清洗】步驟。此步驟會遍歷所有準備儲存的 LORE 數據，並將所有值為 `None` 的欄位安全地轉換為其預設值（如空字符串 `""` 或 `"未知"`），從根本上確保了數據庫的類型一致性，並解決了因 Pydantic 模型放寬驗證規則後可能導致的下游數據處理問題。
+# v5.4 (2025-10-01): [災難性BUG修復] 根據 Discord WebSocket 斷線問題，對此函式進行了異步化改造。在處理大量數據的密集迴圈中（如 `updates_to_merge`），策略性地插入了 `await asyncio.sleep(0)`。此修改會在處理每個實體後將控制權交還給事件循環，確保 Discord 的心跳包等網絡任務能夠及時處理，從根本上解決了因長時間同步阻塞導致的連線中斷問題。
+# v5.3 (2025-10-01): [災難性BUG修復] 增加了儲存前的數據清洗步驟。
 # v5.2 (2025-09-30): [災難性BUG修復] 重構了數據流，確保沒有數據丟失。
-# v5.1 (2025-09-30): [災難性BUG修復] 增加了「自我修正」循環。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -357,7 +357,8 @@ class AILover:
 
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
-                for matched_key, contents_to_merge in updates_to_merge.items():
+                # [v5.4 核心修正] 在密集迴圈中交還控制權
+                for i, (matched_key, contents_to_merge) in enumerate(updates_to_merge.items()):
                     existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
                     if not existing_lore: continue
                     
@@ -376,6 +377,10 @@ class AILover:
                                 existing_lore.content[key] = value
                     
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
+                    
+                    # 每處理 10 個實體，就交還一次控制權
+                    if i % 10 == 0:
+                        await asyncio.sleep(0)
 
             if synthesis_tasks:
                 logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
@@ -433,14 +438,13 @@ class AILover:
 
             items = items_to_create
 
-        for item_data in items:
+        # [v5.4 核心修正] 在最終的創建迴圈中也交還控制權
+        for i, item_data in enumerate(items):
             try:
-                # [v5.3 核心修正] 在儲存前進行最終的數據清洗
                 cleaned_item_data = item_data.copy()
                 if actual_category == 'npc_profile':
                     defaults = CharacterProfile.model_construct().model_dump()
                     for key, default_value in defaults.items():
-                        # 如果鍵存在且值為 None，則替換為 Pydantic 的預設值
                         if key in cleaned_item_data and cleaned_item_data[key] is None:
                             cleaned_item_data[key] = default_value
 
@@ -451,6 +455,10 @@ class AILover:
                 lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
                 final_content_to_save = self._decode_lore_content(cleaned_item_data, self.DECODING_MAP)
                 await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+                
+                if i % 10 == 0:
+                    await asyncio.sleep(0)
+
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
@@ -5759,6 +5767,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
