@@ -150,26 +150,30 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交关系", description="关系的类型，例如 '家庭', '主从', '敌对', '恋爱', '社交关系'。")
     roles: List[str] = Field(default_factory=list, description="对方在此关系中扮演的角色或称谓列表，支持多重身份。例如 ['女儿', '学生']。")
 
+# schemas.py 的 CharacterProfile 模型 (v2.4 - 全面 Optional 容錯)
+# 更新紀錄:
+# v2.4 (2025-10-01): [災難性BUG修復] 根據持續的 ValidationError，將模型中所有可能被 LLM 省略的字串欄位（如 gender, age, race, appearance 等）的類型從 `str` 系統性地修改為 `Optional[str]`。此修改使模型能夠容忍 LLM 返回 `null` 值，從根本上解決了因數據缺失導致的驗證失敗問題。
+# v2.3 (2025-09-30): [重大架構升級] 新增了 AppearanceDetails 模型。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的标准化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知称呼、身份标签、头衔或绰号。")
     alternative_names: List[str] = Field(default_factory=list, description="一个由AI预先生成的、用于在主名称冲突时备用的名称列表。")
-    gender: str = Field(default="未设定", description="角色的性别。")
-    age: str = Field(default="未知", description="角色的年龄或年龄段。")
-    race: str = Field(default="未知", description="角色的种族。")
-    appearance: str = Field(default="", description="角色的外貌特征的总体描述。")
+    gender: Optional[str] = Field(default="未设定", description="角色的性别。")
+    age: Optional[str] = Field(default="未知", description="角色的年龄或年龄段。")
+    race: Optional[str] = Field(default="未知", description="角色的种族。")
+    appearance: Optional[str] = Field(default="", description="角色的外貌特征的总体描述。")
     appearance_details: AppearanceDetails = Field(default_factory=AppearanceDetails, description="角色的结构化具体外貌细节。")
     likes: List[str] = Field(default_factory=list, description="角色喜欢的事物列表。")
     dislikes: List[str] = Field(default_factory=list, description="角色不喜欢的食物列表。")
     equipment: List[str] = Field(default_factory=list, description="角色【当前穿戴或持有】的装备列表。")
     skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
-    description: str = Field(default="", description="角色的性格、背景故事、行为模式等综合简介。")
-    location: str = Field(default="", description="角色当前所在的城市或主要区域。")
+    description: Optional[str] = Field(default="", description="角色的性格、背景故事、行为模式等综合简介。")
+    location: Optional[str] = Field(default="", description="角色当前所在的城市或主要区域。")
     location_path: List[str] = Field(default_factory=list, description="角色当前所在的层级式地点路径。")
     affinity: int = Field(default=0, description="此角色对使用者的好感度。")
     relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="记录此角色与其他角色的结构化关系。例如：{'莉莉丝': {'type': '家庭', 'roles': ['女儿']}}")
-    status: str = Field(default="健康", description="角色的当前健康或状态。")
-    current_action: str = Field(default="站着", description="角色当前正在进行的、持续性的动作或所处的姿态。")
+    status: Optional[str] = Field(default="健康", description="角色的当前健康或状态。")
+    current_action: Optional[str] = Field(default="站着", description="角色当前正在进行的、持续性的动作或所处的姿态。")
 
     @field_validator('aliases', 'likes', 'dislikes', 'equipment', 'skills', 'location_path', 'alternative_names', mode='before')
     @classmethod
@@ -216,6 +220,7 @@ class CharacterProfile(BaseModel):
         if isinstance(value, float):
             return int(value)
         return value
+# schemas.py 的 CharacterProfile 模型
 
 class Quest(BaseModel):
     name: str = Field(description="任务的标准化、唯一的官方名称。")
@@ -531,5 +536,6 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
