@@ -644,21 +644,21 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.3 - 智能并行节流)
-# 更新纪录:
-# v1.3 (2025-09-30): [灾难性BUG修复] 根据 ResourceExhausted 错误，对此函式的并行处理逻辑进行了终极优化。引入了【带节流的智能并行】策略：在保持 `asyncio.gather` 并行优势的同时，为每一个并行的 LLM 任务增加了一个微小的、随机的启动延迟。此修改将瞬时的并发请求“平滑化”为快速的连续请求，从而在不牺牲过多效率的前提下，有效规避了 Google API 的速率限制。
-# v1.2 (2025-09-30): [重大架构重构] 实现了「RAG 驱动专职流水线」策略。
-# v1.1 (2025-09-30): [灾难性BUG修复] 修改了函式的返回值。
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.4 - 信號量併發控制)
+# 更新紀錄:
+# v1.4 (2025-09-30): [災難性BUG修復] 根據持續的 ResourceExhausted 錯誤，對並行處理邏輯進行了終極重構。引入了 `asyncio.Semaphore` 來嚴格控制併發的 LLM 請求數量，將其限制在一個 API 友好的範圍內。同時，在每個受控的並行任務發起前，額外增加了一個固定的安全延遲。此「信號量 + 延遲」的雙重節流機制，旨在從根本上解決 API 速率限制問題。
+# v1.3 (2025-09-30): [災難性BUG修復] 引入了【帶節流的智能并行】策略以應對 ResourceExhausted 錯誤。
+# v1.2 (2025-09-30): [重大架構重構] 實現了「RAG 驅動專職流水線」策略。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
-        【v1.3 终极 LORE 解析引擎】执行「带节流的智能并行 RAG 驱动 + 分层靶向容错」管线。
+        【v1.4 終極 LORE 解析引擎】執行「帶信號量併發控制的 RAG 驅動專職流水線」。
         """
         if not self.profile or not self.retriever:
-            logger.error(f"[{self.user_id}] [RAG驱动解析] 致命错误: Profile 或 Retriever 未初始化。")
+            logger.error(f"[{self.user_id}] [RAG驅動解析] 致命錯誤: Profile 或 Retriever 未初始化。")
             return None
 
-        # --- 阶段一：LLM 驱动的实体识别 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 1/4] 正在使用 LLM 提取所有角色名称...")
+        # --- 階段一：LLM 驅動的實體識別 ---
+        logger.info(f"[{self.user_id}] [RAG驅動解析 1/4] 正在使用 LLM 提取所有角色名稱...")
         
         class CharacterNamesResult(BaseModel):
             character_names: List[str]
@@ -674,35 +674,39 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             )
             character_names = names_result.character_names if names_result else []
         except Exception as e:
-            logger.error(f"[{self.user_id}] [RAG驱动解析 1/4] 角色名称提取失败: {e}。终止流程。", exc_info=True)
+            logger.error(f"[{self.user_id}] [RAG驅動解析 1/4] 角色名稱提取失敗: {e}。終止流程。", exc_info=True)
             return CanonParsingResult()
 
         if not character_names:
-            logger.info(f"[{self.user_id}] [RAG驱动解析 1/4] LLM 未在世界圣经中识别出任何额外的角色。")
+            logger.info(f"[{self.user_id}] [RAG驅動解析 1/4] LLM 未在世界聖經中識別出任何額外的角色。")
             return CanonParsingResult()
         
-        logger.info(f"[{self.user_id}] [RAG驱动解析 1/4] 成功识别出 {len(character_names)} 个角色任务。")
+        logger.info(f"[{self.user_id}] [RAG驅動解析 1/4] 成功識別出 {len(character_names)} 個角色任務。")
 
-        # --- 阶段二：批量 RAG 上下文聚合 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 2/4] 正在为 {len(character_names)} 个角色并行执行 RAG 检索...")
-        rag_query_tasks = [self.retriever.ainvoke(f"{name} 身份 背景 经历 外貌 技能 关系") for name in character_names]
+        # --- 階段二：批量 RAG 上下文聚合 ---
+        logger.info(f"[{self.user_id}] [RAG驅動解析 2/4] 正在為 {len(character_names)} 個角色並行執行 RAG 檢索...")
+        rag_query_tasks = [self.retriever.ainvoke(f"{name} 身份 背景 經歷 外貌 技能 關係") for name in character_names]
         rag_results = await asyncio.gather(*rag_query_tasks, return_exceptions=True)
         
         batch_input_data = []
         for name, result in zip(character_names, rag_results):
             if isinstance(result, Exception):
-                logger.error(f"[{self.user_id}] [RAG驱动解析 2/4] 为角色 '{name}' 检索上下文时失败: {result}")
-                rag_context = "错误：RAG 检索失败。"
+                logger.error(f"[{self.user_id}] [RAG驅動解析 2/4] 為角色 '{name}' 檢索上下文時失敗: {result}")
+                rag_context = "錯誤：RAG 檢索失敗。"
             else:
                 rag_context = "\n\n---\n\n".join([doc.page_content for doc in result])
             batch_input_data.append({"character_name": name, "rag_context": rag_context})
 
         batch_input_json = json.dumps(batch_input_data, ensure_ascii=False)
 
-        # --- 阶段三：带节流的、并行的、专职的 LLM 批量提取 (流水线) ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 3/4] 正在启动【带节流的智能并行】LLM 提取流水线...")
+        # --- 階段三：帶信號量併發控制的、專職的 LLM 批量提取 (流水線) ---
+        logger.info(f"[{self.user_id}] [RAG驅動解析 3/4] 正在啟動【信號量併發控制】LLM 提取流水線...")
         
-        # 定义流水线任务的 Pydantic 模型
+        # [v1.4 核心修正] 創建一個信號量，將最大併發數限制為一個保守值
+        CONCURRENCY_LIMIT = 3
+        semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
+
+        # 定義流水線任務的 Pydantic 模型
         class BatchAliasesResult(BaseModel):
             results: List[Dict[str, List[str]]] = Field(description="[{'character_name': 'name', 'aliases': [...]}, ...]")
         class BatchAppearanceResult(BaseModel):
@@ -710,40 +714,40 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         class BatchCoreInfoResult(BaseModel):
             results: List[Dict[str, Any]] = Field(description="[{'character_name': 'name', 'description': '...', 'skills': '...', 'relationships': '...'}, ...]")
 
-        # [v1.3 核心修正] 创建一个带节流的 Pipeline Task Runner
-        async def run_pipeline_task(focus: str, pydantic_schema: Type[BaseModel], delay: float):
-            # 在发起请求前，先进行短暂的随机延迟
-            await asyncio.sleep(delay)
-            logger.info(f"[{self.user_id}] [专职流水线] 任务 '{focus}' (延迟 {delay:.2f}s) 已启动...")
-            
-            parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
-            full_prompt = self._safe_format_prompt(
-                parser_prompt_template,
-                {
-                    "parsing_focus": focus,
-                    "pydantic_schema_str": json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2),
-                    "batch_input_json": batch_input_json
-                },
-                inject_core_protocol=True
-            )
-            try:
-                return await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [专职流水线] 焦点 '{focus}' 提取失败: {e}", exc_info=True)
-                return None
+        # [v1.4 核心修正] 創建一個受信號量控制的 Pipeline Task Runner
+        async def run_pipeline_task_with_semaphore(focus: str, pydantic_schema: Type[BaseModel]):
+            async with semaphore:
+                # 在獲取到信號量後，再增加一個固定的安全延遲
+                await asyncio.sleep(1.0)
+                logger.info(f"[{self.user_id}] [專職流水線] 任務 '{focus}' 已獲取信號量，正在啟動...")
+                
+                parser_prompt_template = self.get_batch_rag_driven_parser_prompt()
+                full_prompt = self._safe_format_prompt(
+                    parser_prompt_template,
+                    {
+                        "parsing_focus": focus,
+                        "pydantic_schema_str": json.dumps(pydantic_schema.model_json_schema(), ensure_ascii=False, indent=2),
+                        "batch_input_json": batch_input_json
+                    },
+                    inject_core_protocol=True
+                )
+                try:
+                    return await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [專職流水線] 焦點 '{focus}' 提取失敗: {e}", exc_info=True)
+                    return None
 
-        # [v1.3 核心修正] 为每个任务分配一个随机延迟并并行执行
-        import random
+        # [v1.4 核心修正] 使用新的 Runner 並行執行任務
         pipeline_tasks = [
-            run_pipeline_task("提取所有身份、头衔、绰号和别名到 aliases 列表", BatchAliasesResult, random.uniform(0.5, 1.5)),
-            run_pipeline_task("提取所有外观细节到 appearance_details 模型", BatchAppearanceResult, random.uniform(0.5, 1.5)),
-            run_pipeline_task("提取角色的背景故事、性格、技能和人际关系", BatchCoreInfoResult, random.uniform(0.5, 1.5)),
+            run_pipeline_task_with_semaphore("提取所有身份、頭銜、綽號和別名到 aliases 列表", BatchAliasesResult),
+            run_pipeline_task_with_semaphore("提取所有外觀細節到 appearance_details 模型", BatchAppearanceResult),
+            run_pipeline_task_with_semaphore("提取角色的背景故事、性格、技能和人際關係", BatchCoreInfoResult),
         ]
         
         aliases_results, appearance_results, core_info_results = await asyncio.gather(*pipeline_tasks)
 
-        # --- 阶段四：确定性数据合并 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 4/4] 正在合并流水线结果...")
+        # --- 階段四：確定性數據合併 ---
+        logger.info(f"[{self.user_id}] [RAG驅動解析 4/4] 正在合併流水線結果...")
         final_profiles: List[CharacterProfile] = []
         
         aliases_map = {item['character_name']: item['aliases'] for item in aliases_results.results} if aliases_results and aliases_results.results else {}
@@ -776,7 +780,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             final_profiles.append(CharacterProfile.model_validate(profile_data))
 
         final_result_object = CanonParsingResult(npc_profiles=final_profiles)
-        logger.info(f"[{self.user_id}] [RAG驱动解析 4/4] 數據合併完成，生成了 {len(final_profiles)} 個完整的角色檔案。")
+        logger.info(f"[{self.user_id}] [RAG驅動解析 4/4] 數據合併完成，生成了 {len(final_profiles)} 個完整的角色檔案。")
         
         return final_result_object
 # 函式：RAG 驅動的 LORE 創建
@@ -5622,6 +5626,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
