@@ -700,11 +700,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.8 - 依賴導入修正)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v1.9 - 串行化解析)
 # 更新紀錄:
-# v1.8 (2025-09-30): [災難性BUG修復] 修正了 NameError。此函式的邏輯本身是正確的，但由於外部缺少對 `BatchIdentifiedEntitiesResult` 及其他相關模型的導入，導致無法執行。此版本確保在修正導入後函式能正常運行。
-# v1.7 (2025-09-30): [重大架構升級] 根據「僅解析 NPC」的重大缺陷，徹底重寫了此函式，將其升級為一個真正的「全面 LORE 解析引擎」。
-# v1.6 (2025-09-30): [重大架構升級] 此函式被重構，以實現一個能夠處理所有 LORE 類型的全面解析流程。
+# v1.9 (2025-09-30): [災難性BUG修復] 根據大量的 ResourceExhausted (429) 錯誤，將 LORE 類別的解析流程從並行 (`asyncio.gather`) 徹底重構為串行 (`for` 迴圈)。此修改確保了每次只處理一個 LORE 類別，並在類別之間增加了延遲，從根本上解決了因並發請求過多而導致的 API 速率超限問題。
+# v1.8 (2025-09-30): [災難性BUG修復] 修正了 NameError。
+# v1.7 (2025-09-30): [重大架構升級] 將其升級為一個真正的「全面 LORE 解析引擎」。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v1.7 终极 LORE 解析引擎】执行一个能够处理所有 LORE 类型的、RAG 驱动的专职流水线。
@@ -736,8 +736,8 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         
         logger.info(f"[{self.user_id}] [RAG驱动解析 1/3] 成功识别出 {len(identified_entities)} 个 LORE 任务。")
 
-        # --- 阶段二：按类别分发，并行执行专职解析流水线 ---
-        logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 正在按类别分发任务，并并行启动所有专职解析流水线...")
+        # --- 阶段二：按类别分发，串行执行专职解析流水线 ---
+        logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 正在按类别分发任务，并【串行】启动所有专职解析流水线以避免速率超限...")
         
         categorized_entities = defaultdict(list)
         for entity in identified_entities:
@@ -815,50 +815,65 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
             
             return names, pipeline_results
 
-        # 并行执行所有类别的完整流水线
-        category_tasks = [run_category_pipeline(cat, name_list) for cat, name_list in categorized_entities.items()]
-        all_category_results = await asyncio.gather(*category_tasks)
+        # [v1.9 核心修正] 将并行执行改为串行，以避免 API 速率超限
+        all_category_results = []
+        for cat, name_list in categorized_entities.items():
+            logger.info(f"[{self.user_id}] [RAG驱动解析 2/3] 正在串行处理类别: '{cat}'...")
+            result = await run_category_pipeline(cat, name_list)
+            all_category_results.append(result)
+            # 在处理完一个大的类别后增加额外的延迟，进一步降低速率超限风险
+            await asyncio.sleep(3.0) 
 
         # --- 阶段三：确定性数据合并 ---
         logger.info(f"[{self.user_id}] [RAG驱动解析 3/3] 正在合并所有类别的流水线结果...")
         final_result = CanonParsingResult()
 
-        for category, (names, results) in zip(categorized_entities.keys(), all_category_results):
+        for category, category_result in zip(categorized_entities.keys(), all_category_results):
+            if not category_result: continue
+            names, results = category_result
             if not names or not results: continue
 
             config = parser_configs.get(category)
+            if not config: continue
             target_list_name = config["target_list_in_final_result"]
             target_list = getattr(final_result, target_list_name)
 
             if category == "npc_profile":
-                aliases_map = {item.character_name: item.aliases for item in results.get("aliases").results} if results.get("aliases") else {}
-                appearance_map = {item.character_name: item.appearance_details for item in results.get("appearance").results} if results.get("appearance") else {}
-                core_info_map = {item.character_name: item for item in results.get("core_info").results} if results.get("core_info") else {}
+                aliases_map = {}
+                if results.get("aliases") and hasattr(results["aliases"], 'results'):
+                    aliases_map = {item.character_name: item.aliases for item in results["aliases"].results}
+                
+                appearance_map = {}
+                if results.get("appearance") and hasattr(results["appearance"], 'results'):
+                    appearance_map = {item.character_name: item.appearance_details for item in results["appearance"].results}
+
+                core_info_map = {}
+                if results.get("core_info") and hasattr(results["core_info"], 'results'):
+                    core_info_map = {item.character_name: item for item in results["core_info"].results}
 
                 for name in names:
                     profile_data = {"name": name}
                     profile_data['aliases'] = aliases_map.get(name, [])
                     profile_data['appearance_details'] = appearance_map.get(name, AppearanceDetails())
-                    core_info = core_info_map.get(name, {})
-                    if isinstance(core_info, dict):
-                        profile_data['description'] = core_info.get('description', '')
-                        profile_data['skills'] = core_info.get('skills', [])
-                        profile_data['relationships'] = core_info.get('relationships', {})
-                    else: # Handle cases where core_info might not be a dict
+                    
+                    core_info = core_info_map.get(name)
+                    if core_info and hasattr(core_info, 'description'):
+                        profile_data['description'] = core_info.description
+                        profile_data['skills'] = core_info.skills
+                        profile_data['relationships'] = core_info.relationships
+                    else:
                         profile_data['description'] = ''
                         profile_data['skills'] = []
                         profile_data['relationships'] = {}
-
+                    
                     target_list.append(CharacterProfile.model_validate(profile_data))
+
             else: # 处理其他单步解析的 LORE 类别
-                # 'full_parse' 的结果是一个包含 .results 列表的 Pydantic 对象
                 parsed_data = results.get("full_parse")
                 if not parsed_data or not hasattr(parsed_data, 'results') or not parsed_data.results: continue
                 
-                # result.results 是一个 Item 对象的列表，例如 [LocationItem(name='...', location_info=...), ...]
-                # 我们需要提取其中的 info 对象
                 info_key_name = f"{category.replace('_profile', '')}_info"
-                info_map = {item.name: getattr(item, info_key_name) for item in parsed_data.results if hasattr(item, info_key_name)}
+                info_map = {item.name: getattr(item, info_key_name) for item in parsed_data.results if hasattr(item, 'name') and hasattr(item, info_key_name)}
                 
                 for name in names:
                     if name in info_map:
@@ -867,7 +882,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         logger.info(f"[{self.user_id}] [RAG驱动解析 3/3] 数据合并完成。")
         return final_result
 # 函式：RAG 驅動的 LORE 創建
-
 
     
 
@@ -5709,6 +5723,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
