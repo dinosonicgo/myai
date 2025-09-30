@@ -251,6 +251,10 @@ class FactCheckResult(BaseModel):
     conflicting_info: Optional[str] = Field(default=None, description="如果不一致，說明衝突之處。")
     suggestion: Optional[Dict[str, Any]] = Field(default=None, description="一個修正後的 `updates` 字典。")
 
+# schemas.py 的 BatchResolutionResult 模型 (v1.1 - 修正兼容性)
+# 更新紀錄:
+# v1.1 (2025-09-30): [健壯性強化] 將 matched_key 欄位的類型提示從 str 更改為 Optional[str]。此修改旨在配合「自我修正」流程：它允許 Pydantic 即使在 LLM 第一次返回不合規的 JSON（即 decision 為 'MERGE' 但缺少 matched_key）時也能夠先將其初步解析，從而讓程式碼可以捕獲到 ValidationError 並觸發修正循環，而不是在更早階段因類型不匹配而崩潰。
+# v1.0 (原版)
 class BatchResolutionResult(BaseModel):
     original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
     decision: str = Field(description="您的最終判斷，通常是 'CREATE', 'NEW', 'MERGE', 或 'EXISTING' 之一。")
@@ -263,6 +267,7 @@ class BatchResolutionResult(BaseModel):
         if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
             raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。")
         return self
+# BatchResolutionResult 模型結束
 
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
@@ -477,6 +482,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
