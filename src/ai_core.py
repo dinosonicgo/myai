@@ -3648,14 +3648,14 @@ class ExtractionResult(BaseModel):
     
 
     # 函式：配置前置資源
-    # ai_core.py 的 _configure_pre_requisites 函式 (v203.2 - 縮排修正)
-    # 更新紀錄:
-    # v203.2 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
-    # v203.1 (2025-11-26): [根本性重構] 重寫了此函式的初始化順序。現在，它會優先創建本地 Embedding 實例，然後再調用 _load_or_build_rag_retriever，確保在構建檢索器時，Embedding 引擎已經就緒。
-    # v203.4 (2025-09-23): [架構重構] 將對 `_build_retriever` 的調用更新為新的 `_load_or_build_rag_retriever`。
+# ai_core.py 的 _configure_pre_requisites 函式 (v203.3 - 移除RAG創建)
+# 更新紀錄:
+# v203.3 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_load_or_build_rag_retriever` 的調用。此函式的職責被重新定義為：僅配置那些不依賴於完整數據（如 LORE）的、輕量級的前置資源，如模板加載、工具列表和 Embedding 引擎。RAG 的創建將被延遲到更高層的協調器中執行。
+# v203.2 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
+# v203.1 (2025-11-26): [根本性重構] 重寫了此函式的初始化順序。
     async def _configure_pre_requisites(self):
         """
-        (v203.2 本地化改造) 配置並準備好所有構建鏈所需的前置資源，優先初始化本地 Embedding 引擎。
+        (v203.3 時序重構) 僅配置輕量級的前置資源，不創建 RAG。
         """
         if not self.profile:
             raise ValueError("Cannot configure pre-requisites without a loaded profile.")
@@ -3666,14 +3666,13 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v203.1 核心修正] 優先創建本地 Embedding 實例
         self.embeddings = self._create_embeddings_instance()
         
-        # 然後再構建依賴於 Embedding 的檢索器
-        self.retriever = await self._load_or_build_rag_retriever()
+        # [v203.3 核心修正] 移除在此處創建 RAG 的邏輯
+        # self.retriever = await self._load_or_build_rag_retriever()
         
-        logger.info(f"[{self.user_id}] 所有構建鏈的前置資源已準備就緒。")
-    # 配置前置資源 函式結束
+        logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
+# 配置前置資源 函式結束
 
 
 
@@ -5387,6 +5386,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
