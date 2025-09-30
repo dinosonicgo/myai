@@ -118,10 +118,16 @@ class BatchQuestsResult(BaseModel):
     """包裹批量任务信息提取结果的模型"""
     results: List[QuestItem]
 
+# schemas.py 的 WorldLoreItem 模型 (v4.1 - 結構統一)
+# 更新紀錄:
+# v4.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，將此模型的 `world_lore_info` 欄位重命名為 `info`，並將其類型改為 `WorldLore`。此修改旨在統一所有 `*Item` 模型的內部結構，確保數據合併邏輯的一致性，並解決因欄位名不匹配導致的驗證失敗問題。
+# v4.0 (2025-09-30): [重大架構重構] 為專職解析流水線創建了此模型。
 class WorldLoreItem(BaseModel):
     """包裹单个世界传说信息的模型"""
     name: str
-    world_lore_info: "WorldLore"
+    # [v4.1 核心修正] 統一結構，將 'world_lore_info' 改為 'info'
+    world_lore: "WorldLore" = Field(validation_alias=AliasChoices('world_lore', 'world_lore_info'))
+# schemas.py 的 WorldLoreItem 模型
 
 class BatchWorldLoresResult(BaseModel):
     """包裹批量世界传说信息提取结果的模型"""
@@ -545,6 +551,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
