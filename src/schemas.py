@@ -292,6 +292,10 @@ class CreatureInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
+# schemas.py 的 WorldLore 模型 (v2.1 - 新增 template_keys)
+# 更新紀錄:
+# v2.1 (2025-10-01): [架構擴展] 根據「LORE繼承與規則注入系統」設計，同步新增了 `template_keys` 欄位，使其與資料庫模型保持一致，允許程式在 Pydantic 層面處理 LORE 關聯規則。
+# v2.0 (2025-09-26): [災難性BUG修復] 將 title 欄位改名為 name 並增加 AliasChoices。
 class WorldLore(BaseModel):
     name: str = Field(description="这条传说、神话或历史事件的标准化、唯一的官方标题。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此传说的其他已知称呼或别名。")
@@ -299,12 +303,17 @@ class WorldLore(BaseModel):
     category: str = Field(default="未知", description="Lore 的分类，例如 '神话', '历史', '地方传闻', '物品背景', '角色设定'。")
     key_elements: List[str] = Field(default_factory=list, description="与此 Lore 相关的关键词或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="与此 Lore 相关的角色、地点或物品的名称列表。")
+    # [v2.1 核心修正] 新增 template_keys 欄位
     template_keys: Optional[List[str]] = Field(default=None, description="一个可选的关键词列表。任何身份(alias)匹配此列表的角色，都将继承本条LORE的content作为其行为准则。")
 
     @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
+# schemas.py 的 WorldLore 模型
+
+
+
 
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名称。", validation_alias=AliasChoices('tool_name', 'tool_code'))
@@ -536,6 +545,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
