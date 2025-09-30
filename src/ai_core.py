@@ -268,12 +268,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# 函式：解析並儲存LORE實體 (v5.0 - 移除舊校驗器)
-# ai_core.py 的 _resolve_and_save 函式 (v5.1 - 自我修正)
+# ai_core.py 的 _resolve_and_save 函式 (v5.2 - 數據流修正)
 # 更新紀錄:
-# v5.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，為批量實體解析流程增加了「自我修正」循環。現在，當 Pydantic 驗證失敗時，程式會捕獲異常，自動調用新的 JSON 修正鏈，將錯誤報告反饋給 LLM 進行修正，然後再進行一次嘗試。此修改極大地增強了處理大量、複雜 LORE 解析任務時的健壯性。
+# v5.2 (2025-09-30): [災難性BUG修復] 根據 LORE 大量丟失的問題，徹底重構了此函式的數據流。現在，在批量實體解析後，程式會明確地將所有【未被解析計畫提及】的實體自動歸類為待創建項。此修改從根本上解決了因解析計畫不完整而導致大量 LORE 數據被意外丟棄的致命缺陷。
+# v5.1 (2025-09-30): [災難性BUG修復] 增加了「自我修正」循環。
 # v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。
-# v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -296,9 +295,7 @@ class AILover:
             
             resolution_plan = None
             if new_npcs_from_parser:
-                # [v5.1 核心修正] 引入自我修正循環
                 try:
-                    # 第一次嘗試
                     resolution_prompt_template = self.get_batch_entity_resolution_prompt()
                     new_entities_json = json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False)
                     existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
@@ -316,10 +313,7 @@ class AILover:
                 except ValidationError as e:
                     logger.warning(f"[{self.user_id}] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...")
                     try:
-                        # 提取LLM返回的原始、錯誤的JSON字符串
                         raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取原始JSON"
-
-                        # 第二次嘗試：調用修正鏈
                         correction_prompt_template = self.get_json_correction_chain()
                         correction_prompt = self._safe_format_prompt(
                             correction_prompt_template,
@@ -334,27 +328,34 @@ class AILover:
                         logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 自我修正成功！")
                     except Exception as correction_e:
                         logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
-                        resolution_plan = None # 確保在失敗後 plan 為 None
-
+                        resolution_plan = None
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行時發生未知嚴重錯誤: {e}", exc_info=True)
             
             items_to_create = []
             updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
+            # [v5.2 核心修正] 數據流重構，確保沒有數據丟失
+            processed_names = set()
             if resolution_plan and resolution_plan.resolutions:
                 logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
                 for resolution in resolution_plan.resolutions:
                     original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
                     if not original_item: continue
+                    
+                    processed_names.add(resolution.original_name)
 
                     if resolution.decision.upper() in ['CREATE', 'NEW']:
                         items_to_create.append(original_item)
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                         updates_to_merge[resolution.matched_key].append(original_item)
-            else:
-                logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
-                items_to_create = new_npcs_from_parser
+            
+            # 將所有未被解析計畫提及的NPC，默認視為新創建項
+            unprocessed_items = [item for item in new_npcs_from_parser if item.get("name") not in processed_names]
+            if unprocessed_items:
+                logger.warning(f"[{self.user_id}] [實體解析] 檢測到 {len(unprocessed_items)} 個未被解析計畫覆蓋的實體，已將其自動歸類為待創建項。")
+                items_to_create.extend(unprocessed_items)
+
 
             synthesis_tasks: List[SynthesisTask] = []
             if updates_to_merge:
@@ -5746,6 +5747,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
