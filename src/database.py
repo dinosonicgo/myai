@@ -47,10 +47,11 @@ class MemoryData(Base):
     sanitized_content = Column(String, nullable=True)
 # 長期記憶數據模型 類別結束
 
-# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。這是實現「LORE繼承與規則注入系統」的資料庫層基礎，用於標識哪些LORE條目可以作為其他角色的行為模板。
+# database.py 的 Lore 類別 (v5.2 - 新增 template_keys)
+# 更新紀錄:
+# v5.2 (2025-10-01): [架構擴展] 根據「LORE繼承與規則注入系統」設計，新增了 `template_keys` 欄位。此欄位儲存一組身份關鍵詞，用於將規則 LORE（如行為規範）動態關聯到擁有對應身份的角色上，是實現知識圖譜關聯的資料庫基礎。
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。
 # v5.0 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
-# v4.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。
-# 類別：LORE (世界設定) 數據模型
 class Lore(Base):
     __tablename__ = "lore_book"
 
@@ -61,9 +62,12 @@ class Lore(Base):
     content = Column(JSON, nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
-    # [v5.1 核心修正] 新增 template_keys 欄位
-    template_keys = Column(JSON, nullable=True)
-# LORE (世界設定) 數據模型 類別結束
+    # [v5.2 核心修正] 新增 template_keys 欄位
+    template_keys = Column(JSON, nullable=True) # 用於LORE繼承
+# database.py 的 Lore 類別
+
+
+
 
 # 類別：短期場景歷史數據模型
 class SceneHistoryData(Base):
@@ -90,4 +94,5 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
 
