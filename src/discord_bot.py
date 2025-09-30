@@ -1800,7 +1800,7 @@ class BotCog(commands.Cog):
     
 
 # 指令：開始全新的冒險（重置所有資料） - 修正版本
-@app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
+@app_commands.command(name="start", description="開始全新的冒險(這將重置您所有的現有資料)")
 async def start(self, interaction: discord.Interaction):
     """處理 /start 指令，開始全新的冒險流程"""
     user_id = str(interaction.user.id)
@@ -1832,6 +1832,7 @@ async def start(self, interaction: discord.Interaction):
     # 等待使用者操作
     await view.wait()
 # 開始全新的冒險（重置所有資料） 指令結束
+
 
 
     # 指令：進入設定中心
@@ -2180,6 +2181,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
