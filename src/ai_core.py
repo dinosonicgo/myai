@@ -4219,14 +4219,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線 (v3.7 - 補全備援邏輯)
-    # ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v3.9 - 完整性修復)
-    # 更新紀錄:
-    # v3.9 (2025-11-26): [完整性修復] 根據使用者要求，提供了此函式的終極完整版本，補全了之前為簡潔而省略的第四層（混合NLP）和第五層（法醫級重構）備援方案的完整程式碼實現，確保所有降級路徑都被正確包含在分塊處理的循環中。
-    # v3.8 (2025-11-26): [灾难性BUG修复] 徹底重構此函式，引入了「分塊處理 (Chunking)」機制以解決 MAX_TOKENS 錯誤。
-    # v3.7 (2025-11-22): [完整性修復] 提供了此函式的終極完整版本，補全了所有備援方案的程式碼。
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v3.8 - 安全代碼化)
+# 更新紀錄:
+# v3.8 (2025-09-30): [災難性BUG修復] 根據 BlockedPromptException，徹底重構了此函式的核心邏輯。現在，在第一層（雲端宏觀解析）中，函式會先對傳入的文本塊（chunk）執行本地的【前置安全代碼化】，然後再將這個無害化版本發送給 LLM。此修改旨在從根本上解決因原始文本過於露骨而觸發API輸入審查的問題。
+# v3.7 (2025-11-22): [完整性修復] 提供了此函式的終極完整版本，補全了所有備援方案的程式碼。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v3.9 核心 LORE 解析引擎】執行一個五層降級的、支持分塊處理的解析管線。
+        【v3.8 核心 LORE 解析引擎】執行一個五層降級的、支持分塊處理的解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
@@ -4265,14 +4264,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             parsing_completed = False
             chunk_parsing_result: Optional["CanonParsingResult"] = None
 
-            # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
+            # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) - 應用安全代碼化 ---
             try:
                 if not parsing_completed:
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] 正在嘗試【理想方案：雲端宏觀解析】...")
+                    
+                    # [v3.8 核心修正] 在發送前進行前置安全代碼化
+                    sanitized_chunk = chunk
+                    reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                    for code, word in reversed_map:
+                        sanitized_chunk = sanitized_chunk.replace(word, code)
+
                     transformation_template = self.get_canon_transformation_chain()
                     full_prompt = self._safe_format_prompt(
                         transformation_template,
-                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": sanitized_chunk},
                         inject_core_protocol=True
                     )
                     parsing_result = await self.ainvoke_with_rotation(
@@ -4291,6 +4297,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if not parsing_completed and self.is_ollama_available:
                 try:
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] 正在嘗試【本地備援方案：無審查解析】...")
+                    # 本地模型直接處理原始文本
                     parsing_result = await self._invoke_local_ollama_parser(chunk)
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                         logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] ✅ 成功！")
@@ -4301,28 +4308,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
 
-            # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) ---
-            try:
-                if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] 正在嘗試【安全代碼方案：全文無害化解析】...")
-                    sanitized_chunk = chunk
-                    reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-                    for code, word in reversed_map:
-                        sanitized_chunk = sanitized_chunk.replace(word, code)
-
-                    parser_template = self.get_sanitized_text_parser_chain()
-                    full_prompt = self._safe_format_prompt(
-                        parser_template, {"sanitized_canon_text": sanitized_chunk}, inject_core_protocol=False
-                    )
-                    parsing_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
-                    )
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] ✅ 成功！")
-                        chunk_parsing_result = parsing_result
-                        parsing_completed = True
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] 遭遇未知錯誤: {e}", exc_info=True)
+            # --- 層級 3: 【安全代碼方案】全文無害化解析 (Gemini) - 此層級邏輯與層級1合併，故跳過 ---
+            logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] 層級3邏輯已合併至層級1，跳過。")
 
             # --- 層級 4: 【混合 NLP 方案】靶向精煉 (Gemini + spaCy) ---
             try:
@@ -4426,7 +4413,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-    # 函式：執行 LORE 解析管線
+# 函式：執行 LORE 解析管線
+
+
+
+
+
+
+
+    
 
 
 
@@ -5370,6 +5365,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
