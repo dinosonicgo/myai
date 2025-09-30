@@ -591,7 +591,7 @@ class AILover:
 
 # ai_core.py 的 get_all_entity_extractor_prompt 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-09-30): [重大架構升級] 根據「全面 LORE 解析引擎」策略，創建此全新的 Prompt 模板。它的職責被擴展為不僅僅是提取角色名，而是通讀整篇世界聖經，識別出所有類型的 LORE 實體（NPC、地點、物品等），並對其進行初步分類。此函式是新解析流水線的入口，為後續的分類別批量處理提供了「總任務列表」。
+# v1.0 (2025-10-01): [重大架構升級] 根據「分層式、RAG 驅動的專職流水線」策略，創建此全新的 Prompt 模板。它的唯一職責是作為流水線的第一階段，從長篇小說式文本中快速、輕量地識別出所有潛在 LORE 實體的名稱及其核心類別，為後續的專職解析器提供一份清晰的「待辦事項列表」。
     def get_all_entity_extractor_prompt(self) -> str:
         """獲取一個輕量級的 Prompt，專門用於從長文中提取並分類所有類型的 LORE 實體。"""
         
@@ -633,15 +633,14 @@ class BatchIdentifiedEntitiesResult(BaseModel):
 # 【你提取並分類後的所有實體列表JSON】:
 """
         return prompt_template
-# 函式：獲取所有 LORE 實體提取器 Prompt
+# ai_core.py 的 get_all_entity_extractor_prompt 函式
 
 
 
     
-# ai_core.py 的 get_batch_rag_driven_parser_prompt 函式 (v1.2 - 最終版)
+# ai_core.py 的 get_batch_rag_driven_parser_prompt 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.2 (2025-09-30): [架構重構] 將 Prompt 模板中的 Pydantic 模型定義部分，從硬編碼改為接收一個名為 `pydantic_schema_str` 的動態參數。此修改使其成為一個高度可複用的模板，能夠根據傳入的不同 Schema（CharacterProfile, LocationInfo 等），指導 LLM 執行不同類型的 LORE 批量解析任務，是實現「全面 LORE 解析引擎」的關鍵。
-# v1.1 (2025-09-30): [重大架構重構] 根據「RAG 驅動專職流水線」策略，徹底重寫了此 Prompt。
+# v1.0 (2025-10-01): [重大架構升級] 根據「分層式、RAG 驅動的專職流水線」策略，創建此全新的、高度可複用的 Prompt 模板。它作為流水線第三階段的核心，能夠接收動態的【解析焦點】和【目標 Schema】，指示 LLM 在 RAG 提供的、已聚焦的上下文上，執行高度專業化的單一提取任務（如只提取別名、或只提取外觀）。這是實現「流水線工廠」模式的關鍵。
     def get_batch_rag_driven_parser_prompt(self) -> str:
         """獲取為「批量 RAG 驅動專職流水線」設計的、可配置任務焦點和目標 Schema 的終極 Prompt 模板。"""
         
@@ -672,7 +671,7 @@ class BatchIdentifiedEntitiesResult(BaseModel):
 # 【你生成的、專注於「{parsing_focus}」的批量提取結果JSON】:
 """
         return prompt_template
-# 函式：獲取批量 RAG 驅動解析器 Prompt
+# ai_core.py 的 get_batch_rag_driven_parser_prompt 函式
 
 
 
@@ -5750,6 +5749,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
