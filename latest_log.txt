@@ -1,118 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T01:00:39.061862 ###
+### AI Lover Log - Last updated at 2025-10-01T01:05:42.201801 ###
 
-  Field required [type=missing, input_value={'name': '朱利安', 'al...利安', '莉莉絲']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.70.world_lore_info
-  Field required [type=missing, input_value={'name': '阿利斯特', ...斯特', '莉莉絲']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.71.world_lore_info
-  Field required [type=missing, input_value={'name': '瑪莉', 'alias...': ['瑪莉', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.72.world_lore_info
-  Field required [type=missing, input_value={'name': '愛莉莎', 'al...['愛莉莎', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.73.world_lore_info
-  Field required [type=missing, input_value={'name': '安娜', 'alias...': ['安娜', '絲月']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.74.world_lore_info
-  Field required [type=missing, input_value={'name': '里斯', 'alias...': ['里斯', '瑪倫']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.75.world_lore_info
-  Field required [type=missing, input_value={'name': '瑪倫', 'alias...': ['瑪倫', '里斯']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.76.world_lore_info
-  Field required [type=missing, input_value={'name': '提姆', 'alias...姆', '蓋博太太']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 805, in process_batch_task
-    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1310, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1291, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 76 validation errors for BatchWorldLoresResult
-results.1.world_lore_info
-  Field required [type=missing, input_value={'name': '性神恩澤裝...', '絲月', '諾拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.2.world_lore_info
-  Field required [type=missing, input_value={'name': '肉棒強化', ... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.3.world_lore_info
-  Field required [type=missing, input_value={'name': '精神解放', ... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.4.world_lore_info
-  Field required [type=missing, input_value={'name': '身體強化與...普', '阿拉里克']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.5.world_lore_info
-  Field required [type=missing, input_value={'name': '母畜的價值...奇特', '瓦萊麗']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.6.world_lore_info
-  Field required [type=missing, input_value={'name': '母畜在宅邸... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.7.world_lore_info
-  Field required [type=missing, input_value={'name': '性神教', 'al...', '米婭', '卡蓮']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.8.world_lore_info
-  Field required [type=missing, input_value={'name': '聖女的誕生...['絲月', '莉莉絲']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.9.world_lore_info
-  Field required [type=missing, input_value={'name': '聖露修道院...', '絲月', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.10.world_lore_info
-  Field required [type=missing, input_value={'name': '秘密的盟約...王', '維利爾斯']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.11.world_lore_info
-  Field required [type=missing, input_value={'name': '皇家的皈依...d_entities': ['國王']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.12.world_lore_info
-  Field required [type=missing, input_value={'name': '全新的秩序...s': ['赫克托皇子']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.13.world_lore_info
-  Field required [type=missing, input_value={'name': '聖軍的雛形...索爾德', '博林']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.14.world_lore_info
-  Field required [type=missing, input_value={'name': '城鎮區與聖...安', '阿利斯特']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.15.world_lore_info
-  Field required [type=missing, input_value={'name': '貧民窟線劇...', '湯姆', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.16.world_lore_info
-  Field required [type=missing, input_value={'name': '第二個神蹟...', '凱爾', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.17.world_lore_info
-  Field required [type=missing, input_value={'name': '信仰的發酵...', '凱爾', '艾拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.18.world_lore_info
-  Field required [type=missing, input_value={'name': '禁忌的解放...', '凱爾', '艾拉']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.19.world_lore_info
-  Field required [type=missing, input_value={'name': '風暴的來臨..., '維利爾斯勳爵']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.20.world_lore_info
-  Field required [type=missing, input_value={'name': '性神信仰體...勳爵', '夏卡爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.21.world_lore_info
-  Field required [type=missing, input_value={'name': '學院與城鎮...博太太', '提姆']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.22.world_lore_info
-  Field required [type=missing, input_value={'name': '貴族與皇室...將軍', '艾莉諾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.23.world_lore_info
-  Field required [type=missing, input_value={'name': '關於「性神...ntities': ['夏卡爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.24.world_lore_info
-  Field required [type=missing, input_value={'name': '關於「性神...勳爵', '夏卡爾']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.25.world_lore_info
-  Field required [type=missing, input_value={'name': '關於「性神... 'related_entities': []}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.26.world_lore_info
-  Field required [type=missing, input_value={'name': '第一次交鋒...勒留斯', '米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-results.27.world_lore_info
-  Field required [type=missing, input_value={'name': '第二次交鋒...婭', '瓦勒留斯']}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 results.28.world_lore_info
   Field required [type=missing, input_value={'name': '「聖露修道... ['維利爾斯勳爵']}, input_type=dict]
@@ -300,3 +187,116 @@ results.76.world_lore_info
 2025-10-01 01:00:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 01:00:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 01:00:29 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 01:01:35 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-01 01:01:35 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-01 01:01:35 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-01 01:01:36 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-01 01:01:36 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-01 01:01:36 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-01 01:01:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-01 01:01:42 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-01 01:01:43 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 01:01:43 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-01 01:01:43 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 01:01:43 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 01:01:43 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 01:01:51 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 01:01:51 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 01:01:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-01 01:01:51 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-01 01:01:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 01:01:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-01 01:02:02 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-01 01:02:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-01 01:02:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 01:02:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-01 01:02:13 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-01 01:02:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-01 01:02:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 01:02:15 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-01 01:02:22 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-10-01 01:02:25 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-10-01 01:02:33 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
+2025-10-01 01:02:33 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
+2025-10-01 01:02:33 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
+2025-10-01 01:02:33 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
+2025-10-01 01:03:18 - [INFO] - [512280345618546699] (Canon Processor) ✅ 世界聖經已成功添加到 ChromaDB。
+2025-10-01 01:03:18 - [INFO] - [512280345618546699] [後台創世 2/6] RAG 索引填充並重載完成。
+2025-10-01 01:03:18 - [INFO] - [512280345618546699] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...
+2025-10-01 01:03:18 - [INFO] - [512280345618546699] [RAG驱动解析 1/3] 正在使用 LLM 提取并分类所有 LORE 实体...
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [RAG驱动解析 1/3] 成功识别出 246 个 LORE 任务。
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [RAG驱动解析 2/3] 正在按类别分发任务，并使用【受控並行批量處理】模式启动所有专职解析流水线...
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 1/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 2/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:03:31 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 3/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:03:32 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:03:32 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:03:32 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ACTION-C', 'ACTION-E', 'ROLE-D', 'CODE-F-GEN-A', 'ROLE-B', 'CODE-F-GEN-C']
+2025-10-01 01:03:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 73205 秒)。
+2025-10-01 01:03:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 76848 秒)。
+2025-10-01 01:03:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:03:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:03:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:03:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:03:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:03:56 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 3/40] ✅ 處理成功。
+2025-10-01 01:03:56 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 4/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:04:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:04:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-01 01:04:01 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
+2025-10-01 01:04:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:04:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:04:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:04:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:04:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 4/40] ✅ 處理成功。
+2025-10-01 01:04:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 5/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:04:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 1/40] ✅ 處理成功。
+2025-10-01 01:04:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 6/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:04:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:04:16 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 2/40] ✅ 處理成功。
+2025-10-01 01:04:16 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 7/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:04:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:04:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:04:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:04:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:04:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:04:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:04:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 5/40] ✅ 處理成功。
+2025-10-01 01:04:29 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 8/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:04:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:04:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:04:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:04:44 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:04:44 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-A', 'ROLE-D']
+2025-10-01 01:04:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:04:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:04:52 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 6/40] ✅ 處理成功。
+2025-10-01 01:04:52 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 9/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:05:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-10-01 01:05:01 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchCoreInfoResult)...
+2025-10-01 01:05:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:05:02 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 7/40] ✅ 處理成功。
+2025-10-01 01:05:02 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 10/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:05:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 01:05:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:05:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-01 01:05:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 01:05:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 9/40] ✅ 處理成功。
+2025-10-01 01:05:14 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 11/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:05:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-01 01:05:16 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 10/40] ✅ 處理成功。
+2025-10-01 01:05:16 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 12/40] 已獲取許可，開始處理 3 個實體...
+2025-10-01 01:05:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-01 01:05:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 01:05:21 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-01 01:05:21 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['ROLE-D']
+2025-10-01 01:05:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-01 01:05:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
