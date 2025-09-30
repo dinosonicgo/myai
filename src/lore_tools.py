@@ -250,15 +250,15 @@ async def add_or_update_world_lore(lore_key: str, standardized_name: str, origin
 
 # --- [v3.5新增] LORE 規則繼承工具 ---
 
-# 類別：更新 LORE 繼承規則的參數 (v1.0 - 全新創建)
+# lore_tools.py 的 UpdateLoreTemplateKeysArgs 類別 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「LORE繼承系統」的需求，創建此 Pydantic 模型，用於定義 update_lore_template_keys 工具的參數。
+# v1.0 (2025-10-01): [全新創建] 根據「LORE繼承系統」的需求，創建此 Pydantic 模型，用於定義 `update_lore_template_keys` 工具的參數，明確了修改 LORE 關聯規則時所需的輸入結構。
 class UpdateLoreTemplateKeysArgs(BaseToolArgs):
     """用於更新LORE條目繼承規則的工具參數。"""
     lore_category: str = Field(description="要修改的LORE條目所屬的類別，例如 'world_lore'。")
     lore_key: str = Field(description="要修改的LORE條目的精確主鍵（lore_key）。")
     template_keys: List[str] = Field(description="一個身份關鍵詞列表。任何角色的aliases匹配此列表，都將繼承該LORE的規則。")
-# 類別：更新 LORE 繼承規則的參數
+# lore_tools.py 的 UpdateLoreTemplateKeysArgs 類別
 
 # 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -322,3 +322,4 @@ def get_lore_tools() -> List[Tool]:
         update_lore_template_keys,
     ]
 # 函式：獲取所有 LORE 工具
+
