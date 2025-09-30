@@ -1127,12 +1127,11 @@ class BotCog(commands.Cog):
 
 
     
-    # 函式：執行完整的後台創世流程
-# discord_bot.py 的 _perform_full_setup_flow 函式 (v1.5 - 終極流水線)
+# discord_bot.py 的 _perform_full_setup_flow 函式 (v1.6 - 補全LORE儲存)
 # 更新紀錄:
-# v1.5 (2025-09-30): [重大架構重構] 此函式現在協調終極的「RAG 驅動專職流水線」。流程被更新為：1. 創始化 RAG -> 2. 填充 RAG -> 3. 調用全新的 `_rag_driven_lore_creation` 進行 LORE 的深度提取與結構化 -> 4. 將返回的完整 LORE 結果持久化到資料庫 -> 5. 繼續後續的創世步驟。
+# v1.6 (2025-09-30): [災難性BUG修復] 根據 LORE 大量丟失的問題，補全了在創世流程中對所有 LORE 類別（地點、物品、生物、任務、世界傳說）的 `_resolve_and_save` 調用。此修改確保了專職流水線解析出的所有類型的 LORE 數據都能被完整地持久化到資料庫，從根本上解決了數據流斷裂的問題。
+# v1.5 (2025-09-30): [重大架構重構] 此函式現在協調終極的「RAG 驅動專職流水線」。
 # v1.4 (2025-09-30): [災難性BUG修復] 修正了創世流程的數據流。
-# v1.3 (2025-09-30): [災難性BUG修復] 對創世流程的時序進行了終極重構。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
         """一個獨立的背景任務，負責執行全新的、時序絕對正確的「RAG驅動專職流水線」創世流程。"""
         user_id = str(user.id)
@@ -1145,17 +1144,12 @@ class BotCog(commands.Cog):
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- [v1.5 核心修正] 終極流水線流程 ---
-
-            # --- 步驟 1: 強制重建一個空的 RAG 索引容器 ---
             if canon_text:
                 logger.info(f"[{user_id}] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...")
                 await ai_instance._release_rag_resources()
                 await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
                 logger.info(f"[{user_id}] [後台創世 1/6] 空的 RAG 容器已準備就緒。")
 
-            # --- 步驟 2: 將世界聖經原文填充進 RAG ---
-            if canon_text:
                 logger.info(f"[{user_id}] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...")
                 await ai_instance.add_canon_to_vector_store(canon_text)
                 ai_instance.bm25_retriever = BM25Retriever.from_documents(ai_instance.bm25_corpus)
@@ -1167,29 +1161,31 @@ class BotCog(commands.Cog):
                 )
                 logger.info(f"[{user_id}] [後台創世 2/6] RAG 索引填充並重載完成。")
             
-            # --- 步驟 3: RAG 驅動的 LORE 深度創建 ---
             parsing_result_from_pipeline: Optional[CanonParsingResult] = None
             if canon_text:
                 logger.info(f"[{user_id}] [後台創世 3/6] 正在啟動 RAG 驅動的專職流水線進行 LORE 解析...")
                 parsing_result_from_pipeline = await ai_instance._rag_driven_lore_creation(canon_text)
                 logger.info(f"[{user_id}] [後台創世 3/6] 專職流水線解析完成。")
 
-            # --- 步驟 4: 將解析結果持久化到 SQL 資料庫 ---
             if parsing_result_from_pipeline:
                 logger.info(f"[{user_id}] [後台創世 4/6] 正在將解析出的 LORE 結果持久化到資料庫...")
+                
+                # [v1.6 核心修正] 為所有 LORE 類別補全儲存調用
                 await ai_instance._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result_from_pipeline.npc_profiles])
-                # 此處可以擴展以處理其他LORE類型
+                await ai_instance._resolve_and_save("locations", [loc.model_dump() for loc in parsing_result_from_pipeline.locations])
+                await ai_instance._resolve_and_save("items", [item.model_dump() for item in parsing_result_from_pipeline.items])
+                await ai_instance._resolve_and_save("creatures", [creature.model_dump() for creature in parsing_result_from_pipeline.creatures])
+                await ai_instance._resolve_and_save("quests", [q.model_dump() for q in parsing_result_from_pipeline.quests], title_key='name')
+                await ai_instance._resolve_and_save("world_lores", [wl.model_dump() for wl in parsing_result_from_pipeline.world_lores], title_key='name')
+                
                 logger.info(f"[{user_id}] [後台創世 4/6] LORE 持久化完成。")
             
-            # --- 步驟 5: 補完角色檔案 ---
             logger.info(f"[{user_id}] [後台創世 5/6] 正在補完使用者與 AI 的角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步驟 6: 生成世界創世資訊 ---
             logger.info(f"[{user_id}] [後台創世 6/6] 正在生成世界創世資訊...")
             await ai_instance.generate_world_genesis(canon_text=canon_text)
             
-            # --- 步驟 7: 生成開場白 (合併到最後一步) ---
             logger.info(f"[{user_id}] [後台創世 7/7] 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [後台創世 7/7] 開場白生成完毕並發送...")
@@ -1211,7 +1207,6 @@ class BotCog(commands.Cog):
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 函式：執行完整的後台創世流程
-
 
 
     
@@ -1876,6 +1871,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
