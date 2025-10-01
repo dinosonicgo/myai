@@ -34,20 +34,6 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
-# --- [v1.3 新增] 混合 NLP 流程所需模型 ---
-class CharacterSkeleton(BaseModel):
-    """用於混合 NLP 第一階段，表示一個角色的最基本骨架信息。"""
-    name: str = Field(description="角色的名字。必須是文本中明確提到的、最常用的名字。")
-    description: str = Field(description="一句話總結該角色的核心身份、職業或在當前文本塊中的主要作用。")
-
-class ExtractionResult(BaseModel):
-    """包裹第一階段實體骨架提取結果的模型。"""
-    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
-
-class BatchRefinementResult(BaseModel):
-    """包裹第二階段批量深度精煉結果的模型。"""
-    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
-
 # schemas.py 的 CharacterProfile 模型 (v2.2 - 親和力驗證修正)
 # 更新紀錄:
 # v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。此驗證器會在 Pydantic 進行類型檢查前，自動將傳入的浮點數（如 0.75）強制轉換為整數，從根本上解決了因 LLM 生成非標準數據類型而導致的 ValidationError。
@@ -124,6 +110,23 @@ class CharacterProfile(BaseModel):
             return int(value)
         return value
 # CharacterProfile 模型結束
+
+
+# --- [v1.3 新增] 混合 NLP 流程所需模型 ---
+class CharacterSkeleton(BaseModel):
+    """用於混合 NLP 第一階段，表示一個角色的最基本骨架信息。"""
+    name: str = Field(description="角色的名字。必須是文本中明確提到的、最常用的名字。")
+    description: str = Field(description="一句話總結該角色的核心身份、職業或在當前文本塊中的主要作用。")
+
+class ExtractionResult(BaseModel):
+    """包裹第一階段實體骨架提取結果的模型。"""
+    characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
+
+class BatchRefinementResult(BaseModel):
+    """包裹第二階段批量深度精煉結果的模型。"""
+    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
+
+
 
 class BatchRefinementResult(BaseModel):
     """包裹第二階段批量深度精煉結果的模型。"""
@@ -480,6 +483,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
