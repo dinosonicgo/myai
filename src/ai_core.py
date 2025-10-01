@@ -2230,9 +2230,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return self.euphemization_reconstruction_chain
     # 獲取委婉化重構器 Prompt 函式結束
 
-    # 函式：獲取實體骨架提取器 Prompt
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此 Prompt 作為“LLM驅動預處理”策略的核心。它的唯一任務是從一個大的、非結構化的文本塊中，快速、批量地識別出所有潛在的角色實體，並為每個實體提取最核心的一句話描述，為後續的深度精煉提供目標列表。
+# 檔案：ai_core.py
+
+# 函式：獲取實體骨架提取器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-23): [全新創建] 創建此 Prompt 作為“LLM驅動預處理”策略的核心。它的唯一任務是從一個大的、非結構化的文本塊中，快速、批量地識別出所有潛在的角色實體，並為每個實體提取最核心的一句話描述，為後續的深度精煉提供目標列表。
     def get_entity_extraction_chain(self) -> str:
         """獲取一個為第一階段“實體識別與粗提取”設計的、輕量級的Prompt模板。"""
         
@@ -2271,7 +2273,7 @@ class ExtractionResult(BaseModel):
 # 【提取出的角色骨架列表JSON】:
 """
         return self.core_protocol_prompt + "\n\n" + base_prompt
-    # 函式：獲取實體骨架提取器 Prompt
+# 函式：獲取實體骨架提取器 Prompt (v1.0 - 全新創建)
 
     
     
@@ -2831,11 +2833,13 @@ class ExtractionResult(BaseModel):
     
     
 
-    # 函式：背景LORE精煉
-    # 更新紀錄:
-    # v1.3 (2025-09-23): [質量修正] 在將最終精煉結果寫入數據庫之前，增加了對 `_decode_lore_content` 的強制調用。此修改確保了即使是經過第二階段深度精煉的LORE，其包含的任何技術代碼也會被正確還原為原始NSFW詞彙，保證了數據庫的最終一致性和可讀性。
-    # v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。現在，函式會將待處理的 LORE 分組，每次為一整組生成單一的 Prompt 並進行一次 LLM 調用，將數百次 API 調用大幅減少至數十次，極大地提升了效率並降低了觸發速率限制的風險。
-    # v1.1 (2025-09-23): [架構重構] 根據 `_safe_format_prompt` 的升級，改為使用 `inject_core_protocol=True` 參數來可靠地注入最高指導原則。
+# 檔案：ai_core.py
+
+# 函式：背景LORE精煉 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-02): [全新創建] 創建此函式作為「混合 NLP 深度精煉」管線的核心。它負責編排第二和第三階段的流程：首先通過程式化的方式，為每個由第一階段解析出的 NPC 聚合其在原文中的所有相關上下文，然後將這些高度聚焦的信息批量發送給一個專門的深度解析 LLM，以生成細節完整、結構正確的最終角色檔案。
+# v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。
+# v1.3 (2025-09-23): [質量修正] 在將最終精煉結果寫入數據庫之前，增加了對 `_decode_lore_content` 的強制調用。
     async def _background_lore_refinement(self, canon_text: str):
         """
         (背景任務) 對第一階段解析出的 LORE 進行第二階段的深度精煉。
@@ -2868,12 +2872,16 @@ class ExtractionResult(BaseModel):
                     character_name = lore.content.get('name')
                     if not character_name: continue
 
+                    # 步驟 2: 靶向上下文聚合
                     aliases = [character_name] + lore.content.get('aliases', [])
+                    # 創建一個正則表達式，匹配任何一個名字或別名
                     name_pattern = re.compile('|'.join(re.escape(name) for name in set(aliases) if name))
                     
                     plot_context_parts = []
+                    # 從完整的聖經原文中查找所有提及該角色的地方
                     for match in name_pattern.finditer(canon_text):
                         start, end = match.span()
+                        # 擴展上下文窗口
                         context_start = max(0, start - 200)
                         context_end = min(len(canon_text), end + 200)
                         plot_context_parts.append(f"...{canon_text[context_start:context_end]}...")
@@ -2897,6 +2905,7 @@ class ExtractionResult(BaseModel):
                 batch_input_str = "\n".join(batch_input_str_parts)
 
                 try:
+                    # 步驟 3: 深度細節精煉
                     full_prompt = self._safe_format_prompt(
                         details_parser_template,
                         {"batch_input": batch_input_str},
@@ -2906,7 +2915,7 @@ class ExtractionResult(BaseModel):
                     batch_result = await self.ainvoke_with_rotation(
                         full_prompt,
                         output_schema=BatchRefinementResult,
-                        retry_strategy='none' 
+                        retry_strategy='none' # 精煉失敗就是失敗，避免產生幻覺
                     )
 
                     if not batch_result or not batch_result.refined_profiles:
@@ -2922,10 +2931,12 @@ class ExtractionResult(BaseModel):
                         original_data = original_lore.content
                         refined_data = refined_profile.model_dump(exclude_unset=True)
 
+                        # 合併數據：以精煉後的數據為準，但保留原始數據中未被覆蓋的部分
                         for key, value in refined_data.items():
-                            if value not in [None, "", [], {}]:
+                            if value not in [None, "", [], {}]: # 只有當精煉結果有實質內容時才覆蓋
                                 original_data[key] = value
                         
+                        # 確保核心 name 欄位被正確設置
                         original_data['name'] = refined_profile.name
 
                         # [v1.3 核心修正] 在保存前執行最終解碼
@@ -2936,7 +2947,7 @@ class ExtractionResult(BaseModel):
                             category='npc_profile',
                             key=original_lore.key,
                             content=final_content_to_save,
-                            source='canon_refiner'
+                            source='canon_refiner' # 將來源標記為“已精煉”
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新角色 '{refined_profile.name}' 的檔案。")
 
@@ -2947,7 +2958,7 @@ class ExtractionResult(BaseModel):
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-    # 函式：背景LORE精煉
+# 函式：背景LORE精煉 (v1.0 - 全新創建)
 
     
 # 函式：獲取事後分析器 Prompt (v2.0 - 結構化修正)
@@ -4099,21 +4110,21 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v14.0 - RAG源頭修正)
+# 檔案：ai_core.py
+
+# 函式：解析並從世界聖經創建LORE (v15.0 - 異步精煉)
 # 更新紀錄:
-# v14.0 (2025-10-02): [根本性重構] 在函式最開始增加了對 `add_canon_to_vector_store` 的強制調用。此修改確保了世界聖經的【完整原文】在執行任何解析之前，就被切塊並存入 RAG 知識庫。這從根本上解決了 RAG 系統只能檢索到碎片化LORE卡片，而丟失關鍵敘事上下文的問題。
+# v15.0 (2025-10-02): [架構升級] 將 LORE 精煉流程解耦。此函式現在只負責執行第一階段的快速解析並保存一個「粗略版」的 LORE。然後，它會通過 `asyncio.create_task` 異步地、非阻塞地觸發一個全新的 `_background_lore_refinement` 背景任務，由該任務在後台負責對這些粗略的 LORE 進行第二階段的深度精煉。
+# v14.0 (2025-10-02): [根本性重構] 在函式最開始增加了對 `add_canon_to_vector_store` 的強制調用。
 # v13.4 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式末尾所有與 RAG 資源管理相關的程式碼。
-# v13.3 (2025-09-30): [災難性BUG修復] 增加了對 `_release_rag_resources()` 的調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並將結果存入 SQL 資料庫。
-        (v14.0) 此函式現在首先會將聖經原文完整存入RAG，然後再進行結構化解析。
+        【總指揮】啟動 LORE 解析管線，保存粗略結果，然後在背景中異步觸發深度精煉任務。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
-        # [v14.0 核心修正] 在所有處理開始前，首先將原始聖經文本存入 RAG 知識庫
         if canon_text and canon_text.strip():
             try:
                 logger.info(f"[{self.user_id}] [RAG源頭注入] 正在將世界聖經原文寫入 RAG 知識庫...")
@@ -4121,114 +4132,38 @@ class ExtractionResult(BaseModel):
                 logger.info(f"[{self.user_id}] [RAG源頭注入] ✅ 成功！世界聖經原文已被分解為 {chunk_count} 個知識片段存入 RAG。")
             except Exception as e:
                 logger.error(f"[{self.user_id}] [RAG源頭注入] 🔥 將世界聖經原文存入 RAG 時發生嚴重錯誤: {e}", exc_info=True)
-                # 即使此步驟失敗，也應繼續嘗試解析，以保證 LORE 系統的基本功能
         
-        logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 正在啟動多層降級解析管線以進行快速宏觀解析...")
         
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+            logger.error(f"[{self.user_id}] [LORE解析階段1/2] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
             return
 
-        # 步驟 2: 植入「源頭真相」校驗器
-        validated_result = await self._programmatic_lore_validator(parsing_result_object, canon_text)
-
-        # 步驟 2.5: 增加程式化的【最終防線過濾器】
-        if validated_result.npc_profiles:
+        # [v15.0 核心修正] 不再在此處進行複雜的校驗，只進行最基本的過濾和儲存
+        if parsing_result_object.npc_profiles:
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
-            
-            original_count = len(validated_result.npc_profiles)
-            
-            filtered_profiles = [
-                p for p in validated_result.npc_profiles 
+            parsing_result_object.npc_profiles = [
+                p for p in parsing_result_object.npc_profiles 
                 if p.name.lower() not in {user_name_lower, ai_name_lower}
             ]
-            
-            removed_count = original_count - len(filtered_profiles)
-            if removed_count > 0:
-                logger.warning(f"[{self.user_id}] [最終防線] 已成功過濾並移除了 {removed_count} 個被錯誤識別為NPC的核心主角檔案。")
-            
-            validated_result.npc_profiles = filtered_profiles
         
-        # 步驟 3: 规则模板自动识别与链接模块
-        logger.info(f"[{self.user_id}] [LORE自動鏈接] 正在啟動規則模板自動識別與鏈接模塊...")
-        if validated_result.world_lores:
-            all_parsed_aliases = set()
-            if validated_result.npc_profiles:
-                for npc in validated_result.npc_profiles:
-                    all_parsed_aliases.add(npc.name)
-                    if npc.aliases:
-                        all_parsed_aliases.update(npc.aliases)
-
-            rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
-            
-            for lore in validated_result.world_lores:
-                # 兼容 title 和 name 字段
-                lore_name = lore.name if hasattr(lore, 'name') else getattr(lore, 'title', '')
-                if any(keyword in lore_name for keyword in rule_keywords):
-                    potential_keys = set()
-                    for alias in all_parsed_aliases:
-                        if alias and alias in lore_name:
-                            potential_keys.add(alias)
-                    
-                    if potential_keys:
-                        existing_keys = set(lore.template_keys or [])
-                        all_keys = existing_keys.union(potential_keys)
-                        lore.template_keys = list(all_keys)
-                        logger.info(f"[{self.user_id}] [LORE自動鏈接] ✅ 成功！已自動為規則 '{lore_name}' 鏈接到身份: {lore.template_keys}")
+        # 快速保存第一階段的「粗略版」結果
+        await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result_object.npc_profiles])
+        await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result_object.locations])
+        await self._resolve_and_save("items", [p.model_dump() for p in parsing_result_object.items])
+        await self._resolve_and_save("creatures", [p.model_dump() for p in parsing_result_object.creatures])
+        await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result_object.quests])
+        await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in parsing_result_object.world_lores])
         
-        # 步驟 4: 事後關係圖譜校準模塊
-        logger.info(f"[{self.user_id}] [關係圖譜校準] 正在啟動事後關係校準模塊...")
-        if validated_result.npc_profiles:
-            profiles_by_name = {profile.name: profile for profile in validated_result.npc_profiles}
-            
-            inverse_roles = {
-                "主人": "僕人", "僕人": "主人", "父親": "子女", "母親": "子女", "兒子": "父母", "女兒": "父母",
-                "丈夫": "妻子", "妻子": "丈夫", "戀人": "戀人", "情人": "情人", "崇拜對象": "崇拜者", "崇拜者": "崇拜對象",
-                "敵人": "敵人", "宿敵": "宿敵", "朋友": "朋友", "摯友": "摯友", "老師": "學生", "學生": "老師",
-            }
-
-            for source_profile in validated_result.npc_profiles:
-                for target_name, rel_detail in list(source_profile.relationships.items()):
-                    target_profile = profiles_by_name.get(target_name)
-                    if not target_profile: continue
-
-                    inverse_rel_roles = []
-                    for role in rel_detail.roles:
-                        inverse_role = inverse_roles.get(role)
-                        if inverse_role: inverse_rel_roles.append(inverse_role)
-                    
-                    if not inverse_rel_roles and rel_detail.type: inverse_rel_roles.append(rel_detail.type)
-
-                    target_has_relationship = target_profile.relationships.get(source_profile.name)
-
-                    if not target_has_relationship:
-                        target_profile.relationships[source_profile.name] = RelationshipDetail(type=rel_detail.type, roles=inverse_rel_roles)
-                        logger.info(f"[{self.user_id}] [關係圖譜校準] 創建反向鏈接: {target_profile.name} -> {source_profile.name} (Roles: {inverse_rel_roles})")
-                    else:
-                        existing_roles = set(target_has_relationship.roles)
-                        new_roles_to_add = set(inverse_rel_roles)
-                        if not new_roles_to_add.issubset(existing_roles):
-                            updated_roles = list(existing_roles.union(new_roles_to_add))
-                            target_has_relationship.roles = updated_roles
-                            logger.info(f"[{self.user_id}] [關係圖譜校準] 更新反向鏈接: {target_profile.name} -> {source_profile.name} (New Roles: {updated_roles})")
-
-        # 步驟 5: 儲存經過校驗、自動鏈接和關係校準的LORE
-        if validated_result:
-            await self._resolve_and_save("npc_profiles", [p.model_dump() for p in validated_result.npc_profiles])
-            await self._resolve_and_save("locations", [p.model_dump() for p in validated_result.locations])
-            await self._resolve_and_save("items", [p.model_dump() for p in validated_result.items])
-            await self._resolve_and_save("creatures", [p.model_dump() for p in validated_result.creatures])
-            await self._resolve_and_save("quests", [p.model_dump() for p in validated_result.quests])
-            await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in validated_result.world_lores])
-            
-            logger.info(f"[{self.user_id}] [創世 LORE 解析] LORE 已成功解析並存入 SQL 資料庫。")
-            
-        else:
-            logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
-# 函式：解析並從世界聖經創建LORE (v14.0 - RAG源頭修正)
+        logger.info(f"[{self.user_id}] [LORE解析階段1/2] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。")
+        
+        # [v15.0 核心修正] 異步觸發背景深度精煉任務，不阻塞當前流程
+        logger.info(f"[{self.user_id}] [LORE解析] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...")
+        asyncio.create_task(self._background_lore_refinement(canon_text))
+# 函式：解析並從世界聖經創建LORE (v15.0 - 異步精煉)
 
 
 
@@ -4591,10 +4526,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-    # 函式：獲取角色細節深度解析器 Prompt
-    # 更新紀錄:
-    # v2.1 (2025-09-23): [抗審查重構] 徹底重寫了任務描述，使其明確處理“批量”和“可能經過代碼化”的輸入，並強制要求輸出也使用技術代碼。這使其抗審查邏輯與法醫級重構器保持一致，從根本上解決了精煉過程中的 BlockedPromptException。
-    # v2.0 (2025-09-23): [終極重構] 根據“混合NLP”策略，徹底重寫此Prompt。它不再接收LORE骨架和原始文本，而是接收一份由本地正則表達式預解析出的【初步數據字典】和一份僅包含相關劇情的【劇情上下文】。其任務被重新定義為：將初步數據字典的鍵值對（如'年齡/外貌'）正確地拆分並映射到Pydantic模型的字段中，同時從劇情上下文中提煉深層次的性格和背景信息。
+# 檔案：ai_core.py
+
+# 函式：獲取角色細節深度解析器 Prompt (v2.0 - 終極重構)
+# 更新紀錄:
+# v2.0 (2025-09-23): [終極重構] 根據“混合NLP”策略，徹底重寫此Prompt。它不再接收LORE骨架和原始文本，而是接收一份由本地正則表達式預解析出的【初步數據字典】和一份僅包含相關劇情的【劇情上下文】。其任務被重新定義為：將初步數據字典的鍵值對（如'年齡/外貌'）正確地拆分並映射到Pydantic模型的字段中，同時從劇情上下文中提煉深層次的性格和背景信息。
+# v2.1 (2025-09-23): [抗審查重構] 徹底重寫了任務描述，使其明確處理“批量”和“可能經過代碼化”的輸入，並強制要求輸出也使用技術代碼。
     def get_character_details_parser_chain(self) -> str:
         """獲取一個為“混合NLP”策略的最後一步——語義精煉——而專門設計的字符串模板。"""
         
@@ -4644,8 +4581,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【最終生成的批量精煉結果JSON】:
 """
         return base_prompt
-    # 函式：獲取角色細節深度解析器 Prompt
-
+# 函式：獲取角色細節深度解析器 Prompt (v2.0 - 終極重構)
 
 
     
@@ -5414,6 +5350,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
