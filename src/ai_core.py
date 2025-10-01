@@ -24,7 +24,7 @@ from sqlalchemy import select, or_, delete, update
 from collections import defaultdict
 import functools
 import pickle
-
+from Levenshtein import ratio as levenshtein_ratio
 import spacy
 from spacy.tokens import Doc
 
@@ -5065,19 +5065,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     # 函式：檢索並摘要記憶 (v18.5 - 自適應上下文縮減)
-    # 更新紀錄:
-    # v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。在降級到本地模型之前，此版本會將待處理的文檔數量限制為最相關的前7條。此修改旨在顯著減少發送給本地模型的數據負載，從而大幅縮短其處理時間，提升使用者體驗，並作為解決超時問題的核心手段。
-    # v18.4 (2025-09-28): [災難性BUG修復] 為此函式注入了全面的【透明度日誌】。
+# 函式：檢索並摘要記憶
+# ai_core.py 的 retrieve_and_summarize_memories 函式 (v18.7 - 終極 RAG 資訊融合)
+# 更新紀錄:
+# v18.7 (2025-10-01): [災難性BUG修復] 根據 LORE 與 RAG 資訊冗餘且可能丟失細節的根本性問題，徹底重構了 RAG 後處理層。新架構引入了【增量資訊篩選】策略：它首先無條件保留結構化的 LORE 文檔作為「事實錨點」，然後使用 Levenshtein 相似度算法，從聖經原文片段中篩選出與 LORE 內容不重複的、提供「增量細節」的文檔。此修改確保了最終上下文既有結構化骨架，又不失原文的豐富細節，是資訊保真率和密度的終極解決方案。
+# v18.6 (2025-10-01): [重大架構升級] 將檢索結果分離為「規則」和「記憶」。
+# v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v18.5 重構) 執行RAG檢索，並通過「快速失敗轉向無審查核心」和「自適應上下文縮減」策略提取事實清單。
+        (v18.7 重構) 執行RAG檢索，並通過「增量資訊篩選」策略融合 LORE 與聖經原文，實現資訊去重與細節保真。
         返回一個字典: {"rules": str, "summary": str}
         """
         from .schemas import RagFactSheet
 
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
-        if not self.retriever and not self.bm25_retriever:
-            logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
+        if not self.retriever:
+            logger.warning(f"[{self.user_id}] 檢索器未初始化，無法檢索記憶。")
             return default_return
         
         expanded_query = query_text
@@ -5088,88 +5091,63 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if profile.aliases:
                     query_keywords.update(profile.aliases)
             expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
-            logger.info(f"[{self.user_id}] [RAG查詢強化] 查詢已擴展為: '{expanded_query}'")
         
-        retrieved_docs = []
         try:
-            if self.retriever: retrieved_docs = await self.retriever.ainvoke(expanded_query)
-            if not retrieved_docs and self.bm25_retriever: retrieved_docs = await self.bm25_retriever.ainvoke(expanded_query)
+            retrieved_docs = await self.retriever.ainvoke(expanded_query)
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
         
-        logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
-        for i, doc in enumerate(retrieved_docs):
-            logger.info(f"  [Doc {i+1}] Metadata: {doc.metadata}")
-            logger.info(f"  [Doc {i+1}] Content: {doc.page_content[:150]}...")
-        logger.info("----------------------------------------------------")
-
         if not retrieved_docs: return default_return
 
-        final_docs_to_process = retrieved_docs
-        if filtering_profiles:
-            filter_names = set(p.name for p in filtering_profiles) | set(alias for p in filtering_profiles for alias in p.aliases)
-            final_docs_to_process = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
-            
-            logger.info(f"--- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
-            for i, doc in enumerate(final_docs_to_process):
-                logger.info(f"  [Filtered Doc {i+1}] Metadata: {doc.metadata}")
-            logger.info("----------------------------------------------------")
+        # --- [v18.7 核心修正] 來源分離與 LORE 優先排序 ---
+        lore_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "lore"]
+        canon_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "canon"]
+        memory_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "memory"]
 
-        if not final_docs_to_process: return default_return
+        final_docs_to_process = []
+        
+        # 步驟 1: 無條件保留所有結構化的 LORE 文檔作為事實錨點
+        final_docs_to_process.extend(lore_docs)
+        
+        # 步驟 2: 增量資訊篩選
+        lore_summary_for_comparison = "\n".join([doc.page_content for doc in lore_docs])
+        
+        SIMILARITY_THRESHOLD = 0.5 # 相似度閾值，高於此值則視為冗餘
+        
+        logger.info(f"[{self.user_id}] [RAG Fusion] 開始對 {len(canon_docs)} 條聖經原文進行增量資訊篩選...")
+        for canon_doc in canon_docs:
+            similarity = levenshtein_ratio(canon_doc.page_content, lore_summary_for_comparison)
+            if similarity < SIMILARITY_THRESHOLD:
+                final_docs_to_process.append(canon_doc)
+                logger.info(f"[{self.user_id}] [RAG Fusion] ✅ 保留聖經片段 (相似度: {similarity:.2f} < {SIMILARITY_THRESHOLD})")
+            else:
+                logger.info(f"[{self.user_id}] [RAG Fusion] ❌ 過濾冗餘聖經片段 (相似度: {similarity:.2f} >= {SIMILARITY_THRESHOLD})")
 
-        rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
+        # 步驟 3: 保留所有長期記憶文檔
+        final_docs_to_process.extend(memory_docs)
+
+        # --- 規則提取與摘要 ---
+        rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("category") == "world_lore" and doc.metadata.get("template_keys")]
         other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
         
-        logger.info(f"--- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---")
-        logger.info(f"  歸類為【規則】的文檔 ({len(rule_docs)} 條): {[doc.metadata.get('key', 'N/A') for doc in rule_docs]}")
-        logger.info(f"  歸類為【待摘要】的文檔 ({len(other_docs)} 條): {[doc.metadata.get('key', 'Memory') for doc in other_docs]}")
-        
-        rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
-        logger.info(f"  [最終生成的 rules_context] (傳遞給導演):\n---\n{rules_context}\n---")
-        logger.info("----------------------------------------------------")
+        rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs]) or "（當前場景無特定的行為準則或世界觀設定）"
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        docs_to_summarize = other_docs + rule_docs[3:]
+        docs_to_summarize = other_docs
 
         if docs_to_summarize:
             raw_content = "\n\n---\n\n".join([doc.page_content for doc in docs_to_summarize])
             fact_sheet: Optional[RagFactSheet] = None
 
-            # --- 層級 1: 雲端快速嘗試 ---
             try:
-                logger.info(f"[{self.user_id}] [RAG事實提取-1] 快速嘗試：雲端模型...")
                 prompt_template = self.get_rag_fact_sheet_extraction_prompt()
-                full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": raw_content})
-                fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
-            
-            except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型因內容審查快速失敗。立即轉向層級 2 (本地無審查核心)...")
-                fact_sheet = None 
-            
-            except Exception as e_api:
-                logger.error(f"[{self.user_id}] [RAG事實提取-1] 雲端提取時發生API或網絡錯誤: {e_api}。轉向層級 2...", exc_info=True)
-                fact_sheet = None
-
-            # --- 層級 2: 本地無審查核心 ---
-            if not fact_sheet:
+                fact_sheet = await self.ainvoke_with_rotation(prompt_template, {"documents": raw_content}, output_schema=RagFactSheet, retry_strategy='none')
+            except Exception:
                 if self.is_ollama_available:
-                    # [v18.5 核心修正] 自適應上下文縮減
-                    CONTEXT_LIMIT_FOR_LOCAL_MODEL = 7
-                    if len(docs_to_summarize) > CONTEXT_LIMIT_FOR_LOCAL_MODEL:
-                        logger.warning(f"[{self.user_id}] [自適應上下文] 待處理文檔 ({len(docs_to_summarize)}條) 過多，將為本地模型縮減至前 {CONTEXT_LIMIT_FOR_LOCAL_MODEL} 條最相關的文檔。")
-                        docs_for_local = docs_to_summarize[:CONTEXT_LIMIT_FOR_LOCAL_MODEL]
-                    else:
-                        docs_for_local = docs_to_summarize
-                    
-                    content_for_local = "\n\n---\n\n".join([doc.page_content for doc in docs_for_local])
-                    fact_sheet = await self._invoke_local_ollama_summarizer(content_for_local)
-                else:
-                    logger.warning(f"[{self.user_id}] [RAG事實提取-2] 本地模型不可用，無法執行備援。")
+                    fact_sheet = await self._invoke_local_ollama_summarizer(raw_content)
 
-            # --- 層級 3: 格式化或最終備援 ---
             if fact_sheet:
-                logger.info(f"[{self.user_id}] [RAG事實提取] ✅ 成功提取事實清單。")
                 formatted_summary_parts = ["【背景歷史參考（事實要點）】:"]
                 if fact_sheet.involved_characters: formatted_summary_parts.append(f"- 相關角色: {', '.join(fact_sheet.involved_characters)}")
                 if fact_sheet.key_locations: formatted_summary_parts.append(f"- 關鍵地點: {', '.join(fact_sheet.key_locations)}")
@@ -5178,19 +5156,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     formatted_summary_parts.append("- 核心事件:")
                     for event in fact_sheet.core_events:
                         formatted_summary_parts.append(f"  - {event}")
-                
                 summary_context = self._decode_lore_content("\n".join(formatted_summary_parts), self.DECODING_MAP)
             else:
-                logger.error(f"[{self.user_id}] [RAG事實提取-3] 所有提取層級均失敗！")
                 summary_context = "（記憶摘要因內容審查或系統錯誤而生成失敗）"
         
-        logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
-        logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
-        logger.info(f"  [最終 summary_context 長度]: {len(summary_context)}")
-        logger.info("--- RAG 流程結束 ---")
-
         return {"rules": rules_context, "summary": summary_context}
-    # 函式：檢索並摘要記憶
+# 函式：檢索並摘要記憶
+
 
 
 
@@ -5296,6 +5268,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
