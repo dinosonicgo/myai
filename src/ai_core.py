@@ -4095,188 +4095,22 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：程式化LORE校驗器
-# ai_core.py 的 _programmatic_lore_validator 函式 (v1.2 - 終極 ainvoke 適配)
-# 更新紀錄:
-# v1.2 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，更新了此函式內部對 `ainvoke_with_rotation` 的調用方式，確保其參數傳遞方式與新的 Tool Calling 引擎簽名完全一致。
-# v1.1 (2025-10-01): [災難性BUG修復] 對 `ainvoke_with_rotation` 的參數進行了初步修正。
-# v1.0 (2025-10-01): [重大架構升級] 創建此核心函式作為 LORE 解析管線的最終權威驗證層。
-    async def _programmatic_lore_validator(self, parsing_result: "CanonParsingResult", canon_text: str) -> "CanonParsingResult":
-        """
-        一個基於LLM批量交叉驗證的、抗審查的程式化校驗器，專門用於修正和補全 aliases。
-        """
-        if not parsing_result.npc_profiles:
-            return parsing_result
-
-        logger.info(f"[{self.user_id}] [混合式安全驗證器] 正在對 {len(parsing_result.npc_profiles)} 個NPC檔案進行最終校驗...")
-        
-        batch_input_data = []
-        for profile in parsing_result.npc_profiles:
-            pattern = re.compile(r"^\s*\*\s*" + re.escape(profile.name) + r".*?([\s\S]*?)(?=\n\s*\*\s|\Z)", re.MULTILINE)
-            matches = pattern.findall(canon_text)
-            context_snippet = "\n".join(matches) if matches else ""
-            
-            if not context_snippet:
-                temp_retriever = BM25Retriever.from_texts([canon_text])
-                temp_retriever.k = 3
-                context_docs = await temp_retriever.ainvoke(profile.name)
-                context_snippet = "\n---\n".join(doc.page_content for doc in context_docs)
-
-            batch_input_data.append({
-                "character_name": profile.name,
-                "context_snippet": context_snippet,
-                "claimed_aliases": profile.aliases or []
-            })
-        
-        batch_validation_result = None
-        class AliasValidation(BaseModel):
-            character_name: str
-            aliases: List[str] = Field(validation_alias=AliasChoices('aliases', 'final_aliases', 'validated_aliases'))
-
-        class BatchAliasValidationResult(BaseModel):
-            aliases: List[AliasValidation] = Field(validation_alias=AliasChoices('aliases', 'validated_aliases'))
-
-        try:
-            validator_prompt_template = self.get_batch_alias_validator_prompt()
-            prompt_params = {
-                "batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)
-            }
-            batch_validation_result = await self.ainvoke_with_rotation(
-                validator_prompt_template,
-                prompt_params,
-                output_schema=BatchAliasValidationResult,
-                retry_strategy='euphemize'
-            )
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [混合式安全驗證器] 🔥 批量別名驗證失敗: {e}。校驗步驟跳過。", exc_info=True)
-            return parsing_result
-
-        if batch_validation_result and batch_validation_result.aliases:
-            results_map = {res.character_name: res.aliases for res in batch_validation_result.aliases}
-            for profile in parsing_result.npc_profiles:
-                if profile.name in results_map:
-                    validated_aliases = results_map[profile.name]
-                    profile.aliases = list(set(validated_aliases))
-        
-        logger.info(f"[{self.user_id}] [混合式安全驗證器] ✅ 所有校驗已全部完成。")
-        return parsing_result
-# 函式：程式化LORE校驗器
 
 
 
 
-# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此 Prompt。它作為 `_programmatic_lore_validator` 的核心，接收一個包含上下文片段和初步提取結果的批量任務。其內置的【零容忍審計強制令】指示 LLM 必須獨立地、從頭重新解析上下文來生成一份最完整的 `aliases` 列表，是確保多重身份完整性的關鍵一步。
-    def get_batch_alias_validator_prompt(self) -> str:
-        """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
-        
-        part1 = """# TASK: 你是一位極其嚴謹、擁有最高審查權的【最終驗證審計官】。
-# MISSION: 你的任務是接收一份包含【多個待審計任務】的批量請求。對於列表中的【每一個角色】，你必須執行一次【零容忍審計】，以確保其身份檔案的絕對完整性。
-
-# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【零容忍審計強制令 (Zero-Tolerance Audit Mandate) - 最高優先級】**:
-#     *   **步驟 A (懷疑)**: 你必須首先假定上游傳來的 `claimed_aliases` 列表是**不完整的、有遺漏的**。
-#     *   **步驟 B (獨立提取)**: 你【必須】完全獨立地、從頭到尾地、逐字逐句地重新閱讀 `context_snippet`，並提取出一個你自己的、包含了所有身份、頭銜、職業、種族、綽號和狀態標籤的**「理想別名列表」**。
-#     *   **步驟 C (合併與去重)**: 你【必須】將你獨立提取的「理想別名列表」與原始的 `claimed_aliases` 列表進行合併，並移除所有重複項。
-#     *   **步驟 D (輸出)**: 你的 `aliases` 輸出，【必須】是這個最終的、最完整的合併結果。
-# 2.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`aliases` 列表必須包含對輸入中【所有角色】的審計結果。
-
-# --- [INPUT DATA] ---
-
-# 【批量審計任務】:
-{batch_input_json}
-
-# ---
-# 【你審計後的批量結果JSON】:
-"""
-        return part1
-# ai_core.py 的 get_batch_alias_validator_prompt 函式
-    
-
-    
-
-# ai_core.py 的 _invoke_local_ollama_validator 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此函式。它負責在 `_programmatic_lore_validator` 的雲端 LLM 驗證失敗時，調用本地 Ollama 模型來執行身份交叉驗證的備援任務，確保驗證流程的最終健壯性。
-    async def _invoke_local_ollama_validator(self, character_name: str, context_snippet: str, claimed_aliases: List[str]) -> Optional[List[str]]:
-        """
-        呼叫本地運行的 Ollama 模型來執行身份/別名交叉驗證的備援任務。
-        成功則返回一個補全後的列表，失敗則返回 None。
-        """
-        import httpx
-        import json
-        
-        logger.info(f"[{self.user_id}] [別名驗證-備援] 正在使用本地模型 '{self.ollama_model_name}' 為角色 '{character_name}' 進行交叉驗證...")
-        
-        prompt_template = self.get_local_alias_validator_prompt()
-        full_prompt = prompt_template.format(
-            character_name=character_name,
-            context_snippet=context_snippet,
-            claimed_aliases_json=json.dumps(claimed_aliases, ensure_ascii=False)
-        )
-
-        payload = {
-            "model": self.ollama_model_name,
-            "prompt": full_prompt,
-            "stream": False,
-            "options": { "temperature": 0.0 }
-        }
-        
-        try:
-            async with httpx.AsyncClient(timeout=180.0) as client:
-                response = await client.post("http://localhost:11434/api/generate", json=payload)
-                response.raise_for_status()
-                
-                response_data = response.json()
-                raw_response_text = response_data.get("response")
-                
-                if not raw_response_text:
-                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 本地模型返回了空的 'response' 內容。")
-                    return None
-
-                list_match = re.search(r'\[.*?\]', raw_response_text, re.DOTALL)
-                if not list_match:
-                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 未能在本地模型的回應中找到有效的列表結構。")
-                    return None
-                
-                import ast
-                try:
-                    validated_list = ast.literal_eval(list_match.group(0))
-                    if isinstance(validated_list, list):
-                        logger.info(f"[{self.user_id}] [別名驗證-備援] ✅ 本地模型驗證成功。")
-                        return validated_list
-                    else:
-                        return None
-                except (ValueError, SyntaxError):
-                    logger.warning(f"[{self.user_id}] [別名驗證-備援] 解析本地模型返回的列表時出錯。")
-                    return None
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [別名驗證-備援] 呼叫本地Ollama進行驗證時發生未知錯誤: {e}", exc_info=True)
-            return None
-# ai_core.py 的 _invoke_local_ollama_validator 函式
-    # 函式：呼叫本地Ollama模型進行別名驗證
 
 
     
 
-# ai_core.py 的 get_local_alias_validator_prompt 函式 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此 Prompt。它為本地小型 LLM 提供了一個簡單、直接的指令，作為 `_invoke_local_ollama_validator` 的核心，用於在雲端驗證失敗時執行交叉驗證的備援任務。
-    def get_local_alias_validator_prompt(self) -> str:
-        """獲取為本地LLM設計的、指令簡化的、用於交叉驗證角色別名/身份的備援Prompt模板。"""
-        
-        prompt_template = """# TASK: 提取所有身份。
-# CONTEXT:
-{context_snippet}
-# CLAIMED_ALIASES:
-{claimed_aliases_json}
-# INSTRUCTION: 閱讀 CONTEXT，找出描述角色 "{character_name}" 的所有身份、頭銜、職業、代碼。結合 CLAIMED_ALIASES，返回一個包含所有不重複項的最終 Python 列表。只輸出列表，不要有其他文字。
-# FINAL_LIST_OUTPUT:
-"""
-        return prompt_template
-# ai_core.py 的 get_local_alias_validator_prompt 函式
+    
+
+
+
+
+    
+
+
 
 
     
@@ -5393,6 +5227,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
