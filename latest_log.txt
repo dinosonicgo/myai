@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T08:01:33.762419 ###
+### AI Lover Log - Last updated at 2025-10-01T08:07:11.113961 ###
 
-2025-10-01 01:10:41 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-10-01 01:10:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:10:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:10:49 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 31/40] ✅ 處理成功。
-2025-10-01 01:10:49 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 33/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:10:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:10:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
 2025-10-01 01:11:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
 2025-10-01 01:11:01 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 32/40] ✅ 處理成功。
 2025-10-01 01:11:01 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 34/40] 已獲取許可，開始處理 3 個實體...
@@ -300,3 +293,10 @@ Traceback (most recent call last):
     async def process_entity_task(entity: IdentifiedEntity):
 NameError: name 'IdentifiedEntity' is not defined. Did you mean: 'identified_entities'?
 2025-10-01 07:59:14 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 08:06:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 08:06:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 08:06:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 08:06:57 - [INFO] - Discord Bot is ready!
+2025-10-01 08:06:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 08:06:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 08:07:00 - [INFO] - 已成功發送啟動成功通知給管理員。
