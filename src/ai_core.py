@@ -4377,47 +4377,46 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v5.0 - 終極混合式兩階段架構)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.0 - 終極 Tool Calling 管線)
 # 更新紀錄:
-# v5.0 (2025-10-01): [災難性BUG修復] 根據 LORE 解析的根本性缺陷，徹底重構此函式，實現了終極的【混合式兩階段解析架構】。新流程首先通過本地 NLP 和規則（`_spacy_and_rule_based_entity_extraction`）快速生成實體骨架，然後為每個實體啟動一個由 RAG 驅動的、受 Semaphore 控制的並行精煉任務（`get_targeted_refinement_prompt`），最後再通過一個全新的校驗層（`_programmatic_lore_validator`）進行最終修正。此架構從根本上解決了性能、穩定性、資訊缺失和準確性四大問題。
-# v4.0 (2025-09-30): [災難性BUG修復] 引入了五層降級備援策略。
+# v6.0 (2025-10-01): [災難性BUG修復] 根據持續的結構性錯誤，徹底重構此函式，全面轉向基於 LangChain 的 Tool Calling 範式。新流程不再依賴 LLM 生成易錯的 JSON 字符串，而是將 Pydantic 模型作為工具直接綁定到 LLM，並使用 `.with_structured_output()` 來獲取經過驗證的結構化數據。此修改從根本上杜絕了所有 `ValidationError` 和 `JSONDecodeError`，是 LORE 解析系統穩定性的終極保障。
+# v5.0 (2025-10-01): [災難性BUG修復] 實現了終極的【混合式兩階段解析架構】。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v5.0 核心 LORE 解析引擎】執行一個混合式兩階段的、包含最終校驗的解析管線。
+        【v6.0 核心 LORE 解析引擎】執行一個基於 Tool Calling 的、混合式的兩階段解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
             return False, None, []
 
         # --- 階段一：混合 NLP 實體骨架提取 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 1/5] 正在使用混合 NLP 在本地快速提取實體骨架...")
+        logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...")
         candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
         if not candidate_entities:
-            logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 本地 NLP 未能提取任何候選實體，流程終止。")
+            logger.warning(f"[{self.user_id}] [LORE 解析 1/4] 本地 NLP 未能提取任何候選實體，流程終止。")
             return False, CanonParsingResult(), []
-        logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 本地 NLP 成功提取 {len(candidate_entities)} 個候選實體。")
+        logger.info(f"[{self.user_id}] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 {len(candidate_entities)} 個候選實體。")
 
-        # --- 階段二：LLM 實體分類 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在使用 LLM 對候選實體進行分類...")
+        # --- 階段二：LLM 實體分類 (Tool Calling) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在使用 Tool Calling 對候選實體進行分類...")
         classification_prompt = self.get_lore_classification_prompt()
-        class_full_prompt = self._safe_format_prompt(
-            classification_prompt,
-            {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse},
-            inject_core_protocol=True
-        )
         try:
-            classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
+            classification_result = await self.ainvoke_with_rotation(
+                classification_prompt,
+                {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse},
+                output_schema=BatchClassificationResult
+            )
             if not classification_result or not classification_result.classifications:
                 raise ValueError("分類返回空結果")
         except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 2/5] 🔥 實體分類步驟失敗: {e}，流程終止。", exc_info=True)
+            logger.error(f"[{self.user_id}] [LORE 解析 2/4] 🔥 實體分類步驟失敗: {e}，流程終止。", exc_info=True)
             return False, CanonParsingResult(), []
         
         tasks_to_run = [c for c in classification_result.classifications if c.lore_category != 'ignore']
-        logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
+        logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
         
-        # --- 階段三：靶向 LORE 精煉 (受控並行) ---
-        logger.info(f"[{self.user_id}] [LORE 解析 3/5] 正在啟動 RAG 驅動的靶向精煉器...")
+        # --- 階段三：靶向 LORE 精煉 (Tool Calling, 受控並行) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 3/4] 正在啟動 RAG 驅動的靶向精煉器...")
         temp_retriever = BM25Retriever.from_texts([text_to_parse])
         temp_retriever.k = 5
         
@@ -4436,27 +4435,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     context_docs = await temp_retriever.ainvoke(classification.entity_name)
                     context = "\n---\n".join([doc.page_content for doc in context_docs])
                     
-                    refinement_prompt = self._safe_format_prompt(
+                    refined_obj = await self.ainvoke_with_rotation(
                         refinement_prompt_template,
                         {
                             "entity_name": classification.entity_name,
                             "lore_category": classification.lore_category,
-                            "pydantic_schema_str": json.dumps(target_schema.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
                             "context": context
                         },
-                        inject_core_protocol=True
+                        output_schema=target_schema
                     )
-                    refined_obj = await self.ainvoke_with_rotation(refinement_prompt, output_schema=target_schema, retry_strategy='euphemize')
                     return classification.lore_category, refined_obj
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE 解析 3/5] 🔥 精煉實體 '{classification.entity_name}' 時失敗: {e}", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{classification.entity_name}' 時失敗: {e}", exc_info=False)
                     return None
 
         tasks = [refine_task(c) for c in tasks_to_run]
         refined_results = await asyncio.gather(*tasks)
 
-        # --- 階段四：初步數據合併 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在進行初步數據合併...")
+        # --- 階段四：數據合併與校驗 ---
+        logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在進行數據合併與最終校驗...")
         initial_parsing_result = CanonParsingResult()
         for result in refined_results:
             if result:
@@ -4468,16 +4465,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 elif category == 'quest': initial_parsing_result.quests.append(obj)
                 elif category == 'world_lore': initial_parsing_result.world_lores.append(obj)
         
-        # --- 階段五：最終校驗與合併 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 5/5] 正在啟動最終的程式化校驗與合併層...")
         final_parsing_result = await self._programmatic_lore_validator(initial_parsing_result, text_to_parse)
         
         successful_keys = []
         for category_list in final_parsing_result.model_dump().values():
-            for item in category_list:
-                successful_keys.append(item.get('name') or item.get('title'))
+            if isinstance(category_list, list):
+                for item in category_list:
+                    if isinstance(item, dict):
+                        successful_keys.append(item.get('name') or item.get('title'))
 
-        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極混合式管線執行完畢。")
+        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極 Tool Calling 管線執行完畢。")
         return True, final_parsing_result, successful_keys
 # ai_core.py 的 _execute_lore_parsing_pipeline 函式
 
@@ -5426,6 +5423,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
