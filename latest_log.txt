@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T16:09:54.753450 ###
+### AI Lover Log - Last updated at 2025-10-01T16:15:43.302566 ###
 
-2025-10-01 08:41:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:41:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
-2025-10-01 08:41:55 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 08:41:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:41:56 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '蘇菲' (npc_profile) 處理成功。
-2025-10-01 08:41:56 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '貝拉' (npc_profile)...
-2025-10-01 08:41:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
 2025-10-01 08:41:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
 2025-10-01 08:42:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
 2025-10-01 08:42:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
@@ -300,3 +293,10 @@ json.decoder.JSONDecodeError: Invalid control character at: line 78 column 244 (
 2025-10-01 08:45:59 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
 2025-10-01 08:46:00 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-01 08:46:00 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 16:15:28 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 16:15:28 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 16:15:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 16:15:31 - [INFO] - Discord Bot is ready!
+2025-10-01 16:15:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 16:15:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 16:15:34 - [INFO] - 已成功發送啟動成功通知給管理員。
