@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-01T16:48:41.093380 ###
+### AI Lover Log - Last updated at 2025-10-01T16:53:44.346689 ###
 
-  Field required [type=missing, input_value={'term': '關疾病', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.748.reasoning
-  Field required [type=missing, input_value={'term': '關疾病', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.749.entity_name
-  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.749.lore_category
-  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.749.reasoning
-  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.750.entity_name
-  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.750.lore_category
-  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.750.reasoning
-  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.751.entity_name
-  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.751.lore_category
-  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.751.reasoning
-  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.752.entity_name
-  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.752.lore_category
-  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.752.reasoning
-  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.753.entity_name
-  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.753.lore_category
-  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.753.reasoning
-  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.754.entity_name
-  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.754.lore_category
-  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.754.reasoning
-  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.755.entity_name
-  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.755.lore_category
-  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.755.reasoning
-  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.756.entity_name
-  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.756.lore_category
-  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.756.reasoning
-  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.757.entity_name
-  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.757.lore_category
-  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.757.reasoning
-  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.758.entity_name
-  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.758.lore_category
-  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.758.reasoning
-  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.759.entity_name
-  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.759.lore_category
-  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.759.reasoning
-  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.760.entity_name
-  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.760.lore_category
-  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.760.reasoning
-  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.761.entity_name
-  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.761.lore_category
-  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.761.reasoning
-  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.762.entity_name
-  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.762.lore_category
-  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.762.reasoning
-  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.763.entity_name
-  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.763.lore_category
-  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.763.reasoning
-  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.764.entity_name
-  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.764.lore_category
-  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.764.reasoning
-  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.765.entity_name
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.765.lore_category
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.765.reasoning
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.766.entity_name
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.766.lore_category
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.766.reasoning
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.767.entity_name
-  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.767.lore_category
-  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.767.reasoning
-  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.768.entity_name
-  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.768.lore_category
-  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.768.reasoning
-  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.769.entity_name
-  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.769.lore_category
-  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.769.reasoning
-  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.770.entity_name
-  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.770.lore_category
-  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.770.reasoning
-  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.771.entity_name
-  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.771.lore_category
-  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.771.reasoning
-  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.772.entity_name
-  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.772.lore_category
-  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.772.reasoning
-  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.773.entity_name
-  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.773.lore_category
-  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.773.reasoning
-  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 3/5] LORE 解析管線執行完畢。
-2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 4/5] 正在將解析出的 LORE 結果持久化到資料庫...
-2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 4/5] LORE 持久化完成。
-2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 5/5] 正在補完角色檔案、生成世界並創作開場白...
-2025-10-01 16:18:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 16:18:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 16:18:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-01 16:18:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 18314 秒)。
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 21957 秒)。
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 31880 秒)。
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 26878 秒)。
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 58832 秒)。
-2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 58897 秒)。
-2025-10-01 16:18:23 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 16:18:23 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [/start] 初始地點 '王都 > 城鎮市集區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 21928 秒)。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 31851 秒)。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 26849 秒)。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 58803 秒)。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 58868 秒)。
-2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 18285 秒)。
-2025-10-01 16:18:52 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 16:18:52 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 16:18:52 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 16:19:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
-2025-10-01 16:19:15 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 16:26:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:26:09 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:26:09 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:26:09 - [INFO] - Discord Bot is ready!
-2025-10-01 16:26:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:26:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:26:13 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 16:31:43 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:31:43 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:31:43 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:31:43 - [INFO] - Discord Bot is ready!
-2025-10-01 16:31:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:31:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:31:47 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 16:37:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:37:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:37:18 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:37:18 - [INFO] - Discord Bot is ready!
-2025-10-01 16:37:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:37:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:37:21 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 16:37:48 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:37:48 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:37:49 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:37:49 - [INFO] - Discord Bot is ready!
-2025-10-01 16:37:51 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:37:51 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:37:52 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 16:43:23 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:43:23 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:43:25 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:43:25 - [INFO] - Discord Bot is ready!
-2025-10-01 16:43:27 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:43:27 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:43:28 - [INFO] - 已成功發送啟動成功通知給管理員。
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] [LORE 解析 2/4] 🔥 實體分類步驟失敗: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True，流程終止。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4404, in _execute_lore_parsing_pipeline
+    classification_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1279, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(output_schema)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
+    llm = self.bind_tools([schema], tool_choice=tool_choice)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
+    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
+    fd = _format_to_gapic_function_declaration(tool)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
+    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
+    schema = inferred_model.schema()["properties"]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
+    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
+    m_schema, m_definitions, nested_models = model_process_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
+    m_schema, m_definitions, nested_models = model_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
+    f_schema, f_definitions, f_nested_models = field_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
+    f_schema, f_definitions, f_nested_models = field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 462, in field_type_schema
+    items_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 852, in field_singleton_schema
+    return field_singleton_sub_fields_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 701, in field_singleton_sub_fields_schema
+    return field_type_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
+    f_schema, f_definitions, f_nested_models = field_singleton_schema(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
+    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
+ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] [後台創世 1/3] LORE 解析管線執行完畢。
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] [後台創世 2/3] 正在將解析出的 LORE 結果持久化到資料庫...
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] [後台創世 2/3] LORE 持久化完成。
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] [後台創世 3/3] 正在補完角色檔案、生成世界並創作開場白...
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] [/start] 為角色 'DINO' 進行安全補完時發生錯誤: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2332, in _safe_complete_profile
+    completed_safe_profile = await self.ainvoke_with_rotation(
+TypeError: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] [/start] 為角色 '碧' 進行安全補完時發生錯誤: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2332, in _safe_complete_profile
+    completed_safe_profile = await self.ainvoke_with_rotation(
+TypeError: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1165, in _perform_full_setup_flow
+    await ai_instance.generate_world_genesis(canon_text=canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2396, in generate_world_genesis
+    genesis_result = await self.ainvoke_with_rotation(
+TypeError: AILover.ainvoke_with_rotation() missing 1 required positional argument: 'prompt_params'
+2025-10-01 16:51:43 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
