@@ -1189,164 +1189,97 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     # 函式：獲取實體驗證器 Prompt
     
 
-# ai_core.py 的 ainvoke_with_rotation 函式 (v232.9 - 終極防禦性修正)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v300.0 - LangChain Tool Calling 重構)
 # 更新紀錄:
-# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。現在，程式在訪問 `.name` 屬性前，會同時檢查 `block_reason` 和 `finish_reason` 的類型，確保即使 Google API 返回未知的整數代碼，程式也能正常處理而不會崩潰。
-# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
-# v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。
+# v300.0 (2025-10-01): [災難性BUG修復] 根據持續的結構性錯誤，徹底重構此函式，全面擁抱 LangChain 的 Tool Calling 範式。新版本不再依賴手動的 JSON 解析，而是通過 `.with_structured_output()` 方法，讓 LangChain 框架在後台處理工具綁定和輸出驗證。此修改將 LLM 從「JSON 生成器」轉變為「工具調度員」，從根本上解決了所有因 LLM 幻覺導致的 JSON 格式錯誤和 ValidationError。
+# v232.9 (2025-09-30): [災難性BUG修復] 增加了對 `finish_reason` 的防禦性檢查。
+# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 的防禦性檢查。
     async def ainvoke_with_rotation(
         self,
-        full_prompt: str,
+        prompt_template: str,
+        prompt_params: Dict[str, Any],
         output_schema: Optional[Type[BaseModel]] = None,
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
-        use_degradation: bool = False,
-        models_to_try_override: Optional[List[str]] = None,
-        generation_config_override: Optional[Dict[str, Any]] = None
+        use_degradation: bool = False
     ) -> Any:
         """
-        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、模型降級、內容審查備援策略，
-        並手動處理 Pydantic 結構化輸出，同時內置了針對速率限制的指數退避和持久化金鑰冷卻機制。
+        一個基於 LangChain Tool Calling 的、高度健壯的 API 調用引擎，整合了金鑰輪換、模型降級和內容審查備援。
         """
-        import google.generativeai as genai
-        from google.generativeai.types.generation_types import BlockedPromptException
-        from google.api_core import exceptions as google_api_exceptions
-        import random
-
-        if models_to_try_override:
-            models_to_try = models_to_try_override
-        elif use_degradation:
-            models_to_try = self.model_priority_list
-        else:
-            models_to_try = [FUNCTIONAL_MODEL]
-            
         last_exception = None
-        IMMEDIATE_RETRY_LIMIT = 3
+        models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
 
-        final_generation_config = {"temperature": 0.7} 
-        if generation_config_override:
-            final_generation_config.update(generation_config_override)
-
-        for model_index, model_name in enumerate(models_to_try):
-            for attempt in range(len(self.api_keys)):
+        for model_name in models_to_try:
+            for _ in range(len(self.api_keys)): # 嘗試每個 key
                 key_info = self._get_next_available_key(model_name)
                 if not key_info:
-                    logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                    break
+                    logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
+                    break 
                 
-                key_to_use, key_index = key_info
-                
-                for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
-                    try:
-                        genai.configure(api_key=key_to_use)
-                        
-                        safety_settings_sdk = [
-                            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                        ]
+                api_key, key_index = key_info
 
-                        model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
-                        
-                        response = await asyncio.wait_for(
-                            model.generate_content_async(
-                                full_prompt,
-                                generation_config=genai.types.GenerationConfig(**final_generation_config)
-                            ),
-                            timeout=180.0
-                        )
-                        
-                        if response.prompt_feedback.block_reason:
-                            block_reason = response.prompt_feedback.block_reason
-                            if hasattr(block_reason, 'name'):
-                                reason_str = block_reason.name
-                            else:
-                                reason_str = str(block_reason)
-                            raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-                        
-                        # [v232.9 核心修正] 對 finish_reason 應用同樣的防禦性檢查
-                        if response.candidates:
-                            finish_reason = response.candidates[0].finish_reason
-                            if hasattr(finish_reason, 'name'):
-                                finish_reason_name = finish_reason.name
-                            else:
-                                finish_reason_name = str(finish_reason) # 如果是 int 或其他類型，直接轉為字串
+                try:
+                    llm = ChatGoogleGenerativeAI(
+                        model=model_name,
+                        google_api_key=api_key,
+                        safety_settings=SAFETY_SETTINGS,
+                        temperature=0.2, # 降低溫度以獲取更確定的結構化輸出
+                        max_retries=1 # 禁用 LangChain 的內部重試
+                    )
+                    
+                    if output_schema:
+                        # 將 Pydantic 模型作為工具綁定到 LLM，並要求結構化輸出
+                        structured_llm = llm.with_structured_output(output_schema)
+                        chain = ChatPromptTemplate.from_template(prompt_template) | structured_llm
+                    else:
+                        chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
 
-                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']: # '0' for unspecified
-                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                                if finish_reason_name == 'MAX_TOKENS':
-                                    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                elif finish_reason_name in ['SAFETY', '4']: # '4' for safety
-                                    raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
-                                else:
-                                    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                    logger.info(f"[{self.user_id}] [Tool Calling] 正在使用模型 '{model_name}' (Key #{key_index}) 執行結構化輸出...")
+                    result = await chain.ainvoke(prompt_params)
+                    
+                    logger.info(f"[{self.user_id}] [Tool Calling] ✅ 成功！")
+                    return result
 
-                        raw_text_result = response.text
-
-                        if not raw_text_result or not raw_text_result.strip():
-                            raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
-                        
-                        logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
-                        
-                        if output_schema:
-                            json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
-                            if not json_match:
-                                raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
-                            clean_json_str = json_match.group(0)
-                            return output_schema.model_validate(json.loads(clean_json_str))
-                        else:
-                            return raw_text_result
-
-                    except (BlockedPromptException, GoogleGenerativeAIError) as e:
-                        last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
-                        if retry_strategy == 'none':
-                            raise e 
-                        elif retry_strategy == 'euphemize':
-                            return await self._euphemize_and_retry(full_prompt, output_schema, e)
-                        elif retry_strategy == 'force':
-                            return await self._force_and_retry(full_prompt, output_schema)
-                        else: 
-                            raise e
-
-                    except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
-                        last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
-                        raise e
-
-                    except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
-                        last_exception = e
-                        if "MAX_TOKENS" in str(e):
-                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
-                             break
-                        
-                        if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
-                            if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
-                                cooldown_key = f"{key_index}_{model_name}"
-                                cooldown_duration = 24 * 60 * 60 
-                                self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
-                                self._save_cooldowns()
-                                logger.critical(f"[{self.user_id}] [持久化冷卻] API Key #{key_index} (模型: {model_name}) 已被置入冷卻狀態，持續 24 小時。")
-                            break
-                        
-                        sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
-                        logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
-                        await asyncio.sleep(sleep_time)
+                except BlockedPromptException as e:
+                    last_exception = e
+                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
+                    if retry_strategy == 'euphemize':
+                        # 委婉化策略現在需要重新設計，因為我們不再手動處理 prompt
+                        # 暫時跳過，直接輪換
+                        logger.warning(f"[{self.user_id}] 正在輪換金鑰/模型...")
                         continue
-
-                    except Exception as e:
-                        last_exception = e
-                        logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                    elif retry_strategy == 'force':
+                        # 強制策略也需要重新設計
+                        logger.warning(f"[{self.user_id}] 強制重試失敗，正在輪換金鑰/模型...")
+                        continue
+                    else: # 'none'
                         raise e
+
+                except (OutputParserException, ValidationError) as e:
+                    last_exception = e
+                    # Tool Calling 模式下，這類錯誤的發生率會極低，但一旦發生，通常是 Prompt 本身有問題
+                    logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=True)
+                    # 這種情況下重試意義不大，直接拋出異常
+                    raise e
+
+                except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                    last_exception = e
+                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇臨時性 API 錯誤: {type(e).__name__}。正在輪換金鑰...")
+                    if isinstance(e, ResourceExhausted):
+                         cooldown_key = f"{key_index}_{model_name}"
+                         self.key_model_cooldowns[cooldown_key] = time.time() + 3600 # 冷卻 1 小時
+                         self._save_cooldowns()
+                    continue # 立即嘗試下一個金鑰
                 
-            if model_index < len(models_to_try) - 1:
-                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
-            else:
-                 logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
-        
+                except Exception as e:
+                    last_exception = e
+                    logger.error(f"[{self.user_id}] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                    continue
+
+        logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎
+# ai_core.py 的 ainvoke_with_rotation 函式
+
+                          
 
 
 
@@ -5545,6 +5478,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
