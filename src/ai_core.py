@@ -275,21 +275,25 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# ai_core.py 的 _resolve_and_save 函式 (v5.5 - 適配新 ainvoke)
+# 函式：解析並儲存LORE實體
+# ai_core.py 的 _resolve_and_save 函式 (v5.6 - 終極 ainvoke 適配)
 # 更新紀錄:
-# v5.5 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，更新了此函式內部所有對 `ainvoke_with_rotation` 的調用方式，將 prompt 模板和參數分開傳遞，以適配 Tool Calling 範式下的新函式簽名。
+# v5.6 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，將此函式內部所有對 `ainvoke_with_rotation` 的調用（包括實體解析、JSON 修正和描述合成）徹底重構，使其完全適配 Tool Calling 範式下的新函式簽名（prompt_template, prompt_params）。此為確保 API 介面一致性的最終修正。
+# v5.5 (2025-10-01): [災難性BUG修復] 初步適配了新的 ainvoke 簽名。
 # v5.4 (2025-10-01): [災難性BUG修復] 增加了異步化改造以防止 Discord 斷線。
-# v5.3 (2025-10-01): [災難性BUG修復] 增加了儲存前的數據清洗步驟。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
+        內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
         """
-        if not self.profile: return
+        if not self.profile:
+            return
         
         category_map = { "npc_profiles": "npc_profile", "locations": "location_info", "items": "item_info", "creatures": "creature_info", "quests": "quest", "world_lores": "world_lore" }
         actual_category = category_map.get(category_str)
-        if not actual_category or not items: return
+        if not actual_category or not items:
+            return
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
@@ -305,45 +309,178 @@ class AILover:
                         "new_entities_json": json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False),
                         "existing_entities_json": json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
                     }
-                    full_prompt = self._safe_format_prompt(resolution_prompt_template, prompt_params, inject_core_protocol=True)
                     
-                    # 暫時保留舊的調用方式，因為這個 prompt 比較特殊
-                    resolution_plan = await self.ainvoke_with_rotation(full_prompt, {}, output_schema=BatchResolutionPlan, use_degradation=True)
-
+                    resolution_plan = await self.ainvoke_with_rotation(
+                        resolution_prompt_template,
+                        prompt_params,
+                        output_schema=BatchResolutionPlan, 
+                        use_degradation=True
+                    )
+                
                 except ValidationError as e:
-                    logger.warning(f"[{self.user_id}] [實體解析-自我修正] Pydantic 驗證錯誤。正在啟動自我修正...")
+                    logger.warning(f"[{self.user_id}] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...")
                     try:
-                        raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取"
+                        raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取原始JSON"
                         correction_prompt_template = self.get_json_correction_chain()
                         prompt_params = {
                             "existing_entities_json": json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False),
                             "raw_json_string": raw_error_json,
                             "validation_error": str(e)
                         }
-                        full_prompt = self._safe_format_prompt(correction_prompt_template, prompt_params, inject_core_protocol=True)
-                        resolution_plan = await self.ainvoke_with_rotation(full_prompt, {}, output_schema=BatchResolutionPlan, use_degradation=True)
-                        logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 成功！")
+                        resolution_plan = await self.ainvoke_with_rotation(
+                            correction_prompt_template,
+                            prompt_params,
+                            output_schema=BatchResolutionPlan, 
+                            use_degradation=True
+                        )
+                        logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 自我修正成功！")
                     except Exception as correction_e:
-                        logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 最終失敗: {correction_e}", exc_info=True)
+                        logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
                         resolution_plan = None
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [實體解析] 發生未知嚴重錯誤: {e}", exc_info=True)
-
-            items_to_create, updates_to_merge, processed_names = [], defaultdict(list), set()
-            if resolution_plan and resolution_plan.resolutions:
-                # ... (省略與之前版本相同的數據流邏輯) ...
+                    logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行時發生未知嚴重錯誤: {e}", exc_info=True)
             
-            # ... (省略與之前版本相同的合成與合併邏輯) ...
+            items_to_create = []
+            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+            processed_names = set()
+            if resolution_plan and resolution_plan.resolutions:
+                logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
+                for resolution in resolution_plan.resolutions:
+                    original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
+                    if not original_item: continue
+                    
+                    processed_names.add(resolution.original_name)
+
+                    if resolution.decision.upper() in ['CREATE', 'NEW']:
+                        items_to_create.append(original_item)
+                    elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
+                        updates_to_merge[resolution.matched_key].append(original_item)
+            
+            unprocessed_items = [item for item in new_npcs_from_parser if item.get("name") not in processed_names]
+            if unprocessed_items:
+                logger.warning(f"[{self.user_id}] [實體解析] 檢測到 {len(unprocessed_items)} 個未被解析計畫覆蓋的實體，已將其自動歸類為待創建項。")
+                items_to_create.extend(unprocessed_items)
+
+
+            synthesis_tasks: List[SynthesisTask] = []
+            if updates_to_merge:
+                for i, (matched_key, contents_to_merge) in enumerate(updates_to_merge.items()):
+                    existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
+                    if not existing_lore: continue
+                    
+                    for new_content in contents_to_merge:
+                        new_description = new_content.get('description')
+                        if new_description and new_description.strip() and new_description not in existing_lore.content.get('description', ''):
+                            synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
+                        
+                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
+                            existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
+                        if 'relationships' in new_content:
+                             existing_lore.content.setdefault('relationships', {}).update(new_content['relationships'])
+                        
+                        for key, value in new_content.items():
+                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name', 'relationships'] and value:
+                                existing_lore.content[key] = value
+                    
+                    await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
+                    
+                    if i % 10 == 0:
+                        await asyncio.sleep(0)
+
+            if synthesis_tasks:
+                logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
+                synthesis_result = None
+                
+                synthesis_prompt_template = self.get_description_synthesis_prompt()
+                prompt_params = {"batch_input_json": json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)}
+
+                try:
+                    synthesis_result = await self.ainvoke_with_rotation(
+                        synthesis_prompt_template,
+                        prompt_params,
+                        output_schema=BatchSynthesisResult, 
+                        retry_strategy='none', 
+                        use_degradation=True
+                    )
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] [LORE合併-1A] 雲端批量合成失敗: {e}。降級到 1B (雲端強制重試)...")
+
+                if not synthesis_result:
+                    try:
+                        # 注入協議的方式是修改模板，而不是參數
+                        forceful_template = self.core_protocol_prompt + "\n\n" + synthesis_prompt_template
+                        synthesis_result = await self.ainvoke_with_rotation(
+                            forceful_template,
+                            prompt_params,
+                            output_schema=BatchSynthesisResult, 
+                            retry_strategy='none', 
+                            use_degradation=True
+                        )
+                    except Exception as e:
+                        logger.warning(f"[{self.user_id}] [LORE合併-1B] 雲端強制重試失敗: {e}。降級到 2A (本地批量)...")
+                
+                if not synthesis_result and self.is_ollama_available:
+                    try:
+                        synthesis_result = await self._invoke_local_ollama_batch_synthesis(synthesis_tasks)
+                    except Exception as e:
+                        logger.error(f"[{self.user_id}] [LORE合併-2A] 本地批量合成遭遇嚴重錯誤: {e}。降級到 2B (程式拼接)...")
+                
+                if synthesis_result and synthesis_result.synthesized_descriptions:
+                    logger.info(f"[{self.user_id}] [LORE合併] LLM 合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
+                    results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
+                    tasks_dict = {task.name: task for task in synthesis_tasks}
+                    
+                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
+                    for lore in all_merged_lores:
+                        char_name = lore.content.get('name')
+                        if char_name in results_dict:
+                            lore.content['description'] = results_dict[char_name]
+                        elif char_name in tasks_dict:
+                            logger.warning(f"[{self.user_id}] [LORE合併-2B] LLM輸出遺漏了'{char_name}'，觸發最終備援(程式拼接)。")
+                            task = tasks_dict[char_name]
+                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
+                        
+                        final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                else:
+                    logger.critical(f"[{self.user_id}] [LORE合併-2B] 所有LLM層級均失敗！觸發對所有任務的最終備援(程式拼接)。")
+                    tasks_dict = {task.name: task for task in synthesis_tasks}
+                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
+                    for lore in all_merged_lores:
+                        char_name = lore.content.get('name')
+                        if char_name in tasks_dict:
+                            task = tasks_dict[char_name]
+                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
+                            final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged_fallback')
 
             items = items_to_create
 
         for i, item_data in enumerate(items):
             try:
-                # ... (省略與之前版本相同的儲存邏輯) ...
-                if i % 10 == 0: await asyncio.sleep(0)
+                cleaned_item_data = item_data.copy()
+                if actual_category == 'npc_profile':
+                    defaults = CharacterProfile.model_construct().model_dump()
+                    for key, default_value in defaults.items():
+                        if key in cleaned_item_data and cleaned_item_data[key] is None:
+                            cleaned_item_data[key] = default_value
+
+                name = cleaned_item_data.get(title_key)
+                if not name: continue
+                
+                location_path = cleaned_item_data.get('location_path')
+                lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
+                final_content_to_save = self._decode_lore_content(cleaned_item_data, self.DECODING_MAP)
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+                
+                if i % 10 == 0:
+                    await asyncio.sleep(0)
+
             except Exception as e:
-                # ... (省略與之前版本相同的錯誤處理邏輯) ...
-# ai_core.py 的 _resolve_and_save 函式
+                item_name_for_log = item_data.get(title_key, '未知實體')
+                logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
+# 函式：解析並儲存LORE實體
 
     
 # 函式：解析並儲存LORE實體
@@ -5144,6 +5281,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
