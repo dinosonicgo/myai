@@ -1,43 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T00:01:24.230505 ###
+### AI Lover Log - Last updated at 2025-10-02T00:10:54.415442 ###
 
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [批量分類] 正在使用安全代碼化的上下文重試...
-2025-10-01 23:18:44 - [ERROR] - [512280345618546699] [批量分類] 🔥 審查備援最終失敗: name 'google_api_exceptions' is not defined
-2025-10-01 23:18:44 - [WARNING] - [512280345618546699] [批量分類] 🔥 批次分類時遭遇錯誤: NameError。啟動審查備援...
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [批量分類] 正在使用安全代碼化的上下文重試...
-2025-10-01 23:18:44 - [ERROR] - [512280345618546699] [批量分類] 🔥 審查備援最終失敗: name 'google_api_exceptions' is not defined
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [LORE 解析 2/4] ✅ 分類完成，確定 0 個有效 LORE 創建任務。
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [LORE 解析 3/4] 正在啟動兩步式靶向精煉器...
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [LORE 解析 4/4] 正在進行數據合併...
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [LORE 解析] ✅ 終極批量原子工具鏈執行完畢。
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [後台創世 1/3] LORE 解析管線執行完畢。
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [後台創世 2/3] 正在將解析出的 LORE 結果持久化到資料庫...
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [後台創世 2/3] LORE 持久化完成。
-2025-10-01 23:18:44 - [INFO] - [512280345618546699] [後台創世 3/3] 正在補完角色檔案、生成世界並創作開場白...
-2025-10-01 23:18:44 - [ERROR] - [512280345618546699] [/start] 為角色 'DINO' 進行安全補完時發生錯誤: name 'google_api_exceptions' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1328, in ainvoke_with_rotation
-    generation_config=genai.types.GenerationConfig(**generation_config_params)
-TypeError: GenerationConfig.__init__() got an unexpected keyword argument 'tools'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2442, in _safe_complete_profile
-    completed_safe_profile = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1370, in ainvoke_with_rotation
-    except (OutputParserException, ValidationError, google_api_exceptions.InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
-NameError: name 'google_api_exceptions' is not defined
-2025-10-01 23:18:44 - [ERROR] - [512280345618546699] [/start] 為角色 '碧' 進行安全補完時發生錯誤: name 'google_api_exceptions' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1328, in ainvoke_with_rotation
-    generation_config=genai.types.GenerationConfig(**generation_config_params)
-TypeError: GenerationConfig.__init__() got an unexpected keyword argument 'tools'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2442, in _safe_complete_profile
-    completed_safe_profile = await self.ainvoke_with_rotation(
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1370, in ainvoke_with_rotation
     except (OutputParserException, ValidationError, google_api_exceptions.InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
 NameError: name 'google_api_exceptions' is not defined
@@ -300,3 +262,41 @@ requests.exceptions.ConnectTimeout: HTTPSConnectionPool(host='hf-mirror.com', po
 2025-10-02 00:01:23 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
 2025-10-02 00:01:23 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
 2025-10-02 00:01:23 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-02 00:01:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-02 00:01:29 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-02 00:01:30 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-02 00:01:30 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-02 00:01:30 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-02 00:01:30 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-02 00:01:30 - [INFO] - [512280345618546699] 正在從本地路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 創建 Embedding 模型實例...
+2025-10-02 00:01:32 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-02 00:01:32 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-02 00:01:32 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-02 00:01:32 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-02 00:01:32 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-02 00:01:34 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-02 00:01:44 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-02 00:01:44 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-02 00:01:44 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-02 00:01:46 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-02 00:02:27 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-02 00:02:27 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-02 00:02:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-02 00:02:30 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-02 00:02:35 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-02 00:02:38 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-10-02 00:02:38 - [INFO] - [512280345618546699] [後台創世 1/3] 正在啟動終極 LORE 解析管線...
+2025-10-02 00:02:38 - [INFO] - [512280345618546699] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...
+2025-10-02 00:02:41 - [INFO] - [512280345618546699] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 785 個候選實體。
+2025-10-02 00:02:41 - [INFO] - [512280345618546699] [LORE 解析 2/4] 正在對 785 個實體啟動批量並行分類...
+2025-10-02 00:02:46 - [WARNING] - [512280345618546699] [Tool Calling] 失敗 (Model returned text but a structured output was expected. Text: ...)。正在自動降級到【JSON 模式】重試...
+2025-10-02 00:02:47 - [WARNING] - [512280345618546699] [Tool Calling] 失敗 (Model returned text but a structured output was expected. Text: ...)。正在自動降級到【JSON 模式】重試...
+2025-10-02 00:02:49 - [WARNING] - [512280345618546699] [Tool Calling] 失敗 (Model returned text but a structured output was expected. Text: ...)。正在自動降級到【JSON 模式】重試...
+2025-10-02 00:02:57 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-02 00:10:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-02 00:10:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-02 00:10:40 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-02 00:10:40 - [INFO] - Discord Bot is ready!
+2025-10-02 00:10:43 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-02 00:10:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-02 00:10:44 - [INFO] - 已成功發送啟動成功通知給管理員。
