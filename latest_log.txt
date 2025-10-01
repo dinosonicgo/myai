@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T16:26:23.509726 ###
+### AI Lover Log - Last updated at 2025-10-01T16:31:57.525726 ###
 
-classifications.745.lore_category
-  Field required [type=missing, input_value={'term': '採買時', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.745.reasoning
-  Field required [type=missing, input_value={'term': '採買時', 'category': 'ignore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.746.entity_name
   Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 classifications.746.lore_category
@@ -300,3 +293,10 @@ classifications.773.reasoning
 2025-10-01 16:26:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 16:26:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 16:26:13 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 16:31:43 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 16:31:43 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 16:31:43 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 16:31:43 - [INFO] - Discord Bot is ready!
+2025-10-01 16:31:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 16:31:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 16:31:47 - [INFO] - 已成功發送啟動成功通知給管理員。
