@@ -35,9 +35,6 @@ from .models import UserProfile, GameState
 from src.config import settings
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
-# [v57.2 核心修正] 修正 EnsembleRetriever 的導入路徑
-from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import EnsembleRetriever
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -1123,53 +1120,51 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-
-
-
-    
-# discord_bot.py 的 _perform_full_setup_flow 函式 (v1.8 - 簡化日誌)
-# 更新紀錄:
-# v1.8 (2025-10-01): [程式碼簡化] 根據 LORE 解析管線的終極重構，簡化了此函式的日誌記錄和錯誤處理。由於新管線內部已包含極其健壯的錯誤處理和日誌記錄，此處不再需要重複的、詳細的日誌，只需關注管線是否成功返回即可。
-# v1.7 (2025-10-01): [重大架構重構] 適配了全新的終極 LORE 解析管線。
+    # 函式：執行完整的後台創世流程
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """一個獨立的背景任務，負責執行全新的、基於 Tool Calling 的創世流程。"""
+        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
         user_id = str(user.id)
         try:
             logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
+                logger.error(f"[{user_id}] 在後台創世流程中，AI核心初始化失敗。")
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            parsing_result_from_pipeline: Optional[CanonParsingResult] = None
+            # --- 步驟 1: 世界聖經處理 (如果提供)，僅寫入 SQL ---
             if canon_text:
-                logger.info(f"[{user_id}] [後台創世 1/3] 正在啟動終極 LORE 解析管線...")
-                success, parsing_result_from_pipeline, _ = await ai_instance._execute_lore_parsing_pipeline(canon_text)
-                if not success:
-                    await user.send("⚠️ **警告**：AI 在解析您的世界聖經時遇到問題，部分 LORE 可能未能成功創建。")
-                logger.info(f"[{user_id}] [後台創世 1/3] LORE 解析管線執行完畢。")
-
-            if parsing_result_from_pipeline:
-                logger.info(f"[{user_id}] [後台創世 2/3] 正在將解析出的 LORE 結果持久化到資料庫...")
-                await ai_instance._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result_from_pipeline.npc_profiles])
-                await ai_instance._resolve_and_save("locations", [loc.model_dump() for loc in parsing_result_from_pipeline.locations])
-                await ai_instance._resolve_and_save("items", [item.model_dump() for item in parsing_result_from_pipeline.items])
-                await ai_instance._resolve_and_save("creatures", [creature.model_dump() for creature in parsing_result_from_pipeline.creatures])
-                await ai_instance._resolve_and_save("quests", [q.model_dump() for q in parsing_result_from_pipeline.quests], title_key='name')
-                await ai_instance._resolve_and_save("world_lores", [wl.model_dump() for wl in parsing_result_from_pipeline.world_lores], title_key='name')
-                logger.info(f"[{user_id}] [後台創世 2/3] LORE 持久化完成。")
+                logger.info(f"[{user_id}] [後台創世 1/5] 正在進行 LORE 智能解析...")
+                await ai_instance.parse_and_create_lore_from_canon(canon_text)
+                logger.info(f"[{user_id}] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。")
             
-            logger.info(f"[{user_id}] [後台創世 3/3] 正在補完角色檔案、生成世界並創作開場白...")
+            # --- 步驟 2: 補完角色檔案 ---
+            logger.info(f"[{user_id}] [後台創世 2/5] 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
-            await ai_instance.generate_world_genesis(canon_text=canon_text)
-            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             
+            # --- 步驟 3: RAG 索引全量創始構建 ---
+            logger.info(f"[{user_id}] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...")
+            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
+            logger.info(f"[{user_id}] [後台創世 3/5] RAG 索引全量創始構建完成。")
+
+            # --- 步驟 4: 生成世界創世資訊 ---
+            logger.info(f"[{user_id}] [後台創世 4/5] 正在生成世界創世資訊...")
+            await ai_instance.generate_world_genesis(canon_text=canon_text)
+            
+            # --- 步驟 5: 生成開場白 ---
+            logger.info(f"[{user_id}] [後台創世 5/5] 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
+            logger.info(f"[{user_id}] [後台創世 5/5] 開場白生成完毕。")
+
+            # --- 最終步驟: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
+            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
             for i in range(0, len(opening_scene), 2000):
                 await user.send(opening_scene[i:i+2000])
+            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
@@ -1180,56 +1175,7 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# discord_bot.py 的 _perform_full_setup_flow 函式
-
-
-# discord_bot.py 的 _background_process_canon 函式 (v1.3 - 簡化日誌)
-# 更新紀錄:
-# v1.3 (2025-10-01): [程式碼簡化] 根據 LORE 解析管線的終極重構，簡化了此函式的日誌記錄和錯誤處理，使其與 `/start` 流程的調用邏輯保持一致。
-# v1.2 (2025-10-01): [重大架構重構] 適配了全新的終極 LORE 解析管線。
-    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
-        user_id = str(interaction.user.id)
-        user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
-        try:
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
-            if not ai_instance:
-                await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
-                return
-            
-            if is_setup_flow:
-                await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
-                asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
-                return
-
-            if len(content_text) > 5000:
-                await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
-            
-            await user.send(f"✅ **世界聖經已提交！**\n🧠 AI 正在啟動終極混合式解析管線，將其轉化為結構化的 LORE 數據庫...")
-            
-            success, parsing_result, successful_keys = await ai_instance._execute_lore_parsing_pipeline(content_text)
-            
-            if success and parsing_result:
-                logger.info(f"[{user_id}] [Canon Update] 管道解析成功，準備儲存所有LORE類別...")
-                await ai_instance._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result.npc_profiles])
-                await ai_instance._resolve_and_save("locations", [loc.model_dump() for loc in parsing_result.locations])
-                await ai_instance._resolve_and_save("items", [item.model_dump() for item in parsing_result.items])
-                await ai_instance._resolve_and_save("creatures", [creature.model_dump() for creature in parsing_result.creatures])
-                await ai_instance._resolve_and_save("quests", [q.model_dump() for q in parsing_result.quests], title_key='name')
-                await ai_instance._resolve_and_save("world_lores", [wl.model_dump() for wl in parsing_result.world_lores], title_key='name')
-                
-                await user.send(f"✅ **智能解析與儲存完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。共處理了 {len(successful_keys)} 個LORE實體。")
-            else:
-                logger.error(f"[{user_id}] [Canon Update] LORE 解析管道執行失敗或未返回任何結果。")
-                await user.send("❌ **解析失敗！**\nAI 未能從您提供的世界聖經中成功提取任何結構化 LORE。請檢查文本格式或聯繫管理員。")
-
-        except Exception as e:
-            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
-            await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
-# discord_bot.py 的 _background_process_canon 函式
-
-
-    
-
+    # 函式：執行完整的後台創世流程
 
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
@@ -1409,10 +1355,34 @@ class BotCog(commands.Cog):
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # 函式：監聽並處理所有符合條件的訊息
 
+    # 函式：在背景處理世界聖經文本
+    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+        user_id = str(interaction.user.id)
+        user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
+        try:
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
+            if not ai_instance:
+                await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
+                return
+            if len(content_text) > 5000:
+                await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
+            
+            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
+            
+            if is_setup_flow:
+                await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
+                asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
+                return
 
-
-
-    
+            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行終極智能解析，將其轉化為結構化的 LORE 數據庫...")
+            
+            await ai_instance.parse_and_create_lore_from_canon(content_text)
+            
+            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+        except Exception as e:
+            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
+    # 函式：在背景處理世界聖經文本
 
     # 函式：健壯的異步目錄刪除
     async def _robust_rmtree(self, path: Path, retries: int = 10, delay: float = 1.0):
@@ -1866,16 +1836,3 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
-
-
-
-
-
-
-
-
-
-
-
-
-

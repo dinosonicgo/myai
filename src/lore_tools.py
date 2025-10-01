@@ -250,20 +250,19 @@ async def add_or_update_world_lore(lore_key: str, standardized_name: str, origin
 
 # --- [v3.5新增] LORE 規則繼承工具 ---
 
-# lore_tools.py 的 UpdateLoreTemplateKeysArgs 類別 (v1.0 - 全新創建)
+# 類別：更新 LORE 繼承規則的參數 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-10-01): [全新創建] 根據「LORE繼承系統」的需求，創建此 Pydantic 模型，用於定義 `update_lore_template_keys` 工具的參數，明確了修改 LORE 關聯規則時所需的輸入結構。
+# v1.0 (2025-11-22): [全新創建] 根據「LORE繼承系統」的需求，創建此 Pydantic 模型，用於定義 update_lore_template_keys 工具的參數。
 class UpdateLoreTemplateKeysArgs(BaseToolArgs):
     """用於更新LORE條目繼承規則的工具參數。"""
     lore_category: str = Field(description="要修改的LORE條目所屬的類別，例如 'world_lore'。")
     lore_key: str = Field(description="要修改的LORE條目的精確主鍵（lore_key）。")
     template_keys: List[str] = Field(description="一個身份關鍵詞列表。任何角色的aliases匹配此列表，都將繼承該LORE的規則。")
-# lore_tools.py 的 UpdateLoreTemplateKeysArgs 類別
+# 類別：更新 LORE 繼承規則的參數
 
 # 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
-# lore_tools.py 的 update_lore_template_keys 工具 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-10-01): [全新創建] 根據「LORE繼承系統」的需求，創建此核心工具。它允許AI（或使用者）為一條世界傳說（world_lore）設置觸發繼承的關鍵詞（例如為「母畜的禮儀」設置 `template_keys=['母畜']`），從而將靜態的LORE變為動態的、可驅動角色行為的規則，是實現知識圖譜關聯的關鍵執行器。
+# v1.0 (2025-11-22): [全新創建] 根據「LORE繼承系統」的需求，創建此核心工具。它允許AI（或使用者）為一條世界傳說（world_lore）設置觸發繼承的關鍵詞，從而將靜態的LORE變為動態的、可驅動角色行為的規則。
 @tool(args_schema=UpdateLoreTemplateKeysArgs)
 async def update_lore_template_keys(lore_category: str, lore_key: str, template_keys: List[str]) -> str:
     """【規則引擎專用】為一條現有的LORE（通常是世界傳說或行為規範）設置繼承觸發器。當一個角色的身份(alias)匹配了template_keys中的任何一個詞，該角色就會自動繼承這條LORE的內容作為其行為準則。"""
@@ -303,16 +302,13 @@ async def update_lore_template_keys(lore_category: str, lore_key: str, template_
             await ai_core._update_rag_for_single_lore(updated_lore)
 
     return f"已成功為 LORE '{lore_key}' 設置繼承觸發器為: {template_keys}。"
-# lore_tools.py 的 update_lore_template_keys 工具
 # 工具：更新 LORE 繼承規則
 
 # --- 工具列表導出 ---
 
 # 函式：獲取所有 LORE 工具 (v3.5 - 新增規則工具)
-# lore_tools.py 的 get_lore_tools 函式 (v3.6 - 註冊新工具)
 # 更新紀錄:
-# v3.6 (2025-10-01): [架構擴展] 將新增的 `update_lore_template_keys` 工具加入到返回的工具列表中，使其能被AI的工具調用系統正式使用，完成了 LORE 繼承功能的閉環。
-# v3.5 (2025-11-22): [架構擴展] 新增了 update_lore_template_keys 工具。
+# v3.5 (2025-11-22): [架構擴展] 將新增的 update_lore_template_keys 工具加入到返回的工具列表中，使其能被AI的工具調用系統正式使用。
 def get_lore_tools() -> List[Tool]:
     """返回一個列表，包含所有用於管理世界 LORE 的工具。"""
     return [
@@ -325,8 +321,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
         update_lore_template_keys,
     ]
-# lore_tools.py 的 get_lore_tools 函式
 # 函式：獲取所有 LORE 工具
-
-
-
