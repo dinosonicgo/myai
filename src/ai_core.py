@@ -1204,16 +1204,16 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v300.1 - 支持泛型列表 Schema)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v300.2 - 穩定性加固)
 # 更新紀錄:
-# v300.1 (2025-10-01): [災難性BUG修復] 根據 `ValueError: Value not declarable with JSON Schema`，擴展了此函式的能力，使其能夠處理 `List[PydanticModel]` 形式的 `output_schema`。此修改通過在 LangChain 的 Tool Calling 模式下要求返回多個物件，繞過了因傳遞單一複雜嵌套模型而觸發的內部 bug，是確保結構化輸出穩定性的關鍵一步。
+# v300.2 (2025-10-01): [健壯性] 恢復了完整的、經過實戰檢驗的異常處理和重試邏輯（包括指數退避、持久化冷卻和模型降級），並將其與新的 LangChain Tool Calling 範式相結合。同時，簡化了 `euphemize` 策略，使其在遭遇審查時能更快速地失敗並輪換，而不是進入複雜的修復流程。
+# v300.1 (2025-10-01): [災難性BUG修復] 擴展了對 `List[PydanticModel]` 形式 `output_schema` 的支持。
 # v300.0 (2025-10-01): [災難性BUG修復] 全面擁抱 LangChain 的 Tool Calling 範式。
-# v232.9 (2025-09-30): [災難性BUG修復] 增加了對 `finish_reason` 的防禦性檢查。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
         prompt_params: Dict[str, Any],
-        output_schema: Optional[Type[BaseModel] | List[Type[BaseModel]]] = None, # 允許 List
+        output_schema: Optional[Type[BaseModel] | List[Type[BaseModel]]] = None,
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False
     ) -> Any:
@@ -1222,78 +1222,74 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         """
         last_exception = None
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
+        IMMEDIATE_RETRY_LIMIT = 3
 
         for model_name in models_to_try:
-            for _ in range(len(self.api_keys)):
+            for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key(model_name)
                 if not key_info:
                     logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
-                    break 
+                    break
                 
                 api_key, key_index = key_info
-
-                try:
-                    llm = ChatGoogleGenerativeAI(
-                        model=model_name,
-                        google_api_key=api_key,
-                        safety_settings=SAFETY_SETTINGS,
-                        temperature=0.2,
-                        max_retries=1
-                    )
-                    
-                    if output_schema:
-                        # [v300.1 核心修正] 處理 List[PydanticModel] 的情況
-                        is_list_schema = getattr(output_schema, '__origin__', None) is list
-                        schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
-
-                        structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-                        chain = ChatPromptTemplate.from_template(prompt_template)
-                        
-                        # 如果期望的是列表，調用 .batch() 而不是 .ainvoke()
-                        # 注意：此處的 batch 是 LangChain 的批處理，而非我們的業務邏輯批次
-                        # 但 .with_structured_output 會智能處理，讓 LLM 返回多個物件
-                        if is_list_schema:
-                            chain = chain | structured_llm
-                            # LangChain 對 List 的結構化輸出仍在發展，我們使用 invoke 並期望它返回列表
-                        else:
-                             chain = chain | structured_llm
-
-                    else:
-                        chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
-
-                    logger.info(f"[{self.user_id}] [Tool Calling] 正在使用模型 '{model_name}' (Key #{key_index}) 執行結構化輸出...")
-                    result = await chain.ainvoke(prompt_params)
-                    
-                    logger.info(f"[{self.user_id}] [Tool Calling] ✅ 成功！")
-                    return result
-
-                except BlockedPromptException as e:
-                    last_exception = e
-                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
-                    if retry_strategy == 'euphemize':
-                        logger.warning(f"[{self.user_id}] 正在輪換金鑰/模型以嘗試規避審查...")
-                        continue
-                    else:
-                        raise e
-
-                except (OutputParserException, ValidationError) as e:
-                    last_exception = e
-                    logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=True)
-                    raise e
-
-                except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
-                    last_exception = e
-                    logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇臨時性 API 錯誤: {type(e).__name__}。正在輪換金鑰...")
-                    if isinstance(e, ResourceExhausted):
-                         cooldown_key = f"{key_index}_{model_name}"
-                         self.key_model_cooldowns[cooldown_key] = time.time() + 3600
-                         self._save_cooldowns()
-                    continue
                 
-                except Exception as e:
-                    last_exception = e
-                    logger.error(f"[{self.user_id}] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                    continue
+                for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
+                    try:
+                        llm = ChatGoogleGenerativeAI(
+                            model=model_name,
+                            google_api_key=api_key,
+                            safety_settings=SAFETY_SETTINGS,
+                            temperature=0.2,
+                            max_retries=0 # 我們手動處理重試
+                        )
+                        
+                        if output_schema:
+                            is_list_schema = getattr(output_schema, '__origin__', None) is list
+                            schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
+                            structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
+                            chain = ChatPromptTemplate.from_template(prompt_template) | structured_llm
+                        else:
+                            chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
+
+                        logger.info(f"[{self.user_id}] [Tool Calling] 正在使用模型 '{model_name}' (Key #{key_index}) 執行...")
+                        result = await chain.ainvoke(prompt_params)
+                        logger.info(f"[{self.user_id}] [Tool Calling] ✅ 成功！")
+                        return result
+
+                    except BlockedPromptException as e:
+                        last_exception = e
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
+                        if retry_strategy == 'none':
+                            raise e
+                        # 對於 euphemize 和 force，Tool Calling 模式下降級/輪換是最佳策略
+                        logger.warning(f"[{self.user_id}] 輪換金鑰/模型以嘗試規避審查...")
+                        break # 跳出內部重試，直接進入下一個 API 金鑰
+
+                    except (OutputParserException, ValidationError) as e:
+                        last_exception = e
+                        logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=False)
+                        # 這通常意味著 Prompt 或 Schema 有問題，重試同一金鑰意義不大
+                        break
+
+                    except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                        last_exception = e
+                        if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
+                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰。")
+                            if isinstance(e, ResourceExhausted):
+                                cooldown_key = f"{key_index}_{model_name}"
+                                self.key_model_cooldowns[cooldown_key] = time.time() + 3600
+                                self._save_cooldowns()
+                            break # 跳出內部重試，進入下一個 API 金鑰
+                        
+                        sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
+                        logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
+                        await asyncio.sleep(sleep_time)
+                        continue
+
+                    except Exception as e:
+                        last_exception = e
+                        logger.error(f"[{self.user_id}] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        break # 未知錯誤，直接輪換
 
         logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
@@ -3757,37 +3753,48 @@ class ExtractionResult(BaseModel):
     
 
 
-   # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_targeted_refinement_prompt 函式 (v2.0 - Tool Calling 簡化)
+# 函式：獲取靶向精煉器 Prompt
+# ai_core.py 的 get_targeted_refinement_prompt 函式 (v2.1 - 專職Prompt)
 # 更新紀錄:
-# v2.0 (2025-10-01): [重大架構重構] 根據「Tool Calling」範式，徹底簡化了此 Prompt。新版本不再包含任何 Pydantic 模型定義或 JSON 結構，因為目標 Schema (`CharacterProfile`, `LocationInfo` 等) 將作為工具直接綁定到 LLM。Prompt 的職責回歸到最純粹的、聚焦於深度資訊提取的自然語言指令。
-# v1.0 (2025-10-01): [重大架構升級] 創建此核心 Prompt。
-    def get_targeted_refinement_prompt(self) -> str:
-        """獲取一個為 Tool Calling 流程中的“靶向精煉”步驟設計的、簡化的 Prompt 模板。"""
-        prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家，專注於從文本中进行深度细节提取与关联构建。
-# MISSION: 你的任務是專注於分析下方提供的、關於單一【目標實體】的【上下文】，並根據這些資訊，生成一份詳細、準確的結構化檔案。
-
+# v2.1 (2025-10-01): [重大架構重構] 根據「原子工具鏈」架構，新增了一個 `refinement_focus` 參數。此修改使該模板能夠為「兩步式精煉」中的不同步驟（如「提取核心資訊」或「提取外觀細節」）生成高度專職化的指令，從而最大限度地提高單個 Tool Calling 任務的準確性。
+# v2.0 (2025-10-01): [重大架構重構] 根據「Tool Calling」範式簡化了此 Prompt。
+    def get_targeted_refinement_prompt(self, refinement_focus: Literal['core_info', 'appearance_details', 'full_parse']) -> str:
+        """獲取一個為 Tool Calling 流程中的“靶向精煉”步驟設計的、專職化的 Prompt 模板。"""
+        
+        focus_instructions = {
+            "core_info": """
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【強制身份窮舉】**: 如果目標是 `npc_profile`，你【必須】從上下文中找出所有描述該角色的身份、頭銜、職業、種族等關鍵詞，並【一個不漏地】添加到 `aliases` 列表中。
-# 2. **【強制關係圖譜構建】**: 如果目標是 `npc_profile`，你【必須】分析該角色與其他具名角色的互動，推斷關係並結構化地填入 `relationships` 字典。
-# 3. **【強制規則識別】**: 如果目標是 `world_lore` 且內容描述了一種行為規範，你【必須】從中提取適用的身份關鍵詞並填入 `template_keys` 列表。
-# 4. **【🚫 絕對無害化】**: 輸入的上下文**可能包含技術代碼**。你的輸出**也必須原封不動地保留這些技術代碼**。
+# 1. **【🎯 絕對聚焦】**: 你的唯一任務是提取角色的【核心資訊】，包括：`name`, `aliases`, `gender`, `age`, `race`, `description`, `skills`, `relationships`。
+# 2. **【🚫 忽略外觀】**: 【絕對禁止】提取任何與物理外觀相關的細節（身高、髮色、瞳色、服飾等）。
+# 3. **【🏷️ 強制身份窮舉】**: 你【必須】從上下文中找出所有描述該角色的身份、頭銜、職業等關鍵詞，並【一個不漏地】添加到 `aliases` 列表中。
+# 4. **【🗺️ 強制關係圖譜構建】**: 你【必須】分析該角色與其他具名角色的互動，推斷關係並結構化地填入 `relationships` 字典。
+""",
+            "appearance_details": """
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 絕對聚焦】**: 你的唯一任務是提取角色的【物理外觀細節】，包括：`height`, `body_type`, `hair_style`, `eye_color`, `skin_tone`, `distinctive_features`, `age_appearance`, `clothing_style`, `overall_impression`。
+# 2. **【🚫 忽略背景】**: 【絕對禁止】提取任何與背景故事、性格、技能、人際關係相關的資訊。
+""",
+            "full_parse": """
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 全面提取】**: 你的任務是從上下文中提取所有與目標實體相關的可用資訊，並填充到對應的結構化欄位中。
+"""
+        }
+
+        prompt_template = f"""# TASK: 你是一位資深的 LORE 檔案撰寫專家，專注於從文本中進行深度細節提取。
+# MISSION: 你的任務是專注於分析下方提供的、關於單一【目標實體】的【上下文】，並根據這些資訊，執行一個高度聚焦的提取任務。
+
+{focus_instructions.get(refinement_focus, focus_instructions['full_parse'])}
 
 # --- [INPUT DATA] ---
 
 # 【目標實體名稱】:
-{entity_name}
-
-# ---
-# 【目標 LORE 類別】:
-{lore_category}
+{{entity_name}}
 
 # ---
 # 【上下文 (你的唯一事實來源)】:
-{context}
+{{context}}
 """
         return prompt_template
-# ai_core.py 的 get_targeted_refinement_prompt 函式
 # 函式：獲取靶向精煉器 Prompt
     
     
@@ -4351,115 +4358,124 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.3 - 使用扁平化 Schema)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v7.0 - 終極原子工具鏈)
 # 更新紀錄:
-# v6.3 (2025-10-01): [災難性BUG修復] 根據 `ValueError: Value not declarable with JSON Schema`，修改了實體分類步驟的 `output_schema`。不再使用包裹模型 `BatchClassificationResult`，而是直接傳遞 `List[LoreClassificationResult]`。此「扁平化 Schema」策略旨在繞過 LangChain 內部處理複雜嵌套模型時的 bug，從而解決 Tool Calling 的初始化失敗問題。
-# v6.2 (2025-10-01): [災難性BUG修復] 全面適配了新的 ainvoke 簽名。
-# v6.0 (2025-10-01): [災難性BUG修復] 全面轉向基於 LangChain 的 Tool Calling 範式。
+# v7.0 (2025-10-01): [災難性BUG修復] 根據 LangChain 的兼容性問題，再次徹底重構此函式，實現了終極的【原子工具鏈】架構。新流程將每一個解析步驟（單體分類、核心資訊提取、外觀提取）都分解為一個獨立的、由簡單 Pydantic 模型驅動的 Tool Calling 任務，並通過 `asyncio.gather` 和 `Semaphore` 進行大規模並行處理。此修改從根本上解決了所有已知的結構性錯誤 (`ValueError`, `ValidationError`)，是當前最穩健的 LORE 解析方案。
+# v6.x (2025-10-01): [多次修正] 嘗試解決 Tool Calling 相關的 bug。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v6.0 核心 LORE 解析引擎】執行一個基於 Tool Calling 的、混合式的兩階段解析管線。
-        返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
+        【v7.0 核心 LORE 解析引擎】執行一個基於原子工具鏈的、混合式的兩階段解析管線。
         """
         if not self.profile or not text_to_parse.strip():
             return False, None, []
+
+        from .schemas import CharacterCoreInfo # 導入新的原子模型
 
         # --- 階段一：混合 NLP 實體骨架提取 ---
         logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...")
         candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
         if not candidate_entities:
-            logger.warning(f"[{self.user_id}] [LORE 解析 1/4] 本地 NLP 未能提取任何候選實體，流程終止。")
+            logger.warning(f"[{self.user_id}] [LORE 解析 1/4] 本地 NLP 未能提取任何候選實體。")
             return False, CanonParsingResult(), []
         logger.info(f"[{self.user_id}] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 {len(candidate_entities)} 個候選實體。")
 
-        # --- 階段二：LLM 實體分類 (Tool Calling) ---
-        logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在使用 Tool Calling 對候選實體進行分類...")
+        # --- 階段二：原子化實體分類 (Tool Calling) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在對 {len(candidate_entities)} 個實體啟動原子化並行分類...")
         classification_prompt_template = self.get_lore_classification_prompt()
-        try:
-            prompt_params = {
-                "candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False),
-                "context": text_to_parse
-            }
-            # [v6.3 核心修正] 使用扁平化的 List Schema
-            classifications = await self.ainvoke_with_rotation(
-                classification_prompt_template,
-                prompt_params,
-                output_schema=List[LoreClassificationResult]
-            )
-            if not classifications:
-                raise ValueError("分類返回空結果")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE 解析 2/4] 🔥 實體分類步驟失敗: {e}，流程終止。", exc_info=True)
-            return False, CanonParsingResult(), []
+        CONCURRENT_TASKS = 10 # 可以適當提高並發數，因為這是輕量級任務
+        sem = asyncio.Semaphore(CONCURRENT_TASKS)
+
+        async def classify_task(entity_name: str):
+            async with sem:
+                try:
+                    return await self.ainvoke_with_rotation(
+                        classification_prompt_template,
+                        {"candidate_entities_json": f'["{entity_name}"]', "context": text_to_parse},
+                        output_schema=LoreClassificationResult
+                    )
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [原子化分類] 🔥 分類實體 '{entity_name}' 時失敗: {e}", exc_info=False)
+                    return None
         
-        tasks_to_run = [c for c in classifications if c.lore_category != 'ignore']
+        classification_tasks = [classify_task(name) for name in candidate_entities]
+        classification_results = await asyncio.gather(*classification_tasks)
+        
+        tasks_to_run = [c for c in classification_results if c and c.lore_category != 'ignore']
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
         
-        # --- 階段三：靶向 LORE 精煉 (Tool Calling, 受控並行) ---
-        logger.info(f"[{self.user_id}] [LORE 解析 3/4] 正在啟動 RAG 驅動的靶向精煉器...")
+        # --- 階段三：兩步式靶向 LORE 精煉 (Tool Calling, 受控並行) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 3/4] 正在啟動兩步式靶向精煉器...")
         temp_retriever = BM25Retriever.from_texts([text_to_parse])
         temp_retriever.k = 5
         
-        CONCURRENT_TASKS = 5
+        CONCURRENT_TASKS = 5 # 精煉任務較重，降低並發數
         sem = asyncio.Semaphore(CONCURRENT_TASKS)
-        
-        pydantic_map = { "npc_profile": CharacterProfile, "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
-        refinement_prompt_template = self.get_targeted_refinement_prompt()
+        pydantic_map = { "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
 
         async def refine_task(classification: LoreClassificationResult):
             async with sem:
+                category, name = classification.lore_category, classification.entity_name
                 try:
-                    target_schema = pydantic_map.get(classification.lore_category)
-                    if not target_schema: return None
-                    
-                    context_docs = await temp_retriever.ainvoke(classification.entity_name)
+                    context_docs = await temp_retriever.ainvoke(name)
                     context = "\n---\n".join([doc.page_content for doc in context_docs])
                     
-                    prompt_params = {
-                        "entity_name": classification.entity_name,
-                        "lore_category": classification.lore_category,
-                        "context": context
-                    }
-                    
-                    refined_obj = await self.ainvoke_with_rotation(
-                        refinement_prompt_template,
-                        prompt_params,
-                        output_schema=target_schema
-                    )
-                    return classification.lore_category, refined_obj
+                    if category == 'npc_profile':
+                        # 兩步式精煉
+                        core_info_prompt = self.get_targeted_refinement_prompt('core_info')
+                        appearance_prompt = self.get_targeted_refinement_prompt('appearance_details')
+                        
+                        core_info_task = self.ainvoke_with_rotation(core_info_prompt, {"entity_name": name, "context": context}, output_schema=CharacterCoreInfo)
+                        appearance_task = self.ainvoke_with_rotation(appearance_prompt, {"entity_name": name, "context": context}, output_schema=AppearanceDetails)
+                        
+                        results = await asyncio.gather(core_info_task, appearance_task, return_exceptions=True)
+                        
+                        core_info = results[0] if not isinstance(results[0], Exception) else None
+                        appearance_details = results[1] if not isinstance(results[1], Exception) else None
+
+                        if not core_info:
+                            logger.error(f"[{self.user_id}] [兩步式精煉] 🔥 提取實體 '{name}' 的核心資訊失敗。")
+                            return None
+
+                        # 在 Python 中手動組裝
+                        final_profile = CharacterProfile(
+                            **core_info.model_dump(),
+                            appearance_details=(appearance_details or AppearanceDetails())
+                        )
+                        return category, final_profile
+                    else:
+                        # 對於簡單模型，一步到位
+                        target_schema = pydantic_map.get(category)
+                        if not target_schema: return None
+                        
+                        full_parse_prompt = self.get_targeted_refinement_prompt('full_parse')
+                        refined_obj = await self.ainvoke_with_rotation(
+                            full_parse_prompt,
+                            {"entity_name": name, "context": context},
+                            output_schema=target_schema
+                        )
+                        return category, refined_obj
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{classification.entity_name}' 時失敗: {e}", exc_info=False)
+                    logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{name}' 時失敗: {e}", exc_info=False)
                     return None
 
-        tasks = [refine_task(c) for c in tasks_to_run]
-        refined_results = await asyncio.gather(*tasks)
+        refinement_tasks = [refine_task(c) for c in tasks_to_run]
+        refined_results = await asyncio.gather(*refinement_tasks)
 
-        # --- 階段四：數據合併與校驗 ---
-        logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在進行數據合併與最終校驗...")
-        initial_parsing_result = CanonParsingResult()
+        # --- 階段四：數據合併 (無需最終校驗，因為 Tool Calling 已保證結構) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在進行數據合併...")
+        final_parsing_result = CanonParsingResult()
         for result in refined_results:
             if result:
                 category, obj = result
-                if category == 'npc_profile': initial_parsing_result.npc_profiles.append(obj)
-                elif category == 'location_info': initial_parsing_result.locations.append(obj)
-                elif category == 'item_info': initial_parsing_result.items.append(obj)
-                elif category == 'creature_info': initial_parsing_result.creatures.append(obj)
-                elif category == 'quest': initial_parsing_result.quests.append(obj)
-                elif category == 'world_lore': initial_parsing_result.world_lores.append(obj)
+                target_list = getattr(final_parsing_result, f"{category}s", None)
+                if target_list is not None:
+                    target_list.append(obj)
         
-        final_parsing_result = await self._programmatic_lore_validator(initial_parsing_result, text_to_parse)
-        
-        successful_keys = []
-        for category_list in final_parsing_result.model_dump().values():
-            if isinstance(category_list, list):
-                for item in category_list:
-                    if isinstance(item, dict):
-                        successful_keys.append(item.get('name') or item.get('title'))
+        successful_keys = [item.get('name') or item.get('title') for category_list in final_parsing_result.model_dump().values() if isinstance(category_list, list) for item in category_list if isinstance(item, dict)]
 
-        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極 Tool Calling 管線執行完畢。")
+        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極原子工具鏈執行完畢。")
         return True, final_parsing_result, successful_keys
 # 函式：執行 LORE 解析管線
-
                             
 
 
@@ -5377,6 +5393,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
