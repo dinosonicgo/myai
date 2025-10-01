@@ -2950,30 +2950,42 @@ class ExtractionResult(BaseModel):
     # 函式：背景LORE精煉
 
     
-    # 函式：獲取事後分析器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_post_generation_analysis_chain 函式 (v1.2 - 上下文感知)
+# 函式：獲取事後分析器 Prompt (v2.0 - 結構化修正)
 # 更新紀錄:
-# v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。新增了【創作依據參考】區塊和核心的【行為溯源原則】。此修改指示摘要器在生成記憶摘要時，必須回溯小說中的行為是否源於特定的LORE規則，並在摘要中明確體現這種關聯，從根源上解決了摘要內容丟失關鍵LORE行為細節的「失真」問題。
-# v1.1 (2025-09-28): [核心升級] 植入【事實校對原則】，賦予事後分析系統根據對話修正現有 LORE 的能力。
+# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了 Prompt，引入了【結構化範例強制令】。此修改為 LLM 提供了一個結構絕對正確的 JSON 範例，並用最高優先級的規則強制其模仿，旨在從根本上解決因模型生成錯誤格式的工具調用（缺少 `updates` 字典包裹）而導致的 ValidationError。
+# v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。
+# v1.1 (2025-09-28): [核心升級] 植入【事實校對原則】。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位高度智能且極其嚴謹的【首席世界觀記錄官】兼【事實校對官】。
+            prompt_template = """# TASK: 你是一位極其嚴謹的【世界觀記錄官】與【事實校對官】。
 # MISSION: 你的任務是閱讀【本回合的完整對話】和【創作依據參考】，提取出兩類關鍵信息：
 #   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映LORE規則的、無害化的核心事件總結。
 #   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】的結構化工具調用計畫。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【📝 行為溯源原則 (Behavioral Traceability Mandate) - 最高摘要優先級】**:
-#     *   你【必須】分析【完整小說內容】。如果小說中描述的某個角色行為，能夠在【創作依據參考】中找到對應的規則（例如，小說寫了米婭的特定下跪動作，而規則裡有「母畜的禮儀」），你**【必須】**在你的 `memory_summary` 中明確地、簡潔地提及**這個由規則驅動的關鍵行為**。
-#     *   **目標**：確保存入長期記憶的摘要，不會丟失由LORE驅動的關鍵細節。
-# 2.  **【✅ 事實校對原則】**:
-#     *   你【必須】將對話內容與【現有LORE摘要】進行嚴格比對。
-#     *   如果對話中出現了與現有 LORE **明確矛盾**的新設定，你【必須】生成一個 `add_or_update_..._info` 或 `update_..._profile` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
-# 3.  **【👑 核心主角絕對保護原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 的工具調用。
-# 4.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本。
-# 5.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。
-# 6.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
+# 1.  **【👑 結構化範例強制令 (STRUCTURED EXAMPLE MANDATE) - 最高優先級】**:
+#     *   當你需要生成一個 `update_npc_profile` 工具調用時，其 `parameters` 字典的結構【絕對必須】與下方範例完全一致。
+#     *   所有要更新的鍵值對，【必須】被包裹在一個名為 `"updates"` 的**巢狀字典**中。
+#     *   **【【【絕對正確的範例】】】**:
+#         ```json
+#         {
+#           "tool_name": "update_npc_profile",
+#           "parameters": {
+#             "lore_key": "王都 > 維利爾斯莊園 > 米婭",
+#             "updates": {
+#               "description": "米婭在與勳爵的對話後，展現出了新的性格特質。",
+#               "status": "正在與勳爵對話"
+#             }
+#           }
+#         }
+#         ```
+# 2.  **【📝 行為溯源原則】**: 如果小說中的角色行為源於【創作依據參考】中的規則，你**【必須】**在 `memory_summary` 中明確提及這個由規則驅動的行為。
+# 3.  **【✅ 事實校對原則】**: 如果對話內容與【現有LORE摘要】明確矛盾，你【必須】生成一個 `update_...` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
+# 4.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 工具調用。
+# 5.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本。
+# 6.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。
+# 7.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # --- [INPUT DATA] ---
 
@@ -2990,12 +3002,11 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON】:
+# 【你生成的分析結果JSON (請嚴格遵守範例結構)】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt
-
+# 函式：獲取事後分析器 Prompt (v2.0 - 結構化修正)
 
 
 
@@ -4088,26 +4099,36 @@ class ExtractionResult(BaseModel):
 
     
 
-# ai_core.py 的 parse_and_create_lore_from_canon 函式 (v13.4 - 移除RAG重建)
+# 函式：解析並從世界聖經創建LORE (v14.0 - RAG源頭修正)
 # 更新紀錄:
-# v13.4 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式末尾所有與 RAG 資源管理（釋放、重建）相關的程式碼。此函式的職責被重新定義為：純粹的 LORE 解析與 SQL 數據庫寫入。RAG 的創建/重建將由更高層的協調器在所有數據準備就緒後統一觸發。
-# v13.3 (2025-09-30): [災難性BUG修復] 增加了對 `_release_rag_resources()` 的調用，以遵循「先釋放，後刪除」原則。
-# v13.2 (2025-09-30): [災難性BUG修復] 在函式中增加了程式化的【最終防線過濾器】。
+# v14.0 (2025-10-02): [根本性重構] 在函式最開始增加了對 `add_canon_to_vector_store` 的強制調用。此修改確保了世界聖經的【完整原文】在執行任何解析之前，就被切塊並存入 RAG 知識庫。這從根本上解決了 RAG 系統只能檢索到碎片化LORE卡片，而丟失關鍵敘事上下文的問題。
+# v13.4 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式末尾所有與 RAG 資源管理相關的程式碼。
+# v13.3 (2025-09-30): [災難性BUG修復] 增加了對 `_release_rag_resources()` 的調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
         【總指揮】啟動 LORE 解析管線，自動鏈接规则，校驗結果，並將結果存入 SQL 資料庫。
+        (v14.0) 此函式現在首先會將聖經原文完整存入RAG，然後再進行結構化解析。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
+        # [v14.0 核心修正] 在所有處理開始前，首先將原始聖經文本存入 RAG 知識庫
+        if canon_text and canon_text.strip():
+            try:
+                logger.info(f"[{self.user_id}] [RAG源頭注入] 正在將世界聖經原文寫入 RAG 知識庫...")
+                chunk_count = await self.add_canon_to_vector_store(canon_text)
+                logger.info(f"[{self.user_id}] [RAG源頭注入] ✅ 成功！世界聖經原文已被分解為 {chunk_count} 個知識片段存入 RAG。")
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [RAG源頭注入] 🔥 將世界聖經原文存入 RAG 時發生嚴重錯誤: {e}", exc_info=True)
+                # 即使此步驟失敗，也應繼續嘗試解析，以保證 LORE 系統的基本功能
+        
         logger.info(f"[{self.user_id}] [創世 LORE 解析] 正在啟動多層降級解析管線...")
         
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
-            # [v13.4 核心修正] 移除 RAG 相關操作
             return
 
         # 步驟 2: 植入「源頭真相」校驗器
@@ -4144,6 +4165,7 @@ class ExtractionResult(BaseModel):
             rule_keywords = ["禮儀", "规则", "规范", "法则", "仪式", "條例", "戒律", "守則"]
             
             for lore in validated_result.world_lores:
+                # 兼容 title 和 name 字段
                 lore_name = lore.name if hasattr(lore, 'name') else getattr(lore, 'title', '')
                 if any(keyword in lore_name for keyword in rule_keywords):
                     potential_keys = set()
@@ -4204,15 +4226,9 @@ class ExtractionResult(BaseModel):
             
             logger.info(f"[{self.user_id}] [創世 LORE 解析] LORE 已成功解析並存入 SQL 資料庫。")
             
-            # [v13.4 核心修正] 移除所有 RAG 相關操作
-            # logger.info(f"[{self.user_id}] [創世 LORE 解析] 管線成功完成。正在觸發 RAG 全量重建...")
-            # await self._release_rag_resources()
-            # await self._load_or_build_rag_retriever(force_rebuild=True)
-            # logger.info(f"[{self.user_id}] [創世 LORE 解析] RAG 索引全量重建完成。")
         else:
             logger.error(f"[{self.user_id}] [創世 LORE 解析] 解析成功但校驗後結果為空，無法創建 LORE。")
-            # [v13.4 核心修正] 移除所有 RAG 相關操作
-# 函式：解析並從世界聖經創建LORE
+# 函式：解析並從世界聖經創建LORE (v14.0 - RAG源頭修正)
 
 
 
@@ -5398,6 +5414,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
