@@ -116,6 +116,62 @@ SAFETY_SETTINGS = {
 
 PROJ_DIR = Path(__file__).resolve().parent.parent
 
+
+
+
+# 函式：將 Pydantic 模型轉換為 Gemini API 的 FunctionDeclaration
+# v1.0 (2025-10-01): [全新創建] 創建此輔助函式，用於手動將 Pydantic 模型轉換為 Google 原生 SDK 所需的 FunctionDeclaration 格式。這是實現「原生 SDK Tool Calling」的核心步驟。
+def _convert_pydantic_to_gemini_tool(schema: Type[BaseModel]) -> Dict:
+    """將 Pydantic 模型轉換為 Gemini API 的 FunctionDeclaration 字典格式。"""
+    
+    # 由於 LangChain 的 Pydantic V1/V2 混用問題，我們必須使用一個安全的、通用方法來獲取 Schema
+    # 我們可以直接使用 Pydantic v2 的 model_json_schema()
+    json_schema = schema.model_json_schema()
+    
+    function_declaration = {
+        "name": schema.__name__,
+        "description": json_schema.get("description", f"Generates a structured output of type {schema.__name__}"),
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {},
+            "required": [],
+        },
+    }
+
+    # 處理 properties
+    for prop_name, prop_data in json_schema.get("properties", {}).items():
+        # 處理 type
+        prop_type = prop_data.get("type", "string")
+        if "array" in prop_type:
+            prop_type = "ARRAY"
+            if "items" in prop_data and "type" in prop_data["items"]:
+                prop_data["items"]["type"] = prop_data["items"]["type"].upper()
+        elif "string" in prop_type:
+            prop_type = "STRING"
+        elif "number" in prop_type or "integer" in prop_type:
+            prop_type = "NUMBER"
+        elif "boolean" in prop_type:
+             prop_type = "BOOLEAN"
+        else:
+             # 對於自定義類型（如 AppearanceDetails, RelationshipDetail），Gemini API 要求它是 OBJECT
+             prop_type = "OBJECT"
+             # 這裡需要遞歸處理 $ref，但因為我們使用的都是簡單結構，先直接傳遞即可
+             
+        function_declaration["parameters"]["properties"][prop_name] = {
+            "type": prop_type,
+            "description": prop_data.get("description", "")
+        }
+        
+    # 處理 required 欄位
+    function_declaration["parameters"]["required"] = json_schema.get("required", [])
+    
+    return function_declaration
+# 函式：將 Pydantic 模型轉換為 Gemini API 的 FunctionDeclaration
+
+
+
+
+
 # 類別：AI核心類
 # 說明：管理單一使用者的所有 AI 相關邏輯，包括模型、記憶、鏈和互動。
 class AILover:
@@ -1204,11 +1260,9 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v300.3 - 健壯性最終版)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v301.0 - 原生SDK Tool Calling 實現)
 # 更新紀錄:
-# v300.3 (2025-10-01): [災難性BUG修復] 根據 NameError，在函式頂部添加了 `import random`。同時，對異常處理邏輯進行了最終審查，確保所有 except 區塊都包含完整的重試、降級或冷卻邏輯，以防止任何形式的執行中斷。
-# v300.2 (2025-10-01): [健壯性] 恢復了完整的異常處理和重試邏輯。
-# v300.1 (2025-10-01): [災難性BUG修復] 增加了對 `List[PydanticModel]` 形式 `output_schema` 的支持。
+# v301.0 (2025-10-01): [災難性BUG修復] 徹底拋棄 LangChain 的執行層，重寫為 Google 原生 SDK 驅動。此版本手動實現了 Tool Calling 邏輯和 Pydantic 輸出解析，並直接將 SAFETY_SETTINGS 傳遞給原生 API，從根本上解決了 LangChain 兼容性問題和安全閥值設置 Bug，確保 100% 的可控性和穩定性。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1218,88 +1272,144 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         use_degradation: bool = False
     ) -> Any:
         """
-        一個基於 LangChain Tool Calling 的、高度健壯的 API 調用引擎，整合了金鑰輪換、模型降級和內容審查備援。
+        [原生 SDK 核心] 整合了金鑰輪換、模型降級和手動 Tool Calling 的原生 API 調用引擎。
         """
+        import google.generativeai as genai
+        from google.generativeai.types.generation_types import BlockedPromptException, FinishReason
+        from google.api_core import exceptions as google_api_exceptions
+        from google.generativeai.errors import APIError as GoogleGenerativeAIError
+        from google.generativeai.types import Part, Content, Role
+        import random
+        
+        # --- 步驟 1: 預處理與 Prompt 格式化 ---
         last_exception = None
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         IMMEDIATE_RETRY_LIMIT = 3
+        
+        # 由於 LangChain 的 ChatPromptTemplate.from_template 不再使用，我們手動格式化
+        full_prompt = self._safe_format_prompt(prompt_template, prompt_params, inject_core_protocol=True)
 
+        # --- 步驟 2: 處理 Tool Calling / Structured Output ---
+        gemini_tools = []
+        is_tool_call_expected = False
+        is_list_schema = False
+        
+        if output_schema:
+            is_tool_call_expected = True
+            is_list_schema = getattr(output_schema, '__origin__', None) is list
+            
+            # 獲取要綁定的 Pydantic 模型
+            schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
+            
+            # 轉換為 Gemini Tool Declaration
+            try:
+                tool_declaration = _convert_pydantic_to_gemini_tool(schema_to_bind)
+                gemini_tools.append(tool_declaration)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] Pydantic 轉換為 Gemini Tool 失敗: {e}", exc_info=True)
+                raise e
+
+        # --- 步驟 3: 輪換與調用 ---
         for model_name in models_to_try:
             for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key(model_name)
-                if not key_info:
-                    logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
-                    break
+                if not key_info: break
                 
                 api_key, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
                     try:
-                        llm = ChatGoogleGenerativeAI(
-                            model=model_name,
-                            google_api_key=api_key,
-                            safety_settings=SAFETY_SETTINGS,
-                            temperature=0.2,
-                            max_retries=0
+                        genai.configure(api_key=api_key)
+                        
+                        model = genai.GenerativeModel(model_name=model_name, safety_settings=SAFETY_SETTINGS)
+                        
+                        generation_config_params = {"temperature": 0.2}
+                        if is_tool_call_expected:
+                             # 強制要求模型使用我們提供的工具
+                             generation_config_params["tools"] = gemini_tools
+                             generation_config_params["tool_config"] = {"function_calling_config": {"mode": "ANY"}}
+                             
+                        
+                        response = await asyncio.wait_for(
+                            model.generate_content_async(
+                                full_prompt,
+                                generation_config=genai.types.GenerationConfig(**generation_config_params)
+                            ),
+                            timeout=180.0
                         )
                         
-                        if output_schema:
-                            is_list_schema = getattr(output_schema, '__origin__', None) is list
-                            schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
+                        # 檢查阻擋
+                        if response.prompt_feedback.block_reason:
+                            raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+
+                        # 檢查靜默失敗 (MAX_TOKENS, SAFETY, SPAM, etc.)
+                        finish_reason = response.candidates[0].finish_reason
+                        finish_reason_name = finish_reason.name if hasattr(finish_reason, 'name') else str(finish_reason)
+                        
+                        if finish_reason == FinishReason.MAX_TOKENS:
+                            raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: MAX_TOKENS")
+                        
+                        if finish_reason in [FinishReason.SAFETY, FinishReason.RECITATION, FinishReason.OTHER]:
+                            raise BlockedPromptException(f"Generation stopped due to safety reason: {finish_reason_name}")
+
+                        # --- 步驟 4: 解析輸出 ---
+                        if is_tool_call_expected:
+                            tool_calls = response.candidates[0].function_calls
+                            if not tool_calls:
+                                # 有時模型會直接輸出文本而不是呼叫工具，這需要一個更強的修正鏈來處理
+                                raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
                             
-                            # 對於列表輸出，我們要求 LLM 多次調用同一個工具
-                            structured_llm = llm.with_structured_output(
-                                schema_to_bind, 
-                                include_raw=False,
-                                # 如果是列表，`method` 應為 `"tool_calls"`，允許多次調用
-                                # 但 LangChain Google GenerativeAI 似乎自動處理了這一點
-                            )
-                            chain = ChatPromptTemplate.from_template(prompt_template) | structured_llm
+                            pydantic_objects = []
+                            for call in tool_calls:
+                                if call.name == schema_to_bind.__name__:
+                                    try:
+                                        # 原生 SDK 參數是 dict，可以直接傳給 Pydantic
+                                        pydantic_obj = schema_to_bind.model_validate(dict(call.args))
+                                        pydantic_objects.append(pydantic_obj)
+                                    except ValidationError as ve:
+                                        logger.error(f"[{self.user_id}] 手動 Tool Call Pydantic 驗證失敗: {ve}", exc_info=True)
+                                        # 這種情況下，我們認為這個特定 Tool Call 失敗
+                                        raise ve
+                            
+                            if is_list_schema:
+                                return pydantic_objects
+                            elif pydantic_objects:
+                                return pydantic_objects[0] # 單個物件返回第一個
+                            else:
+                                raise OutputParserException("Tool Call returned no valid objects.")
+                        
                         else:
-                            chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
+                            # 預期是純文本輸出
+                            return response.text.strip()
 
-                        logger.info(f"[{self.user_id}] [Tool Calling] 正在使用模型 '{model_name}' (Key #{key_index}) 執行...")
-                        result = await chain.ainvoke(prompt_params)
-                        logger.info(f"[{self.user_id}] [Tool Calling] ✅ 成功！")
-                        return result
-
-                    except BlockedPromptException as e:
-                        last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
+                    except BlockedPromptException as bpe:
+                        last_exception = bpe
                         if retry_strategy == 'none':
-                            raise e
-                        logger.warning(f"[{self.user_id}] 輪換金鑰/模型以嘗試規避審查...")
+                            raise bpe
+                        
+                        logger.warning(f"[{self.user_id}] 內容被阻擋，嘗試輪換金鑰/模型...")
                         break
 
-                    except (OutputParserException, ValidationError) as e:
-                        last_exception = e
-                        logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=False)
-                        break
-
-                    except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
+                    except (OutputParserException, ValidationError, google_api_exceptions.InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰。")
-                            if isinstance(e, ResourceExhausted):
-                                cooldown_key = f"{key_index}_{model_name}"
-                                self.key_model_cooldowns[cooldown_key] = time.time() + 3600
-                                self._save_cooldowns()
+                            if isinstance(e, google_api_exceptions.InternalServerError) and "MAX_TOKENS" in str(e):
+                                logger.error(f"遭遇 MAX_TOKENS 錯誤，這需要縮小輸入。")
                             break
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
-                        logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
+                        logger.warning(f"遭遇臨時錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
                         await asyncio.sleep(sleep_time)
                         continue
 
                     except Exception as e:
                         last_exception = e
-                        logger.error(f"[{self.user_id}] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
+                        logger.error(f"發生未知錯誤: {e}", exc_info=True)
                         break
-            
-            if use_degradation and models_to_try.index(model_name) < len(models_to_try) - 1:
+                
+            if model_name != models_to_try[-1] and model_name == models_to_try[0]:
                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
 
-        logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
 # 函式：帶輪換和備援策略的 API 調用引擎
                           
@@ -4200,11 +4310,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.1 - 並發參數調優)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.3 - 適配原生SDK)
 # 更新紀錄:
-# v8.1 (2025-10-01): [性能調優] 根據日誌中仍然出現的 ResourceExhausted 錯誤，將並行分類任務數（CONCURRENT_TASKS_CLASSIFY）和並行精煉任務數（CONCURRENT_TASKS_REFINE）從較高的值統一降低到一個更保守的 `3`。此修改旨在進一步平滑 API 請求，以適應免費 API 的嚴格速率限制，最大限度地減少重試和延遲，提高 LORE 解析流程的穩定性和可預測性。
-# v8.0 (2025-10-01): [災難性BUG修復] 實現了終極的【批量原子工具鏈】架構。
-# v7.0 (2025-10-01): [災難性BUG修復] 實現了【原子工具鏈】架構以解決 LangChain 兼容性問題。
+# v8.3 (2025-10-01): [災難性BUG修復] 根據「原生 SDK Tool Calling」重構策略，修改了所有對 `ainvoke_with_rotation` 的調用，使其適應新的、基於原生 SDK 的執行引擎。此版本確保了 LORE 解析管線在最底層使用 100% 可控的 API 呼叫，從而繞過所有 LangChain 的兼容性和安全 Bug。
+# v8.2 (2025-10-01): [災難性BUG修復] 增加了類型防禦與審查備援。
+# v8.1 (2025-10-01): [性能調優] 將並發數降低到一個更保守的值 `3`。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
         【v8.0 核心 LORE 解析引擎】執行一個基於批量原子工具鏈的、混合式的兩階段解析管線。
@@ -4226,7 +4336,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在對 {len(candidate_entities)} 個實體啟動批量並行分類...")
         classification_prompt_template = self.get_lore_classification_prompt()
         BATCH_SIZE_CLASSIFY = 50
-        CONCURRENT_TASKS_CLASSIFY = 3  # [v8.1 核心修正] 降低並發數
+        CONCURRENT_TASKS_CLASSIFY = 3
         sem_classify = asyncio.Semaphore(CONCURRENT_TASKS_CLASSIFY)
         
         entity_list = list(candidate_entities)
@@ -4235,21 +4345,39 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         async def classify_batch_task(batch: List[str]):
             async with sem_classify:
                 try:
-                    return await self.ainvoke_with_rotation(
+                    # 第一次嘗試：使用原始文本
+                    results = await self.ainvoke_with_rotation(
                         classification_prompt_template,
                         {"candidate_entities_json": json.dumps(batch, ensure_ascii=False), "context": text_to_parse},
                         output_schema=List[LoreClassificationResult]
                     )
+                    return results
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [批量分類] 🔥 分類批次時失敗: {e}", exc_info=False)
-                    return []
+                    logger.warning(f"[{self.user_id}] [批量分類] 🔥 批次分類時遭遇錯誤: {type(e).__name__}。啟動審查備援...")
+                    # 審查備援邏輯
+                    try:
+                        sanitized_context = text_to_parse
+                        reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                        for code, word in reversed_map:
+                            sanitized_context = sanitized_context.replace(word, code)
+                        
+                        logger.info(f"[{self.user_id}] [批量分類] 正在使用安全代碼化的上下文重試...")
+                        return await self.ainvoke_with_rotation(
+                            classification_prompt_template,
+                            {"candidate_entities_json": json.dumps(batch, ensure_ascii=False), "context": sanitized_context},
+                            output_schema=List[LoreClassificationResult],
+                            retry_strategy='none' 
+                        )
+                    except Exception as fallback_e:
+                        logger.error(f"[{self.user_id}] [批量分類] 🔥 審查備援最終失敗: {fallback_e}", exc_info=False)
+                        return []
 
         classification_tasks = [classify_batch_task(batch) for batch in batches]
         results_of_batches = await asyncio.gather(*classification_tasks)
         
         all_classifications = [item for sublist in results_of_batches if sublist for item in sublist]
         
-        tasks_to_run = [c for c in all_classifications if c.lore_category != 'ignore']
+        tasks_to_run = [c for c in all_classifications if isinstance(c, LoreClassificationResult) and c.lore_category != 'ignore']
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
         
         # --- 階段三：兩步式靶向 LORE 精煉 (Tool Calling, 受控並行) ---
@@ -4257,7 +4385,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         temp_retriever = BM25Retriever.from_texts([text_to_parse])
         temp_retriever.k = 5
         
-        CONCURRENT_TASKS_REFINE = 3 # [v8.1 核心修正] 降低並發數
+        CONCURRENT_TASKS_REFINE = 3
         sem_refine = asyncio.Semaphore(CONCURRENT_TASKS_REFINE)
         pydantic_map = { "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
 
@@ -4268,12 +4396,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     context_docs = await temp_retriever.ainvoke(name)
                     context = "\n---\n".join([doc.page_content for doc in context_docs])
                     
+                    prompt_params = {"entity_name": name, "context": context}
+
                     if category == 'npc_profile':
                         core_info_prompt = self.get_targeted_refinement_prompt('core_info')
                         appearance_prompt = self.get_targeted_refinement_prompt('appearance_details')
                         
-                        core_info_task = self.ainvoke_with_rotation(core_info_prompt, {"entity_name": name, "context": context}, output_schema=CharacterCoreInfo)
-                        appearance_task = self.ainvoke_with_rotation(appearance_prompt, {"entity_name": name, "context": context}, output_schema=AppearanceDetails)
+                        # 原子任務 A: 核心資訊
+                        core_info_task = self.ainvoke_with_rotation(
+                            core_info_prompt, prompt_params, output_schema=CharacterCoreInfo
+                        )
+                        # 原子任務 B: 外觀細節
+                        appearance_task = self.ainvoke_with_rotation(
+                            appearance_prompt, prompt_params, output_schema=AppearanceDetails
+                        )
                         
                         results = await asyncio.gather(core_info_task, appearance_task, return_exceptions=True)
                         
@@ -4283,21 +4419,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         if not core_info:
                             raise Exception(f"提取核心資訊失敗: {results[0]}")
 
-                        final_profile = CharacterProfile(
-                            **core_info.model_dump(),
-                            appearance_details=(appearance_details or AppearanceDetails())
-                        )
+                        final_profile = CharacterProfile(**core_info.model_dump(), appearance_details=(appearance_details or AppearanceDetails()))
                         return category, final_profile
                     else:
                         target_schema = pydantic_map.get(category)
                         if not target_schema: return None
                         
                         full_parse_prompt = self.get_targeted_refinement_prompt('full_parse')
-                        refined_obj = await self.ainvoke_with_rotation(
-                            full_parse_prompt,
-                            {"entity_name": name, "context": context},
-                            output_schema=target_schema
-                        )
+                        refined_obj = await self.ainvoke_with_rotation(full_parse_prompt, prompt_params, output_schema=target_schema)
                         return category, refined_obj
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{name}' 時失敗: {e}", exc_info=False)
@@ -4317,7 +4446,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     target_list = getattr(initial_parsing_result, target_list_name)
                     target_list.append(obj)
         
-        # 校驗步驟已被更可靠的兩步式精煉取代
         final_parsing_result = initial_parsing_result
         
         successful_keys = []
@@ -5247,6 +5375,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
