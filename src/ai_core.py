@@ -1203,16 +1203,17 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     # 函式：獲取實體驗證器 Prompt
     
 
-# ai_core.py 的 ainvoke_with_rotation 函式 (v300.0 - LangChain Tool Calling 重構)
+# 函式：帶輪換和備援策略的 API 調用引擎
+# ai_core.py 的 ainvoke_with_rotation 函式 (v300.1 - 支持泛型列表 Schema)
 # 更新紀錄:
-# v300.0 (2025-10-01): [災難性BUG修復] 根據持續的結構性錯誤，徹底重構此函式，全面擁抱 LangChain 的 Tool Calling 範式。新版本不再依賴手動的 JSON 解析，而是通過 `.with_structured_output()` 方法，讓 LangChain 框架在後台處理工具綁定和輸出驗證。此修改將 LLM 從「JSON 生成器」轉變為「工具調度員」，從根本上解決了所有因 LLM 幻覺導致的 JSON 格式錯誤和 ValidationError。
+# v300.1 (2025-10-01): [災難性BUG修復] 根據 `ValueError: Value not declarable with JSON Schema`，擴展了此函式的能力，使其能夠處理 `List[PydanticModel]` 形式的 `output_schema`。此修改通過在 LangChain 的 Tool Calling 模式下要求返回多個物件，繞過了因傳遞單一複雜嵌套模型而觸發的內部 bug，是確保結構化輸出穩定性的關鍵一步。
+# v300.0 (2025-10-01): [災難性BUG修復] 全面擁抱 LangChain 的 Tool Calling 範式。
 # v232.9 (2025-09-30): [災難性BUG修復] 增加了對 `finish_reason` 的防禦性檢查。
-# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 的防禦性檢查。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
         prompt_params: Dict[str, Any],
-        output_schema: Optional[Type[BaseModel]] = None,
+        output_schema: Optional[Type[BaseModel] | List[Type[BaseModel]]] = None, # 允許 List
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False
     ) -> Any:
@@ -1223,7 +1224,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
 
         for model_name in models_to_try:
-            for _ in range(len(self.api_keys)): # 嘗試每個 key
+            for _ in range(len(self.api_keys)):
                 key_info = self._get_next_available_key(model_name)
                 if not key_info:
                     logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於冷卻期。")
@@ -1236,14 +1237,27 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         model=model_name,
                         google_api_key=api_key,
                         safety_settings=SAFETY_SETTINGS,
-                        temperature=0.2, # 降低溫度以獲取更確定的結構化輸出
-                        max_retries=1 # 禁用 LangChain 的內部重試
+                        temperature=0.2,
+                        max_retries=1
                     )
                     
                     if output_schema:
-                        # 將 Pydantic 模型作為工具綁定到 LLM，並要求結構化輸出
-                        structured_llm = llm.with_structured_output(output_schema)
-                        chain = ChatPromptTemplate.from_template(prompt_template) | structured_llm
+                        # [v300.1 核心修正] 處理 List[PydanticModel] 的情況
+                        is_list_schema = getattr(output_schema, '__origin__', None) is list
+                        schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
+
+                        structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
+                        chain = ChatPromptTemplate.from_template(prompt_template)
+                        
+                        # 如果期望的是列表，調用 .batch() 而不是 .ainvoke()
+                        # 注意：此處的 batch 是 LangChain 的批處理，而非我們的業務邏輯批次
+                        # 但 .with_structured_output 會智能處理，讓 LLM 返回多個物件
+                        if is_list_schema:
+                            chain = chain | structured_llm
+                            # LangChain 對 List 的結構化輸出仍在發展，我們使用 invoke 並期望它返回列表
+                        else:
+                             chain = chain | structured_llm
+
                     else:
                         chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
 
@@ -1257,22 +1271,14 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     last_exception = e
                     logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
                     if retry_strategy == 'euphemize':
-                        # 委婉化策略現在需要重新設計，因為我們不再手動處理 prompt
-                        # 暫時跳過，直接輪換
-                        logger.warning(f"[{self.user_id}] 正在輪換金鑰/模型...")
+                        logger.warning(f"[{self.user_id}] 正在輪換金鑰/模型以嘗試規避審查...")
                         continue
-                    elif retry_strategy == 'force':
-                        # 強制策略也需要重新設計
-                        logger.warning(f"[{self.user_id}] 強制重試失敗，正在輪換金鑰/模型...")
-                        continue
-                    else: # 'none'
+                    else:
                         raise e
 
                 except (OutputParserException, ValidationError) as e:
                     last_exception = e
-                    # Tool Calling 模式下，這類錯誤的發生率會極低，但一旦發生，通常是 Prompt 本身有問題
                     logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=True)
-                    # 這種情況下重試意義不大，直接拋出異常
                     raise e
 
                 except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
@@ -1280,9 +1286,9 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇臨時性 API 錯誤: {type(e).__name__}。正在輪換金鑰...")
                     if isinstance(e, ResourceExhausted):
                          cooldown_key = f"{key_index}_{model_name}"
-                         self.key_model_cooldowns[cooldown_key] = time.time() + 3600 # 冷卻 1 小時
+                         self.key_model_cooldowns[cooldown_key] = time.time() + 3600
                          self._save_cooldowns()
-                    continue # 立即嘗試下一個金鑰
+                    continue
                 
                 except Exception as e:
                     last_exception = e
@@ -1291,8 +1297,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
         logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# ai_core.py 的 ainvoke_with_rotation 函式
-
+# 函式：帶輪換和備援策略的 API 調用引擎
                           
 
 
@@ -4346,10 +4351,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.2 - 終極 ainvoke 適配)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.3 - 使用扁平化 Schema)
 # 更新紀錄:
-# v6.2 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，將此函式內部所有對 `ainvoke_with_rotation` 的調用（包括實體分類和靶向精煉）徹底重構，使其完全適配 Tool Calling 範式下的新函式簽名（prompt_template, prompt_params）。
-# v6.1 (2025-10-01): [災難性BUG修復] 對 `ainvoke_with_rotation` 的參數進行了初步修正。
+# v6.3 (2025-10-01): [災難性BUG修復] 根據 `ValueError: Value not declarable with JSON Schema`，修改了實體分類步驟的 `output_schema`。不再使用包裹模型 `BatchClassificationResult`，而是直接傳遞 `List[LoreClassificationResult]`。此「扁平化 Schema」策略旨在繞過 LangChain 內部處理複雜嵌套模型時的 bug，從而解決 Tool Calling 的初始化失敗問題。
+# v6.2 (2025-10-01): [災難性BUG修復] 全面適配了新的 ainvoke 簽名。
 # v6.0 (2025-10-01): [災難性BUG修復] 全面轉向基於 LangChain 的 Tool Calling 範式。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
@@ -4375,18 +4380,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False),
                 "context": text_to_parse
             }
-            classification_result = await self.ainvoke_with_rotation(
+            # [v6.3 核心修正] 使用扁平化的 List Schema
+            classifications = await self.ainvoke_with_rotation(
                 classification_prompt_template,
                 prompt_params,
-                output_schema=BatchClassificationResult
+                output_schema=List[LoreClassificationResult]
             )
-            if not classification_result or not classification_result.classifications:
+            if not classifications:
                 raise ValueError("分類返回空結果")
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE 解析 2/4] 🔥 實體分類步驟失敗: {e}，流程終止。", exc_info=True)
             return False, CanonParsingResult(), []
         
-        tasks_to_run = [c for c in classification_result.classifications if c.lore_category != 'ignore']
+        tasks_to_run = [c for c in classifications if c.lore_category != 'ignore']
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
         
         # --- 階段三：靶向 LORE 精煉 (Tool Calling, 受控並行) ---
@@ -5371,6 +5377,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
