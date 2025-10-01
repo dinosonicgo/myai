@@ -1183,10 +1183,10 @@ class BotCog(commands.Cog):
 # discord_bot.py 的 _perform_full_setup_flow 函式
 
 
-# discord_bot.py 的 _background_process_canon 函式 (v1.2 - 適配終極LORE管線)
+# discord_bot.py 的 _background_process_canon 函式 (v1.3 - 簡化日誌)
 # 更新紀錄:
-# v1.2 (2025-10-01): [重大架構重構] 根據 LORE 解析的根本性重構，將此函式中對舊管線的調用，替換為對全新的、包含多階段處理和最終校驗的 `_execute_lore_parsing_pipeline` 的調用。此修改確保了通過 `/set_canon` 指令更新世界聖經時，能夠使用最先進、最健壯的 LORE 解析與儲存邏輯。
-# v1.1 (2025-09-30): [災難性BUG修復] 修正了對已廢棄函式的調用。
+# v1.3 (2025-10-01): [程式碼簡化] 根據 LORE 解析管線的終極重構，簡化了此函式的日誌記錄和錯誤處理，使其與 `/start` 流程的調用邏輯保持一致。
+# v1.2 (2025-10-01): [重大架構重構] 適配了全新的終極 LORE 解析管線。
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
@@ -1201,15 +1201,10 @@ class BotCog(commands.Cog):
                 asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
                 return
 
-            logger.info(f"[{user_id}] [Canon Update] 正在為聖經更新重建 RAG 索引...")
-            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
-            
             if len(content_text) > 5000:
                 await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
             
-            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-            
-            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在啟動終極混合式解析管線，將其轉化為結構化的 LORE 數據庫...")
+            await user.send(f"✅ **世界聖經已提交！**\n🧠 AI 正在啟動終極混合式解析管線，將其轉化為結構化的 LORE 數據庫...")
             
             success, parsing_result, successful_keys = await ai_instance._execute_lore_parsing_pipeline(content_text)
             
@@ -1871,6 +1866,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
