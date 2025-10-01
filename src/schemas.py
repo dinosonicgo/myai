@@ -1,8 +1,8 @@
-# schemas.py v3.0 (關係結構化 & 致命BUG修復)
+# schemas.py v4.0 (定义顺序修正)
 # 更新紀錄:
-# v3.0 (2025-09-27): [災難性BUG修復] 補全了缺失的 LoreClassificationResult 和 BatchClassificationResult 類定義，並將 WorldLore 的 'title' 統一為 'name' 以解決 ValidationError。
-# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典，同時增加了向下兼容的驗證器。
-# v1.4 (2025-09-26): [災難性BUG修復] 在文件頂部增加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
+# v4.0 (2025-10-02): [灾难性BUG修复] 调整了文件内 Pydantic 模型的定义顺序，将 CharacterProfile 和 RelationshipDetail 的定义移至文件靠前位置，以解决因前向引用导致的 NameError 启动失败问题。同时移除了重复的 BatchRefinementResult 定义。
+# v3.0 (2025-09-27): [災難性BUG修復] 补全了缺失的 LoreClassificationResult 和 BatchClassificationResult 类定义，并将 WorldLore 的 'title' 统一为 'name' 以解决 ValidationError。
+# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
 
 import json
 import re
@@ -34,9 +34,17 @@ def _validate_string_to_dict(value: Any) -> Any:
             return {"summary": value}
     return value
 
+# [v2.0 新增] 用於結構化關係的模型
+# [v4.0 核心修正] 將 RelationshipDetail 的定義移到 CharacterProfile 之前
+class RelationshipDetail(BaseModel):
+    """儲存一個角色對另一個角色的詳細關係資訊"""
+    type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
+    roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
+
+# [v4.0 核心修正] 將 CharacterProfile 的定義提前，以解决 NameError
 # schemas.py 的 CharacterProfile 模型 (v2.2 - 親和力驗證修正)
 # 更新紀錄:
-# v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。此驗證器會在 Pydantic 進行類型檢查前，自動將傳入的浮點數（如 0.75）強制轉換為整數，從根本上解決了因 LLM 生成非標準數據類型而導致的 ValidationError。
+# v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。
 # v2.1 (2025-09-28): [架構擴展] 新增了 alternative_names 欄位。
 # v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
 class CharacterProfile(BaseModel):
@@ -101,7 +109,6 @@ class CharacterProfile(BaseModel):
                 normalized_dict[str(k)] = RelationshipDetail(roles=[str(v)])
         return normalized_dict
 
-    # [v2.2 核心修正] 新增親和力欄位的驗證器
     @field_validator('affinity', mode='before')
     @classmethod
     def _coerce_affinity_to_int(cls, value: Any) -> Any:
@@ -110,7 +117,6 @@ class CharacterProfile(BaseModel):
             return int(value)
         return value
 # CharacterProfile 模型結束
-
 
 # --- [v1.3 新增] 混合 NLP 流程所需模型 ---
 class CharacterSkeleton(BaseModel):
@@ -121,12 +127,6 @@ class CharacterSkeleton(BaseModel):
 class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
-
-class BatchRefinementResult(BaseModel):
-    """包裹第二階段批量深度精煉結果的模型。"""
-    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
-
-
 
 class BatchRefinementResult(BaseModel):
     """包裹第二階段批量深度精煉結果的模型。"""
@@ -202,27 +202,19 @@ class CreatureInfo(BaseModel):
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
-# src/schemas.py 的 WorldLore 類別 (v2.1 - 規則繼承)
-# 更新紀錄:
-# v2.1 (2025-11-22): [架構擴展] 新增了 template_keys 欄位。這是實現「LORE繼承與規則注入系統」的應用層基礎，用於定義一條世界傳說可以被哪些身份（aliases）所繼承。
-# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
-# v1.4 (2025-09-26): [災難性BUG修復] 在文件頂部增加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
 class WorldLore(BaseModel):
-    # [v3.0 核心修正] 將 'title' 統一為 'name' 並保持兼容性
     name: str = Field(description="這條傳說、神話或歷史事件的標準化、唯一的官方標題。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此傳說的其他已知稱呼或別名。")
     content: str = Field(default="", description="詳細的內容描述。")
     category: str = Field(default="未知", description="Lore 的分類，例如 '神話', '歷史', '地方傳聞', '物品背景', '角色設定'。")
     key_elements: List[str] = Field(default_factory=list, description="與此 Lore 相關的關鍵詞或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="與此 Lore 相關的角色、地點或物品的名稱列表。")
-    # [v2.1 核心修正] 新增 template_keys 欄位
     template_keys: Optional[List[str]] = Field(default=None, description="一個可選的關鍵詞列表。任何身份(alias)匹配此列表的角色，都將繼承本條LORE的content作為其行為準則。")
 
     @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
-# src/schemas.py 的 WorldLore 類別結束
 
 class EntityValidationResult(BaseModel):
     decision: Literal['CREATE', 'MERGE', 'IGNORE'] = Field(description="驗證後的最終決定。")
@@ -252,10 +244,6 @@ class FactCheckResult(BaseModel):
     conflicting_info: Optional[str] = Field(default=None, description="如果不一致，說明衝突之處。")
     suggestion: Optional[Dict[str, Any]] = Field(default=None, description="一個修正後的 `updates` 字典。")
 
-# schemas.py 的 BatchResolutionResult 模型 (v1.1 - 修正兼容性)
-# 更新紀錄:
-# v1.1 (2025-09-30): [健壯性強化] 將 matched_key 欄位的類型提示從 str 更改為 Optional[str]。此修改旨在配合「自我修正」流程：它允許 Pydantic 即使在 LLM 第一次返回不合規的 JSON（即 decision 為 'MERGE' 但缺少 matched_key）時也能夠先將其初步解析，從而讓程式碼可以捕獲到 ValidationError 並觸發修正循環，而不是在更早階段因類型不匹配而崩潰。
-# v1.0 (原版)
 class BatchResolutionResult(BaseModel):
     original_name: str = Field(description="與輸入列表中完全相同的原始實體名稱。")
     decision: str = Field(description="您的最終判斷，通常是 'CREATE', 'NEW', 'MERGE', 或 'EXISTING' 之一。")
@@ -268,14 +256,10 @@ class BatchResolutionResult(BaseModel):
         if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
             raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，則 matched_key 欄位是必需的。")
         return self
-# BatchResolutionResult 模型結束
 
 class BatchResolutionPlan(BaseModel):
     resolutions: List[BatchResolutionResult] = Field(description="一個包含對每一個待解析實體的判斷結果的列表。")
 
-# 類別：工具調用 (v1.1 - 增加別名容錯)
-# 更新紀錄:
-# v1.1 (2025-09-28): [災難性BUG修復] 為 `tool_name` 欄位增加了 `validation_alias=AliasChoices('tool_name', 'tool_code')`。此修改旨在解決因LLM未能嚴格遵守Schema、錯誤地生成了`tool_code`鍵名而導致的致命ValidationError，通過使Pydantic模型能夠兼容兩種鍵名，極大地增強了事後分析流程的健壯性。
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名稱。", validation_alias=AliasChoices('tool_name', 'tool_code'))
     parameters: Dict[str, Any] = Field(..., description="要傳遞給工具的參數字典。")
@@ -290,7 +274,6 @@ class ToolCall(BaseModel):
             except json.JSONDecodeError:
                 return value
         return value
-# 類別：工具調用
 
 class WorldGenesisResult(BaseModel):
     location_path: List[str] = Field(description="新生成的出生點的層級式路徑。")
@@ -305,8 +288,6 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list, description="從文本中解析出的所有任務的詳細資訊列表。")
     world_lores: List[WorldLore] = Field(default_factory=list, description="從文本中解析出的所有世界傳說、歷史或背景故事的列表。")
 
-
-# [v3.0 核心修正] 補全缺失的類定義
 class LoreClassificationResult(BaseModel):
     """用於混合 NLP 流程，表示單個候選實體的分類結果。"""
     entity_name: str = Field(description="與輸入完全相同的候選實體名稱。")
@@ -317,8 +298,6 @@ class BatchClassificationResult(BaseModel):
     """包裹批量分類結果的模型。"""
     classifications: List[LoreClassificationResult] = Field(description="一個包含對每一個候選實體的分類結果的列表。")
 
-
-# [v1.4 新增] 單個實體解析模型，確保 ai_core.py 可以成功導入
 class SingleResolutionResult(BaseModel):
     """單個實體名稱的解析結果。"""
     original_name: str = Field(description="LLM 在計畫中生成的原始實體名稱。")
@@ -383,29 +362,14 @@ class StyleAnalysisResult(BaseModel):
     narration_level: str = Field(description="對旁白詳細程度的要求。")
     proactive_suggestion: Optional[str] = Field(default=None, description="用於推動劇情的行動建議。")
 
-# src/schemas.py 的 NarrativeExtractionResult 類別 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「智能敘事RAG注入」策略，創建此模型，用於驗證從世界聖經中提取出的純敘事文本。
 class NarrativeExtractionResult(BaseModel):
     """用於包裹從世界聖經中提取出的純敘事文本的模型。"""
     narrative_text: str = Field(description="所有被提取出的劇情摘要、背景故事和歷史事件的組合文本。")
-# src/schemas.py 的 NarrativeExtractionResult 類別 結束
 
-
-# src/schemas.py 的 NarrativeDirective 類別 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.1 (2025-09-28): [架構升級] 根據「最終防線協議」對模型進行了重構。移除了孤立的`mandatory_action`，並將`scene_summary_for_generation`設為核心必需字段。這將AI導演的職責從提供「建議」升級為輸出一個融合了所有邏輯的、完整的「劇本大綱」，確保了下游主生成模型的指令單一性和執行可靠性。
-# v1.0 (2025-09-28): [全新創建] 根據「AI導演」架構，創建此模型。
 class NarrativeDirective(BaseModel):
     """用於包裹「AI導演」決策結果的模型。"""
     scene_summary_for_generation: str = Field(description="對使用者原始意圖和推斷出的強制動作的簡潔整合，作為給主生成模型的最終、最高優先級的創作指令。")
-# src/schemas.py 的 NarrativeDirective 類別結束
 
-
-
-# src/schemas.py 的 RagFactSheet 類別 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-28): [全新創建] 根據「RAG事實清單」策略，創建此模型。它的作用是將RAG摘要任務從一個高風險的「創造性總結」轉變為一個低風險的「結構化數據提取」，通過強制LLM輸出事實列表而非敘事段落，從根本上解決RAG摘要流程被語義安全過濾器攔截的問題。
 class RagFactSheet(BaseModel):
     """用於包裹從RAG檢索結果中提取出的結構化事實清單的模型。"""
     involved_characters: List[str] = Field(default_factory=list, description="在文本中涉及到的所有核心角色的名字列表。")
@@ -413,33 +377,15 @@ class RagFactSheet(BaseModel):
     significant_objects: List[str] = Field(default_factory=list, description="在事件中扮演重要角色的物品列表。")
     core_events: List[str] = Field(default_factory=list, description="對核心事件的、極度中性且客觀的要點式描述列表。")
 
-
-
-# src/schemas.py 的 PostGenerationAnalysisResult 類別 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-11-22): [全新創建] 根據「生成後分析」架構，創建此模型。它用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫，確保數據結構的穩定性。
 class PostGenerationAnalysisResult(BaseModel):
     """用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫的模型。"""
     memory_summary: Optional[str] = Field(default=None, description="對本回合對話的簡潔、無害化總結，用於長期記憶。")
     lore_updates: List[ToolCall] = Field(default_factory=list, description="一個包含多個用於創建或更新LORE的工具呼叫計畫的列表。")
-# src/schemas.py 的 PostGenerationAnalysisResult 類別結束
 
-
-# src/schemas.py 的 SceneLocationExtraction 類別 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-09-28): [全新創建] 根據「場景範疇界定」架構，創建此模型。它的作用是驗證一個前置的、輕量級LLM調用的輸出，該調用專門用於從使用者指令中判斷並提取一個明確的“敘事意圖地點”。這使得系統能夠區分玩家的“客觀位置”和他们希望讲述的“故事場景”，從根源上解決因地點衝突導致的場景漂移問題。
 class SceneLocationExtraction(BaseModel):
     """用於包裹从使用者指令中提取出的叙事意图地点的模型。"""
     has_explicit_location: bool = Field(description="如果使用者指令中包含一個明確的地點或场景描述，则为 true。")
     location_path: Optional[List[str]] = Field(default=None, description="如果 has_explicit_location 为 true，则此處為提取出的、層級化的地點路徑列表。")
-# src/schemas.py 的 SceneLocationExtraction 類別結束
-
-
-
-
-
-
-
 
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
@@ -472,25 +418,9 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-# [v2.0 新增] 確保新模型也被重建
 RelationshipDetail.model_rebuild()
-# [v3.0 新增] 確保新模型也被重建
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
-
-# [v1.0 新增] 確保敘事提取模型也被重建
 NarrativeExtractionResult.model_rebuild()
-
-# [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
-
-
-
-
-
-
-
-
-
-
-
+SceneLocationExtraction.model_rebuild()
