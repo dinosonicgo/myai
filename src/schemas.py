@@ -44,11 +44,9 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
-# [v2.0 新增] 用於結構化關係的模型
-class RelationshipDetail(BaseModel):
-    """儲存一個角色對另一個角色的詳細關係資訊"""
-    type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
-    roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
+class BatchRefinementResult(BaseModel):
+    """包裹第二階段批量深度精煉結果的模型。"""
+    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
 
 # schemas.py 的 CharacterProfile 模型 (v2.2 - 親和力驗證修正)
 # 更新紀錄:
@@ -482,6 +480,7 @@ NarrativeExtractionResult.model_rebuild()
 
 # [v1.0 新增] 確保事後分析模型也被重建
 PostGenerationAnalysisResult.model_rebuild()
+
 
 
 
