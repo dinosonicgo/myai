@@ -4,12 +4,8 @@
 # v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
 # v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
 
+#【【目前LangChain的LLM調用有BUG，無法應用安全閥值，LLM嚴禁使用LangChain調用】】】
 
-# ai_core.py 的 import 區塊 (v1.5 - 終極完整版)
-# 更新紀錄:
-# v1.5 (2025-10-01): [災難性BUG修復] 根據持續的 ImportError 和 ModuleNotFoundError，提供了從頭到尾的、完整的、經過 PEP 8 風格指南格式化的 import 區塊。此版本整合了之前所有的導入修正，確保所有標準庫、第三方庫和本地模組都以正確的順序和路徑被導入，從根本上解決所有因導入問題導致的啟動失敗。
-# v1.4 (2025-10-01): [災難性BUG修復] 修正了 Google SDK 錯誤類別的導入路徑。
-# v1.3 (2025-10-01): [災難性BUG修復] 修正了 Google SDK 導入路徑，並將其提升到全局。
 
 # --- Python 標準庫 ---
 import re
@@ -5350,6 +5346,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
