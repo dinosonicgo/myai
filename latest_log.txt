@@ -1,45 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T08:32:59.716554 ###
+### AI Lover Log - Last updated at 2025-10-01T08:38:02.802009 ###
 
-2025-10-01 01:11:10 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 35/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:11:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:11:11 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 30/40] ✅ 處理成功。
-2025-10-01 01:11:11 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 36/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:11:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:11:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:11:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:11:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:11:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:11:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 35/40] ✅ 處理成功。
-2025-10-01 01:11:21 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 37/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:11:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:11:23 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 36/40] ✅ 處理成功。
-2025-10-01 01:11:23 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 38/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:11:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:11:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:11:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:11:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:11:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:11:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 01:11:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 37/40] ✅ 處理成功。
-2025-10-01 01:11:45 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 39/40] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:11:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:11:50 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 34/40] ✅ 處理成功。
-2025-10-01 01:11:50 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 40/40] 已獲取許可，開始處理 1 個實體...
-2025-10-01 01:11:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:11:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:12:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 01:12:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 01:12:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:12:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 01:12:09 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 38/40] ✅ 處理成功。
-2025-10-01 01:12:09 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 1/3] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:12:09 - [INFO] - [512280345618546699] [专职流水线 - npc_profile] [批次 39/40] ✅ 處理成功。
-2025-10-01 01:12:09 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 2/3] 已獲取許可，開始處理 3 個實體...
-2025-10-01 01:12:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 01:12:15 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 1/3] ✅ 處理成功。
-2025-10-01 01:12:15 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 3/3] 已獲取許可，開始處理 1 個實體...
-2025-10-01 01:12:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 01:12:16 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 2/3] ✅ 處理成功。
 2025-10-01 01:12:16 - [INFO] - [512280345618546699] [专职流水线 - world_lore] [批次 1/33] 已獲取許可，開始處理 3 個實體...
 2025-10-01 01:12:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-01 01:12:19 - [INFO] - [512280345618546699] [专职流水线 - location_info] [批次 3/3] ✅ 處理成功。
@@ -300,3 +260,43 @@ NameError: name 'IdentifiedEntity' is not defined. Did you mean: 'identified_ent
 2025-10-01 08:12:36 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 08:12:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 08:12:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 08:36:22 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-01 08:36:22 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-01 08:36:22 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-01 08:36:24 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-01 08:36:24 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-01 08:36:24 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-01 08:36:26 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-01 08:36:32 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-01 08:36:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 08:36:32 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-01 08:36:32 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 08:36:32 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 08:36:32 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 08:36:35 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 08:36:35 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 08:36:35 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-01 08:36:35 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-01 08:36:35 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 08:36:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-01 08:36:51 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-01 08:36:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-01 08:36:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 08:36:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-01 08:37:07 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-01 08:37:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-01 08:37:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 08:37:09 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-01 08:37:18 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] [後台創世 1/6] 正在強制清理並創建一個空的 RAG 索引...
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-10-01 08:37:20 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 0 條文檔用於創始構建。
+2025-10-01 08:37:25 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。
+2025-10-01 08:37:25 - [INFO] - [512280345618546699] [後台創世 1/6] 空的 RAG 容器已準備就緒。
+2025-10-01 08:37:25 - [INFO] - [512280345618546699] [後台創世 2/6] 正在將世界聖經原文填充進 RAG 索引...
+2025-10-01 08:37:25 - [INFO] - [512280345618546699] (Canon Processor) 正在將 34 個世界聖經文本塊添加到 RAG 索引...
