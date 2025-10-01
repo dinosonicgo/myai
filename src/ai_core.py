@@ -661,10 +661,10 @@ class AILover:
     # 函式：獲取LORE更新事實查核器 Prompt
     
 
-    # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
-    # 更新紀錄:
-    # v3.3 (2025-09-23): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例。
-    # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
+# 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
+# 更新紀錄:
+# v3.3 (2025-09-23): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例。
+# v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
         [輔助功能專用] 創建並返回一個 ChatGoogleGenerativeAI 實例。
@@ -675,7 +675,8 @@ class AILover:
         key_index_log = "provided"
         
         if not key_to_use:
-            key_info = self._get_next_available_key()
+            # [v2.1 核心修正] 修正此處的調用以匹配 _get_next_available_key 的新簽名
+            key_info = self._get_next_available_key(model_name)
             if not key_info:
                 return None # 沒有可用的金鑰
             key_to_use, key_index = key_info
@@ -683,6 +684,7 @@ class AILover:
         
         generation_config = {"temperature": temperature}
         
+        # 轉換為 LangChain 期望的格式
         safety_settings_langchain = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -690,7 +692,7 @@ class AILover:
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
         
-        logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log})")
+        logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log}) [輔助功能專用]")
         
         return ChatGoogleGenerativeAI(
             model=model_name,
@@ -800,7 +802,7 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# ai_core.py 的 ainvoke_with_rotation 函式 (v232.9 - 終極防禦性修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 終極防禦性修正)
 # 更新紀錄:
 # v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。現在，程式在訪問 `.name` 屬性前，會同時檢查 `block_reason` 和 `finish_reason` 的類型，確保即使 Google API 返回未知的整數代碼，程式也能正常處理而不會崩潰。
 # v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
@@ -850,6 +852,7 @@ class AILover:
                     try:
                         genai.configure(api_key=key_to_use)
                         
+                        # [核心重構] 手動構建原生 SDK 的 safety_settings 格式
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -867,12 +870,14 @@ class AILover:
                             timeout=180.0
                         )
                         
+                        # [核心重構] 手動檢查 prompt feedback 的 block_reason
                         if response.prompt_feedback.block_reason:
                             block_reason = response.prompt_feedback.block_reason
+                            # [v232.8 核心修正] 防禦性檢查，以防 API 返回非標準的枚舉值
                             if hasattr(block_reason, 'name'):
                                 reason_str = block_reason.name
                             else:
-                                reason_str = str(block_reason)
+                                reason_str = str(block_reason) # 如果是 int 或其他類型，直接轉為字串
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
                         # [v232.9 核心修正] 對 finish_reason 應用同樣的防禦性檢查
@@ -892,20 +897,28 @@ class AILover:
                                 else:
                                     raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
+                        # [核心重構] 手動從 response 中提取文本
                         raw_text_result = response.text
 
+                        # [v232.7 核心修正] 生成完整性驗證
                         if not raw_text_result or not raw_text_result.strip():
+                            # 這種情況通常是安全過濾器返回了空內容但未拋出異常
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
+                        # [核心重構] 手動處理結構化輸出
                         if output_schema:
+                            # 從原始文本中提取 JSON 部分
                             json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
                             if not json_match:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
+                            
                             clean_json_str = json_match.group(0)
+                            # 使用 Pydantic 進行驗證
                             return output_schema.model_validate(json.loads(clean_json_str))
                         else:
+                            # 如果不需要結構化輸出，直接返回純文本
                             return raw_text_result
 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
@@ -923,24 +936,29 @@ class AILover:
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
+                        # 這類錯誤通常是模型格式問題，直接拋出，讓上層處理（例如使用修正鏈）
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
+                        # 處理 MAX_TOKENS 錯誤，這不是一個可重試的臨時錯誤
                         if "MAX_TOKENS" in str(e):
                              logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
-                             break
+                             break # 跳出當前金鑰的重試循環，直接換下一個金鑰
                         
+                        # 達到單一金鑰的立即重試上限
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
+                            # 如果是速率限制，則觸發持久化冷卻
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
                                 cooldown_key = f"{key_index}_{model_name}"
-                                cooldown_duration = 24 * 60 * 60 
+                                cooldown_duration = 24 * 60 * 60 # 24 小時
                                 self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
                                 self._save_cooldowns()
                                 logger.critical(f"[{self.user_id}] [持久化冷卻] API Key #{key_index} (模型: {model_name}) 已被置入冷卻狀態，持續 24 小時。")
-                            break
+                            break # 跳出內部重試循環，換下一個金鑰
                         
+                        # 執行指數退避
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
                         await asyncio.sleep(sleep_time)
@@ -951,14 +969,15 @@ class AILover:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
+            # 如果一個模型的所有金鑰都失敗了，則記錄並降級
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
+        # 如果所有嘗試都失敗，則拋出最後一個捕獲到的異常
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎
-
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 終極防禦性修正)
 
 
     
@@ -5416,6 +5435,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
