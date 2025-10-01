@@ -2310,10 +2310,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
     # 函式：補完角色檔案 (/start 流程 2/4) (v3.1 - 原生模板重構)
-    # 更新紀錄:
-    # v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
-    # v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
-    # v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
+# ai_core.py 的 complete_character_profiles 函式 (v3.2 - 適配新 ainvoke)
+# 更新紀錄:
+# v3.2 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，更新了對 `ainvoke_with_rotation` 的調用方式，將 prompt 模板和參數分開傳遞，以適配 Tool Calling 範式下的新函式簽名。
+# v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
+# v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構重構。
     async def complete_character_profiles(self):
         """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
         if not self.profile:
@@ -2323,14 +2324,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
             try:
                 prompt_template = self.get_profile_completion_prompt()
-                safe_profile_data = original_profile.model_dump()
                 
-                full_prompt = prompt_template.format(
-                    profile_json=json.dumps(safe_profile_data, ensure_ascii=False, indent=2)
-                )
+                prompt_params = {
+                    "profile_json": json.dumps(original_profile.model_dump(), ensure_ascii=False, indent=2)
+                }
                 
                 completed_safe_profile = await self.ainvoke_with_rotation(
-                    full_prompt,
+                    prompt_template,
+                    prompt_params,
                     output_schema=CharacterProfile,
                     retry_strategy='euphemize'
                 )
@@ -2366,6 +2367,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             'user_profile': completed_user_profile.model_dump(), 
             'ai_profile': completed_ai_profile.model_dump()
         })
+# ai_core.py 的 complete_character_profiles 函式
     # 補完角色檔案 函式結束
 
                 
@@ -5423,6 +5425,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
