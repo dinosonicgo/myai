@@ -1,94 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T01:53:31.321123 ###
+### AI Lover Log - Last updated at 2025-10-02T01:58:34.470107 ###
 
-2025-10-02 01:01:30 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-10-02 01:01:33 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-10-02 01:01:33 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-02 01:01:33 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 142 條文檔到 RAG 語料庫。
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 3 條訊息。
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [純粹生成流程] 正在準備上下文...
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [場景界定] 正在從使用者指令中提取敘事意圖地點...
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: ['宅邸']
-2025-10-02 01:01:34 - [INFO] - [512280345618546699] [指令實體提取] 通過 LORE 字典找到實體: {'米婭', '宅邸'}
-2025-10-02 01:01:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-02 01:01:35 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭'], 背景角色: []
-2025-10-02 01:01:35 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 Mia 米婭 聖女'
-2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
-2025-10-02 01:01:36 - [INFO] -   [Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
-2025-10-02 01:01:36 - [INFO] -   [Doc 1] Content: 【NPC 檔案: 米婭】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
-- Appearance: 聖女
-- Skills: 儀式, 治療
-- Description: 性神教的「聖女」。主持了「聖胎之吻」儀式，為菲利普•薩格納的病情提供了奇蹟般的、暫時性的好轉。是維利爾斯家族...
-2025-10-02 01:01:36 - [INFO] -   [Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
-2025-10-02 01:01:36 - [INFO] -   [Doc 2] Content: 【NPC 檔案: 莉莉絲】
-- Gender: 女性
-- Age: 7
-- Race: 人類
-- Appearance: 如同天使般聰慧可愛
-- Skills: 思想滲透, 質疑傳統教義
-- Description: 年僅7歲的她，是維利爾斯勳爵的獨女，也是性神教的「聖女」。她憑藉著，如同天使般「聰...
-2025-10-02 01:01:36 - [INFO] -   [Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
-2025-10-02 01:01:36 - [INFO] -   [Doc 3] Content: 【地點資訊: 維利爾斯家宅邸】
-- Description: 卡爾•維利爾斯勳爵的住所，是性神教在當地的重要據點，內部階級森嚴，充滿了各種嚴酷的儀式與教義實踐。
-- Notable features: 豬圈, 三大性神裝置
-- Known npcs: 卡爾•維利爾斯勳爵, 湯姆, 班恩, 里奧, 賈...
-2025-10-02 01:01:36 - [INFO] -   [Doc 4] Metadata: {'source': 'lore', 'category': 'world_lore', 'key': '活體神聖燈塔'}
-2025-10-02 01:01:36 - [INFO] -   [Doc 4] Content: 【世界傳說: 活體神聖燈塔】
-- Content: 一種世界觀設定，將生物轉化為具有發光、發聲和散發香氣功能的儀式性物品。
-- Category: 世界觀...
-2025-10-02 01:01:36 - [INFO] -   [Doc 5] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
-2025-10-02 01:01:36 - [INFO] -   [Doc 5] Content: 【NPC 檔案: 卡蓮】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
-- Appearance: 失明後重獲光明
-- Skills: 接受命運, 重獲光明
-- Description: 一位雙目失明的妓女，因對命運的淡然和「無垢」靈魂被凱爾引薦給米婭。在與凱爾的「恩澤儀式」中...
-2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
-2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 8 條文檔 ---
-2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
-2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
-2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
-2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 4] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
-2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 5] Metadata: {'category': 'npc_profile', 'key': '凱爾', 'source': 'lore'}
-2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
-2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---
-2025-10-02 01:01:36 - [INFO] -   歸類為【規則】的文檔 (0 條): []
-2025-10-02 01:01:36 - [INFO] -   歸類為【待拼接】的文檔 (8 條): ['王都 > 維利爾斯莊園 > 聖露修道院 > 米婭', '王都 > 聖凱瑟琳學院 > 莉莉絲', '維利爾斯家宅邸', '卡蓮', '凱爾', '貧民窟 > 聖露修道院 > 索菲亞', '聖露修道院', '瓦勒留斯']
-2025-10-02 01:01:36 - [INFO] -   [最終生成的 rules_context] (傳遞給導演):
----
-（當前場景無特定的行為準則或世界觀設定）
----
-2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
-2025-10-02 01:01:36 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 5 條原始文檔作為 summary_context。
-2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 01:01:36 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-02 01:01:36 - [INFO] -   [最終 summary_context 長度]: 1881
-2025-10-02 01:01:36 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 01:01:36 - [INFO] - [512280345618546699] [AI導演] 正在啟動導演決策模組...
-2025-10-02 01:01:36 - [INFO] - --- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---
-2025-10-02 01:01:36 - [INFO] -   [WORLD_SETTINGS]:
----
-這是一個魔法的幻想世界。
----
-2025-10-02 01:01:36 - [INFO] -   [RELEVANT_CHARACTERS_SUMMARY]:
----
-米婭 (身份: ['Mia', '聖女'])
----
-2025-10-02 01:01:36 - [INFO] -   [LOCATION_DESCRIPTION]:
----
-宅邸: 一個神秘的地方
----
-2025-10-02 01:01:36 - [INFO] -   [RAG_SUMMARY]:
----
-【背景歷史參考（來自 RAG 檢索的 5 條最相關原始文檔）】:
 【NPC 檔案: 米婭】
 - Gender: 女性
 - Age: 未知
@@ -300,3 +211,92 @@ updates
 2025-10-02 01:52:22 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 132 個實體...
 2025-10-02 01:52:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 24394 秒)。
 2025-10-02 01:52:22 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 24458 秒)。
+2025-10-02 01:54:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-10-02 01:54:21 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #4) 遭遇解析或驗證錯誤: ValidationError。
+2025-10-02 01:54:21 - [WARNING] - [512280345618546699] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...
+2025-10-02 01:55:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
+2025-10-02 01:55:43 - [INFO] - [512280345618546699] [實體解析-自我修正] ✅ 自我修正成功！
+2025-10-02 01:55:43 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 65 條決策。
+2025-10-02 01:55:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 33 個實體...
+2025-10-02 01:55:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 10 個實體...
+2025-10-02 01:55:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 4 個實體...
+2025-10-02 01:55:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 79 個實體...
+2025-10-02 01:56:00 - [INFO] - [512280345618546699] [LORE解析階段1/2] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。
+2025-10-02 01:56:00 - [INFO] - [512280345618546699] [LORE解析] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...
+2025-10-02 01:56:00 - [INFO] - [512280345618546699] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。
+2025-10-02 01:56:00 - [INFO] - [512280345618546699] [後台創世 2/5] 正在補完角色檔案...
+2025-10-02 01:56:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-02 01:56:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-02 01:56:04 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-02 01:56:04 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-02 01:56:04 - [INFO] - [512280345618546699] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...
+2025-10-02 01:56:05 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-02 01:56:05 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
+2025-10-02 01:56:05 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
+2025-10-02 01:56:05 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 133 條文檔用於創始構建。
+2025-10-02 01:56:10 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已啟動...
+2025-10-02 01:56:10 - [INFO] - [512280345618546699] [LORE精煉] 找到 40 個待精煉的 NPC 檔案。開始批量處理...
+2025-10-02 01:56:10 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 1/4...
+2025-10-02 01:56:12 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 01:56:12 - [ERROR] - [512280345618546699] [LORE精煉] 在處理批次 1 時發生嚴重錯誤: Prompt blocked due to 4
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2915, in _background_lore_refinement
+    batch_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 928, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 881, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-02 01:56:12 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 2/4...
+2025-10-02 01:56:13 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 01:56:13 - [ERROR] - [512280345618546699] [LORE精煉] 在處理批次 2 時發生嚴重錯誤: Prompt blocked due to 4
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2915, in _background_lore_refinement
+    batch_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 928, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 881, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-02 01:56:13 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 3/4...
+2025-10-02 01:56:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-02 01:56:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬丁' 的檔案。
+2025-10-02 01:56:20 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '瓦勒留斯' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '克拉拉' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '高爾' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '翠絲' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '迪茜' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '阿利斯特' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '費奇' 的檔案。
+2025-10-02 01:56:21 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '老羅' 的檔案。
+2025-10-02 01:56:22 - [INFO] - [512280345618546699] [LORE精煉] 已成功精煉並更新角色 '馬克' 的檔案。
+2025-10-02 01:56:22 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 4/4...
+2025-10-02 01:56:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 01:56:23 - [ERROR] - [512280345618546699] [LORE精煉] 在處理批次 4 時發生嚴重錯誤: Prompt blocked due to 4
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2915, in _background_lore_refinement
+    batch_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 928, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 881, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-02 01:56:23 - [INFO] - [512280345618546699] [LORE解析階段2/2] 背景 LORE 精煉任務已全部完成。
+2025-10-02 01:56:26 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器創始構建成功，並已將索引持久化到磁碟。
+2025-10-02 01:56:26 - [INFO] - [512280345618546699] [後台創世 3/5] RAG 索引全量創始構建完成。
+2025-10-02 01:56:26 - [INFO] - [512280345618546699] [後台創世 4/5] 正在生成世界創世資訊...
+2025-10-02 01:56:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 01:56:26 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-10-02 01:56:26 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-10-02 01:56:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-10-02 01:56:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-02 01:56:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-02 01:57:00 - [INFO] - [512280345618546699] [/start] 初始地點 '埃德蒙王國 > 王都近郊 > 腐朽瞭望塔' 已成功生成並存入LORE。
+2025-10-02 01:57:00 - [INFO] - [512280345618546699] [後台創世 5/5] 正在生成開場白...
+2025-10-02 01:57:00 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 24116 秒)。
+2025-10-02 01:57:00 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 24180 秒)。
+2025-10-02 01:58:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-10-02 01:58:00 - [INFO] - [512280345618546699] [後台創世 5/5] 開場白生成完毕。
+2025-10-02 01:58:02 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-02 01:58:03 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-02 01:58:03 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
