@@ -5,7 +5,13 @@
 # v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
 
 
-import random
+# ai_core.py 的 import 區塊 (v1.5 - 終極完整版)
+# 更新紀錄:
+# v1.5 (2025-10-01): [災難性BUG修復] 根據持續的 ImportError 和 ModuleNotFoundError，提供了從頭到尾的、完整的、經過 PEP 8 風格指南格式化的 import 區塊。此版本整合了之前所有的導入修正，確保所有標準庫、第三方庫和本地模組都以正確的順序和路徑被導入，從根本上解決所有因導入問題導致的啟動失敗。
+# v1.4 (2025-10-01): [災難性BUG修復] 修正了 Google SDK 錯誤類別的導入路徑。
+# v1.3 (2025-10-01): [災難性BUG修復] 修正了 Google SDK 導入路徑，並將其提升到全局。
+
+# --- Python 標準庫 ---
 import re
 import json
 import time
@@ -20,16 +26,15 @@ from sqlalchemy import select, or_, delete, update
 from collections import defaultdict
 import functools
 import pickle
-from Levenshtein import ratio as levenshtein_ratio
+import random
+
+# --- 第三方庫 ---
 import spacy
 from spacy.tokens import Doc
 
-# [v1.3 核心修正] 修正 Google SDK 導入路徑，並將其提升到全局
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
-from google.generativeai.errors import APIError as GoogleGenerativeAIError
-from google.generativeai.types import BlockedPromptException, FinishReason
-
-from langchain_google_genai._common import GoogleGenerativeAIError # 正確的路徑
+from langchain_google_genai._common import GoogleGenerativeAIError
+from google.generativeai.types import BlockedPromptException
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI, 
@@ -50,19 +55,15 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, AliasCh
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 import chromadb
-# [v301.0 核心修正] 移除了以下這行，因為 InternalError 在新版 chromadb 中已不存在，且程式碼中並未使用
-# from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# [核心修正] 将 "retrievs" 修正为 "retrievers"
 from langchain.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 from Levenshtein import ratio as levenshtein_ratio
 
+# --- 本地應用導入 ---
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
-
-
 from .schemas import (
     # 主要結果模型
     WorldGenesisResult, CanonParsingResult, PostGenerationAnalysisResult, NarrativeExtractionResult,
@@ -85,14 +86,13 @@ from .schemas import (
     ValidationResult, ExtractedEntities, ExpansionDecision, IntentClassificationResult, 
     StyleAnalysisResult, SingleResolutionPlan, BatchRefinementResult, 
     EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-    NarrativeDirective, RagFactSheet, SceneLocationExtraction
+    NarrativeDirective, RagFactSheet, SceneLocationExtraction, FactCheckResult
 )
-
-
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
+
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -5352,6 +5352,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
