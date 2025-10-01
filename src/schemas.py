@@ -1,8 +1,8 @@
-# schemas.py v4.0 (严格流水线 Schema)
-# 更新纪录:
-# v4.0 (2025-09-30): [重大架构重构] 根据资讯遗失问题，为专职解析流水线创建了一整套全新的、层次分明的 Pydantic 模型。新增了 `IdentifiedEntity`、`AliasItem`、`AppearanceItem`、`CoreInfoItem` 等模型，以及包裹它们的批量结果模型。此修改为 LLM 提供了极度明确的输出结构契约，旨在从根本上解决因输出格式模糊导致的灾难性数据合并失败问题。
-# v3.0 (2025-09-27): [灾难性BUG修复] 补全了缺失的 LoreClassificationResult 和 BatchClassificationResult 类定义。
-# v2.3 (2025-09-30): [重大架构升级] 新增了 AppearanceDetails 模型，用于结构化存储角色的详细外观特征。
+# schemas.py v5.1 (終極結構重構與去重)
+# 更新紀錄:
+# v5.1 (2025-10-01): [災難性BUG修復] 根據 NameError，對整個檔案的 Pydantic 模型定義順序進行了徹底的重構和清理。移除了所有重複的類別定義（如 CoreInfoItem），並將所有被依賴的基礎模型（如 RelationshipDetail）統一移動到檔案頂部。此修改從根本上解決了因定義順序和重複定義導致的啟動失敗問題。
+# v5.0 (2025-10-01): [災難性BUG修復] 調整了模型的定義順序以解決 NameError。
+# v4.x (多次修正): 為專職流水線和原子工具鏈新增了多個 Pydantic 模型。
 
 import json
 import re
@@ -29,243 +29,14 @@ def _validate_string_to_dict(value: Any) -> Any:
         if value.strip().lower() in ["無", "未知", "", "none", "null"]:
             return {}
         try:
-            return json.loads(value.replace("'", '"'))
+            # 允許更寬鬆的 JSON 格式，例如 Python 風格的字典
+            corrected_value = value.replace("'", '"').replace("None", "null").replace("True", "true").replace("False", "false")
+            return json.loads(corrected_value)
         except json.JSONDecodeError:
             return {"summary": value}
     return value
 
-# --- 流水线核心模型 ---
-
-# [v4.0 新增] 阶段一：实体识别
-class IdentifiedEntity(BaseModel):
-    """代表一个从原文中识别出的、待处理的 LORE 实体"""
-    name: str = Field(description="实体的专有名称")
-    category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore'] = Field(description="实体的 LORE 类别")
-
-class BatchIdentifiedEntitiesResult(BaseModel):
-    """包裹批量实体识别结果的模型"""
-    entities: List[IdentifiedEntity]
-
-# [v4.0 新增] 阶段三：专职流水线输出模型
-class AliasItem(BaseModel):
-    """包裹单个角色别名/身份列表的模型"""
-    character_name: str
-    aliases: List[str]
-
-class BatchAliasesResult(BaseModel):
-    """包裹批量别名/身份提取结果的模型"""
-    results: List[AliasItem]
-
-class AppearanceItem(BaseModel):
-    """包裹单个角色结构化外观细节的模型"""
-    character_name: str
-    appearance_details: "AppearanceDetails"
-
-class BatchAppearanceResult(BaseModel):
-    """包裹批量外观细节提取结果的模型"""
-    results: List[AppearanceItem]
-    
-# schemas.py 的 CoreInfoItem 模型 (v4.1 - 容錯 description)
-# 更新紀錄:
-# v4.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，將 description 欄位的類型從 str 修改為 Optional[str]。此修改允許 LLM 在找不到描述時返回 null，從而避免驗證失敗，提高了 LORE 解析管線的健壯性。
-# v4.0 (2025-09-30): [重大架構重構] 根據資訊遺失問題，為專職解析流水線創建了此模型。
-class CoreInfoItem(BaseModel):
-    """包裹单个角色核心信息（描述、技能、关系）的模型"""
-    character_name: str
-    description: Optional[str] = "" # [v4.1 核心修正] 允許 description 為 None
-    skills: List[str] = Field(default_factory=list)
-    relationships: Dict[str, "RelationshipDetail"] = Field(default_factory=dict)
-# schemas.py 的 CoreInfoItem 模型
-
-class BatchCoreInfoResult(BaseModel):
-    """包裹批量核心信息提取结果的模型"""
-    results: List[CoreInfoItem]
-
-
-class LocationItem(BaseModel):
-    """包裹单个地点信息的模型"""
-    name: str
-    location_info: "LocationInfo"
-
-class BatchLocationsResult(BaseModel):
-    """包裹批量地点信息提取结果的模型"""
-    results: List[LocationItem]
-
-class ItemItem(BaseModel):
-    """包裹单个物品信息的模型"""
-    name: str
-    item_info: "ItemInfo"
-
-class BatchItemsResult(BaseModel):
-    """包裹批量物品信息提取结果的模型"""
-    results: List[ItemItem]
-
-class CreatureItem(BaseModel):
-    """包裹单个生物信息的模型"""
-    name: str
-    creature_info: "CreatureInfo"
-
-class BatchCreaturesResult(BaseModel):
-    """包裹批量生物信息提取结果的模型"""
-    results: List[CreatureItem]
-
-class QuestItem(BaseModel):
-    """包裹单个任务信息的模型"""
-    name: str
-    quest_info: "Quest"
-
-class BatchQuestsResult(BaseModel):
-    """包裹批量任务信息提取结果的模型"""
-    results: List[QuestItem]
-
-# schemas.py 的 CharacterCoreInfo 模型 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-01): [重大架構升級] 根據「原子工具鏈」和「兩步式精煉」架構創建此模型。它是一個扁平化的 `CharacterProfile` 子集，只包含 LLM Tool Calling 能夠穩定處理的非巢狀欄位。通過將複雜的 LORE 提取任務分解為獲取此模型和獲取 `AppearanceDetails` 兩個獨立的原子步驟，從根本上解決了 LangChain 對巢狀 Pydantic 模型的兼容性問題。
-class CharacterCoreInfo(BaseModel):
-    """角色的核心資訊（不包含巢狀的外觀細節）"""
-    name: str = Field(description="角色的標準化、唯一的官方名字。")
-    aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知稱呼、身份標籤、頭銜或綽號。")
-    gender: Optional[str] = Field(default="未设定", description="角色的性别。")
-    age: Optional[str] = Field(default="未知", description="角色的年龄或年龄段。")
-    race: Optional[str] = Field(default="未知", description="角色的种族。")
-    description: Optional[str] = Field(default="", description="角色的性格、背景故事、行为模式等综合简介。")
-    skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
-    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="记录此角色与其他角色的结构化关系。")
-
-    @field_validator('aliases', 'skills', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
-    
-    @field_validator('relationships', mode='before')
-    @classmethod
-    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        # ... (此處省略與 CharacterProfile 中完全相同的驗證器邏輯) ...
-        if isinstance(value, str): value = _validate_string_to_dict(value)
-        if not isinstance(value, dict): return {}
-        normalized_dict = {}
-        for k, v in value.items():
-            if isinstance(v, str): normalized_dict[str(k)] = RelationshipDetail(roles=[v])
-            elif isinstance(v, dict):
-                try: normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
-                except Exception: continue
-        return normalized_dict
-# schemas.py 的 CharacterCoreInfo 模型
-
-# schemas.py 的 WorldLoreItem 模型 (v4.1 - 結構統一)
-# 更新紀錄:
-# v4.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，將此模型的 `world_lore_info` 欄位重命名為 `info`，並將其類型改為 `WorldLore`。此修改旨在統一所有 `*Item` 模型的內部結構，確保數據合併邏輯的一致性，並解決因欄位名不匹配導致的驗證失敗問題。
-# v4.0 (2025-09-30): [重大架構重構] 為專職解析流水線創建了此模型。
-class WorldLoreItem(BaseModel):
-    """包裹单个世界传说信息的模型"""
-    name: str
-    # [v4.1 核心修正] 統一結構，將 'world_lore_info' 改為 'info'
-    world_lore: "WorldLore" = Field(validation_alias=AliasChoices('world_lore', 'world_lore_info'))
-# schemas.py 的 WorldLoreItem 模型
-
-# schemas.py 的 BatchWorldLoresResult 模型 (v4.1 - 結構統一)
-# 更新紀錄:
-# v4.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，將此模型的 `results` 欄位類型修正為 `List[WorldLoreItem]`，確保其結構與其他批量結果模型（如 `BatchAliasesResult`）完全一致，解決因 Pydantic 驗證失敗導致的 LORE 數據丟失問題。
-# v4.0 (2025-09-30): [重大架構重構] 為專職解析流水線創建了此模型。
-class BatchWorldLoresResult(BaseModel):
-    """包裹批量世界传说信息提取结果的模型"""
-    results: List[WorldLoreItem]
-# schemas.py 的 BatchWorldLoresResult 模型
-
-# schemas.py 的專職流水線核心模型 (v4.0 - 全新創建)
-# 更新紀錄:
-# v4.0 (2025-10-01): [重大架構重構] 為實現「分層式、RAG 驅動的專職流水線」，創建了一整套全新的、層次分明的 Pydantic 模型。這些模型為流水線的每個階段（實體識別、專職解析）提供了嚴格的數據契約，從根本上確保了數據在複雜流程中的結構一致性和可合併性，是解決 MAX_TOKENS 和解析精度的核心基礎設施。
-
-# --- 流水线核心模型 ---
-
-# 階段一：实体识别
-class IdentifiedEntity(BaseModel):
-    """代表一个从原文中识别出的、待处理的 LORE 实体"""
-    name: str = Field(description="实体的专有名称")
-    category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore'] = Field(description="实体的 LORE 类别")
-
-class BatchIdentifiedEntitiesResult(BaseModel):
-    """包裹批量实体识别结果的模型"""
-    entities: List[IdentifiedEntity]
-
-# 階段三：专职流水线输出模型
-class AliasItem(BaseModel):
-    """包裹单个角色别名/身份列表的模型"""
-    character_name: str
-    aliases: List[str]
-
-class BatchAliasesResult(BaseModel):
-    """包裹批量别名/身份提取结果的模型"""
-    results: List[AliasItem]
-
-class AppearanceItem(BaseModel):
-    """包裹单个角色结构化外观细节的模型"""
-    character_name: str
-    appearance_details: "AppearanceDetails"
-
-class BatchAppearanceResult(BaseModel):
-    """包裹批量外观细节提取结果的模型"""
-    results: List[AppearanceItem]
-    
-class CoreInfoItem(BaseModel):
-    """包裹单个角色核心信息（描述、技能、关系）的模型"""
-    character_name: str
-    description: Optional[str] = ""
-    skills: List[str] = Field(default_factory=list)
-    relationships: Dict[str, "RelationshipDetail"] = Field(default_factory=dict)
-
-class BatchCoreInfoResult(BaseModel):
-    """包裹批量核心信息提取结果的模型"""
-    results: List[CoreInfoItem]
-
-
-class LocationItem(BaseModel):
-    """包裹单个地点信息的模型"""
-    name: str
-    location_info: "LocationInfo"
-
-class BatchLocationsResult(BaseModel):
-    """包裹批量地点信息提取结果的模型"""
-    results: List[LocationItem]
-
-class ItemItem(BaseModel):
-    """包裹单个物品信息的模型"""
-    name: str
-    item_info: "ItemInfo"
-
-class BatchItemsResult(BaseModel):
-    """包裹批量物品信息提取结果的模型"""
-    results: List[ItemItem]
-
-class CreatureItem(BaseModel):
-    """包裹单个生物信息的模型"""
-    name: str
-    creature_info: "CreatureInfo"
-
-class BatchCreaturesResult(BaseModel):
-    """包裹批量生物信息提取结果的模型"""
-    results: List[CreatureItem]
-
-class QuestItem(BaseModel):
-    """包裹单个任务信息的模型"""
-    name: str
-    quest: "Quest" # 修正: 欄位名應與其類型匹配以便於 getattr 訪問
-
-class BatchQuestsResult(BaseModel):
-    """包裹批量任务信息提取结果的模型"""
-    results: List[QuestItem]
-
-class WorldLoreItem(BaseModel):
-    """包裹单个世界传说信息的模型"""
-    name: str
-    world_lore: "WorldLore" # 修正: 欄位名應與其類型匹配以便於 getattr 訪問
-
-class BatchWorldLoresResult(BaseModel):
-    """包裹批量世界传说信息提取结果的模型"""
-    results: List[WorldLoreItem]
-# schemas.py 的專職流水線核心模型
-
-# --- LORE 基础模型 ---
+# --- 基礎/巢狀 LORE 模型 (被依賴項) ---
 
 class AppearanceDetails(BaseModel):
     """角色的结构化外观细节"""
@@ -281,7 +52,7 @@ class AppearanceDetails(BaseModel):
 
     @field_validator('distinctive_features', mode='before')
     @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
+    def _validate_string_to_list_fields_appearance(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
 
 class RelationshipDetail(BaseModel):
@@ -289,10 +60,37 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交关系", description="关系的类型，例如 '家庭', '主从', '敌对', '恋爱', '社交关系'。")
     roles: List[str] = Field(default_factory=list, description="对方在此关系中扮演的角色或称谓列表，支持多重身份。例如 ['女儿', '学生']。")
 
-# schemas.py 的 CharacterProfile 模型 (v2.4 - 全面 Optional 容錯)
-# 更新紀錄:
-# v2.4 (2025-10-01): [災難性BUG修復] 根據持續的 ValidationError，將模型中所有可能被 LLM 省略的字串欄位（如 gender, age, race, appearance 等）的類型從 `str` 系統性地修改為 `Optional[str]`。此修改使模型能夠容忍 LLM 返回 `null` 值，從根本上解決了因數據缺失導致的驗證失敗問題。
-# v2.3 (2025-09-30): [重大架構升級] 新增了 AppearanceDetails 模型。
+# --- 主要 LORE 實體模型 ---
+
+class CharacterCoreInfo(BaseModel):
+    """角色的核心資訊（不包含巢狀的外觀細節），用於原子工具鏈"""
+    name: str = Field(description="角色的標準化、唯一的官方名字。")
+    aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知稱呼、身份標籤、頭銜或綽號。")
+    gender: Optional[str] = Field(default="未设定", description="角色的性别。")
+    age: Optional[str] = Field(default="未知", description="角色的年龄或年龄段。")
+    race: Optional[str] = Field(default="未知", description="角色的种族。")
+    description: Optional[str] = Field(default="", description="角色的性格、背景故事、行为模式等综合简介。")
+    skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
+    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="记录此角色与其他角色的结构化关系。")
+
+    @field_validator('aliases', 'skills', mode='before')
+    @classmethod
+    def _validate_string_to_list_fields_core(cls, value: Any) -> Any:
+        return _validate_string_to_list(value)
+    
+    @field_validator('relationships', mode='before')
+    @classmethod
+    def _validate_and_normalize_relationships_core(cls, value: Any) -> Dict[str, Any]:
+        if isinstance(value, str): value = _validate_string_to_dict(value)
+        if not isinstance(value, dict): return {}
+        normalized_dict = {}
+        for k, v in value.items():
+            if isinstance(v, str): normalized_dict[str(k)] = RelationshipDetail(roles=[v])
+            elif isinstance(v, dict):
+                try: normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
+                except Exception: continue
+        return normalized_dict
+
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的标准化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知称呼、身份标签、头衔或绰号。")
@@ -331,11 +129,8 @@ class CharacterProfile(BaseModel):
     @field_validator('relationships', mode='before')
     @classmethod
     def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        if isinstance(value, str):
-            value = _validate_string_to_dict(value)
-        if not isinstance(value, dict):
-            return {}
-            
+        if isinstance(value, str): value = _validate_string_to_dict(value)
+        if not isinstance(value, dict): return {}
         normalized_dict = {}
         for k, v in value.items():
             if isinstance(v, str):
@@ -343,8 +138,7 @@ class CharacterProfile(BaseModel):
             elif isinstance(v, int):
                  normalized_dict[str(k)] = RelationshipDetail(type="好感度", roles=[str(v)])
             elif isinstance(v, dict):
-                try:
-                    normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
+                try: normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
                 except Exception:
                     roles = [str(role) for role in v.get("roles", [])]
                     type_str = v.get("type", "社交关系")
@@ -356,10 +150,8 @@ class CharacterProfile(BaseModel):
     @field_validator('affinity', mode='before')
     @classmethod
     def _coerce_affinity_to_int(cls, value: Any) -> Any:
-        if isinstance(value, float):
-            return int(value)
+        if isinstance(value, float): return int(value)
         return value
-# schemas.py 的 CharacterProfile 模型
 
 class Quest(BaseModel):
     name: str = Field(description="任务的标准化、唯一的官方名称。")
@@ -371,25 +163,16 @@ class Quest(BaseModel):
     rewards: Dict[str, Any] = Field(default_factory=dict, description="完成任务的奖励，例如 {{'金钱': 100, '物品': ['治疗药水']}}。")
 
     @field_validator('aliases', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
-        
+    def _validate_string_to_list_quest(cls, value: Any) -> Any: return _validate_string_to_list(value)
     @field_validator('rewards', mode='before')
-    @classmethod
-    def _validate_string_to_dict_fields(cls, value: Any) -> Any:
-        return _validate_string_to_dict(value)
-
+    def _validate_string_to_dict_quest(cls, value: Any) -> Any: return _validate_string_to_dict(value)
     @field_validator('suggested_level', mode='before')
-    @classmethod
-    def _parse_int_from_string(cls, value: Any) -> Optional[int]:
+    def _parse_int_from_string_quest(cls, value: Any) -> Optional[int]:
         if isinstance(value, str):
             match = re.search(r'\d+', value)
             if match:
-                try:
-                    return int(match.group(0))
-                except (ValueError, TypeError):
-                    return None
+                try: return int(match.group(0))
+                except (ValueError, TypeError): return None
         return value
 
 class LocationInfo(BaseModel):
@@ -400,9 +183,7 @@ class LocationInfo(BaseModel):
     known_npcs: List[str] = Field(default_factory=list, description="已知居住或出现在此地点的 NPC 名字列表。")
 
     @field_validator('aliases', 'notable_features', 'known_npcs', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
+    def _validate_string_to_list_location(cls, value: Any) -> Any: return _validate_string_to_list(value)
 
 class ItemInfo(BaseModel):
     name: str = Field(description="道具的标准化、唯一的官方名称。")
@@ -415,9 +196,7 @@ class ItemInfo(BaseModel):
     origin: Optional[str] = Field(default="", description="关于该道具来源或制造者的简短传说。")
 
     @field_validator('aliases', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
+    def _validate_string_to_list_item(cls, value: Any) -> Any: return _validate_string_to_list(value)
 
 class CreatureInfo(BaseModel):
     name: str = Field(description="生物/魔物的标准化、唯一的官方种类名称（例如 '水晶鸡'）。")
@@ -427,14 +206,8 @@ class CreatureInfo(BaseModel):
     habitat: List[str] = Field(default_factory=list, description="该生物/魔物的主要栖息地列表。")
 
     @field_validator('aliases', 'abilities', 'habitat', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
+    def _validate_string_to_list_creature(cls, value: Any) -> Any: return _validate_string_to_list(value)
 
-# schemas.py 的 WorldLore 模型 (v2.1 - 新增 template_keys)
-# 更新紀錄:
-# v2.1 (2025-10-01): [架構擴展] 根據「LORE繼承與規則注入系統」設計，同步新增了 `template_keys` 欄位，使其與資料庫模型保持一致，允許程式在 Pydantic 層面處理 LORE 關聯規則。
-# v2.0 (2025-09-26): [災難性BUG修復] 將 title 欄位改名為 name 並增加 AliasChoices。
 class WorldLore(BaseModel):
     name: str = Field(description="这条传说、神话或历史事件的标准化、唯一的官方标题。", validation_alias=AliasChoices('name', 'title'))
     aliases: List[str] = Field(default_factory=list, description="此传说的其他已知称呼或别名。")
@@ -442,17 +215,79 @@ class WorldLore(BaseModel):
     category: str = Field(default="未知", description="Lore 的分类，例如 '神话', '历史', '地方传闻', '物品背景', '角色设定'。")
     key_elements: List[str] = Field(default_factory=list, description="与此 Lore 相关的关键词或核心元素列表。")
     related_entities: List[str] = Field(default_factory=list, description="与此 Lore 相关的角色、地点或物品的名称列表。")
-    # [v2.1 核心修正] 新增 template_keys 欄位
     template_keys: Optional[List[str]] = Field(default=None, description="一个可选的关键词列表。任何身份(alias)匹配此列表的角色，都将继承本条LORE的content作为其行为准则。")
 
     @field_validator('aliases', 'key_elements', 'related_entities', 'template_keys', mode='before')
-    @classmethod
-    def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        return _validate_string_to_list(value)
-# schemas.py 的 WorldLore 模型
+    def _validate_string_to_list_worldlore(cls, value: Any) -> Any: return _validate_string_to_list(value)
 
+# --- 流水线核心模型 ---
 
+class IdentifiedEntity(BaseModel):
+    name: str = Field(description="实体的专有名称")
+    category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore'] = Field(description="实体的 LORE 类别")
 
+class BatchIdentifiedEntitiesResult(BaseModel):
+    entities: List[IdentifiedEntity]
+
+class AliasItem(BaseModel):
+    character_name: str
+    aliases: List[str]
+
+class BatchAliasesResult(BaseModel):
+    results: List[AliasItem]
+
+class AppearanceItem(BaseModel):
+    character_name: str
+    appearance_details: AppearanceDetails
+
+class BatchAppearanceResult(BaseModel):
+    results: List[AppearanceItem]
+    
+class CoreInfoItem(BaseModel):
+    character_name: str
+    description: Optional[str] = ""
+    skills: List[str] = Field(default_factory=list)
+    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict)
+
+class BatchCoreInfoResult(BaseModel):
+    results: List[CoreInfoItem]
+
+class LocationItem(BaseModel):
+    name: str
+    location_info: LocationInfo
+
+class BatchLocationsResult(BaseModel):
+    results: List[LocationItem]
+
+class ItemItem(BaseModel):
+    name: str
+    item_info: ItemInfo
+
+class BatchItemsResult(BaseModel):
+    results: List[ItemItem]
+
+class CreatureItem(BaseModel):
+    name: str
+    creature_info: CreatureInfo
+
+class BatchCreaturesResult(BaseModel):
+    results: List[CreatureItem]
+
+class QuestItem(BaseModel):
+    name: str
+    quest: Quest
+
+class BatchQuestsResult(BaseModel):
+    results: List[QuestItem]
+
+class WorldLoreItem(BaseModel):
+    name: str
+    world_lore: WorldLore
+
+class BatchWorldLoresResult(BaseModel):
+    results: List[WorldLoreItem]
+
+# --- 通用/辅助模型 ---
 
 class ToolCall(BaseModel):
     tool_name: str = Field(..., description="要呼叫的工具的名称。", validation_alias=AliasChoices('tool_name', 'tool_code'))
@@ -462,14 +297,9 @@ class ToolCall(BaseModel):
     @classmethod
     def parse_parameters_from_string(cls, value):
         if isinstance(value, str):
-            try:
-                corrected_string = value.replace("'", '"')
-                return json.loads(corrected_string)
-            except json.JSONDecodeError:
-                return value
+            try: return json.loads(value.replace("'", '"'))
+            except json.JSONDecodeError: return value
         return value
-
-# --- 旧的、用于兼容的各种模型 ---
 
 class CharacterSkeleton(BaseModel):
     name: str
@@ -487,7 +317,7 @@ class EntityValidationResult(BaseModel):
     matched_key: Optional[str] = None
 
     @model_validator(mode='after')
-    def check_consistency(self) -> 'EntityValidationResult':
+    def check_consistency_entity_validation(self) -> 'EntityValidationResult':
         if self.decision == 'MERGE' and not self.matched_key:
             raise ValueError("如果 decision 是 'MERGE'，则 matched_key 字段是必需的。")
         return self
@@ -517,7 +347,7 @@ class BatchResolutionResult(BaseModel):
     standardized_name: str
 
     @model_validator(mode='after')
-    def check_consistency(self) -> 'BatchResolutionResult':
+    def check_consistency_batch_resolution(self) -> 'BatchResolutionResult':
         if self.decision.upper() in ['MERGE', 'EXISTING'] and not self.matched_key:
             raise ValueError("如果 decision 是 'MERGE' 或 'EXISTING'，则 matched_key 栏位是必需的。")
         return self
@@ -538,14 +368,9 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list)
     world_lores: List[WorldLore] = Field(default_factory=list)
 
-# schemas.py 的 LoreClassificationResult 模型 (v3.2 - 簡化以適配原子工具)
-# 更新紀錄:
-# v3.2 (2025-10-01): [重大架構重構] 根據「原子工具鏈」架構，移除了 `reasoning` 欄位。此修改將該模型簡化為一個純粹的數據容器，使其在作為 Tool Calling 的輸出 Schema 時，結構更簡單、更穩定，從而最大限度地降低解析失敗的風險。
-# v3.1 (2025-10-01): [災難性BUG修復] 增加了對 `term` 等替代鍵名的容錯能力。
 class LoreClassificationResult(BaseModel):
     entity_name: str = Field(validation_alias=AliasChoices('entity_name', 'term', 'input_term'))
     lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore'] = Field(validation_alias=AliasChoices('lore_category', 'category'))
-# schemas.py 的 LoreClassificationResult 模型
 
 class BatchClassificationResult(BaseModel):
     classifications: List[LoreClassificationResult]
@@ -633,51 +458,24 @@ class SceneLocationExtraction(BaseModel):
     location_path: Optional[List[str]] = None
 
 # --- 手动重建模型依赖 ---
+# 确保所有前向引用的模型都被正确解析
 AppearanceDetails.model_rebuild()
 RelationshipDetail.model_rebuild()
+CharacterCoreInfo.model_rebuild()
 CharacterProfile.model_rebuild()
-AliasItem.model_rebuild()
-AppearanceItem.model_rebuild()
-CoreInfoItem.model_rebuild()
-BatchAliasesResult.model_rebuild()
-BatchAppearanceResult.model_rebuild()
-BatchCoreInfoResult.model_rebuild()
 Quest.model_rebuild()
 LocationInfo.model_rebuild()
 ItemInfo.model_rebuild()
 CreatureInfo.model_rebuild()
 WorldLore.model_rebuild()
-ToolCall.model_rebuild()
-WorldGenesisResult.model_rebuild()
-CanonParsingResult.model_rebuild()
-BatchResolutionResult.model_rebuild()
-BatchResolutionPlan.model_rebuild()
-BatchRefinementResult.model_rebuild()
-EntityValidationResult.model_rebuild()
-SynthesisTask.model_rebuild()
-SynthesizedDescription.model_rebuild()
-BatchSynthesisResult.model_rebuild()
-FactCheckResult.model_rebuild()
-ExtractionResult.model_rebuild()
-CharacterSkeleton.model_rebuild()
-TurnPlan.model_rebuild()
-UserInputAnalysis.model_rebuild()
-SceneCastingResult.model_rebuild()
-SceneAnalysisResult.model_rebuild()
-ValidationResult.model_rebuild()
-ExtractedEntities.model_rebuild()
-ExpansionDecision.model_rebuild()
-IntentClassificationResult.model_rebuild()
-StyleAnalysisResult.model_rebuild()
-SingleResolutionPlan.model_rebuild()
-SingleResolutionResult.model_rebuild()
-LoreClassificationResult.model_rebuild()
-BatchClassificationResult.model_rebuild()
-NarrativeExtractionResult.model_rebuild()
-PostGenerationAnalysisResult.model_rebuild()
 IdentifiedEntity.model_rebuild()
 BatchIdentifiedEntitiesResult.model_rebuild()
-
+AliasItem.model_rebuild()
+BatchAliasesResult.model_rebuild()
+AppearanceItem.model_rebuild()
+BatchAppearanceResult.model_rebuild()
+CoreInfoItem.model_rebuild()
+BatchCoreInfoResult.model_rebuild()
 LocationItem.model_rebuild()
 BatchLocationsResult.model_rebuild()
 ItemItem.model_rebuild()
@@ -688,12 +486,35 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
-
-
-
-
-
-
-
-
-
+ToolCall.model_rebuild()
+CharacterSkeleton.model_rebuild()
+ExtractionResult.model_rebuild()
+BatchRefinementResult.model_rebuild()
+EntityValidationResult.model_rebuild()
+SynthesisTask.model_rebuild()
+SynthesizedDescription.model_rebuild()
+BatchSynthesisResult.model_rebuild()
+FactCheckResult.model_rebuild()
+BatchResolutionResult.model_rebuild()
+BatchResolutionPlan.model_rebuild()
+WorldGenesisResult.model_rebuild()
+CanonParsingResult.model_rebuild()
+LoreClassificationResult.model_rebuild()
+BatchClassificationResult.model_rebuild()
+SingleResolutionResult.model_rebuild()
+SingleResolutionPlan.model_rebuild()
+ToolCallPlan.model_rebuild()
+TurnPlan.model_rebuild()
+UserInputAnalysis.model_rebuild()
+SceneCastingResult.model_rebuild()
+SceneAnalysisResult.model_rebuild()
+ValidationResult.model_rebuild()
+ExtractedEntities.model_rebuild()
+ExpansionDecision.model_rebuild()
+IntentClassificationResult.model_rebuild()
+StyleAnalysisResult.model_rebuild()
+NarrativeExtractionResult.model_rebuild()
+NarrativeDirective.model_rebuild()
+RagFactSheet.model_rebuild()
+PostGenerationAnalysisResult.model_rebuild()
+SceneLocationExtraction.model_rebuild()
