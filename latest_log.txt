@@ -1,205 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T01:01:34.122044 ###
+### AI Lover Log - Last updated at 2025-10-02T01:06:37.389658 ###
 
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 瓦萊麗 -> 薩格納將軍 (New Roles: ['子女'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 薩格納將軍 -> 艾莉諾 (New Roles: ['ROLE-D', '妻子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 維利爾斯勳爵 -> 艾莉諾 (Roles: ['使用者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 絲月 -> 艾莉諾 (Roles: ['前輩'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 薩格納將軍 -> 菲利普•薩格納 (New Roles: ['父親', '長子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 瓦萊麗 -> 菲利普•薩格納 (New Roles: ['教學對手', '子女', '哥哥', '懲罰者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 血斧 薩格納 -> 菲利普•薩格納 (New Roles: ['子女', '父親', '親子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 米婭 -> 菲利普•薩格納 (New Roles: ['治療者', '被治療者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 薩格納將軍 -> 布里奇特 (New Roles: ['大女兒', '父親', '武家ROLE-D'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 維利爾斯勳爵 -> 布里奇特 (Roles: ['使用者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 薩格納將軍 -> 瓦萊麗 (New Roles: ['技巧ROLE-D', '二女兒', '父親'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 菲利普•薩格納 -> 瓦萊麗 (New Roles: ['妹妹', '兄弟', '被施以神罰者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 維利爾斯勳爵 -> 瓦萊麗 (Roles: ['使用者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 維利爾斯勳爵 -> 國王埃德蒙三世 (Roles: ['盟友'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 伊索爾德 -> 國王埃德蒙三世 (Roles: ['子女'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 阿拉里克 -> 國王埃德蒙三世 (Roles: ['子女'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 國王埃德蒙三世 -> 大皇子阿拉里克 (Roles: ['父親'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 維利爾斯勳爵 -> 大皇子阿拉里克 (Roles: ['驗證者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 埃德蒙三世 -> 阿拉里克 (New Roles: ['子女', '父親', '親子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 國王埃德蒙三世 -> 阿拉里克 (New Roles: ['子女', '大皇子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 埃德蒙三世 -> 赫克托 (New Roles: ['子女', '父親', '親子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 博林勳爵 -> 伊索爾德 (New Roles: ['被轉化者', '引導者', '轉化者/被轉化者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 埃德蒙三世 -> 伊索爾德 (New Roles: ['子女', '父親', '親子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 博林 -> 伊索爾德 (New Roles: ['策劃者', '轉化者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 國王埃德蒙三世 -> 伊索爾德 (New Roles: ['聖軍計畫採納者', '子女', '三皇女'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 伊索爾德 -> 博林勳爵 (New Roles: ['被轉化者/轉化者', '臣下', '引導者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 米婭 -> 瓦勒留斯 (New Roles: ['對手', '對立'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 莉莉絲 -> 麥可 (New Roles: ['威脅對象', '對手'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 莉莉絲 -> 克拉拉 (New Roles: ['辯論對手', '對手', '敵對'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 莉莉絲 -> 絲月 (New Roles: ['子女', '親子'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 創建反向鏈接: 湯姆 -> 絲月 (Roles: ['合作'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 里奧 -> 絲月 (New Roles: ['使用者', '凌辱者', '被凌辱者/使用者', '凌辱者/使用者'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] [關係圖譜校準] 更新反向鏈接: 艾莉諾 -> 絲月 (New Roles: ['貴族ROLE-D', '前輩'])
-2025-10-02 00:43:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 134 個實體...
-2025-10-02 00:44:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
-2025-10-02 00:44:52 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 134 條決策。
-2025-10-02 00:45:01 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 31 個實體...
-2025-10-02 00:45:04 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 9 個實體...
-2025-10-02 00:45:04 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'creature_info' 類別處理 1 個實體...
-2025-10-02 00:45:04 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 4 個實體...
-2025-10-02 00:45:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 59 個實體...
-2025-10-02 00:45:11 - [INFO] - [512280345618546699] [創世 LORE 解析] LORE 已成功解析並存入 SQL 資料庫。
-2025-10-02 00:45:11 - [INFO] - [512280345618546699] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。
-2025-10-02 00:45:11 - [INFO] - [512280345618546699] [後台創世 2/5] 正在補完角色檔案...
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] (Retriever Builder) 執行強制清理，正在刪除舊的向量儲存目錄...
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] (Retriever Builder) 已確保向量儲存目錄為全新狀態。
-2025-10-02 00:45:15 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 和 LORE 加載 142 條文檔用於創始構建。
-2025-10-02 00:45:48 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器創始構建成功，並已將索引持久化到磁碟。
-2025-10-02 00:45:48 - [INFO] - [512280345618546699] [後台創世 3/5] RAG 索引全量創始構建完成。
-2025-10-02 00:45:48 - [INFO] - [512280345618546699] [後台創世 4/5] 正在生成世界創世資訊...
-2025-10-02 00:45:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-02 00:45:49 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-10-02 00:45:49 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-10-02 00:45:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 28386 秒)。
-2025-10-02 00:45:49 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 28450 秒)。
-2025-10-02 00:46:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
-2025-10-02 00:46:23 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-02 00:46:24 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-02 00:46:24 - [INFO] - [512280345618546699] [/start] 初始地點 '王國 > 王都 > 咆哮壁爐酒館' 已成功生成並存入LORE。
-2025-10-02 00:46:24 - [INFO] - [512280345618546699] [後台創世 5/5] 正在生成開場白...
-2025-10-02 00:46:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #5.
-2025-10-02 00:46:56 - [INFO] - [512280345618546699] [後台創世 5/5] 開場白生成完毕。
-2025-10-02 00:46:57 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
-2025-10-02 00:46:57 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-02 00:46:57 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] [純粹生成流程] 正在準備上下文...
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] [場景界定] 正在從使用者指令中提取敘事意圖地點...
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: ['宅邸']
-2025-10-02 00:48:14 - [INFO] - [512280345618546699] [指令實體提取] 通過 LORE 字典找到實體: {'米婭', '宅邸'}
-2025-10-02 00:48:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-02 00:48:15 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭'], 背景角色: []
-2025-10-02 00:48:15 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 Mia 米婭 聖女'
-2025-10-02 00:48:15 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
-2025-10-02 00:48:15 - [INFO] -   [Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 1] Content: 【NPC 檔案: 米婭】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
-- Appearance: 聖女
-- Skills: 儀式, 治療
-- Description: 性神教的「聖女」。主持了「聖胎之吻」儀式，為菲利普•薩格納的病情提供了奇蹟般的、暫時性的好轉。是維利爾斯家族...
-2025-10-02 00:48:15 - [INFO] -   [Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 2] Content: 【NPC 檔案: 莉莉絲】
-- Gender: 女性
-- Age: 7
-- Race: 人類
-- Appearance: 如同天使般聰慧可愛
-- Skills: 思想滲透, 質疑傳統教義
-- Description: 年僅7歲的她，是維利爾斯勳爵的獨女，也是性神教的「聖女」。她憑藉著，如同天使般「聰...
-2025-10-02 00:48:15 - [INFO] -   [Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 3] Content: 【地點資訊: 維利爾斯家宅邸】
-- Description: 卡爾•維利爾斯勳爵的住所，是性神教在當地的重要據點，內部階級森嚴，充滿了各種嚴酷的儀式與教義實踐。
-- Notable features: 豬圈, 三大性神裝置
-- Known npcs: 卡爾•維利爾斯勳爵, 湯姆, 班恩, 里奧, 賈...
-2025-10-02 00:48:15 - [INFO] -   [Doc 4] Metadata: {'source': 'lore', 'category': 'world_lore', 'key': '活體神聖燈塔'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 4] Content: 【世界傳說: 活體神聖燈塔】
-- Content: 一種世界觀設定，將生物轉化為具有發光、發聲和散發香氣功能的儀式性物品。
-- Category: 世界觀...
-2025-10-02 00:48:15 - [INFO] -   [Doc 5] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 5] Content: 【NPC 檔案: 卡蓮】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
-- Appearance: 失明後重獲光明
-- Skills: 接受命運, 重獲光明
-- Description: 一位雙目失明的妓女，因對命運的淡然和「無垢」靈魂被凱爾引薦給米婭。在與凱爾的「恩澤儀式」中...
-2025-10-02 00:48:15 - [INFO] -   [Doc 6] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 瑪莎'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 6] Content: 【NPC 檔案: 瑪莎】
-- Gender: 女性
-- Age: 外表20歲，實際年齡超過60歲
-- Race: 人類
-- Appearance: 面容姣好，眼神與舉止都帶著老年人的嚴謹與刻板
-- Skills: 守護青春, 維持秩序, 忠誠
-- Description: 外表20歲，實際年齡超過6...
-2025-10-02 00:48:15 - [INFO] -   [Doc 7] Metadata: {'category': 'npc_profile', 'key': '凱爾', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 7] Content: 【NPC 檔案: 凱爾】
-- Gender: 男性
-- Age: 未知
-- Race: 人類
-- Appearance: 未知
-- Skills: 恩澤儀式, 亂倫
-- Description: 將卡蓮引薦給米婭，並與卡蓮進行了禁忌的「恩澤儀式」，鞏固了自身神恩，打破了倫理枷鎖。成為聖露修道院的核心...
-2025-10-02 00:48:15 - [INFO] -   [Doc 8] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 卡萊兒'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 8] Content: 【NPC 檔案: 卡萊兒】
-- Gender: 女性
-- Age: 年齡不詳
-- Race: 人類
-- Appearance: 氣質自卑，總是縮在角落
-- Skills: 自卑, 承受
-- Description: 年齡不詳，氣質自卑，總是縮在角落。過去曾是一個肥胖醜陋的女孩。
-- Location...
-2025-10-02 00:48:15 - [INFO] -   [Doc 9] Metadata: {'category': 'location_info', 'key': '王都', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 9] Content: 【地點資訊: 王都】
-- Description: 故事發生的主要地點，包含貴族階層、貧民窟、王宮、軍隊、聖凱瑟琳學院等區域。
-- Notable features: 貴族階層, 貧民窟, 王宮, 軍隊, 聖凱瑟琳學院
-- Known npcs: 絲月, 卡爾•維利爾斯勳爵, 莉莉絲, 老高, 馬丁...
-2025-10-02 00:48:15 - [INFO] -   [Doc 10] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 艾蜜莉'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 10] Content: 【NPC 檔案: 艾蜜莉】
-- Gender: 女性
-- Age: 年齡不詳
-- Race: 人類
-- Appearance: 樣貌普通，總是一副討好的、卑微的姿態
-- Skills: 討好, 功能性
-- Description: 年齡不詳，樣貌普通，總是一副討好的、卑微的姿態。核心慾望是「討好」與...
-2025-10-02 00:48:15 - [INFO] -   [Doc 11] Metadata: {'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 索菲亞', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 11] Content: 【NPC 檔案: 索菲亞】
-- Gender: 女性
-- Age: 約18歲
-- Race: 人類
-- Appearance: 斷腿重生後。
-- Description: 來自貧民窟，曾因「心痛」（推測為心臟相關疾病）而尋求神恩。在工場事故中右大腿被水泥砸成粉碎。在對夏卡爾發出最惡毒的「叛教宣言」後...
-2025-10-02 00:48:15 - [INFO] -   [Doc 12] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 諾拉'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 12] Content: 【NPC 檔案: 諾拉】
-- Gender: 女性
-- Age: 年齡不詳
-- Race: 人類
-- Appearance: 氣質內向、安靜
-- Skills: 創造力, 設計, 幻想
-- Description: 年齡不詳，氣質內向、安靜。核心慾望是「瘋狂的創造力」與「黑暗的幻想」，是三大裝置的靈...
-2025-10-02 00:48:15 - [INFO] -   [Doc 13] Metadata: {'category': 'location_info', 'key': '聖露修道院', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 13] Content: 【地點資訊: 聖露修道院】
-- Description: 性神教在貧民窟的核心據點，進行神蹟展現與信徒教化。
-- Known npcs: 米婭, 卡蓮, 艾拉, 凱爾, 里斯, 瑪倫, 索菲亞, 泰莎, 露比...
-2025-10-02 00:48:15 - [INFO] -   [Doc 14] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 莉娜'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 14] Content: 【NPC 檔案: 莉娜】
-- Gender: 女性
-- Age: 年齡不詳
-- Race: 人類
-- Appearance: 氣質空靈，如同森林中的精靈
-- Skills: 與自然融合, 滋養萬物
-- Description: 年齡不詳，氣質空靈，如同森林中的精靈。核心慾望是「與自然融合」，崇拜「天...
-2025-10-02 00:48:15 - [INFO] -   [Doc 15] Metadata: {'category': 'npc_profile', 'key': '瓦勒留斯', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 15] Content: 【NPC 檔案: 瓦勒留斯】
-- Gender: 男性
-- Age: 未知
-- Race: 人類
-- Appearance: 未知
-- Skills: 帶領軍隊, 神學辯論
-- Description: 聖光明教會的神父，曾兩次帶領守衛前來打壓「聖露修道院」，但被米婭以神學辯論和人心的力量駁斥，最終...
-2025-10-02 00:48:15 - [INFO] -   [Doc 16] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '維利爾斯家宅邸 > 貝拉'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 16] Content: 【NPC 檔案: 貝拉】
-- Gender: 女性
-- Age: 20歲左右
-- Race: 人類
-- Appearance: 身材高挑，充滿了健康的活力，眼神好勝
-- Skills: 競爭, 挑戰極限
-- Description: 20歲左右，身材高挑，充滿了健康的活力，眼神好勝。核心慾望是「競爭...
-2025-10-02 00:48:15 - [INFO] -   [Doc 17] Metadata: {'category': 'npc_profile', 'key': '安娜', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Doc 17] Content: 【NPC 檔案: 安娜】
-- Gender: 女性
-- Age: 未知
-- Race: 人類
 - Appearance: 完美改造過的身體，散發甜膩氣味
 - Skills: 永恆發情
 - Description: 莊園的母畜之一，奉勳爵之命外出採買，其身體和散發的氣味對市集上的凡人男性構成誘惑，但被...
@@ -300,3 +100,203 @@
 2025-10-02 01:01:34 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
 2025-10-02 01:01:34 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
 2025-10-02 01:01:34 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 3 條訊息。
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] 啟動「純粹生成」對話流程...
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] [純粹生成流程] 正在準備上下文...
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] [場景界定] 正在從使用者指令中提取敘事意圖地點...
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: ['宅邸']
+2025-10-02 01:01:34 - [INFO] - [512280345618546699] [指令實體提取] 通過 LORE 字典找到實體: {'米婭', '宅邸'}
+2025-10-02 01:01:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-02 01:01:35 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭'], 背景角色: []
+2025-10-02 01:01:35 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 Mia 米婭 聖女'
+2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
+2025-10-02 01:01:36 - [INFO] -   [Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
+2025-10-02 01:01:36 - [INFO] -   [Doc 1] Content: 【NPC 檔案: 米婭】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 聖女
+- Skills: 儀式, 治療
+- Description: 性神教的「聖女」。主持了「聖胎之吻」儀式，為菲利普•薩格納的病情提供了奇蹟般的、暫時性的好轉。是維利爾斯家族...
+2025-10-02 01:01:36 - [INFO] -   [Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
+2025-10-02 01:01:36 - [INFO] -   [Doc 2] Content: 【NPC 檔案: 莉莉絲】
+- Gender: 女性
+- Age: 7
+- Race: 人類
+- Appearance: 如同天使般聰慧可愛
+- Skills: 思想滲透, 質疑傳統教義
+- Description: 年僅7歲的她，是維利爾斯勳爵的獨女，也是性神教的「聖女」。她憑藉著，如同天使般「聰...
+2025-10-02 01:01:36 - [INFO] -   [Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
+2025-10-02 01:01:36 - [INFO] -   [Doc 3] Content: 【地點資訊: 維利爾斯家宅邸】
+- Description: 卡爾•維利爾斯勳爵的住所，是性神教在當地的重要據點，內部階級森嚴，充滿了各種嚴酷的儀式與教義實踐。
+- Notable features: 豬圈, 三大性神裝置
+- Known npcs: 卡爾•維利爾斯勳爵, 湯姆, 班恩, 里奧, 賈...
+2025-10-02 01:01:36 - [INFO] -   [Doc 4] Metadata: {'source': 'lore', 'category': 'world_lore', 'key': '活體神聖燈塔'}
+2025-10-02 01:01:36 - [INFO] -   [Doc 4] Content: 【世界傳說: 活體神聖燈塔】
+- Content: 一種世界觀設定，將生物轉化為具有發光、發聲和散發香氣功能的儀式性物品。
+- Category: 世界觀...
+2025-10-02 01:01:36 - [INFO] -   [Doc 5] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
+2025-10-02 01:01:36 - [INFO] -   [Doc 5] Content: 【NPC 檔案: 卡蓮】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 失明後重獲光明
+- Skills: 接受命運, 重獲光明
+- Description: 一位雙目失明的妓女，因對命運的淡然和「無垢」靈魂被凱爾引薦給米婭。在與凱爾的「恩澤儀式」中...
+2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
+2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 8 條文檔 ---
+2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
+2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
+2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
+2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 4] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
+2025-10-02 01:01:36 - [INFO] -   [Filtered Doc 5] Metadata: {'category': 'npc_profile', 'key': '凱爾', 'source': 'lore'}
+2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
+2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---
+2025-10-02 01:01:36 - [INFO] -   歸類為【規則】的文檔 (0 條): []
+2025-10-02 01:01:36 - [INFO] -   歸類為【待拼接】的文檔 (8 條): ['王都 > 維利爾斯莊園 > 聖露修道院 > 米婭', '王都 > 聖凱瑟琳學院 > 莉莉絲', '維利爾斯家宅邸', '卡蓮', '凱爾', '貧民窟 > 聖露修道院 > 索菲亞', '聖露修道院', '瓦勒留斯']
+2025-10-02 01:01:36 - [INFO] -   [最終生成的 rules_context] (傳遞給導演):
+---
+（當前場景無特定的行為準則或世界觀設定）
+---
+2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
+2025-10-02 01:01:36 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 5 條原始文檔作為 summary_context。
+2025-10-02 01:01:36 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 01:01:36 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-02 01:01:36 - [INFO] -   [最終 summary_context 長度]: 1881
+2025-10-02 01:01:36 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 01:01:36 - [INFO] - [512280345618546699] [AI導演] 正在啟動導演決策模組...
+2025-10-02 01:01:36 - [INFO] - --- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---
+2025-10-02 01:01:36 - [INFO] -   [WORLD_SETTINGS]:
+---
+這是一個魔法的幻想世界。
+---
+2025-10-02 01:01:36 - [INFO] -   [RELEVANT_CHARACTERS_SUMMARY]:
+---
+米婭 (身份: ['Mia', '聖女'])
+---
+2025-10-02 01:01:36 - [INFO] -   [LOCATION_DESCRIPTION]:
+---
+宅邸: 一個神秘的地方
+---
+2025-10-02 01:01:36 - [INFO] -   [RAG_SUMMARY]:
+---
+【背景歷史參考（來自 RAG 檢索的 5 條最相關原始文檔）】:
+【NPC 檔案: 米婭】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 聖女
+- Skills: 儀式, 治療
+- Description: 性神教的「聖女」。主持了「聖胎之吻」儀式，為菲利普•薩格納的病情提供了奇蹟般的、暫時性的好轉。是維利爾斯家族所支持的「生命之神」的代理人。
+- Location path: 王都, 維利爾斯莊園, 聖露修道院
+- Relationships: 菲利普•薩格納: {'type': '被治療者', 'roles': ['患者']}; 卡爾•維利爾斯勳爵: {'type': '效忠', 'roles': ['上級']}
+- Status: 聖女
+- Current action: 站著
+
+---
+
+【NPC 檔案: 莉莉絲】
+- Gender: 女性
+- Age: 7
+- Race: 人類
+- Appearance: 如同天使般聰慧可愛
+- Skills: 思想滲透, 質疑傳統教義
+- Description: 年僅7歲的她，是維利爾斯勳爵的獨女，也是性神教的「聖女」。她憑藉著，如同天使般「聰慧可愛」的外貌與天真無邪的言行，深受學院師生的喜愛，這成了她最完美的保護色與偽裝。她以「孩童的天真」為最鋒利的武器，在倫理課等公開場合，向傳統教義，提出，直擊核心的、看似無邪的質疑。她的生存意義，是「渴望被任何雄性，任意地姦淫、藐視、凌辱」。但在學院，她卻被迫，接受所有人的「仰慕」與「尊重」。這對她而言，如同，讓一個，瀕臨渴死的人，身處一片，無法觸碰的海市蜃樓之中，是最殘酷的乾渴。
+- Location path: 王都, 聖凱瑟琳學院
+- Relationships: 卡爾•維利爾斯勳爵: {'type': '親子', 'roles': ['父親']}; 絲月: {'type': '親子', 'roles': ['母親']}; 克拉拉: {'type': '敵對', 'roles': ['對手']}; 亞瑟: {'type': '追隨者', 'roles': ['擁護者']}; 馬丁: {'type': '追隨者', 'roles': ['擁護者']}
+- Status: 聖女
+- Current action: 站著
+
+---
+
+【地點資訊: 維利爾斯家宅邸】
+- Description: 卡爾•維利爾斯勳爵的住所，是性神教在當地的重要據點，內部階級森嚴，充滿了各種嚴酷的儀式與教義實踐。
+- Notable features: 豬圈, 三大性神裝置
+- Known npcs: 卡爾•維利爾斯勳爵, 湯姆, 班恩, 里奧, 賈斯伯, 提姆, 安東尼, 絲月, 莉莉絲, 米婭, 瑪莎, 瑪莉, 愛莉莎, 安娜, 澤拉, 蘇菲, 貝拉, 莉娜, 諾拉, 艾蜜莉, 卡萊兒
+
+---
+
+【NPC 檔案: 卡蓮】
+- Gender: 女性
+- Age: 未知
+- Race: 人類
+- Appearance: 失明後重獲光明
+- Skills: 接受命運, 重獲光明
+- Description: 一位雙目失明的妓女，因對命運的淡然和「無垢」靈魂被凱爾引薦給米婭。在與凱爾的「恩澤儀式」中，體驗極樂並重獲光明。成為聖露修道院核心管理者。
+- Relationships: 米婭: {'type': '引導', 'roles': ['被引導者']}; 凱爾: {'type': '合作/亂倫', 'roles': ['伴侶', '管理者']}; 艾拉: {'type': '兄妹', 'roles': ['兄嫂']}
+- Status: 活躍
+- Current action: 站著
+
+---
+
+【NPC 檔案: 凱爾】
+- Gender: 男性
+- Age: 未知
+- Race: 人類
+- Appearance: 未知
+- Skills: 恩澤儀式, 亂倫
+- Description: 將卡蓮引薦給米婭，並與卡蓮進行了禁忌的「恩澤儀式」，鞏固了自身神恩，打破了倫理枷鎖。成為聖露修道院的核心管理者。
+- Relationships: 卡蓮: {'type': '合作/亂倫', 'roles': ['伴侶', '管理者']}; 艾拉: {'type': '家族/亂倫', 'roles': ['哥哥', '伴侶']}
+- Status: 活躍
+- Current action: 站著
+---
+2025-10-02 01:01:36 - [INFO] -   [SCENE_RULES_CONTEXT]:
+---
+（當前場景無特定的行為準則或世界觀設定）
+---
+2025-10-02 01:01:36 - [INFO] -   [USER_INPUT]:
+---
+描述米婭在宅邸遇到勛爵
+---
+2025-10-02 01:01:36 - [INFO] - ----------------------------------------------------
+2025-10-02 01:01:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-02 01:01:38 - [INFO] - [512280345618546699] [AI導演] 決策完成。最終劇本大綱: '在維利爾斯家宅邸，米婭（身份：聖女）正靜靜地站著。她目前所處的地點嚴格限定在宅邸內，並無其他地點的參考。此時，卡爾•維利爾斯勳爵出現在米婭面前，故事的開端聚焦於他們之間的互動。由於當前沒有特定的行為準則或世界觀設定對此場景提出額外要求，請直接生成他們相遇時的自然互動和對白，以推進劇情。'
+2025-10-02 01:01:38 - [INFO] - [512280345618546699] [純粹生成流程] 正在執行小說生成...
+2025-10-02 01:01:38 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 27502 秒)。
+2025-10-02 01:02:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-10-02 01:02:22 - [INFO] - [512280345618546699] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。
+2025-10-02 01:02:22 - [INFO] - [512280345618546699] 回應已發送。正在啟動統一的「事後分析」任務...
+2025-10-02 01:02:24 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析任務...
+2025-10-02 01:02:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-02 01:02:27 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-02 01:02:27 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-02 01:02:27 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-02 01:02:29 - [WARNING] - [512280345618546699] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'update_world_lore'。此類工具不允許在事後處理中執行。
+2025-10-02 01:02:29 - [WARNING] - [512280345618546699] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'update_quest'。此類工具不允許在事後處理中執行。
+2025-10-02 01:02:29 - [INFO] - [512280345618546699] 背景任務：檢測到 2 條預生成LORE，準備執行...
+2025-10-02 01:02:29 - [INFO] - [512280345618546699] [自動修正-參數] 為 '米婭' 動態生成缺失的 lore_key: '王國 > 王都 > 咆哮壁爐酒館 > 米婭'
+2025-10-02 01:02:29 - [INFO] - [512280345618546699] [自動修正-參數] 為 '卡爾•維利爾斯勳爵' 動態生成缺失的 lore_key: '王國 > 王都 > 咆哮壁爐酒館 > 卡爾•維利爾斯勳爵'
+2025-10-02 01:02:29 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 2 個修正後的LORE任务 ---
+2025-10-02 01:02:29 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在NPC '米婭' 的更新。啟動事實查核...
+2025-10-02 01:02:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-02 01:02:30 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for update_npc_profile: 1 validation error for UpdateNpcProfileArgs
+updates
+  Field required [type=missing, input_value={'location': '王都 > ..., '咆哮壁爐酒館']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2720, in _execute_tool_call_plan
+    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for UpdateNpcProfileArgs
+updates
+  Field required [type=missing, input_value={'location': '王都 > ..., '咆哮壁爐酒館']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-02 01:02:30 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在NPC '卡爾•維利爾斯勳爵' 的更新。啟動事實查核...
+2025-10-02 01:02:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-02 01:02:32 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for update_npc_profile: 1 validation error for UpdateNpcProfileArgs
+updates
+  Field required [type=missing, input_value={'location': '王都 > ..., '咆哮壁爐酒館']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2720, in _execute_tool_call_plan
+    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for UpdateNpcProfileArgs
+updates
+  Field required [type=missing, input_value={'location': '王都 > ..., '咆哮壁爐酒館']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-02 01:02:32 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-02 01:02:32 - [INFO] - [512280345618546699] (LORE Executor) 背景任务的工具上下文已清理。
+2025-10-02 01:02:32 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
