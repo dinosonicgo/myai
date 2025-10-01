@@ -5203,13 +5203,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-    # 函式：檢索並摘要記憶 (v18.5 - 自適應上下文縮減)
-    # 更新紀錄:
-    # v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。在降級到本地模型之前，此版本會將待處理的文檔數量限制為最相關的前7條。此修改旨在顯著減少發送給本地模型的數據負載，從而大幅縮短其處理時間，提升使用者體驗，並作為解決超時問題的核心手段。
-    # v18.4 (2025-09-28): [災難性BUG修復] 為此函式注入了全面的【透明度日誌】。
+# 函式：檢索並摘要記憶 (v19.0 - 原文直通改造)
+# 更新紀錄:
+# v19.0 (2025-10-02): [根本性重構] 根據最新討論，徹底移除了所有 LLM 摘要邏輯。此函式現在的唯一職責是執行 RAG 檢索、篩選，然後將最相關的【原始文檔文本】直接拼接後返回，確保導演層能接收到 100% 無損的背景資訊。
+# v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。
+# v18.4 (2025-09-28): [災難性BUG修復] 為此函式注入了全面的【透明度日誌】。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v18.5 重構) 執行RAG檢索，並通過「快速失敗轉向無審查核心」和「自適應上下文縮減」策略提取事實清單。
+        (v19.0 原文直通) 執行RAG檢索、篩選，並將最相關的原始文檔直接拼接後返回。
         返回一個字典: {"rules": str, "summary": str}
         """
         from .schemas import RagFactSheet
@@ -5238,7 +5239,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
         
         logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
-        for i, doc in enumerate(retrieved_docs):
+        for i, doc in enumerate(retrieved_docs[:5]): # 只記錄前5條的詳細內容
             logger.info(f"  [Doc {i+1}] Metadata: {doc.metadata}")
             logger.info(f"  [Doc {i+1}] Content: {doc.page_content[:150]}...")
         logger.info("----------------------------------------------------")
@@ -5251,7 +5252,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             final_docs_to_process = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
             
             logger.info(f"--- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
-            for i, doc in enumerate(final_docs_to_process):
+            for i, doc in enumerate(final_docs_to_process[:5]):
                 logger.info(f"  [Filtered Doc {i+1}] Metadata: {doc.metadata}")
             logger.info("----------------------------------------------------")
 
@@ -5262,75 +5263,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         logger.info(f"--- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---")
         logger.info(f"  歸類為【規則】的文檔 ({len(rule_docs)} 條): {[doc.metadata.get('key', 'N/A') for doc in rule_docs]}")
-        logger.info(f"  歸類為【待摘要】的文檔 ({len(other_docs)} 條): {[doc.metadata.get('key', 'Memory') for doc in other_docs]}")
+        logger.info(f"  歸類為【待拼接】的文檔 ({len(other_docs)} 條): {[doc.metadata.get('key', 'Memory') for doc in other_docs]}")
         
+        # 規則部分保持不變，因為它們需要被直接注入最終 Prompt
         rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
         logger.info(f"  [最終生成的 rules_context] (傳遞給導演):\n---\n{rules_context}\n---")
         logger.info("----------------------------------------------------")
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        docs_to_summarize = other_docs + rule_docs[3:]
+        # 將規則文檔中未被用作 "rules" 的剩餘部分也加入待拼接列表
+        docs_to_concatenate = other_docs + rule_docs[3:]
 
-        if docs_to_summarize:
-            raw_content = "\n\n---\n\n".join([doc.page_content for doc in docs_to_summarize])
-            fact_sheet: Optional[RagFactSheet] = None
-
-            # --- 層級 1: 雲端快速嘗試 ---
-            try:
-                logger.info(f"[{self.user_id}] [RAG事實提取-1] 快速嘗試：雲端模型...")
-                prompt_template = self.get_rag_fact_sheet_extraction_prompt()
-                full_prompt = self.data_protocol_prompt + "\n\n" + self._safe_format_prompt(prompt_template, {"documents": raw_content})
-                fact_sheet = await self.ainvoke_with_rotation(full_prompt, output_schema=RagFactSheet, retry_strategy='none')
+        # [v19.0 核心重構] 移除所有摘要邏輯，改為原文直通
+        if docs_to_concatenate:
+            # 為了控制上下文長度，我們只拼接最相關的前 5 條文檔
+            MAX_DOCS_FOR_SUMMARY = 5
+            selected_docs = docs_to_concatenate[:MAX_DOCS_FOR_SUMMARY]
             
-            except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [RAG事實提取-1] 雲端模型因內容審查快速失敗。立即轉向層級 2 (本地無審查核心)...")
-                fact_sheet = None 
+            concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in selected_docs])
             
-            except Exception as e_api:
-                logger.error(f"[{self.user_id}] [RAG事實提取-1] 雲端提取時發生API或網絡錯誤: {e_api}。轉向層級 2...", exc_info=True)
-                fact_sheet = None
-
-            # --- 層級 2: 本地無審查核心 ---
-            if not fact_sheet:
-                if self.is_ollama_available:
-                    # [v18.5 核心修正] 自適應上下文縮減
-                    CONTEXT_LIMIT_FOR_LOCAL_MODEL = 7
-                    if len(docs_to_summarize) > CONTEXT_LIMIT_FOR_LOCAL_MODEL:
-                        logger.warning(f"[{self.user_id}] [自適應上下文] 待處理文檔 ({len(docs_to_summarize)}條) 過多，將為本地模型縮減至前 {CONTEXT_LIMIT_FOR_LOCAL_MODEL} 條最相關的文檔。")
-                        docs_for_local = docs_to_summarize[:CONTEXT_LIMIT_FOR_LOCAL_MODEL]
-                    else:
-                        docs_for_local = docs_to_summarize
-                    
-                    content_for_local = "\n\n---\n\n".join([doc.page_content for doc in docs_for_local])
-                    fact_sheet = await self._invoke_local_ollama_summarizer(content_for_local)
-                else:
-                    logger.warning(f"[{self.user_id}] [RAG事實提取-2] 本地模型不可用，無法執行備援。")
-
-            # --- 層級 3: 格式化或最終備援 ---
-            if fact_sheet:
-                logger.info(f"[{self.user_id}] [RAG事實提取] ✅ 成功提取事實清單。")
-                formatted_summary_parts = ["【背景歷史參考（事實要點）】:"]
-                if fact_sheet.involved_characters: formatted_summary_parts.append(f"- 相關角色: {', '.join(fact_sheet.involved_characters)}")
-                if fact_sheet.key_locations: formatted_summary_parts.append(f"- 關鍵地點: {', '.join(fact_sheet.key_locations)}")
-                if fact_sheet.significant_objects: formatted_summary_parts.append(f"- 重要物品: {', '.join(fact_sheet.significant_objects)}")
-                if fact_sheet.core_events:
-                    formatted_summary_parts.append("- 核心事件:")
-                    for event in fact_sheet.core_events:
-                        formatted_summary_parts.append(f"  - {event}")
-                
-                summary_context = self._decode_lore_content("\n".join(formatted_summary_parts), self.DECODING_MAP)
-            else:
-                logger.error(f"[{self.user_id}] [RAG事實提取-3] 所有提取層級均失敗！")
-                summary_context = "（記憶摘要因內容審查或系統錯誤而生成失敗）"
+            summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(selected_docs)} 條最相關原始文檔）】:\n"
+            summary_context = summary_context_header + concatenated_content
+            
+            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條原始文檔作為 summary_context。")
         
         logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
         logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
         logger.info(f"  [最終 summary_context 長度]: {len(summary_context)}")
         logger.info("--- RAG 流程結束 ---")
 
-        return {"rules": rules_context, "summary": summary_context}
-    # 函式：檢索並摘要記憶
-
+        return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
+# 函式：檢索並摘要記憶 (v19.0 - 原文直通改造)
 
 
 
@@ -5435,6 +5398,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
