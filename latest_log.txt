@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-01T22:18:01.011782 ###
+### AI Lover Log - Last updated at 2025-10-01T22:21:54.977005 ###
 
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='appearance_details' type=Optional[AppearanceDetails] required=False default=None
-2025-10-01 21:40:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-01 21:40:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Elena)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '意志力' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '並計劃' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '重見光明' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與皇室' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '阿拉里克' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '簇擁者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '魔光水晶' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '虛偽' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神恩灌頂' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '塑造' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖胎之吻' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '貧民窟' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '視角來' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '純粹' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '園丁布' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Old' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '高潮時也必須拿穩劍' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '麵包店' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Hector' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性壓抑' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Common' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '謊言' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '支配者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '愛莉莎' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Emily)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神學課' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '掀裙' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之偏愛' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '風濕病' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '只要有快感，就是恩澤。' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神蹟' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '皈依' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '捍衛者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '減輕疾病' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '希望' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '反過來' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Liam)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神恩澤裝置' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之禮物' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '容器' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '康復' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '陰影' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Hendrick' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神本身' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '克拉拉學姐……那…妳『快樂' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '鑰匙' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '價值性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖戰士' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '為之瘋狂' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '宇宙觀' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Barnaby' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '播種' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '引領者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與里斯' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '孩童的天真' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '過去' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Grace' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '羔羊' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '武勇母畜' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '死而復生' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '榮耀' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '暫時性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Church' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '人體餐盤' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '黑暗的幻想' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '魔女狩獵' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯家' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Martha' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼中總' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '母畜' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Klara)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神信仰' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '可能性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Physical' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '漢德瑞克' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與哥哥' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '掀裙風潮' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '三線作戰' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與安娜' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '誘惑' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '觀賞' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Elara)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '競爭心' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '將貧' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '投無路' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '榮耀與' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼神平' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '獵手 / 聖戰士' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與女兒莉莉絲 (' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與兄長' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '如歷史' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '引領神恩' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命之神' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之法則' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '規矩派系' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Zela)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '金屬聖蓮花' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Anthony' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖女' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Enhancement' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '理論派' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '挫敗感' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '犧牲品' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '教義栽培' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '條列式' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '單純張' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Catherine' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Faction' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '溝渠信仰' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '征服慾' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '爾斯勳爵' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '人心的勝利' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '病秧子' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '獎賞' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '觀察者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普與' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普與阿拉里克' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神罰' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '快樂派系' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '全盲的妓女' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與耐力' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Converts' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與凡人' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '邏輯' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '潤滑系統' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '亂倫' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '尖叫' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Fitch)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '美學' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '歷史劇情' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Kare' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性慾' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '洗禮' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '大主教' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖戰' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '朱利安' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神恩洗禮' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '揀選' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與饑餓' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神教義' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Michael)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '卡爾•' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '衝突' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '惡魔的低語' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '最大化' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Eleanor)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '被虐者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '修道院' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Sophie)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '功能' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '三重' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女神滴露' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '思想戰爭' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Gore' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Martin)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Deity' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '追隨者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '磚石' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Palace' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '武勇' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '同於性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯達成' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '榮耀感' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Princess' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Master' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '來問罪' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖水' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Stick' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '從內部' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與湯姆' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '理性堡壘' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之預言' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '理論家' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '曾身患' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '指示與' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女人' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '非信徒' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Valerius' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Irrigation' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Veriers' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '只賺不賠' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '搖籃' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '表面化' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與絲月' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '高貴' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Market' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'frustration' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '恩賞' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Broodmare' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '附帶性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '主義者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '瘋狂噴濺淫液' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '活體神聖燈塔' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '在神面前，人人平等' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '砧板' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聽聞' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '第二神國' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '王位繼' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Tom' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '三穴串插' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Pain' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利益最大化' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'System' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Dixie)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '理解者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '尊重他人，與你，完全不同的慾望' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '北境' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '工具保養' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '皇家母畜' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '母畜的價值性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '強制高潮' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '安布羅斯' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '粉碎' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Ordinary' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Second' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '掘井人' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '引薦' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Greeting' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '瘋狂的創造力' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '管束' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '祭司' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '活證明' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聰慧可愛' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '對「性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '交易' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '秩序' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '艾諾拉' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '師馬克' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '何凡人' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '爾斯勳' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '材料' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Lina)' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Pleasure' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '痴迷於' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '青春期' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神教' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '關於該' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '服從度' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼神總' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '九個月' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '維護者' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '極致卑賤' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '淫液薰香' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '維利爾斯家族' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '對生靈' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女祭司' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Resident' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '祈禱室' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '自豪感' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '瓦萊' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '移除' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '成熟性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Family' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命力' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '工匠' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與艾拉' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與恩澤' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Blessed' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '超恢復' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與歲月' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '渴望被認可的表演慾' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與韌性' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '王位' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '臭魚巷' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '痊癒' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '教會即將前來打壓' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Human' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '滿足感' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '設計師' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '正確' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '轉捩點' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Siyue' 時失敗: name 'LoreClassificationResult' is not defined
+2025-10-01 22:18:51 - [INFO] - [512280345618546699] [LORE 解析 2/4] ✅ 分類完成，確定 0 個有效 LORE 創建任務。
+2025-10-01 22:18:51 - [INFO] - [512280345618546699] [LORE 解析 3/4] 正在啟動兩步式靶向精煉器...
+2025-10-01 22:18:51 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: name 'LoreClassificationResult' is not defined
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1165, in _perform_full_setup_flow
-    await ai_instance.generate_world_genesis(canon_text=canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2417, in generate_world_genesis
-    genesis_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1299, in ainvoke_with_rotation
-    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
-    llm = self.bind_tools([schema], tool_choice=tool_choice)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
-    genai_tools = [tool_to_dict(convert_to_genai_function_declarations(tools))]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 178, in convert_to_genai_function_declarations
-    fd = _format_to_gapic_function_declaration(tool)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\_function_utils.py", line 215, in _format_to_gapic_function_declaration
-    return _format_base_tool_to_function_declaration(callable_as_lc_tool()(tool))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 220, in _partial
-    return _make_with_name(func.__name__)(func)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
-    return StructuredTool.from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
-    args_schema = create_schema_from_function(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
-    valid_properties = _get_filtered_args(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
-    schema = inferred_model.schema()["properties"]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
-    s = model_schema(cls, by_alias=by_alias, ref_template=ref_template)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 188, in model_schema
-    m_schema, m_definitions, nested_models = model_process_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 581, in model_process_schema
-    m_schema, m_definitions, nested_models = model_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 622, in model_type_schema
-    f_schema, f_definitions, f_nested_models = field_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 255, in field_schema
-    f_schema, f_definitions, f_nested_models = field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:40:36 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 22:17:46 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 22:17:46 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 22:17:47 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 22:17:47 - [INFO] - Discord Bot is ready!
-2025-10-01 22:17:50 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 22:17:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 22:17:51 - [INFO] - 已成功發送啟動成功通知給管理員。
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1148, in _perform_full_setup_flow
+    success, parsing_result_from_pipeline, _ = await ai_instance._execute_lore_parsing_pipeline(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4249, in _execute_lore_parsing_pipeline
+    async def refine_task(classification: LoreClassificationResult):
+NameError: name 'LoreClassificationResult' is not defined. Did you mean: 'IntentClassificationResult'?
+2025-10-01 22:18:52 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 22:21:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 22:21:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 22:21:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 22:21:41 - [INFO] - Discord Bot is ready!
+2025-10-01 22:21:44 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 22:21:44 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 22:21:45 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
