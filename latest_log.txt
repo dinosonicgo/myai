@@ -1,5 +1,12 @@
-### AI Lover Log - Last updated at 2025-10-01T21:39:53.472906 ###
+### AI Lover Log - Last updated at 2025-10-01T22:18:01.011782 ###
 
+    return _make_with_name(func.__name__)(func)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\convert.py", line 176, in _make_tool
+    return StructuredTool.from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\structured.py", line 163, in from_function
+    args_schema = create_schema_from_function(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 218, in create_schema_from_function
+    valid_properties = _get_filtered_args(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\tools\base.py", line 95, in _get_filtered_args
     schema = inferred_model.schema()["properties"]
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 664, in schema
@@ -17,12 +24,12 @@
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='appearance_details' type=Optional[AppearanceDetails] required=False default=None
-2025-10-01 21:36:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-01 21:36:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-01 21:40:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -56,10 +63,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -93,10 +100,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -130,10 +137,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -167,10 +174,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -204,10 +211,10 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -241,17 +248,17 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:28 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
+2025-10-01 21:40:36 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1165, in _perform_full_setup_flow
     await ai_instance.generate_world_genesis(canon_text=canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2412, in generate_world_genesis
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2417, in generate_world_genesis
     genesis_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1293, in ainvoke_with_rotation
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1299, in ainvoke_with_rotation
     raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1245, in ainvoke_with_rotation
-    structured_llm = llm.with_structured_output(output_schema)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1249, in ainvoke_with_rotation
+    structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1194, in with_structured_output
     llm = self.bind_tools([schema], tool_choice=tool_choice)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 1232, in bind_tools
@@ -285,18 +292,11 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
     raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
 ValueError: Value not declarable with JSON Schema, field: name='location_info' type=LocationInfo required=True
-2025-10-01 21:36:29 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 21:39:39 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 21:39:39 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 21:39:40 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 21:39:40 - [INFO] - Discord Bot is ready!
-2025-10-01 21:39:42 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 21:39:42 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 21:39:43 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-10-01 21:39:48 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-10-01 21:39:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-01 21:40:36 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 22:17:46 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 22:17:46 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 22:17:47 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 22:17:47 - [INFO] - Discord Bot is ready!
+2025-10-01 22:17:50 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 22:17:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 22:17:51 - [INFO] - 已成功發送啟動成功通知給管理員。
