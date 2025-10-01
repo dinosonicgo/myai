@@ -64,26 +64,30 @@ from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by
 from .models import UserProfile, PersonalMemoryEntry, GameState, CharacterProfile
 
 
-# ai_core.py 的 from .schemas 導入區塊 (v1.1 - 補全流水線模型導入)
-# 更新紀錄:
-# v1.1 (2025-10-01): [災難性BUG修復] 根據 NameError，補全了對 `IdentifiedEntity` 以及所有專職流水線批量結果模型（`BatchAliasesResult`, `BatchAppearanceResult` 等）的導入。此修正確保了類型提示和 Pydantic 模型驗證能夠在運行時找到對應的類別定義。
-# v1.0 (2025-09-30): [災難性BUG修復] 根據 NameError，一次性補全了 LORE 解析專職流水線所需的 Pydantic 模型。
-from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult, 
-                      BatchResolutionPlan, TurnPlan, ToolCall, SceneCastingResult, 
-                      UserInputAnalysis, SceneAnalysisResult, ValidationResult, ExtractedEntities, 
-                      ExpansionDecision, IntentClassificationResult, StyleAnalysisResult, 
-                      SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
-                      CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
-                      EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult, AppearanceDetails,
-                      # [v1.1 核心修正] 補全以下所有 LORE 解析管線所需的 Pydantic 模型
-                      IdentifiedEntity, BatchIdentifiedEntitiesResult, AliasItem, BatchAliasesResult, 
-                      AppearanceItem, BatchAppearanceResult, CoreInfoItem, BatchCoreInfoResult, 
-                      LocationItem, BatchLocationsResult, ItemItem, BatchItemsResult, 
-                      CreatureItem, BatchCreaturesResult, QuestItem, BatchQuestsResult, 
-                      WorldLoreItem, BatchWorldLoresResult
-                      )
-# ai_core.py 的 from .schemas 導入區塊
+from .schemas import (
+    # 主要結果模型
+    WorldGenesisResult, CanonParsingResult, PostGenerationAnalysisResult, NarrativeExtractionResult,
+    # 工具與計畫模型
+    ToolCall, ToolCallPlan, TurnPlan,
+    # LORE 實體模型
+    CharacterProfile, LocationInfo, ItemInfo, CreatureInfo, Quest, WorldLore,
+    # LORE 輔助/巢狀模型
+    AppearanceDetails, RelationshipDetail,
+    # 原子工具鏈模型
+    CharacterCoreInfo, LoreClassificationResult, BatchClassificationResult,
+    # 專職流水線模型
+    IdentifiedEntity, BatchIdentifiedEntitiesResult, AliasItem, BatchAliasesResult, 
+    AppearanceItem, BatchAppearanceResult, CoreInfoItem, BatchCoreInfoResult, 
+    LocationItem, BatchLocationsResult, ItemItem, BatchItemsResult, 
+    CreatureItem, BatchCreaturesResult, QuestItem, BatchQuestsResult, 
+    WorldLoreItem, BatchWorldLoresResult,
+    # 其他輔助解析模型
+    BatchResolutionPlan, SceneCastingResult, UserInputAnalysis, SceneAnalysisResult, 
+    ValidationResult, ExtractedEntities, ExpansionDecision, IntentClassificationResult, 
+    StyleAnalysisResult, SingleResolutionPlan, BatchRefinementResult, 
+    EntityValidationResult, SynthesisTask, BatchSynthesisResult,
+    NarrativeDirective, RagFactSheet, SceneLocationExtraction
+)
 
 
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
@@ -5227,6 +5231,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
