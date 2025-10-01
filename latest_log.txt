@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T22:51:10.559707 ###
+### AI Lover Log - Last updated at 2025-10-01T22:54:16.076450 ###
 
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-10-01 22:21:55 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-01 22:22:00 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-10-01 22:22:00 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-10-01 22:22:00 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
 2025-10-01 22:22:00 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-10-01 22:22:00 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
@@ -300,3 +293,10 @@ Traceback (most recent call last):
     tasks_to_run = [c for c in all_classifications if c.lore_category != 'ignore']
 AttributeError: 'tuple' object has no attribute 'lore_category'
 2025-10-01 22:42:27 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 22:54:03 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 22:54:03 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 22:54:03 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 22:54:03 - [INFO] - Discord Bot is ready!
+2025-10-01 22:54:06 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 22:54:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 22:54:07 - [INFO] - 已成功發送啟動成功通知給管理員。
