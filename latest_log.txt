@@ -1,168 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T22:21:54.977005 ###
+### AI Lover Log - Last updated at 2025-10-01T22:33:08.139056 ###
 
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Elena)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '意志力' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '並計劃' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '重見光明' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與皇室' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '阿拉里克' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '簇擁者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '魔光水晶' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '虛偽' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神恩灌頂' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '塑造' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖胎之吻' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '貧民窟' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '視角來' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '純粹' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '園丁布' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Old' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '高潮時也必須拿穩劍' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '麵包店' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Hector' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性壓抑' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Common' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '謊言' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '支配者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '愛莉莎' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Emily)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神學課' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '掀裙' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之偏愛' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '風濕病' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '只要有快感，就是恩澤。' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神蹟' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '皈依' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '捍衛者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '減輕疾病' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '希望' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '反過來' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Liam)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神恩澤裝置' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之禮物' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '容器' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '康復' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '陰影' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Hendrick' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神本身' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '克拉拉學姐……那…妳『快樂' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '鑰匙' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '價值性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖戰士' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '為之瘋狂' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '宇宙觀' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Barnaby' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '播種' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '引領者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與里斯' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '孩童的天真' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '過去' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Grace' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '羔羊' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '武勇母畜' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '死而復生' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '榮耀' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '暫時性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Church' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '人體餐盤' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '黑暗的幻想' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '魔女狩獵' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯家' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Martha' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼中總' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '母畜' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Klara)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神信仰' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '可能性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Physical' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '漢德瑞克' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與哥哥' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '掀裙風潮' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '三線作戰' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與安娜' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '誘惑' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '觀賞' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Elara)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '競爭心' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '將貧' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '投無路' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '榮耀與' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼神平' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '獵手 / 聖戰士' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與女兒莉莉絲 (' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與兄長' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '如歷史' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '引領神恩' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命之神' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神之法則' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '規矩派系' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Zela)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '金屬聖蓮花' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Anthony' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖女' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Enhancement' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '理論派' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '挫敗感' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '犧牲品' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '教義栽培' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '條列式' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '單純張' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Catherine' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Faction' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '溝渠信仰' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '征服慾' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '爾斯勳爵' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '人心的勝利' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '病秧子' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '獎賞' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '觀察者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普與' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '菲利普與阿拉里克' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神罰' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '快樂派系' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '全盲的妓女' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與耐力' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Converts' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與凡人' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '邏輯' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '潤滑系統' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '亂倫' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '尖叫' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Fitch)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '美學' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '歷史劇情' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Kare' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性慾' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '洗禮' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '大主教' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖戰' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '朱利安' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神恩洗禮' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '揀選' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與饑餓' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神教義' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Michael)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '卡爾•' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '衝突' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '惡魔的低語' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '最大化' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Eleanor)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '被虐者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '修道院' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Sophie)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '功能' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '三重' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女神滴露' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '思想戰爭' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Gore' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Martin)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Deity' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '追隨者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '磚石' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Palace' 時失敗: name 'LoreClassificationResult' is not defined
 2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '武勇' 時失敗: name 'LoreClassificationResult' is not defined
 2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '同於性' 時失敗: name 'LoreClassificationResult' is not defined
 2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '利爾斯達成' 時失敗: name 'LoreClassificationResult' is not defined
@@ -300,3 +137,166 @@ NameError: name 'LoreClassificationResult' is not defined. Did you mean: 'Intent
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-01 22:21:55 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-01 22:22:00 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-01 22:22:00 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 22:22:00 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-01 22:22:00 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 22:22:00 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 22:22:00 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 22:22:03 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 22:22:03 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 22:22:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-01 22:22:03 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-01 22:22:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:22:05 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-01 22:22:16 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-01 22:22:16 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-01 22:22:16 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:22:18 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-01 22:22:29 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-01 22:22:29 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-01 22:22:29 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:22:30 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-01 22:22:36 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-01 22:22:39 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-10-01 22:22:39 - [INFO] - [512280345618546699] [後台創世 1/3] 正在啟動終極 LORE 解析管線...
+2025-10-01 22:22:39 - [INFO] - [512280345618546699] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 776 個候選實體。
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [LORE 解析 2/4] 正在對 776 個實體啟動原子化並行分類...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:42 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:44 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:45 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:46 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:47 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:47 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:47 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:47 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:48 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '異端思想' 時失敗: name 'random' is not defined
+2025-10-01 22:22:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:48 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '王國' 時失敗: name 'random' is not defined
+2025-10-01 22:22:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:48 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '臭魚巷' 時失敗: name 'random' is not defined
+2025-10-01 22:22:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:48 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '和平' 時失敗: name 'random' is not defined
+2025-10-01 22:22:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:49 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:49 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:50 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '愛儀式' 時失敗: name 'random' is not defined
+2025-10-01 22:22:50 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:50 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Tim' 時失敗: name 'random' is not defined
+2025-10-01 22:22:50 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:50 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '原材料' 時失敗: name 'random' is not defined
+2025-10-01 22:22:50 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:50 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '埃德蒙三' 時失敗: name 'random' is not defined
+2025-10-01 22:22:50 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '指示與' 時失敗: name 'random' is not defined
+2025-10-01 22:22:51 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '第一母畜' 時失敗: name 'random' is not defined
+2025-10-01 22:22:51 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Common' 時失敗: name 'random' is not defined
+2025-10-01 22:22:51 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '母畜本能' 時失敗: name 'random' is not defined
+2025-10-01 22:22:51 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:52 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Simplified' 時失敗: name 'random' is not defined
+2025-10-01 22:22:52 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:52 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Believers' 時失敗: name 'random' is not defined
+2025-10-01 22:22:52 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:53 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '維利爾斯' 時失敗: name 'random' is not defined
+2025-10-01 22:22:53 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:54 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:55 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:56 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:22:57 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:57 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:22:57 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:22:57 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:22:58 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '改革' 時失敗: name 'random' is not defined
+2025-10-01 22:22:58 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:22:59 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '執行者' 時失敗: name 'random' is not defined
+2025-10-01 22:22:59 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:22:59 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '活神蹟' 時失敗: name 'random' is not defined
+2025-10-01 22:22:59 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:22:59 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '神性' 時失敗: name 'random' is not defined
+2025-10-01 22:22:59 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:23:00 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '工具保養' 時失敗: name 'random' is not defined
+2025-10-01 22:23:00 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:23:00 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '同於性' 時失敗: name 'random' is not defined
+2025-10-01 22:23:00 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:23:00 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '老年人' 時失敗: name 'random' is not defined
+2025-10-01 22:23:00 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:23:00 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Tom' 時失敗: name 'random' is not defined
+2025-10-01 22:23:00 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:23:01 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '聖殿守護者 / 掘井人' 時失敗: name 'random' is not defined
+2025-10-01 22:23:01 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:23:01 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '輪姦治療' 時失敗: name 'random' is not defined
+2025-10-01 22:23:01 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:23:02 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '恢復青春' 時失敗: name 'random' is not defined
+2025-10-01 22:23:02 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:23:02 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '墮落' 時失敗: name 'random' is not defined
+2025-10-01 22:23:02 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:23:03 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-01 22:32:53 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 22:32:53 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 22:32:54 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 22:32:54 - [INFO] - Discord Bot is ready!
+2025-10-01 22:32:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 22:32:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 22:32:57 - [INFO] - 已成功發送啟動成功通知給管理員。
