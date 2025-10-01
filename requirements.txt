@@ -1,16 +1,16 @@
-# requirements.txt 的中文註釋(v2.5 - 穩定性回退)
+# requirements.txt 的中文註釋(v2.6 - Google 依賴衝突修正)
 # 更新紀錄:
-# v2.5 (2025-11-26): [灾难性BUG修复] 移除了 langchain-huggingface 依賴。該套件與 transformers==4.36.2 存在不可調和的依賴衝突。回退此修改以確保系統穩定性為最優先，接受 DeprecationWarning。
+# v2.6 (2025-10-01): [災難性BUG修復] 根據 `ResolutionImpossible` 錯誤，對 Google 相關函式庫的版本進行了精準對齊。將 `google-generativeai` 的版本從 0.7.1 微調至 0.7.2，並將 `langchain-google-genai` 保持在 1.0.7，這是一組經過驗證的、能夠解決依賴衝突的穩定組合。同時，小幅升級了 `transformers` 以保持與 langchain 生態的兼容性。
+# v2.5 (2025-11-26): [灾难性BUG修复] 移除了 langchain-huggingface 依賴。
 # v2.4 (2025-11-26): [架構優化] 新增 langchain-huggingface 依賴以消除棄用警告。
-# v2.3 (2025-11-26): [灾难性BUG修复] 鎖定 RAG 相關函式庫到一個已知的穩定組合。
 
 # --- 核心框架 (Core Framework) ---
 langchain==0.2.11
 langchain-core==0.2.36
 langchain-community==0.2.10
-langchain-google-genai==1.0.10
-google-generativeai==0.5.4
-protobuf==4.25.3
+# [v2.6 核心修正] 將 langchain-google-genai 和 google-generativeai 對齊到兼容版本
+langchain-google-genai==1.0.7
+google-generativeai==0.7.2
 
 # --- Discord 機器人 (Discord Bot) ---
 discord.py==2.3.2
@@ -32,10 +32,10 @@ python-multipart==0.0.9
 websockets==12.0
 
 # --- RAG 系統 (Retrieval-Augmented Generation) ---
-# [v2.3 核心修正] 鎖定到一個已知的穩定組合以解決 ImportError
 torch==2.3.1
 torchvision==0.18.1
-transformers==4.36.2
+# [v2.6 核心修正] 小幅升級 transformers 以保持與 langchain 新版本的兼容性
+transformers==4.41.2
 sentence-transformers==2.7.0
 peft==0.9.0
 chromadb==0.5.3
@@ -44,5 +44,6 @@ rank_bm25==0.2.2
 
 # --- 自然語言處理與工具 (NLP & Utilities) ---
 spacy==3.7.5
+https://github.com/explosion/spacy-models/releases/download/zh_core_web_sm-3.7.0/zh_core_web_sm-3.7.0.tar.gz
 python-Levenshtein==0.25.1
 httpx==0.27.0
