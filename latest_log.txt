@@ -1,19 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T16:31:57.525726 ###
+### AI Lover Log - Last updated at 2025-10-01T16:38:02.989543 ###
 
-  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.746.lore_category
-  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.746.reasoning
-  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.747.entity_name
-  Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.747.lore_category
-  Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
 classifications.747.reasoning
   Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
@@ -300,3 +286,17 @@ classifications.773.reasoning
 2025-10-01 16:31:46 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 16:31:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 16:31:47 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 16:37:17 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 16:37:17 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 16:37:18 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 16:37:18 - [INFO] - Discord Bot is ready!
+2025-10-01 16:37:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 16:37:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 16:37:21 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 16:37:48 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 16:37:48 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 16:37:49 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 16:37:49 - [INFO] - Discord Bot is ready!
+2025-10-01 16:37:51 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 16:37:51 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 16:37:52 - [INFO] - 已成功發送啟動成功通知給管理員。
