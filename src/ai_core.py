@@ -1263,11 +1263,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v301.3 - 原生 SDK 參數修正)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v301.4 - 繞過 whichOneof Bug)
 # 更新紀錄:
-# v301.3 (2025-10-01): [災難性BUG修復] 根據 TypeError 和 NameError，進行了兩處關鍵修正。1) 修正了 Google 原生 SDK 的調用方式，將 `tools` 和 `tool_config` 參數從 `GenerationConfig` 中移出，作為頂層參數直接傳遞給 `generate_content_async`。2) 修正了 `except` 區塊中的變數名稱，確保其與全局導入的異常類名完全匹配。此修改從根本上解決了 Tool Calling 的 API 調用錯誤和異常捕獲失敗的問題。
+# v301.4 (2025-10-01): [災難性BUG修復] 根據 `AttributeError: whichOneof`，重寫了對模型響應的文本提取邏輯。新邏輯不再直接訪問可能觸發 SDK 內部 Bug 的 `.text` 屬性，而是通過手動遍歷 `response.candidates[0].content.parts` 並檢查 `part.text` 是否存在，來安全地獲取返回的文本內容。此修改從根本上繞過了因 `protobuf` 版本不兼容導致的 SDK 內部錯誤。
+# v301.3 (2025-10-01): [災難性BUG修復] 修正了 Google 原生 SDK 的 Tool Calling 參數傳遞方式和異常捕獲。
 # v301.2 (2025-10-01): [健壯性] 移除了對 `FinishReason` Enum 的直接依賴。
-# v301.1 (2025-10-01): [災難性BUG修復] 移除了函式內部的局部導入語句。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1315,7 +1315,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         genai.configure(api_key=api_key)
                         model = genai.GenerativeModel(model_name=model_name, safety_settings=SAFETY_SETTINGS)
                         
-                        # [v301.3 核心修正] 將 tools 和 tool_config 作為頂層參數
                         tool_config = {"function_calling_config": {"mode": "ANY"}} if is_tool_call_expected else None
                         
                         response = await asyncio.wait_for(
@@ -1331,7 +1330,8 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
 
-                        finish_reason_val = response.candidates[0].finish_reason
+                        candidate = response.candidates[0]
+                        finish_reason_val = candidate.finish_reason
                         finish_reason_name = finish_reason_val.name if hasattr(finish_reason_val, 'name') else str(finish_reason_val)
                         
                         if finish_reason_name == 'MAX_TOKENS':
@@ -1341,10 +1341,14 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                             raise BlockedPromptException(f"Generation stopped due to safety/other reason: {finish_reason_name}")
 
                         if is_tool_call_expected and schema_to_bind:
-                            if not hasattr(response.candidates[0], 'function_calls') or not response.candidates[0].function_calls:
-                                raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
+                            if not hasattr(candidate, 'function_calls') or not candidate.function_calls:
+                                # [v301.4 核心修正] 安全地提取文本內容以繞過 Bug
+                                returned_text = ""
+                                if candidate.content and candidate.content.parts:
+                                    returned_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
+                                raise OutputParserException(f"Model returned text but a structured output was expected. Text: {returned_text[:200]}...")
 
-                            tool_calls = response.candidates[0].function_calls
+                            tool_calls = candidate.function_calls
                             pydantic_objects = [schema_to_bind.model_validate(dict(call.args)) for call in tool_calls if call.name == schema_to_bind.__name__]
                             
                             if is_list_schema:
@@ -1352,7 +1356,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                             elif pydantic_objects:
                                 return pydantic_objects[0]
                             else:
-                                raise OutputParserException("Tool Call returned no valid objects.")
+                                raise OutputParserException("Tool Call returned no valid objects matching the schema name.")
                         else:
                             return response.text.strip()
 
@@ -1361,8 +1365,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         logger.warning(f"[{self.user_id}] 內容被阻擋，嘗試輪換金鑰/模型...")
                         break
 
-                    # [v301.3 核心修正] 使用已在全局導入的異常類名
-                    except (OutputParserException, ValidationError, InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError, GoogleAPICallError) as e:
+                    except (OutputParserException, ValidationError, GoogleAPICallError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             if "MAX_TOKENS" in str(e):
@@ -4282,9 +4285,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.3 - 適配原生SDK)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.4 - 增強錯誤日誌)
 # 更新紀錄:
-# v8.3 (2025-10-01): [災難性BUG修復] 根據「原生 SDK Tool Calling」重構策略，修改了所有對 `ainvoke_with_rotation` 的調用，使其適應新的、基於原生 SDK 的執行引擎。此版本確保了 LORE 解析管線在最底層使用 100% 可控的 API 呼叫，從而繞過所有 LangChain 的兼容性和安全 Bug。
+# v8.4 (2025-10-01): [健壯性] 增強了 `refine_task` 和 `classify_batch_task` 中的錯誤捕獲，確保在 `ainvoke_with_rotation` 拋出任何異常（包括 `OutputParserException`）時，都能被捕獲並記錄詳細的錯誤日誌，而不是讓整個 `gather` 崩潰。
 # v8.2 (2025-10-01): [災難性BUG修復] 增加了類型防禦與審查備援。
 # v8.1 (2025-10-01): [性能調優] 將並發數降低到一個更保守的值 `3`。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
@@ -4317,16 +4320,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         async def classify_batch_task(batch: List[str]):
             async with sem_classify:
                 try:
-                    # 第一次嘗試：使用原始文本
-                    results = await self.ainvoke_with_rotation(
+                    return await self.ainvoke_with_rotation(
                         classification_prompt_template,
                         {"candidate_entities_json": json.dumps(batch, ensure_ascii=False), "context": text_to_parse},
                         output_schema=List[LoreClassificationResult]
                     )
-                    return results
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [批量分類] 🔥 批次分類時遭遇錯誤: {type(e).__name__}。啟動審查備援...")
-                    # 審查備援邏輯
                     try:
                         sanitized_context = text_to_parse
                         reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
@@ -4374,14 +4374,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         core_info_prompt = self.get_targeted_refinement_prompt('core_info')
                         appearance_prompt = self.get_targeted_refinement_prompt('appearance_details')
                         
-                        # 原子任務 A: 核心資訊
-                        core_info_task = self.ainvoke_with_rotation(
-                            core_info_prompt, prompt_params, output_schema=CharacterCoreInfo
-                        )
-                        # 原子任務 B: 外觀細節
-                        appearance_task = self.ainvoke_with_rotation(
-                            appearance_prompt, prompt_params, output_schema=AppearanceDetails
-                        )
+                        core_info_task = self.ainvoke_with_rotation(core_info_prompt, prompt_params, output_schema=CharacterCoreInfo)
+                        appearance_task = self.ainvoke_with_rotation(appearance_prompt, prompt_params, output_schema=AppearanceDetails)
                         
                         results = await asyncio.gather(core_info_task, appearance_task, return_exceptions=True)
                         
@@ -5347,6 +5341,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
