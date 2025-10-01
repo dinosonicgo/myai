@@ -29,7 +29,7 @@ from google.api_core.exceptions import ResourceExhausted, InternalServerError, S
 from google.generativeai.errors import APIError as GoogleGenerativeAIError
 from google.generativeai.types import BlockedPromptException, FinishReason
 
-from langchain_google_genai._common import GoogleGenerativeAIError
+from langchain_google_genai._common import GoogleGenerativeAIError # 正確的路徑
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI, 
@@ -5352,6 +5352,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
