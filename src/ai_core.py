@@ -3154,9 +3154,9 @@ class ExtractionResult(BaseModel):
 
 
     # 函式：使用 spaCy 和規則提取實體 (v1.1 - 健壯性修復)
-    # 更新紀錄:
-    # v1.1 (2025-09-26): [災難性BUG修復] 移除了對 spaCy 中文模型不支援的 `doc.noun_chunks` 的呼叫，從而解決了 `NotImplementedError: [E894]` 的問題。同時，增加了一個基於詞性標注 (POS tagging) 提取普通名詞的備用邏輯，以確保在沒有命名實體時仍能提取潛在的關鍵詞。
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。
+# ai_core.py 的 _spacy_and_rule_based_entity_extraction 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-01): [重大架構升級] 根據「混合式兩階段解析」架構，創建此核心函式。它作為新管線的第一階段，結合了正則表達式（用於匹配結構化模式和引號內容）與 spaCy 的命名實體識別/詞性標注，旨在本地、快速、零成本地從長篇小說文本中提取出一份高召回率的潛在 LORE 實體候選列表，為後續的 LLM 精煉提供「待辦事項」。
     async def _spacy_and_rule_based_entity_extraction(self, text_to_parse: str) -> set:
         """【本地處理】結合 spaCy 和規則，從文本中提取所有潛在的 LORE 實體。"""
         if not self.profile:
@@ -3169,33 +3169,26 @@ class ExtractionResult(BaseModel):
             logger.error(f"[{self.user_id}] [spaCy] 致命錯誤: 中文模型 'zh_core_web_sm' 未下載。")
             return set()
 
+        # 策略一：提取引號內的詞語 (高優先級)
+        quoted_phrases = re.findall(r'[「『]([^」』]{2,20})[」』]', text_to_parse)
+        for phrase in quoted_phrases:
+            candidate_entities.add(phrase.strip())
+
         doc = nlp(text_to_parse)
         protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
 
-        # 策略一：提取命名實體 (最可靠)
+        # 策略二：提取命名實體
         for ent in doc.ents:
             if ent.label_ in ['PERSON', 'GPE', 'LOC', 'ORG', 'FAC'] and len(ent.text) > 1 and ent.text.lower() not in protagonist_names:
                 candidate_entities.add(ent.text.strip())
-
-        # [v1.1 核心修正] 移除對 noun_chunks 的呼叫，因為中文模型不支援
-        # for chunk in doc.noun_chunks:
-        #     if len(chunk.text) > 2 and chunk.text.lower() not in protagonist_names:
-        #          candidate_entities.add(chunk.text.strip())
         
-        # 策略二：提取引號內的詞語
-        quoted_phrases = re.findall(r'[「『]([^」』]+)[」』]', text_to_parse)
-        for phrase in quoted_phrases:
-            if len(phrase) > 2 and phrase.lower() not in protagonist_names:
-                candidate_entities.add(phrase.strip())
-
-        # 策略三 (備用)：如果命名實體很少，則提取較長的普通名詞
-        if len(candidate_entities) < 5:
-            for token in doc:
-                if token.pos_ == 'NOUN' and len(token.text) > 2 and token.text.lower() not in protagonist_names:
-                    candidate_entities.add(token.text.strip())
+        # 策略三 (備用)：提取較長的專有名詞和普通名詞
+        for token in doc:
+            if token.pos_ in ['NOUN', 'PROPN'] and len(token.text) > 2 and token.text.lower() not in protagonist_names:
+                candidate_entities.add(token.text.strip())
                 
         return candidate_entities
-    # 函式：使用 spaCy 和規則提取實體
+# ai_core.py 的 _spacy_and_rule_based_entity_extraction 函式
 
 
 
@@ -5700,6 +5693,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
