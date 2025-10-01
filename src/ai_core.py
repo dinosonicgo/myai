@@ -4246,10 +4246,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.0 - 終極 Tool Calling 管線)
+# 函式：執行 LORE 解析管線
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v6.2 - 終極 ainvoke 適配)
 # 更新紀錄:
-# v6.0 (2025-10-01): [災難性BUG修復] 根據持續的結構性錯誤，徹底重構此函式，全面轉向基於 LangChain 的 Tool Calling 範式。新流程不再依賴 LLM 生成易錯的 JSON 字符串，而是將 Pydantic 模型作為工具直接綁定到 LLM，並使用 `.with_structured_output()` 來獲取經過驗證的結構化數據。此修改從根本上杜絕了所有 `ValidationError` 和 `JSONDecodeError`，是 LORE 解析系統穩定性的終極保障。
-# v5.0 (2025-10-01): [災難性BUG修復] 實現了終極的【混合式兩階段解析架構】。
+# v6.2 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，將此函式內部所有對 `ainvoke_with_rotation` 的調用（包括實體分類和靶向精煉）徹底重構，使其完全適配 Tool Calling 範式下的新函式簽名（prompt_template, prompt_params）。
+# v6.1 (2025-10-01): [災難性BUG修復] 對 `ainvoke_with_rotation` 的參數進行了初步修正。
+# v6.0 (2025-10-01): [災難性BUG修復] 全面轉向基於 LangChain 的 Tool Calling 範式。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
         【v6.0 核心 LORE 解析引擎】執行一個基於 Tool Calling 的、混合式的兩階段解析管線。
@@ -4268,11 +4270,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         # --- 階段二：LLM 實體分類 (Tool Calling) ---
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在使用 Tool Calling 對候選實體進行分類...")
-        classification_prompt = self.get_lore_classification_prompt()
+        classification_prompt_template = self.get_lore_classification_prompt()
         try:
+            prompt_params = {
+                "candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False),
+                "context": text_to_parse
+            }
             classification_result = await self.ainvoke_with_rotation(
-                classification_prompt,
-                {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse},
+                classification_prompt_template,
+                prompt_params,
                 output_schema=BatchClassificationResult
             )
             if not classification_result or not classification_result.classifications:
@@ -4304,13 +4310,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     context_docs = await temp_retriever.ainvoke(classification.entity_name)
                     context = "\n---\n".join([doc.page_content for doc in context_docs])
                     
+                    prompt_params = {
+                        "entity_name": classification.entity_name,
+                        "lore_category": classification.lore_category,
+                        "context": context
+                    }
+                    
                     refined_obj = await self.ainvoke_with_rotation(
                         refinement_prompt_template,
-                        {
-                            "entity_name": classification.entity_name,
-                            "lore_category": classification.lore_category,
-                            "context": context
-                        },
+                        prompt_params,
                         output_schema=target_schema
                     )
                     return classification.lore_category, refined_obj
@@ -4345,7 +4353,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極 Tool Calling 管線執行完畢。")
         return True, final_parsing_result, successful_keys
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式
+# 函式：執行 LORE 解析管線
 
                             
 
@@ -5292,6 +5300,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
