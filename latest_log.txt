@@ -1,73 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T22:41:00.462726 ###
+### AI Lover Log - Last updated at 2025-10-01T22:46:07.187405 ###
 
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '交易' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '秩序' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '艾諾拉' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '師馬克' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '何凡人' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '爾斯勳' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '材料' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '(Lina)' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Pleasure' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '痴迷於' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '青春期' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '性神教' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '關於該' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '服從度' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '眼神總' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '九個月' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '維護者' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '極致卑賤' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '淫液薰香' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '維利爾斯家族' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '對生靈' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '女祭司' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Resident' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '祈禱室' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '自豪感' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '瓦萊' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '移除' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '成熟性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Family' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '生命力' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '工匠' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與艾拉' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與恩澤' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Blessed' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '超恢復' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與歲月' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '渴望被認可的表演慾' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '與韌性' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '王位' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '臭魚巷' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '痊癒' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '教會即將前來打壓' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Human' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '滿足感' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '設計師' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '正確' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 '轉捩點' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] [原子化分類] 🔥 分類實體 'Siyue' 時失敗: name 'LoreClassificationResult' is not defined
-2025-10-01 22:18:51 - [INFO] - [512280345618546699] [LORE 解析 2/4] ✅ 分類完成，確定 0 個有效 LORE 創建任務。
-2025-10-01 22:18:51 - [INFO] - [512280345618546699] [LORE 解析 3/4] 正在啟動兩步式靶向精煉器...
-2025-10-01 22:18:51 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: name 'LoreClassificationResult' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1148, in _perform_full_setup_flow
-    success, parsing_result_from_pipeline, _ = await ai_instance._execute_lore_parsing_pipeline(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4249, in _execute_lore_parsing_pipeline
-    async def refine_task(classification: LoreClassificationResult):
-NameError: name 'LoreClassificationResult' is not defined. Did you mean: 'IntentClassificationResult'?
-2025-10-01 22:18:52 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 22:21:40 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 22:21:40 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 22:21:41 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 22:21:41 - [INFO] - Discord Bot is ready!
-2025-10-01 22:21:44 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 22:21:44 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 22:21:45 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-10-01 22:21:54 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
 2025-10-01 22:21:54 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
@@ -300,3 +232,71 @@ NameError: name 'LoreClassificationResult' is not defined. Did you mean: 'Intent
 2025-10-01 22:40:57 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
 2025-10-01 22:40:57 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
 2025-10-01 22:40:58 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-01 22:41:03 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-01 22:41:03 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-01 22:41:03 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-01 22:41:03 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-01 22:41:03 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-01 22:41:03 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-01 22:41:07 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-01 22:41:07 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-01 22:41:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-01 22:41:07 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-01 22:41:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:41:09 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-01 22:41:18 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-01 22:41:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-01 22:41:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:41:20 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-01 22:41:32 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-01 22:41:32 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-01 22:41:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 22:41:34 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-01 22:41:43 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-01 22:41:45 - [INFO] - [512280345618546699] 獨立的後台創世流程已為用戶啟動。
+2025-10-01 22:41:45 - [INFO] - [512280345618546699] [後台創世 1/3] 正在啟動終極 LORE 解析管線...
+2025-10-01 22:41:45 - [INFO] - [512280345618546699] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...
+2025-10-01 22:41:48 - [INFO] - [512280345618546699] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 776 個候選實體。
+2025-10-01 22:41:48 - [INFO] - [512280345618546699] [LORE 解析 2/4] 正在對 776 個實體啟動批量並行分類...
+2025-10-01 22:41:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:41:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:41:48 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:41:52 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:41:52 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:41:53 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:41:53 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:41:53 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:41:53 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:42:02 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:02 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:42:03 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:03 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:42:04 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:04 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:42:08 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:08 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:42:10 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:10 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #4) 執行...
+2025-10-01 22:42:11 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:11 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #5) 執行...
+2025-10-01 22:42:15 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:15 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #0) 執行...
+2025-10-01 22:42:16 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:16 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #1) 執行...
+2025-10-01 22:42:16 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:16 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #2) 執行...
+2025-10-01 22:42:19 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:19 - [INFO] - [512280345618546699] [Tool Calling] 正在使用模型 'gemini-2.5-flash-lite' (Key #3) 執行...
+2025-10-01 22:42:20 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:26 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:27 - [INFO] - [512280345618546699] [Tool Calling] ✅ 成功！
+2025-10-01 22:42:27 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 'tuple' object has no attribute 'lore_category'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1148, in _perform_full_setup_flow
+    success, parsing_result_from_pipeline, _ = await ai_instance._execute_lore_parsing_pipeline(canon_text)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4252, in _execute_lore_parsing_pipeline
+    tasks_to_run = [c for c in all_classifications if c.lore_category != 'ignore']
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4252, in <listcomp>
+    tasks_to_run = [c for c in all_classifications if c.lore_category != 'ignore']
+AttributeError: 'tuple' object has no attribute 'lore_category'
+2025-10-01 22:42:27 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
