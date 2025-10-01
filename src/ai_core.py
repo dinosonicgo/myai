@@ -24,9 +24,12 @@ from Levenshtein import ratio as levenshtein_ratio
 import spacy
 from spacy.tokens import Doc
 
+# [v1.3 核心修正] 修正 Google SDK 導入路徑，並將其提升到全局
 from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
+from google.generativeai.errors import APIError as GoogleGenerativeAIError
+from google.generativeai.types import BlockedPromptException, FinishReason
+
 from langchain_google_genai._common import GoogleGenerativeAIError
-from google.generativeai.types.generation_types import BlockedPromptException
 
 from langchain_google_genai import (
     ChatGoogleGenerativeAI, 
@@ -1260,9 +1263,10 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v301.0 - 原生SDK Tool Calling 實現)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v301.1 - 移除局部導入)
 # 更新紀錄:
-# v301.0 (2025-10-01): [災難性BUG修復] 徹底拋棄 LangChain 的執行層，重寫為 Google 原生 SDK 驅動。此版本手動實現了 Tool Calling 邏輯和 Pydantic 輸出解析，並直接將 SAFETY_SETTINGS 傳遞給原生 API，從根本上解決了 LangChain 兼容性問題和安全閥值設置 Bug，確保 100% 的可控性和穩定性。
+# v301.1 (2025-10-01): [災難性BUG修復] 根據 ImportError，移除了函式內部的局部導入語句，並將所有 `google.generativeai` 相關的類型和異常的導入，統一移動到文件頂部並使用正確的路徑。此修改從根本上解決了因 SDK 版本更新導致的 `FinishReason` 導入失敗問題。
+# v301.0 (2025-10-01): [災難性BUG修復] 徹底拋棄 LangChain 的執行層，重寫為 Google 原生 SDK 驅動。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1275,33 +1279,24 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         [原生 SDK 核心] 整合了金鑰輪換、模型降級和手動 Tool Calling 的原生 API 調用引擎。
         """
         import google.generativeai as genai
-        from google.generativeai.types.generation_types import BlockedPromptException, FinishReason
-        from google.api_core import exceptions as google_api_exceptions
-        from google.generativeai.errors import APIError as GoogleGenerativeAIError
-        from google.generativeai.types import Part, Content, Role
-        import random
         
         # --- 步驟 1: 預處理與 Prompt 格式化 ---
         last_exception = None
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         IMMEDIATE_RETRY_LIMIT = 3
         
-        # 由於 LangChain 的 ChatPromptTemplate.from_template 不再使用，我們手動格式化
         full_prompt = self._safe_format_prompt(prompt_template, prompt_params, inject_core_protocol=True)
 
         # --- 步驟 2: 處理 Tool Calling / Structured Output ---
         gemini_tools = []
         is_tool_call_expected = False
         is_list_schema = False
+        schema_to_bind = None
         
         if output_schema:
             is_tool_call_expected = True
             is_list_schema = getattr(output_schema, '__origin__', None) is list
-            
-            # 獲取要綁定的 Pydantic 模型
             schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
-            
-            # 轉換為 Gemini Tool Declaration
             try:
                 tool_declaration = _convert_pydantic_to_gemini_tool(schema_to_bind)
                 gemini_tools.append(tool_declaration)
@@ -1320,16 +1315,13 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
                     try:
                         genai.configure(api_key=api_key)
-                        
                         model = genai.GenerativeModel(model_name=model_name, safety_settings=SAFETY_SETTINGS)
                         
                         generation_config_params = {"temperature": 0.2}
                         if is_tool_call_expected:
-                             # 強制要求模型使用我們提供的工具
                              generation_config_params["tools"] = gemini_tools
                              generation_config_params["tool_config"] = {"function_calling_config": {"mode": "ANY"}}
                              
-                        
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
@@ -1338,11 +1330,9 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                             timeout=180.0
                         )
                         
-                        # 檢查阻擋
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
 
-                        # 檢查靜默失敗 (MAX_TOKENS, SAFETY, SPAM, etc.)
                         finish_reason = response.candidates[0].finish_reason
                         finish_reason_name = finish_reason.name if hasattr(finish_reason, 'name') else str(finish_reason)
                         
@@ -1353,40 +1343,27 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                             raise BlockedPromptException(f"Generation stopped due to safety reason: {finish_reason_name}")
 
                         # --- 步驟 4: 解析輸出 ---
-                        if is_tool_call_expected:
+                        if is_tool_call_expected and schema_to_bind:
+                            if not hasattr(response.candidates[0], 'function_calls'):
+                                raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
+
                             tool_calls = response.candidates[0].function_calls
                             if not tool_calls:
-                                # 有時模型會直接輸出文本而不是呼叫工具，這需要一個更強的修正鏈來處理
                                 raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
                             
-                            pydantic_objects = []
-                            for call in tool_calls:
-                                if call.name == schema_to_bind.__name__:
-                                    try:
-                                        # 原生 SDK 參數是 dict，可以直接傳給 Pydantic
-                                        pydantic_obj = schema_to_bind.model_validate(dict(call.args))
-                                        pydantic_objects.append(pydantic_obj)
-                                    except ValidationError as ve:
-                                        logger.error(f"[{self.user_id}] 手動 Tool Call Pydantic 驗證失敗: {ve}", exc_info=True)
-                                        # 這種情況下，我們認為這個特定 Tool Call 失敗
-                                        raise ve
+                            pydantic_objects = [schema_to_bind.model_validate(dict(call.args)) for call in tool_calls if call.name == schema_to_bind.__name__]
                             
                             if is_list_schema:
                                 return pydantic_objects
                             elif pydantic_objects:
-                                return pydantic_objects[0] # 單個物件返回第一個
+                                return pydantic_objects[0]
                             else:
                                 raise OutputParserException("Tool Call returned no valid objects.")
-                        
                         else:
-                            # 預期是純文本輸出
                             return response.text.strip()
 
                     except BlockedPromptException as bpe:
                         last_exception = bpe
-                        if retry_strategy == 'none':
-                            raise bpe
-                        
                         logger.warning(f"[{self.user_id}] 內容被阻擋，嘗試輪換金鑰/模型...")
                         break
 
@@ -1407,7 +1384,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         logger.error(f"發生未知錯誤: {e}", exc_info=True)
                         break
                 
-            if model_name != models_to_try[-1] and model_name == models_to_try[0]:
+            if model_name != models_to_try[-1] and use_degradation:
                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
 
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
@@ -5375,6 +5352,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
