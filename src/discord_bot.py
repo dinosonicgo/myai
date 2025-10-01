@@ -1196,9 +1196,9 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# discord_bot.py 的 _perform_full_setup_flow 函式```
+# discord_bot.py 的 _perform_full_setup_flow 函式
 
-```python
+
 # discord_bot.py 的 _background_process_canon 函式 (v1.2 - 適配終極LORE管線)
 # 更新紀錄:
 # v1.2 (2025-10-01): [重大架構重構] 根據 LORE 解析的根本性重構，將此函式中對舊管線的調用，替換為對全新的、包含多階段處理和最終校驗的 `_execute_lore_parsing_pipeline` 的調用。此修改確保了通過 `/set_canon` 指令更新世界聖經時，能夠使用最先進、最健壯的 LORE 解析與儲存邏輯。
@@ -1938,6 +1938,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
