@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-01T16:59:18.984347 ###
+### AI Lover Log - Last updated at 2025-10-01T21:34:48.871642 ###
 
-    return field_type_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 527, in field_type_schema
-    f_schema, f_definitions, f_nested_models = field_singleton_schema(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\schema.py", line 951, in field_singleton_schema
-    raise ValueError(f'Value not declarable with JSON Schema, field: {field}')
-ValueError: Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
-2025-10-01 16:51:43 - [ERROR] - [512280345618546699] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): Value not declarable with JSON Schema, field: name='_classifications' type=LoreClassificationResult required=True
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1231, in ainvoke_with_rotation
     structured_llm = llm.with_structured_output(output_schema)
@@ -300,3 +293,10 @@ TypeError: AILover.ainvoke_with_rotation() missing 1 required positional argumen
 2025-10-01 16:59:08 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-01 16:59:08 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-01 16:59:08 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-01 21:34:34 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-01 21:34:34 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-01 21:34:35 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-01 21:34:35 - [INFO] - Discord Bot is ready!
+2025-10-01 21:34:38 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-01 21:34:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-01 21:34:38 - [INFO] - 已成功發送啟動成功通知給管理員。
