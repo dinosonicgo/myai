@@ -118,6 +118,40 @@ class BatchQuestsResult(BaseModel):
     """包裹批量任务信息提取结果的模型"""
     results: List[QuestItem]
 
+# schemas.py 的 CharacterCoreInfo 模型 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-01): [重大架構升級] 根據「原子工具鏈」和「兩步式精煉」架構創建此模型。它是一個扁平化的 `CharacterProfile` 子集，只包含 LLM Tool Calling 能夠穩定處理的非巢狀欄位。通過將複雜的 LORE 提取任務分解為獲取此模型和獲取 `AppearanceDetails` 兩個獨立的原子步驟，從根本上解決了 LangChain 對巢狀 Pydantic 模型的兼容性問題。
+class CharacterCoreInfo(BaseModel):
+    """角色的核心資訊（不包含巢狀的外觀細節）"""
+    name: str = Field(description="角色的標準化、唯一的官方名字。")
+    aliases: List[str] = Field(default_factory=list, description="此角色的所有其他已知稱呼、身份標籤、頭銜或綽號。")
+    gender: Optional[str] = Field(default="未设定", description="角色的性别。")
+    age: Optional[str] = Field(default="未知", description="角色的年龄或年龄段。")
+    race: Optional[str] = Field(default="未知", description="角色的种族。")
+    description: Optional[str] = Field(default="", description="角色的性格、背景故事、行为模式等综合简介。")
+    skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
+    relationships: Dict[str, RelationshipDetail] = Field(default_factory=dict, description="记录此角色与其他角色的结构化关系。")
+
+    @field_validator('aliases', 'skills', mode='before')
+    @classmethod
+    def _validate_string_to_list_fields(cls, value: Any) -> Any:
+        return _validate_string_to_list(value)
+    
+    @field_validator('relationships', mode='before')
+    @classmethod
+    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
+        # ... (此處省略與 CharacterProfile 中完全相同的驗證器邏輯) ...
+        if isinstance(value, str): value = _validate_string_to_dict(value)
+        if not isinstance(value, dict): return {}
+        normalized_dict = {}
+        for k, v in value.items():
+            if isinstance(v, str): normalized_dict[str(k)] = RelationshipDetail(roles=[v])
+            elif isinstance(v, dict):
+                try: normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
+                except Exception: continue
+        return normalized_dict
+# schemas.py 的 CharacterCoreInfo 模型
+
 # schemas.py 的 WorldLoreItem 模型 (v4.1 - 結構統一)
 # 更新紀錄:
 # v4.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，將此模型的 `world_lore_info` 欄位重命名為 `info`，並將其類型改為 `WorldLore`。此修改旨在統一所有 `*Item` 模型的內部結構，確保數據合併邏輯的一致性，並解決因欄位名不匹配導致的驗證失敗問題。
@@ -504,10 +538,14 @@ class CanonParsingResult(BaseModel):
     quests: List[Quest] = Field(default_factory=list)
     world_lores: List[WorldLore] = Field(default_factory=list)
 
+# schemas.py 的 LoreClassificationResult 模型 (v3.2 - 簡化以適配原子工具)
+# 更新紀錄:
+# v3.2 (2025-10-01): [重大架構重構] 根據「原子工具鏈」架構，移除了 `reasoning` 欄位。此修改將該模型簡化為一個純粹的數據容器，使其在作為 Tool Calling 的輸出 Schema 時，結構更簡單、更穩定，從而最大限度地降低解析失敗的風險。
+# v3.1 (2025-10-01): [災難性BUG修復] 增加了對 `term` 等替代鍵名的容錯能力。
 class LoreClassificationResult(BaseModel):
     entity_name: str = Field(validation_alias=AliasChoices('entity_name', 'term', 'input_term'))
     lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore'] = Field(validation_alias=AliasChoices('lore_category', 'category'))
-    reasoning: Optional[str] = Field(default="", description="分類的簡要理由。")
+# schemas.py 的 LoreClassificationResult 模型
 
 class BatchClassificationResult(BaseModel):
     classifications: List[LoreClassificationResult]
@@ -650,6 +688,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
