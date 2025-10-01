@@ -1,18 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T01:32:39.100112 ###
+### AI Lover Log - Last updated at 2025-10-02T01:48:28.043773 ###
 
-- Race: 人類
-- Appearance: 眼神倔強，帶著一絲陰鬱
-- Skills: 征服, 成為容器
-- Description: 20多歲，眼神倔強，帶著一絲陰鬱。核心慾望源於對「酒精」的憎恨，轉化為一種病態的「...
-2025-10-02 00:48:15 - [INFO] - ----------------------------------------------------
-2025-10-02 00:48:15 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 9 條文檔 ---
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 1] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 維利爾斯莊園 > 聖露修道院 > 米婭'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 2] Metadata: {'source': 'lore', 'category': 'npc_profile', 'key': '王都 > 聖凱瑟琳學院 > 莉莉絲'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 3] Metadata: {'category': 'location_info', 'key': '維利爾斯家宅邸', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 4] Metadata: {'category': 'npc_profile', 'key': '卡蓮', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 5] Metadata: {'category': 'npc_profile', 'key': '凱爾', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 6] Metadata: {'category': 'location_info', 'key': '王都', 'source': 'lore'}
-2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 7] Metadata: {'category': 'npc_profile', 'key': '貧民窟 > 聖露修道院 > 索菲亞', 'source': 'lore'}
 2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 8] Metadata: {'category': 'location_info', 'key': '聖露修道院', 'source': 'lore'}
 2025-10-02 00:48:15 - [INFO] -   [Filtered Doc 9] Metadata: {'category': 'npc_profile', 'key': '瓦勒留斯', 'source': 'lore'}
 2025-10-02 00:48:15 - [INFO] - ----------------------------------------------------
@@ -300,3 +287,16 @@ updates
 2025-10-02 01:17:17 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-02 01:17:17 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-02 01:17:18 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-02 01:48:14 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-02 01:48:14 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-02 01:48:14 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-02 01:48:14 - [INFO] - Discord Bot is ready!
+2025-10-02 01:48:17 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-02 01:48:17 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-02 01:48:18 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-02 01:48:26 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-02 01:48:26 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-02 01:48:26 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-02 01:48:27 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-02 01:48:27 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-02 01:48:27 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
