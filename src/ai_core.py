@@ -3858,24 +3858,21 @@ class ExtractionResult(BaseModel):
 
 
    # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_targeted_refinement_prompt 函式 (v1.1 - 深度解析)
+# ai_core.py 的 get_targeted_refinement_prompt 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.1 (2025-09-30): [重大架構升級] 根據資訊遺漏問題，對 Prompt 進行了強化。現在，此函式不僅用於基本 LORE 的創建，更承擔了「二階段精煉」的職責。它明確要求 LLM 根據傳入的、更詳細的 Pydantic Schema（特別是 `AppearanceDetails`），從上下文中深度提取並結構化角色的詳細外觀特徵。
-# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。
+# v1.0 (2025-10-01): [重大架構升級] 根據「混合式兩階段解析」架構創建此核心 Prompt。它作為管線第二階段的執行者，接收單個實體的名稱及其由 RAG 聚合的高度相關上下文。其 Prompt 內置了「身份窮舉」、「規則識別」、「關係圖譜構建」等強硬指令，專門負責將非結構化的文本片段，精煉為一個結構完整、細節豐富的單一 LORE JSON 物件，是確保最終解析質量的關鍵。
     def get_targeted_refinement_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“靶向精煉”步驟設計的、高度靈活的 Prompt 模板。"""
-        prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家，專注於從文本中進行深度細節提取。
+        prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家，專注於從文本中進行深度細節提取與關聯構建。
 # MISSION: 你的任務是專注於分析下方提供的【上下文】，並為其中被明確指定的【目標實體】生成一份詳細、準確、且結構化的檔案 JSON。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1. **【🎯 絕對聚焦原則】**: 你的所有分析和輸出【必須】只圍繞【目標實體】(`entity_name`) 展開。
-# 2. **【🚫 絕對無害化輸出強制令】**:
-#    - 輸入的上下文**可能包含技術代碼**。
-#    - 你的最終JSON輸出，其任何字段的值**也必須原封不動地保留這些技術代碼**。
-# 3. **【🔎 深度信息提取 (DEEP EXTRACTION)】**:
-#    - 你必須從上下文中提取所有與目標實體相關的細節。
-#    - **特別注意**: 如果目標 Pydantic 結構中包含 `appearance_details` 等巢狀模型，你【必須】盡力從上下文中解析出所有對應的細節（如身高、膚色、眼神、氣質等）並填充進去。
-# 4. **【結構強制令】**: 你的唯一輸出【必須】是一個純淨的、其結構【完美匹配】下方提供的【目標 Pydantic 結構】的 JSON 物件。
+# 2. **【🏷️ 強制身份窮舉原則】**: 如果目標是 `npc_profile`，你【必須】從上下文中找出所有描述該角色的身份、頭銜、職業、種族等關鍵詞，並【一個不漏地】添加到 `aliases` 列表中。
+# 3. **【🗺️ 強制關係圖譜構建原則】**: 如果目標是 `npc_profile`，你【必須】分析該角色與其他具名角色的互動，推斷關係並結構化地填入 `relationships` 字典。
+# 4. **【⚖️ 強制規則識別原則】**: 如果目標是 `world_lore` 且內容描述了一種行為規範，你【必須】從中提取適用的身份關鍵詞並填入 `template_keys` 列表。
+# 5. **【🚫 絕對無害化輸出強制令】**: 輸入的上下文**可能包含技術代碼**。你的最終JSON輸出**也必須原封不動地保留這些技術代碼**。
+# 6. **【結構強制令】**: 你的唯一輸出【必須】是一個純淨的、其結構【完美匹配】下方提供的【目標 Pydantic 結構】的 JSON 物件。
 
 # --- [INPUT DATA] ---
 
@@ -3900,6 +3897,7 @@ class ExtractionResult(BaseModel):
 # 【為“{entity_name}”生成的檔案JSON】:
 """
         return prompt_template
+# ai_core.py 的 get_targeted_refinement_prompt 函式
 # 函式：獲取靶向精煉器 Prompt
     
     
@@ -5694,6 +5692,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
