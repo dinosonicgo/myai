@@ -1263,10 +1263,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v301.1 - 移除局部導入)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v301.3 - 原生 SDK 參數修正)
 # 更新紀錄:
-# v301.1 (2025-10-01): [災難性BUG修復] 根據 ImportError，移除了函式內部的局部導入語句，並將所有 `google.generativeai` 相關的類型和異常的導入，統一移動到文件頂部並使用正確的路徑。此修改從根本上解決了因 SDK 版本更新導致的 `FinishReason` 導入失敗問題。
-# v301.0 (2025-10-01): [災難性BUG修復] 徹底拋棄 LangChain 的執行層，重寫為 Google 原生 SDK 驅動。
+# v301.3 (2025-10-01): [災難性BUG修復] 根據 TypeError 和 NameError，進行了兩處關鍵修正。1) 修正了 Google 原生 SDK 的調用方式，將 `tools` 和 `tool_config` 參數從 `GenerationConfig` 中移出，作為頂層參數直接傳遞給 `generate_content_async`。2) 修正了 `except` 區塊中的變數名稱，確保其與全局導入的異常類名完全匹配。此修改從根本上解決了 Tool Calling 的 API 調用錯誤和異常捕獲失敗的問題。
+# v301.2 (2025-10-01): [健壯性] 移除了對 `FinishReason` Enum 的直接依賴。
+# v301.1 (2025-10-01): [災難性BUG修復] 移除了函式內部的局部導入語句。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1280,14 +1281,12 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         """
         import google.generativeai as genai
         
-        # --- 步驟 1: 預處理與 Prompt 格式化 ---
         last_exception = None
         models_to_try = self.model_priority_list if use_degradation else [FUNCTIONAL_MODEL]
         IMMEDIATE_RETRY_LIMIT = 3
         
         full_prompt = self._safe_format_prompt(prompt_template, prompt_params, inject_core_protocol=True)
 
-        # --- 步驟 2: 處理 Tool Calling / Structured Output ---
         gemini_tools = []
         is_tool_call_expected = False
         is_list_schema = False
@@ -1304,7 +1303,6 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                 logger.error(f"[{self.user_id}] Pydantic 轉換為 Gemini Tool 失敗: {e}", exc_info=True)
                 raise e
 
-        # --- 步驟 3: 輪換與調用 ---
         for model_name in models_to_try:
             for attempt in range(len(self.api_keys)):
                 key_info = self._get_next_available_key(model_name)
@@ -1317,15 +1315,15 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         genai.configure(api_key=api_key)
                         model = genai.GenerativeModel(model_name=model_name, safety_settings=SAFETY_SETTINGS)
                         
-                        generation_config_params = {"temperature": 0.2}
-                        if is_tool_call_expected:
-                             generation_config_params["tools"] = gemini_tools
-                             generation_config_params["tool_config"] = {"function_calling_config": {"mode": "ANY"}}
-                             
+                        # [v301.3 核心修正] 將 tools 和 tool_config 作為頂層參數
+                        tool_config = {"function_calling_config": {"mode": "ANY"}} if is_tool_call_expected else None
+                        
                         response = await asyncio.wait_for(
                             model.generate_content_async(
                                 full_prompt,
-                                generation_config=genai.types.GenerationConfig(**generation_config_params)
+                                generation_config=genai.types.GenerationConfig(temperature=0.2),
+                                tools=gemini_tools if is_tool_call_expected else None,
+                                tool_config=tool_config
                             ),
                             timeout=180.0
                         )
@@ -1333,24 +1331,20 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         if response.prompt_feedback.block_reason:
                             raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
 
-                        finish_reason = response.candidates[0].finish_reason
-                        finish_reason_name = finish_reason.name if hasattr(finish_reason, 'name') else str(finish_reason)
+                        finish_reason_val = response.candidates[0].finish_reason
+                        finish_reason_name = finish_reason_val.name if hasattr(finish_reason_val, 'name') else str(finish_reason_val)
                         
-                        if finish_reason == FinishReason.MAX_TOKENS:
-                            raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: MAX_TOKENS")
+                        if finish_reason_name == 'MAX_TOKENS':
+                            raise GoogleAPICallError(f"Generation stopped due to finish_reason: MAX_TOKENS")
                         
-                        if finish_reason in [FinishReason.SAFETY, FinishReason.RECITATION, FinishReason.OTHER]:
-                            raise BlockedPromptException(f"Generation stopped due to safety reason: {finish_reason_name}")
+                        if finish_reason_name not in ['STOP', '1']:
+                            raise BlockedPromptException(f"Generation stopped due to safety/other reason: {finish_reason_name}")
 
-                        # --- 步驟 4: 解析輸出 ---
                         if is_tool_call_expected and schema_to_bind:
-                            if not hasattr(response.candidates[0], 'function_calls'):
+                            if not hasattr(response.candidates[0], 'function_calls') or not response.candidates[0].function_calls:
                                 raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
 
                             tool_calls = response.candidates[0].function_calls
-                            if not tool_calls:
-                                raise OutputParserException(f"Model returned text but a structured output was expected. Text: {response.text[:100]}...")
-                            
                             pydantic_objects = [schema_to_bind.model_validate(dict(call.args)) for call in tool_calls if call.name == schema_to_bind.__name__]
                             
                             if is_list_schema:
@@ -1367,10 +1361,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         logger.warning(f"[{self.user_id}] 內容被阻擋，嘗試輪換金鑰/模型...")
                         break
 
-                    except (OutputParserException, ValidationError, google_api_exceptions.InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
+                    # [v301.3 核心修正] 使用已在全局導入的異常類名
+                    except (OutputParserException, ValidationError, InternalServerError, asyncio.TimeoutError, GoogleGenerativeAIError, GoogleAPICallError) as e:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            if isinstance(e, google_api_exceptions.InternalServerError) and "MAX_TOKENS" in str(e):
+                            if "MAX_TOKENS" in str(e):
                                 logger.error(f"遭遇 MAX_TOKENS 錯誤，這需要縮小輸入。")
                             break
                         
@@ -5352,6 +5347,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
