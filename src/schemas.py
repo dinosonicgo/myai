@@ -505,9 +505,9 @@ class CanonParsingResult(BaseModel):
     world_lores: List[WorldLore] = Field(default_factory=list)
 
 class LoreClassificationResult(BaseModel):
-    entity_name: str
-    lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore']
-    reasoning: str
+    entity_name: str = Field(validation_alias=AliasChoices('entity_name', 'term', 'input_term'))
+    lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore'] = Field(validation_alias=AliasChoices('lore_category', 'category'))
+    reasoning: Optional[str] = Field(default="", description="分類的簡要理由。")
 
 class BatchClassificationResult(BaseModel):
     classifications: List[LoreClassificationResult]
@@ -650,6 +650,7 @@ QuestItem.model_rebuild()
 BatchQuestsResult.model_rebuild()
 WorldLoreItem.model_rebuild()
 BatchWorldLoresResult.model_rebuild()
+
 
 
 
