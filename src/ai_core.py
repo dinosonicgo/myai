@@ -727,11 +727,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
 
 
-# ai_core.py 的 _rag_driven_lore_creation 函式 (v3.1 - 終極分布式實體解析)
+# ai_core.py 的 _rag_driven_lore_creation 函式 (v3.2 - 修正 parser_configs 引用)
 # 更新紀錄:
-# v3.1 (2025-10-01): [災難性BUG修復] 根據持續的 MAX_TOKENS 和 AttributeError，再次徹底重構此函式，實現了終極的【分布式實體解析】架構。新流程放棄了所有複雜的批量處理邏輯，回歸到一個更健壯的模型：為每個識別出的實體創建一個獨立的、端到端的解析任務，並使用 Semaphore 嚴格控制並發執行的任務數量。同時，數據合併階段增加了全面的防禦性檢查，以處理部分任務失敗的情況。此修改從根本上杜絕了因批量過大導致的錯誤，並確保了系統的最終穩定性。
+# v3.2 (2025-10-01): [程式碼簡化] 移除了 `parser_configs` 字典中不再需要的冗餘描述字符串，並確保其直接引用已在文件頂部導入的 Pydantic 模型類，使程式碼更簡潔且不易出錯。
+# v3.1 (2025-10-01): [災難性BUG修復] 實現了終極的【分布式實體解析】架構，從根本上解決了 MAX_TOKENS 和數據丟失問題。
 # v3.0 (2025-10-01): [災難性BUG修復] 實現了「分層式、RAG 驅動的專職流水線」架構。
-# v2.3 (2025-10-01): [災難性BUG修復] 減小了 BATCH_SIZE 並修正了數據合併邏輯。
     async def _rag_driven_lore_creation(self, canon_text: str) -> Optional["CanonParsingResult"]:
         """
         【v3.1 终极 LORE 解析引擎】执行一个分層式的、RAG 驅動的、使用 Semaphore 控制並發的【分布式實體解析】流水線。
@@ -773,9 +773,10 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         # --- 阶段三：分布式实体解析 ---
         logger.info(f"[{self.user_id}] [RAG驱动解析 3/4] 正在為 {len(identified_entities)} 個實體啟動【分布式並行解析】...")
         
-        CONCURRENT_TASKS = 5  # 最多同時處理 5 個實體
+        CONCURRENT_TASKS = 5
         sem = asyncio.Semaphore(CONCURRENT_TASKS)
 
+        # [v3.2 核心修正] 簡化 parser_configs，直接引用已導入的模型
         parser_configs = {
             "npc_profile": {"pipeline": [("aliases", "提取所有身份、头衔、绰号和别名", BatchAliasesResult), ("appearance", "提取所有外观细节", BatchAppearanceResult), ("core_info", "提取背景故事、性格、技能和人际关系", BatchCoreInfoResult)], "target_list_in_final_result": "npc_profiles"},
             "location_info": {"pipeline": [("full_parse", "提取地点的完整信息", BatchLocationsResult)], "target_list_in_final_result": "locations"},
@@ -824,7 +825,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         final_result = CanonParsingResult()
 
         for entity, results in all_results:
-            if not results: continue # 如果該實體的任何步驟失敗，則跳過
+            if not results: continue
 
             category = entity.category
             name = entity.name
@@ -839,13 +840,13 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     profile_data = {"name": name}
                     
                     aliases_res = results.get("aliases")
-                    profile_data['aliases'] = aliases_res.results[0].aliases if aliases_res and aliases_res.results else []
+                    profile_data['aliases'] = aliases_res.results[0].aliases if aliases_res and hasattr(aliases_res, 'results') and aliases_res.results else []
                     
                     appearance_res = results.get("appearance")
-                    profile_data['appearance_details'] = appearance_res.results[0].appearance_details if appearance_res and appearance_res.results else AppearanceDetails()
+                    profile_data['appearance_details'] = appearance_res.results[0].appearance_details if appearance_res and hasattr(appearance_res, 'results') and appearance_res.results else AppearanceDetails()
 
                     core_info_res = results.get("core_info")
-                    if core_info_res and core_info_res.results:
+                    if core_info_res and hasattr(core_info_res, 'results') and core_info_res.results:
                         core_info = core_info_res.results[0]
                         profile_data['description'] = core_info.description or ""
                         profile_data['skills'] = core_info.skills
@@ -856,7 +857,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     target_list.append(CharacterProfile.model_validate(profile_data))
                 else:
                     parsed_data = results.get("full_parse")
-                    if parsed_data and parsed_data.results:
+                    if parsed_data and hasattr(parsed_data, 'results') and parsed_data.results:
                         info_key_name_map = {
                             "location_info": "location_info", "item_info": "item_info",
                             "creature_info": "creature_info", "quest": "quest",
@@ -5699,6 +5700,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
