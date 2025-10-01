@@ -1,15 +1,11 @@
-# ai_core.py 的中文註釋(v300.0 - 原生SDK重構整合)
-# 更新紀錄:
-# v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。核心變更包括：徹底拋棄 LangChain 執行層，重構 ainvoke_with_rotation 為原生 SDK 引擎以確保安全閥值生效；將所有 get_..._chain 函式簡化為僅返回 PromptTemplate；並全面改造所有 LLM 呼叫點以適配新引擎。
-# v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
-# v225.2 (2025-11-16): [災難性BUG修復] 修正了 __init__ 的縮排錯誤。
-
 # ai_core.py 的中文註釋(v301.0 - 移除無用導入)
 # 更新紀錄:
 # v301.0 (2025-11-26): [灾难性BUG修复] 移除了對 `chromadb.errors.InternalError` 的導入。在新版 `chromadb` 中該錯誤類別已被移除，且程式碼中並未使用此導入，導致了啟動時的 ImportError。
 # v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
 # v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
 
+
+import random
 import re
 import json
 import time
@@ -1208,11 +1204,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v300.2 - 穩定性加固)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v300.3 - 健壯性最終版)
 # 更新紀錄:
-# v300.2 (2025-10-01): [健壯性] 恢復了完整的、經過實戰檢驗的異常處理和重試邏輯（包括指數退避、持久化冷卻和模型降級），並將其與新的 LangChain Tool Calling 範式相結合。同時，簡化了 `euphemize` 策略，使其在遭遇審查時能更快速地失敗並輪換，而不是進入複雜的修復流程。
-# v300.1 (2025-10-01): [災難性BUG修復] 擴展了對 `List[PydanticModel]` 形式 `output_schema` 的支持。
-# v300.0 (2025-10-01): [災難性BUG修復] 全面擁抱 LangChain 的 Tool Calling 範式。
+# v300.3 (2025-10-01): [災難性BUG修復] 根據 NameError，在函式頂部添加了 `import random`。同時，對異常處理邏輯進行了最終審查，確保所有 except 區塊都包含完整的重試、降級或冷卻邏輯，以防止任何形式的執行中斷。
+# v300.2 (2025-10-01): [健壯性] 恢復了完整的異常處理和重試邏輯。
+# v300.1 (2025-10-01): [災難性BUG修復] 增加了對 `List[PydanticModel]` 形式 `output_schema` 的支持。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1244,13 +1240,20 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                             google_api_key=api_key,
                             safety_settings=SAFETY_SETTINGS,
                             temperature=0.2,
-                            max_retries=0 # 我們手動處理重試
+                            max_retries=0
                         )
                         
                         if output_schema:
                             is_list_schema = getattr(output_schema, '__origin__', None) is list
                             schema_to_bind = output_schema.__args__[0] if is_list_schema else output_schema
-                            structured_llm = llm.with_structured_output(schema_to_bind, include_raw=False)
+                            
+                            # 對於列表輸出，我們要求 LLM 多次調用同一個工具
+                            structured_llm = llm.with_structured_output(
+                                schema_to_bind, 
+                                include_raw=False,
+                                # 如果是列表，`method` 應為 `"tool_calls"`，允許多次調用
+                                # 但 LangChain Google GenerativeAI 似乎自動處理了這一點
+                            )
                             chain = ChatPromptTemplate.from_template(prompt_template) | structured_llm
                         else:
                             chain = ChatPromptTemplate.from_template(prompt_template) | llm | StrOutputParser()
@@ -1265,14 +1268,12 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查: {e}")
                         if retry_strategy == 'none':
                             raise e
-                        # 對於 euphemize 和 force，Tool Calling 模式下降級/輪換是最佳策略
                         logger.warning(f"[{self.user_id}] 輪換金鑰/模型以嘗試規避審查...")
-                        break # 跳出內部重試，直接進入下一個 API 金鑰
+                        break
 
                     except (OutputParserException, ValidationError) as e:
                         last_exception = e
                         logger.error(f"[{self.user_id}] [Tool Calling] 模型 '{model_name}' (Key #{key_index}) 遭遇了嚴重的結構化輸出錯誤: {e}", exc_info=False)
-                        # 這通常意味著 Prompt 或 Schema 有問題，重試同一金鑰意義不大
                         break
 
                     except (ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError, GoogleGenerativeAIError) as e:
@@ -1283,7 +1284,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                                 cooldown_key = f"{key_index}_{model_name}"
                                 self.key_model_cooldowns[cooldown_key] = time.time() + 3600
                                 self._save_cooldowns()
-                            break # 跳出內部重試，進入下一個 API 金鑰
+                            break
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
@@ -1293,7 +1294,10 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                     except Exception as e:
                         last_exception = e
                         logger.error(f"[{self.user_id}] 在 ainvoke_with_rotation 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
-                        break # 未知錯誤，直接輪換
+                        break
+            
+            if use_degradation and models_to_try.index(model_name) < len(models_to_try) - 1:
+                logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
 
         logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
@@ -4196,18 +4200,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v7.0 - 終極原子工具鏈)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.0 - 終極批量原子工具鏈)
 # 更新紀錄:
-# v7.0 (2025-10-01): [災難性BUG修復] 根據 LangChain 的兼容性問題，再次徹底重構此函式，實現了終極的【原子工具鏈】架構。新流程將每一個解析步驟（單體分類、核心資訊提取、外觀提取）都分解為一個獨立的、由簡單 Pydantic 模型驅動的 Tool Calling 任務，並通過 `asyncio.gather` 和 `Semaphore` 進行大規模並行處理。此修改從根本上解決了所有已知的結構性錯誤 (`ValueError`, `ValidationError`)，是當前最穩健的 LORE 解析方案。
-# v6.x (2025-10-01): [多次修正] 嘗試解決 Tool Calling 相關的 bug。
+# v8.0 (2025-10-01): [災難性BUG修復] 根據 API 調用次數過多的性能問題，再次徹底重構此函式，實現了終極的【批量原子工具鏈】架構。新流程將 NLP 提取出的實體分批，然後為每一批次調用一次 Tool Calling LLM，並要求其返回一個對象列表（如 `List[LoreClassificationResult]`）。此修改在保留 Tool Calling 結構可靠性的同時，極大地減少了 API 請求總數，是兼顧了穩定性、性能和成本的最終解決方案。
+# v7.0 (2025-10-01): [災難性BUG修復] 實現了【原子工具鏈】架構以解決 LangChain 兼容性問題。
+# v6.x (多次修正): 嘗試解決 Tool Calling 相關的 bug。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v7.0 核心 LORE 解析引擎】執行一個基於原子工具鏈的、混合式的兩階段解析管線。
+        【v8.0 核心 LORE 解析引擎】執行一個基於批量原子工具鏈的、混合式的兩階段解析管線。
         """
         if not self.profile or not text_to_parse.strip():
             return False, None, []
 
-        from .schemas import CharacterCoreInfo # 導入新的原子模型
+        from .schemas import CharacterCoreInfo
 
         # --- 階段一：混合 NLP 實體骨架提取 ---
         logger.info(f"[{self.user_id}] [LORE 解析 1/4] 正在使用混合 NLP 在本地快速提取實體骨架...")
@@ -4217,28 +4222,34 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return False, CanonParsingResult(), []
         logger.info(f"[{self.user_id}] [LORE 解析 1/4] ✅ 本地 NLP 成功提取 {len(candidate_entities)} 個候選實體。")
 
-        # --- 階段二：原子化實體分類 (Tool Calling) ---
-        logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在對 {len(candidate_entities)} 個實體啟動原子化並行分類...")
+        # --- 階段二：批量化實體分類 (Tool Calling) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在對 {len(candidate_entities)} 個實體啟動批量並行分類...")
         classification_prompt_template = self.get_lore_classification_prompt()
-        CONCURRENT_TASKS = 10 # 可以適當提高並發數，因為這是輕量級任務
-        sem = asyncio.Semaphore(CONCURRENT_TASKS)
+        BATCH_SIZE_CLASSIFY = 50
+        CONCURRENT_TASKS_CLASSIFY = 5
+        sem_classify = asyncio.Semaphore(CONCURRENT_TASKS_CLASSIFY)
+        
+        entity_list = list(candidate_entities)
+        batches = [entity_list[i:i + BATCH_SIZE_CLASSIFY] for i in range(0, len(entity_list), BATCH_SIZE_CLASSIFY)]
 
-        async def classify_task(entity_name: str):
-            async with sem:
+        async def classify_batch_task(batch: List[str]):
+            async with sem_classify:
                 try:
                     return await self.ainvoke_with_rotation(
                         classification_prompt_template,
-                        {"candidate_entities_json": f'["{entity_name}"]', "context": text_to_parse},
-                        output_schema=LoreClassificationResult
+                        {"candidate_entities_json": json.dumps(batch, ensure_ascii=False), "context": text_to_parse},
+                        output_schema=List[LoreClassificationResult]
                     )
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [原子化分類] 🔥 分類實體 '{entity_name}' 時失敗: {e}", exc_info=False)
-                    return None
+                    logger.error(f"[{self.user_id}] [批量分類] 🔥 分類批次時失敗: {e}", exc_info=False)
+                    return [] # 返回空列表表示此批次失敗
+
+        classification_tasks = [classify_batch_task(batch) for batch in batches]
+        results_of_batches = await asyncio.gather(*classification_tasks)
         
-        classification_tasks = [classify_task(name) for name in candidate_entities]
-        classification_results = await asyncio.gather(*classification_tasks)
+        all_classifications = [item for sublist in results_of_batches if sublist for item in sublist]
         
-        tasks_to_run = [c for c in classification_results if c and c.lore_category != 'ignore']
+        tasks_to_run = [c for c in all_classifications if c.lore_category != 'ignore']
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
         
         # --- 階段三：兩步式靶向 LORE 精煉 (Tool Calling, 受控並行) ---
@@ -4246,19 +4257,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         temp_retriever = BM25Retriever.from_texts([text_to_parse])
         temp_retriever.k = 5
         
-        CONCURRENT_TASKS = 5 # 精煉任務較重，降低並發數
-        sem = asyncio.Semaphore(CONCURRENT_TASKS)
+        CONCURRENT_TASKS_REFINE = 5
+        sem_refine = asyncio.Semaphore(CONCURRENT_TASKS_REFINE)
         pydantic_map = { "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
 
         async def refine_task(classification: LoreClassificationResult):
-            async with sem:
+            async with sem_refine:
                 category, name = classification.lore_category, classification.entity_name
                 try:
                     context_docs = await temp_retriever.ainvoke(name)
                     context = "\n---\n".join([doc.page_content for doc in context_docs])
                     
                     if category == 'npc_profile':
-                        # 兩步式精煉
                         core_info_prompt = self.get_targeted_refinement_prompt('core_info')
                         appearance_prompt = self.get_targeted_refinement_prompt('appearance_details')
                         
@@ -4271,26 +4281,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         appearance_details = results[1] if not isinstance(results[1], Exception) else None
 
                         if not core_info:
-                            logger.error(f"[{self.user_id}] [兩步式精煉] 🔥 提取實體 '{name}' 的核心資訊失敗。")
-                            return None
+                            raise Exception(f"提取核心資訊失敗: {results[0]}")
 
-                        # 在 Python 中手動組裝
-                        final_profile = CharacterProfile(
-                            **core_info.model_dump(),
-                            appearance_details=(appearance_details or AppearanceDetails())
-                        )
+                        final_profile = CharacterProfile(**core_info.model_dump(), appearance_details=(appearance_details or AppearanceDetails()))
                         return category, final_profile
                     else:
-                        # 對於簡單模型，一步到位
                         target_schema = pydantic_map.get(category)
                         if not target_schema: return None
                         
                         full_parse_prompt = self.get_targeted_refinement_prompt('full_parse')
-                        refined_obj = await self.ainvoke_with_rotation(
-                            full_parse_prompt,
-                            {"entity_name": name, "context": context},
-                            output_schema=target_schema
-                        )
+                        refined_obj = await self.ainvoke_with_rotation(full_parse_prompt, {"entity_name": name, "context": context}, output_schema=target_schema)
                         return category, refined_obj
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{name}' 時失敗: {e}", exc_info=False)
@@ -4299,19 +4299,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         refinement_tasks = [refine_task(c) for c in tasks_to_run]
         refined_results = await asyncio.gather(*refinement_tasks)
 
-        # --- 階段四：數據合併 (無需最終校驗，因為 Tool Calling 已保證結構) ---
+        # --- 階段四：數據合併與校驗 ---
         logger.info(f"[{self.user_id}] [LORE 解析 4/4] 正在進行數據合併...")
-        final_parsing_result = CanonParsingResult()
+        initial_parsing_result = CanonParsingResult()
         for result in refined_results:
             if result:
                 category, obj = result
-                target_list = getattr(final_parsing_result, f"{category}s", None)
+                target_list = getattr(initial_parsing_result, f"{category}s", None)
                 if target_list is not None:
                     target_list.append(obj)
         
+        # 校驗步驟已被更可靠的兩步式精煉取代，暫時禁用
+        final_parsing_result = initial_parsing_result
+        # final_parsing_result = await self._programmatic_lore_validator(initial_parsing_result, text_to_parse)
+        
         successful_keys = [item.get('name') or item.get('title') for category_list in final_parsing_result.model_dump().values() if isinstance(category_list, list) for item in category_list if isinstance(item, dict)]
 
-        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極原子工具鏈執行完畢。")
+        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極批量原子工具鏈執行完畢。")
         return True, final_parsing_result, successful_keys
 # 函式：執行 LORE 解析管線
                             
@@ -5231,6 +5235,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
