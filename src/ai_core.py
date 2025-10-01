@@ -4272,14 +4272,12 @@ class ExtractionResult(BaseModel):
 
 
 
-# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.5 - 零容忍審計)
+# ai_core.py 的 get_batch_alias_validator_prompt 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.5 (2025-09-28): [災難性BUG修復] 引入終極的【零容忍審計強制令】。此修改將驗證器的角色從“校對官”升級為“審計官”，強制要求其不再信任上游傳來的`claimed_aliases`，而是必須獨立地、從頭開始重新解析`context_snippet`，生成一份自己的“理想別名列表”，然後再將兩者合併。此舉旨在通過“獨立重複驗證”的工程原則，根除因初始解析LLM“認知捷徑”而導致的關鍵身份標籤（如“性神教徒”）遺漏的最終頑疾。
-# v1.4 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt。
+# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此 Prompt。它作為 `_programmatic_lore_validator` 的核心，接收一個包含上下文片段和初步提取結果的批量任務。其內置的【零容忍審計強制令】指示 LLM 必須獨立地、從頭重新解析上下文來生成一份最完整的 `aliases` 列表，是確保多重身份完整性的關鍵一步。
     def get_batch_alias_validator_prompt(self) -> str:
         """獲取為雲端LLM設計的、用於批量交叉驗證並補全角色別名/身份的Prompt模板。"""
         
-        # 使用字串拼接來避免輸出渲染錯誤
         part1 = """# TASK: 你是一位極其嚴謹、擁有最高審查權的【最終驗證審計官】。
 # MISSION: 你的任務是接收一份包含【多個待審計任務】的批量請求。對於列表中的【每一個角色】，你必須執行一次【零容忍審計】，以確保其身份檔案的絕對完整性。
 
@@ -4291,32 +4289,6 @@ class ExtractionResult(BaseModel):
 #     *   **步驟 D (輸出)**: 你的 `aliases` 輸出，【必須】是這個最終的、最完整的合併結果。
 # 2.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchAliasValidationResult` Pydantic 模型的JSON物件。`aliases` 列表必須包含對輸入中【所有角色】的審計結果。
 
-# === 【【【⚙️ 輸出結構與思考過程範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
-# --- 輸入情報 ---
-# "character_name": "米婭",
-# "context_snippet": "* 米婭 (Mia) - 「聖女」\\n   * 身份/外貌: 性神教徒、母畜、聖女。約16歲...",
-# "claimed_aliases": ["Mia", "聖女", "母畜"]
-#
-# --- 你的審計過程 (僅供參考) ---
-# 1.  **步驟 A (懷疑)**: `claimed_aliases` 可能是錯的。
-# 2.  **步驟 B (獨立提取)**: 重新閱讀 `context_snippet`，我發現了「Mia」、「聖女」、「性神教徒」、「母畜」。我的「理想別名列表」是 `["Mia", "聖女", "性神教徒", "母畜"]`。
-# 3.  **步驟 C (合併與去重)**: 將 `["Mia", "聖女", "母畜"]` 和 `["Mia", "聖女", "性神教徒", "母畜"]` 合併，去重後的結果是 `["Mia", "聖女", "母畜", "性神教徒"]`。
-# 4.  **步驟 D (輸出)**: 生成最終的 `aliases`。
-#
-# --- 最終JSON輸出 (部分) ---
-# ```json
-"""
-        json_example = """{
-  "aliases": [
-    {
-      "character_name": "米婭",
-      "aliases": ["Mia", "聖女", "母畜", "性神教徒"]
-    }
-  ]
-}"""
-        part2 = """
-# ```
-
 # --- [INPUT DATA] ---
 
 # 【批量審計任務】:
@@ -4325,8 +4297,8 @@ class ExtractionResult(BaseModel):
 # ---
 # 【你審計後的批量結果JSON】:
 """
-        return part1 + json_example + part2
-# 函式：獲取批量別名交叉驗證器Prompt
+        return part1
+# ai_core.py 的 get_batch_alias_validator_prompt 函式
     
 
     
@@ -5539,6 +5511,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
