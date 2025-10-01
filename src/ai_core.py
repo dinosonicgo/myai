@@ -4146,38 +4146,47 @@ class ExtractionResult(BaseModel):
     
 
     
-    # ai_core.py 的 _create_embeddings_instance 函式 (v2.4 - 穩定性回退)
-    # 更新紀錄:
-    # v2.4 (2025-11-26): [灾难性BUG修复] 將 HuggingFaceEmbeddings 的導入來源還原回 `langchain_community`，以解決與 transformers==4.36.2 的依賴衝突，確保系統穩定性。
-    # v2.3 (2025-11-26): [架構優化] 將導入來源遷移到新的 `langchain_huggingface` 套件。
-    # v2.2 (2025-11-26): [灾难性BUG修复] 修正了本地 Embedding 模型名稱。
+# 函式：創建 Embeddings 實例
+# ai_core.py 的 _create_embeddings_instance 函式 (v2.5 - 模型本地化加載)
+# 更新紀錄:
+# v2.5 (2025-10-01): [災難性BUG修復] 根據 ConnectTimeoutError，徹底改變了模型的加載方式。不再依賴任何遠程 Hugging Face Hub 或其鏡像，而是修改為直接從項目本地的 `models/stella-base-zh-v2` 資料夾加載模型。此修改將網路依賴變為本地文件依賴，從根本上解決了因網路不穩定導致的啟動失敗問題，是確保系統健壯性的關鍵一步。
+# v2.4 (2025-11-26): [灾难性BUG修复] 還原了 langchain-community 的導入。
+# v2.3 (2025-11-26): [架構優化] 遷移到新的 `langchain_huggingface` 套件。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.4 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
+        (v2.5 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，從本地文件系統加載模型。
         """
-        # [v2.4 核心修正] 還原回舊的、但與依賴項兼容的導入路徑
         from langchain_community.embeddings import HuggingFaceEmbeddings
         
-        # [v2.2 核心修正] 修正模型名稱，v3 不存在，正確的名稱是 v2
-        model_name = "infgrad/stella-base-zh-v2"
+        # [v2.5 核心修正] 將模型名稱改為指向本地文件夾的路徑
+        # PROJ_DIR 已在文件頂部定義: PROJ_DIR = Path(__file__).resolve().parent.parent
+        local_model_path = PROJ_DIR / "models" / "stella-base-zh-v2"
 
-        model_kwargs = {'device': 'cpu'} # 強制使用 CPU，避免在無 GPU 環境下出錯
+        # 在初始化前，檢查模型路徑是否存在，給出清晰的提示
+        if not local_model_path.is_dir():
+            logger.error(f"[{self.user_id}] 🔥 致命錯誤：本地 Embedding 模型路徑不存在！")
+            logger.error(f"   -> 請確保您已將 'stella-base-zh-v2' 模型文件下載到以下目錄：")
+            logger.error(f"   -> {local_model_path}")
+            return None
+
+        model_kwargs = {'device': 'cpu'}
         encode_kwargs = {'normalize_embeddings': False}
         
         try:
-            logger.info(f"[{self.user_id}] 正在創建本地 Embedding 模型 '{model_name}' 實例...")
+            logger.info(f"[{self.user_id}] 正在從本地路徑 '{local_model_path}' 創建 Embedding 模型實例...")
             embeddings = HuggingFaceEmbeddings(
-                model_name=model_name,
+                model_name=str(local_model_path), # 必須傳入字符串路徑
                 model_kwargs=model_kwargs,
                 encode_kwargs=encode_kwargs
             )
             logger.info(f"[{self.user_id}] ✅ 本地 Embedding 模型實例創建成功。")
             return embeddings
         except Exception as e:
-            logger.error(f"[{self.user_id}] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 🔥 從本地創建 Embedding 模型實例時發生致命錯誤: {e}", exc_info=True)
             logger.error(f"   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。")
+            logger.error(f"   -> 同時檢查模型文件是否完整且未損壞。")
             return None
-    # 創建 Embeddings 實例 函式結束
+# 函式：創建 Embeddings 實例
 
 
     
@@ -5341,6 +5350,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
