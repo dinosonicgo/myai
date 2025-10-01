@@ -4200,11 +4200,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 # 函式：執行 LORE 解析管線
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.0 - 終極批量原子工具鏈)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v8.1 - 並發參數調優)
 # 更新紀錄:
-# v8.0 (2025-10-01): [災難性BUG修復] 根據 API 調用次數過多的性能問題，再次徹底重構此函式，實現了終極的【批量原子工具鏈】架構。新流程將 NLP 提取出的實體分批，然後為每一批次調用一次 Tool Calling LLM，並要求其返回一個對象列表（如 `List[LoreClassificationResult]`）。此修改在保留 Tool Calling 結構可靠性的同時，極大地減少了 API 請求總數，是兼顧了穩定性、性能和成本的最終解決方案。
+# v8.1 (2025-10-01): [性能調優] 根據日誌中仍然出現的 ResourceExhausted 錯誤，將並行分類任務數（CONCURRENT_TASKS_CLASSIFY）和並行精煉任務數（CONCURRENT_TASKS_REFINE）從較高的值統一降低到一個更保守的 `3`。此修改旨在進一步平滑 API 請求，以適應免費 API 的嚴格速率限制，最大限度地減少重試和延遲，提高 LORE 解析流程的穩定性和可預測性。
+# v8.0 (2025-10-01): [災難性BUG修復] 實現了終極的【批量原子工具鏈】架構。
 # v7.0 (2025-10-01): [災難性BUG修復] 實現了【原子工具鏈】架構以解決 LangChain 兼容性問題。
-# v6.x (多次修正): 嘗試解決 Tool Calling 相關的 bug。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
         【v8.0 核心 LORE 解析引擎】執行一個基於批量原子工具鏈的、混合式的兩階段解析管線。
@@ -4226,7 +4226,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [LORE 解析 2/4] 正在對 {len(candidate_entities)} 個實體啟動批量並行分類...")
         classification_prompt_template = self.get_lore_classification_prompt()
         BATCH_SIZE_CLASSIFY = 50
-        CONCURRENT_TASKS_CLASSIFY = 5
+        CONCURRENT_TASKS_CLASSIFY = 3  # [v8.1 核心修正] 降低並發數
         sem_classify = asyncio.Semaphore(CONCURRENT_TASKS_CLASSIFY)
         
         entity_list = list(candidate_entities)
@@ -4242,7 +4242,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     )
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [批量分類] 🔥 分類批次時失敗: {e}", exc_info=False)
-                    return [] # 返回空列表表示此批次失敗
+                    return []
 
         classification_tasks = [classify_batch_task(batch) for batch in batches]
         results_of_batches = await asyncio.gather(*classification_tasks)
@@ -4257,7 +4257,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         temp_retriever = BM25Retriever.from_texts([text_to_parse])
         temp_retriever.k = 5
         
-        CONCURRENT_TASKS_REFINE = 5
+        CONCURRENT_TASKS_REFINE = 3 # [v8.1 核心修正] 降低並發數
         sem_refine = asyncio.Semaphore(CONCURRENT_TASKS_REFINE)
         pydantic_map = { "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
 
@@ -4283,14 +4283,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         if not core_info:
                             raise Exception(f"提取核心資訊失敗: {results[0]}")
 
-                        final_profile = CharacterProfile(**core_info.model_dump(), appearance_details=(appearance_details or AppearanceDetails()))
+                        final_profile = CharacterProfile(
+                            **core_info.model_dump(),
+                            appearance_details=(appearance_details or AppearanceDetails())
+                        )
                         return category, final_profile
                     else:
                         target_schema = pydantic_map.get(category)
                         if not target_schema: return None
                         
                         full_parse_prompt = self.get_targeted_refinement_prompt('full_parse')
-                        refined_obj = await self.ainvoke_with_rotation(full_parse_prompt, {"entity_name": name, "context": context}, output_schema=target_schema)
+                        refined_obj = await self.ainvoke_with_rotation(
+                            full_parse_prompt,
+                            {"entity_name": name, "context": context},
+                            output_schema=target_schema
+                        )
                         return category, refined_obj
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 3/4] 🔥 精煉實體 '{name}' 時失敗: {e}", exc_info=False)
@@ -4305,15 +4312,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         for result in refined_results:
             if result:
                 category, obj = result
-                target_list = getattr(initial_parsing_result, f"{category}s", None)
-                if target_list is not None:
+                target_list_name = f"{category}s"
+                if hasattr(initial_parsing_result, target_list_name):
+                    target_list = getattr(initial_parsing_result, target_list_name)
                     target_list.append(obj)
         
-        # 校驗步驟已被更可靠的兩步式精煉取代，暫時禁用
+        # 校驗步驟已被更可靠的兩步式精煉取代
         final_parsing_result = initial_parsing_result
-        # final_parsing_result = await self._programmatic_lore_validator(initial_parsing_result, text_to_parse)
         
-        successful_keys = [item.get('name') or item.get('title') for category_list in final_parsing_result.model_dump().values() if isinstance(category_list, list) for item in category_list if isinstance(item, dict)]
+        successful_keys = []
+        for category_list in final_parsing_result.model_dump().values():
+            if isinstance(category_list, list):
+                for item in category_list:
+                    if isinstance(item, dict):
+                        successful_keys.append(item.get('name') or item.get('title'))
 
         logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極批量原子工具鏈執行完畢。")
         return True, final_parsing_result, successful_keys
@@ -5235,6 +5247,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
