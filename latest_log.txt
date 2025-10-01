@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-01T16:15:43.302566 ###
+### AI Lover Log - Last updated at 2025-10-01T16:20:46.470460 ###
 
-2025-10-01 08:41:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:02 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '提姆' (npc_profile) 處理成功。
-2025-10-01 08:42:02 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '莉娜' (npc_profile)...
-2025-10-01 08:42:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:04 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '貝拉' (npc_profile) 處理成功。
-2025-10-01 08:42:04 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '諾拉' (npc_profile)...
-2025-10-01 08:42:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #0.
-2025-10-01 08:42:09 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 08:42:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:10 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '里奧' (npc_profile) 處理成功。
-2025-10-01 08:42:10 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '艾蜜莉' (npc_profile)...
-2025-10-01 08:42:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:11 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 08:42:11 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['CODE-F-GEN-C', 'ROLE-D', 'ROLE-B']
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86269 秒)。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 45686 秒)。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 49330 秒)。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 59253 秒)。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 54251 秒)。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86205 秒)。
-2025-10-01 08:42:11 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 08:42:11 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 08:42:11 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '諾拉' (npc_profile) 處理成功。
-2025-10-01 08:42:11 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '卡萊兒' (npc_profile)...
-2025-10-01 08:42:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-10-01 08:42:12 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAppearanceResult)...
-2025-10-01 08:42:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:17 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '莉娜' (npc_profile) 處理成功。
-2025-10-01 08:42:17 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '索菲亞' (npc_profile)...
-2025-10-01 08:42:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:23 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '賈斯伯' (npc_profile) 處理成功。
-2025-10-01 08:42:23 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '泰莎' (npc_profile)...
-2025-10-01 08:42:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:27 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '安東尼' (npc_profile) 處理成功。
-2025-10-01 08:42:27 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '露比' (npc_profile)...
-2025-10-01 08:42:27 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 08:42:27 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 1.46 秒後進行第 2 次嘗試...
-2025-10-01 08:42:27 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '卡萊兒' (npc_profile) 處理成功。
-2025-10-01 08:42:27 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '老漢姆' (npc_profile)...
-2025-10-01 08:42:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:35 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 08:42:35 - [WARNING] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (InternalServerError)。將在 2.41 秒後進行第 3 次嘗試...
-2025-10-01 08:42:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-10-01 08:42:40 - [INFO] - [512280345618546699] (Euphemizer) [適配層] 正在將法醫級重構結果 (CanonParsingResult) 適配到上游期望的 Schema (BatchAliasesResult)...
-2025-10-01 08:42:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-01 08:42:43 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (InternalServerError)。將輪換到下一個金鑰並觸發持久化冷卻。
-2025-10-01 08:42:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:45 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '露比' (npc_profile) 處理成功。
-2025-10-01 08:42:45 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '葛瑞塔' (npc_profile)...
-2025-10-01 08:42:45 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '老漢姆' (npc_profile) 處理成功。
-2025-10-01 08:42:45 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '芬恩' (npc_profile)...
-2025-10-01 08:42:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:49 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '艾蜜莉' (npc_profile) 處理成功。
-2025-10-01 08:42:49 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '維利爾斯莊園' (location_info)...
-2025-10-01 08:42:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:51 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '維利爾斯莊園' (location_info) 處理成功。
-2025-10-01 08:42:51 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '王都' (location_info)...
-2025-10-01 08:42:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇解析或驗證錯誤: JSONDecodeError。
-2025-10-01 08:42:51 - [ERROR] - [512280345618546699] [分布式 Worker] 🔥 處理實體 '泰莎' (npc_profile) 時發生嚴重錯誤: Invalid control character at: line 78 column 244 (char 1886)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 810, in process_entity_task
-    result = await self.ainvoke_with_rotation(full_prompt, output_schema=pydantic_schema, retry_strategy='euphemize')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1315, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1296, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-json.decoder.JSONDecodeError: Invalid control character at: line 78 column 244 (char 1886)
-2025-10-01 08:42:51 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖露修道院' (location_info)...
-2025-10-01 08:42:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:52 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '芬恩' (npc_profile) 處理成功。
-2025-10-01 08:42:52 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖凱瑟琳學院' (location_info)...
-2025-10-01 08:42:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖露修道院' (location_info) 處理成功。
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '城鎮市集區' (location_info)...
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '王都' (location_info) 處理成功。
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '貧民窟' (location_info)...
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖凱瑟琳學院' (location_info) 處理成功。
-2025-10-01 08:42:54 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '揭見廳' (location_info)...
-2025-10-01 08:42:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:42:55 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '城鎮市集區' (location_info) 處理成功。
-2025-10-01 08:42:55 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '北境戰場' (location_info)...
-2025-10-01 08:42:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:42:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:42:57 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '貧民窟' (location_info) 處理成功。
-2025-10-01 08:42:57 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '皇家模擬戰' (quest)...
-2025-10-01 08:42:57 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '揭見廳' (location_info) 處理成功。
-2025-10-01 08:42:57 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '天恩灌溉系統' (item_info)...
-2025-10-01 08:42:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '索菲亞' (npc_profile) 處理成功。
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '人形旗桿' (item_info)...
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '皇家模擬戰' (quest) 處理成功。
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '神宮花開' (item_info)...
-2025-10-01 08:42:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '天恩灌溉系統' (item_info) 處理成功。
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '性神' (world_lore)...
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '北境戰場' (location_info) 處理成功。
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '生命之神' (world_lore)...
-2025-10-01 08:43:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:43:01 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '人形旗桿' (item_info) 處理成功。
-2025-10-01 08:43:01 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '光明神夏卡爾' (world_lore)...
-2025-10-01 08:43:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:43:02 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '神宮花開' (item_info) 處理成功。
-2025-10-01 08:43:02 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '夏卡爾' (world_lore)...
-2025-10-01 08:43:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:43:04 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '葛瑞塔' (npc_profile) 處理成功。
-2025-10-01 08:43:04 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖十字軍' (world_lore)...
-2025-10-01 08:43:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:43:05 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '生命之神' (world_lore) 處理成功。
-2025-10-01 08:43:05 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '性神教' (world_lore)...
-2025-10-01 08:43:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:43:10 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖十字軍' (world_lore) 處理成功。
-2025-10-01 08:43:10 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '新·性神教' (world_lore)...
-2025-10-01 08:43:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:43:13 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '光明神夏卡爾' (world_lore) 處理成功。
-2025-10-01 08:43:13 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '母畜制度' (world_lore)...
-2025-10-01 08:43:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:43:16 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '新·性神教' (world_lore) 處理成功。
-2025-10-01 08:43:16 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '三大性神裝置' (world_lore)...
-2025-10-01 08:43:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '三大性神裝置' (world_lore) 處理成功。
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖胎之吻' (world_lore)...
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '性神' (world_lore) 處理成功。
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '夏卡爾' (world_lore) 處理成功。
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '掘井人' (world_lore)...
-2025-10-01 08:43:19 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖軍' (world_lore)...
-2025-10-01 08:43:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:43:20 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '性神教' (world_lore) 處理成功。
-2025-10-01 08:43:20 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖露修道院的神蹟' (world_lore)...
-2025-10-01 08:43:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:43:26 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '母畜制度' (world_lore) 處理成功。
-2025-10-01 08:43:26 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '快樂派系' (world_lore)...
-2025-10-01 08:43:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:43:30 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖胎之吻' (world_lore) 處理成功。
-2025-10-01 08:43:30 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '規矩派系' (world_lore)...
-2025-10-01 08:43:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:43:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:43:31 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '掘井人' (world_lore) 處理成功。
-2025-10-01 08:43:31 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖露' (world_lore)...
-2025-10-01 08:43:31 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖露修道院的神蹟' (world_lore) 處理成功。
-2025-10-01 08:43:31 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '恩澤' (world_lore)...
-2025-10-01 08:43:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:43:35 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖軍' (world_lore) 處理成功。
-2025-10-01 08:43:35 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '魔女狩獵' (world_lore)...
-2025-10-01 08:43:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:43:37 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '規矩派系' (world_lore) 處理成功。
-2025-10-01 08:43:37 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖光明教會' (world_lore)...
-2025-10-01 08:43:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:43:43 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '快樂派系' (world_lore) 處理成功。
-2025-10-01 08:43:43 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '溝渠信仰' (world_lore)...
-2025-10-01 08:43:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:43:51 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖露' (world_lore) 處理成功。
-2025-10-01 08:43:51 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '神之權力' (world_lore)...
-2025-10-01 08:43:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:43:53 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '溝渠信仰' (world_lore) 處理成功。
-2025-10-01 08:43:53 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '神之規格' (world_lore)...
-2025-10-01 08:43:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:43:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:43:54 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '恩澤' (world_lore) 處理成功。
-2025-10-01 08:43:54 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '母畜' (world_lore)...
-2025-10-01 08:43:55 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '魔女狩獵' (world_lore) 處理成功。
-2025-10-01 08:43:55 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '母畜的價值性' (world_lore)...
-2025-10-01 08:43:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:43:57 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '神之權力' (world_lore) 處理成功。
-2025-10-01 08:43:57 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '母畜在宅邸的禮儀' (world_lore)...
-2025-10-01 08:43:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:43:59 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖光明教會' (world_lore) 處理成功。
-2025-10-01 08:43:59 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '聖殿守護者' (world_lore)...
-2025-10-01 08:44:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:44:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:44:06 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '母畜的價值性' (world_lore) 處理成功。
-2025-10-01 08:44:06 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '孝子' (world_lore)...
-2025-10-01 08:44:06 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '神之規格' (world_lore) 處理成功。
-2025-10-01 08:44:06 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '神學的勝利' (world_lore)...
-2025-10-01 08:44:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:44:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:44:07 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '聖殿守護者' (world_lore) 處理成功。
-2025-10-01 08:44:07 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '人心的勝利' (world_lore)...
-2025-10-01 08:44:08 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '母畜' (world_lore) 處理成功。
-2025-10-01 08:44:08 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '咆哮壁爐' (location_info)...
-2025-10-01 08:44:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:44:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:44:09 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '母畜在宅邸的禮儀' (world_lore) 處理成功。
-2025-10-01 08:44:09 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '武勇母畜' (world_lore)...
-2025-10-01 08:44:10 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '咆哮壁爐' (location_info) 處理成功。
-2025-10-01 08:44:10 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '技巧母畜' (world_lore)...
-2025-10-01 08:44:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-01 08:44:12 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '技巧母畜' (world_lore) 處理成功。
-2025-10-01 08:44:12 - [INFO] - [512280345618546699] [分布式 Worker] 開始處理實體 '皇家母畜' (world_lore)...
-2025-10-01 08:44:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:44:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-01 08:44:16 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '皇家母畜' (world_lore) 處理成功。
-2025-10-01 08:44:16 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '孝子' (world_lore) 處理成功。
-2025-10-01 08:44:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-01 08:44:18 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '神學的勝利' (world_lore) 處理成功。
-2025-10-01 08:44:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:44:18 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '人心的勝利' (world_lore) 處理成功。
-2025-10-01 08:44:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [分布式 Worker] ✅ 實體 '武勇母畜' (world_lore) 處理成功。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [RAG驱动解析 4/4] 正在合并所有 115 條实体解析流水线结果...
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [RAG驱动解析 4/4] ✅ 数据合并完成。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [後台創世 3/6] 專職流水線解析完成。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [後台創世 4/6] 正在將解析出的 LORE 結果持久化到資料庫...
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 64 個實體...
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86137 秒)。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 45554 秒)。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 49198 秒)。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 59121 秒)。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 54119 秒)。
-2025-10-01 08:44:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86073 秒)。
-2025-10-01 08:44:23 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 08:44:23 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 08:44:23 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 08:44:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #3.
-2025-10-01 08:44:57 - [INFO] - [512280345618546699] [實體解析] 成功生成解析計畫，包含 64 條決策。
-2025-10-01 08:45:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 9 個實體...
-2025-10-01 08:45:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'item_info' 類別處理 3 個實體...
-2025-10-01 08:45:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'quest' 類別處理 1 個實體...
-2025-10-01 08:45:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'world_lore' 類別處理 32 個實體...
-2025-10-01 08:45:13 - [INFO] - [512280345618546699] [後台創世 4/6] LORE 持久化完成。
-2025-10-01 08:45:13 - [INFO] - [512280345618546699] [後台創世 5/6] 正在補完使用者與 AI 的角色檔案...
-2025-10-01 08:45:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [後台創世 6/6] 正在生成世界創世資訊...
-2025-10-01 08:45:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-01 08:45:17 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 54064 秒)。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 86018 秒)。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86083 秒)。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 45500 秒)。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 49143 秒)。
-2025-10-01 08:45:17 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 59066 秒)。
-2025-10-01 08:45:17 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 08:45:17 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 08:45:17 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #1.
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [/start] 初始地點 '王都 > 城鎮市集區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [後台創世 7/7] 正在生成開場白...
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 85995 秒)。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 86059 秒)。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 45476 秒)。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 49120 秒)。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 59042 秒)。
-2025-10-01 08:45:41 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 54040 秒)。
-2025-10-01 08:45:41 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
-2025-10-01 08:45:41 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
-2025-10-01 08:45:41 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-01 08:45:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #2.
-2025-10-01 08:45:59 - [INFO] - [512280345618546699] [後台創世 7/7] 開場白生成完毕並發送...
-2025-10-01 08:46:00 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-01 08:46:00 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-01 16:15:28 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-01 16:15:28 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-01 16:15:31 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-01 16:15:31 - [INFO] - Discord Bot is ready!
-2025-10-01 16:15:34 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-01 16:15:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-01 16:15:34 - [INFO] - 已成功發送啟動成功通知給管理員。
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.744.reasoning
+  Field required [type=missing, input_value={'term': 'Dixie)', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.745.entity_name
+  Field required [type=missing, input_value={'term': '採買時', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.745.lore_category
+  Field required [type=missing, input_value={'term': '採買時', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.745.reasoning
+  Field required [type=missing, input_value={'term': '採買時', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.746.entity_name
+  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.746.lore_category
+  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.746.reasoning
+  Field required [type=missing, input_value={'term': '(Second', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.747.entity_name
+  Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.747.lore_category
+  Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.747.reasoning
+  Field required [type=missing, input_value={'term': '秘密滲透', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.748.entity_name
+  Field required [type=missing, input_value={'term': '關疾病', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.748.lore_category
+  Field required [type=missing, input_value={'term': '關疾病', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.748.reasoning
+  Field required [type=missing, input_value={'term': '關疾病', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.749.entity_name
+  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.749.lore_category
+  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.749.reasoning
+  Field required [type=missing, input_value={'term': '風雲人物', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.750.entity_name
+  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.750.lore_category
+  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.750.reasoning
+  Field required [type=missing, input_value={'term': '主人', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.751.entity_name
+  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.751.lore_category
+  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.751.reasoning
+  Field required [type=missing, input_value={'term': '近乎半透明...category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.752.entity_name
+  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.752.lore_category
+  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.752.reasoning
+  Field required [type=missing, input_value={'term': '設計師', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.753.entity_name
+  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.753.lore_category
+  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.753.reasoning
+  Field required [type=missing, input_value={'term': '與里斯', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.754.entity_name
+  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.754.lore_category
+  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.754.reasoning
+  Field required [type=missing, input_value={'term': '死而復生', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.755.entity_name
+  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.755.lore_category
+  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.755.reasoning
+  Field required [type=missing, input_value={'term': 'Deity', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.756.entity_name
+  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.756.lore_category
+  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.756.reasoning
+  Field required [type=missing, input_value={'term': 'Sophia)', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.757.entity_name
+  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.757.lore_category
+  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.757.reasoning
+  Field required [type=missing, input_value={'term': '老漢姆', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.758.entity_name
+  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.758.lore_category
+  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.758.reasoning
+  Field required [type=missing, input_value={'term': '仰慕', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.759.entity_name
+  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.759.lore_category
+  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.759.reasoning
+  Field required [type=missing, input_value={'term': 'Archbishop', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.760.entity_name
+  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.760.lore_category
+  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.760.reasoning
+  Field required [type=missing, input_value={'term': '王國', 'category': 'location_info'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.761.entity_name
+  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.761.lore_category
+  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.761.reasoning
+  Field required [type=missing, input_value={'term': '祭品', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.762.entity_name
+  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.762.lore_category
+  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.762.reasoning
+  Field required [type=missing, input_value={'term': '服從度', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.763.entity_name
+  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.763.lore_category
+  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.763.reasoning
+  Field required [type=missing, input_value={'term': '溝渠信仰', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.764.entity_name
+  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.764.lore_category
+  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.764.reasoning
+  Field required [type=missing, input_value={'term': '受虐', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.765.entity_name
+  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.765.lore_category
+  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.765.reasoning
+  Field required [type=missing, input_value={'term': '技巧母畜', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.766.entity_name
+  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.766.lore_category
+  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.766.reasoning
+  Field required [type=missing, input_value={'term': '埃德蒙三', ...ategory': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.767.entity_name
+  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.767.lore_category
+  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.767.reasoning
+  Field required [type=missing, input_value={'term': '窟這潭', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.768.entity_name
+  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.768.lore_category
+  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.768.reasoning
+  Field required [type=missing, input_value={'term': '獎賞', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.769.entity_name
+  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.769.lore_category
+  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.769.reasoning
+  Field required [type=missing, input_value={'term': '常理常倫', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.770.entity_name
+  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.770.lore_category
+  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.770.reasoning
+  Field required [type=missing, input_value={'term': '教儀式', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.771.entity_name
+  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.771.lore_category
+  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.771.reasoning
+  Field required [type=missing, input_value={'term': '顛覆性', 'category': 'world_lore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.772.entity_name
+  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.772.lore_category
+  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.772.reasoning
+  Field required [type=missing, input_value={'term': '母畜們', 'category': 'npc_profile'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.773.entity_name
+  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.773.lore_category
+  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+classifications.773.reasoning
+  Field required [type=missing, input_value={'term': '拉開', 'category': 'ignore'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 3/5] LORE 解析管線執行完畢。
+2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 4/5] 正在將解析出的 LORE 結果持久化到資料庫...
+2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 4/5] LORE 持久化完成。
+2025-10-01 16:18:18 - [INFO] - [512280345618546699] [後台創世 5/5] 正在補完角色檔案、生成世界並創作開場白...
+2025-10-01 16:18:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-01 16:18:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-01 16:18:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-01 16:18:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 18314 秒)。
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 21957 秒)。
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 31880 秒)。
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 26878 秒)。
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 58832 秒)。
+2025-10-01 16:18:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 58897 秒)。
+2025-10-01 16:18:23 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-10-01 16:18:23 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-10-01 16:18:23 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #4.
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [/start] 初始地點 '王都 > 城鎮市集區 > 咆哮壁爐酒館' 已成功生成並存入LORE。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-pro，剩餘 21928 秒)。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 31851 秒)。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-pro，剩餘 26849 秒)。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 58803 秒)。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-pro，剩餘 58868 秒)。
+2025-10-01 16:18:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-pro，剩餘 18285 秒)。
+2025-10-01 16:18:52 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-pro'，所有 API 金鑰當前都處於冷卻期。
+2025-10-01 16:18:52 - [WARNING] - [512280345618546699] 在模型 'gemini-2.5-pro' 的嘗試中，所有 API 金鑰均處於長期冷卻期。
+2025-10-01 16:18:52 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-pro' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
+2025-10-01 16:19:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash' with API Key #5.
+2025-10-01 16:19:15 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
