@@ -3195,7 +3195,7 @@ class ExtractionResult(BaseModel):
    # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
 # ai_core.py 的 get_lore_classification_prompt 函式 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。
+# v1.0 (2025-10-01): [重大架構升級] 根據「混合式兩階段解析」架構創建此 Prompt。它作為管線中的一個關鍵環節，負責接收由本地 NLP 提取出的、未經分類的實體候選列表，並利用 LLM 的語義理解能力，為每個候選詞分配一個準確的 LORE 類別，從而將 NLP 的「骨架」轉化為 LLM 可處理的「任務」。
     def get_lore_classification_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“分類決策”步驟設計的 Prompt 模板。"""
         prompt_template = """# TASK: 你是一位資深的世界觀編輯與 LORE 圖書管理員。
@@ -3226,6 +3226,7 @@ class ExtractionResult(BaseModel):
 # 【你的批量分類結果JSON】:
 """
         return prompt_template
+# ai_core.py 的 get_lore_classification_prompt 函式
 # 函式：獲取 LORE 分類器 Prompt
 
 
@@ -5693,6 +5694,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
