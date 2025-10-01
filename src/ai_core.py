@@ -3188,15 +3188,15 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v44.6 - 場景範疇界定)
-# ai_core.py 的 preprocess_and_generate 函式 (v44.7 - LORE 繼承注入)
+# 函式：預處理並生成主回應
+# ai_core.py 的 preprocess_and_generate 函式 (v44.9 - 終極 ainvoke 適配)
 # 更新紀錄:
-# v44.7 (2025-10-01): [重大架構升級] 根據 LORE 關聯需求，在此函式中增加了【LORE 繼承注入】的雙重保險邏輯。在 RAG 檢索之後，如果 `scene_rules_context` 仍為空，此函式會主動收集場景中所有角色的身份標籤，並使用 `lore_book.get_lores_by_template_keys` 進行反向查詢，將匹配到的規則（如「母畜的禮儀」）強制注入到上下文中。此修改確保了角色的行為能被其身份所對應的規則動態驅動。
-# v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。
-# v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
+# v44.9 (2025-10-01): [災難性BUG修復] 根據 `TypeError`，將此函式內部所有對 `ainvoke_with_rotation` 的調用（包括場景界定、導演決策和最終生成）徹底重構，使其完全適配 Tool Calling 範式下的新函式簽名（prompt_template, prompt_params）。此為確保 API 介面一致性的最終修正。
+# v44.8 (2025-10-01): [災難性BUG修復] 初步適配了新的 ainvoke 簽名。
+# v44.7 (2025-10-01): [重大架構升級] 增加了【LORE 繼承注入】的雙重保險邏輯。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.7重構) 執行包含「LORE繼承注入」、「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
+        (v44.9重構) 執行包含「LORE繼承注入」、「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
         返回純小說文本字串。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
@@ -3212,20 +3212,25 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
+        # --- 場景範疇界定 (Scene Scoping) ---
+        logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
         authoritative_location_path: List[str]
         try:
             location_extraction_prompt = self.get_scene_location_extraction_prompt()
-            full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
             location_result = await self.ainvoke_with_rotation(
-                full_prompt,
+                location_extraction_prompt,
+                {"user_input": user_input},
                 output_schema=SceneLocationExtraction,
                 models_to_try_override=[FUNCTIONAL_MODEL]
             )
             if location_result and location_result.has_explicit_location and location_result.location_path:
                 authoritative_location_path = location_result.location_path
+                logger.info(f"[{self.user_id}] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: {authoritative_location_path}")
             else:
                 authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+                logger.info(f"[{self.user_id}] [場景界定] 未檢測到使用者意圖地點，將使用當前遊戲狀態地點: {authoritative_location_path}")
         except Exception as e:
+            logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
             authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
@@ -3268,7 +3273,6 @@ class ExtractionResult(BaseModel):
 
         scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
         
-        # [v44.7 核心修正] LORE 繼承注入雙重保險
         if "無特殊規則" in scene_rules_context_str or "無特定的行為準則" in scene_rules_context_str:
             all_characters_in_scene = relevant_characters + background_characters
             if all_characters_in_scene:
@@ -3298,8 +3302,13 @@ class ExtractionResult(BaseModel):
         
         try:
             director_prompt_template = self.get_narrative_directive_prompt()
-            director_prompt = self._safe_format_prompt(director_prompt_template, director_context, inject_core_protocol=True)
-            directive = await self.ainvoke_with_rotation(director_prompt, output_schema=NarrativeDirective, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
+            directive = await self.ainvoke_with_rotation(
+                director_prompt_template, 
+                director_context, 
+                output_schema=NarrativeDirective, 
+                retry_strategy='none', 
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
         except Exception as e:
             if self.is_ollama_available:
                 directive = await self._invoke_local_ollama_director(director_context["relevant_characters_summary"], director_context["scene_rules_context"], director_context["user_input"])
@@ -3348,7 +3357,7 @@ class ExtractionResult(BaseModel):
 # 【警告】: 你是一位專業的小說擴寫作家。你的【唯一任務】，就是將下方這段由導演提供的【劇本大綱】，擴寫成一篇精彩、詳細、且符合所有背景設定的小說。
 # 你的所有創作都【必須】是為了實現這個劇本的核心情節。【絕對禁止】偏離、質疑或忽略此劇本。
 # ---
-# 【導演劇本】: {{director_scene_summary}}
+# 【導演劇本】: {director_scene_summary}
 # ---
 #
 # === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
@@ -3356,30 +3365,32 @@ class ExtractionResult(BaseModel):
 # 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
 #
 # ------------------------------------------------------------------------------
-# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{username}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 """
-        final_prompt_params = { 
-            "username": user_profile.name, 
-            "ai_name": ai_profile.name, 
-            "world_snapshot": world_snapshot_filled, 
-            "historical_context": raw_short_term_history, 
-            "director_scene_summary": directive.scene_summary_for_generation
-        }
         
         full_template = "\n".join([ 
             self.core_protocol_prompt, 
-            "{world_snapshot}", 
+            world_snapshot_filled, 
             "\n# --- 最新對話歷史 ---", 
-            "{historical_context}", 
+            raw_short_term_history, 
             style_mandate, 
             final_safeguard_template
         ])
-        full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
-
-        raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
+        
+        prompt_params = { 
+            "username": user_profile.name, 
+            "director_scene_summary": directive.scene_summary_for_generation
+        }
+        
+        raw_novel_output = await self.ainvoke_with_rotation(
+            full_template,
+            prompt_params,
+            retry_strategy='force', 
+            use_degradation=True
+        )
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
-        if raw_novel_output and raw_novel_output.strip():
+        if raw_novel_output and isinstance(raw_novel_output, str) and raw_novel_output.strip():
             novel_text = raw_novel_output.strip()
 
         final_novel_text = self._decode_lore_content(re.sub(r'^\s*[\*`\n]+|[\*`\n]+\s*$', '', novel_text.split("【", 1)[0]).strip(), self.DECODING_MAP)
@@ -3395,7 +3406,7 @@ class ExtractionResult(BaseModel):
         }
         
         return final_novel_text
-# ai_core.py 的 preprocess_and_generate 函式
+# 函式：預處理並生成主回應
 
 
 
@@ -5281,6 +5292,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
