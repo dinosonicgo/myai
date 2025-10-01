@@ -4303,9 +4303,9 @@ class ExtractionResult(BaseModel):
 
     
 
-    # ai_core.py 的 _invoke_local_ollama_validator 函式 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，創建此函式。它負責調用本地Ollama模型來執行身份交叉驗證的備援任務，確保在雲端API失敗時，驗證流程依然能夠繼續。
+# ai_core.py 的 _invoke_local_ollama_validator 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此函式。它負責在 `_programmatic_lore_validator` 的雲端 LLM 驗證失敗時，調用本地 Ollama 模型來執行身份交叉驗證的備援任務，確保驗證流程的最終健壯性。
     async def _invoke_local_ollama_validator(self, character_name: str, context_snippet: str, claimed_aliases: List[str]) -> Optional[List[str]]:
         """
         呼叫本地運行的 Ollama 模型來執行身份/別名交叉驗證的備援任務。
@@ -4342,13 +4342,11 @@ class ExtractionResult(BaseModel):
                     logger.warning(f"[{self.user_id}] [別名驗證-備援] 本地模型返回了空的 'response' 內容。")
                     return None
 
-                # 嘗試從模型的返回中提取Python列表
-                list_match = re.search(r'\[.*?\]', raw_response_text)
+                list_match = re.search(r'\[.*?\]', raw_response_text, re.DOTALL)
                 if not list_match:
                     logger.warning(f"[{self.user_id}] [別名驗證-備援] 未能在本地模型的回應中找到有效的列表結構。")
                     return None
                 
-                # 使用 ast.literal_eval 更安全地解析字符串列表
                 import ast
                 try:
                     validated_list = ast.literal_eval(list_match.group(0))
@@ -4364,6 +4362,7 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] [別名驗證-備援] 呼叫本地Ollama進行驗證時發生未知錯誤: {e}", exc_info=True)
             return None
+# ai_core.py 的 _invoke_local_ollama_validator 函式
     # 函式：呼叫本地Ollama模型進行別名驗證
 
 
@@ -5511,6 +5510,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
