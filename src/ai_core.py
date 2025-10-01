@@ -1,14 +1,7 @@
-# ai_core.py 的中文註釋(v300.0 - 原生SDK重構整合)
-# 更新紀錄:
-# v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。核心變更包括：徹底拋棄 LangChain 執行層，重構 ainvoke_with_rotation 為原生 SDK 引擎以確保安全閥值生效；將所有 get_..._chain 函式簡化為僅返回 PromptTemplate；並全面改造所有 LLM 呼叫點以適配新引擎。
-# v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
-# v225.2 (2025-11-16): [災難性BUG修復] 修正了 __init__ 的縮排錯誤。
 
-# ai_core.py 的中文註釋(v301.0 - 移除無用導入)
-# 更新紀錄:
-# v301.0 (2025-11-26): [灾难性BUG修复] 移除了對 `chromadb.errors.InternalError` 的導入。在新版 `chromadb` 中該錯誤類別已被移除，且程式碼中並未使用此導入，導致了啟動時的 ImportError。
-# v300.0 (2025-11-19): [根本性重構] 根據最新討論，提供了整合所有修正的完整檔案。
-# v232.0 (2025-11-19): [根本性重構] 徹底重寫 ainvoke_with_rotation，完全拋棄 LangChain 的執行層。
+
+【【【【目前 LangChain 的LLM調用有BUG無法應用安全閥值，LLM相關嚴禁使用LangChain】】】】
+
 
 import re
 import json
@@ -5423,6 +5416,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
