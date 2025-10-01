@@ -4539,215 +4539,111 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v4.0 - 引入五層降級備援)
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v5.0 - 終極混合式兩階段架構)
 # 更新紀錄:
-# v4.0 (2025-09-30): [災難性BUG修復] 根據 LORE 解析遭遇審查後直接失敗的問題，將此函式從一個簡單的單層調用，徹底重構為一個包含【五層降級策略】的終極健壯解析管線。新流程依次嘗試：1. 雲端宏觀解析 -> 2. 本地無審查解析 -> 3. 雲端安全代碼解析 -> 4. 混合NLP靶向精煉 -> 5. 法醫級關鍵詞重構。此修改確保了即使在最嚴苛的審查環境下，系統也能最大限度地嘗試還原 LORE 資訊，而不是直接放棄。
-# v3.9 (2025-09-30): [重大架構重構] 引入了【分塊處理 (Chunking)】機制。
-# v3.8 (2025-09-30): [災難性BUG修復] 對第一層（雲端宏觀解析）增加了前置安全代碼化。
+# v5.0 (2025-10-01): [災難性BUG修復] 根據 LORE 解析的根本性缺陷，徹底重構此函式，實現了終極的【混合式兩階段解析架構】。新流程首先通過本地 NLP 和規則（`_spacy_and_rule_based_entity_extraction`）快速生成實體骨架，然後為每個實體啟動一個由 RAG 驅動的、受 Semaphore 控制的並行精煉任務（`get_targeted_refinement_prompt`），最後再通過一個全新的校驗層（`_programmatic_lore_validator`）進行最終修正。此架構從根本上解決了性能、穩定性、資訊缺失和準確性四大問題。
+# v4.0 (2025-09-30): [災難性BUG修復] 引入了五層降級備援策略。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v4.0 核心 LORE 解析引擎】執行一個五層降級的、支持分塊處理的解析管線。
+        【v5.0 核心 LORE 解析引擎】執行一個混合式兩階段的、包含最終校驗的解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
             return False, None, []
 
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
-        chunks = text_splitter.split_text(text_to_parse)
+        # --- 階段一：混合 NLP 實體骨架提取 ---
+        logger.info(f"[{self.user_id}] [LORE 解析 1/5] 正在使用混合 NLP 在本地快速提取實體骨架...")
+        candidate_entities = await self._spacy_and_rule_based_entity_extraction(text_to_parse)
+        if not candidate_entities:
+            logger.warning(f"[{self.user_id}] [LORE 解析 1/5] 本地 NLP 未能提取任何候選實體，流程終止。")
+            return False, CanonParsingResult(), []
+        logger.info(f"[{self.user_id}] [LORE 解析 1/5] ✅ 本地 NLP 成功提取 {len(candidate_entities)} 個候選實體。")
+
+        # --- 階段二：LLM 實體分類 ---
+        logger.info(f"[{self.user_id}] [LORE 解析 2/5] 正在使用 LLM 對候選實體進行分類...")
+        classification_prompt = self.get_lore_classification_prompt()
+        class_full_prompt = self._safe_format_prompt(
+            classification_prompt,
+            {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": text_to_parse},
+            inject_core_protocol=True
+        )
+        try:
+            classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
+            if not classification_result or not classification_result.classifications:
+                raise ValueError("分類返回空結果")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [LORE 解析 2/5] 🔥 實體分類步驟失敗: {e}，流程終止。", exc_info=True)
+            return False, CanonParsingResult(), []
         
-        logger.info(f"[{self.user_id}] [LORE 解析] 已將世界聖經原文分割成 {len(chunks)} 個文本塊進行處理。")
+        tasks_to_run = [c for c in classification_result.classifications if c.lore_category != 'ignore']
+        logger.info(f"[{self.user_id}] [LORE 解析 2/5] ✅ 分類完成，確定 {len(tasks_to_run)} 個有效 LORE 創建任務。")
+        
+        # --- 階段三：靶向 LORE 精煉 (受控並行) ---
+        logger.info(f"[{self.user_id}] [LORE 解析 3/5] 正在啟動 RAG 驅動的靶向精煉器...")
+        temp_retriever = BM25Retriever.from_texts([text_to_parse])
+        temp_retriever.k = 5
+        
+        CONCURRENT_TASKS = 5
+        sem = asyncio.Semaphore(CONCURRENT_TASKS)
+        
+        pydantic_map = { "npc_profile": CharacterProfile, "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
+        refinement_prompt_template = self.get_targeted_refinement_prompt()
 
-        final_aggregated_result = CanonParsingResult()
-        all_successful_keys: List[str] = []
-        is_any_chunk_successful = False
-
-        def extract_keys_from_result(result: "CanonParsingResult") -> List[str]:
-            keys = []
-            if result.npc_profiles: keys.extend([p.name for p in result.npc_profiles if p.name])
-            if result.locations: keys.extend([l.name for l in result.locations if l.name])
-            if result.items: keys.extend([i.name for i in result.items if i.name])
-            if result.creatures: keys.extend([c.name for c in result.creatures if c.name])
-            if result.quests: keys.extend([q.name for q in result.quests if q.name])
-            if result.world_lores: keys.extend([w.name for w in result.world_lores if w.name])
-            return keys
-            
-        def merge_results(target: CanonParsingResult, source: CanonParsingResult):
-            if source.npc_profiles: target.npc_profiles.extend(source.npc_profiles)
-            if source.locations: target.locations.extend(source.locations)
-            if source.items: target.items.extend(source.items)
-            if source.creatures: target.creatures.extend(source.creatures)
-            if source.quests: target.quests.extend(source.quests)
-            if source.world_lores: target.world_lores.extend(source.world_lores)
-
-        for i, chunk in enumerate(chunks):
-            logger.info(f"[{self.user_id}] [LORE 解析] 正在處理文本塊 {i+1}/{len(chunks)}...")
-            
-            parsing_completed = False
-            chunk_parsing_result: Optional["CanonParsingResult"] = None
-
-            # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
-            try:
-                if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] 正在嘗試【理想方案：雲端宏觀解析】...")
-                    transformation_template = self.get_canon_transformation_chain()
-                    full_prompt = self._safe_format_prompt(
-                        transformation_template,
-                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+        async def refine_task(classification: LoreClassificationResult):
+            async with sem:
+                try:
+                    target_schema = pydantic_map.get(classification.lore_category)
+                    if not target_schema: return None
+                    
+                    context_docs = await temp_retriever.ainvoke(classification.entity_name)
+                    context = "\n---\n".join([doc.page_content for doc in context_docs])
+                    
+                    refinement_prompt = self._safe_format_prompt(
+                        refinement_prompt_template,
+                        {
+                            "entity_name": classification.entity_name,
+                            "lore_category": classification.lore_category,
+                            "pydantic_schema_str": json.dumps(target_schema.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
+                            "context": context
+                        },
                         inject_core_protocol=True
                     )
-                    parsing_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='euphemize' # 使用委婉化備援
-                    )
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] ✅ 成功！")
-                        chunk_parsing_result = parsing_result
-                        parsing_completed = True
-            except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] 遭遇內容審查，正在降級...")
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
-
-            # --- 層級 2: 【本地備援方案】無審查解析 (Ollama Llama 3.1) ---
-            if not parsing_completed and self.is_ollama_available:
-                try:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] 正在嘗試【本地備援方案：無審查解析】...")
-                    parsing_result = await self._invoke_local_ollama_parser(chunk)
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] ✅ 成功！")
-                        chunk_parsing_result = parsing_result
-                        parsing_completed = True
-                    else:
-                        logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] 本地模型未能成功解析，正在降級...")
+                    refined_obj = await self.ainvoke_with_rotation(refinement_prompt, output_schema=target_schema, retry_strategy='euphemize')
+                    return classification.lore_category, refined_obj
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/5] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
-            
-            # --- 層級 3: 【安全代碼方案】雲端無害化解析 (Gemini) ---
-            try:
-                if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] 正在嘗試【安全代碼方案：雲端無害化解析】...")
-                    sanitized_chunk = chunk
-                    reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-                    for code, word in reversed_map:
-                        sanitized_chunk = sanitized_chunk.replace(word, code)
+                    logger.error(f"[{self.user_id}] [LORE 解析 3/5] 🔥 精煉實體 '{classification.entity_name}' 時失敗: {e}", exc_info=True)
+                    return None
 
-                    sanitized_parser_template = self.get_sanitized_text_parser_chain()
-                    full_prompt = self._safe_format_prompt(
-                        sanitized_parser_template, {"sanitized_canon_text": sanitized_chunk}, inject_core_protocol=True
-                    )
-                    parsing_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=CanonParsingResult, retry_strategy='none' # 安全模式下不應再有審查，失敗就是失敗
-                    )
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] ✅ 成功！")
-                        chunk_parsing_result = parsing_result
-                        parsing_completed = True
-            except Exception as e:
-                 logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-3/5] 安全代碼方案遭遇未知錯誤: {e}", exc_info=True)
+        tasks = [refine_task(c) for c in tasks_to_run]
+        refined_results = await asyncio.gather(*tasks)
 
-
-            # --- 層級 4: 【混合 NLP 方案】靶向精煉 (Gemini + spaCy) ---
-            try:
-                if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-4/5] 正在嘗試【混合 NLP 方案：靶向精煉】...")
-                    
-                    candidate_entities = await self._spacy_and_rule_based_entity_extraction(chunk)
-                    if not candidate_entities:
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-4/5] 本地 NLP 未能提取任何候選實體，跳過此層。")
-                    else:
-                        classification_prompt = self.get_lore_classification_prompt()
-                        class_full_prompt = self._safe_format_prompt(
-                            classification_prompt,
-                            {"candidate_entities_json": json.dumps(list(candidate_entities), ensure_ascii=False), "context": chunk},
-                            inject_core_protocol=True
-                        )
-                        classification_result = await self.ainvoke_with_rotation(class_full_prompt, output_schema=BatchClassificationResult)
-                        
-                        if classification_result and classification_result.classifications:
-                            tasks = []
-                            pydantic_map = { "npc_profile": CharacterProfile, "location_info": LocationInfo, "item_info": ItemInfo, "creature_info": CreatureInfo, "quest": Quest, "world_lore": WorldLore }
-                            refinement_prompt_template = self.get_targeted_refinement_prompt()
-                            
-                            for classification in classification_result.classifications:
-                                if classification.lore_category != 'ignore':
-                                    target_schema = pydantic_map.get(classification.lore_category)
-                                    if not target_schema: continue
-                                    
-                                    refinement_prompt = self._safe_format_prompt(
-                                        refinement_prompt_template,
-                                        {
-                                            "entity_name": classification.entity_name,
-                                            "lore_category": classification.lore_category,
-                                            "pydantic_schema_str": json.dumps(target_schema.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
-                                            "context": chunk
-                                        },
-                                        inject_core_protocol=True
-                                    )
-                                    tasks.append(
-                                        self.ainvoke_with_rotation(refinement_prompt, output_schema=target_schema, retry_strategy='none')
-                                    )
-                            
-                            if tasks:
-                                refined_results = await asyncio.gather(*tasks, return_exceptions=True)
-                                aggregated_result = CanonParsingResult()
-                                for res_idx, result in enumerate(refined_results):
-                                    if not isinstance(result, Exception) and result:
-                                        category = classification_result.classifications[res_idx].lore_category
-                                        if category == 'npc_profile': aggregated_result.npc_profiles.append(result)
-                                        elif category == 'location_info': aggregated_result.locations.append(result)
-                                        elif category == 'item_info': aggregated_result.items.append(result)
-                                        elif category == 'creature_info': aggregated_result.creatures.append(result)
-                                        elif category == 'quest': aggregated_result.quests.append(result)
-                                        elif category == 'world_lore': aggregated_result.world_lores.append(result)
-                                
-                                if aggregated_result.model_dump(exclude_none=True, exclude_defaults=True):
-                                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-4/5] ✅ 成功！")
-                                    chunk_parsing_result = aggregated_result
-                                    parsing_completed = True
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-4/5] 混合 NLP 方案遭遇未知錯誤: {e}", exc_info=True)
-
-            # --- 層級 5: 【法醫級重構方案】終極備援 (Gemini) ---
-            try:
-                if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-5/5] 正在嘗試【法醫級重構方案】...")
-                    keywords = set()
-                    for word in self.DECODING_MAP.values():
-                        if word in chunk: keywords.add(word)
-                    
-                    protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
-                    try:
-                        nlp = spacy.load('zh_core_web_sm')
-                        doc = nlp(chunk)
-                        for ent in doc.ents:
-                            if ent.label_ == 'PERSON' and ent.text not in protagonist_names:
-                                keywords.add(ent.text)
-                    except Exception: pass
-                    
-                    if keywords:
-                        reconstruction_template = self.get_forensic_lore_reconstruction_chain()
-                        full_prompt = self._safe_format_prompt(
-                            reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=False
-                        )
-                        parsing_result = await self.ainvoke_with_rotation(
-                            full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
-                        )
-                        if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
-                            logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-5/5] ✅ 成功！")
-                            chunk_parsing_result = parsing_result
-                            parsing_completed = True
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-5/5] 最終備援方案遭遇未知錯誤: {e}", exc_info=True)
-
-
-            if parsing_completed and chunk_parsing_result:
-                is_any_chunk_successful = True
-                merge_results(final_aggregated_result, chunk_parsing_result)
-                all_successful_keys.extend(extract_keys_from_result(chunk_parsing_result))
-            else:
-                logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
+        # --- 階段四：初步數據合併 ---
+        logger.info(f"[{self.user_id}] [LORE 解析 4/5] 正在進行初步數據合併...")
+        initial_parsing_result = CanonParsingResult()
+        for result in refined_results:
+            if result:
+                category, obj = result
+                if category == 'npc_profile': initial_parsing_result.npc_profiles.append(obj)
+                elif category == 'location_info': initial_parsing_result.locations.append(obj)
+                elif category == 'item_info': initial_parsing_result.items.append(obj)
+                elif category == 'creature_info': initial_parsing_result.creatures.append(obj)
+                elif category == 'quest': initial_parsing_result.quests.append(obj)
+                elif category == 'world_lore': initial_parsing_result.world_lores.append(obj)
         
-        return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線
+        # --- 階段五：最終校驗與合併 ---
+        logger.info(f"[{self.user_id}] [LORE 解析 5/5] 正在啟動最終的程式化校驗與合併層...")
+        final_parsing_result = await self._programmatic_lore_validator(initial_parsing_result, text_to_parse)
+        
+        successful_keys = []
+        for category_list in final_parsing_result.model_dump().values():
+            for item in category_list:
+                successful_keys.append(item.get('name') or item.get('title'))
+
+        logger.info(f"[{self.user_id}] [LORE 解析] ✅ 終極混合式管線執行完畢。")
+        return True, final_parsing_result, successful_keys
+# ai_core.py 的 _execute_lore_parsing_pipeline 函式
+
+                            
 
 
 
@@ -5692,6 +5588,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
