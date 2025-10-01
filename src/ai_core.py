@@ -4368,9 +4368,9 @@ class ExtractionResult(BaseModel):
 
     
 
-    # ai_core.py 的 get_local_alias_validator_prompt 函式 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-28): [全新創建] 根據「混合式安全驗證」策略，為本地小型LLM創建一個指令更簡單、更直接的備援Prompt模板，用於在雲端驗證失敗時執行交叉驗證任務。
+# ai_core.py 的 get_local_alias_validator_prompt 函式 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-01): [重大架構升級] 根據「程式化校驗」需求創建此 Prompt。它為本地小型 LLM 提供了一個簡單、直接的指令，作為 `_invoke_local_ollama_validator` 的核心，用於在雲端驗證失敗時執行交叉驗證的備援任務。
     def get_local_alias_validator_prompt(self) -> str:
         """獲取為本地LLM設計的、指令簡化的、用於交叉驗證角色別名/身份的備援Prompt模板。"""
         
@@ -4383,7 +4383,10 @@ class ExtractionResult(BaseModel):
 # FINAL_LIST_OUTPUT:
 """
         return prompt_template
-    # 函式：獲取本地別名交叉驗證器Prompt (本地專用)
+# ai_core.py 的 get_local_alias_validator_prompt 函式
+
+
+    
 
 
 # ai_core.py 的 _parse_canon_structure 和 _force_calibrate_identities 函式 (v2.0 - 已廢棄)
@@ -5510,6 +5513,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
