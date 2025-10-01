@@ -3193,41 +3193,73 @@ class ExtractionResult(BaseModel):
 
 
    # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_lore_classification_prompt 函式 (v1.0 - 全新創建)
+# ai_core.py 的 get_lore_classification_prompt 函式 (v1.1 - 強化指令與範例)
 # 更新紀錄:
-# v1.0 (2025-10-01): [重大架構升級] 根據「混合式兩階段解析」架構創建此 Prompt。它作為管線中的一個關鍵環節，負責接收由本地 NLP 提取出的、未經分類的實體候選列表，並利用 LLM 的語義理解能力，為每個候選詞分配一個準確的 LORE 類別，從而將 NLP 的「骨架」轉化為 LLM 可處理的「任務」。
+# v1.1 (2025-10-01): [災難性BUG修復] 根據 ValidationError，對此 Prompt 進行了終極強化。新版本在 Prompt 中直接嵌入了目標 Pydantic 模型的完整定義，並增加了一個結構完美的【輸出結構範例】。此修改為 LLM 提供了一個清晰的模仿目標和嚴格的結構契約，旨在從根本上解決因模型隨意命名 JSON 鍵而導致的驗證失敗問題。
+# v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步核心。
     def get_lore_classification_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“分類決策”步驟設計的 Prompt 模板。"""
-        prompt_template = """# TASK: 你是一位資深的世界觀編輯與 LORE 圖書管理員。
+        
+        pydantic_definitions = """
+class LoreClassificationResult(BaseModel):
+    entity_name: str = Field(description="原始的候選實體詞語。")
+    lore_category: Literal['npc_profile', 'location_info', 'item_info', 'creature_info', 'quest', 'world_lore', 'ignore'] = Field(description="該實體最適合的 LORE 類別。")
+    reasoning: str = Field(description="做出此分類的簡短理由。")
+
+class BatchClassificationResult(BaseModel):
+    classifications: List[LoreClassificationResult]
+"""
+        
+        prompt_template = f"""# TASK: 你是一位資深的世界觀編輯與 LORE 圖書管理員。
 # MISSION: 你的任務是接收一份由初級工具提取的【潛在 LORE 候選列表】，並根據【完整的上下文】對列表中的【每一個詞】進行專業的審核與分類。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1. **【分類強制令】**: 你【必須】為輸入列表中的【每一個】候選詞做出判斷，並將其歸類到以下六個 LORE 類別之一或標記為忽略：
-#    - `npc_profile`: 明確的人物角色。
-#    - `location_info`: 明確的地理位置、建築或區域。
-#    - `item_info`: 明確的物品、道具或裝備。
-#    - `creature_info`: 明確的生物或物種。
-#    - `quest`: 明確的任務、目標或事件。
-#    - `world_lore`: 抽象的概念、傳說、歷史背景或組織。
-#    - `ignore`: 無關緊要的普通名詞、形容詞、無法識別的詞語或不值得記錄的實體。
-# 2. **【上下文依據】**: 你的所有分類判斷【必須】基於下方提供的【上下文】。例如，如果“虛空之心”在上下文中被描述為一顆寶石，則應分類為 `item_info`；如果是一段傳說，則為 `world_lore`。
-# 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchClassificationResult` Pydantic 模型的JSON物件。`classifications` 列表必須包含對【所有】輸入候選詞的處理結果。
+# 1. **【分類強制令】**: 你【必須】為輸入列表中的【每一個】候選詞做出判斷，並將其歸類到以下七個類別之一。
+# 2. **【上下文依據】**: 你的所有分類判斷【必須】基於下方提供的【上下文】。
+# 3. **【結構強制令】**: 你的最終輸出【必須】是一個純淨的JSON物件，其結構【必須】完美匹配下方的 `BatchClassificationResult` Pydantic 模型定義。**鍵名必須完全一致！**
+
+# === 【【【目標 Pydantic 模型 (你的輸出必須嚴格匹配此結構)】】】 ===
+# ```python
+{pydantic_definitions}
+# ```
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {{
+#   "classifications": [
+#     {{
+#       "entity_name": "米婭",
+#       "lore_category": "npc_profile",
+#       "reasoning": "上下文中明確描述了這是一個名叫米婭的角色。"
+#     }},
+#     {{
+#       "entity_name": "母畜的禮儀",
+#       "lore_category": "world_lore",
+#       "reasoning": "這是一段描述行為規範的抽象規則，屬於世界傳說。"
+#     }},
+#     {{
+#       "entity_name": "一個",
+#       "lore_category": "ignore",
+#       "reasoning": "這是一個量詞，不是有效的 LORE 實體。"
+#     }}
+#   ]
+# }}
+# ```
 
 # --- [INPUT DATA] ---
 
 # 【潛在 LORE 候選列表】:
-{candidate_entities_json}
+{{candidate_entities_json}}
 
 # ---
 # 【上下文 (你的唯一事實來源)】:
-{context}
+{{context}}
 
 # ---
 # 【你的批量分類結果JSON】:
 """
         return prompt_template
 # ai_core.py 的 get_lore_classification_prompt 函式
-# 函式：獲取 LORE 分類器 Prompt
 
 
 
@@ -5513,6 +5545,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
