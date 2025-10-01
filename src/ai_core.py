@@ -1259,11 +1259,11 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
     
 
 # 函式：帶輪換和備援策略的 API 調用引擎
-# ai_core.py 的 ainvoke_with_rotation 函式 (v301.4 - 繞過 whichOneof Bug)
+# ai_core.py 的 ainvoke_with_rotation 函式 (v301.5 - JSON 模式備援)
 # 更新紀錄:
-# v301.4 (2025-10-01): [災難性BUG修復] 根據 `AttributeError: whichOneof`，重寫了對模型響應的文本提取邏輯。新邏輯不再直接訪問可能觸發 SDK 內部 Bug 的 `.text` 屬性，而是通過手動遍歷 `response.candidates[0].content.parts` 並檢查 `part.text` 是否存在，來安全地獲取返回的文本內容。此修改從根本上繞過了因 `protobuf` 版本不兼容導致的 SDK 內部錯誤。
+# v301.5 (2025-10-01): [災難性BUG修復] 根據 OutputParserException，為 Tool Calling 模式增加了【JSON 模式備援】。當 Tool Calling 因 LLM 未返回工具呼叫而失敗時，此函式會自動捕獲異常，並立即使用 Google 原生 SDK 的「JSON 模式」發起一次備援請求。此修改為 LLM 的不確定行為提供了一個強大的快速失敗轉移機制，極大地提高了結構化輸出的成功率和健壯性。
+# v301.4 (2025-10-01): [災難性BUG修復] 繞過了 `response.text` 屬性中的 `whichOneof` Bug。
 # v301.3 (2025-10-01): [災難性BUG修復] 修正了 Google 原生 SDK 的 Tool Calling 參數傳遞方式和異常捕獲。
-# v301.2 (2025-10-01): [健壯性] 移除了對 `FinishReason` Enum 的直接依賴。
     async def ainvoke_with_rotation(
         self,
         prompt_template: str,
@@ -1273,7 +1273,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
         use_degradation: bool = False
     ) -> Any:
         """
-        [原生 SDK 核心] 整合了金鑰輪換、模型降級和手動 Tool Calling 的原生 API 調用引擎。
+        [原生 SDK 核心 v3] 整合了金鑰輪換、模型降級、手動 Tool Calling 以及 JSON 模式備援的 API 調用引擎。
         """
         import google.generativeai as genai
         
@@ -1338,10 +1338,7 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
 
                         if is_tool_call_expected and schema_to_bind:
                             if not hasattr(candidate, 'function_calls') or not candidate.function_calls:
-                                # [v301.4 核心修正] 安全地提取文本內容以繞過 Bug
-                                returned_text = ""
-                                if candidate.content and candidate.content.parts:
-                                    returned_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
+                                returned_text = "".join(part.text for part in candidate.content.parts if hasattr(part, 'text'))
                                 raise OutputParserException(f"Model returned text but a structured output was expected. Text: {returned_text[:200]}...")
 
                             tool_calls = candidate.function_calls
@@ -1361,7 +1358,36 @@ class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; descripti
                         logger.warning(f"[{self.user_id}] 內容被阻擋，嘗試輪換金鑰/模型...")
                         break
 
-                    except (OutputParserException, ValidationError, GoogleAPICallError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
+                    except OutputParserException as ope:
+                        last_exception = ope
+                        logger.warning(f"[{self.user_id}] [Tool Calling] 失敗 ({ope})。正在自動降級到【JSON 模式】重試...")
+                        try:
+                            # [v301.5 核心修正] JSON 模式備援
+                            json_schema_str = json.dumps(schema_to_bind.model_json_schema(), ensure_ascii=False, indent=2)
+                            json_prompt = f"{full_prompt}\n\n# 輸出格式強制令\n你的輸出必須是一個符合以下 JSON Schema 的、純淨的 JSON 字符串。不要包含任何 markdown 標記。\n```json\n{json_schema_str}\n```"
+                            
+                            response = await model.generate_content_async(
+                                json_prompt,
+                                generation_config=genai.types.GenerationConfig(
+                                    temperature=0.1,
+                                    response_mime_type="application/json"
+                                )
+                            )
+                            
+                            json_text = response.text
+                            if is_list_schema:
+                                # 如果期望列表，Pydantic可以直接驗證
+                                parsed_json = json.loads(json_text)
+                                return [schema_to_bind.model_validate(item) for item in parsed_json]
+                            else:
+                                return schema_to_bind.model_validate_json(json_text)
+
+                        except Exception as json_e:
+                            logger.error(f"[{self.user_id}] [JSON 模式備援] 🔥 最終失敗: {json_e}", exc_info=False)
+                            # JSON 模式失敗後，不再進行內部重試，直接輪換金鑰
+                            break
+
+                    except (ValidationError, GoogleAPICallError, asyncio.TimeoutError, GoogleGenerativeAIError) as e:
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             if "MAX_TOKENS" in str(e):
@@ -5346,6 +5372,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
