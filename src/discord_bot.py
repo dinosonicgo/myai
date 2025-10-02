@@ -1122,76 +1122,69 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-    # 函式：執行完整的後台創世流程
+# 函式：执行完整的后台创世流程 (v62.0 - 纯向量RAG简化)
+# 更新纪录:
+# v62.0 (2025-10-02): [根本性重构] 根据“纯向量RAG优先”的最终策略，彻底简化了创世流程。此版本废除了在创世时执行的、所有复杂且耗时的LORE解析管线。取而代之的是，它直接将用户提供的世界圣经原文切块，并调用 `_load_or_build_rag_retriever` 的 `docs_to_build` 模式，来创建一个纯净、高效的向量RAG索引。所有结构化LORE的生成完全推迟到对话过程中的事后分析中动态完成。
+# v61.0 (2025-10-02): [灾难性BUG修复] 根据“串行化”原则，再次彻底重构了创世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
+        """(v62.0) 一个独立的、以纯向量RAG为核心的简化版后台创世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
+            logger.info(f"[{user_id}] [创世流程 v62.0] 纯向量RAG简化版流程已启动。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
-                logger.error(f"[{user_id}] 在後台創世流程中，AI核心初始化失敗。")
-                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+                await user.send("❌ 错误：无法初始化您的 AI 核心以进行创世。")
                 return
 
-            # [v61.0 核心重構] 遵循絕對正確的【串行】執行時序
-
-            # --- 步驟 1: LORE 智能解析 (僅寫入 SQL) ---
-            if canon_text:
-                logger.info(f"[{user_id}] [後台創世 1/7] 正在進行 LORE 智能解析並存入 SQL...")
-                await ai_instance.parse_and_create_lore_from_canon(canon_text)
-                logger.info(f"[{user_id}] [後台創世 1/7] LORE 智能解析已同步完成，數據已存入 SQL。")
-            
-            # --- 步驟 2: 補完角色檔案 (基於 SQL 數據) ---
-            logger.info(f"[{user_id}] [後台創世 2/7] 正在補完角色檔案...")
+            # --- 步骤 1: 补完角色档案 ---
+            logger.info(f"[{user_id}] [后台创世 1/4] 正在补完角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步驟 3: RAG 索引全量創始構建 (包含所有粗略LORE) ---
-            logger.info(f"[{user_id}] [後台創世 3/7] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...")
-            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
-            logger.info(f"[{user_id}] [後台創世 3/7] RAG 索引全量創始構建完成。")
+            # --- 步骤 2: 准备用于RAG构建的文档 ---
+            docs_for_rag = []
+            if canon_text and canon_text.strip():
+                logger.info(f"[{user_id}] [后台创世 2/4] 正在将世界圣经原文分割成文档...")
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+                docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
+                logger.info(f"[{user_id}] [后台创世 2/4] 世界圣经已分割为 {len(docs_for_rag)} 个文档。")
+            else:
+                logger.info(f"[{user_id}] [后台创世 2/4] 未提供世界圣经，将创建一个空的 RAG 索引。")
 
-            # --- 步驟 4: 將聖經原文寫入【已創建的】RAG 索引 ---
-            if canon_text:
-                 logger.info(f"[{user_id}] [後台創世 4/7] 正在將聖經原文寫入已構建的 RAG 索引...")
-                 await ai_instance.add_canon_to_vector_store(canon_text)
-                 logger.info(f"[{user_id}] [後台創世 4/7] 聖經原文寫入 RAG 完成。")
-
-            # --- 步驟 5: 【同步】執行 LORE 深度精煉 (此時 RAG 已就緒) ---
-            if canon_text:
-                logger.info(f"[{user_id}] [後台創世 5/7] 正在同步執行 LORE 深度精煉...")
-                await ai_instance._background_lore_refinement(canon_text)
-                logger.info(f"[{user_id}] [後台創世 5/7] LORE 深度精煉完成。")
-
-            # --- 步驟 6: 生成世界創世資訊 ---
-            logger.info(f"[{user_id}] [後台創世 6/7] 正在生成世界創世資訊...")
-            await ai_instance.generate_world_genesis(canon_text=canon_text)
+            # --- 步骤 3: RAG 索引纯向量创始构建 ---
+            logger.info(f"[{user_id}] [后台创世 3/4] 正在触发 RAG 索引纯向量创始构建...")
+            await ai_instance._load_or_build_rag_retriever(docs_to_build=docs_for_rag if docs_for_rag else [])
+            logger.info(f"[{user_id}] [后台创世 3/4] 纯向量 RAG 索引构建完成。")
             
-            # --- 步驟 7: 生成開場白 ---
-            logger.info(f"[{user_id}] [後台創世 7/7] 正在生成開場白...")
+            # --- 步骤 4: 生成开场白 (现在将依赖纯RAG) ---
+            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
+            # 我们不再需要 generate_world_genesis，因为初始地点可以由开场白根据RAG内容决定
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [後台創世 7/7] 開場白生成完毕。")
+            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
 
-            # --- 最終步驟: 發送開場白並清理 ---
+            # --- 最终步骤: 发送开场白并清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
-            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
+            logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
             for i in range(0, len(opening_scene), 2000):
                 await user.send(opening_scene[i:i+2000])
-            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
+            logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 后台创世流程发生严重错误: {e}", exc_info=True)
             try:
-                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
+                await user.send(f"❌ **创世失败**：在后台执行时发生了未预期的严重错误: `{e}`")
             except discord.errors.HTTPException as send_e:
                  logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
             self.active_setups.discard(user_id)
-            logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-    # 函式：執行完整的後台創世流程
+            logger.info(f"[{user_id}] 后台创世流程结束，狀態鎖已釋放。")
+# 函式：执行完整的后台创世流程 (v62.0 - 纯向量RAG简化)
+
+
+
+    
 
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
@@ -1371,34 +1364,64 @@ class BotCog(commands.Cog):
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # 函式：監聽並處理所有符合條件的訊息
 
-    # 函式：在背景處理世界聖經文本
+# 函式：在背景处理世界圣经文本 (v2.0 - 纯向量RAG简化)
+# 更新纪录:
+# v2.0 (2025-10-02): [根本性重构] 根据“纯向量RAG优先”策略，彻底重写了此函式。它不再执行复杂的LORE解析，而是触发一个与 `/admin_pure_rag_rebuild` 类似的、破坏性的重建流程：1. 彻底清除用户的所有LORE和RAG数据。2. 仅使用新上传的文本文件，构建一个纯净的向量RAG索引。这确保了世界圣经始终是RAG知识库的唯一、最新的“真理之源”。
+# v1.0 (原版)
     async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+        """(v2.0) 彻底清除旧数据，并仅使用提供的文本内容重建一个纯向量RAG索引。"""
         user_id = str(interaction.user.id)
         user = self.bot.get_user(interaction.user.id) or await self.bot.fetch_user(interaction.user.id)
+        
+        # 如果是在 /start 流程中被调用，则转交总流程处理，避免重复操作
+        if is_setup_flow:
+            logger.info(f"[{user_id}] [Process Canon] 检测到处于 setup_flow，转交至 _perform_full_setup_flow 统一处理。")
+            asyncio.create_task(self._perform_full_setup_flow(user=user, canon_text=content_text))
+            return
+
         try:
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
+            await user.send("⏳ **收到新的世界圣经！** 正在为您执行彻底的知识库重建流程，这将清除所有旧的 LORE 和记忆...")
+
+            # --- 步骤 1: 彻底清理 ---
+            logger.warning(f"[{user_id}] [Process Canon] 正在为使用者彻底清除所有现有数据...")
+            if user_id in self.ai_instances:
+                await self.ai_instances[user_id].shutdown()
+                del self.ai_instances[user_id]
+                gc.collect()
+            
+            async with AsyncSessionLocal() as session:
+                await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
+                await session.execute(delete(Lore).where(Lore.user_id == user_id))
+                await session.commit()
+            
+            vector_store_path = Path(f"./data/vector_stores/{user_id}")
+            if vector_store_path.exists():
+                await self._robust_rmtree(vector_store_path)
+            
+            logger.info(f"[{user_id}] [Process Canon] 数据清理完成。")
+
+            # --- 步骤 2: 纯粹的 RAG 构建 ---
+            ai_instance = await self.get_or_create_ai_instance(user_id)
             if not ai_instance:
-                await user.send("❌ **處理失敗！** 無法初始化您的 AI 核心，請嘗試重新 `/start`。")
-                return
-            if len(content_text) > 5000:
-                await user.send("⏳ **請注意：**\n您提供的世界聖經內容較多，處理可能需要 **幾分鐘** 的時間，請耐心等候最終的「智能解析完成」訊息。")
-            
-            chunk_count = await ai_instance.add_canon_to_vector_store(content_text)
-            
-            if is_setup_flow:
-                await interaction.followup.send("✅ 世界聖經已提交！正在為您啟動最終創世...", ephemeral=True)
-                asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
+                await user.send("❌ **重建失败！** 在清理后无法重新初始化 AI 實例。")
                 return
 
-            await user.send(f"✅ **世界聖經已向量化！**\n內容已被分解為 **{chunk_count}** 個知識片段。\n\n🧠 AI 正在進行終極智能解析，將其轉化為結構化的 LORE 數據庫...")
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+            docs_for_rag = text_splitter.create_documents([content_text], metadatas=[{"source": "canon"} for _ in [content_text]])
             
-            await ai_instance.parse_and_create_lore_from_canon(content_text)
+            logger.info(f"[{user_id}] [Process Canon] 圣经已分割为 {len(docs_for_rag)} 个文档，正在构件纯向量索引...")
             
-            await user.send("✅ **智能解析完成！**\n您的世界聖經已成功轉化為 AI 的核心知識。您現在可以使用 `/admin_check_lore` (需管理員權限) 或其他方式來驗證 LORE 條目。")
+            await ai_instance._load_or_build_rag_retriever(docs_to_build=docs_for_rag)
+
+            await user.send(f"✅ **知识库重建成功！**\n您的世界已完全基于新的圣经文本构建了一个包含 **{len(docs_for_rag)}** 个知识片段的纯向量 RAG 知识库。")
+
         except Exception as e:
-            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
-            await user.send(f"❌ **處理失敗！**\n發生了嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌以獲取詳細資訊。")
-    # 函式：在背景處理世界聖經文本
+            logger.error(f"[{user_id}] 背景处理世界圣经时发生错误: {e}", exc_info=True)
+            await user.send(f"❌ **处理失败！**\n发生了严重错误: `{type(e).__name__}`\n请检查后台日志以获取详细资讯。")
+# 函式：在背景处理世界圣经文本 (v2.0 - 纯向量RAG简化)
+
+
+    
 
     # 函式：健壯的異步目錄刪除
     async def _robust_rmtree(self, path: Path, retries: int = 10, delay: float = 1.0):
@@ -2083,6 +2106,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
