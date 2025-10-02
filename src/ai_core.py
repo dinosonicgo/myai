@@ -2838,23 +2838,17 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v4.0 - spaCy程式化歸因)
+# 函式：背景LORE精煉 (v5.0 - RAG驅動單體精煉)
 # 更新紀錄:
-# v4.0 (2025-10-02): [根本性重構] 根據「程式化依賴剖析」終極策略，徹底重寫此函式。新流程以 spaCy 為核心，取代了不可靠的 LLM 屬性提取。流程變為：1. 分批並為每個角色聚合 RAG 上下文。2. **【核心】** 使用 spaCy 的依賴剖析功能，在本地對上下文進行語法分析，精確地將身份、描述等信息歸因到正確的角色主體上，從根源上杜絕「上下文關聯性幻覺」。3. 將 spaCy 處理後的、乾淨的結構化數據點發送給 LLM，使其任務降級為簡單的語言潤色和總結。
-# v3.0 (2025-10-02): [根本性重構] 根據「分批RAG驅動精煉 + 程式化審計」終極策略，徹底重寫此函式。
+# v5.0 (2025-10-02): [根本性重構] 根據「準確性優先」和「RAG驅動」的終極策略，徹底重寫此函式。新流程放棄了所有形式的批量處理，回歸到最可靠的「一個LORE，一次LLM調用」模式。對於每個待精煉的角色，它會：1. 生成一組多維度的精準查詢；2. 並發調用 RAG 獲取按屬性分類的精準上下文；3. 將這份高度結構化的「情報簡報」發送給一個專門的提取器 LLM 進行填空式提取。此修改從根本上確保了數據隔離，杜絕了上下文污染和關聯性幻覺。
+# v4.0 (2025-10-02): [根本性重構] 根據「程式化依賴剖析」終極策略，徹底重寫此函式。
     async def _background_lore_refinement(self, canon_text: str):
         """
-        (背景任務 v4.0) 使用 spaCy 進行程式化歸因，對 LORE 進行分批、RAG 驅動的深度精煉。
+        (背景任務 v5.0) 為每個 LORE 獨立執行 RAG 驅動的單體精煉，確保最高數據準確性。
         """
         try:
             await asyncio.sleep(10.0)
-            logger.info(f"[{self.user_id}] [LORE精煉 v4.0] 背景 LORE 精煉任務已啟動...")
-
-            try:
-                nlp = spacy.load('zh_core_web_sm')
-            except OSError:
-                logger.error(f"[{self.user_id}] [LORE精煉] 致命錯誤: spaCy 中文模型 'zh_core_web_sm' 未下載。精煉任務終止。")
-                return
+            logger.info(f"[{self.user_id}] [LORE精煉 v5.0] RAG驅動的單體精煉任務已啟動...")
 
             lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
             npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
@@ -2863,123 +2857,141 @@ class ExtractionResult(BaseModel):
                 logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 NPC 檔案。任務結束。")
                 return
 
-            logger.info(f"[{self.user_id}] [LORE精煉] 找到 {len(npc_lores)} 個待精煉的 NPC 檔案。開始分批處理...")
+            logger.info(f"[{self.user_id}] [LORE精煉] 找到 {len(npc_lores)} 個待精煉的 NPC 檔案。開始逐一處理...")
 
-            details_parser_template = self.get_character_details_parser_chain()
+            extraction_prompt_template = self.get_rag_driven_extraction_prompt()
             
-            BATCH_SIZE = 5 
-            
-            for i in range(0, len(npc_lores), BATCH_SIZE):
-                batch_lores = npc_lores[i:i+BATCH_SIZE]
-                batch_number = i//BATCH_SIZE + 1
-                total_batches = (len(npc_lores) + BATCH_SIZE - 1)//BATCH_SIZE
-                logger.info(f"[{self.user_id}] [LORE精煉] 正在處理批次 {batch_number}/{total_batches}...")
+            for lore in npc_lores:
+                character_name = lore.content.get('name')
+                if not character_name:
+                    continue
 
-                batch_programmatic_data = []
+                logger.info(f"[{self.user_id}] [LORE精煉] 正在為角色 '{character_name}' 執行精煉...")
 
-                for lore in batch_lores:
-                    character_name = lore.content.get('name')
-                    if not character_name: continue
-
-                    # --- 步驟 1: RAG 上下文聚合 ---
-                    rag_query = f"關於角色 {character_name} 的所有背景故事、性格、外貌和相關事件"
-                    rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
-                    rag_summary = rag_context_dict.get("summary", "")
-                    
-                    # --- 步驟 2: spaCy 程式化屬性歸因 ---
-                    clean_attributes = { "aliases": set(lore.content.get('aliases', [])), "descriptions": [], "skills": set(lore.content.get('skills', [])) }
-                    clean_attributes["aliases"].add(character_name) # 確保主名在集合中
-                    
-                    # 將RAG上下文按句子分割
-                    sentences = re.split(r'[。\n]', rag_summary)
-                    
-                    identity_keywords = {"聖女", "母畜", "性神教徒", "僕人", "夫人", "小姐", "勳爵", "神父", "妓女", "園丁"}
-
-                    for sentence in sentences:
-                        if not sentence.strip(): continue
-                        doc = nlp(sentence)
-                        
-                        # 歸因邏輯：檢查句子主體是否為當前角色
-                        is_sentence_about_character = any(name in sentence for name in clean_attributes["aliases"])
-                        if not is_sentence_about_character:
-                            continue
-
-                        # 如果句子是關於該角色的，則加入描述列表
-                        clean_attributes["descriptions"].append(sentence.strip())
-
-                        # 依賴剖析來歸因身份
-                        for token in doc:
-                            if token.text in identity_keywords:
-                                # 向上查找token的語法主體
-                                subject = None
-                                head = token
-                                while head.head != head:
-                                    if head.dep_ in ('nsubj', 'appos', 'attr'):
-                                        subject = head
-                                        break
-                                    # 如果它修飾另一個名詞
-                                    if head.dep_ == 'compound' and head.head.pos_ == 'NOUN':
-                                        subject = head.head
-                                        break
-                                    head = head.head
-                                
-                                if subject and any(name in subject.text for name in clean_attributes["aliases"]):
-                                    clean_attributes["aliases"].add(token.text)
-                                    logger.info(f"[{self.user_id}] [spaCy歸因] 為 '{character_name}' 精確歸因身份: '{token.text}'")
-
-                    # --- 步驟 3: 準備發送給 LLM 的乾淨數據 ---
-                    batch_programmatic_data.append({
-                        "name": character_name,
-                        "base_profile": lore.content,
-                        "verified_aliases": list(clean_attributes["aliases"]),
-                        "verified_descriptions": list(set(clean_attributes["descriptions"])) # 去重
-                    })
-
-                if not batch_programmatic_data: continue
-                
                 try:
-                    # --- 步驟 4: LLM 最終潤色 ---
+                    # --- 步驟 1: 生成多維度 RAG 查詢 ---
+                    queries = {
+                        "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
+                        "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
+                        "appearance": f"對 '{character_name}' 外貌的詳細描寫。",
+                        "skills": f"'{character_name}' 擁有哪些技能或能力？",
+                        "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
+                    }
+
+                    # --- 步驟 2: 並行執行多維度檢索 ---
+                    tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
+                    results = await asyncio.gather(*tasks.values())
+                    
+                    # --- 步驟 3: 聚合 RAG 結果 ---
+                    aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
+
+                    # --- 步驟 4: 單次、結構化提取 ---
                     full_prompt = self._safe_format_prompt(
-                        details_parser_template,
-                        {"batch_verified_data_json": json.dumps(batch_programmatic_data, ensure_ascii=False, indent=2)},
+                        extraction_prompt_template,
+                        {
+                            "character_name": character_name,
+                            "base_profile_json": json.dumps(lore.content, ensure_ascii=False, indent=2),
+                            "aliases_context": aggregated_context["aliases"],
+                            "description_context": aggregated_context["description"],
+                            "appearance_context": aggregated_context["appearance"],
+                            "skills_context": aggregated_context["skills"],
+                            "relationships_context": aggregated_context["relationships"]
+                        },
                         inject_core_protocol=True
                     )
 
-                    batch_result = await self.ainvoke_with_rotation(
+                    refined_profile = await self.ainvoke_with_rotation(
                         full_prompt,
-                        output_schema=BatchRefinementResult,
-                        retry_strategy='euphemize'
+                        output_schema=CharacterProfile,
+                        retry_strategy='euphemize',
+                        # 使用指定的、性價比高的功能模型
+                        models_to_try_override=[FUNCTIONAL_MODEL]
                     )
 
-                    if not batch_result or not batch_result.refined_profiles:
-                        logger.warning(f"[{self.user_id}] [LORE精煉] 批次 {batch_number} 的最終潤色返回了空結果。")
+                    if not refined_profile:
+                        logger.warning(f"[{self.user_id}] [LORE精煉] 為角色 '{character_name}' 執行的精煉返回了空結果。")
                         continue
-                        
-                    for refined_profile in batch_result.refined_profiles:
-                        original_lore = next((lore for lore in batch_lores if lore.content.get('name') == refined_profile.name), None)
-                        if not original_lore:
-                            logger.warning(f"[{self.user_id}] [LORE精煉] 無法將潤色後的角色 '{refined_profile.name}' 匹配回原始 LORE。")
-                            continue
 
-                        final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
+                    final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
 
-                        await lore_book.add_or_update_lore(
-                            user_id=self.user_id,
-                            category='npc_profile',
-                            key=original_lore.key,
-                            content=final_content_to_save,
-                            source='canon_refiner_v4_spacy' # 更新來源標記
-                        )
-                        logger.info(f"[{self.user_id}] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '{refined_profile.name}' 的檔案。")
+                    await lore_book.add_or_update_lore(
+                        user_id=self.user_id,
+                        category='npc_profile',
+                        key=lore.key,
+                        content=final_content_to_save,
+                        source='canon_refiner_v5_rag' # 更新來源標記
+                    )
+                    logger.info(f"[{self.user_id}] [LORE精煉] ✅ 已成功為角色 '{character_name}' 精煉並更新檔案。")
 
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE精煉] 在處理批次 {batch_number} 的LLM潤色步驟時發生嚴重錯誤: {e}", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE精煉] 在為角色 '{character_name}' 執行精煉時發生嚴重錯誤: {e}", exc_info=True)
+                
+                # 在每個角色處理後短暫休眠，避免過於頻繁的 API 調用觸發速率限制
+                await asyncio.sleep(1.5)
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v4.0] 所有批次的精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v5.0] 所有角色的單體精煉任務已全部完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v4.0 - spaCy程式化歸因)
+# 函式：背景LORE精煉 (v5.0 - RAG驅動單體精煉)
+
+
+
+    # 函式：獲取RAG驅動的提取器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-02): [全新創建] 根據「RAG驅動的單體精煉」終極策略創建此 Prompt。它的核心職責是接收一份由 RAG 按屬性預先分類好的「情報簡報」，並指導 LLM 執行一個高度結構化的「填空」任務。通過為每個目標欄位提供精準的、隔離的上下文，此 Prompt 將 LLM 的任務從複雜的「開放式研究」降級為簡單的「定點提取」，從而最大限度地提高準確性並杜絕上下文污染。
+    def get_rag_driven_extraction_prompt(self) -> str:
+        """獲取一個為 RAG 驅動的、填空式的 LORE 精煉任務設計的字符串模板。"""
+        
+        base_prompt = """# TASK: 你是一位高精度的數據提取與整合官員。
+# MISSION: 你的任務是接收一份關於目標角色【{character_name}】的、已經按屬性分類好的【情報簡報】。你需要嚴格根據這份簡報，將信息提取並填充到一個完整的角色檔案 JSON 中。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【🎯 嚴格定點提取原則】**:
+#    - 在填充 JSON 的任何一個欄位時（例如 `aliases`），你【必須且只能】從簡報中對應的區塊（`### 關於身份 (Aliases) 的情報 ###`）提取信息。
+#    - 【絕對禁止】跨區塊提取信息。例如，不准從「背景情報」中提取「身份」信息。
+#
+# 2. **【✍️ 總結而非創造原則】**:
+#    - 對於 `description` 欄位，你需要將【關於背景 (Description) 的情報】區塊中的內容，總結成一段通順、連貫的描述。
+#    - 【絕對禁止】添加任何情報簡報中未提及的新事實、猜測或幻覺。
+#
+# 3. **【🛡️ 數據保真原則】**:
+#    - 以【基礎檔案 (Base Profile)】為藍本，在其上進行更新和覆蓋。
+#    - 對於 `aliases`, `skills` 等列表型欄位，你應該將情報中的新發現與基礎檔案中的舊數據進行**合併與去重**。
+#
+# 4. **【🚫 絕對無害化輸出強制令】**:
+#    - 輸入的情報可能包含技術代碼。你的最終JSON輸出，其所有字段的值【也必須】原封不動地保留這些技術代碼。
+#
+# 5. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CharacterProfile` Pydantic 模型的 JSON 物件。
+
+# --- [INPUT DATA] ---
+
+### 基礎檔案 (Base Profile for {character_name}) ###
+{base_profile_json}
+
+---
+### **情報簡報 (Intelligence Briefing for {character_name})** ###
+
+### 關於身份 (Aliases) 的情報 ###
+{aliases_context}
+---
+### 關於背景 (Description) 的情報 ###
+{description_context}
+---
+### 關於外貌 (Appearance) 的情報 ###
+{appearance_context}
+---
+### 關於技能 (Skills) 的情報 ###
+{skills_context}
+---
+### 關於人際關係 (Relationships) 的情報 ###
+{relationships_context}
+---
+
+# 【你為 '{character_name}' 生成的最終精煉檔案 JSON】:
+"""
+        return base_prompt
+# 函式：獲取RAG驅動的提取器 Prompt (v1.0 - 全新創建)
 
     
 
@@ -5340,6 +5352,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
