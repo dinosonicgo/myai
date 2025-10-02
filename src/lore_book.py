@@ -166,7 +166,7 @@ async def get_all_lores_for_user(user_id: str) -> List[Lore]:
         return result.scalars().all()
 # 函式：獲取指定使用者的所有 LORE (v1.0 - 全新创建)
 
-# src/lore_book.py 的 get_lores_by_template_keys 函式 (v1.0 - 全新創建)
+# 函式：根據模板關鍵詞查詢LORE (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-11-22): [全新創建] 根據「LORE繼承與規則注入系統」設計，創建此核心資料庫查詢函式。它的作用是接收一個身份關鍵詞列表，並從資料庫中反向查找所有將這些關鍵詞定義為繼承觸發器（template_keys）的世界傳說LORE。
 async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore]:
@@ -200,4 +200,5 @@ async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore
                     matching_lores.append(lore)
                     
         return matching_lores
-# src/lore_book.py 的 get_lores_by_template_keys 函式結束
+# 函式：根據模板關鍵詞查詢LORE (v1.0 - 全新創建)
+
