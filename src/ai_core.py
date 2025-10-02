@@ -3028,27 +3028,35 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v3.0 - 上下文感知修正)
+# 函式：獲取事後分析器 Prompt (v4.0 - 動態規則鏈接)
 # 更新紀錄:
-# v3.0 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重寫了此 Prompt。新增了【LORE上下文參考】區塊和核心的【上下文繼承原則】。此修改強制要求 LLM 在生成任何 `update` 工具調用時，必須優先從提供的 LORE 上下文中查找並繼承已有的 `lore_key`，從根源上解決了因缺少 key 而導致的「幻覺誤判」和位置錯亂的災難性連鎖反應。
+# v4.0 (2025-10-02): [重大架構升級] 根據「系統自愈」原則，為此 Prompt 增加了「動態規則鏈接」的核心職責。新指令強制要求 LLM 在事後分析時，必須檢查是否存在新的身份(alias)或新的規則(world_lore)被創建。如果檢測到，它必須主動生成 `update_lore_template_keys` 工具調用，來創建或更新「身份」與「規則」之間的繼承鏈接。此修改使 LORE 繼承系統具備了自我維護和動態成長的能力，形成了完美的邏輯閉環。
+# v3.0 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重寫了此 Prompt。
 # v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了 Prompt，引入了【結構化範例強制令】。
-# v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位極其嚴謹的【世界觀記錄官】與【數據庫校對官】。
-# MISSION: 你的任務是閱讀【本回合的完整對話】及所有【參考情報】，提取出兩類關鍵信息：
-#   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映核心事件的無害化總結。
-#   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】的結構化工具調用計畫。
+            prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】。
+# MISSION: 你的任務是審查【本回合的完整對話】及所有【參考情報】，並執行三項關鍵任務：
+#   1.  **記憶摘要**: 提煉一段精煉的、無害化的核心事件總結。
+#   2.  **LORE 更新**: 生成所有必要的工具調用，以創建或修正 LORE 實體。
+#   3.  **規則鏈接**: 動態維護「身份」與「行為規則」之間的繼承關係。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🔑 上下文繼承原則 (Context Inheritance Mandate) - 最高數據庫完整性鐵則】**:
-#     *   當你需要為一個**已存在的角色**生成 `update_npc_profile` 工具調用時，你**【絕對必須】**首先在下方的【LORE上下文參考】中查找該角色。
-#     *   如果找到了該角色，你**【必須】**將其對應的 `lore_key` 完整、準確地複製到你的工具調用 `parameters` 中。
-#     *   **【後果警告】**: 任何針對已存在角色但**缺少 `lore_key`** 的 `update` 操作，都將被系統視為災難性的「幻覺」，並可能導致數據庫錯亂。
-# 2.  **【👑 結構化範例強制令】**: 所有 `update_npc_profile` 工具調用，其 `parameters` 字典的結構【絕對必須】與範例一致，即所有更新內容必須包裹在一個 `"updates"` 字典中。
-# 3.  **【✅ 事實校對原則】**: 如果對話內容與【現有LORE摘要】明確矛盾，你【必須】生成一個 `update_...` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
+# 1.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate) - 最高系統完整性鐵則】**:
+#     *   在分析完對話後，你【必須】檢查是否出現了以下兩種情況：
+#         a. 一個角色被賦予了一個**新的身份**（alias）。
+#         b. 一條新的、關於**行為規範或禮儀**的 `world_lore` 被創建。
+#     *   如果發生以上任一情況，你【必須】思考這個新的「身份」是否應該遵守某條已知的「規則」，或者這條新的「規則」應該適用於哪些已知的「身份」。
+#     *   你【必須】生成一個 `update_lore_template_keys` 工具調用來創建或更新這個鏈接。
+#     *   **範例**：如果對話中米婭被提升為「大祭司」，而 LORE 中已存在一條名為「聖職者行為準則」的規則，你必須生成工具調用 `update_lore_template_keys(lore_key="聖職者行為準則", template_keys=["聖女", "大祭司"])`，將新身份加入繼承列表。
+#
+# 2.  **【🔑 上下文繼承原則】**: 在生成任何 `update_npc_profile` 工具調用時，【必須】從【LORE上下文參考】中查找並使用該角色已有的 `lore_key`。
+#
+# 3.  **【👑 結構化範例強制令】**: 所有 `update_npc_profile` 工具調用，其 `parameters` 字典的結構【絕對必須】與範例一致（更新內容包裹在 `"updates"` 字典中）。
+#
 # 4.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
+#
 # 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # --- [INPUT DATA] ---
@@ -3056,7 +3064,7 @@ class ExtractionResult(BaseModel):
 # 【LORE上下文參考 (本回合核心角色的既有數據)】:
 {relevant_lore_context}
 # ---
-# 【現有LORE摘要 (你的參考基準)】:
+# 【現有LORE摘要 (你的參考基準，用於發現新規則和新身份)】:
 {existing_lore_summary}
 # ---
 # 【創作依據參考 (生成器在創作時看到的LORE規則)】:
@@ -3068,11 +3076,11 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON (請嚴格遵守 `lore_key` 繼承原則和結構範例)】:
+# 【你生成的分析結果JSON (請嚴格遵守所有原則)】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt (v3.0 - 上下文感知修正)
+# 函式：獲取事後分析器 Prompt (v4.0 - 動態規則鏈接)
 
     
     
@@ -5342,6 +5350,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
