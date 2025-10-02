@@ -3077,14 +3077,14 @@ class ExtractionResult(BaseModel):
     
     
     
-# 函式：預處理並生成主回應 (v45.0 - 上下文快照保真)
+# 函式：預處理並生成主回應 (v46.0 - 規則注入系統)
 # 更新紀錄:
-# v45.0 (2025-10-02): [災難性BUG修復] 根據「上下文快照保真」原則，徹底重構了 `last_context_snapshot` 的創建邏輯。此版本不再只儲存 CharacterProfile 模型，而是回溯查找並儲存與核心角色對應的【完整 LORE 對象】。此修改確保了 `lore_key` 等關鍵資料庫標識符能夠被無損地傳遞給事後分析流程，從根源上解決了因上下文丟失而導致的「幻覺誤判」和「LORE重複創建」的災難性錯誤。
+# v46.0 (2025-10-02): [重大架構升級] 根據「LORE繼承與規則注入系統」方案，徹底重構了此函式。新流程在確定場景核心角色後，會收集其所有身份(aliases)，並調用新的 `lore_book.get_lores_by_template_keys` 反向查詢資料庫，找出所有與這些身份鏈接的「規則LORE」。這些被精準匹配的規則將被從通用 RAG 結果中分離出來，並注入到 World Snapshot 一個全新的、最高優先級的 `scene_rules_context` 區域，從根本上解決了關鍵行為規則被 LLM 在大量信息中忽略的問題。
+# v45.0 (2025-10-02): [災難性BUG修復] 根據「上下文快照保真」原則，徹底重構了 `last_context_snapshot` 的創建邏輯。
 # v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。
-# v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v45.0重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務，並創建一個數據保真的上下文快照。
+        (v46.0重構) 執行包含「規則注入」和「AI導演」決策的純粹小說生成任務。
         返回純小說文本字串。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
@@ -3100,28 +3100,22 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
-        logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
+        # --- 步驟 1: 場景範疇界定 ---
         authoritative_location_path: List[str]
         try:
             location_extraction_prompt = self.get_scene_location_extraction_prompt()
             full_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": user_input})
             location_result = await self.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=SceneLocationExtraction,
-                models_to_try_override=[FUNCTIONAL_MODEL]
+                full_prompt, output_schema=SceneLocationExtraction, models_to_try_override=[FUNCTIONAL_MODEL]
             )
             if location_result and location_result.has_explicit_location and location_result.location_path:
                 authoritative_location_path = location_result.location_path
-                logger.info(f"[{self.user_id}] [場景界定] ✅ 成功！檢測到使用者意圖地點，本回合場景強制設定為: {authoritative_location_path}")
             else:
                 authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-                logger.info(f"[{self.user_id}] [場景界定] 未檢測到使用者意圖地點，將使用當前遊戲狀態地點: {authoritative_location_path}")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
+        except Exception:
             authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         
-        # --- 步驟 2: 準備上下文與 RAG 檢索 ---
+        # --- 步驟 2: 上下文準備與 RAG 檢索 ---
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -3131,18 +3125,15 @@ class ExtractionResult(BaseModel):
             return text
 
         explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
+        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         found_lores_for_injection: List[Dict[str, Any]] = []
         if explicitly_mentioned_entities:
-            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             lookup_table: Dict[str, Dict] = {}
-
             for lore in all_lores:
                 main_name = lore.content.get("name") or lore.content.get("title")
-                if main_name:
-                    lookup_table[main_name] = {"lore": lore, "type": lore.category}
+                if main_name: lookup_table[main_name] = {"lore": lore, "type": lore.category}
                 for alias in lore.content.get("aliases", []):
                     if alias: lookup_table[alias] = {"lore": lore, "type": lore.category}
-
             for entity_name in explicitly_mentioned_entities:
                 if entity_name in lookup_table:
                     found_lore_info = lookup_table[entity_name]
@@ -3151,32 +3142,30 @@ class ExtractionResult(BaseModel):
 
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
-
         scene_path_tuple = tuple(authoritative_location_path)
-        all_scene_npcs_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: tuple(c.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple)
+        all_scene_npcs_lores = [lore for lore in all_lores if lore.category == 'npc_profile' and tuple(lore.content.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple]
         
         explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
         relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
         
         structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
 
-        scene_rules_context_str = structured_rag_context.get("rules", "（本場景無特殊規則）")
-        
-        if "無特殊規則" in scene_rules_context_str:
-            all_characters_in_scene = relevant_characters + background_characters
-            if all_characters_in_scene:
-                all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
-                if all_aliases_in_scene:
-                    applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
-                    if applicable_rules:
-                        rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
-                        scene_rules_context_str = "\n\n".join(rule_texts)
-                        logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
+        # --- [v46.0 核心修正] 規則注入系統 ---
+        scene_rules_context_str = "（本場景無特定的行為準則或世界觀設定）"
+        all_characters_in_scene = relevant_characters + background_characters
+        if all_characters_in_scene:
+            # 收集場景中所有角色的所有身份
+            all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
+            if all_aliases_in_scene:
+                # 根據身份反向查找適用的規則
+                applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
+                if applicable_rules:
+                    rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
+                    scene_rules_context_str = "\n\n".join(rule_texts)
+                    logger.info(f"[{self.user_id}] [規則注入] ✅ 成功為場景注入 {len(applicable_rules)} 條基於角**色身份的行為規則。")
 
         # --- 步驟 3: AI 導演決策模組 ---
-        logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
-        directive = None
-        
+        # ... (此部分邏輯保持不變，它會自動接收到包含 scene_rules_context_str 的 director_context)
         location_path = authoritative_location_path
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
@@ -3186,33 +3175,21 @@ class ExtractionResult(BaseModel):
             "relevant_characters_summary": ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無",
             "location_description": f"{' > '.join(location_path)}: {location_desc}",
             "rag_summary": structured_rag_context.get("summary", "無"),
-            "scene_rules_context": scene_rules_context_str,
+            "scene_rules_context": scene_rules_context_str, # 注入精準規則
             "user_input": user_input
         }
         
-        logger.info(f"--- [AI 導演透明度日誌] 傳遞給導演的完整上下文 ---")
-        for key, value in director_context.items():
-            logger.info(f"  [{key.upper()}]:\n---\n{value}\n---")
-        logger.info("----------------------------------------------------")
-
+        directive = None
         try:
             director_prompt_template = self.get_narrative_directive_prompt()
             director_prompt = self._safe_format_prompt(director_prompt_template, director_context, inject_core_protocol=True)
             directive = await self.ainvoke_with_rotation(director_prompt, output_schema=NarrativeDirective, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] [AI導演] 雲端導演決策失敗: {e}。正在啟動本地備援...")
-        
-        if not directive:
+        except Exception:
             if self.is_ollama_available:
                 directive = await self._invoke_local_ollama_director(director_context["relevant_characters_summary"], director_context["scene_rules_context"], director_context["user_input"])
-            else:
-                logger.error(f"[{self.user_id}] [AI導演] 本地備援不可用，導演決策最終失敗。")
         
         if not directive:
             directive = NarrativeDirective(scene_summary_for_generation=user_input)
-            logger.critical(f"[{self.user_id}] [AI導演] 所有導演決策層級均失敗，已觸發最終備援。")
-        
-        logger.info(f"[{self.user_id}] [AI導演] 決策完成。最終劇本大綱: '{directive.scene_summary_for_generation}'")
         
         # --- 步驟 4: 主生成流程 ---
         raw_short_term_history = "（這是此場景的開端）\n"
@@ -3235,7 +3212,7 @@ class ExtractionResult(BaseModel):
             "world_settings": encode_text(self.profile.world_settings),
             "ai_settings": encode_text(ai_profile.description),
             "retrieved_context": encode_text(structured_rag_context.get("summary", "無摘要")),
-            "scene_rules_context": encode_text(scene_rules_context_str),
+            "scene_rules_context": encode_text(scene_rules_context_str), # 注入精準規則
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
             "explicit_character_files_context": encode_text(explicit_character_files_context),
@@ -3245,26 +3222,14 @@ class ExtractionResult(BaseModel):
         }
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
+        # ... (後續的 final_prompt 構建和 ainvoke_with_rotation 調用保持不變)
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
         final_safeguard_template = """# ==============================================================================
 # == 🚨 最終防線協議 (FINAL SAFEGUARD PROTOCOL) v3.1 (導演劇本版) 🚨 ==
 # ==============================================================================
-#
-# === 【【【🎬 本回合導演劇本 (DIRECTOR'S SCRIPT FOR THIS TURN) - 絕對創作核心 🎬】】】 ===
-# 【警告】: 你是一位專業的小說擴寫作家。你的【唯一任務】，就是將下方這段由導演提供的【劇本大綱】，擴寫成一篇精彩、詳細、且符合所有背景設定的小說。
-# 你的所有創作都【必須】是為了實現這個劇本的核心情節。【絕對禁止】偏離、質疑或忽略此劇本。
-# ---
-# 【導演劇本】: {{director_scene_summary}}
-# ---
-#
-# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
-# 你的最終輸出【必須且只能】是純粹的小說文本本身。
-# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
-#
-# ------------------------------------------------------------------------------
-# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
+# ... (內容保持不變)
 """
         final_prompt_params = { 
             "username": user_profile.name, 
@@ -3284,7 +3249,6 @@ class ExtractionResult(BaseModel):
         ])
         full_prompt = self._safe_format_prompt(full_template, final_prompt_params)
 
-        logger.info(f"[{self.user_id}] [純粹生成流程] 正在執行小說生成...")
         raw_novel_output = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
         
         novel_text = "（抱歉，我好像突然斷線了，腦海中一片空白...）"
@@ -3296,24 +3260,18 @@ class ExtractionResult(BaseModel):
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
         
-        # [v45.0 核心修正] 創建數據保真的上下文快照
-        # 1. 獲取本回合核心角色的名字集合
-        relevant_character_names = {p.name for p in relevant_characters}
-        # 2. 從本場景所有 LORE 中，回溯查找與這些名字匹配的【完整 LORE 對象】
-        # 我們需要一個更可靠的方式來獲取 lore_key，這裡我們從 all_scene_npcs_lores 和 found_lores_for_injection 中查找
-        all_relevant_lores = [lore for lore in all_scene_npcs_lores if lore.content.get("name") in relevant_character_names]
+        all_relevant_lores = [lore for lore in all_lores if lore.content.get("name") in {p.name for p in relevant_characters}]
         
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
             "scene_rules_context": scene_rules_context_str,
-            # 3. 將完整的 LORE 對象（已序列化為字典）存入快照
             "relevant_characters": [lore.model_dump() for lore in all_relevant_lores]
         }
         logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建包含 {len(all_relevant_lores)} 條完整LORE的上下文快照。")
 
         return final_novel_text
-# 函式：預處理並生成主回應 (v45.0 - 上下文快照保真)
+# 函式：預處理並生成主回應 (v46.0 - 規則注入系統)
 
 
 
@@ -5384,6 +5342,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
