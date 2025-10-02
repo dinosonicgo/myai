@@ -3032,13 +3032,14 @@ class ExtractionResult(BaseModel):
     
     
     
-    # 函式：預處理並生成主回應 (v44.6 - 場景範疇界定)
-    # 更新紀錄:
-    # v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。此修改在所有流程之前，增加了一个前置的、輕量級的LLM调用，專門用於判斷並提取使用者指令中的“叙事意图地点”。程式随后会以这个“意图地点”作为本回合的绝对权威场景，覆盖掉数据库中儲存的玩家位置。此舉從根本上解决了因玩家客觀位置（地面实况）与故事希望發生的地點（叙事意图）不一致，而導致的場景漂移和導演决策混乱的致命问题。
-    # v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
+# 函式：預處理並生成主回應 (v45.0 - 上下文快照保真)
+# 更新紀錄:
+# v45.0 (2025-10-02): [災難性BUG修復] 根據「上下文快照保真」原則，徹底重構了 `last_context_snapshot` 的創建邏輯。此版本不再只儲存 CharacterProfile 模型，而是回溯查找並儲存與核心角色對應的【完整 LORE 對象】。此修改確保了 `lore_key` 等關鍵資料庫標識符能夠被無損地傳遞給事後分析流程，從根源上解決了因上下文丟失而導致的「幻覺誤判」和「LORE重複創建」的災難性錯誤。
+# v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。
+# v44.5 (2025-09-28): [災難性BUG修復] 徹底修復了上下文數據在傳遞給“AI導演”過程中的兩處致命斷裂。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v44.6重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務。
+        (v45.0重構) 執行包含「場景範疇界定」和「AI導演」決策的純粹小說生成任務，並創建一個數據保真的上下文快照。
         返回純小說文本字串。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
@@ -3054,7 +3055,7 @@ class ExtractionResult(BaseModel):
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- [v44.6 新增] 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
+        # --- 步驟 0 & 1: 場景範疇界定 (Scene Scoping) ---
         logger.info(f"[{self.user_id}] [場景界定] 正在從使用者指令中提取敘事意圖地點...")
         authoritative_location_path: List[str]
         try:
@@ -3074,8 +3075,8 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] [場景界定] 🔥 提取意圖地點時發生錯誤，將回退至當前遊戲狀態地點: {e}")
             authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-        # --- 場景範疇界定結束 ---
-
+        
+        # --- 步驟 2: 準備上下文與 RAG 檢索 ---
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -3127,11 +3128,11 @@ class ExtractionResult(BaseModel):
                         scene_rules_context_str = "\n\n".join(rule_texts)
                         logger.info(f"[{self.user_id}] [LORE繼承] 雙重保險已成功為場景注入 {len(applicable_rules)} 條規則。")
 
-        # --- AI 導演決策模組 ---
+        # --- 步驟 3: AI 導演決策模組 ---
         logger.info(f"[{self.user_id}] [AI導演] 正在啟動導演決策模組...")
         directive = None
         
-        location_path = authoritative_location_path # 使用界定後的權威地點
+        location_path = authoritative_location_path
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
@@ -3168,7 +3169,7 @@ class ExtractionResult(BaseModel):
         
         logger.info(f"[{self.user_id}] [AI導演] 決策完成。最終劇本大綱: '{directive.scene_summary_for_generation}'")
         
-        # --- 主生成流程 ---
+        # --- 步驟 4: 主生成流程 ---
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history: raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
         
@@ -3250,18 +3251,24 @@ class ExtractionResult(BaseModel):
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=final_novel_text))
         
+        # [v45.0 核心修正] 創建數據保真的上下文快照
+        # 1. 獲取本回合核心角色的名字集合
+        relevant_character_names = {p.name for p in relevant_characters}
+        # 2. 從本場景所有 LORE 中，回溯查找與這些名字匹配的【完整 LORE 對象】
+        # 我們需要一個更可靠的方式來獲取 lore_key，這裡我們從 all_scene_npcs_lores 和 found_lores_for_injection 中查找
+        all_relevant_lores = [lore for lore in all_scene_npcs_lores if lore.content.get("name") in relevant_character_names]
+        
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
             "scene_rules_context": scene_rules_context_str,
-            "relevant_characters": [p.model_dump() for p in relevant_characters]
+            # 3. 將完整的 LORE 對象（已序列化為字典）存入快照
+            "relevant_characters": [lore.model_dump() for lore in all_relevant_lores]
         }
-        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建詳細上下文快照。")
+        logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建包含 {len(all_relevant_lores)} 條完整LORE的上下文快照。")
 
         return final_novel_text
-    # 函式：預處理並生成主回應
-
-
+# 函式：預處理並生成主回應 (v45.0 - 上下文快照保真)
 
 
 
@@ -5367,6 +5374,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
