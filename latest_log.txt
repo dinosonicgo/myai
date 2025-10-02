@@ -1,50 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T22:22:52.088028 ###
+### AI Lover Log - Last updated at 2025-10-02T22:28:40.115610 ###
 
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:26 - [INFO] -   [最終 rules_context 長度]: 180
-2025-10-02 20:35:26 - [INFO] -   [最終 summary_context 長度]: 7531
-2025-10-02 20:35:26 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:26 - [INFO] -   [最終 rules_context 長度]: 180
-2025-10-02 20:35:26 - [INFO] -   [最終 summary_context 長度]: 8878
-2025-10-02 20:35:26 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:26 - [INFO] -   [最終 rules_context 長度]: 262
-2025-10-02 20:35:26 - [INFO] -   [最終 summary_context 長度]: 6562
-2025-10-02 20:35:26 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:26 - [INFO] -   [最終 rules_context 長度]: 261
-2025-10-02 20:35:26 - [INFO] -   [最終 summary_context 長度]: 6386
-2025-10-02 20:35:26 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:26 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:26 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:26 - [INFO] -   [最終 rules_context 長度]: 332
-2025-10-02 20:35:26 - [INFO] -   [最終 summary_context 長度]: 7234
-2025-10-02 20:35:26 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-02 20:35:28 - [INFO] - [512280345618546699] [LORE精煉] ✅ 驗證通過，已成功為角色 '奧斯華' 精煉並更新檔案。
-2025-10-02 20:35:29 - [INFO] - [512280345618546699] [LORE精煉] 正在為角色 '艾諾拉' 執行精煉...
-2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
-2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 18 條文檔 ---
-2025-10-02 20:35:29 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:29 - [INFO] -   [最終 rules_context 長度]: 180
-2025-10-02 20:35:29 - [INFO] -   [最終 summary_context 長度]: 5952
-2025-10-02 20:35:29 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
 2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
 2025-10-02 20:35:29 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
 2025-10-02 20:35:29 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
@@ -300,3 +255,48 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-02 22:22:41 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-02 22:22:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-02 22:22:42 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-02 22:23:53 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-02 22:23:53 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-02 22:23:53 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-02 22:23:53 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-02 22:23:53 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-02 22:23:57 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-02 22:23:58 - [INFO] - [512280345618546699] [Admin Command] 執行 RAG 直通 LLM，Prompt: '描述米婭在宅邸遇到勛爵...'
+2025-10-02 22:23:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 22:23:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 22:23:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 22:23:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 22:23:59 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-02 22:23:59 - [INFO] -   [最終 summary_context 長度]: 14154
+2025-10-02 22:23:59 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 22:23:59 - [INFO] - [512280345618546699] [Direct Chat] 執行第 1 次嘗試 (標準模式)...
+2025-10-02 22:24:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 22:24:01 - [ERROR] - [512280345618546699] 執行 admin_direct_chat 時發生嚴重錯誤: name 'BlockedPromptException' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1968, in admin_direct_chat
+    raw_response = await ai_instance.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 943, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 896, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1975, in admin_direct_chat
+    except BlockedPromptException as e1:
+NameError: name 'BlockedPromptException' is not defined
+2025-10-02 22:28:25 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-02 22:28:25 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-02 22:28:26 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-02 22:28:26 - [INFO] - Discord Bot is ready!
+2025-10-02 22:28:28 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-02 22:28:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-02 22:28:29 - [INFO] - 已成功發送啟動成功通知給管理員。
