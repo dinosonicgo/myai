@@ -4121,32 +4121,22 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v16.0 - 雙軌並行)
+# 函式：解析並從世界聖經創建LORE (v17.0 - 職責單一化)
 # 更新紀錄:
-# v16.0 (2025-10-02): [根本性重構] 根據「雙軌並行」策略，徹底重構了數據處理流程。此函式現在的職責是：1. 首先，強制將完整的聖經原文寫入 RAG 知識庫（敘事軌道）。2. 然後，才繼續執行後續的 LORE 解析管線（結構化軌道）。此修改確保了 RAG 系統能同時擁有宏觀的敘事上下文和微觀的實體數據。
+# v17.0 (2025-10-02): [災難性BUG修復] 根據「職責單一化」原則，徹底移除了此函式中所有與 RAG 寫入相關的邏輯（即對 `add_canon_to_vector_store` 的調用）。此函式現在的唯一職責是執行 LORE 解析管線並將結果存入 SQL 資料庫。所有 RAG 相關的操作將由上層的協調器（`_perform_full_setup_flow`）在正確的時機統一管理，從而解決時序錯亂導致的 `RuntimeError`。
+# v16.0 (2025-10-02): [根本性重構] 根據「雙軌並行」策略，徹底重構了數據處理流程。
 # v15.0 (2025-10-02): [架構升級] 將 LORE 精煉流程解耦。
-# v14.0 (2025-10-02): [根本性重構] 在函式最開始增加了對 `add_canon_to_vector_store` 的強制調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v16.0】啟動「雙軌並行」數據處理流程：
-        1. 【敘事軌道】將聖經原文完整存入 RAG。
-        2. 【結構化軌道】啟動五層降級管線解析 LORE，存入 SQL，並在後台進行深度精煉。
+        【總指揮 v17.0】僅執行 LORE 解析管線，並將結果存入 SQL 資料庫。
+        然後在背景中異步觸發深度精煉任務。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
-        # --- 軌道 A: 【敘事軌道】原文直通 RAG ---
-        if canon_text and canon_text.strip():
-            try:
-                logger.info(f"[{self.user_id}] [數據入口-軌道A] 正在將世界聖經原文寫入 RAG 知識庫...")
-                chunk_count = await self.add_canon_to_vector_store(canon_text)
-                logger.info(f"[{self.user_id}] [數據入口-軌道A] ✅ 成功！世界聖經原文已被分解為 {chunk_count} 個知識片段存入 RAG。")
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [數據入口-軌道A] 🔥 將世界聖經原文存入 RAG 時發生嚴重錯誤: {e}", exc_info=True)
-                # 即使此步驟失敗，也應繼續嘗試解析，以保證 LORE 系統的基本功能
+        # [v17.0 核心修正] 移除對 RAG 的寫入操作，將其交由上層協調器處理
         
-        # --- 軌道 B: 【結構化軌道】深度解析 LORE ---
         logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動 LORE 解析管線 (階段 1/2)...")
         
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
@@ -4176,7 +4166,7 @@ class ExtractionResult(BaseModel):
         # 異步觸發背景深度精煉任務
         logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...")
         asyncio.create_task(self._background_lore_refinement(canon_text))
-# 函式：解析並從世界聖經創建LORE (v16.0 - 雙軌並行)
+# 函式：解析並從世界聖經創建LORE (v17.0 - 職責單一化)
 
 
 
@@ -5371,6 +5361,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
