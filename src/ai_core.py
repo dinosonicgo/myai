@@ -5309,17 +5309,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：檢索並摘要記憶 (v21.0 - 擴大RAG上下文)
+# 函式：檢索並摘要記憶 (v22.0 - 移除去重)
 # 更新紀錄:
-# v21.0 (2025-10-02): [性能優化] 根據日誌分析，將用於拼接 RAG 上下文的文檔數量上限（MAX_DOCS_FOR_SUMMARY）從 7 條大幅提升至 15 條。此修改旨在為導演層提供更豐富、更完整的背景故事和世界觀信息，以解決因上下文不足導致的創作細節丟失問題，同時將該限制提取為函式級常量以便於未來調整。
+# v22.0 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了 RAG 後處理中的「智能去重」邏輯。現在，函式將直接使用 `EnsembleRetriever` 返回的原始文檔列表進行後續的篩選和拼接，以確保最大化的信息吞吐量，便於進行 RAG 原始性能的評估。
+# v21.0 (2025-10-02): [性能優化] 將用於拼接 RAG 上下文的文檔數量上限（MAX_DOCS_FOR_SUMMARY）從 7 條大幅提升至 15 條。
 # v20.0 (2025-10-02): [根本性重構] 根據「RAG後處理去重」策略，徹底重寫了此函式。
-# v19.0 (2025-10-02): [根本性重構] 根據最新討論，徹底移除了所有 LLM 摘要邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v21.0) 執行RAG檢索、智能去重，並將最多15條最相關的原始文檔直接拼接後返回。
+        (v22.0) 執行RAG檢索，並將最多15條最相關的原始文檔直接拼接後返回（已移除去重）。
         返回一個字典: {"rules": str, "summary": str}
         """
-        # [v21.0 核心修正] 將拼接上限提升並常量化
         MAX_DOCS_FOR_SUMMARY = 15
 
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
@@ -5349,32 +5348,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
 
-        canon_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "canon"]
-        lore_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "lore"]
-        memory_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "memory"]
-
-        final_docs = []
-        final_docs.extend(lore_docs)
-        final_docs.extend(memory_docs)
-
-        SIMILARITY_THRESHOLD = 0.7
-
-        for canon_doc in canon_docs:
-            is_redundant = False
-            for existing_doc in final_docs:
-                similarity = levenshtein_ratio(canon_doc.page_content, existing_doc.page_content)
-                if similarity > SIMILARITY_THRESHOLD:
-                    is_redundant = True
-                    logger.info(f"[{self.user_id}] [RAG去重] 聖經原文塊因與 LORE '{existing_doc.metadata.get('key')}' 相似度過高 ({similarity:.2f}) 而被過濾。")
-                    break
-            
-            if not is_redundant:
-                final_docs.append(canon_doc)
-        
-        logger.info(f"--- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 {len(final_docs)} 條文檔 ---")
-
-        original_order_map = {doc.page_content: i for i, doc in enumerate(retrieved_docs)}
-        final_docs.sort(key=lambda doc: original_order_map.get(doc.page_content, float('inf')))
+        # [v22.0 核心修正] 移除所有去重邏輯，直接使用原始檢索結果
+        final_docs = retrieved_docs
+        logger.info(f"--- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 {len(final_docs)} 條原始文檔 ---")
 
         final_docs_to_process = final_docs
         if filtering_profiles:
@@ -5400,7 +5376,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(selected_docs)} 條最相關原始文檔）】:\n"
             summary_context = summary_context_header + concatenated_content
             
-            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條去重後的原始文檔作為 summary_context。")
+            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條原始文檔作為 summary_context。")
         
         logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
         logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
@@ -5408,7 +5384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info("--- RAG 流程結束 ---")
 
         return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
-# 函式：檢索並摘要記憶 (v21.0 - 擴大RAG上下文)
+# 函式：檢索並摘要記憶 (v22.0 - 移除去重)
 
 
 
@@ -5516,6 +5492,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
