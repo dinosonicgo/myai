@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T01:58:37.595416 ###
+### AI Lover Log - Last updated at 2025-10-03T02:00:27.096428 ###
 
-2025-10-03 01:39:21 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 01:39:21 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 01:39:21 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 01:39:21 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 01:39:21 - [INFO] -   [最終 summary_context 長度]: 19211
-2025-10-03 01:39:21 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 01:39:21 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
 2025-10-03 01:39:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
 2025-10-03 01:39:23 - [INFO] - [512280345618546699] [單體精煉] ✅ 驗證通過，成功為角色 '勛爵' 生成精煉檔案。
 2025-10-03 01:39:23 - [INFO] - [512280345618546699] [數據一致性] 正在重新加載 LORE 數據以確保獲取最新版本...
@@ -300,3 +293,10 @@ lore_category
   Field required [type=missing, input_value={'lore_key': '宅邸 > ...h': ['故事的開端']}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 2025-10-03 01:52:09 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
+2025-10-03 02:00:13 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 02:00:13 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 02:00:13 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 02:00:13 - [INFO] - Discord Bot is ready!
+2025-10-03 02:00:16 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 02:00:16 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 02:00:18 - [INFO] - 已成功發送啟動成功通知給管理員。
