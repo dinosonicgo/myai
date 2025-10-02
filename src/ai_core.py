@@ -3310,7 +3310,6 @@ class ExtractionResult(BaseModel):
 
 
 
-
      # 函式：獲取本地模型專用的導演決策器Prompt (v1.2 - 輸出穩定性終極修復)
     # 更新紀錄:
     # v1.2 (2025-09-28): [災難性BUG修復] 再次採用了字串拼接的方式來構建Prompt，以規避因`}}`和`"""`符號組合觸發的Markdown渲染引擎截斷BUG。
@@ -5372,6 +5371,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
