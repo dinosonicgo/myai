@@ -1122,65 +1122,72 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-# 函式：执行完整的后台创世流程 (v62.0 - 纯向量RAG简化)
-# 更新纪录:
-# v62.0 (2025-10-02): [根本性重构] 根据“纯向量RAG优先”的最终策略，彻底简化了创世流程。此版本废除了在创世时执行的、所有复杂且耗时的LORE解析管线。取而代之的是，它直接将用户提供的世界圣经原文切块，并调用 `_load_or_build_rag_retriever` 的 `docs_to_build` 模式，来创建一个纯净、高效的向量RAG索引。所有结构化LORE的生成完全推迟到对话过程中的事后分析中动态完成。
-# v61.0 (2025-10-02): [灾难性BUG修复] 根据“串行化”原则，再次彻底重构了创世流程。
+# 函式：執行完整的後台創世流程 (v63.0 - 廢棄創世地點生成)
+# 更新紀錄:
+# v63.0 (2025-10-03): [架構簡化] 根據「RAG驅動的智能開場導演」策略，徹底移除了流程中對 `generate_world_genesis` 的調用。初始地點的選擇職責現在已完全轉移給了 `generate_opening_scene` 函式內部的 RAG 查詢，使得開場流程更智能、更精簡，並從根源上避免了隨機地點與世界觀的衝突。
+# v62.0 (2025-10-02): [根本性重構] 根據“純向量RAG優先”的最終策略，徹底簡化了創世流程。
+# v61.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，再次徹底重構了創世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v62.0) 一个独立的、以纯向量RAG为核心的简化版后台创世流程。"""
+        """(v63.0) 一個獨立的、以純向量RAG為核心的簡化版後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [创世流程 v62.0] 纯向量RAG简化版流程已启动。")
+            logger.info(f"[{user_id}] [創世流程 v63.0] 純向量RAG簡化版流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
-                await user.send("❌ 错误：无法初始化您的 AI 核心以进行创世。")
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- 步骤 1: 补完角色档案 ---
-            logger.info(f"[{user_id}] [后台创世 1/4] 正在补完角色檔案...")
+            # --- 步驟 1: 補完角色檔案 ---
+            logger.info(f"[{user_id}] [後台創世 1/4] 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             
-            # --- 步骤 2: 准备用于RAG构建的文档 ---
+            # --- 步驟 2: 準備用於RAG构建的文档 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
-                logger.info(f"[{user_id}] [后台创世 2/4] 正在将世界圣经原文分割成文档...")
+                logger.info(f"[{user_id}] [後台創世 2/4] 正在將世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
-                logger.info(f"[{user_id}] [后台创世 2/4] 世界圣经已分割为 {len(docs_for_rag)} 个文档。")
+                logger.info(f"[{user_id}] [後台創世 2/4] 世界聖經已分割為 {len(docs_for_rag)} 個文檔。")
             else:
-                logger.info(f"[{user_id}] [后台创世 2/4] 未提供世界圣经，将创建一个空的 RAG 索引。")
+                logger.info(f"[{user_id}] [後台創世 2/4] 未提供世界聖經，將創建一個空的 RAG 索引。")
 
-            # --- 步骤 3: RAG 索引纯向量创始构建 ---
-            logger.info(f"[{user_id}] [后台创世 3/4] 正在触发 RAG 索引纯向量创始构建...")
+            # --- 步驟 3: RAG 索引纯向量创始构建 ---
+            logger.info(f"[{user_id}] [後台創世 3/4] 正在觸發 RAG 索引純向量創始構建...")
             await ai_instance._load_or_build_rag_retriever(docs_to_build=docs_for_rag if docs_for_rag else [])
-            logger.info(f"[{user_id}] [后台创世 3/4] 纯向量 RAG 索引构建完成。")
+            logger.info(f"[{user_id}] [後台創世 3/4] 純向量 RAG 索引構建完成。")
             
-            # --- 步骤 4: 生成开场白 (现在将依赖纯RAG) ---
-            logger.info(f"[{user_id}] [后台创世 4/4] 正在生成开场白...")
-            # 我们不再需要 generate_world_genesis，因为初始地点可以由开场白根据RAG内容决定
+            # --- 步驟 4: 生成開場白 (RAG驅動) ---
+            logger.info(f"[{user_id}] [後台創世 4/4] 正在生成 RAG 驅動的智能開場白...")
+            # [v63.0 核心修正] 移除對 generate_world_genesis 的調用
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [后台创世 4/4] 开场白生成完毕。")
+            logger.info(f"[{user_id}] [後台創世 4/4] 開場白生成完畢。")
 
-            # --- 最终步骤: 发送开场白并清理 ---
+            # --- 最終步驟: 發送開場白並清理 ---
+            # 開場白本身可能暗示了地點，我們需要更新遊戲狀態
+            # 為了簡化，我們暫時將初始地點設定為一個通用值，後續對話會修正它
+            gs = ai_instance.profile.game_state
+            gs.location_path = ["故事的開端"]
+            await ai_instance.update_and_persist_profile({'game_state': gs.model_dump()})
+
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
-            logger.info(f"[{user_id}] [后台创世] 正在向使用者私讯发送最终开场白...")
+            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
             for i in range(0, len(opening_scene), 2000):
                 await user.send(opening_scene[i:i+2000])
-            logger.info(f"[{user_id}] [后台创世] 开场白发送完毕。")
+            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 后台创世流程发生严重错误: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
             try:
-                await user.send(f"❌ **创世失败**：在后台执行时发生了未预期的严重错误: `{e}`")
+                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
             except discord.errors.HTTPException as send_e:
                  logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
             self.active_setups.discard(user_id)
-            logger.info(f"[{user_id}] 后台创世流程结束，狀態鎖已釋放。")
-# 函式：执行完整的后台创世流程 (v62.0 - 纯向量RAG简化)
+            logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
+# 函式：執行完整的後台創世流程 (v63.0 - 廢棄創世地點生成)
 
 
 
@@ -2106,6 +2113,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
