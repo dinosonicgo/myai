@@ -1,8 +1,8 @@
-# src/discord_bot.py 的中文註釋(v57.0 - 完整檔案整合)
+# src/discord_bot.py 的中文註釋(v62.0 - 新增管理員調試工具)
 # 更新紀錄:
-# v57.0 (2025-11-17): [完整性修復] 根據使用者要求，提供包含所有近期修正（重新生成、指令同步、結構校正）的完整檔案，並為所有函式添加了標準化中文註釋。
-# v56.0 (2025-11-17): [災難性BUG修復] 提供了結構絕對正確的類別定義，以修復因縮排錯誤導致的指令註冊失敗問題。
-# v55.0 (2025-11-16): [功能整合] 整合了「重新生成」功能。
+# v62.0 (2025-10-02): [功能擴展] 新增了兩個核心的管理員調試指令：1. `/admin_rag_peek`，允許管理員直接查看 RAG 系統對任意查詢返回的原始文檔，以診斷檢索問題。2. `/admin_direct_chat`，實現了一個繞過所有複雜圖形邏輯的 RAG 直通 LLM 管道，用於在最純淨的環境下測試核心 Prompt 和 RAG 上下文的協同效果。
+# v61.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，再次徹底重構了創世流程 `_perform_full_setup_flow`。
+# v60.0 (2025-10-02): [災難性BUG修復] 再次重構並最終確定了創世流程的執行時序。
 
 import discord
 from discord import app_commands, Embed
@@ -26,7 +26,7 @@ import time
 from pathlib import Path
 
 from .logger import logger
-from .ai_core import AILover
+from .ai_core import AILover, GENERATION_MODEL_PRIORITY # [v62.0 核心修正] 導入常量
 from . import lore_book
 from .lore_book import Lore
 from .database import AsyncSessionLocal, UserData, MemoryData, init_db, SceneHistoryData
@@ -655,172 +655,6 @@ class ConfirmStartView(discord.ui.View):
     # 函式：處理視圖超時事件
 # 類別：確認 /start 重置的視圖
 
-
-
-# 檔案：discord_bot.py (在 BotCog 類別內)
-
-# 指令：[管理員] 窺探 RAG 檢索結果 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 創建此管理員專用指令作為一個強大的調試工具。它允許管理員輸入任意查詢文本，直接觸發 RAG 檢索流程，並將檢索到的所有原始文檔（包含元數據和完整內容）格式化後以 .txt 檔案形式返回。這使得開發者可以直觀地驗證 RAG 系統對特定查詢的響應，診斷檢索不准確或信息丟失的問題。
-    @app_commands.command(name="admin_rag_peek", description="[管理員] 輸入查詢，直接查看 RAG 返回的原始文檔內容。")
-    @app_commands.check(is_admin)
-    @app_commands.describe(query="您想用來查詢 RAG 的文本內容。")
-    async def admin_rag_peek(self, interaction: discord.Interaction, query: str):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        user_id = str(interaction.user.id)
-        
-        try:
-            ai_instance = await self.get_or_create_ai_instance(user_id)
-            if not ai_instance or not ai_instance.retriever:
-                await interaction.followup.send("❌ 錯誤：AI 實例或 RAG 檢索器未初始化。", ephemeral=True)
-                return
-
-            logger.info(f"[{user_id}] [Admin Command] 執行 RAG Peek，查詢: '{query}'")
-            
-            # 直接調用檢索器
-            retrieved_docs = await ai_instance.retriever.ainvoke(query)
-
-            if not retrieved_docs:
-                await interaction.followup.send("ℹ️ RAG 系統未返回任何文檔。", ephemeral=True)
-                return
-
-            # 格式化輸出
-            output_parts = []
-            output_parts.append(f"--- RAG Peek 原始檢索結果 ---\n")
-            output_parts.append(f"查詢原文: {query}\n")
-            output_parts.append(f"檢索到文檔數量: {len(retrieved_docs)}\n")
-            output_parts.append("="*40 + "\n\n")
-
-            for i, doc in enumerate(retrieved_docs):
-                output_parts.append(f"--- 文檔 #{i+1} ---\n")
-                output_parts.append(f"【元數據】:\n{json.dumps(doc.metadata, indent=2, ensure_ascii=False)}\n\n")
-                output_parts.append(f"【文檔內容】:\n{doc.page_content}\n")
-                output_parts.append("="*40 + "\n\n")
-            
-            # 寫入臨時檔案
-            output_text = "".join(output_parts)
-            temp_dir = PROJ_DIR / "temp"
-            temp_dir.mkdir(exist_ok=True)
-            file_path = temp_dir / f"rag_peek_{user_id}_{int(time.time())}.txt"
-            
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(output_text)
-            
-            # 發送檔案
-            await interaction.followup.send(
-                f"✅ RAG 系統為您的查詢返回了 **{len(retrieved_docs)}** 條原始文檔。詳情請見附件：",
-                file=discord.File(file_path, filename=f"rag_peek_results.txt"),
-                ephemeral=True
-            )
-            
-            # 清理臨時檔案
-            os.remove(file_path)
-
-        except Exception as e:
-            logger.error(f"[{user_id}] 執行 admin_rag_peek 時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
-# 指令：[管理員] 窺探 RAG 檢索結果 (v1.0 - 全新創建)
-
-
-
-# 檔案：discord_bot.py (在 BotCog 類別內)
-
-# 指令：[管理員] RAG 直通 LLM 對話 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 創建此終極調試指令。它實現了一個極簡的、繞過所有複雜圖形邏輯的處理流程：1. 接收用戶輸入。2. 調用 RAG 檢索上下文。3. 將 RAG 上下文、最高指導原則（越獄指令）和用戶輸入拼接成一個最終 Prompt。4. 直接調用底層 LLM 引擎（`ainvoke_with_rotation`），並強制使用最高級的模型和 `force` 重試策略。5. 返回未經任何處理的原始 LLM 輸出。此工具使得開發者能夠在最純淨的環境下，驗證 RAG 上下文與核心 Prompt 的協同效果。
-    @app_commands.command(name="admin_direct_chat", description="[管理員] RAG直通LLM，用於測試最原始的回應。")
-    @app_commands.check(is_admin)
-    @app_commands.describe(prompt="您想直接發送給 LLM 的對話內容。")
-    async def admin_direct_chat(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.defer(ephemeral=False, thinking=True) # 回應設為公開
-        user_id = str(interaction.user.id)
-        
-        try:
-            ai_instance = await self.get_or_create_ai_instance(user_id)
-            if not ai_instance or not ai_instance.profile:
-                await interaction.followup.send("❌ 錯誤：AI 實例或 Profile 未初始化。")
-                return
-
-            logger.info(f"[{user_id}] [Admin Command] 執行 RAG 直通 LLM，Prompt: '{prompt[:100]}...'")
-
-            # 步驟 1: 調用 RAG 獲取上下文
-            rag_context_dict = await ai_instance.retrieve_and_summarize_memories(prompt)
-            rag_context = rag_context_dict.get("summary", "（RAG 未返回任何摘要信息。）")
-            rag_rules = rag_context_dict.get("rules", "（RAG 未返回任何規則信息。）")
-            
-            full_rag_context = f"--- RAG 檢索到的規則 ---\n{rag_rules}\n\n--- RAG 檢索到的背景摘要 ---\n{rag_context}"
-
-            # 步驟 2: 構建最終 Prompt
-            final_prompt_template = """{core_protocol}
-
-# === 情報簡報 ===
-{rag_context}
-# === 情報結束 ===
-
-# === 對話開始 ===
-{username}: {user_prompt}
-{ai_name}:"""
-            
-            final_prompt = final_prompt_template.format(
-                core_protocol=ai_instance.core_protocol_prompt,
-                rag_context=full_rag_context,
-                username=ai_instance.profile.user_profile.name,
-                user_prompt=prompt,
-                ai_name=ai_instance.profile.ai_profile.name
-            )
-            
-            # 將最終的 Prompt 寫入檔案以供調試
-            temp_dir = PROJ_DIR / "temp"
-            temp_dir.mkdir(exist_ok=True)
-            prompt_file_path = temp_dir / f"direct_chat_prompt_{user_id}_{int(time.time())}.txt"
-            with open(prompt_file_path, 'w', encoding='utf-8') as f:
-                f.write(final_prompt)
-            
-            await interaction.followup.send(
-                f"✅ RAG 上下文已獲取，最終 Prompt 已構建。正在調用 `{GENERATION_MODEL_PRIORITY[0]}` 模型...",
-                file=discord.File(prompt_file_path, filename="last_direct_prompt.txt")
-            )
-            os.remove(prompt_file_path)
-
-            # 步驟 3: 直接調用底層 LLM 引擎
-            raw_response = await ai_instance.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=None, # 我們需要原始字符串
-                retry_strategy='force', # 強制重試
-                use_degradation=True, # 使用最高級的模型
-                models_to_try_override=[GENERATION_MODEL_PRIORITY[0]] # 強制只使用最高級模型
-            )
-
-            # 步驟 4: 返回原始結果
-            if raw_response and raw_response.strip():
-                decoded_response = ai_instance._decode_lore_content(raw_response.strip(), ai_instance.DECODING_MAP)
-                # 分段發送長回應
-                for i in range(0, len(decoded_response), 2000):
-                    await interaction.channel.send(decoded_response[i:i+2000])
-            else:
-                await interaction.channel.send("❌ LLM 在所有重試後返回了空回應。")
-
-        except Exception as e:
-            logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
-# 指令：[管理員] RAG 直通 LLM 對話 (v1.0 - 全新創建)```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 類別：/settings 指令的選擇視圖
 class SettingsChoiceView(discord.ui.View):
     # 函式：初始化 SettingsChoiceView
@@ -1286,13 +1120,9 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-# 函式：執行完整的後台創世流程 (v61.0 - 完全串行化)
-# 更新紀錄:
-# v61.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，再次徹底重構了創世流程。此版本將 LORE 精煉（`_background_lore_refinement`）作為一個【同步的、阻塞的】步驟插入到 RAG 創建之後、世界生成之前。此修改確保了 LORE 精煉任務在執行時，RAG 系統必然已經完全就緒，從而徹底根除了導致「檢索器未初始化」錯誤的災難性競爭條件。
-# v60.0 (2025-10-02): [災難性BUG修復] 再次重構並最終確定了創世流程的執行時序。
-# v59.0 (2025-10-02): [災難性BUG修復] 將此函式從 ai_core.py 移回其正確的歸屬地 discord_bot.py。
+    # 函式：執行完整的後台創世流程
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """一個獨立的、完全串行的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
+        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
         user_id = str(user.id)
         try:
             logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
@@ -1359,11 +1189,7 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# 函式：執行完整的後台創世流程 (v61.0 - 完全串行化)
-
-
-
-    
+    # 函式：執行完整的後台創世流程
 
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> AILover | None:
@@ -1644,18 +1470,15 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
     # 函式：開始 /start 指令的重置流程
-
-    # [v57.0 核心修正] 將所有指令定義移動到 BotCog 類別內部
     
     # 指令：開始全新的冒險（重置所有資料）
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
     async def start(self, interaction: discord.Interaction):
-        user_id = str(interaction.user.id)
         if not isinstance(interaction.channel, discord.DMChannel):
             await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
             return
         
-        if user_id in self.active_setups:
+        if str(interaction.user.id) in self.active_setups:
             await interaction.response.send_message("⏳ 您已經有一個創世流程正在後台執行，無法重複開始。請耐心等候或聯繫管理員。", ephemeral=True)
             return
             
@@ -1950,6 +1773,131 @@ class BotCog(commands.Cog):
         embed = await view._build_embed()
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     # 指令：[管理員] 版本控制
+
+    # [v62.0 新增] 管理員指令：窺探 RAG 檢索結果
+    @app_commands.command(name="admin_rag_peek", description="[管理員] 輸入查詢，直接查看 RAG 返回的原始文檔內容。")
+    @app_commands.check(is_admin)
+    @app_commands.describe(query="您想用來查詢 RAG 的文本內容。")
+    async def admin_rag_peek(self, interaction: discord.Interaction, query: str):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        
+        try:
+            ai_instance = await self.get_or_create_ai_instance(user_id)
+            if not ai_instance or not ai_instance.retriever:
+                await interaction.followup.send("❌ 錯誤：AI 實例或 RAG 檢索器未初始化。", ephemeral=True)
+                return
+
+            logger.info(f"[{user_id}] [Admin Command] 執行 RAG Peek，查詢: '{query}'")
+            
+            retrieved_docs = await ai_instance.retriever.ainvoke(query)
+
+            if not retrieved_docs:
+                await interaction.followup.send("ℹ️ RAG 系統未返回任何文檔。", ephemeral=True)
+                return
+
+            output_parts = []
+            output_parts.append(f"--- RAG Peek 原始檢索結果 ---\n")
+            output_parts.append(f"查詢原文: {query}\n")
+            output_parts.append(f"檢索到文檔數量: {len(retrieved_docs)}\n")
+            output_parts.append("="*40 + "\n\n")
+
+            for i, doc in enumerate(retrieved_docs):
+                output_parts.append(f"--- 文檔 #{i+1} ---\n")
+                output_parts.append(f"【元數據】:\n{json.dumps(doc.metadata, indent=2, ensure_ascii=False)}\n\n")
+                output_parts.append(f"【文檔內容】:\n{doc.page_content}\n")
+                output_parts.append("="*40 + "\n\n")
+            
+            output_text = "".join(output_parts)
+            temp_dir = PROJ_DIR / "temp"
+            temp_dir.mkdir(exist_ok=True)
+            file_path = temp_dir / f"rag_peek_{user_id}_{int(time.time())}.txt"
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.write(output_text)
+            
+            await interaction.followup.send(
+                f"✅ RAG 系統為您的查詢返回了 **{len(retrieved_docs)}** 條原始文檔。詳情請見附件：",
+                file=discord.File(file_path, filename=f"rag_peek_results.txt"),
+                ephemeral=True
+            )
+            
+            os.remove(file_path)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 執行 admin_rag_peek 時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
+
+    # [v62.0 新增] 管理員指令：RAG 直通 LLM 對話
+    @app_commands.command(name="admin_direct_chat", description="[管理員] RAG直通LLM，用於測試最原始的回應。")
+    @app_commands.check(is_admin)
+    @app_commands.describe(prompt="您想直接發送給 LLM 的對話內容。")
+    async def admin_direct_chat(self, interaction: discord.Interaction, prompt: str):
+        await interaction.response.defer(ephemeral=False, thinking=True)
+        user_id = str(interaction.user.id)
+        
+        try:
+            ai_instance = await self.get_or_create_ai_instance(user_id)
+            if not ai_instance or not ai_instance.profile:
+                await interaction.followup.send("❌ 錯誤：AI 實例或 Profile 未初始化。")
+                return
+
+            logger.info(f"[{user_id}] [Admin Command] 執行 RAG 直通 LLM，Prompt: '{prompt[:100]}...'")
+
+            rag_context_dict = await ai_instance.retrieve_and_summarize_memories(prompt)
+            rag_context = rag_context_dict.get("summary", "（RAG 未返回任何摘要信息。）")
+            rag_rules = rag_context_dict.get("rules", "（RAG 未返回任何規則信息。）")
+            
+            full_rag_context = f"--- RAG 檢索到的規則 ---\n{rag_rules}\n\n--- RAG 檢索到的背景摘要 ---\n{rag_context}"
+
+            final_prompt_template = """{core_protocol}
+
+# === 情報簡報 ===
+{rag_context}
+# === 情報結束 ===
+
+# === 對話開始 ===
+{username}: {user_prompt}
+{ai_name}:"""
+            
+            final_prompt = final_prompt_template.format(
+                core_protocol=ai_instance.core_protocol_prompt,
+                rag_context=full_rag_context,
+                username=ai_instance.profile.user_profile.name,
+                user_prompt=prompt,
+                ai_name=ai_instance.profile.ai_profile.name
+            )
+            
+            temp_dir = PROJ_DIR / "temp"
+            temp_dir.mkdir(exist_ok=True)
+            prompt_file_path = temp_dir / f"direct_chat_prompt_{user_id}_{int(time.time())}.txt"
+            with open(prompt_file_path, 'w', encoding='utf-8') as f:
+                f.write(final_prompt)
+            
+            await interaction.followup.send(
+                f"✅ RAG 上下文已獲取，最終 Prompt 已構建。正在調用 `{GENERATION_MODEL_PRIORITY[0]}` 模型...",
+                file=discord.File(prompt_file_path, filename="last_direct_prompt.txt")
+            )
+            os.remove(prompt_file_path)
+
+            raw_response = await ai_instance.ainvoke_with_rotation(
+                full_prompt,
+                output_schema=None,
+                retry_strategy='force',
+                use_degradation=True,
+                models_to_try_override=[GENERATION_MODEL_PRIORITY[0]]
+            )
+
+            if raw_response and raw_response.strip():
+                decoded_response = ai_instance._decode_lore_content(raw_response.strip(), ai_instance.DECODING_MAP)
+                for i in range(0, len(decoded_response), 2000):
+                    await interaction.channel.send(decoded_response[i:i+2000])
+            else:
+                await interaction.channel.send("❌ LLM 在所有重試後返回了空回應。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
         
     # 函式：全域應用程式指令錯誤處理器
     @commands.Cog.listener()
@@ -2017,14 +1965,10 @@ class AILoverBot(commands.Bot):
             self.is_ready_once = True
             if settings.ADMIN_USER_ID:
                 try:
-                    admin_user = self.get_user(int(settings.ADMIN_USER_ID)) or await self.fetch_user(int(settings.ADMIN_USER_ID))
+                    admin_user = self.get_user(int(settings.ADMIN_USER_ID)) or await self.bot.fetch_user(int(settings.ADMIN_USER_ID))
                     await admin_user.send(f"✅ **系統啟動成功！**")
                     logger.info(f"已成功發送啟動成功通知給管理員。")
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
-
-
-
-
