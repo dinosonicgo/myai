@@ -252,12 +252,11 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# 函式：解析並儲存LORE實體 (v5.0 - 移除舊校驗器)
-# ai_core.py 的 _resolve_and_save 函式 (v5.1 - 自我修正)
+# 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
 # 更新紀錄:
-# v5.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，為批量實體解析流程增加了「自我修正」循環。現在，當 Pydantic 驗證失敗時，程式會捕獲異常，自動調用新的 JSON 修正鏈，將錯誤報告反饋給 LLM 進行修正，然後再進行一次嘗試。此修改極大地增強了處理大量、複雜 LORE 解析任務時的健壯性。
+# v6.0 (2025-10-02): [架構簡化] 根據「前置LORE解析」策略，移除了在此函式中異步觸發背景精煉任務的邏輯。LORE 精煉的職責已被上層的 `preprocess_and_generate` 在需要時即時調用，此處不再需要重複觸發，避免了冗餘操作。
+# v5.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，為批量實體解析流程增加了「自我修正」循環。
 # v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。
-# v4.0 (2025-11-22): [災難性BUG修復] 增加了程式化的「LORE校驗器」作為第二層防禦。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
@@ -280,9 +279,7 @@ class AILover:
             
             resolution_plan = None
             if new_npcs_from_parser:
-                # [v5.1 核心修正] 引入自我修正循環
                 try:
-                    # 第一次嘗試
                     resolution_prompt_template = self.get_batch_entity_resolution_prompt()
                     new_entities_json = json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False)
                     existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
@@ -300,10 +297,7 @@ class AILover:
                 except ValidationError as e:
                     logger.warning(f"[{self.user_id}] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...")
                     try:
-                        # 提取LLM返回的原始、錯誤的JSON字符串
                         raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取原始JSON"
-
-                        # 第二次嘗試：調用修正鏈
                         correction_prompt_template = self.get_json_correction_chain()
                         correction_prompt = self._safe_format_prompt(
                             correction_prompt_template,
@@ -318,8 +312,7 @@ class AILover:
                         logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 自我修正成功！")
                     except Exception as correction_e:
                         logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
-                        resolution_plan = None # 確保在失敗後 plan 為 None
-
+                        resolution_plan = None
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行時發生未知嚴重錯誤: {e}", exc_info=True)
             
@@ -327,7 +320,6 @@ class AILover:
             updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
 
             if resolution_plan and resolution_plan.resolutions:
-                logger.info(f"[{self.user_id}] [實體解析] 成功生成解析計畫，包含 {len(resolution_plan.resolutions)} 條決策。")
                 for resolution in resolution_plan.resolutions:
                     original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
                     if not original_item: continue
@@ -337,7 +329,6 @@ class AILover:
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                         updates_to_merge[resolution.matched_key].append(original_item)
             else:
-                logger.warning(f"[{self.user_id}] [實體解析] 未能生成有效的解析計畫，所有NPC將被視為新實體處理。")
                 items_to_create = new_npcs_from_parser
 
             synthesis_tasks: List[SynthesisTask] = []
@@ -363,49 +354,27 @@ class AILover:
                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
 
             if synthesis_tasks:
-                logger.info(f"[{self.user_id}] [LORE合併] 正在為 {len(synthesis_tasks)} 個NPC執行批量描述合成...")
-                synthesis_result = None
-                
                 try:
                     synthesis_prompt_template = self.get_description_synthesis_prompt()
                     batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
                     synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
                     synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [LORE合併-1A] 雲端批量合成失敗: {e}。降級到 1B (雲端強制重試)...")
-
-                if not synthesis_result:
-                    try:
-                        forceful_prompt = synthesis_prompt + f"\n\n{self.core_protocol_prompt}"
-                        synthesis_result = await self.ainvoke_with_rotation(forceful_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
-                    except Exception as e:
-                        logger.warning(f"[{self.user_id}] [LORE合併-1B] 雲端強制重試失敗: {e}。降級到 2A (本地批量)...")
-                
-                if not synthesis_result and self.is_ollama_available:
-                    try:
-                        synthesis_result = await self._invoke_local_ollama_batch_synthesis(synthesis_tasks)
-                    except Exception as e:
-                        logger.error(f"[{self.user_id}] [LORE合併-2A] 本地批量合成遭遇嚴重錯誤: {e}。降級到 2B (程式拼接)...")
-                
-                if synthesis_result and synthesis_result.synthesized_descriptions:
-                    logger.info(f"[{self.user_id}] [LORE合併] LLM 合成成功，收到 {len(synthesis_result.synthesized_descriptions)} 條新描述。")
-                    results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
-                    tasks_dict = {task.name: task for task in synthesis_tasks}
                     
-                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
-                    for lore in all_merged_lores:
-                        char_name = lore.content.get('name')
-                        if char_name in results_dict:
-                            lore.content['description'] = results_dict[char_name]
-                        elif char_name in tasks_dict:
-                            logger.warning(f"[{self.user_id}] [LORE合併-2B] LLM輸出遺漏了'{char_name}'，觸發最終備援(程式拼接)。")
-                            task = tasks_dict[char_name]
-                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
-                        
-                        final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
-                else:
-                    logger.critical(f"[{self.user_id}] [LORE合併-2B] 所有LLM層級均失敗！觸發對所有任務的最終備援(程式拼接)。")
+                    if synthesis_result and synthesis_result.synthesized_descriptions:
+                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
+                        tasks_dict = {task.name: task for task in synthesis_tasks}
+                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
+                        for lore in all_merged_lores:
+                            char_name = lore.content.get('name')
+                            if char_name in results_dict:
+                                lore.content['description'] = results_dict[char_name]
+                            elif char_name in tasks_dict:
+                                task = tasks_dict[char_name]
+                                lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
+                            
+                            final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                except Exception:
                     tasks_dict = {task.name: task for task in synthesis_tasks}
                     all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
                     for lore in all_merged_lores:
@@ -425,11 +394,20 @@ class AILover:
                 location_path = item_data.get('location_path')
                 lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
                 final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
-                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+                lore_entry = await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+
+                # [v6.0 核心修正] 移除異步觸發，精煉職責完全上移
+                # if actual_category == 'npc_profile' and lore_entry.source == 'canon_parser':
+                #     logger.info(f"[{self.user_id}] (_resolve_and_save) 檢測到新的粗略版 LORE '{lore_key}'，正在異步觸發單體精煉任務...")
+                #     asyncio.create_task(self._background_lore_refinement(lore_entry))
+
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
-# 函式：解析並儲存LORE實體
+# 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
+
+
+    
 
 
     # 函式：保存 BM25 語料庫到磁碟 (v1.0 - 全新創建)
@@ -2865,18 +2843,18 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v6.0 - 最終安全驗證)
+# 函式：背景LORE精煉 (v7.0 - 職責簡化)
 # 更新紀錄:
-# v6.0 (2025-10-02): [災難性BUG修復] 根據「數據安全」原則，在精煉流程中加入了「最終安全驗證」機制。在將 LLM 返回的精煉結果寫入數據庫之前，此版本會執行一個嚴格的程式化校驗，檢查結果是否為空、核心字段（如 name, description）是否缺失。只有通過驗證的、高質量的結果才會被寫入。此修改從根本上杜絕了因 LLM 內容審查失敗返回空值，而導致 LORE 數據被意外清空的災難性風險。
+# v7.0 (2025-10-02): [根本性重構] 根據「前置LORE解析」策略，此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。此函式現在的職責被極大簡化，僅僅是作為一個異步任務的入口點，負責從數據庫中查找所有需要精煉的 LORE，然後循環調用 `_refine_single_lore_object` 來逐一處理它們。
+# v6.0 (2025-10-02): [災難性BUG修復] 根據「數據安全」原則，在精煉流程中加入了「最終安全驗證」機制。
 # v5.0 (2025-10-02): [根本性重構] 根據「準確性優先」和「RAG驅動」的終極策略，徹底重寫此函式。
-# v4.0 (2025-10-02): [根本性重構] 根據「程式化依賴剖析」終極策略，徹底重寫此函式。
-    async def _background_lore_refinement(self, canon_text: str):
+    async def _background_lore_refinement(self):
         """
-        (背景任務 v6.0) 為每個 LORE 獨立執行 RAG 驅動的單體精煉，並在寫入前進行最終安全驗證。
+        (背景任務 v7.0) 查找所有粗略版的 LORE，並逐一調用單體精煉器對其進行升級。
         """
         try:
             await asyncio.sleep(10.0)
-            logger.info(f"[{self.user_id}] [LORE精煉 v6.0] RAG驅動的單體精煉任務已啟動...")
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.0] 背景 LORE 精煉任務已啟動...")
 
             lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
             npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
@@ -2886,88 +2864,103 @@ class ExtractionResult(BaseModel):
                 return
 
             logger.info(f"[{self.user_id}] [LORE精煉] 找到 {len(npc_lores)} 個待精煉的 NPC 檔案。開始逐一處理...")
-
-            extraction_prompt_template = self.get_rag_driven_extraction_prompt()
             
             for lore in npc_lores:
-                character_name = lore.content.get('name')
-                if not character_name:
-                    continue
+                # 調用新的核心精煉工具
+                refined_profile = await self._refine_single_lore_object(lore)
 
-                logger.info(f"[{self.user_id}] [LORE精煉] 正在為角色 '{character_name}' 執行精煉...")
-
-                try:
-                    # --- 步驟 1-3: RAG查詢、並發檢索、聚合上下文 ---
-                    queries = {
-                        "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
-                        "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
-                        "appearance": f"對 '{character_name}' 外貌的詳細描寫。",
-                        "skills": f"'{character_name}' 擁有哪些技能或能力？",
-                        "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
-                    }
-                    tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
-                    results = await asyncio.gather(*tasks.values())
-                    aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
-
-                    # --- 步驟 4: LLM 提取 ---
-                    full_prompt = self._safe_format_prompt(
-                        extraction_prompt_template,
-                        {
-                            "character_name": character_name,
-                            "base_profile_json": json.dumps(lore.content, ensure_ascii=False, indent=2),
-                            "aliases_context": aggregated_context["aliases"],
-                            "description_context": aggregated_context["description"],
-                            "appearance_context": aggregated_context["appearance"],
-                            "skills_context": aggregated_context["skills"],
-                            "relationships_context": aggregated_context["relationships"]
-                        },
-                        inject_core_protocol=True
+                if refined_profile:
+                    # 如果精煉成功，則更新數據庫
+                    final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
+                    await lore_book.add_or_update_lore(
+                        user_id=self.user_id,
+                        category='npc_profile',
+                        key=lore.key,
+                        content=final_content_to_save,
+                        source='canon_refiner_v7_async' # 更新來源標記
                     )
+                    logger.info(f"[{self.user_id}] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '{refined_profile.name}' 的檔案。")
+                else:
+                    logger.warning(f"[{self.user_id}] [LORE精煉-背景] ⏩ 為角色 '{lore.content.get('name', '未知')}' 的背景精煉失敗或無效，跳過更新。")
 
-                    refined_profile = await self.ainvoke_with_rotation(
-                        full_prompt,
-                        output_schema=CharacterProfile,
-                        retry_strategy='euphemize',
-                        models_to_try_override=[FUNCTIONAL_MODEL]
-                    )
-
-                    # --- 步驟 5: 【全新】最終安全驗證 ---
-                    is_valid = True
-                    if not refined_profile:
-                        is_valid = False
-                        logger.warning(f"[{self.user_id}] [LORE精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的精煉結果為 None (可能因審查)。")
-                    elif not refined_profile.name or not refined_profile.description.strip():
-                        is_valid = False
-                        logger.warning(f"[{self.user_id}] [LORE精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的結果缺少核心字段 (name 或 description)。")
-                    
-                    if is_valid:
-                        # --- 步驟 6: 寫入數據庫 ---
-                        final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
-
-                        await lore_book.add_or_update_lore(
-                            user_id=self.user_id,
-                            category='npc_profile',
-                            key=lore.key,
-                            content=final_content_to_save,
-                            source='canon_refiner_v6_safe' # 更新來源標記
-                        )
-                        logger.info(f"[{self.user_id}] [LORE精煉] ✅ 驗證通過，已成功為角色 '{character_name}' 精煉並更新檔案。")
-                    else:
-                        # 如果驗證失敗，則記錄警告並跳過更新，保留原始LORE
-                        logger.warning(f"[{self.user_id}] [LORE精煉] 為保證數據安全，已跳過對 '{character_name}' 的更新，數據庫中將保留原始的粗略版 LORE。")
-
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE精煉] 在為角色 '{character_name}' 執行精煉時發生嚴重錯誤: {e}", exc_info=True)
-                
                 await asyncio.sleep(1.5)
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v6.0] 所有角色的單體精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.0] 所有背景精煉任務已全部完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v6.0 - 最終安全驗證)
+# 函式：背景LORE精煉 (v7.0 - 職責簡化)
 
 
+
+    # 函式：精煉單個 LORE 對象 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-02): [全新創建] 根據「前置LORE解析」策略，創建此核心輔助函式。它將原 `_background_lore_refinement` 的核心邏輯（RAG驅動的單體精煉 + 安全驗證）封裝起來，使其可以被 `preprocess_and_generate` 等需要即時解析的流程同步調用。它接收一個粗略的 LORE 對象，返回一個經過 RAG 上下文增強和 LLM 精煉後的高質量 CharacterProfile，或在失敗時返回 None。
+    async def _refine_single_lore_object(self, lore_to_refine: Lore) -> Optional[CharacterProfile]:
+        """
+        (v1.0) 對單個粗略的 LORE 對象執行 RAG 驅動的深度精煉，並返回結果。
+        """
+        character_name = lore_to_refine.content.get('name')
+        if not character_name:
+            return None
+
+        logger.info(f"[{self.user_id}] [單體精煉] 正在為角色 '{character_name}' 執行精煉...")
+
+        try:
+            # --- 步驟 1: 生成多維度 RAG 查詢 ---
+            queries = {
+                "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
+                "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
+                "appearance": f"對 '{character_name}' 外貌的詳細描寫。",
+                "skills": f"'{character_name}' 擁有哪些技能或能力？",
+                "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
+            }
+
+            # --- 步驟 2: 並行執行多維度檢索 ---
+            tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
+            results = await asyncio.gather(*tasks.values())
+            
+            # --- 步驟 3: 聚合 RAG 結果 ---
+            aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
+
+            # --- 步驟 4: LLM 提取 ---
+            extraction_prompt_template = self.get_rag_driven_extraction_prompt()
+            full_prompt = self._safe_format_prompt(
+                extraction_prompt_template,
+                {
+                    "character_name": character_name,
+                    "base_profile_json": json.dumps(lore_to_refine.content, ensure_ascii=False, indent=2),
+                    "aliases_context": aggregated_context["aliases"],
+                    "description_context": aggregated_context["description"],
+                    "appearance_context": aggregated_context["appearance"],
+                    "skills_context": aggregated_context["skills"],
+                    "relationships_context": aggregated_context["relationships"]
+                },
+                inject_core_protocol=True
+            )
+
+            refined_profile = await self.ainvoke_with_rotation(
+                full_prompt,
+                output_schema=CharacterProfile,
+                retry_strategy='euphemize',
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+
+            # --- 步驟 5: 最終安全驗證 ---
+            if not refined_profile:
+                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的精煉結果為 None。")
+                return None
+            elif not refined_profile.name or not refined_profile.description.strip():
+                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的結果缺少核心字段。")
+                return None
+            
+            logger.info(f"[{self.user_id}] [單體精煉] ✅ 驗證通過，成功為角色 '{character_name}' 生成精煉檔案。")
+            return refined_profile
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [單體精煉] 在為角色 '{character_name}' 執行精煉時發生嚴重錯誤: {e}", exc_info=True)
+            return None
+# 函式：精煉單個 LORE 對象 (v1.0 - 全新創建)
 
     # 函式：獲取RAG驅動的提取器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
@@ -3085,15 +3078,14 @@ class ExtractionResult(BaseModel):
     
     
     
-# 函式：預處理並生成主回應 (v46.0 - 規則注入系統)
+# 函式：預處理並生成主回應 (v47.0 - 前置LORE解析)
 # 更新紀錄:
-# v46.0 (2025-10-02): [重大架構升級] 根據「LORE繼承與規則注入系統」方案，徹底重構了此函式。新流程在確定場景核心角色後，會收集其所有身份(aliases)，並調用新的 `lore_book.get_lores_by_template_keys` 反向查詢資料庫，找出所有與這些身份鏈接的「規則LORE」。這些被精準匹配的規則將被從通用 RAG 結果中分離出來，並注入到 World Snapshot 一個全新的、最高優先級的 `scene_rules_context` 區域，從根本上解決了關鍵行為規則被 LLM 在大量信息中忽略的問題。
+# v47.0 (2025-10-02): [重大架構升級] 根據「前置LORE解析與動態RAG注入」終極策略，徹底重構了此函式。新流程在對話開始前，會先提取用戶指令中的核心實體，並檢查其 LORE 是否已存在或已精煉。如果 LORE 不存在或版本陳舊（粗略版），它會【即時地、同步地】調用 `_refine_single_lore_object` 進行精煉，並將這個高質量的臨時 LORE 對象動態注入到 RAG 上下文中。此修改從根本上解決了「第一回合」上下文不足的問題，確保導演層在對話開始時就能獲得最準確、最完整的角色信息。
+# v46.0 (2025-10-02): [重大架構升級] 根據「LORE繼承與規則注入系統」方案，徹底重構了此函式。
 # v45.0 (2025-10-02): [災難性BUG修復] 根據「上下文快照保真」原則，徹底重構了 `last_context_snapshot` 的創建邏輯。
-# v44.6 (2025-09-28): [災難性BUG修復] 引入了终极的【場景範疇界定(Scene Scoping)】模组。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v46.0重構) 執行包含「規則注入」和「AI導演」決策的純粹小說生成任務。
-        返回純小說文本字串。
+        (v47.0重構) 執行包含「前置LORE解析」、「規則注入」和「AI導演」決策的純粹小說生成任務。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
 
@@ -3102,7 +3094,7 @@ class ExtractionResult(BaseModel):
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [純粹生成流程] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [純粹生成流程 v47.0] 正在準備上下文...")
         
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
@@ -3120,10 +3112,69 @@ class ExtractionResult(BaseModel):
                 authoritative_location_path = location_result.location_path
             else:
                 authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [場景界定] 提取意圖地點時發生錯誤: {e}，回退至當前遊戲狀態地點。")
             authoritative_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+
+        # --- 步驟 2: 【全新】前置 LORE 解析 ---
+        logger.info(f"[{self.user_id}] [前置解析] 正在執行即時 LORE 解析...")
+        explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
+        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         
-        # --- 步驟 2: 上下文準備與 RAG 檢索 ---
+        live_character_profiles: Dict[str, CharacterProfile] = {}
+
+        if explicitly_mentioned_entities:
+            for entity_name in explicitly_mentioned_entities:
+                found_lore = next((lore for lore in all_lores if lore.category == 'npc_profile' and (lore.content.get("name") == entity_name or entity_name in lore.content.get("aliases", []))), None)
+                
+                if found_lore:
+                    if found_lore.source == 'canon_parser':
+                        logger.info(f"[{self.user_id}] [前置解析] 檢測到陳舊的 LORE '{entity_name}'，正在對其進行即時精煉...")
+                        refined_profile = await self._refine_single_lore_object(found_lore)
+                        if refined_profile:
+                            live_character_profiles[entity_name] = refined_profile
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', found_lore.key, refined_profile.model_dump(), source='canon_refiner_v7_jit')
+                        else:
+                            live_character_profiles[entity_name] = CharacterProfile.model_validate(found_lore.content)
+                    else:
+                        live_character_profiles[entity_name] = CharacterProfile.model_validate(found_lore.content)
+
+        logger.info(f"[{self.user_id}] [前置解析] 完成。已為 {len(live_character_profiles)} 個核心角色準備好高質量 LORE。")
+
+        # --- 步驟 3: 上下文準備與 RAG 檢索 ---
+        scene_key = self._get_scene_key()
+        chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
+        scene_path_tuple = tuple(authoritative_location_path)
+        all_scene_npcs_lores = [lore for lore in all_lores if lore.category == 'npc_profile' and tuple(lore.content.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple]
+        
+        explicitly_mentioned_profiles = list(live_character_profiles.values())
+        relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
+        
+        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
+
+        # --- 步驟 3.5: 【全新】動態 RAG 注入 ---
+        if live_character_profiles:
+            jit_lore_texts = []
+            for name, profile in live_character_profiles.items():
+                temp_lore = Lore(user_id=self.user_id, category='npc_profile', key=f"temp_jit_{name}", content=profile.model_dump(), timestamp=time.time())
+                formatted_doc = self._format_lore_into_document(temp_lore)
+                jit_lore_texts.append(f"【即時解析的核心角色檔案：{name}】\n{formatted_doc.page_content}")
+            
+            structured_rag_context["summary"] = "\n\n---\n\n".join(jit_lore_texts) + "\n\n---\n\n" + structured_rag_context["summary"]
+            logger.info(f"[{self.user_id}] [動態注入] ✅ 已將 {len(live_character_profiles)} 條即時解析的 LORE 注入 RAG 上下文。")
+
+        # --- 步驟 4: 規則注入與導演決策 ---
+        scene_rules_context_str = "（本場景無特定的行為準則或世界觀設定）"
+        all_characters_in_scene = relevant_characters + background_characters
+        if all_characters_in_scene:
+            all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
+            if all_aliases_in_scene:
+                applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
+                if applicable_rules:
+                    rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
+                    scene_rules_context_str = "\n\n".join(rule_texts)
+                    logger.info(f"[{self.user_id}] [規則注入] ✅ 成功為場景注入 {len(applicable_rules)} 條行為規則。")
+
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
         def encode_text(text: str) -> str:
@@ -3131,49 +3182,7 @@ class ExtractionResult(BaseModel):
             for word, code in sorted_encoding_map:
                 text = text.replace(word, code)
             return text
-
-        explicitly_mentioned_entities = await self._extract_entities_from_input(user_input)
-        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-        found_lores_for_injection: List[Dict[str, Any]] = []
-        if explicitly_mentioned_entities:
-            lookup_table: Dict[str, Dict] = {}
-            for lore in all_lores:
-                main_name = lore.content.get("name") or lore.content.get("title")
-                if main_name: lookup_table[main_name] = {"lore": lore, "type": lore.category}
-                for alias in lore.content.get("aliases", []):
-                    if alias: lookup_table[alias] = {"lore": lore, "type": lore.category}
-            for entity_name in explicitly_mentioned_entities:
-                if entity_name in lookup_table:
-                    found_lore_info = lookup_table[entity_name]
-                    if not any(f['lore'].id == found_lore_info['lore'].id for f in found_lores_for_injection):
-                        found_lores_for_injection.append(found_lore_info)
-
-        scene_key = self._get_scene_key()
-        chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
-        scene_path_tuple = tuple(authoritative_location_path)
-        all_scene_npcs_lores = [lore for lore in all_lores if lore.category == 'npc_profile' and tuple(lore.content.get('location_path', []))[:len(scene_path_tuple)] == scene_path_tuple]
-        
-        explicitly_mentioned_profiles = [CharacterProfile.model_validate(info['lore'].content) for info in found_lores_for_injection if info['type'] == 'npc_profile']
-        relevant_characters, background_characters = await self._get_relevant_npcs(user_input, chat_history, all_scene_npcs_lores, gs.viewing_mode, explicitly_mentioned_profiles)
-        
-        structured_rag_context = await self.retrieve_and_summarize_memories(user_input, relevant_characters, relevant_characters)
-
-        # --- [v46.0 核心修正] 規則注入系統 ---
-        scene_rules_context_str = "（本場景無特定的行為準則或世界觀設定）"
-        all_characters_in_scene = relevant_characters + background_characters
-        if all_characters_in_scene:
-            # 收集場景中所有角色的所有身份
-            all_aliases_in_scene = set(alias for char in all_characters_in_scene for alias in [char.name] + char.aliases if alias)
-            if all_aliases_in_scene:
-                # 根據身份反向查找適用的規則
-                applicable_rules = await lore_book.get_lores_by_template_keys(self.user_id, list(all_aliases_in_scene))
-                if applicable_rules:
-                    rule_texts = [f"【適用於'{','.join(rule.template_keys)}'的規則: {rule.content.get('name', rule.key)}】:\n{rule.content.get('content', '')}" for rule in applicable_rules]
-                    scene_rules_context_str = "\n\n".join(rule_texts)
-                    logger.info(f"[{self.user_id}] [規則注入] ✅ 成功為場景注入 {len(applicable_rules)} 條基於角**色身份的行為規則。")
-
-        # --- 步驟 3: AI 導演決策模組 ---
-        # ... (此部分邏輯保持不變，它會自動接收到包含 scene_rules_context_str 的 director_context)
+            
         location_path = authoritative_location_path
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', ' > '.join(location_path))
         location_desc = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
@@ -3183,7 +3192,7 @@ class ExtractionResult(BaseModel):
             "relevant_characters_summary": ", ".join([f"{p.name} (身份: {p.aliases or '無'})" for p in relevant_characters]) or "無",
             "location_description": f"{' > '.join(location_path)}: {location_desc}",
             "rag_summary": structured_rag_context.get("summary", "無"),
-            "scene_rules_context": scene_rules_context_str, # 注入精準規則
+            "scene_rules_context": scene_rules_context_str,
             "user_input": user_input
         }
         
@@ -3192,21 +3201,22 @@ class ExtractionResult(BaseModel):
             director_prompt_template = self.get_narrative_directive_prompt()
             director_prompt = self._safe_format_prompt(director_prompt_template, director_context, inject_core_protocol=True)
             directive = await self.ainvoke_with_rotation(director_prompt, output_schema=NarrativeDirective, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-        except Exception:
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [AI導演] 雲端導演決策失敗: {e}。")
             if self.is_ollama_available:
                 directive = await self._invoke_local_ollama_director(director_context["relevant_characters_summary"], director_context["scene_rules_context"], director_context["user_input"])
         
         if not directive:
+            logger.critical(f"[{self.user_id}] [AI導演] 所有導演決策層級均失敗，已觸發最終備援。")
             directive = NarrativeDirective(scene_summary_for_generation=user_input)
-        
-        # --- 步驟 4: 主生成流程 ---
+            
         raw_short_term_history = "（這是此場景的開端）\n"
         if chat_history: raw_short_term_history = "\n".join([f"{user_profile.name if isinstance(m, HumanMessage) else ai_profile.name}: {m.content}" for m in chat_history[-6:]])
         
         explicit_character_files_context = "（指令中未明確提及需要調閱檔案的核心實體。）"
-        if found_lores_for_injection:
-            explicit_character_files_context = "\n".join([f"### 關於「{info['lore'].content.get('name') or info['lore'].content.get('title', info['lore'].key)}」({info['type']}) 的強制事實檔案 ###\n```json\n{json.dumps(info['lore'].content, ensure_ascii=False, indent=2)}\n```\n" for info in found_lores_for_injection])
-        
+        if live_character_profiles:
+            explicit_character_files_context = "\n".join([f"### 關於「{profile.name}」(npc_profile) 的強制事實檔案 ###\n```json\n{json.dumps(profile.model_dump(), ensure_ascii=False, indent=2)}\n```\n" for profile in live_character_profiles.values()])
+
         def format_character_profile_for_prompt(profile: CharacterProfile) -> str:
             parts = [f"名稱: {profile.name}"]
             if profile.aliases: parts.append(f"別名/身份: {', '.join(profile.aliases)}")
@@ -3220,7 +3230,7 @@ class ExtractionResult(BaseModel):
             "world_settings": encode_text(self.profile.world_settings),
             "ai_settings": encode_text(ai_profile.description),
             "retrieved_context": encode_text(structured_rag_context.get("summary", "無摘要")),
-            "scene_rules_context": encode_text(scene_rules_context_str), # 注入精準規則
+            "scene_rules_context": encode_text(scene_rules_context_str),
             "possessions_context": f"金錢: {gs.money}\n庫存: {', '.join(gs.inventory) if gs.inventory else '無'}",
             "quests_context": "當前無活躍任務",
             "explicit_character_files_context": encode_text(explicit_character_files_context),
@@ -3230,14 +3240,26 @@ class ExtractionResult(BaseModel):
         }
         world_snapshot_filled = self._safe_format_prompt(self.world_snapshot_template, snapshot_params)
         
-        # ... (後續的 final_prompt 構建和 ainvoke_with_rotation 調用保持不變)
         user_style_prompt = self.profile.response_style_prompt or '角色要有非常豐富的對話和互動'
         style_mandate = f"# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
         final_safeguard_template = """# ==============================================================================
 # == 🚨 最終防線協議 (FINAL SAFEGUARD PROTOCOL) v3.1 (導演劇本版) 🚨 ==
 # ==============================================================================
-# ... (內容保持不變)
+#
+# === 【【【🎬 本回合導演劇本 (DIRECTOR'S SCRIPT FOR THIS TURN) - 絕對創作核心 🎬】】】 ===
+# 【警告】: 你是一位專業的小說擴寫作家。你的【唯一任務】，就是將下方這段由導演提供的【劇本大綱】，擴寫成一篇精彩、詳細、且符合所有背景設定的小說。
+# 你的所有創作都【必須】是為了實現這個劇本的核心情節。【絕對禁止】偏離、質疑或忽略此劇本。
+# ---
+# 【導演劇本】: {{director_scene_summary}}
+# ---
+#
+# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
+# 你的最終輸出【必須且只能】是純粹的小說文本本身。
+# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
+#
+# ------------------------------------------------------------------------------
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 """
         final_prompt_params = { 
             "username": user_profile.name, 
@@ -3279,7 +3301,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建包含 {len(all_relevant_lores)} 條完整LORE的上下文快照。")
 
         return final_novel_text
-# 函式：預處理並生成主回應 (v46.0 - 規則注入系統)
+# 函式：預處理並生成主回應 (v47.0 - 前置LORE解析)
 
 
 
@@ -5350,6 +5372,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
