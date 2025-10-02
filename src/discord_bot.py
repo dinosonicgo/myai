@@ -1903,16 +1903,19 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 執行 admin_rag_peek 時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
 
-# 指令：[管理員] RAG 直通 LLM 對話 (v1.1 - 變數名修正)
+# 指令：[管理員] RAG 直通 LLM 對話 (v1.2 - 外部重試鏈)
 # 更新紀錄:
-# v1.1 (2025-10-02): [災難性BUG修復] 修正了在調用 ainvoke_with_rotation 時因使用了未定義的變數名 `full_prompt` 而非正確的 `final_prompt` 所導致的 NameError。
+# v1.2 (2025-10-02): [災難性BUG修復] 根據 BlockedPromptException 日誌，徹底重構了此指令的錯誤處理和重試邏輯。新版本從依賴 `ainvoke_with_rotation` 的內部重試，改為實現一個顯式的「外部重試鏈」。當第一次調用失敗時，它會捕獲異常，手動執行「最高指令注入重試」；如果再次失敗，則會再次捕獲異常，並手動調用終極的「委婉化重構」備援。此修改確保了重試流程的可控性和有效性，最大限度地提升了抗審查成功率。
+# v1.1 (2025-10-02): [災難性BUG修復] 修正了變數名 NameError。
 # v1.0 (2025-10-02): [全新創建] 創建此終極調試指令。
     @app_commands.command(name="admin_direct_chat", description="[管理員] RAG直通LLM，用於測試最原始的回應。")
     @app_commands.check(is_admin)
     @app_commands.describe(prompt="您想直接發送給 LLM 的對話內容。")
     async def admin_direct_chat(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.defer(ephemeral=False, thinking=True) # 回應設為公開
+        await interaction.response.defer(ephemeral=False, thinking=True)
         user_id = str(interaction.user.id)
+        
+        raw_response = None
         
         try:
             ai_instance = await self.get_or_create_ai_instance(user_id)
@@ -1922,14 +1925,12 @@ class BotCog(commands.Cog):
 
             logger.info(f"[{user_id}] [Admin Command] 執行 RAG 直通 LLM，Prompt: '{prompt[:100]}...'")
 
-            # 步驟 1: 調用 RAG 獲取上下文
             rag_context_dict = await ai_instance.retrieve_and_summarize_memories(prompt)
             rag_context = rag_context_dict.get("summary", "（RAG 未返回任何摘要信息。）")
             rag_rules = rag_context_dict.get("rules", "（RAG 未返回任何規則信息。）")
             
             full_rag_context = f"--- RAG 檢索到的規則 ---\n{rag_rules}\n\n--- RAG 檢索到的背景摘要 ---\n{rag_context}"
 
-            # 步驟 2: 構建最終 Prompt
             final_prompt_template = """{core_protocol}
 
 # === 情報簡報 ===
@@ -1948,7 +1949,6 @@ class BotCog(commands.Cog):
                 ai_name=ai_instance.profile.ai_profile.name
             )
             
-            # 將最終的 Prompt 寫入檔案以供調試
             temp_dir = PROJ_DIR / "temp"
             temp_dir.mkdir(exist_ok=True)
             prompt_file_path = temp_dir / f"direct_chat_prompt_{user_id}_{int(time.time())}.txt"
@@ -1956,34 +1956,53 @@ class BotCog(commands.Cog):
                 f.write(final_prompt)
             
             await interaction.followup.send(
-                f"✅ RAG 上下文已獲取，最終 Prompt 已構建。正在調用 `{GENERATION_MODEL_PRIORITY[0]}` 模型...",
+                f"✅ RAG 上下文已獲取，最終 Prompt 已構建。正在調用 `{GENERATION_MODEL_PRIORITY[0]}` 模型 (第 1 次嘗試)...",
                 file=discord.File(prompt_file_path, filename="last_direct_prompt.txt")
             )
             os.remove(prompt_file_path)
 
-            # 步驟 3: 直接調用底層 LLM 引擎
-            # [v1.1 核心修正] 將 full_prompt 修正為 final_prompt
-            raw_response = await ai_instance.ainvoke_with_rotation(
-                final_prompt,
-                output_schema=None, # 我們需要原始字符串
-                retry_strategy='force', # 強制重試
-                use_degradation=True, # 使用最高級的模型
-                models_to_try_override=[GENERATION_MODEL_PRIORITY[0]] # 強制只使用最高級模型
-            )
+            # --- [v1.2 核心重構] 外部重試鏈 ---
+            try:
+                # 第一次嘗試：標準調用
+                logger.info(f"[{user_id}] [Direct Chat] 執行第 1 次嘗試 (標準模式)...")
+                raw_response = await ai_instance.ainvoke_with_rotation(
+                    final_prompt,
+                    output_schema=None,
+                    retry_strategy='none', # 關鍵：失敗時立即拋出異常
+                    use_degradation=True,
+                    models_to_try_override=[GENERATION_MODEL_PRIORITY[0]]
+                )
+            except BlockedPromptException as e1:
+                logger.warning(f"[{user_id}] [Direct Chat] 第 1 次嘗試被審查 ({e1})。啟動第 2 次嘗試 (最高指令注入)...")
+                
+                try:
+                    # 第二次嘗試：最高指令注入
+                    forceful_prompt = final_prompt + f"\n\n{ai_instance.core_protocol_prompt}"
+                    raw_response = await ai_instance.ainvoke_with_rotation(
+                        forceful_prompt,
+                        output_schema=None,
+                        retry_strategy='none', # 關鍵：失敗時再次拋出
+                        use_degradation=True,
+                        models_to_try_override=[GENERATION_MODEL_PRIORITY[0]]
+                    )
+                except BlockedPromptException as e2:
+                    logger.warning(f"[{user_id}] [Direct Chat] 第 2 次嘗試被審查 ({e2})。啟動最終備援 (委婉化重構)...")
+                    # 最終備援：委婉化重構
+                    # 注意：委婉化重構通常返回結構化數據，這裡我們讓它返回純文本
+                    raw_response = await ai_instance._euphemize_and_retry(final_prompt, None, e2)
 
-            # 步驟 4: 返回原始結果
+            # --- 處理最終結果 ---
             if raw_response and raw_response.strip():
                 decoded_response = ai_instance._decode_lore_content(raw_response.strip(), ai_instance.DECODING_MAP)
-                # 分段發送長回應
                 for i in range(0, len(decoded_response), 2000):
                     await interaction.channel.send(decoded_response[i:i+2000])
             else:
-                await interaction.channel.send("❌ LLM 在所有重試後返回了空回應。")
+                await interaction.channel.send("❌ LLM 在所有備援策略後，最終返回了空回應或無法生成有效內容。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生嚴重錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
-# 指令：[管理員] RAG 直通 LLM 對話 (v1.1 - 變數名修正)
+# 指令：[管理員] RAG 直通 LLM 對話 (v1.2 - 外部重試鏈)
 
     
         
@@ -2060,6 +2079,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
