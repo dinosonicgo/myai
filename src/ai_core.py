@@ -1491,8 +1491,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if relevant_characters_lore:
                 lore_snippets = []
                 for lore_dict in relevant_characters_lore:
-                    # 嘗試從字典中獲取 lore_key，需要向上層協調器確認 snapshot 的結構
-                    # 假設 relevant_characters 存儲的是完整的 LORE 對象的字典
+                    # 從 LORE 對象的字典中提取關鍵信息
                     key = lore_dict.get('key', '未知Key')
                     name = lore_dict.get('content', {}).get('name', '未知名稱')
                     lore_snippets.append(f"- 角色: {name}, lore_key: {key}")
@@ -3027,7 +3026,6 @@ class ExtractionResult(BaseModel):
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
 # 函式：獲取事後分析器 Prompt (v3.0 - 上下文感知修正)
-
 
     
     
@@ -5374,6 +5372,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
