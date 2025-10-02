@@ -3353,14 +3353,14 @@ class ExtractionResult(BaseModel):
     
     
     
-# 函式：預處理並生成主回應 (v47.3 - 混合分析器集成)
+# 函式：預處理並生成主回應 (v47.4 - 快照數據類型修正)
 # 更新紀錄:
-# v47.3 (2025-10-03): [根本性重構] 根據「LLM+雙引擎」策略，將函式入口處的實體提取邏輯，從調用舊的 `_extract_entities_from_input`，升級為調用全新的 `_analyze_user_input` 核心分析協調器。此修改確保了流程在啟動時，能通過一個具備多層降級備援的、絕對可靠的機制來獲取核心實體，從根源上解決了因實體提取失敗而導致的「LORE為0」和「未知實體」等災難性連鎖問題。
-# v47.2 (2025-10-03): [災難性BUG修復] 根據「陳舊性讀取」分析，在「前置LORE解析」步驟完成後，增加了一次對 `lore_book.get_all_lores_for_user` 的強制重新調用。
-# v47.1 (2025-10-03): [災難性BUG修復] 根據「從無到有」原則，徹底重構了「前置LORE解析」邏輯。
+# v47.4 (2025-10-03): [災難性BUG修復] 根據 AttributeError，修正了在創建 `last_context_snapshot` 時的數據序列化邏輯。舊程式碼錯誤地對 SQLAlchemy 的 `Lore` 模型對象調用了 Pydantic 的 `.model_dump()` 方法。新版本改為手動將 `Lore` 對象的必要屬性（key, content, category, source）轉換為字典，確保了傳遞給事後分析流程的數據結構正確，從根源上解決了 `AttributeError`。
+# v47.3 (2025-10-03): [根本性重構] 根據「LLM+雙引擎」策略，將函式入口處的實體提取邏輯升級為全新的 `_analyze_user_input` 核心分析協調器。
+# v47.2 (2025-10-03): [災難性BUG修復] 根據「陳舊性讀取」分析，在「前置LORE解析」步驟完成後，增加了一次數據庫的強制重新讀取。
     async def preprocess_and_generate(self, input_data: Dict[str, Any]) -> str:
         """
-        (v47.3重構) 執行包含「混合分析」、「前置LORE解析」、「規則注入」的、無導演層的純粹小說生成任務。
+        (v47.4重構) 執行包含「混合分析」、「前置LORE解析」、「規則注入」的、無導演層的純粹小說生成任務。
         """
         from .schemas import NarrativeDirective, SceneLocationExtraction
 
@@ -3369,13 +3369,13 @@ class ExtractionResult(BaseModel):
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法處理上下文。")
 
-        logger.info(f"[{self.user_id}] [純粹生成流程 v47.3] 正在準備上下文...")
+        logger.info(f"[{self.user_id}] [純粹生成流程 v47.4] 正在準備上下文...")
         
         gs = self.profile.game_state
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
 
-        # --- [v47.3 核心修正] 步驟 1: 混合分析 ---
+        # --- 步驟 1: 混合分析 ---
         logger.info(f"[{self.user_id}] [預處理] 正在執行混合意圖與實體分析...")
         explicitly_mentioned_entities, core_intent = await self._analyze_user_input(user_input)
 
@@ -3415,7 +3415,8 @@ class ExtractionResult(BaseModel):
                     refined_profile = await self._refine_single_lore_object(seed_lore)
                     if refined_profile:
                         live_character_profiles[entity_name] = refined_profile
-                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', seed_lore_key, refined_profile.model_dump(), source='canon_refiner_v10_jit')
+                        new_lore_entry = await lore_book.add_or_update_lore(self.user_id, 'npc_profile', seed_lore_key, refined_profile.model_dump(), source='canon_refiner_v10_jit')
+                        all_lores.append(new_lore_entry)
                 
                 elif found_lore.source and 'refiner' not in found_lore.source:
                     logger.info(f"[{self.user_id}] [前置解析] 檢測到陳舊的 LORE '{entity_name}'，正在對其進行即時精煉...")
@@ -3438,7 +3439,6 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [前置解析] 完成。已為 {len(live_character_profiles)} 個核心角色準備好高質量 LORE。")
 
         # --- 步驟 4: 上下文準備與 RAG 檢索 ---
-        # (此處及之後的邏輯與 v47.2 相同，為保證完整性而全部提供)
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.setdefault(scene_key, ChatMessageHistory()).messages
         scene_path_tuple = tuple(authoritative_location_path)
@@ -3519,7 +3519,13 @@ class ExtractionResult(BaseModel):
         final_safeguard_template = """# ==============================================================================
 # == 🚨 最終防線協議 (FINAL SAFEGUARD PROTOCOL) v4.0 (直通版) 🚨 ==
 # ==============================================================================
-# ... (內容省略以保持簡潔)
+#
+# === 【【【📖 輸出純淨強制令 (OUTPUT PURITY MANDATE)】】】 ===
+# 你的最終輸出【必須且只能】是純粹的小說文本本身。
+# 【絕對禁止】包含任何形式的思考過程、劇情摘要、或任何帶有方頭括號【】的系統標籤。
+#
+# ------------------------------------------------------------------------------
+# 1. **【👑 使用者主權鐵則】**: **絕對禁止** 扮演、描述、或杜撰使用者角色「{{username}}」的任何**主觀思想、內心感受、情緒、未明確表達的動作、或未說出口的對話**。
 """
         final_prompt_params = { 
             "username": user_profile.name, 
@@ -3553,17 +3559,28 @@ class ExtractionResult(BaseModel):
         
         all_relevant_lores = [lore for lore in all_lores if lore.content.get("name") in {p.name for p in relevant_characters}]
         
+        # [v47.4 核心修正] 創建數據保真的上下文快照
+        # 將完整的 SQLAlchemy Lore 對象轉換為字典列表，以便 JSON 序列化
+        snapshot_relevant_characters = []
+        for lore in all_relevant_lores:
+            # 手動構建字典，只包含需要的、可序列化的字段
+            snapshot_relevant_characters.append({
+                "key": lore.key,
+                "content": lore.content,
+                "category": lore.category,
+                "source": lore.source
+            })
+
         self.last_context_snapshot = {
             "user_input": user_input,
             "final_response": final_novel_text,
             "scene_rules_context": scene_rules_context_str,
-            "relevant_characters": [lore.model_dump() for lore in all_relevant_lores]
+            "relevant_characters": snapshot_relevant_characters
         }
         logger.info(f"[{self.user_id}] [純粹生成流程] 小說文本生成成功，並已為事後分析創建包含 {len(all_relevant_lores)} 條完整LORE的上下文快照。")
 
         return final_novel_text
-# 函式：預處理並生成主回應 (v47.3 - 混合分析器集成)
-
+# 函式：預處理並生成主回應 (v47.4 - 快照數據類型修正)
 
 
 
@@ -5606,6 +5623,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
