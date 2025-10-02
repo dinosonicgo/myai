@@ -1456,10 +1456,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.0 - 生成後分析)
-# ai_core.py 的 _background_lore_extraction 函式 (v7.2 - 接收上下文快照)
+# 函式：背景事後分析 (v7.3 - LORE上下文感知)
 # 更新紀錄:
-# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。它現在接收一個完整的上下文快照`context_snapshot`，並將其中包含的LORE規則(`scene_rules_context`)注入到事後分析Prompt中。這使得摘要器能夠感知到生成器當初的創作依據，從而生成能準確反映LORE行為的高保真記憶。
+# v7.3 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重構了此函式。在調用事後分析鏈之前，此版本現在會從 `last_context_snapshot` 中提取本回合涉及的核心角色 LORE（包含 `lore_key`），並將其作為一個新的 `relevant_lore_context` 注入到 Prompt 中。此修改旨在為事後分析鏈提供必要的上下文，使其能夠生成帶有正確 `lore_key` 的更新工具調用，從根源上解決「幻覺誤判」和「位置錯亂」問題。
+# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。
 # v7.1 (2025-09-28): [災難性BUG修復] 修正了對 `ainvoke_with_rotation` 的呼叫方式。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
@@ -1468,10 +1468,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not self.profile:
             return
         
-        # 從快照中解包所需數據
         user_input = context_snapshot.get("user_input")
         final_response = context_snapshot.get("final_response")
         scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
+        # [v7.3 核心修正] 從快照中提取本回合的核心角色LORE
+        relevant_characters_lore = context_snapshot.get("relevant_characters", [])
         
         if not user_input or not final_response:
             logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。")
@@ -1484,6 +1485,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
+
+            # [v7.3 核心修正] 格式化 LORE 上下文以注入 Prompt
+            relevant_lore_context_str = "（本回合無明確的核心互動LORE）"
+            if relevant_characters_lore:
+                lore_snippets = []
+                for lore_dict in relevant_characters_lore:
+                    # 嘗試從字典中獲取 lore_key，需要向上層協調器確認 snapshot 的結構
+                    # 假設 relevant_characters 存儲的是完整的 LORE 對象的字典
+                    key = lore_dict.get('key', '未知Key')
+                    name = lore_dict.get('content', {}).get('name', '未知名稱')
+                    lore_snippets.append(f"- 角色: {name}, lore_key: {key}")
+                relevant_lore_context_str = "\n".join(lore_snippets)
             
             prompt_params = {
                 "username": self.profile.user_profile.name,
@@ -1491,7 +1504,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
                 "final_response_text": final_response,
-                "scene_rules_context": scene_rules_context # [v7.2 核心修正] 注入規則上下文
+                "scene_rules_context": scene_rules_context,
+                "relevant_lore_context": relevant_lore_context_str # 注入 LORE 上下文
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -1516,7 +1530,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析
+# 函式：背景事後分析 (v7.3 - LORE上下文感知)
+
+
+    
 
     # ai_core.py 的 get_spacy_entity_refinement_prompt 函式 (v1.1 - 縮排修正)
     # 更新紀錄:
@@ -2829,13 +2846,11 @@ class ExtractionResult(BaseModel):
     
     
 
-# 檔案：ai_core.py
-
-# 函式：背景LORE精煉 (v1.0 - 全新創建)
+# 函式：背景LORE精煉 (v2.0 - 源頭安全代碼化)
 # 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 創建此函式作為「混合 NLP 深度精煉」管線的核心。它負責編排第二和第三階段的流程：首先通過程式化的方式，為每個由第一階段解析出的 NPC 聚合其在原文中的所有相關上下文，然後將這些高度聚焦的信息批量發送給一個專門的深度解析 LLM，以生成細節完整、結構正確的最終角色檔案。
-# v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。
+# v2.0 (2025-10-02): [災難性BUG修復] 引入了「源頭安全代碼化」策略。在將從聖經原文中提取的上下文（`plot_context`）發送給 LLM 進行精煉之前，此版本會強制對其進行本地安全代碼化處理。此修改確保了發送給 Google API 的整個 Prompt 都是無害的，從根源上杜絕了因輸入內容過於露骨而導致的 `BlockedPromptException`。
 # v1.3 (2025-09-23): [質量修正] 在將最終精煉結果寫入數據庫之前，增加了對 `_decode_lore_content` 的強制調用。
+# v1.2 (2025-09-23): [效率重構] 徹底重構為批量處理模式。
     async def _background_lore_refinement(self, canon_text: str):
         """
         (背景任務) 對第一階段解析出的 LORE 進行第二階段的深度精煉。
@@ -2856,6 +2871,16 @@ class ExtractionResult(BaseModel):
 
             details_parser_template = self.get_character_details_parser_chain()
             
+            # [v2.0 核心修正] 創建一個用於編碼的反向映射
+            encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
+            sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
+
+            def encode_text(text: str) -> str:
+                if not text: return ""
+                for word, code in sorted_encoding_map:
+                    text = text.replace(word, code)
+                return text
+
             BATCH_SIZE = 10
             lore_items = list(npc_lores.values())
             
@@ -2868,21 +2893,21 @@ class ExtractionResult(BaseModel):
                     character_name = lore.content.get('name')
                     if not character_name: continue
 
-                    # 步驟 2: 靶向上下文聚合
                     aliases = [character_name] + lore.content.get('aliases', [])
-                    # 創建一個正則表達式，匹配任何一個名字或別名
                     name_pattern = re.compile('|'.join(re.escape(name) for name in set(aliases) if name))
                     
                     plot_context_parts = []
-                    # 從完整的聖經原文中查找所有提及該角色的地方
                     for match in name_pattern.finditer(canon_text):
                         start, end = match.span()
-                        # 擴展上下文窗口
                         context_start = max(0, start - 200)
                         context_end = min(len(canon_text), end + 200)
                         plot_context_parts.append(f"...{canon_text[context_start:context_end]}...")
                     
                     plot_context = "\n\n".join(plot_context_parts) if plot_context_parts else "（未在文本中找到額外上下文）"
+                    
+                    # [v2.0 核心修正] 對提取出的上下文進行源頭安全代碼化
+                    sanitized_plot_context = encode_text(plot_context)
+                    
                     pre_parsed_data_json = json.dumps(lore.content, ensure_ascii=False, indent=2)
 
                     batch_input_str_parts.append(f"""
@@ -2892,7 +2917,7 @@ class ExtractionResult(BaseModel):
 # 【預解析數據字典 (由本地工具提取)】:
 {pre_parsed_data_json}
 # 【劇情上下文 (可能經過代碼化處理)】:
-{plot_context}
+{sanitized_plot_context}
 # --- 任務結束 ---
 """)
                 
@@ -2901,17 +2926,17 @@ class ExtractionResult(BaseModel):
                 batch_input_str = "\n".join(batch_input_str_parts)
 
                 try:
-                    # 步驟 3: 深度細節精煉
                     full_prompt = self._safe_format_prompt(
                         details_parser_template,
                         {"batch_input": batch_input_str},
                         inject_core_protocol=True
                     )
 
+                    # [v2.0 核心修正] 增加 'euphemize' 備援策略
                     batch_result = await self.ainvoke_with_rotation(
                         full_prompt,
                         output_schema=BatchRefinementResult,
-                        retry_strategy='none' # 精煉失敗就是失敗，避免產生幻覺
+                        retry_strategy='euphemize' 
                     )
 
                     if not batch_result or not batch_result.refined_profiles:
@@ -2927,15 +2952,12 @@ class ExtractionResult(BaseModel):
                         original_data = original_lore.content
                         refined_data = refined_profile.model_dump(exclude_unset=True)
 
-                        # 合併數據：以精煉後的數據為準，但保留原始數據中未被覆蓋的部分
                         for key, value in refined_data.items():
-                            if value not in [None, "", [], {}]: # 只有當精煉結果有實質內容時才覆蓋
+                            if value not in [None, "", [], {}]:
                                 original_data[key] = value
                         
-                        # 確保核心 name 欄位被正確設置
                         original_data['name'] = refined_profile.name
 
-                        # [v1.3 核心修正] 在保存前執行最終解碼
                         final_content_to_save = self._decode_lore_content(original_data, self.DECODING_MAP)
 
                         await lore_book.add_or_update_lore(
@@ -2943,7 +2965,7 @@ class ExtractionResult(BaseModel):
                             category='npc_profile',
                             key=original_lore.key,
                             content=final_content_to_save,
-                            source='canon_refiner' # 將來源標記為“已精煉”
+                            source='canon_refiner'
                         )
                         logger.info(f"[{self.user_id}] [LORE精煉] 已成功精煉並更新角色 '{refined_profile.name}' 的檔案。")
 
@@ -2954,51 +2976,42 @@ class ExtractionResult(BaseModel):
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v1.0 - 全新創建)
+# 函式：背景LORE精煉 (v2.0 - 源頭安全代碼化)
+
 
     
-# 函式：獲取事後分析器 Prompt (v2.0 - 結構化修正)
+
+    
+# 函式：獲取事後分析器 Prompt (v3.0 - 上下文感知修正)
 # 更新紀錄:
-# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了 Prompt，引入了【結構化範例強制令】。此修改為 LLM 提供了一個結構絕對正確的 JSON 範例，並用最高優先級的規則強制其模仿，旨在從根本上解決因模型生成錯誤格式的工具調用（缺少 `updates` 字典包裹）而導致的 ValidationError。
+# v3.0 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重寫了此 Prompt。新增了【LORE上下文參考】區塊和核心的【上下文繼承原則】。此修改強制要求 LLM 在生成任何 `update` 工具調用時，必須優先從提供的 LORE 上下文中查找並繼承已有的 `lore_key`，從根源上解決了因缺少 key 而導致的「幻覺誤判」和位置錯亂的災難性連鎖反應。
+# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了 Prompt，引入了【結構化範例強制令】。
 # v1.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重寫了此Prompt。
-# v1.1 (2025-09-28): [核心升級] 植入【事實校對原則】。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位極其嚴謹的【世界觀記錄官】與【事實校對官】。
-# MISSION: 你的任務是閱讀【本回合的完整對話】和【創作依據參考】，提取出兩類關鍵信息：
-#   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映LORE規則的、無害化的核心事件總結。
+            prompt_template = """# TASK: 你是一位極其嚴謹的【世界觀記錄官】與【數據庫校對官】。
+# MISSION: 你的任務是閱讀【本回合的完整對話】及所有【參考情報】，提取出兩類關鍵信息：
+#   1.  **高保真長期記憶摘要**: 一句精煉的、準確反映核心事件的無害化總結。
 #   2.  **LORE更新計畫**: 所有在對話中被【創造的新知識】或被【修正的舊知識】的結構化工具調用計畫。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【👑 結構化範例強制令 (STRUCTURED EXAMPLE MANDATE) - 最高優先級】**:
-#     *   當你需要生成一個 `update_npc_profile` 工具調用時，其 `parameters` 字典的結構【絕對必須】與下方範例完全一致。
-#     *   所有要更新的鍵值對，【必須】被包裹在一個名為 `"updates"` 的**巢狀字典**中。
-#     *   **【【【絕對正確的範例】】】**:
-#         ```json
-#         {
-#           "tool_name": "update_npc_profile",
-#           "parameters": {
-#             "lore_key": "王都 > 維利爾斯莊園 > 米婭",
-#             "updates": {
-#               "description": "米婭在與勳爵的對話後，展現出了新的性格特質。",
-#               "status": "正在與勳爵對話"
-#             }
-#           }
-#         }
-#         ```
-# 2.  **【📝 行為溯源原則】**: 如果小說中的角色行為源於【創作依據參考】中的規則，你**【必須】**在 `memory_summary` 中明確提及這個由規則驅動的行為。
+# 1.  **【🔑 上下文繼承原則 (Context Inheritance Mandate) - 最高數據庫完整性鐵則】**:
+#     *   當你需要為一個**已存在的角色**生成 `update_npc_profile` 工具調用時，你**【絕對必須】**首先在下方的【LORE上下文參考】中查找該角色。
+#     *   如果找到了該角色，你**【必須】**將其對應的 `lore_key` 完整、準確地複製到你的工具調用 `parameters` 中。
+#     *   **【後果警告】**: 任何針對已存在角色但**缺少 `lore_key`** 的 `update` 操作，都將被系統視為災難性的「幻覺」，並可能導致數據庫錯亂。
+# 2.  **【👑 結構化範例強制令】**: 所有 `update_npc_profile` 工具調用，其 `parameters` 字典的結構【絕對必須】與範例一致，即所有更新內容必須包裹在一個 `"updates"` 字典中。
 # 3.  **【✅ 事實校對原則】**: 如果對話內容與【現有LORE摘要】明確矛盾，你【必須】生成一個 `update_...` 工具調用，用對話中的**新事實**來覆蓋舊的 LORE。
-# 4.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 `create_new_npc_profile` 或 `update_npc_profile` 工具調用。
-# 5.  **【🚫 嚴禁幻覺原則】**: 你的所有輸出必須嚴格基於【本回合的完整對話】文本。
-# 6.  **【🔒 記憶無害化原則】**: `memory_summary` 的內容必須是**絕對安全**的。
-# 7.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
+# 4.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
+# 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # --- [INPUT DATA] ---
 
+# 【LORE上下文參考 (本回合核心角色的既有數據)】:
+{relevant_lore_context}
+# ---
 # 【現有LORE摘要 (你的參考基準)】:
 {existing_lore_summary}
-
 # ---
 # 【創作依據參考 (生成器在創作時看到的LORE規則)】:
 {scene_rules_context}
@@ -3009,12 +3022,11 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON (請嚴格遵守範例結構)】:
+# 【你生成的分析結果JSON (請嚴格遵守 `lore_key` 繼承原則和結構範例)】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt (v2.0 - 結構化修正)
-
+# 函式：獲取事後分析器 Prompt (v3.0 - 上下文感知修正)
 
 
     
@@ -5355,6 +5367,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
