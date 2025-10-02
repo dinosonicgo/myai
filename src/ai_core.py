@@ -2893,21 +2893,165 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：精煉單個 LORE 對象 (v1.0 - 全新創建)
+# 函式：調用本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 根據「前置LORE解析」策略，創建此核心輔助函式。它將原 `_background_lore_refinement` 的核心邏輯（RAG驅動的單體精煉 + 安全驗證）封裝起來，使其可以被 `preprocess_and_generate` 等需要即時解析的流程同步調用。它接收一個粗略的 LORE 對象，返回一個經過 RAG 上下文增強和 LLM 精煉後的高質量 CharacterProfile，或在失敗時返回 None。
+# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，創建此輔助函式。它作為備援的第二層，負責在雲端模型失敗時，將完整的 RAG 上下文和精煉任務交由本地、無審查的 Ollama 模型來執行，以確保數據處理的連續性和抗審查能力。
+    async def _invoke_local_ollama_refiner(self, character_name: str, base_profile: Dict, aggregated_context: Dict) -> Optional[CharacterProfile]:
+        """
+        呼叫本地運行的 Ollama 模型來執行單個角色的 LORE 精煉任務。
+        """
+        import httpx
+        import json
+        
+        logger.info(f"[{self.user_id}] [LORE精煉-本地] 正在使用本地模型 '{self.ollama_model_name}' 為角色 '{character_name}' 進行精煉...")
+        
+        prompt_template = self.get_local_rag_driven_extraction_prompt()
+        full_prompt = prompt_template.format(
+            character_name=character_name,
+            base_profile_json=json.dumps(base_profile, ensure_ascii=False, indent=2),
+            aliases_context=aggregated_context.get("aliases", ""),
+            description_context=aggregated_context.get("description", ""),
+            appearance_context=aggregated_context.get("appearance", ""),
+            skills_context=aggregated_context.get("skills", ""),
+            relationships_context=aggregated_context.get("relationships", "")
+        )
+
+        payload = {
+            "model": self.ollama_model_name,
+            "prompt": full_prompt,
+            "format": "json",
+            "stream": False,
+            "options": { "temperature": 0.2 }
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                response = await client.post("http://localhost:11434/api/generate", json=payload)
+                response.raise_for_status()
+                
+                response_data = response.json()
+                json_string_from_model = response_data.get("response")
+                
+                if not json_string_from_model:
+                    logger.warning(f"[{self.user_id}] [LORE精煉-本地] 本地模型返回了空的 'response' 內容。")
+                    return None
+
+                parsed_json = json.loads(json_string_from_model)
+                validated_result = CharacterProfile.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] [LORE精煉-本地] ✅ 本地模型精煉成功。")
+                return validated_result
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [LORE精煉-本地] 🔥 呼叫本地Ollama進行精煉時發生未知錯誤: {e}", exc_info=True)
+            return None
+# 函式：調用本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
+
+
+
+# 函式：獲取本地RAG驅動的提取器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，為本地 Ollama 模型創建一個簡化的、指令更直接的 Prompt 模板。它用於備援的第二層，負責指導本地模型在無審查的環境下，根據 RAG 上下文完成 LORE 精煉任務。
+    def get_local_rag_driven_extraction_prompt(self) -> str:
+        """為本地模型獲取一個 RAG 驅動的、填空式的 LORE 精煉 Prompt。"""
+        
+        prompt = """# TASK: 提取數據並填充 JSON。
+# INSTRUCTION: 閱讀下方關於角色【{character_name}】的【情報簡報】和【基礎檔案】。將情報中的所有信息，整合到基礎檔案中，生成一個最終的、完整的 JSON 物件。請確保 `aliases` 列表包含所有身份，`description` 總結所有背景故事。只輸出純淨的 JSON。
+
+# --- [INPUT DATA] ---
+
+### 基礎檔案 (Base Profile for {character_name}) ###
+{base_profile_json}
+
+---
+### **情報簡報 (Intelligence Briefing for {character_name})** ###
+
+### 關於身份 (Aliases) 的情報 ###
+{aliases_context}
+---
+### 關於背景 (Description) 的情報 ###
+{description_context}
+---
+### 關於外貌 (Appearance) 的情報 ###
+{appearance_context}
+---
+### 關於技能 (Skills) 的情報 ###
+{skills_context}
+---
+### 關於人際關係 (Relationships) 的情報 ###
+{relationships_context}
+---
+
+# 【為 '{character_name}' 生成的最終 JSON】:
+```json
+"""
+        return prompt
+# 函式：獲取本地RAG驅動的提取器 Prompt (v1.0 - 全新創建)
+
+
+    
+# 函式：獲取簡單提取器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，創建此通用的、輕量級的 Prompt 模板。它作為備援的第三層（數據搶救），負責執行職責極其單一的「微任務」提取。通過傳入不同的 `target_field` 和 `output_format`，此 Prompt 可以被動態配置為只提取 `aliases`、`description` 或任何單個字段，以極高的成功率在惡劣的審查環境下搶救關鍵數據。
+    def get_simple_extraction_prompt(self) -> str:
+        """獲取一個通用的、為「數據搶救」微任務設計的極簡 Prompt 模板。"""
+        
+        prompt = """# TASK: 你是一個高精度的信息提取器。
+# MISSION: 你的唯一任務是閱讀下方提供的【原始文本】，並從中提取出與【提取目標】相關的信息。
+
+# === 核心規則 ===
+# 1. **絕對聚焦**: 只提取與【提取目標】嚴格相關的信息。
+# 2. **格式遵循**: 你的輸出【必須】嚴格遵循指定的【輸出格式】。
+# 3. **無害化輸出**: 如果文本包含技術代碼，你的輸出也必須包含這些代碼。
+# 4. **純淨輸出**: 你的輸出必須是純淨的結果，不包含任何解釋性文字。
+
+# --- [INPUT DATA] ---
+
+### 原始文本 (Source Text) ###
+{context}
+
+---
+### 提取目標 (Extraction Target) ###
+{target_field_description}
+
+---
+### 輸出格式 (Output Format) ###
+{output_format}
+
+---
+# 【你的提取結果】:
+"""
+        return prompt
+# 函式：獲取簡單提取器 Prompt (v1.0 - 全新創建)
+
+
+
+
+
+
+
+    
+
+
+
+# 函式：精煉單個 LORE 對象 (v10.1 - 終極備援鏈)
+# 更新紀錄:
+# v10.1 (2025-10-02): [成本控制] 嚴格遵守模型分配原則，在所有對 `ainvoke_with_rotation` 的雲端調用中，都強制使用性價比更高的 `FUNCTIONAL_MODEL`，將 `pro` 等級模型資源留給最終的小說生成。
+# v10.0 (2025-10-02): [根本性重構] 根據「三層降級 + 數據搶救」終極策略，徹底重寫此函式。新流程在不依賴代碼化的前提下，建立了一個極度健壯的備援鏈：1. 嘗試使用功能性雲端模型進行完整精煉。2. 若失敗，則交由本地無審查模型處理。3. 若再次失敗，則降級為「分治法」，使用一系列極簡的、低風險的微任務 Prompt，從上下文中搶救最關鍵的結構化數據（如 aliases），確保在最壞情況下也能最大限度地保證數據完整性。
+# v1.0 (2025-10-02): [全新創建] 根據「前置LORE解析」策略，創建此核心輔助函式。
     async def _refine_single_lore_object(self, lore_to_refine: Lore) -> Optional[CharacterProfile]:
         """
-        (v1.0) 對單個粗略的 LORE 對象執行 RAG 驅動的深度精煉，並返回結果。
+        (v10.1) 對單個 LORE 執行包含三層降級備援的深度精煉，並返回結果。
         """
         character_name = lore_to_refine.content.get('name')
         if not character_name:
             return None
 
-        logger.info(f"[{self.user_id}] [單體精煉] 正在為角色 '{character_name}' 執行精煉...")
+        logger.info(f"[{self.user_id}] [單體精煉 v10.1] 正在為角色 '{character_name}' 啟動三層降級精煉流程...")
+        
+        refined_profile: Optional[CharacterProfile] = None
 
         try:
-            # --- 步驟 1: 生成多維度 RAG 查詢 ---
+            # --- 步驟 1: 數據準備 (RAG) ---
             queries = {
                 "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
                 "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
@@ -2915,52 +3059,115 @@ class ExtractionResult(BaseModel):
                 "skills": f"'{character_name}' 擁有哪些技能或能力？",
                 "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
             }
-
-            # --- 步驟 2: 並行執行多維度檢索 ---
             tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
             results = await asyncio.gather(*tasks.values())
-            
-            # --- 步驟 3: 聚合 RAG 結果 ---
             aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
 
-            # --- 步驟 4: LLM 提取 ---
-            extraction_prompt_template = self.get_rag_driven_extraction_prompt()
-            full_prompt = self._safe_format_prompt(
-                extraction_prompt_template,
-                {
-                    "character_name": character_name,
-                    "base_profile_json": json.dumps(lore_to_refine.content, ensure_ascii=False, indent=2),
-                    "aliases_context": aggregated_context["aliases"],
-                    "description_context": aggregated_context["description"],
-                    "appearance_context": aggregated_context["appearance"],
-                    "skills_context": aggregated_context["skills"],
-                    "relationships_context": aggregated_context["relationships"]
-                },
-                inject_core_protocol=True
-            )
+            # --- 步驟 2: 【第一層嘗試】雲端完整精煉 ---
+            try:
+                logger.info(f"[{self.user_id}] [LORE精煉-L1] 正在嘗試使用雲端模型 ({FUNCTIONAL_MODEL}) 進行完整精煉...")
+                extraction_prompt_template = self.get_rag_driven_extraction_prompt()
+                full_prompt = self._safe_format_prompt(
+                    extraction_prompt_template,
+                    {
+                        "character_name": character_name,
+                        "base_profile_json": json.dumps(lore_to_refine.content, ensure_ascii=False, indent=2),
+                        "aliases_context": aggregated_context["aliases"],
+                        "description_context": aggregated_context["description"],
+                        "appearance_context": aggregated_context["appearance"],
+                        "skills_context": aggregated_context["skills"],
+                        "relationships_context": aggregated_context["relationships"]
+                    },
+                    inject_core_protocol=True
+                )
+                refined_profile = await self.ainvoke_with_rotation(
+                    full_prompt,
+                    output_schema=CharacterProfile,
+                    retry_strategy='none', # 失敗時手動降級
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+            except BlockedPromptException as e:
+                logger.warning(f"[{self.user_id}] [LORE精煉-L1] 雲端完整精煉被審查 ({e})。降級至 L2 (本地模型)。")
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] [LORE精煉-L1] 雲端完整精煉發生錯誤 ({type(e).__name__})。降級至 L2 (本地模型)。")
 
-            refined_profile = await self.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=CharacterProfile,
-                retry_strategy='euphemize',
-                models_to_try_override=[FUNCTIONAL_MODEL]
-            )
+            # --- 步驟 3: 【第二層嘗試】本地無審查精煉 ---
+            if not refined_profile and self.is_ollama_available:
+                refined_profile = await self._invoke_local_ollama_refiner(character_name, lore_to_refine.content, aggregated_context)
+
+            # --- 步驟 4: 【第三層嘗試】雲端「分治法」數據搶救 ---
+            if not refined_profile:
+                logger.warning(f"[{self.user_id}] [LORE精煉-L3] L1和L2均失敗。啟動雲端『分治法』數據搶救...")
+                
+                # 從原始粗略 LORE 開始，在其上進行增量更新
+                rescued_profile = CharacterProfile.model_validate(lore_to_refine.content)
+                
+                # 微任務1：搶救 Aliases
+                try:
+                    simple_extraction_prompt = self.get_simple_extraction_prompt()
+                    aliases_prompt = self._safe_format_prompt(
+                        simple_extraction_prompt,
+                        {
+                            "context": aggregated_context["aliases"],
+                            "target_field_description": f"角色 '{character_name}' 的所有身份、頭銜、綽號列表。",
+                            "output_format": "一個 JSON 列表，例如：[\"聖女\", \"母畜\"]"
+                        }
+                    )
+                    class AliasesResult(BaseModel):
+                        aliases: List[str]
+                    
+                    aliases_result = await self.ainvoke_with_rotation(aliases_prompt, output_schema=AliasesResult, models_to_try_override=[FUNCTIONAL_MODEL])
+                    if aliases_result and aliases_result.aliases:
+                        rescued_profile.aliases = list(set(rescued_profile.aliases + aliases_result.aliases))
+                        logger.info(f"[{self.user_id}] [LORE精煉-L3] ✅ 成功搶救 'aliases' 數據。")
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'aliases' 數據搶救失敗: {e}")
+
+                # 微任務2：搶救 Description (風險較高)
+                try:
+                    simple_extraction_prompt = self.get_simple_extraction_prompt()
+                    desc_prompt = self._safe_format_prompt(
+                        simple_extraction_prompt,
+                        {
+                            "context": aggregated_context["description"],
+                            "target_field_description": f"將關於角色 '{character_name}' 的背景故事和經歷，總結成一段通順的描述。",
+                            "output_format": "一個 JSON 字符串，例如：{\"description\": \"...\"}"
+                        }
+                    )
+                    class DescriptionResult(BaseModel):
+                        description: str
+                    
+                    desc_result = await self.ainvoke_with_rotation(desc_prompt, output_schema=DescriptionResult, models_to_try_override=[FUNCTIONAL_MODEL])
+                    if desc_result and desc_result.description:
+                        rescued_profile.description = desc_result.description
+                        logger.info(f"[{self.user_id}] [LORE精煉-L3] ✅ 成功搶救 'description' 數據。")
+                except Exception as e:
+                    logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'description' 數據搶救失敗: {e}")
+                
+                # 如果至少搶救到了一些數據，則將其作為最終結果
+                if rescued_profile.aliases != lore_to_refine.content.get('aliases', []) or rescued_profile.description != lore_to_refine.content.get('description', ''):
+                    refined_profile = rescued_profile
 
             # --- 步驟 5: 最終安全驗證 ---
             if not refined_profile:
-                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的精煉結果為 None。")
+                logger.warning(f"[{self.user_id}] [單體精煉] 🔥 所有三層備援均失敗！無法為角色 '{character_name}' 生成有效的精煉檔案。")
                 return None
             elif not refined_profile.name or not refined_profile.description.strip():
-                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的結果缺少核心字段。")
+                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 最終結果缺少核心字段，判定為無效。")
                 return None
             
             logger.info(f"[{self.user_id}] [單體精煉] ✅ 驗證通過，成功為角色 '{character_name}' 生成精煉檔案。")
             return refined_profile
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] [單體精煉] 在為角色 '{character_name}' 執行精煉時發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] [單體精煉] 在為角色 '{character_name}' 執行精煉時發生未知嚴重錯誤: {e}", exc_info=True)
             return None
-# 函式：精煉單個 LORE 對象 (v1.0 - 全新創建)
+# 函式：精煉單個 LORE 對象 (v10.1 - 終極備援鏈)
+
+
+
+
+    
 
     # 函式：獲取RAG驅動的提取器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
@@ -5371,6 +5578,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
