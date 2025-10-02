@@ -802,11 +802,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 終極防禦性修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - JSON格式修正)
 # 更新紀錄:
-# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。現在，程式在訪問 `.name` 屬性前，會同時檢查 `block_reason` 和 `finish_reason` 的類型，確保即使 Google API 返回未知的整數代碼，程式也能正常處理而不會崩潰。
+# v233.0 (2025-10-02): [災難性BUG修復] 根據 JSONDecodeError，在 Pydantic 驗證之前增加了一個健壯的「JSON 預處理與修復」層。此層會自動將 LLM 可能生成的、不規範的 JSON 字符串（例如，使用單引號作為鍵、末尾有懸空逗號）修復為嚴格的 JSON 格式，從根本上解決了因格式問題導致的解析失敗。同時增強了異常捕獲，現在會在解析失敗時將原始錯誤字符串完整記錄到日誌中。
+# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。
 # v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
-# v232.7 (2025-09-28): [災難性BUG修復] 引入了【生成完整性驗證】機制。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -849,10 +849,10 @@ class AILover:
                 key_to_use, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
+                    raw_text_result_for_log = "" # 用於在出錯時記錄原始文本
                     try:
                         genai.configure(api_key=key_to_use)
                         
-                        # [核心重構] 手動構建原生 SDK 的 safety_settings 格式
                         safety_settings_sdk = [
                             {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                             {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -870,55 +870,53 @@ class AILover:
                             timeout=180.0
                         )
                         
-                        # [核心重構] 手動檢查 prompt feedback 的 block_reason
                         if response.prompt_feedback.block_reason:
                             block_reason = response.prompt_feedback.block_reason
-                            # [v232.8 核心修正] 防禦性檢查，以防 API 返回非標準的枚舉值
                             if hasattr(block_reason, 'name'):
                                 reason_str = block_reason.name
                             else:
-                                reason_str = str(block_reason) # 如果是 int 或其他類型，直接轉為字串
+                                reason_str = str(block_reason)
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
-                        # [v232.9 核心修正] 對 finish_reason 應用同樣的防禦性檢查
                         if response.candidates:
                             finish_reason = response.candidates[0].finish_reason
                             if hasattr(finish_reason, 'name'):
                                 finish_reason_name = finish_reason.name
                             else:
-                                finish_reason_name = str(finish_reason) # 如果是 int 或其他類型，直接轉為字串
+                                finish_reason_name = str(finish_reason)
 
-                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']: # '0' for unspecified
+                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']:
                                 logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
                                 if finish_reason_name == 'MAX_TOKENS':
                                     raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                elif finish_reason_name in ['SAFETY', '4']: # '4' for safety
+                                elif finish_reason_name in ['SAFETY', '4']:
                                     raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                                 else:
                                     raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
-                        # [核心重構] 手動從 response 中提取文本
                         raw_text_result = response.text
+                        raw_text_result_for_log = raw_text_result # 保存一份原始文本用於可能的錯誤日誌
 
-                        # [v232.7 核心修正] 生成完整性驗證
                         if not raw_text_result or not raw_text_result.strip():
-                            # 這種情況通常是安全過濾器返回了空內容但未拋出異常
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
                         
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
-                        # [核心重構] 手動處理結構化輸出
                         if output_schema:
-                            # 從原始文本中提取 JSON 部分
                             json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
                             if not json_match:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
                             
                             clean_json_str = json_match.group(0)
-                            # 使用 Pydantic 進行驗證
-                            return output_schema.model_validate(json.loads(clean_json_str))
+
+                            # [v233.0 核心修正] 增加 JSON 格式預處理與修復層
+                            # 1. 嘗試修復單引號問題
+                            repaired_str = clean_json_str.replace("'", '"')
+                            # 2. 嘗試修復懸空逗號
+                            repaired_str = re.sub(r',\s*(\}|\])', r'\1', repaired_str)
+                            
+                            return output_schema.model_validate(json.loads(repaired_str))
                         else:
-                            # 如果不需要結構化輸出，直接返回純文本
                             return raw_text_result
 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
@@ -935,30 +933,27 @@ class AILover:
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
+                        # [v233.0 核心修正] 增強錯誤日誌
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
-                        # 這類錯誤通常是模型格式問題，直接拋出，讓上層處理（例如使用修正鏈）
+                        logger.debug(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
-                        # 處理 MAX_TOKENS 錯誤，這不是一個可重試的臨時錯誤
                         if "MAX_TOKENS" in str(e):
                              logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
-                             break # 跳出當前金鑰的重試循環，直接換下一個金鑰
+                             break
                         
-                        # 達到單一金鑰的立即重試上限
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
-                            # 如果是速率限制，則觸發持久化冷卻
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
                                 cooldown_key = f"{key_index}_{model_name}"
-                                cooldown_duration = 24 * 60 * 60 # 24 小時
+                                cooldown_duration = 24 * 60 * 60 
                                 self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
                                 self._save_cooldowns()
                                 logger.critical(f"[{self.user_id}] [持久化冷卻] API Key #{key_index} (模型: {model_name}) 已被置入冷卻狀態，持續 24 小時。")
-                            break # 跳出內部重試循環，換下一個金鑰
+                            break
                         
-                        # 執行指數退避
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
                         await asyncio.sleep(sleep_time)
@@ -969,15 +964,13 @@ class AILover:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
-            # 如果一個模型的所有金鑰都失敗了，則記錄並降級
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
-        # 如果所有嘗試都失敗，則拋出最後一個捕獲到的異常
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 終極防禦性修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - JSON格式修正)
 
 
     
@@ -5325,6 +5318,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
