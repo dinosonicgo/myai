@@ -61,7 +61,7 @@ class Lore(Base):
     content = Column(JSON, nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
-    # [v5.1 核心修正] 新增 template_keys 欄位
+    # [v5.1 核心修正] 新增 template_keys 欄位，用於規則繼承
     template_keys = Column(JSON, nullable=True)
 # LORE (世界設定) 數據模型 類別結束
 
@@ -90,4 +90,5 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
 
