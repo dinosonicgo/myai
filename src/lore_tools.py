@@ -258,7 +258,7 @@ class UpdateLoreTemplateKeysArgs(BaseToolArgs):
     lore_category: str = Field(description="要修改的LORE條目所屬的類別，例如 'world_lore'。")
     lore_key: str = Field(description="要修改的LORE條目的精確主鍵（lore_key）。")
     template_keys: List[str] = Field(description="一個身份關鍵詞列表。任何角色的aliases匹配此列表，都將繼承該LORE的規則。")
-# 類別：更新 LORE 繼承規則的參數
+# 類別：更新 LORE 繼承規則的參數 (v1.0 - 全新創建)
 
 # 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -302,7 +302,7 @@ async def update_lore_template_keys(lore_category: str, lore_key: str, template_
             await ai_core._update_rag_for_single_lore(updated_lore)
 
     return f"已成功為 LORE '{lore_key}' 設置繼承觸發器為: {template_keys}。"
-# 工具：更新 LORE 繼承規則
+# 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
 
 # --- 工具列表導出 ---
 
@@ -321,4 +321,5 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
         update_lore_template_keys,
     ]
-# 函式：獲取所有 LORE 工具
+# 函式：獲取所有 LORE 工具 (v3.5 - 新增規則工具)
+
