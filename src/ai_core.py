@@ -5349,18 +5349,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：檢索並摘要記憶 (v22.0 - 移除去重)
+# 函式：檢索並摘要記憶 (v22.1 - 移除拼接上限)
 # 更新紀錄:
-# v22.0 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了 RAG 後處理中的「智能去重」邏輯。現在，函式將直接使用 `EnsembleRetriever` 返回的原始文檔列表進行後續的篩選和拼接，以確保最大化的信息吞吐量，便於進行 RAG 原始性能的評估。
+# v22.1 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了在拼接 RAG 結果時的 `MAX_DOCS_FOR_SUMMARY` 數量上限。現在，函式会将所有经过初步筛选的、未去重的原始文档全部拼接起来，以进行最大化的上下文压力测试，确保信息在 RAG 流程中无任何截断。
+# v22.0 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了 RAG 後處理中的「智能去重」邏輯。
 # v21.0 (2025-10-02): [性能優化] 將用於拼接 RAG 上下文的文檔數量上限（MAX_DOCS_FOR_SUMMARY）從 7 條大幅提升至 15 條。
-# v20.0 (2025-10-02): [根本性重構] 根據「RAG後處理去重」策略，徹底重寫了此函式。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v22.0) 執行RAG檢索，並將最多15條最相關的原始文檔直接拼接後返回（已移除去重）。
+        (v22.1) 執行RAG檢索，并将【所有】最相關的原始文檔直接拼接後返回（已移除去重和拼接上限）。
         返回一個字典: {"rules": str, "summary": str}
         """
-        MAX_DOCS_FOR_SUMMARY = 15
-
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
@@ -5388,7 +5386,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
 
-        # [v22.0 核心修正] 移除所有去重邏輯，直接使用原始檢索結果
         final_docs = retrieved_docs
         logger.info(f"--- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 {len(final_docs)} 條原始文檔 ---")
 
@@ -5409,14 +5406,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         docs_to_concatenate = other_docs + rule_docs[3:]
 
         if docs_to_concatenate:
-            selected_docs = docs_to_concatenate[:MAX_DOCS_FOR_SUMMARY]
+            # [v22.1 核心修正] 移除 MAX_DOCS_FOR_SUMMARY 限制，使用所有可用文檔
+            selected_docs = docs_to_concatenate
             
             concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in selected_docs])
             
             summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(selected_docs)} 條最相關原始文檔）】:\n"
             summary_context = summary_context_header + concatenated_content
             
-            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條原始文檔作為 summary_context。")
+            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接全部 {len(selected_docs)} 條原始文檔作為 summary_context。")
         
         logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
         logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
@@ -5424,7 +5422,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info("--- RAG 流程結束 ---")
 
         return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
-# 函式：檢索並摘要記憶 (v22.0 - 移除去重)
+# 函式：檢索並摘要記憶 (v22.1 - 移除拼接上限)
 
 
 
@@ -5532,6 +5530,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
