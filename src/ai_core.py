@@ -2838,17 +2838,18 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v5.0 - RAG驅動單體精煉)
+# 函式：背景LORE精煉 (v6.0 - 最終安全驗證)
 # 更新紀錄:
-# v5.0 (2025-10-02): [根本性重構] 根據「準確性優先」和「RAG驅動」的終極策略，徹底重寫此函式。新流程放棄了所有形式的批量處理，回歸到最可靠的「一個LORE，一次LLM調用」模式。對於每個待精煉的角色，它會：1. 生成一組多維度的精準查詢；2. 並發調用 RAG 獲取按屬性分類的精準上下文；3. 將這份高度結構化的「情報簡報」發送給一個專門的提取器 LLM 進行填空式提取。此修改從根本上確保了數據隔離，杜絕了上下文污染和關聯性幻覺。
+# v6.0 (2025-10-02): [災難性BUG修復] 根據「數據安全」原則，在精煉流程中加入了「最終安全驗證」機制。在將 LLM 返回的精煉結果寫入數據庫之前，此版本會執行一個嚴格的程式化校驗，檢查結果是否為空、核心字段（如 name, description）是否缺失。只有通過驗證的、高質量的結果才會被寫入。此修改從根本上杜絕了因 LLM 內容審查失敗返回空值，而導致 LORE 數據被意外清空的災難性風險。
+# v5.0 (2025-10-02): [根本性重構] 根據「準確性優先」和「RAG驅動」的終極策略，徹底重寫此函式。
 # v4.0 (2025-10-02): [根本性重構] 根據「程式化依賴剖析」終極策略，徹底重寫此函式。
     async def _background_lore_refinement(self, canon_text: str):
         """
-        (背景任務 v5.0) 為每個 LORE 獨立執行 RAG 驅動的單體精煉，確保最高數據準確性。
+        (背景任務 v6.0) 為每個 LORE 獨立執行 RAG 驅動的單體精煉，並在寫入前進行最終安全驗證。
         """
         try:
             await asyncio.sleep(10.0)
-            logger.info(f"[{self.user_id}] [LORE精煉 v5.0] RAG驅動的單體精煉任務已啟動...")
+            logger.info(f"[{self.user_id}] [LORE精煉 v6.0] RAG驅動的單體精煉任務已啟動...")
 
             lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
             npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
@@ -2869,7 +2870,7 @@ class ExtractionResult(BaseModel):
                 logger.info(f"[{self.user_id}] [LORE精煉] 正在為角色 '{character_name}' 執行精煉...")
 
                 try:
-                    # --- 步驟 1: 生成多維度 RAG 查詢 ---
+                    # --- 步驟 1-3: RAG查詢、並發檢索、聚合上下文 ---
                     queries = {
                         "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
                         "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
@@ -2877,15 +2878,11 @@ class ExtractionResult(BaseModel):
                         "skills": f"'{character_name}' 擁有哪些技能或能力？",
                         "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
                     }
-
-                    # --- 步驟 2: 並行執行多維度檢索 ---
                     tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
                     results = await asyncio.gather(*tasks.values())
-                    
-                    # --- 步驟 3: 聚合 RAG 結果 ---
                     aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
 
-                    # --- 步驟 4: 單次、結構化提取 ---
+                    # --- 步驟 4: LLM 提取 ---
                     full_prompt = self._safe_format_prompt(
                         extraction_prompt_template,
                         {
@@ -2904,36 +2901,44 @@ class ExtractionResult(BaseModel):
                         full_prompt,
                         output_schema=CharacterProfile,
                         retry_strategy='euphemize',
-                        # 使用指定的、性價比高的功能模型
                         models_to_try_override=[FUNCTIONAL_MODEL]
                     )
 
+                    # --- 步驟 5: 【全新】最終安全驗證 ---
+                    is_valid = True
                     if not refined_profile:
-                        logger.warning(f"[{self.user_id}] [LORE精煉] 為角色 '{character_name}' 執行的精煉返回了空結果。")
-                        continue
+                        is_valid = False
+                        logger.warning(f"[{self.user_id}] [LORE精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的精煉結果為 None (可能因審查)。")
+                    elif not refined_profile.name or not refined_profile.description.strip():
+                        is_valid = False
+                        logger.warning(f"[{self.user_id}] [LORE精煉安全驗證] 🔥 驗證失敗！為角色 '{character_name}' 生成的結果缺少核心字段 (name 或 description)。")
+                    
+                    if is_valid:
+                        # --- 步驟 6: 寫入數據庫 ---
+                        final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
 
-                    final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
-
-                    await lore_book.add_or_update_lore(
-                        user_id=self.user_id,
-                        category='npc_profile',
-                        key=lore.key,
-                        content=final_content_to_save,
-                        source='canon_refiner_v5_rag' # 更新來源標記
-                    )
-                    logger.info(f"[{self.user_id}] [LORE精煉] ✅ 已成功為角色 '{character_name}' 精煉並更新檔案。")
+                        await lore_book.add_or_update_lore(
+                            user_id=self.user_id,
+                            category='npc_profile',
+                            key=lore.key,
+                            content=final_content_to_save,
+                            source='canon_refiner_v6_safe' # 更新來源標記
+                        )
+                        logger.info(f"[{self.user_id}] [LORE精煉] ✅ 驗證通過，已成功為角色 '{character_name}' 精煉並更新檔案。")
+                    else:
+                        # 如果驗證失敗，則記錄警告並跳過更新，保留原始LORE
+                        logger.warning(f"[{self.user_id}] [LORE精煉] 為保證數據安全，已跳過對 '{character_name}' 的更新，數據庫中將保留原始的粗略版 LORE。")
 
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE精煉] 在為角色 '{character_name}' 執行精煉時發生嚴重錯誤: {e}", exc_info=True)
                 
-                # 在每個角色處理後短暫休眠，避免過於頻繁的 API 調用觸發速率限制
                 await asyncio.sleep(1.5)
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v5.0] 所有角色的單體精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v6.0] 所有角色的單體精煉任務已全部完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v5.0 - RAG驅動單體精煉)
+# 函式：背景LORE精煉 (v6.0 - 最終安全驗證)
 
 
 
@@ -5352,6 +5357,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
