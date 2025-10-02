@@ -36,6 +36,7 @@ from src.config import settings
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from google.generativeai.types import BlockedPromptException
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -1903,7 +1904,7 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 執行 admin_rag_peek 時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
 
-# 指令：[管理員] RAG 直通 LLM 對話 (v1.2 - 外部重試鏈)
+# 函式：[管理員] RAG 直通 LLM 對話 (v1.2 - 外部重試鏈)
 # 更新紀錄:
 # v1.2 (2025-10-02): [災難性BUG修復] 根據 BlockedPromptException 日誌，徹底重構了此指令的錯誤處理和重試邏輯。新版本從依賴 `ainvoke_with_rotation` 的內部重試，改為實現一個顯式的「外部重試鏈」。當第一次調用失敗時，它會捕獲異常，手動執行「最高指令注入重試」；如果再次失敗，則會再次捕獲異常，並手動調用終極的「委婉化重構」備援。此修改確保了重試流程的可控性和有效性，最大限度地提升了抗審查成功率。
 # v1.1 (2025-10-02): [災難性BUG修復] 修正了變數名 NameError。
@@ -1912,7 +1913,7 @@ class BotCog(commands.Cog):
     @app_commands.check(is_admin)
     @app_commands.describe(prompt="您想直接發送給 LLM 的對話內容。")
     async def admin_direct_chat(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.defer(ephemeral=False, thinking=True)
+        await interaction.response.defer(ephemeral=False, thinking=True) # 回應設為公開
         user_id = str(interaction.user.id)
         
         raw_response = None
@@ -1988,7 +1989,6 @@ class BotCog(commands.Cog):
                 except BlockedPromptException as e2:
                     logger.warning(f"[{user_id}] [Direct Chat] 第 2 次嘗試被審查 ({e2})。啟動最終備援 (委婉化重構)...")
                     # 最終備援：委婉化重構
-                    # 注意：委婉化重構通常返回結構化數據，這裡我們讓它返回純文本
                     raw_response = await ai_instance._euphemize_and_retry(final_prompt, None, e2)
 
             # --- 處理最終結果 ---
@@ -2001,7 +2001,11 @@ class BotCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生嚴重錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
+            # 檢查 interaction 是否還能回應
+            if interaction.is_is_done():
+                await interaction.channel.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
+            else:
+                 await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
 # 指令：[管理員] RAG 直通 LLM 對話 (v1.2 - 外部重試鏈)
 
     
@@ -2079,6 +2083,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
