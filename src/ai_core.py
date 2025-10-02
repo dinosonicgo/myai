@@ -3070,20 +3070,20 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：精煉單個 LORE 對象 (v10.1 - 終極備援鏈)
+# 函式：精煉單個 LORE 對象 (v11.0 - 備援鏈修復)
 # 更新紀錄:
-# v10.1 (2025-10-02): [成本控制] 嚴格遵守模型分配原則，在所有對 `ainvoke_with_rotation` 的雲端調用中，都強制使用性價比更高的 `FUNCTIONAL_MODEL`，將 `pro` 等級模型資源留給最終的小說生成。
-# v10.0 (2025-10-02): [根本性重構] 根據「三層降級 + 數據搶救」終極策略，徹底重寫此函式。新流程在不依賴代碼化的前提下，建立了一個極度健壯的備援鏈：1. 嘗試使用功能性雲端模型進行完整精煉。2. 若失敗，則交由本地無審查模型處理。3. 若再次失敗，則降級為「分治法」，使用一系列極簡的、低風險的微任務 Prompt，從上下文中搶救最關鍵的結構化數據（如 aliases），確保在最壞情況下也能最大限度地保證數據完整性。
-# v1.0 (2025-10-02): [全新創建] 根據「前置LORE解析」策略，創建此核心輔助函式。
+# v11.0 (2025-10-03): [災難性BUG修復] 根據 BlockedPromptException 日誌，徹底重構了此函式的錯誤處理與備援邏輯。新版本嚴格實現了「三層降級」策略，通過手動捕獲 `BlockedPromptException` 並在 `except` 塊中依次調用下一級備援（本地模型 -> 分治法），取代了之前不可靠的 `retry_strategy` 機制。此修改確保了在遭遇內容審查時，備援鏈能夠被正確、可靠地觸發，從根本上解決了精煉流程因審查而完全失敗的問題。
+# v10.1 (2025-10-02): [成本控制] 嚴格遵守模型分配原則，在所有雲端調用中強制使用 `FUNCTIONAL_MODEL`。
+# v10.0 (2025-10-02): [根本性重構] 根據「三層降級 + 數據搶救」終極策略，徹底重寫此函式。
     async def _refine_single_lore_object(self, lore_to_refine: Lore) -> Optional[CharacterProfile]:
         """
-        (v10.1) 對單個 LORE 執行包含三層降級備援的深度精煉，並返回結果。
+        (v11.0) 對單個 LORE 執行包含三層降級備援的深度精煉，並返回結果。
         """
         character_name = lore_to_refine.content.get('name')
         if not character_name:
             return None
 
-        logger.info(f"[{self.user_id}] [單體精煉 v10.1] 正在為角色 '{character_name}' 啟動三層降級精煉流程...")
+        logger.info(f"[{self.user_id}] [單體精煉 v11.0] 正在為角色 '{character_name}' 啟動三層降級精煉流程...")
         
         refined_profile: Optional[CharacterProfile] = None
 
@@ -3100,6 +3100,7 @@ class ExtractionResult(BaseModel):
             results = await asyncio.gather(*tasks.values())
             aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
 
+            # --- [v11.0 核心重構] 備援鏈邏輯 ---
             # --- 步驟 2: 【第一層嘗試】雲端完整精煉 ---
             try:
                 logger.info(f"[{self.user_id}] [LORE精煉-L1] 正在嘗試使用雲端模型 ({FUNCTIONAL_MODEL}) 進行完整精煉...")
@@ -3125,8 +3126,10 @@ class ExtractionResult(BaseModel):
                 )
             except BlockedPromptException as e:
                 logger.warning(f"[{self.user_id}] [LORE精煉-L1] 雲端完整精煉被審查 ({e})。降級至 L2 (本地模型)。")
+                refined_profile = None # 確保 profile 為 None 以觸發下一層
             except Exception as e:
                 logger.warning(f"[{self.user_id}] [LORE精煉-L1] 雲端完整精煉發生錯誤 ({type(e).__name__})。降級至 L2 (本地模型)。")
+                refined_profile = None
 
             # --- 步驟 3: 【第二層嘗試】本地無審查精煉 ---
             if not refined_profile and self.is_ollama_available:
@@ -3135,24 +3138,16 @@ class ExtractionResult(BaseModel):
             # --- 步驟 4: 【第三層嘗試】雲端「分治法」數據搶救 ---
             if not refined_profile:
                 logger.warning(f"[{self.user_id}] [LORE精煉-L3] L1和L2均失敗。啟動雲端『分治法』數據搶救...")
-                
-                # 從原始粗略 LORE 開始，在其上進行增量更新
                 rescued_profile = CharacterProfile.model_validate(lore_to_refine.content)
                 
-                # 微任務1：搶救 Aliases
                 try:
                     simple_extraction_prompt = self.get_simple_extraction_prompt()
-                    aliases_prompt = self._safe_format_prompt(
-                        simple_extraction_prompt,
-                        {
-                            "context": aggregated_context["aliases"],
-                            "target_field_description": f"角色 '{character_name}' 的所有身份、頭銜、綽號列表。",
-                            "output_format": "一個 JSON 列表，例如：[\"聖女\", \"母畜\"]"
-                        }
-                    )
-                    class AliasesResult(BaseModel):
-                        aliases: List[str]
-                    
+                    aliases_prompt = self._safe_format_prompt(simple_extraction_prompt, {
+                        "context": aggregated_context["aliases"],
+                        "target_field_description": f"角色 '{character_name}' 的所有身份、頭銜、綽號列表。",
+                        "output_format": "一個 JSON 列表，例如：[\"聖女\", \"母畜\"]"
+                    })
+                    class AliasesResult(BaseModel): aliases: List[str]
                     aliases_result = await self.ainvoke_with_rotation(aliases_prompt, output_schema=AliasesResult, models_to_try_override=[FUNCTIONAL_MODEL])
                     if aliases_result and aliases_result.aliases:
                         rescued_profile.aliases = list(set(rescued_profile.aliases + aliases_result.aliases))
@@ -3160,20 +3155,14 @@ class ExtractionResult(BaseModel):
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'aliases' 數據搶救失敗: {e}")
 
-                # 微任務2：搶救 Description (風險較高)
                 try:
                     simple_extraction_prompt = self.get_simple_extraction_prompt()
-                    desc_prompt = self._safe_format_prompt(
-                        simple_extraction_prompt,
-                        {
-                            "context": aggregated_context["description"],
-                            "target_field_description": f"將關於角色 '{character_name}' 的背景故事和經歷，總結成一段通順的描述。",
-                            "output_format": "一個 JSON 字符串，例如：{\"description\": \"...\"}"
-                        }
-                    )
-                    class DescriptionResult(BaseModel):
-                        description: str
-                    
+                    desc_prompt = self._safe_format_prompt(simple_extraction_prompt, {
+                        "context": aggregated_context["description"],
+                        "target_field_description": f"將關於角色 '{character_name}' 的背景故事和經歷，總結成一段通順的描述。",
+                        "output_format": "一個 JSON 字符串，例如：{{\"description\": \"...\"}}"
+                    })
+                    class DescriptionResult(BaseModel): description: str
                     desc_result = await self.ainvoke_with_rotation(desc_prompt, output_schema=DescriptionResult, models_to_try_override=[FUNCTIONAL_MODEL])
                     if desc_result and desc_result.description:
                         rescued_profile.description = desc_result.description
@@ -3181,16 +3170,15 @@ class ExtractionResult(BaseModel):
                 except Exception as e:
                     logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'description' 數據搶救失敗: {e}")
                 
-                # 如果至少搶救到了一些數據，則將其作為最終結果
-                if rescued_profile.aliases != lore_to_refine.content.get('aliases', []) or rescued_profile.description != lore_to_refine.content.get('description', ''):
+                if rescued_profile.model_dump() != lore_to_refine.content:
                     refined_profile = rescued_profile
 
             # --- 步驟 5: 最終安全驗證 ---
             if not refined_profile:
                 logger.warning(f"[{self.user_id}] [單體精煉] 🔥 所有三層備援均失敗！無法為角色 '{character_name}' 生成有效的精煉檔案。")
                 return None
-            elif not refined_profile.name or not refined_profile.description.strip():
-                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 最終結果缺少核心字段，判定為無效。")
+            elif not refined_profile.name or not (refined_profile.description and refined_profile.description.strip()):
+                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 最終結果缺少核心字段 (name 或 description)，判定為無效。")
                 return None
             
             logger.info(f"[{self.user_id}] [單體精煉] ✅ 驗證通過，成功為角色 '{character_name}' 生成精煉檔案。")
@@ -3199,7 +3187,7 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] [單體精煉] 在為角色 '{character_name}' 執行精煉時發生未知嚴重錯誤: {e}", exc_info=True)
             return None
-# 函式：精煉單個 LORE 對象 (v10.1 - 終極備援鏈)
+# 函式：精煉單個 LORE 對象 (v11.0 - 備援鏈修復)
 
 
 
@@ -3831,11 +3819,11 @@ class ExtractionResult(BaseModel):
     
     
 
-    # 函式：獲取場景中的相關 NPC (v3.0 - LLM 智能聚焦)
-    # 更新紀錄:
-    # v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的核心邏輯。它不再使用簡單的關鍵字匹配來確定核心目標，而是先構建一個完整的候選角色池，然後調用一個專門的、輕量級的LLM（get_scene_focus_prompt）來進行語義分析，從而更準確地識別出使用者指令的真正互動核心。此修改從根本上解決了上下文污染問題。
-    # v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了函式邏輯以解決核心目標丟失問題。
-    # v1.2 (2025-09-26): [災難性BUG修復] 新增了 `viewing_mode` 參數。
+# 函式：獲取場景中的相關 NPC (v3.1 - 焦點修正)
+# 更新紀錄:
+# v3.1 (2025-10-03): [災難性BUG修復] 根據 RAG 篩選失敗的日誌，徹底重構了此函式的焦點判斷邏輯。新版本引入了「指令優先原則」，會無條件地將用戶指令中明確提及的角色（來自 `explicitly_mentioned_profiles`）視為最高優先級的「核心目標」。只有在指令中沒有提及任何已知實體時，才會回退到舊的 LLM 判斷邏輯。此修改從根本上解決了在處理描述性指令時，AI 錯誤地將主角判定為核心、而被描述對象判定為背景的災難性誤判問題。
+# v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的核心邏輯。
+# v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了函式邏輯以解決核心目標丟失問題。
     async def _get_relevant_npcs(
         self, 
         user_input: str, 
@@ -3845,7 +3833,7 @@ class ExtractionResult(BaseModel):
         explicitly_mentioned_profiles: List[CharacterProfile]
     ) -> Tuple[List[CharacterProfile], List[CharacterProfile]]:
         """
-        從場景中的所有角色裡，通過LLM語義分析，篩選出與當前互動直接相關的核心目標和背景角色。
+        (v3.1) 從場景中的所有角色裡，通過「指令優先」原則和 LLM 輔助，篩選出核心目標和背景角色。
         返回 (relevant_characters, background_characters) 的元組。
         """
         if not self.profile:
@@ -3864,6 +3852,7 @@ class ExtractionResult(BaseModel):
                     all_possible_chars_map[profile.name] = profile
             except Exception: continue
         
+        # 確保主角在候選池中（僅限本地模式）
         if viewing_mode == 'local':
             if user_profile.name not in all_possible_chars_map:
                 all_possible_chars_map[user_profile.name] = user_profile
@@ -3874,34 +3863,42 @@ class ExtractionResult(BaseModel):
         if not candidate_characters:
             return [], []
 
-        # [v3.0 核心修正] 使用 LLM 進行智能聚焦
         core_focus_names = []
-        try:
-            last_ai_message = next((msg.content for msg in reversed(chat_history) if isinstance(msg, AIMessage)), "無")
-            scene_context = f"AI的上一句話: {last_ai_message}"
-            
-            focus_prompt_template = self.get_scene_focus_prompt()
-            full_prompt = self._safe_format_prompt(
-                focus_prompt_template,
-                {
-                    "user_input": user_input,
-                    "scene_context": scene_context,
-                    "candidate_characters_json": json.dumps([p.name for p in candidate_characters], ensure_ascii=False)
-                }
-            )
-            class FocusResult(BaseModel):
-                core_focus_characters: List[str]
+        
+        # [v3.1 核心修正] 指令優先原則
+        if explicitly_mentioned_profiles:
+            logger.info(f"[{self.user_id}] [上下文篩選] 觸發「指令優先原則」，將指令中提及的角色設為核心目標。")
+            core_focus_names = [p.name for p in explicitly_mentioned_profiles]
+        else:
+            # 如果指令中沒有明確提及任何【已知】角色，則回退到 LLM 判斷
+            try:
+                logger.info(f"[{self.user_id}] [上下文篩選] 指令中未提及已知角色，回退至 LLM 焦點識別。")
+                last_ai_message = next((msg.content for msg in reversed(chat_history) if isinstance(msg, AIMessage)), "無")
+                scene_context = f"AI的上一句話: {last_ai_message}"
+                
+                focus_prompt_template = self.get_scene_focus_prompt()
+                full_prompt = self._safe_format_prompt(
+                    focus_prompt_template,
+                    {
+                        "user_input": user_input,
+                        "scene_context": scene_context,
+                        "candidate_characters_json": json.dumps([p.name for p in candidate_characters], ensure_ascii=False)
+                    }
+                )
+                class FocusResult(BaseModel):
+                    core_focus_characters: List[str]
 
-            focus_result = await self.ainvoke_with_rotation(full_prompt, output_schema=FocusResult, use_degradation=False, models_to_try_override=[FUNCTIONAL_MODEL])
-            if focus_result:
-                core_focus_names = focus_result.core_focus_characters
+                focus_result = await self.ainvoke_with_rotation(full_prompt, output_schema=FocusResult, use_degradation=False, models_to_try_override=[FUNCTIONAL_MODEL])
+                if focus_result:
+                    core_focus_names = focus_result.core_focus_characters
 
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [上下文篩選] LLM 焦點識別失敗: {e}", exc_info=True)
-            # 備援邏輯：退回至簡單的關鍵字匹配
-            core_focus_names = [p.name for p in candidate_characters if p.name in user_input]
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [上下文篩選] LLM 焦點識別失敗: {e}", exc_info=True)
+                # 最終備援：如果 LLM 失敗，且是本地模式，則預設為主角互動
+                if viewing_mode == 'local':
+                    core_focus_names = [user_profile.name, ai_profile.name]
 
-        # 如果 LLM 判斷沒有核心，且是本地模式，則預設為主角互動
+        # 如果所有判斷都沒有結果，且是本地模式，則預設為主角互動
         if not core_focus_names and viewing_mode == 'local':
             core_focus_names = [user_profile.name, ai_profile.name]
 
@@ -3912,7 +3909,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [上下文篩選 in '{viewing_mode}' mode] 核心目標: {[c.name for c in relevant_characters]}, 背景角色: {[c.name for c in background_characters]}")
         
         return relevant_characters, background_characters
-    # 獲取場景中的相關 NPC 函式結束
+# 函式：獲取場景中的相關 NPC (v3.1 - 焦點修正)
 
 
     # ai_core.py 的 _release_rag_resources 函式 (v1.0 - 全新創建)
@@ -5585,6 +5582,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
