@@ -1155,9 +1155,9 @@ class AILover:
 
 
 
-        # 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-26): [全新創建] 創建此函式作為本地模型解析失敗時的自我修正機制。它提供一個簡單直接的指令，要求模型修正其自己先前生成的、格式錯誤的JSON輸出。
+# 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-26): [全新創建] 創建此函式作為本地模型解析失敗時的自我修正機制。它提供一個簡單直接的指令，要求模型修正其自己先前生成的、格式錯誤的JSON輸出。
     def get_local_model_json_correction_prompt(self) -> str:
         """為本地模型生成一個用於自我修正JSON格式錯誤的Prompt模板。"""
 
@@ -1176,19 +1176,17 @@ class AILover:
 ```json
 """
         return prompt
-    # 函式：獲取本地模型專用的JSON修正Prompt
-
+# 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
 
 
 
 
     
-    # 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
-# src/ai_core.py 的 _invoke_local_ollama_parser 函式 (v2.0 - 適配變數)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
 # 更新紀錄:
-# v2.0 (2025-11-22): [架構優化] 更新此函式，使其使用集中管理的 `self.ollama_model_name` 變數，而不是硬編碼的字串。
 # v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配。
 # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
+# v1.0 (2025-09-26): [全新創建] 創建此函式作為LORE解析的本地備援方案。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
         呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
@@ -1224,7 +1222,7 @@ class AILover:
         )
 
         payload = {
-            "model": self.ollama_model_name, # [v2.0 核心修正]
+            "model": self.ollama_model_name,
             "prompt": full_prompt,
             "format": "json",
             "stream": False,
@@ -1265,7 +1263,7 @@ class AILover:
                 correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
 
                 correction_payload = {
-                    "model": self.ollama_model_name, # [v2.0 核心修正]
+                    "model": self.ollama_model_name,
                     "prompt": correction_prompt,
                     "format": "json",
                     "stream": False,
@@ -1301,16 +1299,16 @@ class AILover:
         except Exception as e:
             logger.error(f"[{self.user_id}] 呼叫本地 Ollama 模型時發生未知錯誤: {e}", exc_info=True)
             return None
-    # 函式：呼叫本地Ollama模型進行LORE解析
+# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
 
 
     
     
-    # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
-    # 更新紀錄:
-    # v2.0 (2025-09-27): [災難性BUG修復] 恢復為「最小化骨架」策略。此函式現在返回一個包含所有必要佔位符（特別是 {start_tag_placeholder}）的模板骨架。完整的Prompt將在執行時由核心調用函式動態組裝。此修改旨在解決因模板與format參數不匹配而導致的致命KeyError。
-    # v1.3 (2025-09-25): [災難性BUG修復] 採用終極的物理隔離策略。
-    # v1.2 (2025-09-25): [災難性BUG修復] 採用了終極的字串構建策略。
+# 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
+# 更新紀錄:
+# v2.0 (2025-09-27): [災難性BUG修復] 恢復為「最小化骨架」策略。此函式現在返回一個包含所有必要佔位符（特別是 {start_tag_placeholder}）的模板骨架。完整的Prompt將在執行時由核心調用函式動態組裝。此修改旨在解決因模板與format參數不匹配而導致的致命KeyError。
+# v1.3 (2025-09-25): [災難性BUG修復] 採用終極的物理隔離策略。
+# v1.2 (2025-09-25): [災難性BUG修復] 採用了終極的字串構建策略。
     def get_local_model_lore_parser_prompt(self) -> str:
         """
         返回一個最小化的、絕對安全的 Prompt 骨架。
@@ -1344,12 +1342,11 @@ OUTPUT:
 {start_tag_placeholder}
 """
         return prompt_skeleton
-    # 函式：獲取本地模型專用的LORE解析器Prompt骨架
+# 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
     
     
     
-    # 函式：獲取法醫級LORE重構器 Prompt
-# ai_core.py 的 get_forensic_lore_reconstruction_chain 函式 (v2.2 - 終極強化)
+# 函式：獲取法醫級LORE重構器 Prompt (v2.2 - 終極強化)
 # 更新紀錄:
 # v2.2 (2025-09-30): [災難性BUG修復] 根據最新的降級管線策略，對 Prompt 進行了終極強化。它現在包含了完整的越獄指令、Pydantic 模型定義和解碼密鑰，使其成為一個完全自包含的、用於終極備援的強大工具，旨在從最零散的信息中最大限度地還原 LORE。
 # v2.1 (2025-09-23): [健壯性強化] 新增了【核心標識符強制令】。
@@ -1422,7 +1419,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【還原後的LORE數據庫JSON】:
 """
         return base_prompt
-# 函式：獲取法醫級LORE重構器 Prompt
+# 函式：獲取法醫級LORE重構器 Prompt (v2.2 - 終極強化)
 
 
     
@@ -2744,10 +2741,10 @@ class ExtractionResult(BaseModel):
 
 
 
-    # 函式：使用 spaCy 和規則提取實體 (v1.1 - 健壯性修復)
-    # 更新紀錄:
-    # v1.1 (2025-09-26): [災難性BUG修復] 移除了對 spaCy 中文模型不支援的 `doc.noun_chunks` 的呼叫，從而解決了 `NotImplementedError: [E894]` 的問題。同時，增加了一個基於詞性標注 (POS tagging) 提取普通名詞的備用邏輯，以確保在沒有命名實體時仍能提取潛在的關鍵詞。
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。
+# 函式：使用 spaCy 和規則提取實體 (v1.1 - 健壯性修復)
+# 更新紀錄:
+# v1.1 (2025-09-26): [災難性BUG修復] 移除了對 spaCy 中文模型不支援的 `doc.noun_chunks` 的呼叫，從而解決了 `NotImplementedError: [E894]` 的問題。同時，增加了一個基於詞性標注 (POS tagging) 提取普通名詞的備用邏輯，以確保在沒有命名實體時仍能提取潛在的關鍵詞。
+# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第一步。
     async def _spacy_and_rule_based_entity_extraction(self, text_to_parse: str) -> set:
         """【本地處理】結合 spaCy 和規則，從文本中提取所有潛在的 LORE 實體。"""
         if not self.profile:
@@ -2786,12 +2783,11 @@ class ExtractionResult(BaseModel):
                     candidate_entities.add(token.text.strip())
                 
         return candidate_entities
-    # 函式：使用 spaCy 和規則提取實體
+# 函式：使用 spaCy 和規則提取實體 (v1.1 - 健壯性修復)
 
 
 
-   # 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_lore_classification_prompt 函式 (v1.0 - 全新創建)
+# 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-09-25): [全新創建] 創建此 Prompt 作為混合 NLP 備援策略的第二步。
     def get_lore_classification_prompt(self) -> str:
@@ -2824,7 +2820,7 @@ class ExtractionResult(BaseModel):
 # 【你的批量分類結果JSON】:
 """
         return prompt_template
-# 函式：獲取 LORE 分類器 Prompt
+# 函式：獲取 LORE 分類器 Prompt (v1.0 - 全新創建)
 
 
 
@@ -3494,10 +3490,9 @@ class ExtractionResult(BaseModel):
     
 
 
-   # 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
-# ai_core.py 的 get_targeted_refinement_prompt 函式 (v1.0 - 全新創建)
+# 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。
+# v1.0 (2025-09-25): [全新創建] 創建此函式作為混合 NLP 備援策略的第三步核心。它的任務是接收一個【已被分類】的實體和一個【目標 Pydantic 結構】，然後指導 LLM 執行一個高度聚焦的、靶向的檔案生成任務，以確保輸出的結構正確性和信息的完整性。
     def get_targeted_refinement_prompt(self) -> str:
         """獲取一個為混合 NLP 流程中的“靶向精煉”步驟設計的、高度靈活的 Prompt 模板。"""
         prompt_template = """# TASK: 你是一位資深的 LORE 檔案撰寫專家。
@@ -3534,7 +3529,7 @@ class ExtractionResult(BaseModel):
 # 【為“{entity_name}”生成的檔案JSON】:
 """
         return prompt_template
-# 函式：獲取靶向精煉器 Prompt
+# 函式：獲取靶向精煉器 Prompt (v1.0 - 全新創建)
     
     
 
@@ -4110,38 +4105,41 @@ class ExtractionResult(BaseModel):
 
     
 
-# 檔案：ai_core.py
-
-# 函式：解析並從世界聖經創建LORE (v15.0 - 異步精煉)
+# 函式：解析並從世界聖經創建LORE (v16.0 - 雙軌並行)
 # 更新紀錄:
-# v15.0 (2025-10-02): [架構升級] 將 LORE 精煉流程解耦。此函式現在只負責執行第一階段的快速解析並保存一個「粗略版」的 LORE。然後，它會通過 `asyncio.create_task` 異步地、非阻塞地觸發一個全新的 `_background_lore_refinement` 背景任務，由該任務在後台負責對這些粗略的 LORE 進行第二階段的深度精煉。
+# v16.0 (2025-10-02): [根本性重構] 根據「雙軌並行」策略，徹底重構了數據處理流程。此函式現在的職責是：1. 首先，強制將完整的聖經原文寫入 RAG 知識庫（敘事軌道）。2. 然後，才繼續執行後續的 LORE 解析管線（結構化軌道）。此修改確保了 RAG 系統能同時擁有宏觀的敘事上下文和微觀的實體數據。
+# v15.0 (2025-10-02): [架構升級] 將 LORE 精煉流程解耦。
 # v14.0 (2025-10-02): [根本性重構] 在函式最開始增加了對 `add_canon_to_vector_store` 的強制調用。
-# v13.4 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式末尾所有與 RAG 資源管理相關的程式碼。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮】啟動 LORE 解析管線，保存粗略結果，然後在背景中異步觸發深度精煉任務。
+        【總指揮 v16.0】啟動「雙軌並行」數據處理流程：
+        1. 【敘事軌道】將聖經原文完整存入 RAG。
+        2. 【結構化軌道】啟動五層降級管線解析 LORE，存入 SQL，並在後台進行深度精煉。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
+        # --- 軌道 A: 【敘事軌道】原文直通 RAG ---
         if canon_text and canon_text.strip():
             try:
-                logger.info(f"[{self.user_id}] [RAG源頭注入] 正在將世界聖經原文寫入 RAG 知識庫...")
+                logger.info(f"[{self.user_id}] [數據入口-軌道A] 正在將世界聖經原文寫入 RAG 知識庫...")
                 chunk_count = await self.add_canon_to_vector_store(canon_text)
-                logger.info(f"[{self.user_id}] [RAG源頭注入] ✅ 成功！世界聖經原文已被分解為 {chunk_count} 個知識片段存入 RAG。")
+                logger.info(f"[{self.user_id}] [數據入口-軌道A] ✅ 成功！世界聖經原文已被分解為 {chunk_count} 個知識片段存入 RAG。")
             except Exception as e:
-                logger.error(f"[{self.user_id}] [RAG源頭注入] 🔥 將世界聖經原文存入 RAG 時發生嚴重錯誤: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] [數據入口-軌道A] 🔥 將世界聖經原文存入 RAG 時發生嚴重錯誤: {e}", exc_info=True)
+                # 即使此步驟失敗，也應繼續嘗試解析，以保證 LORE 系統的基本功能
         
-        logger.info(f"[{self.user_id}] [LORE解析階段1/2] 正在啟動多層降級解析管線以進行快速宏觀解析...")
+        # --- 軌道 B: 【結構化軌道】深度解析 LORE ---
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動 LORE 解析管線 (階段 1/2)...")
         
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
-            logger.error(f"[{self.user_id}] [LORE解析階段1/2] 所有解析層級均失敗，無法為世界聖經創建 LORE。")
+            logger.error(f"[{self.user_id}] [數據入口-軌道B] LORE 解析管線最終失敗，無法創建結構化 LORE。")
             return
 
-        # [v15.0 核心修正] 不再在此處進行複雜的校驗，只進行最基本的過濾和儲存
+        # 快速過濾和保存第一階段的「粗略版」結果
         if parsing_result_object.npc_profiles:
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
@@ -4150,7 +4148,6 @@ class ExtractionResult(BaseModel):
                 if p.name.lower() not in {user_name_lower, ai_name_lower}
             ]
         
-        # 快速保存第一階段的「粗略版」結果
         await self._resolve_and_save("npc_profiles", [p.model_dump() for p in parsing_result_object.npc_profiles])
         await self._resolve_and_save("locations", [p.model_dump() for p in parsing_result_object.locations])
         await self._resolve_and_save("items", [p.model_dump() for p in parsing_result_object.items])
@@ -4158,22 +4155,21 @@ class ExtractionResult(BaseModel):
         await self._resolve_and_save("quests", [p.model_dump() for p in parsing_result_object.quests])
         await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in parsing_result_object.world_lores])
         
-        logger.info(f"[{self.user_id}] [LORE解析階段1/2] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。")
         
-        # [v15.0 核心修正] 異步觸發背景深度精煉任務，不阻塞當前流程
-        logger.info(f"[{self.user_id}] [LORE解析] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...")
+        # 異步觸發背景深度精煉任務
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...")
         asyncio.create_task(self._background_lore_refinement(canon_text))
-# 函式：解析並從世界聖經創建LORE (v15.0 - 異步精煉)
+# 函式：解析並從世界聖經創建LORE (v16.0 - 雙軌並行)
 
 
 
 
 
-
-    # ai_core.py 的 get_sanitized_text_parser_chain 函式 (v1.1 - 縮排修正)
-    # 更新紀錄:
-    # v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
-    # v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。它提供一個專門的 Prompt，用於解析經過“代碼替換”後的無害化文本塊，並強制 LLM 在其 JSON 輸出中也使用這些安全代碼，以確保整個流程的抗審查能力。
+# 函式：獲取無害化文本解析器 Prompt (v1.1 - 縮排修正)
+# 更新紀錄:
+# v1.1 (2025-09-25): [災難性BUG修復] 修正了函式的縮排，使其成為 AILover 類別的正確方法。
+# v1.0 (2025-09-25): [全新創建] 創建此函式作為“多層降級解析”策略的第二層核心。它提供一個專門的 Prompt，用於解析經過“代碼替換”後的無害化文本塊，並強制 LLM 在其 JSON 輸出中也使用這些安全代碼，以確保整個流程的抗審查能力。
     def get_sanitized_text_parser_chain(self) -> str:
         """獲取一個專門的、經過淨化的模板，用於解析經過“代碼替換”後的無害化文本塊。"""
         
@@ -4208,7 +4204,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【代碼化的JSON數據】:
 """
         return base_prompt
-    # ai_core.py 的 get_sanitized_text_parser_chain 函式結尾
+# 函式：獲取無害化文本解析器 Prompt (v1.1 - 縮排修正)
 
 
 
@@ -4219,8 +4215,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：執行 LORE 解析管線 (v3.7 - 補全備援邏輯)
-# ai_core.py 的 _execute_lore_parsing_pipeline 函式 (v3.9 - 終極降級管線)
+# 函式：執行 LORE 解析管線 (v3.9 - 終極降級管線)
 # 更新紀錄:
 # v3.9 (2025-09-30): [重大架構重構] 根據「分批處理」和「健壯修復」的終極策略，徹底重寫了此函式。新版本引入了【分塊處理 (Chunking)】機制，將大型文本分割處理，並實現了一個包含【五層降級策略】的解析管線（雲端 -> 本地 -> 混合NLP -> 法醫級重構 -> 失敗）。此修改旨在從根本上解決因上下文過長導致的 API 錯誤和因內容審查導致的解析失敗，是 LORE 解析系統穩定性的終極保障。
 # v3.8 (2025-09-30): [災難性BUG修復] 對第一層（雲端宏觀解析）增加了前置安全代碼化。
@@ -4414,7 +4409,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線
+# 函式：執行 LORE 解析管線 (v3.9 - 終極降級管線)
 
 
 
@@ -4429,9 +4424,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-        # 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Pydantic定義物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔，避免被渲染器截斷。
+# 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Pydantic定義物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔，避免被渲染器截斷。
     def get_ollama_pydantic_definitions_template(self) -> str:
         """返回一個包含所有LORE解析所需Pydantic模型定義的純文字區塊。"""
         
@@ -4445,12 +4440,12 @@ class WorldLore(BaseModel): title: str; aliases: List[str] = []; content: str = 
 class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
 """
         return pydantic_definitions
-    # 函式：獲取為Ollama準備的Pydantic模型定義模板
+# 函式：獲取為Ollama準備的Pydantic模型定義模板 (v1.0 - 全新創建)
 
 
-        # 函式：獲取為Ollama準備的解析範例模板 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Few-Shot範例物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔。
+# 函式：獲取為Ollama準備的解析範例模板 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-09-25): [全新創建] 作為終極渲染修復策略的一部分，將Few-Shot範例物理隔離到獨立的輔助函式中，確保主Prompt的結構簡潔。
     def get_ollama_example_template(self) -> Tuple[str, str]:
         """返回一個元組，包含用於Few-Shot學習的輸入範例和期望的JSON輸出範例。"""
 
@@ -4489,7 +4484,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
   "world_lores": []
 }"""
         return example_input, example_json_output
-    # 函式：獲取為Ollama準備的解析範例模板
+# 函式：獲取為Ollama準備的解析範例模板 (v1.0 - 全新創建)
 
 
 
@@ -5155,18 +5150,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：檢索並摘要記憶 (v19.0 - 原文直通改造)
+# 函式：檢索並摘要記憶 (v20.0 - RAG後處理去重)
 # 更新紀錄:
-# v19.0 (2025-10-02): [根本性重構] 根據最新討論，徹底移除了所有 LLM 摘要邏輯。此函式現在的唯一職責是執行 RAG 檢索、篩選，然後將最相關的【原始文檔文本】直接拼接後返回，確保導演層能接收到 100% 無損的背景資訊。
+# v20.0 (2025-10-02): [根本性重構] 根據「RAG後處理去重」策略，徹底重寫了此函式。它現在包含一個智能去重步驟：在檢索後，優先保留結構化的 LORE 卡片，然後使用 Levenshtein 相似度算法來過濾掉與 LORE 卡片內容高度重複的聖經原文塊，只保留能提供額外敘事上下文的文檔。同時，徹底移除了所有 LLM 摘要邏輯。
+# v19.0 (2025-10-02): [根本性重構] 根據最新討論，徹底移除了所有 LLM 摘要邏輯。
 # v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。
-# v18.4 (2025-09-28): [災難性BUG修復] 為此函式注入了全面的【透明度日誌】。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v19.0 原文直通) 執行RAG檢索、篩選，並將最相關的原始文檔直接拼接後返回。
+        (v20.0 RAG後處理去重) 執行RAG檢索、智能去重，並將最相關的原始文檔直接拼接後返回。
         返回一個字典: {"rules": str, "summary": str}
         """
-        from .schemas import RagFactSheet
-
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
@@ -5182,54 +5175,67 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
             logger.info(f"[{self.user_id}] [RAG查詢強化] 查詢已擴展為: '{expanded_query}'")
         
-        retrieved_docs = []
         try:
-            if self.retriever: retrieved_docs = await self.retriever.ainvoke(expanded_query)
-            if not retrieved_docs and self.bm25_retriever: retrieved_docs = await self.bm25_retriever.ainvoke(expanded_query)
+            retrieved_docs = await self.retriever.ainvoke(expanded_query) if self.retriever else []
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
         
+        if not retrieved_docs:
+            logger.info(f"[{self.user_id}] [RAG檢索] 未檢索到任何文檔。")
+            return default_return
+
         logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
-        for i, doc in enumerate(retrieved_docs[:5]): # 只記錄前5條的詳細內容
-            logger.info(f"  [Doc {i+1}] Metadata: {doc.metadata}")
-            logger.info(f"  [Doc {i+1}] Content: {doc.page_content[:150]}...")
-        logger.info("----------------------------------------------------")
 
-        if not retrieved_docs: return default_return
+        # [v20.0 核心重構] RAG 後處理去重邏輯
+        canon_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "canon"]
+        lore_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "lore"]
+        memory_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "memory"] # 個人記憶文檔
 
-        final_docs_to_process = retrieved_docs
+        final_docs = []
+        # 優先保留所有結構化的 LORE 和個人記憶，它們是信噪比最高的數據
+        final_docs.extend(lore_docs)
+        final_docs.extend(memory_docs)
+
+        SIMILARITY_THRESHOLD = 0.7  # 相似度閾值，超過此值則視為重複
+
+        for canon_doc in canon_docs:
+            is_redundant = False
+            for existing_doc in final_docs:
+                # 使用 Levenshtein 算法快速計算字符串相似度
+                similarity = levenshtein_ratio(canon_doc.page_content, existing_doc.page_content)
+                if similarity > SIMILARITY_THRESHOLD:
+                    is_redundant = True
+                    logger.info(f"[{self.user_id}] [RAG去重] 聖經原文塊因與 LORE '{existing_doc.metadata.get('key')}' 相似度過高 ({similarity:.2f}) 而被過濾。")
+                    break
+            
+            if not is_redundant:
+                final_docs.append(canon_doc)
+        
+        logger.info(f"--- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 {len(final_docs)} 條文檔 ---")
+
+        # 基於原始檢索器的分數對去重後的文檔重新排序，確保最相關的仍在最前面
+        original_order_map = {doc.page_content: i for i, doc in enumerate(retrieved_docs)}
+        final_docs.sort(key=lambda doc: original_order_map.get(doc.page_content, float('inf')))
+
+        final_docs_to_process = final_docs
         if filtering_profiles:
             filter_names = set(p.name for p in filtering_profiles) | set(alias for p in filtering_profiles for alias in p.aliases)
-            final_docs_to_process = [doc for doc in retrieved_docs if any(name in doc.page_content for name in filter_names)]
-            
-            logger.info(f"--- [RAG 透明度日誌 Step 2/4] 後處理篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
-            for i, doc in enumerate(final_docs_to_process[:5]):
-                logger.info(f"  [Filtered Doc {i+1}] Metadata: {doc.metadata}")
-            logger.info("----------------------------------------------------")
+            final_docs_to_process = [doc for doc in final_docs if any(name in doc.page_content for name in filter_names)]
+            logger.info(f"--- [RAG 透明度日誌 Step 3/4] 根據核心角色篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
 
         if not final_docs_to_process: return default_return
 
         rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
         other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
         
-        logger.info(f"--- [RAG 透明度日誌 Step 3/4] 文檔分離結果 ---")
-        logger.info(f"  歸類為【規則】的文檔 ({len(rule_docs)} 條): {[doc.metadata.get('key', 'N/A') for doc in rule_docs]}")
-        logger.info(f"  歸類為【待拼接】的文檔 ({len(other_docs)} 條): {[doc.metadata.get('key', 'Memory') for doc in other_docs]}")
-        
-        # 規則部分保持不變，因為它們需要被直接注入最終 Prompt
         rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
-        logger.info(f"  [最終生成的 rules_context] (傳遞給導演):\n---\n{rules_context}\n---")
-        logger.info("----------------------------------------------------")
         
         summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        # 將規則文檔中未被用作 "rules" 的剩餘部分也加入待拼接列表
         docs_to_concatenate = other_docs + rule_docs[3:]
 
-        # [v19.0 核心重構] 移除所有摘要邏輯，改為原文直通
         if docs_to_concatenate:
-            # 為了控制上下文長度，我們只拼接最相關的前 5 條文檔
-            MAX_DOCS_FOR_SUMMARY = 5
+            MAX_DOCS_FOR_SUMMARY = 7 # 適當增加拼接數量以提供更豐富上下文
             selected_docs = docs_to_concatenate[:MAX_DOCS_FOR_SUMMARY]
             
             concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in selected_docs])
@@ -5237,7 +5243,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(selected_docs)} 條最相關原始文檔）】:\n"
             summary_context = summary_context_header + concatenated_content
             
-            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條原始文檔作為 summary_context。")
+            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接 {len(selected_docs)} 條去重後的原始文檔作為 summary_context。")
         
         logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
         logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
@@ -5245,8 +5251,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info("--- RAG 流程結束 ---")
 
         return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
-# 函式：檢索並摘要記憶 (v19.0 - 原文直通改造)
-
+# 函式：檢索並摘要記憶 (v20.0 - RAG後處理去重)
 
 
     # 函式：獲取RAG事實清單提取器 Prompt (v1.2 - 終極越獄指令)
@@ -5350,6 +5355,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
