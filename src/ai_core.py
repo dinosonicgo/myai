@@ -2372,7 +2372,7 @@ class ExtractionResult(BaseModel):
 
     
     
-# ai_core.py 的 AILover.initialize 函式 (v206.1 - 簡化職責)
+# 函式：初始化AI實例 (v206.1 - 簡化職責)
 # 更新紀錄:
 # v206.1 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_configure_pre_requisites` 的調用。`initialize` 的唯一職責被簡化為：從 SQL 資料庫加載用戶的核心 Profile 數據。所有其他資源的配置將由更高層的協調器（如 discord_bot.py）在正確的時機觸發。
 # v206.0 (2025-11-22): [重大架構重構] 根據「按需加載」原則，徹底移除了在初始化時自動恢復短期記憶的邏輯。
@@ -2415,7 +2415,7 @@ class ExtractionResult(BaseModel):
         #     return False
             
         return True
-# 函式：初始化AI實例
+# 函式：初始化AI實例 (v206.1 - 簡化職責)
 
 
 
@@ -3727,8 +3727,7 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：配置前置資源
-# ai_core.py 的 _configure_pre_requisites 函式 (v203.3 - 移除RAG創建)
+# 函式：配置前置資源 (v203.3 - 移除RAG創建)
 # 更新紀錄:
 # v203.3 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_load_or_build_rag_retriever` 的調用。此函式的職責被重新定義為：僅配置那些不依賴於完整數據（如 LORE）的、輕量級的前置資源，如模板加載、工具列表和 Embedding 引擎。RAG 的創建將被延遲到更高層的協調器中執行。
 # v203.2 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
@@ -3752,7 +3751,7 @@ class ExtractionResult(BaseModel):
         # self.retriever = await self._load_or_build_rag_retriever()
         
         logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
-# 配置前置資源 函式結束
+# 函式：配置前置資源 (v203.3 - 移除RAG創建)
 
 
 
@@ -3760,24 +3759,22 @@ class ExtractionResult(BaseModel):
 
     
 
-    # 函式：將世界聖經添加到知識庫 (v15.0 - 移除RAG冗餘)
-    # ai_core.py 的 add_canon_to_vector_store 函式 (v13.1 - 縮排修正)
-    # 更新紀錄:
-    # v13.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
-    # v13.0 (2025-11-26): [根本性重構] 徹底重寫此函式以適應本地 RAG 架構。它現在負責將世界聖經文本分割後，使用本地 Embedding 模型進行向量化，並將結果存入 ChromaDB，同時也更新 BM25 的語料庫。
-    # v15.0 (2025-11-22): [架構優化] 移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。
+# 函式：將世界聖經添加到知識庫 (v13.1 - 縮排修正)
+# 更新紀錄:
+# v13.1 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤，確保其為 AILover 類別的正確方法。
+# v13.0 (2025-11-26): [根本性重構] 徹底重寫此函式以適應本地 RAG 架構。
+# v15.0 (2025-11-22): [架構優化] 移除了將世界聖經原始文本直接存入 SQL 記憶庫的邏輯。
     async def add_canon_to_vector_store(self, text_content: str) -> int:
         """
         (v13.1 本地化改造) 將世界聖經文本分割、本地向量化，並存儲到 ChromaDB 和 BM25 索引中。
         """
         if not text_content or not self.profile:
             return 0
+            
+        # [v13.1 核心修正] 移除錯誤的現場修復邏輯，改為嚴格檢查
         if not self.vector_store:
-            logger.error(f"[{self.user_id}] (Canon Processor) Vector store 未初始化，無法添加世界聖經。")
-            # 嘗試觸發一次重建
-            await self._load_or_build_rag_retriever(force_rebuild=True)
-            if not self.vector_store:
-                 raise RuntimeError("即使在強制重建後，Vector Store 仍然無法初始化。")
+            logger.error(f"[{self.user_id}] (Canon Processor) 致命時序錯誤：在 RAG 索引完全構建之前，嘗試向其添加世界聖經。")
+            raise RuntimeError("時序錯誤：Vector store 必須在調用 add_canon_to_vector_store 之前由外部協調器（如 _perform_full_setup_flow）初始化。")
 
         try:
             text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
@@ -3804,8 +3801,90 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] (Canon Processor) 添加世界聖經到 RAG 索引時發生嚴重錯誤: {e}", exc_info=True)
             raise
-    # 將世界聖經添加到知識庫 函式結束
+# 函式：將世界聖經添加到知識庫 (v13.1 - 縮排修正)
 
+
+
+    # 函式：執行完整的後台創世流程 (v58.0 - 時序重構)
+# 更新紀錄:
+# v58.0 (2025-10-02): [災難性BUG修復] 根據「時序與依賴性」原則，徹底重構了創世流程的執行順序。新的、絕對正確的順序是：1. 解析LORE並存入SQL -> 2. 補完角色檔案 -> 3. 在所有數據準備就緒後，執行RAG全量創始構建 -> 4. 將聖經原文寫入已創建的RAG -> 5. 生成世界和開場白。此修改從根本上解決了因時序錯亂導致的空RAG索引和數據不完整問題。
+# v57.0 (2025-11-17): [完整性修復] 提供了包含所有近期修正的完整檔案。
+    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
+        """一個獨立的背景任務，負責執行從LORE解析到發送開場白的完整創世流程。"""
+        user_id = str(user.id)
+        try:
+            logger.info(f"[{user_id}] 獨立的後台創世流程已為用戶啟動。")
+            
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance or not ai_instance.profile:
+                logger.error(f"[{user_id}] 在後台創世流程中，AI核心初始化失敗。")
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+                return
+
+            # [v58.0 核心重構] 遵循絕對正確的執行時序
+
+            # --- 步驟 1: LORE 智能解析 (僅寫入 SQL) ---
+            if canon_text:
+                logger.info(f"[{user_id}] [後台創世 1/5] 正在進行 LORE 智能解析並存入 SQL...")
+                # 此函式現在只負責解析和存儲到 SQL，不再觸及 RAG
+                await ai_instance.parse_and_create_lore_from_canon(canon_text)
+                logger.info(f"[{user_id}] [後台創世 1/5] LORE 智能解析已同步完成，數據已存入 SQL。")
+            
+            # --- 步驟 2: 補完角色檔案 (基於 SQL 數據) ---
+            logger.info(f"[{user_id}] [後台創世 2/5] 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            
+            # --- 步驟 3: RAG 索引全量創始構建 (在所有 SQL 數據準備好之後) ---
+            logger.info(f"[{user_id}] [後台創世 3/5] 所有 SQL 數據準備就緒，正在觸發 RAG 索引全量創始構建...")
+            # 此步驟會從 SQL 中讀取所有 LORE，創建一個包含結構化數據的 RAG 索引
+            await ai_instance._load_or_build_rag_retriever(force_rebuild=True)
+            logger.info(f"[{user_id}] [後台創世 3/5] RAG 索引全量創始構建完成。")
+
+            # --- 步驟 3.5 (可選): 將聖經原文寫入【已創建的】RAG 索引 ---
+            # 由於 `_load_or_build_rag_retriever` 會清除舊目錄，此步驟必須在它之後
+            # 但我們在 v16.0 的 parse_and_create_lore_from_canon 中已經處理了這個邏輯，
+            # 並且 add_canon_to_vector_store 現在會在 vector_store 未初始化時拋出錯誤，
+            # 所以我們將這個邏輯合併回 parse_and_create_lore_from_canon 的開頭，
+            # 這裡我們需要確保 RAG 已經被初始化。
+            # 為了簡化和確保時序，我們再次調整 parse_and_create_lore_from_canon 的職責
+            # 讓它只解析，不寫入 RAG。寫入 RAG 的操作由這裡統一協調。
+            
+            # 為了最清晰的邏輯，我們將 parse_and_create_lore_from_canon 的 RAG 寫入部分移除，
+            # 改為在此處顯式調用 add_canon_to_vector_store
+            if canon_text:
+                 logger.info(f"[{user_id}] [後台創世 3.5/5] 正在將聖經原文寫入已構建的 RAG 索引...")
+                 await ai_instance.add_canon_to_vector_store(canon_text)
+                 logger.info(f"[{user_id}] [後台創世 3.5/5] 聖經原文寫入 RAG 完成。")
+
+
+            # --- 步驟 4: 生成世界創世資訊 ---
+            logger.info(f"[{user_id}] [後台創世 4/5] 正在生成世界創世資訊...")
+            await ai_instance.generate_world_genesis(canon_text=canon_text)
+            
+            # --- 步驟 5: 生成開場白 ---
+            logger.info(f"[{user_id}] [後台創世 5/5] 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
+            logger.info(f"[{user_id}] [後台創世 5/5] 開場白生成完毕。")
+
+            # --- 最終步驟: 發送開場白並清理 ---
+            scene_key = ai_instance._get_scene_key()
+            await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
+            
+            logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
+            for i in range(0, len(opening_scene), 2000):
+                await user.send(opening_scene[i:i+2000])
+            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
+            try:
+                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
+            except discord.errors.HTTPException as send_e:
+                 logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
+        finally:
+            self.active_setups.discard(user_id)
+            logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
+# 函式：執行完整的後台創世流程 (v58.0 - 時序重構)
 
     
 
@@ -5372,6 +5451,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
