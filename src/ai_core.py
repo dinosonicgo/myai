@@ -2128,13 +2128,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成世界創世資訊 (/start 流程 3/4)
+# 函式：生成世界創世資訊 (v5.0 - 職責轉移)
 # 更新紀錄:
-# v4.2 (2025-09-23): [根本性重構] 根據“按需生成”原則，徹底移除了此函式生成初始NPC的職責。其新任務是專注於生成或從世界聖經中選擇一個適合開場的、無人的初始地點，為後續的開場白生成提供舞台。
-# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
-# v4.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
+# v5.0 (2025-10-03): [重大架構重構] 此函式的功能被重新定義。它不再負責生成開場白，而是作為開場流程的第一步，專注於根據世界聖經【智能地選擇或創造】一個符合「敘事距離原則」的初始地點。它會調用一個專門的 LLM 來完成這個決策，並將結果（地點LORE）存入數據庫，為後續的開場白生成提供一個有據可依的、充滿氛圍的舞台。
+# v4.2 (2025-09-23): [根本性重構] 根據“按需生成”原則，徹底移除了此函式生成初始NPC的職責。
+# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
     async def generate_world_genesis(self, canon_text: Optional[str] = None):
-        """(/start 流程 3/4) 呼叫 LLM 生成或選擇一個初始地點，並存入LORE。不再生成NPC。"""
+        """(/start 流程 4/7) 呼叫 LLM 智能地選擇或創造一個初始地點，並存入LORE。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
@@ -2146,16 +2146,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             "ai_name": self.profile.ai_profile.name,
             "canon_text": canon_text or "（未提供世界聖經，請自由創作一個通用起點。）"
         }
-        full_prompt_str = genesis_prompt_template.format(**genesis_params)
+        full_prompt_str = self._safe_format_prompt(genesis_prompt_template, genesis_params)
         
         genesis_result = await self.ainvoke_with_rotation(
             full_prompt_str,
             output_schema=WorldGenesisResult,
-            retry_strategy='force'
+            retry_strategy='force',
+            models_to_try_override=[FUNCTIONAL_MODEL] # 使用功能模型進行決策
         )
         
-        if not genesis_result or not isinstance(genesis_result, WorldGenesisResult):
-            raise Exception("世界創世在所有重試後最終失敗，未能返回有效的 WorldGenesisResult 物件。")
+        if not genesis_result or not isinstance(genesis_result, WorldGenesisResult) or not genesis_result.location_path:
+            # 備援邏輯
+            logger.warning(f"[{self.user_id}] [/start] 智能地點選擇失敗，啟動備援地點。")
+            genesis_result = WorldGenesisResult(
+                location_path=["未知領域", "時空奇點"],
+                location_info=LocationInfo(name="時空奇點", description="一個時間與空間交匯的神秘之地，萬物的起點。")
+            )
         
         gs = self.profile.game_state
         gs.location_path = genesis_result.location_path
@@ -2163,21 +2169,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
         
-        # [v4.2 核心修正] 不再處理 initial_npcs
         logger.info(f"[{self.user_id}] [/start] 初始地點 '{' > '.join(gs.location_path)}' 已成功生成並存入LORE。")
-    # 生成世界創世資訊 函式結束
+# 函式：生成世界創世資訊 (v5.0 - 職責轉移)
 
         
 
 
 
-    # 函式：生成開場白 (/start 流程 4/4) (v183.0 - 本地安全代碼化)
-    # 更新紀錄:
-    # v183.0 (2025-09-27): [災難性BUG修復] 引入了「本地安全代碼化」策略。現在，在將所有高風險數據（角色檔案、地點描述、世界聖經）填入Prompt前，會先使用本地的編碼表將NSFW詞彙替換為安全代碼；在接收到模型的輸出後，再將代碼解碼還原。此「編碼-生成-解碼」的閉環流程從根本上解決了開場白Prompt因包含敏感詞而被內容審查系統攔截的問題。
-    # v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt，并为 ainvoke_with_rotation 设置了 'force' 重试策略，以确保开场白生成过程与其他創造性LLM调用享有同等级别的抗审查保护。
-    # v182.0 (2025-09-23): [根本性重構] 彻底重写了此函式的 Prompt 以实现深度圣经融合。
+# 函式：生成開場白 (v184.0 - RAG驅動智能導演)
+# 更新紀錄:
+# v184.0 (2025-10-03): [根本性重構] 根據「RAG驅動的智能開場導演」策略，徹底重寫了此函式。它不再盲目創作，而是首先執行一次高度語義化的 RAG 查詢，從完整的世界聖經中檢索出與「開場」主題最相關的場景片段。然後，它將這個由 RAG 精選出的「核心場景情報」連同角色檔案，一同交給 LLM，並下達一個清晰的「場景植入」指令。此修改將開場白從一個隨機的創作過程，轉變為一個由世界觀驅動的、高度情境化的智能導演過程。
+# v183.0 (2025-09-27): [災難性BUG修復] 引入了「本地安全代碼化」策略。
+# v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
-        """(/start 流程 4/4) 根據已生成的完整上下文，撰寫故事的開場白。"""
+        """(/start 流程 5/7) 根據 RAG 智能選擇的場景，撰寫故事的開場白。"""
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
 
@@ -2185,65 +2190,49 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         ai_profile = self.profile.ai_profile
         gs = self.profile.game_state
 
+        # --- [v184.0 核心修正] RAG 驅動的場景選擇 ---
+        logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇開場場景...")
+        rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的初始場景或情境。"
+        
+        # 我們直接調用 RAG 檢索，並獲取拼接好的原始文本
+        rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
+        rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
+
         location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
         location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
         
-        # [v183.0 核心修正] 創建一個用於編碼的反向映射
         encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        # 為了正確替換，按長度排序以避免子字符串問題
         sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-
         def encode_text(text: str) -> str:
             if not text: return ""
             for word, code in sorted_encoding_map:
                 text = text.replace(word, code)
             return text
 
-        # [v183.0 核心修正] 對所有高風險輸入進行本地編碼
-        encoded_location_description = encode_text(location_description)
         encoded_user_profile_json = encode_text(json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False))
         encoded_ai_profile_json = encode_text(json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False))
-        encoded_canon_text = encode_text(canon_text or "（未提供世界聖經，請基於世界觀核心和地點描述进行創作。）")
         encoded_world_settings = encode_text(self.profile.world_settings)
+        encoded_rag_scene_context = encode_text(rag_scene_context)
 
         full_template = f"""你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
+你的唯一任務是，基於所有源數據，為使用者角色「{user_profile.name}」與 AI 角色「{ai_profile.name}」創造一個**【深度定制化的、靜態的開場快照】**。
 
-# === 【【【v182.0 核心任務定義】】】 ===
-你的唯一任務是，基於所有源數據（特別是【世界聖經全文】），為使用者角色「{user_profile.name}」與 AI 角色「{ai_profile.name}」創造一個**【深度定制化的、靜態的開場快照】**。
-你的職責是**搭建一個與世界觀完美融合的舞台**，而不是**啟動劇情**。
+# === 絕對敘事禁令 ===
+1.  **【👑 使用者主權鐵則】**: 你的旁白【絕對禁止】描寫、暗示或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。你只能對其進行**客觀的、靜態的外觀和姿態描述**。
+2.  **【🚫 角色純淨原則】**: 這個開場白是一個**二人世界**的開端。你的描述中【絕對禁止】出現**任何**除了「{user_profile.name}」和「{ai_profile.name}」之外的**具名或不具名的NPC**。
+3.  **【🚫 禁止杜撰情節】**: 這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情，如性愛、暴力或衝突。
 
-# === 【【【v182.0 絕對敘事禁令】】】 ===
-1.  **【👑 使用者主權鐵則】**:
-    *   你的旁白【絕對禁止】描寫、暗示或杜撰使用者角色「{user_profile.name}」的**任何主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。
-    *   你只能對其進行**客觀的、靜態的外觀和姿態描述**。
-
-2.  **【🚫 角色純淨原則】**:
-    *   這個開場白是一個**二人世界**的開端。你的描述中【絕對禁止】出現**任何**除了「{user_profile.name}」和「{ai_profile.name}」之外的**具名或不具名的NPC**。
-
-3.  **【🚫 禁止杜撰情節】**:
-    *   這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情，如性愛、暴力或衝突。
-
-# === 【【【最終輸出強制令】】】 ===
-你的最終輸出【必須且只能】是純粹的小說文本，並且其寫作風格必須嚴格遵循下方由使用者定義的風格指令。
----
-{self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
----
-
-請嚴格遵循你在系統指令中學到的所有規則，為以下角色和場景搭建一個【靜態的、無NPC的、與世界聖經深度融合的】開場快照。
-
-# === 【【【v182.0 核心要求】】】 ===
-1.  **【📖 聖經融合強制令】**: 你【必須】深度閱讀並理解下方提供的【世界聖經全文】。你的開場白所描寫的氛圍、環境細節、角色狀態，都【必須】與這本聖經的設定嚴格保持一致。
-2.  **【角色植入】**: 將「{user_profile.name}」和「{ai_profile.name}」作為**剛剛抵達這個世界的新來者**或**早已身處其中的居民**，無縫地植入到【當前地點】的場景中。他們的穿著和姿態必須完全符合其【角色檔案】。
-3.  **【開放式結尾強制令】**:
-    *   你的開場白**結尾**【必須】是 **AI 角色「{ai_profile.name}」** 的一個動作或一句對話。
-    *   這個結尾的作用是**將故事的控制權正式交給使用者**，為「{user_profile.name}」創造一個明確的回應或行動的契機。
+# === 核心要求 ===
+1.  **【🎬 RAG場景融合強制令】**: 你【必須】深度閱讀並理解下方由 RAG 系統提供的【核心場景情報】。你的開場白所描寫的氛圍、環境細節、角色狀態，都【必須】與這份情報的設定嚴格保持一致。
+2.  **【角色植入】**: 將「{user_profile.name}」和「{ai_profile.name}」無縫地植入到【核心場景情報】所描寫的場景中。他們的穿著和姿態必須完全符合其【角色檔案】。
+3.  **【開放式結尾強制令】**: 你的開場白**結尾**【必須】是 **AI 角色「{ai_profile.name}」** 的一個動作或一句對話，將故事的控制權正式交給使用者。
 
 ---
 【世界觀核心】
 {{world_settings}}
 ---
-【當前地點】: {" > ".join(gs.location_path)}
-【地點描述】: {encoded_location_description}
+【核心場景情報 (由 RAG 根據世界聖經智能選擇)】:
+{{rag_scene_context}}
 ---
 【使用者角色檔案：{user_profile.name}】
 {{user_profile_json}}
@@ -2251,18 +2240,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 【AI角色檔案：{ai_profile.name}】
 {{ai_profile_json}}
 ---
-【世界聖經全文 (你的核心參考資料)】:
-{{canon_text}}
+請嚴格遵循你在系統指令中學到的所有規則，並使用下方由使用者定義的風格，開始搭建一個寧靜、靜態且符合所有設定的開場場景。
 ---
-
-請開始搭建一個寧靜、靜態且符合所有設定的開場場景。
+{self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
+---
 """
         
         params = {
             "world_settings": encoded_world_settings,
+            "rag_scene_context": encoded_rag_scene_context,
             "user_profile_json": encoded_user_profile_json,
             "ai_profile_json": encoded_ai_profile_json,
-            "canon_text": encoded_canon_text
         }
         
         full_prompt = self._safe_format_prompt(full_template, params, inject_core_protocol=True)
@@ -2278,7 +2266,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if not initial_scene or not initial_scene.strip():
                 raise Exception("生成了空的場景內容。")
             
-            # [v183.0 核心修正] 對模型的輸出進行解碼，還原NSFW詞彙
             decoded_scene = self._decode_lore_content(initial_scene, self.DECODING_MAP)
             final_opening_scene = decoded_scene.strip()
             
@@ -2290,7 +2277,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
         return final_opening_scene
-    # 生成開場白 函式結束
+# 函式：生成開場白 (v184.0 - RAG驅動智能導演)
 
     
 
@@ -4942,13 +4929,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     
-    # 函式：獲取世界創世 Prompt (v210.0 - 敘事距離原則)
-    # 更新紀錄:
-    # v210.0 (2025-09-27): [重大架構升級] 將【敘事層級選擇原則】升級為【敘事距離原則】。新規則不僅禁止選擇NPC私人空間，更進一步要求AI選擇與核心地點「有一定物理或心理距離，但又在邏輯上相關聯」的擴展地點（如“俯瞰莊園的廢棄哨塔”），從而從根本上解決了開場地點過於靠近核心、缺乏神秘感和探索空間的問題。
-    # v209.0 (2025-09-27): [災難性BUG修復] 新增了更高優先級的【敘事層級選擇原則】。
-    # v208.0 (2025-09-27): [災難性BUG修復] 徹底重寫了Prompt，將其任務從「總是創造」修改為「智能決策」。
+ # 函式：獲取世界創世 Prompt (v210.0 - 敘事距離原則)
+# 更新紀錄:
+# v210.0 (2025-09-27): [重大架構升級] 將【敘事層級選擇原則】升級為【敘事距離原則】。新規則不僅禁止選擇NPC私人空間，更進一步要求AI選擇與核心地點「有一定物理或心理距離，但又在邏輯上相關聯」的擴展地點（如“俯瞰莊園的廢棄哨塔”），從而從根本上解決了開場地點過於靠近核心、缺乏神秘感和探索空間的問題。
+# v209.0 (2025-09-27): [災難性BUG修復] 新增了更高優先級的【敘事層級選擇原則】。
+# v208.0 (2025-09-27): [災難性BUG修復] 徹底重寫了Prompt，將其任務從「總是創造」修改為「智能決策」。
     def get_world_genesis_chain(self) -> str:
-        """獲取或創建一個專門用於世界創世的字符串模板。"""
+        """獲取或創建一個專門用於世界創世（智能選點）的字符串模板。"""
         if self.world_genesis_chain is None:
             genesis_prompt_str = """你现在扮演一位富有想像力的世界构建师和開場地點決策AI。
 你的核心任务是，根據下方提供的【世界聖經全文】，為使用者「{username}」和他的AI角色「{ai_name}」決定一個最合適的【初始出生點】。
@@ -4956,7 +4943,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # === 【【【v210.0 核心決策規則 - 絕對鐵則】】】 ===
 # 1.  **【📍 敘事距離原則 (Narrative Distance Principle) - 最高優先級】**:
 #     *   這是一個為玩家和AI準備的【二人世界】的冒險開端，需要神秘感和探索空間。
-#     *   你【絕對禁止】選擇任何核心NPC的【私人空間】（如臥室、書房）或【權力中心】（如王座廳）。
+#     *   你【絕對禁止】選擇任何核心NPC的【私人空間】（如臥室、書房）或【權力中心】（如王座廳、魔王城的客房）。
 #     *   你的選擇【必須】是一個與核心地點**有一定物理或心理距離，但又在邏輯上相關聯**的**「擴展地點」**。
 #     *   **範例**: 如果聖經描述了「維利爾斯莊園」，你的選擇應該是：
 #         *   **[極好的選擇]**: 「俯瞰著維利爾斯莊園的一處懸崖邊的廢棄哨塔」、「莊園領地邊緣森林中的一座被遺忘的古老神龕」。
@@ -4987,14 +4974,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #         "notable_features": ["顯著特徵1", "顯著特徵2"],
 #         "known_npcs": ["NPC名字1", "NPC名字2"]
 #       }},
-#       "initial_npcs": [
-#         {{
-#           "name": "NPC名字1",
-#           "description": "NPC的詳細描述...",
-#           "gender": "性別",
-#           "race": "種族"
-#         }}
-#       ]
+#       "initial_npcs": []
 #     }}
 #     ```
 ---
@@ -5011,7 +4991,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 请严格遵循所有規則，开始你的决策与构建。"""
             self.world_genesis_chain = genesis_prompt_str
         return self.world_genesis_chain
-    # 獲取世界創世 Prompt 函式結束
+# 函式：獲取世界創世 Prompt (v210.0 - 敘事距離原則)
 
 
 
@@ -5623,6 +5603,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
