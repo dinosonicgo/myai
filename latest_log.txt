@@ -1,25 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-02T21:52:50.277704 ###
+### AI Lover Log - Last updated at 2025-10-02T21:56:58.584368 ###
 
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:18 - [INFO] -   [最終 rules_context 長度]: 259
-2025-10-02 20:35:18 - [INFO] -   [最終 summary_context 長度]: 5490
-2025-10-02 20:35:18 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
-2025-10-02 20:35:18 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:18 - [INFO] -   [最終 rules_context 長度]: 259
-2025-10-02 20:35:18 - [INFO] -   [最終 summary_context 長度]: 5425
-2025-10-02 20:35:18 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
-2025-10-02 20:35:18 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-02 20:35:18 - [INFO] -   [最終 rules_context 長度]: 332
-2025-10-02 20:35:18 - [INFO] -   [最終 summary_context 長度]: 4460
-2025-10-02 20:35:18 - [INFO] - --- RAG 流程結束 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
 2025-10-02 20:35:18 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
 2025-10-02 20:35:18 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
 2025-10-02 20:35:18 - [INFO] -   [最終 rules_context 長度]: 340
@@ -300,3 +280,23 @@ NameError: name 'RecursiveCharacterTextSplitter' is not defined
 2025-10-02 21:48:38 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
 2025-10-02 21:48:38 - [INFO] - [512280345618546699] [Pure RAG Rebuild] 純向量 RAG 索引構建完成。
 2025-10-02 21:49:47 - [INFO] - [512280345618546699] [Admin Command] 執行 RAG Peek，查詢: '米婭在宅邸遇到勛爵'
+2025-10-02 21:54:21 - [INFO] - [512280345618546699] [Admin Command] 執行 RAG 直通 LLM，Prompt: '米婭在宅邸遇到勛爵...'
+2025-10-02 21:54:21 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 21:54:21 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 21:54:21 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 21:54:21 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 21:54:21 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-02 21:54:21 - [INFO] -   [最終 summary_context 長度]: 14048
+2025-10-02 21:54:21 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 21:54:22 - [ERROR] - [512280345618546699] 執行 admin_direct_chat 時發生錯誤: name 'full_prompt' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1959, in admin_direct_chat
+    full_prompt,
+NameError: name 'full_prompt' is not defined. Did you mean: 'final_prompt'?
+2025-10-02 21:56:44 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-02 21:56:44 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-02 21:56:44 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-02 21:56:44 - [INFO] - Discord Bot is ready!
+2025-10-02 21:56:47 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-02 21:56:47 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-02 21:56:48 - [INFO] - 已成功發送啟動成功通知給管理員。
