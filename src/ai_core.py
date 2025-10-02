@@ -5113,16 +5113,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：檢索並摘要記憶 (v20.0 - RAG後處理去重)
+# 函式：檢索並摘要記憶 (v21.0 - 擴大RAG上下文)
 # 更新紀錄:
-# v20.0 (2025-10-02): [根本性重構] 根據「RAG後處理去重」策略，徹底重寫了此函式。它現在包含一個智能去重步驟：在檢索後，優先保留結構化的 LORE 卡片，然後使用 Levenshtein 相似度算法來過濾掉與 LORE 卡片內容高度重複的聖經原文塊，只保留能提供額外敘事上下文的文檔。同時，徹底移除了所有 LLM 摘要邏輯。
+# v21.0 (2025-10-02): [性能優化] 根據日誌分析，將用於拼接 RAG 上下文的文檔數量上限（MAX_DOCS_FOR_SUMMARY）從 7 條大幅提升至 15 條。此修改旨在為導演層提供更豐富、更完整的背景故事和世界觀信息，以解決因上下文不足導致的創作細節丟失問題，同時將該限制提取為函式級常量以便於未來調整。
+# v20.0 (2025-10-02): [根本性重構] 根據「RAG後處理去重」策略，徹底重寫了此函式。
 # v19.0 (2025-10-02): [根本性重構] 根據最新討論，徹底移除了所有 LLM 摘要邏輯。
-# v18.5 (2025-09-28): [性能優化] 引入了【自適應上下文縮減】策略。
     async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
         """
-        (v20.0 RAG後處理去重) 執行RAG檢索、智能去重，並將最相關的原始文檔直接拼接後返回。
+        (v21.0) 執行RAG檢索、智能去重，並將最多15條最相關的原始文檔直接拼接後返回。
         返回一個字典: {"rules": str, "summary": str}
         """
+        # [v21.0 核心修正] 將拼接上限提升並常量化
+        MAX_DOCS_FOR_SUMMARY = 15
+
         default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
@@ -5150,22 +5153,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
 
-        # [v20.0 核心重構] RAG 後處理去重邏輯
         canon_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "canon"]
         lore_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "lore"]
-        memory_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "memory"] # 個人記憶文檔
+        memory_docs = [doc for doc in retrieved_docs if doc.metadata.get("source") == "memory"]
 
         final_docs = []
-        # 優先保留所有結構化的 LORE 和個人記憶，它們是信噪比最高的數據
         final_docs.extend(lore_docs)
         final_docs.extend(memory_docs)
 
-        SIMILARITY_THRESHOLD = 0.7  # 相似度閾值，超過此值則視為重複
+        SIMILARITY_THRESHOLD = 0.7
 
         for canon_doc in canon_docs:
             is_redundant = False
             for existing_doc in final_docs:
-                # 使用 Levenshtein 算法快速計算字符串相似度
                 similarity = levenshtein_ratio(canon_doc.page_content, existing_doc.page_content)
                 if similarity > SIMILARITY_THRESHOLD:
                     is_redundant = True
@@ -5177,7 +5177,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         logger.info(f"--- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 {len(final_docs)} 條文檔 ---")
 
-        # 基於原始檢索器的分數對去重後的文檔重新排序，確保最相關的仍在最前面
         original_order_map = {doc.page_content: i for i, doc in enumerate(retrieved_docs)}
         final_docs.sort(key=lambda doc: original_order_map.get(doc.page_content, float('inf')))
 
@@ -5198,7 +5197,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         docs_to_concatenate = other_docs + rule_docs[3:]
 
         if docs_to_concatenate:
-            MAX_DOCS_FOR_SUMMARY = 7 # 適當增加拼接數量以提供更豐富上下文
             selected_docs = docs_to_concatenate[:MAX_DOCS_FOR_SUMMARY]
             
             concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in selected_docs])
@@ -5214,7 +5212,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info("--- RAG 流程結束 ---")
 
         return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
-# 函式：檢索並摘要記憶 (v20.0 - RAG後處理去重)
+# 函式：檢索並摘要記憶 (v21.0 - 擴大RAG上下文)
+
+
+
+    
 
 
     # 函式：獲取RAG事實清單提取器 Prompt (v1.2 - 終極越獄指令)
@@ -5318,6 +5320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
