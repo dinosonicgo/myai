@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-02T19:08:35.286520 ###
+### AI Lover Log - Last updated at 2025-10-02T19:13:46.306574 ###
 
-  Field required [type=missing, input_value={'term': '納將', 'categ...ore', 'confidence': 0.4}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.22.entity_name
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.22.lore_category
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.22.reasoning
-  Field required [type=missing, input_value={'term': '技巧母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.23.entity_name
-  Field required [type=missing, input_value={'term': '克拉拉', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.23.lore_category
-  Field required [type=missing, input_value={'term': '克拉拉', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.23.reasoning
-  Field required [type=missing, input_value={'term': '克拉拉', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.24.entity_name
-  Field required [type=missing, input_value={'term': '(King Edmund II...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.24.lore_category
-  Field required [type=missing, input_value={'term': '(King Edmund II...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.24.reasoning
-  Field required [type=missing, input_value={'term': '(King Edmund II...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.25.entity_name
-  Field required [type=missing, input_value={'term': '王室', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.25.lore_category
-  Field required [type=missing, input_value={'term': '王室', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.25.reasoning
-  Field required [type=missing, input_value={'term': '王室', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.26.entity_name
-  Field required [type=missing, input_value={'term': '收藏品', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.26.lore_category
-  Field required [type=missing, input_value={'term': '收藏品', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.26.reasoning
-  Field required [type=missing, input_value={'term': '收藏品', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.27.entity_name
-  Field required [type=missing, input_value={'term': '戰士母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.27.lore_category
-  Field required [type=missing, input_value={'term': '戰士母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.27.reasoning
-  Field required [type=missing, input_value={'term': '戰士母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.28.entity_name
-  Field required [type=missing, input_value={'term': '一週不得碰...est', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.28.lore_category
-  Field required [type=missing, input_value={'term': '一週不得碰...est', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.28.reasoning
-  Field required [type=missing, input_value={'term': '一週不得碰...est', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.29.entity_name
-  Field required [type=missing, input_value={'term': '武勇母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.29.lore_category
-  Field required [type=missing, input_value={'term': '武勇母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.29.reasoning
-  Field required [type=missing, input_value={'term': '武勇母畜', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.30.entity_name
-  Field required [type=missing, input_value={'term': '裝聖女的蕩...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.30.lore_category
-  Field required [type=missing, input_value={'term': '裝聖女的蕩...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.30.reasoning
-  Field required [type=missing, input_value={'term': '裝聖女的蕩...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.31.entity_name
-  Field required [type=missing, input_value={'term': '理論家', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.31.lore_category
-  Field required [type=missing, input_value={'term': '理論家', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.31.reasoning
-  Field required [type=missing, input_value={'term': '理論家', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.32.entity_name
-  Field required [type=missing, input_value={'term': '阿拉里克', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.32.lore_category
-  Field required [type=missing, input_value={'term': '阿拉里克', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.32.reasoning
-  Field required [type=missing, input_value={'term': '阿拉里克', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.33.entity_name
-  Field required [type=missing, input_value={'term': '讀並', 'categ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.33.lore_category
-  Field required [type=missing, input_value={'term': '讀並', 'categ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.33.reasoning
-  Field required [type=missing, input_value={'term': '讀並', 'categ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.34.entity_name
-  Field required [type=missing, input_value={'term': '青春永駐', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.34.lore_category
-  Field required [type=missing, input_value={'term': '青春永駐', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.34.reasoning
-  Field required [type=missing, input_value={'term': '青春永駐', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.35.entity_name
-  Field required [type=missing, input_value={'term': '埃德蒙', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.35.lore_category
-  Field required [type=missing, input_value={'term': '埃德蒙', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.35.reasoning
-  Field required [type=missing, input_value={'term': '埃德蒙', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.36.entity_name
-  Field required [type=missing, input_value={'term': '正義性', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.36.lore_category
-  Field required [type=missing, input_value={'term': '正義性', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.36.reasoning
-  Field required [type=missing, input_value={'term': '正義性', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.37.entity_name
-  Field required [type=missing, input_value={'term': '與韌性', 'ca...ore', 'confidence': 0.4}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.37.lore_category
-  Field required [type=missing, input_value={'term': '與韌性', 'ca...ore', 'confidence': 0.4}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.37.reasoning
-  Field required [type=missing, input_value={'term': '與韌性', 'ca...ore', 'confidence': 0.4}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.38.entity_name
-  Field required [type=missing, input_value={'term': '常理常倫', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.38.lore_category
-  Field required [type=missing, input_value={'term': '常理常倫', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.38.reasoning
-  Field required [type=missing, input_value={'term': '常理常倫', ...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.39.entity_name
-  Field required [type=missing, input_value={'term': '聖光明', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.39.lore_category
-  Field required [type=missing, input_value={'term': '聖光明', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.39.reasoning
-  Field required [type=missing, input_value={'term': '聖光明', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.40.entity_name
-  Field required [type=missing, input_value={'term': '性壓抑', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.40.lore_category
-  Field required [type=missing, input_value={'term': '性壓抑', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.40.reasoning
-  Field required [type=missing, input_value={'term': '性壓抑', 'ca...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.41.entity_name
-  Field required [type=missing, input_value={'term': '高潮時也必...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.41.lore_category
-  Field required [type=missing, input_value={'term': '高潮時也必...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.41.reasoning
-  Field required [type=missing, input_value={'term': '高潮時也必...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.42.entity_name
-  Field required [type=missing, input_value={'term': '病秧子', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.42.lore_category
-  Field required [type=missing, input_value={'term': '病秧子', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.42.reasoning
-  Field required [type=missing, input_value={'term': '病秧子', 'ca...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.43.entity_name
-  Field required [type=missing, input_value={'term': '教學式對戰...est', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.43.lore_category
-  Field required [type=missing, input_value={'term': '教學式對戰...est', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.43.reasoning
-  Field required [type=missing, input_value={'term': '教學式對戰...est', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.44.entity_name
-  Field required [type=missing, input_value={'term': '莉莉', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.44.lore_category
-  Field required [type=missing, input_value={'term': '莉莉', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.44.reasoning
-  Field required [type=missing, input_value={'term': '莉莉', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.45.entity_name
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.45.lore_category
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.45.reasoning
-  Field required [type=missing, input_value={'term': '埃德蒙三', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.46.entity_name
-  Field required [type=missing, input_value={'term': '榮耀感', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.46.lore_category
-  Field required [type=missing, input_value={'term': '榮耀感', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.46.reasoning
-  Field required [type=missing, input_value={'term': '榮耀感', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.47.entity_name
-  Field required [type=missing, input_value={'term': '最新劇情', ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.47.lore_category
-  Field required [type=missing, input_value={'term': '最新劇情', ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.47.reasoning
-  Field required [type=missing, input_value={'term': '最新劇情', ...ore', 'confidence': 0.3}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.48.entity_name
-  Field required [type=missing, input_value={'term': '技巧與韌性...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.48.lore_category
-  Field required [type=missing, input_value={'term': '技巧與韌性...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.48.reasoning
-  Field required [type=missing, input_value={'term': '技巧與韌性...ore', 'confidence': 0.8}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.49.entity_name
-  Field required [type=missing, input_value={'term': '不被幹', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.49.lore_category
-  Field required [type=missing, input_value={'term': '不被幹', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.49.reasoning
-  Field required [type=missing, input_value={'term': '不被幹', 'ca...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.50.entity_name
-  Field required [type=missing, input_value={'term': '第二神國', ...nfo', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.50.lore_category
-  Field required [type=missing, input_value={'term': '第二神國', ...nfo', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.50.reasoning
-  Field required [type=missing, input_value={'term': '第二神國', ...nfo', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.51.entity_name
-  Field required [type=missing, input_value={'term': '看得見，吃...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.51.lore_category
-  Field required [type=missing, input_value={'term': '看得見，吃...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.51.reasoning
-  Field required [type=missing, input_value={'term': '看得見，吃...ore', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.52.entity_name
-  Field required [type=missing, input_value={'term': '軍中', 'categ...nfo', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.52.lore_category
-  Field required [type=missing, input_value={'term': '軍中', 'categ...nfo', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.52.reasoning
-  Field required [type=missing, input_value={'term': '軍中', 'categ...nfo', 'confidence': 0.7}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.53.entity_name
-  Field required [type=missing, input_value={'term': '瓦萊', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.53.lore_category
-  Field required [type=missing, input_value={'term': '瓦萊', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.53.reasoning
-  Field required [type=missing, input_value={'term': '瓦萊', 'categ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.54.entity_name
-  Field required [type=missing, input_value={'term': '伊索爾德', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.54.lore_category
-  Field required [type=missing, input_value={'term': '伊索爾德', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-classifications.54.reasoning
-  Field required [type=missing, input_value={'term': '伊索爾德', ...ile', 'confidence': 0.9}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-02 19:08:33 - [INFO] - [512280345618546699] [LORE 解析 6-5/5] 正在嘗試【法醫級重構方案】...
+2025-10-02 19:12:31 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:31 - [INFO] -   [最終 summary_context 長度]: 7337
+2025-10-02 19:12:31 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:33 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-02 19:12:33 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-02 19:12:33 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-10-02 19:12:33 - [WARNING] - [512280345618546699] [LORE精煉] 批次 1 的最終潤色返回了空結果。
+2025-10-02 19:12:33 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 2/14...
+2025-10-02 19:12:33 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:33 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:33 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:33 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:33 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:33 - [INFO] -   [最終 summary_context 長度]: 8094
+2025-10-02 19:12:33 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:34 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:34 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:34 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:34 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:34 - [INFO] -   [最終 rules_context 長度]: 110
+2025-10-02 19:12:34 - [INFO] -   [最終 summary_context 長度]: 7923
+2025-10-02 19:12:34 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:35 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:12:35 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:12:35 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:35 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:35 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:35 - [INFO] -   [最終 summary_context 長度]: 6388
+2025-10-02 19:12:35 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:36 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:36 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:36 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:36 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:36 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:36 - [INFO] -   [最終 summary_context 長度]: 9059
+2025-10-02 19:12:36 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:37 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:12:37 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:12:37 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:37 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:37 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:37 - [INFO] -   [最終 summary_context 長度]: 6969
+2025-10-02 19:12:37 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-02 19:12:46 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '米婭' 的檔案。
+2025-10-02 19:12:46 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '埃德蒙三世' 的檔案。
+2025-10-02 19:12:46 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '阿拉里克' 的檔案。
+2025-10-02 19:12:46 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '赫克托' 的檔案。
+2025-10-02 19:12:47 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '伊索爾德' 的檔案。
+2025-10-02 19:12:47 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 3/14...
+2025-10-02 19:12:47 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:47 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:47 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:47 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:47 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:47 - [INFO] -   [最終 summary_context 長度]: 9340
+2025-10-02 19:12:47 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:48 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:48 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:48 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:48 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:48 - [INFO] -   [最終 rules_context 長度]: 130
+2025-10-02 19:12:48 - [INFO] -   [最終 summary_context 長度]: 6625
+2025-10-02 19:12:48 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:49 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:12:49 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:12:49 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:49 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:49 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:49 - [INFO] -   [最終 summary_context 長度]: 7004
+2025-10-02 19:12:49 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:50 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:50 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:50 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:50 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:50 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:50 - [INFO] -   [最終 summary_context 長度]: 7578
+2025-10-02 19:12:50 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:51 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
+2025-10-02 19:12:51 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 18 條文檔 ---
+2025-10-02 19:12:51 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:51 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:51 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:51 - [INFO] -   [最終 summary_context 長度]: 7001
+2025-10-02 19:12:51 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '博林' 的檔案。
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '克拉拉' 的檔案。
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '高爾' 的檔案。
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '翠絲' 的檔案。
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '迪茜' 的檔案。
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 4/14...
+2025-10-02 19:12:57 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:57 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:57 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:57 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:57 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:57 - [INFO] -   [最終 summary_context 長度]: 8650
+2025-10-02 19:12:57 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:58 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:58 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:58 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:58 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:58 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:58 - [INFO] -   [最終 summary_context 長度]: 7605
+2025-10-02 19:12:58 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:12:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:12:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:12:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:12:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:12:59 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:12:59 - [INFO] -   [最終 summary_context 長度]: 7581
+2025-10-02 19:12:59 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 18 條文檔 ---
+2025-10-02 19:13:01 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:01 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:01 - [INFO] -   [最終 summary_context 長度]: 5810
+2025-10-02 19:13:01 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:01 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:01 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:01 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:01 - [INFO] -   [最終 summary_context 長度]: 6628
+2025-10-02 19:13:01 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '亞瑟' 的檔案。
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '馬丁' 的檔案。
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '老高' 的檔案。
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '艾莉諾' 的檔案。
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '朱利安' 的檔案。
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 5/14...
+2025-10-02 19:13:09 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
+2025-10-02 19:13:09 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 18 條文檔 ---
+2025-10-02 19:13:09 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:09 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:09 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-02 19:13:09 - [INFO] -   [最終 summary_context 長度]: 7546
+2025-10-02 19:13:09 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:10 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 18 條文檔 ---
+2025-10-02 19:13:10 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 18 條文檔 ---
+2025-10-02 19:13:10 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:10 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:10 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:10 - [INFO] -   [最終 summary_context 長度]: 6440
+2025-10-02 19:13:10 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:11 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:11 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:11 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:11 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:11 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:11 - [INFO] -   [最終 summary_context 長度]: 7697
+2025-10-02 19:13:11 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:12 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:12 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:12 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:12 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:12 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:12 - [INFO] -   [最終 summary_context 長度]: 7235
+2025-10-02 19:13:12 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:13 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:13 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:13 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:13 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:13 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:13 - [INFO] -   [最終 summary_context 長度]: 7460
+2025-10-02 19:13:13 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '阿利斯特' 的檔案。
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '瑪莉' 的檔案。
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '安娜' 的檔案。
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '老羅' 的檔案。
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '馬克' 的檔案。
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 6/14...
+2025-10-02 19:13:20 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:20 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:20 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:20 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:20 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:20 - [INFO] -   [最終 summary_context 長度]: 7086
+2025-10-02 19:13:20 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:21 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:21 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:21 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:21 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:21 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:21 - [INFO] -   [最終 summary_context 長度]: 6744
+2025-10-02 19:13:21 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:22 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:22 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:22 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:22 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:22 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-02 19:13:22 - [INFO] -   [最終 summary_context 長度]: 6923
+2025-10-02 19:13:22 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:23 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:23 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:23 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:23 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:23 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:23 - [INFO] -   [最終 summary_context 長度]: 7582
+2025-10-02 19:13:23 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:24 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:24 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:24 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:24 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:24 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:24 - [INFO] -   [最終 summary_context 長度]: 7558
+2025-10-02 19:13:24 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:24 - [INFO] - [512280345618546699] [spaCy歸因] 為 '卡蓮' 精確歸因身份: '妓女'
+2025-10-02 19:13:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-02 19:13:29 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '費奇' 的檔案。
+2025-10-02 19:13:29 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '湯瑪斯' 的檔案。
+2025-10-02 19:13:29 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '愛蓮娜' 的檔案。
+2025-10-02 19:13:30 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '愛莉莎' 的檔案。
+2025-10-02 19:13:30 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '卡蓮' 的檔案。
+2025-10-02 19:13:30 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 7/14...
+2025-10-02 19:13:30 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:30 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:30 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:30 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:30 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:30 - [INFO] -   [最終 summary_context 長度]: 6314
+2025-10-02 19:13:30 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:31 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:31 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:31 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:31 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:31 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:31 - [INFO] -   [最終 summary_context 長度]: 6692
+2025-10-02 19:13:31 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:32 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:32 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:32 - [INFO] -   [最終 summary_context 長度]: 5167
+2025-10-02 19:13:32 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:32 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:32 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:32 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:32 - [INFO] -   [最終 summary_context 長度]: 6788
+2025-10-02 19:13:32 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:33 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:33 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:33 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:33 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:33 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:33 - [INFO] -   [最終 summary_context 長度]: 8988
+2025-10-02 19:13:33 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:33 - [INFO] - [512280345618546699] [spaCy歸因] 為 '瓦勒留斯' 精確歸因身份: '神父'
+2025-10-02 19:13:33 - [INFO] - [512280345618546699] [spaCy歸因] 為 '瓦勒留斯' 精確歸因身份: '神父'
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '凱爾' 的檔案。
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '艾拉' 的檔案。
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '里斯' 的檔案。
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '瑪倫' 的檔案。
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] ✅ 已成功精煉、歸因並更新角色 '瓦勒留斯' 的檔案。
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [LORE精煉] 正在處理批次 8/14...
+2025-10-02 19:13:40 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:40 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:40 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:40 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:40 - [INFO] -   [最終 rules_context 長度]: 124
+2025-10-02 19:13:40 - [INFO] -   [最終 summary_context 長度]: 7371
+2025-10-02 19:13:40 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:41 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:41 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:41 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:41 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:41 - [INFO] -   [最終 rules_context 長度]: 277
+2025-10-02 19:13:41 - [INFO] -   [最終 summary_context 長度]: 8178
+2025-10-02 19:13:41 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:42 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:42 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:42 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:42 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:42 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:42 - [INFO] -   [最終 summary_context 長度]: 6671
+2025-10-02 19:13:42 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:43 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
+2025-10-02 19:13:43 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 20 條文檔 ---
+2025-10-02 19:13:43 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:43 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:43 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:43 - [INFO] -   [最終 summary_context 長度]: 8823
+2025-10-02 19:13:43 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:44 - [INFO] - [512280345618546699] [spaCy歸因] 為 '布里奇特' 精確歸因身份: '母畜'
+2025-10-02 19:13:45 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-02 19:13:45 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 智能去重後剩餘 19 條文檔 ---
+2025-10-02 19:13:45 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接 15 條去重後的原始文檔作為 summary_context。
+2025-10-02 19:13:45 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-02 19:13:45 - [INFO] -   [最終 rules_context 長度]: 53
+2025-10-02 19:13:45 - [INFO] -   [最終 summary_context 長度]: 8200
+2025-10-02 19:13:45 - [INFO] - --- RAG 流程結束 ---
+2025-10-02 19:13:45 - [INFO] - [512280345618546699] [spaCy歸因] 為 '瓦萊麗' 精確歸因身份: '母畜'
