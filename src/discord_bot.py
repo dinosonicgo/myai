@@ -1903,12 +1903,15 @@ class BotCog(commands.Cog):
             logger.error(f"[{user_id}] 執行 admin_rag_peek 時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
 
-    # [v62.0 新增] 管理員指令：RAG 直通 LLM 對話
+# 指令：[管理員] RAG 直通 LLM 對話 (v1.1 - 變數名修正)
+# 更新紀錄:
+# v1.1 (2025-10-02): [災難性BUG修復] 修正了在調用 ainvoke_with_rotation 時因使用了未定義的變數名 `full_prompt` 而非正確的 `final_prompt` 所導致的 NameError。
+# v1.0 (2025-10-02): [全新創建] 創建此終極調試指令。
     @app_commands.command(name="admin_direct_chat", description="[管理員] RAG直通LLM，用於測試最原始的回應。")
     @app_commands.check(is_admin)
     @app_commands.describe(prompt="您想直接發送給 LLM 的對話內容。")
     async def admin_direct_chat(self, interaction: discord.Interaction, prompt: str):
-        await interaction.response.defer(ephemeral=False, thinking=True)
+        await interaction.response.defer(ephemeral=False, thinking=True) # 回應設為公開
         user_id = str(interaction.user.id)
         
         try:
@@ -1919,12 +1922,14 @@ class BotCog(commands.Cog):
 
             logger.info(f"[{user_id}] [Admin Command] 執行 RAG 直通 LLM，Prompt: '{prompt[:100]}...'")
 
+            # 步驟 1: 調用 RAG 獲取上下文
             rag_context_dict = await ai_instance.retrieve_and_summarize_memories(prompt)
             rag_context = rag_context_dict.get("summary", "（RAG 未返回任何摘要信息。）")
             rag_rules = rag_context_dict.get("rules", "（RAG 未返回任何規則信息。）")
             
             full_rag_context = f"--- RAG 檢索到的規則 ---\n{rag_rules}\n\n--- RAG 檢索到的背景摘要 ---\n{rag_context}"
 
+            # 步驟 2: 構建最終 Prompt
             final_prompt_template = """{core_protocol}
 
 # === 情報簡報 ===
@@ -1943,6 +1948,7 @@ class BotCog(commands.Cog):
                 ai_name=ai_instance.profile.ai_profile.name
             )
             
+            # 將最終的 Prompt 寫入檔案以供調試
             temp_dir = PROJ_DIR / "temp"
             temp_dir.mkdir(exist_ok=True)
             prompt_file_path = temp_dir / f"direct_chat_prompt_{user_id}_{int(time.time())}.txt"
@@ -1955,16 +1961,20 @@ class BotCog(commands.Cog):
             )
             os.remove(prompt_file_path)
 
+            # 步驟 3: 直接調用底層 LLM 引擎
+            # [v1.1 核心修正] 將 full_prompt 修正為 final_prompt
             raw_response = await ai_instance.ainvoke_with_rotation(
-                full_prompt,
-                output_schema=None,
-                retry_strategy='force',
-                use_degradation=True,
-                models_to_try_override=[GENERATION_MODEL_PRIORITY[0]]
+                final_prompt,
+                output_schema=None, # 我們需要原始字符串
+                retry_strategy='force', # 強制重試
+                use_degradation=True, # 使用最高級的模型
+                models_to_try_override=[GENERATION_MODEL_PRIORITY[0]] # 強制只使用最高級模型
             )
 
+            # 步驟 4: 返回原始結果
             if raw_response and raw_response.strip():
                 decoded_response = ai_instance._decode_lore_content(raw_response.strip(), ai_instance.DECODING_MAP)
+                # 分段發送長回應
                 for i in range(0, len(decoded_response), 2000):
                     await interaction.channel.send(decoded_response[i:i+2000])
             else:
@@ -1973,6 +1983,9 @@ class BotCog(commands.Cog):
         except Exception as e:
             logger.error(f"[{user_id}] 執行 admin_direct_chat 時發生錯誤: {e}", exc_info=True)
             await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
+# 指令：[管理員] RAG 直通 LLM 對話 (v1.1 - 變數名修正)
+
+    
         
     # 函式：全域應用程式指令錯誤處理器
     @commands.Cog.listener()
@@ -2047,5 +2060,6 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
