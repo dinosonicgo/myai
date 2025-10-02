@@ -4109,23 +4109,21 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v17.0 - 職責單一化)
+# 函式：解析並從世界聖經創建LORE (v18.0 - 移除異步觸發)
 # 更新紀錄:
-# v17.0 (2025-10-02): [災難性BUG修復] 根據「職責單一化」原則，徹底移除了此函式中所有與 RAG 寫入相關的邏輯（即對 `add_canon_to_vector_store` 的調用）。此函式現在的唯一職責是執行 LORE 解析管線並將結果存入 SQL 資料庫。所有 RAG 相關的操作將由上層的協調器（`_perform_full_setup_flow`）在正確的時機統一管理，從而解決時序錯亂導致的 `RuntimeError`。
+# v18.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，徹底移除了此函式末尾對 `asyncio.create_task` 的調用。此修改將 LORE 精煉的觸發權完全交還給上層的協調器（`_perform_full_setup_flow`），使其成為一個純粹的、同步的 LORE 解析與 SQL 存儲函式，從根源上解決了因過早觸發背景任務而導致的災難性競爭條件。
+# v17.0 (2025-10-02): [災難性BUG修復] 根據「職責單一化」原則，徹底移除了此函式中所有與 RAG 寫入相關的邏輯。
 # v16.0 (2025-10-02): [根本性重構] 根據「雙軌並行」策略，徹底重構了數據處理流程。
-# v15.0 (2025-10-02): [架構升級] 將 LORE 精煉流程解耦。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v17.0】僅執行 LORE 解析管線，並將結果存入 SQL 資料庫。
-        然後在背景中異步觸發深度精煉任務。
+        【總指揮 v18.0】僅執行 LORE 解析管線，並將結果存入 SQL 資料庫。
+        不再觸發任何背景任務。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
-        # [v17.0 核心修正] 移除對 RAG 的寫入操作，將其交由上層協調器處理
-        
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動 LORE 解析管線 (階段 1/2)...")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動 LORE 解析管線...")
         
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
@@ -4151,10 +4149,8 @@ class ExtractionResult(BaseModel):
         
         logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。")
         
-        # 異步觸發背景深度精煉任務
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在非阻塞地啟動背景深度精煉任務 (階段 2/2)...")
-        asyncio.create_task(self._background_lore_refinement(canon_text))
-# 函式：解析並從世界聖經創建LORE (v17.0 - 職責單一化)
+        # [v18.0 核心修正] 移除異步觸發，將 LORE 精煉的協調工作完全交給上層調用者
+# 函式：解析並從世界聖經創建LORE (v18.0 - 移除異步觸發)
 
 
 
@@ -5329,6 +5325,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
