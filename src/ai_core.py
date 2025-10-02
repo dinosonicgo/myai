@@ -2530,12 +2530,13 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行事後處理的LORE更新 (v2.0 - 安全工具過濾)
+# 函式：執行事後處理的LORE更新 (v3.0 - 精煉觸發器)
 # 更新紀錄:
-# v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。此函式現在會嚴格過濾由主模型生成的工具調用計畫，只允許執行與 LORE 創建/更新相關的、被明確列入白名單的工具。此修改從根本上阻止了主模型通過事後處理流程意外觸發改變玩家狀態（如 change_location）的工具，解決了因此導致的劇情邏輯斷裂和上下文丟失問題。
+# v3.0 (2025-10-02): [重大架構升級] 根據「事件驅動」模型，為此函式增加了「精煉觸發器」的職責。在執行完所有 LORE 創建/更新工具調用後，此版本會收集所有被標記為粗略版（例如 `source` 不是 `canon_refiner_...`）的新 LORE 對象，並通過 `asyncio.create_task` 為它們異步地、統-一地觸發一個背景精煉任務（`_background_lore_refinement`）。此修改確保了所有在對話中產生的新 LORE 都能被自動送入精煉管線，實現了系統的自我完善閉環。
+# v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。
 # v1.0 (2025-11-15): [重大架構重構] 根據【生成即摘要】架構創建此函式。
     async def execute_lore_updates_from_summary(self, summary_data: Dict[str, Any]):
-        """(事後處理) 執行由主模型預先生成的LORE更新計畫。"""
+        """(事後處理 v3.0) 執行LORE更新計畫，並為新創建的粗略LORE觸發背景精煉任務。"""
         lore_updates = summary_data.get("lore_updates")
         if not lore_updates or not isinstance(lore_updates, list):
             logger.info(f"[{self.user_id}] 背景任務：預生成摘要中不包含LORE更新。")
@@ -2544,28 +2545,21 @@ class ExtractionResult(BaseModel):
         try:
             await asyncio.sleep(2.0)
             
-            # [v2.0 核心修正] 安全LORE工具白名單
-            # 事後處理流程只應該被允許創建或更新世界知識，絕不能改變玩家的當前狀態。
             SAFE_LORE_TOOLS_WHITELIST = {
-                # lore_tools.py 中的所有工具
-                "create_new_npc_profile",
-                "update_npc_profile",
-                "add_or_update_location_info",
-                "add_or_update_item_info",
-                "define_creature_type",
-                "add_or_update_quest_lore",
-                "add_or_update_world_lore",
+                "create_new_npc_profile", "update_npc_profile",
+                "add_or_update_location_info", "add_or_update_item_info",
+                "define_creature_type", "add_or_update_quest_lore",
+                "add_or_update_world_lore", "update_lore_template_keys",
             }
             
             raw_plan = [ToolCall.model_validate(call) for call in lore_updates]
             
-            # 過濾計畫，只保留在白名單中的工具調用
             filtered_plan = []
             for call in raw_plan:
                 if call.tool_name in SAFE_LORE_TOOLS_WHITELIST:
                     filtered_plan.append(call)
                 else:
-                    logger.warning(f"[{self.user_id}] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'{call.tool_name}'。此類工具不允許在事後處理中執行。")
+                    logger.warning(f"[{self.user_id}] [安全過濾] 已攔截一個由主模型生成的事後非法工具調用：'{call.tool_name}'。")
 
             if not filtered_plan:
                 logger.info(f"[{self.user_id}] 背景任務：預生成的LORE計畫在安全過濾後為空。")
@@ -2576,16 +2570,29 @@ class ExtractionResult(BaseModel):
             if extraction_plan and extraction_plan.plan:
                 logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條預生成LORE，準備執行...")
                 
-                # 確定錨定地點
                 gs = self.profile.game_state
                 effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
                 
-                await self._execute_tool_call_plan(extraction_plan, effective_location)
+                # [v3.0 核心修正] _execute_tool_call_plan 現在會返回成功創建/更新的 Lore 對象
+                results_summary, successful_lores = await self._execute_tool_call_plan(extraction_plan, effective_location)
+
+                logger.info(f"[{self.user_id}] 背景任務：LORE更新執行完畢。摘要: {results_summary}")
+
+                # --- [v3.0 核心修正] 精煉觸發器 ---
+                lores_needing_refinement = []
+                for lore in successful_lores:
+                    # 只有新創建的、來源不是精煉器的 NPC LORE 才需要再次精煉
+                    if lore.category == 'npc_profile' and lore.source and 'refiner' not in lore.source:
+                        lores_needing_refinement.append(lore)
+                
+                if lores_needing_refinement:
+                    logger.info(f"[{self.user_id}] [精煉觸發器] 檢測到 {len(lores_needing_refinement)} 條新創建的粗略 LORE，正在異步觸發背景精煉服務...")
+                    asyncio.create_task(self._background_lore_refinement(lores_needing_refinement))
             else:
                 logger.info(f"[{self.user_id}] 背景任務：預生成摘要中的LORE計畫為空。")
         except Exception as e:
             logger.error(f"[{self.user_id}] 執行預生成LORE更新時發生異常: {e}", exc_info=True)
-# 執行事後處理的LORE更新 函式結束
+# 函式：執行事後處理的LORE更新 (v3.0 - 精煉觸發器)
 
 
     
@@ -2843,30 +2850,28 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v7.0 - 職責簡化)
+# 函式：背景LORE精煉 (v7.1 - 接收任務式)
 # 更新紀錄:
-# v7.0 (2025-10-02): [根本性重構] 根據「前置LORE解析」策略，此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。此函式現在的職責被極大簡化，僅僅是作為一個異步任務的入口點，負責從數據庫中查找所有需要精煉的 LORE，然後循環調用 `_refine_single_lore_object` 來逐一處理它們。
-# v6.0 (2025-10-02): [災難性BUG修復] 根據「數據安全」原則，在精煉流程中加入了「最終安全驗證」機制。
-# v5.0 (2025-10-02): [根本性重構] 根據「準確性優先」和「RAG驅動」的終極策略，徹底重寫此函式。
-    async def _background_lore_refinement(self):
+# v7.1 (2025-10-02): [架構重構] 根據「事件驅動」模型，重構了此函式的職責。它不再主動從數據庫中拉取所有需要精煉的 LORE，而是被動地接收一個由上游觸發器（如 `execute_lore_updates_from_summary`）傳入的、具體的待處理 LORE 對象列表。此修改使其成為一個更通用的、可被任何流程按需調用的「精煉服務」。
+# v7.0 (2025-10-02): [根本性重構] 根據「前置LORE解析」策略，此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。
+    async def _background_lore_refinement(self, lores_to_refine: List[Lore]):
         """
-        (背景任務 v7.0) 查找所有粗略版的 LORE，並逐一調用單體精煉器對其進行升級。
+        (背景任務 v7.1) 接收一個 LORE 對象列表，並逐一調用單體精煉器對其進行升級。
         """
         try:
-            await asyncio.sleep(10.0)
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.0] 背景 LORE 精煉任務已啟動...")
-
-            lores_to_refine = await lore_book.get_all_lores_by_source(self.user_id, 'canon_parser')
-            npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
-
-            if not npc_lores:
-                logger.info(f"[{self.user_id}] [LORE精煉] 未找到需要精煉的 NPC 檔案。任務結束。")
-                return
-
-            logger.info(f"[{self.user_id}] [LORE精煉] 找到 {len(npc_lores)} 個待精煉的 NPC 檔案。開始逐一處理...")
+            # 如果是從創世流程觸發，給予足夠的延遲以等待 RAG 構建完成
+            # 如果是從對話流程觸發，則可以更快執行
+            is_large_batch = len(lores_to_refine) > 5
+            await asyncio.sleep(15.0 if is_large_batch else 3.0)
             
-            for lore in npc_lores:
-                # 調用新的核心精煉工具
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.1] 背景精煉服務已啟動，收到 {len(lores_to_refine)} 個精煉任務。")
+
+            if not lores_to_refine:
+                logger.info(f"[{self.user_id}] [LORE精煉] 任務列表為空，服務結束。")
+                return
+            
+            for lore in lores_to_refine:
+                # 調用核心單體精煉工具
                 refined_profile = await self._refine_single_lore_object(lore)
 
                 if refined_profile:
@@ -2877,7 +2882,7 @@ class ExtractionResult(BaseModel):
                         category='npc_profile',
                         key=lore.key,
                         content=final_content_to_save,
-                        source='canon_refiner_v7_async' # 更新來源標記
+                        source='canon_refiner_v10_final' # 統一最終來源標記
                     )
                     logger.info(f"[{self.user_id}] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '{refined_profile.name}' 的檔案。")
                 else:
@@ -2885,12 +2890,11 @@ class ExtractionResult(BaseModel):
 
                 await asyncio.sleep(1.5)
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.0] 所有背景精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.1] 所有 {len(lores_to_refine)} 個背景精煉任務已全部完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 背景 LORE 精煉任務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v7.0 - 職責簡化)
-
+            logger.error(f"[{self.user_id}] 背景 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
+# 函式：背景LORE精煉 (v7.1 - 接收任務式)
 
 
 # 函式：調用本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
@@ -5578,6 +5582,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
