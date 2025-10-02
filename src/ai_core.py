@@ -492,14 +492,14 @@ class AILover:
 
 
 
-# ai_core.py 的 _load_or_build_rag_retriever 函式 (v204.7 - 終極手動初始化)
+# 函式：加載或構建 RAG 檢索器 (v205.0 - 混合檢索重構)
 # 更新紀錄:
-# v204.7 (2025-09-30): [災難性BUG修復] 根據持續的 `no such table: tenants` 錯誤，徹底重構了創始構建的初始化流程。新流程放棄了所有 LangChain 的便利性包裝函式（如 from_documents），轉而採用 ChromaDB 最原生、最底層的手動初始化流程：1. 創建 PersistentClient，強制在磁碟上創建資料庫檔案和表格。2. 將這個已完全初始化的客戶端傳遞給 Chroma 的建構函式。3. 最後再調用 add_documents 方法。此「初始化」與「數據添加」的完全分離，從根本上杜絕了所有競爭條件。
+# v205.0 (2025-10-02): [災難性BUG修復] 根據 RAG 檢索污染的分析，徹底重構了混合檢索器的構建邏輯。1. 將 EnsembleRetriever 的權重從 [0.5, 0.5] 調整為 [0.2, 0.8]，大幅提升向量語義檢索的主導地位。2. 為 BM25Retriever 創建了一個隔離的、更純淨的語料庫，其中只包含敘事性文本（聖經原文、記憶），將所有結構化的 LORE 卡片排除在外，從根源上杜絕了因 LORE key 中的高頻詞（如“王都”）而導致的關鍵詞檢索污染。
+# v204.7 (2025-09-30): [災難性BUG修復] 根據持續的 `no such table: tenants` 錯誤，徹底重構了創始構建的初始化流程。
 # v204.6 (2025-09-30): [災難性BUG修復] 重構了創始構建的初始化流程，採用手動、明確的 chromadb.Client 初始化方案。
-# v204.5 (2025-11-26): [灾难性BUG修复] 增加了強制刪除並重建向量儲存目錄的邏輯。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False) -> Runnable:
         """
-        (v204.7 混合檢索改造) 加載或構建一個結合了 ChromaDB (語意) 和 BM25 (關鍵字) 的混合檢索器。
+        (v205.0 混合檢索重構) 加載或構建一個以向量語義為主導、BM25為輔助的混合檢索器。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
@@ -515,26 +515,36 @@ class AILover:
                     persist_directory=self.vector_store_path,
                     embedding_function=self.embeddings
                 )
-                vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
+                vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
                 
+                # [v205.0 核心修正] BM25 語料庫現在是獨立的，需要單獨加載
                 if self._load_bm25_corpus() and self.bm25_corpus:
                     self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
                     self.bm25_retriever.k = 10
                 else:
-                    logger.warning(f"[{self.user_id}] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復語料庫。")
-                    all_docs_from_vector_store = self.vector_store.get()
+                    # 如果 BM25 的持久化語料庫丟失，我們需要從 ChromaDB 中重建它
+                    logger.warning(f"[{self.user_id}] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。")
+                    all_docs_from_vector_store = self.vector_store.get(include=["documents", "metadatas"])
                     if all_docs_from_vector_store and all_docs_from_vector_store['documents']:
-                        self.bm25_corpus = [Document(page_content=text, metadata=meta or {}) for text, meta in zip(all_docs_from_vector_store['documents'], all_docs_from_vector_store['metadatas'])]
-                        self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
-                        self.bm25_retriever.k = 10
-                        self._save_bm25_corpus()
+                        # 只選擇敘事性文本來構建 BM25 語料庫
+                        self.bm25_corpus = [
+                            Document(page_content=text, metadata=meta or {}) 
+                            for text, meta in zip(all_docs_from_vector_store['documents'], all_docs_from_vector_store['metadatas'])
+                            if meta.get("source") in ["canon", "memory"]
+                        ]
+                        if self.bm25_corpus:
+                            self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+                            self.bm25_retriever.k = 10
+                            self._save_bm25_corpus() # 保存恢復後的純淨語料庫
+                        else:
+                            self.bm25_retriever = None
                     else:
                         self.bm25_retriever = None
 
                 if self.bm25_retriever:
                     self.retriever = EnsembleRetriever(
                         retrievers=[self.bm25_retriever, vector_retriever],
-                        weights=[0.5, 0.5]
+                        weights=[0.2, 0.8]  # [v205.0 核心修正] 大幅提升向量檢索權重
                     )
                     logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。")
                 else:
@@ -560,60 +570,67 @@ class AILover:
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
         logger.info(f"[{self.user_id}] (Retriever Builder) 已確保向量儲存目錄為全新狀態。")
         
-        all_docs = []
+        # 從數據庫加載所有文檔源
+        all_docs_for_vector_store = []
         async with AsyncSessionLocal() as session:
             stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
             result_mem = await session.execute(stmt_mem)
             all_memory_contents = result_mem.scalars().all()
             for content in all_memory_contents:
-                all_docs.append(Document(page_content=content, metadata={"source": "memory"}))
+                all_docs_for_vector_store.append(Document(page_content=content, metadata={"source": "memory"}))
             
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             for lore in all_lores:
-                all_docs.append(self._format_lore_into_document(lore))
+                all_docs_for_vector_store.append(self._format_lore_into_document(lore))
         
-        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 和 LORE 加載 {len(all_docs)} 條文檔用於創始構建。")
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載 {len(all_docs_for_vector_store)} 條文檔用於創始構建。")
 
-        # [v204.7 核心修正] 終極手動初始化流程
         try:
-            # 步驟 2.1: 手動創建 PersistentClient。這一步會創建/加載資料庫文件並確保所有表格存在。
             persistent_client = await asyncio.to_thread(
                 chromadb.PersistentClient, path=self.vector_store_path
             )
             
-            # 步驟 2.2: 使用已完全初始化的 client 來創建空的 Chroma 實例。
             self.vector_store = Chroma(
                 client=persistent_client,
                 embedding_function=self.embeddings,
             )
             
-            if all_docs:
-                # 步驟 2.3: 在一個獨立的步驟中，將文檔添加到已存在的 collection 中。
-                await asyncio.to_thread(self.vector_store.add_documents, all_docs)
+            if all_docs_for_vector_store:
+                # 向量庫存儲所有文檔
+                await asyncio.to_thread(self.vector_store.add_documents, all_docs_for_vector_store)
+                vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
+
+                # [v205.0 核心修正] 為 BM25 創建一個隔離的、純淨的語料庫
+                self.bm25_corpus = [
+                    doc for doc in all_docs_for_vector_store 
+                    if doc.metadata.get("source") in ["canon", "memory"]
+                ]
                 
-                vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 10})
+                if self.bm25_corpus:
+                    logger.info(f"[{self.user_id}] (Retriever Builder) 已為 BM25 隔離出 {len(self.bm25_corpus)} 條純敘事文檔。")
+                    self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+                    self.bm25_retriever.k = 10
+                    self._save_bm25_corpus() # 持久化純淨的 BM25 語料庫
 
-                self.bm25_corpus = all_docs
-                self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
-                self.bm25_retriever.k = 10
-                self._save_bm25_corpus()
-
-                self.retriever = EnsembleRetriever(
-                    retrievers=[self.bm25_retriever, vector_retriever],
-                    weights=[0.5, 0.5]
-                )
-                logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器創始構建成功，並已將索引持久化到磁碟。")
+                    self.retriever = EnsembleRetriever(
+                        retrievers=[self.bm25_retriever, vector_retriever],
+                        weights=[0.2, 0.8] # 大幅提升向量檢索權重
+                    )
+                    logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器創始構建成功，並已將索引持久化到磁碟。")
+                else:
+                    # 如果沒有敘事文檔，則回退到純向量檢索
+                    logger.warning(f"[{self.user_id}] (Retriever Builder) 未找到適用於 BM25 的敘事文檔，將回退到純向量檢索。")
+                    self.retriever = vector_retriever
             else:
-                # 知識庫為空，流程結束
                 self.retriever = RunnableLambda(lambda x: [])
-                logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，已使用手動初始化的 Client 創建一個空的 RAG 系統。")
+                logger.info(f"[{self.user_id}] (Retriever Builder) 知識庫為空，已創建一個空的 RAG 系統。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] (Retriever Builder) 🔥 在創始構建期間發生嚴重錯誤: {e}", exc_info=True)
             self.retriever = RunnableLambda(lambda x: [])
 
         return self.retriever
-# 函式：加載或構建 RAG 檢索器
+# 函式：加載或構建 RAG 檢索器 (v205.0 - 混合檢索重構)
 
 
 
@@ -5357,6 +5374,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
