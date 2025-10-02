@@ -1774,6 +1774,80 @@ class BotCog(commands.Cog):
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
     # 指令：[管理員] 版本控制
 
+
+
+    # 檔案：discord_bot.py (在 BotCog 類別內)
+
+# 函式：[管理員] 純向量RAG重建 (v1.1 - 移除自動測試)
+# 更新紀錄:
+# v1.1 (2025-10-02): [功能簡化] 根據使用者要求，移除了指令末尾的自動測試查詢和結果預覽功能。現在，此指令的職責被簡化為純粹的「清理與重建」，完成後會提示管理員使用 `/admin_rag_peek` 等其他工具自行進行驗證，使其更符合單一職責原則。
+# v1.0 (2025-10-02): [全新創建] 創建此終極 RAG 調試工具。
+    @app_commands.command(name="admin_pure_rag_rebuild", description="[管理員] 上傳TXT，徹底重建並僅使用純向量RAG。")
+    @app_commands.check(is_admin)
+    @app_commands.describe(file="您的世界聖經 .txt 檔案。")
+    async def admin_pure_rag_rebuild(self, interaction: discord.Interaction, file: discord.Attachment):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+
+        if not file.filename.lower().endswith('.txt'):
+            await interaction.followup.send("❌ 檔案格式錯誤！請上傳一個 .txt 檔案。", ephemeral=True)
+            return
+
+        try:
+            logger.info(f"[{user_id}] [Admin Command] 啟動純向量 RAG 重建流程...")
+            
+            # --- 步驟 1: 徹底清理 ---
+            logger.warning(f"[{user_id}] [Pure RAG Rebuild] 正在為使用者徹底清除所有現有數據...")
+            if user_id in self.ai_instances:
+                await self.ai_instances[user_id].shutdown()
+                del self.ai_instances[user_id]
+                gc.collect()
+            
+            async with AsyncSessionLocal() as session:
+                await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
+                await session.execute(delete(Lore).where(Lore.user_id == user_id))
+                await session.commit()
+            
+            vector_store_path = Path(f"./data/vector_stores/{user_id}")
+            if vector_store_path.exists():
+                await self._robust_rmtree(vector_store_path)
+            
+            logger.info(f"[{user_id}] [Pure RAG Rebuild] 數據清理完成。")
+
+            # --- 步驟 2: 純粹的 RAG 構建 ---
+            ai_instance = await self.get_or_create_ai_instance(user_id)
+            if not ai_instance:
+                await interaction.followup.send("❌ 錯誤：在清理後無法重新初始化 AI 實例。", ephemeral=True)
+                return
+
+            content_bytes = await file.read()
+            content_text = content_bytes.decode('utf-8', errors='ignore')
+            
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+            docs_for_rag = text_splitter.create_documents([content_text], metadatas=[{"source": "canon"} for _ in [content_text]])
+            
+            logger.info(f"[{user_id}] [Pure RAG Rebuild] 聖經已分割為 {len(docs_for_rag)} 個文檔，正在構建純向量索引...")
+            
+            await ai_instance._load_or_build_rag_retriever(docs_to_build=docs_for_rag)
+
+            logger.info(f"[{user_id}] [Pure RAG Rebuild] 純向量 RAG 索引構建完成。")
+
+            # --- 步驟 3: [v1.1 核心修正] 發送成功通知 ---
+            embed = discord.Embed(
+                title="✅ 純向量 RAG 重建完成",
+                description=f"已為您清除了所有舊的 LORE 和 RAG 數據，並僅使用 `{file.filename}` 的內容重新構建了一個**純向量 RAG 索引**。",
+                color=discord.Color.green()
+            )
+            embed.add_field(name="索引中文檔總數", value=f"`{len(docs_for_rag)}` 個", inline=False)
+            embed.add_field(name="下一步", value="您現在可以使用 `/admin_rag_peek` 指令來手動測試新索引的檢索效果。", inline=False)
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 執行 admin_pure_rag_rebuild 時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
+# 函式：[管理員] 純向量RAG重建 (v1.1 - 移除自動測試)
+
     # [v62.0 新增] 管理員指令：窺探 RAG 檢索結果
     @app_commands.command(name="admin_rag_peek", description="[管理員] 輸入查詢，直接查看 RAG 返回的原始文檔內容。")
     @app_commands.check(is_admin)
@@ -1972,3 +2046,4 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
