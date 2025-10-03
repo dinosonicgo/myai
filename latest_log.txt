@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T20:08:39.753131 ###
+### AI Lover Log - Last updated at 2025-10-03T20:12:24.341330 ###
 
-2025-10-03 19:22:20 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-03 19:22:24 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-10-03 19:22:25 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-03 19:22:25 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-03 19:22:25 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-03 19:22:25 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-03 19:22:25 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-03 19:22:26 - [WARNING] - ⚠️ [Embedding Loader] 從本地路徑 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載模型失敗: SentenceTransformer.__init__() got an unexpected keyword argument 'requests_kwargs'
-2025-10-03 19:22:26 - [WARNING] -    -> 將回退到從網路下載的備援方案。
-2025-10-03 19:22:26 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: name 'os' is not defined
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1213, in get_or_create_ai_instance
     await ai_instance._configure_pre_requisites()
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4149, in _configure_pre_requisites
@@ -300,3 +289,14 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 20:08:16 - [INFO] - [512280345618546699] [Direct RAG] 生成流程完成。
 2025-10-03 20:08:17 - [ERROR] - [512280345618546699] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。
 2025-10-03 20:08:17 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-03 20:12:10 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 20:12:10 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 20:12:10 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 20:12:10 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 20:12:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 20:12:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 20:12:10 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 20:12:10 - [INFO] - Discord Bot is ready!
+2025-10-03 20:12:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 20:12:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 20:12:14 - [INFO] - 已成功發送啟動成功通知給管理員。
