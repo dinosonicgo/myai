@@ -4210,39 +4210,62 @@ class ExtractionResult(BaseModel):
     
 
     
-  # 函式：創建 Embeddings 實例 (v2.5 - 增加下載超時)
+# 函式：創建 Embeddings 實例 (v2.6 - 本地優先)
     # 更新紀錄:
-    # v2.5 (2025-10-03): [災難性BUG修復] 根據 requests.exceptions.ReadTimeout 錯誤，在傳遞給 HuggingFaceEmbeddings 的 model_kwargs 中增加了 `'requests_kwargs': {'timeout': 120}`。此修改將模型下載的網路請求超時時間從預設的 10 秒延長至 120 秒，以應對網路波動或模型文件過大導致的下載超時問題，確保本地 RAG 系統的穩定初始化。
+    # v2.6 (2025-10-03): [重大架構優化] 根據使用者需求，徹底重構了模型加載邏輯，實現了「本地優先，網路備援」策略。程式現在會首先檢查專案內 `models/stella-base-zh-v2` 路徑是否存在。如果存在，則直接從本地加載模型以實現快速啟動；如果不存在，則回退到從 Hugging Face 鏡像下載的原始邏輯。此修改大幅提升了程式在模型已下載情況下的啟動速度和離線可用性。
+    # v2.5 (2025-10-03): [災難性BUG修復] 根據 requests.exceptions.ReadTimeout 錯誤，增加了模型下載的網路請求超時時間。
     # v2.4 (2025-11-26): [灾难性BUG修复] 將 HuggingFaceEmbeddings 的導入來源還原回 `langchain_community`。
-    # v2.3 (2025-11-26): [架構優化] 將導入來源遷移到新的 `langchain_huggingface` 套件。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.5 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
+        (v2.6 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例。
+        優先從本地 'models/stella-base-zh-v2' 目錄加載，如果失敗則回退到從網路下載。
         """
         from langchain_community.embeddings import HuggingFaceEmbeddings
         
-        model_name = "infgrad/stella-base-zh-v2"
+        # 模型的網路名稱
+        model_name_on_hub = "infgrad/stella-base-zh-v2"
+        # 模型的本地存儲路徑
+        local_model_path = PROJ_DIR / "models" / "stella-base-zh-v2"
 
-        # [v2.5 核心修正] 增加 requests_kwargs 以延長超時時間
         model_kwargs = {
-            'device': 'cpu', # 強制使用 CPU，避免在無 GPU 環境下出錯
-            'requests_kwargs': {'timeout': 120} # 將下載超時時間延長至 120 秒
+            'device': 'cpu', 
+            'requests_kwargs': {'timeout': 120} 
         }
         encode_kwargs = {'normalize_embeddings': False}
         
+        # --- 步驟 1: 嘗試從本地加載 ---
+        if local_model_path.is_dir():
+            logger.info(f"✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 '{local_model_path}' 加載...")
+            try:
+                embeddings = HuggingFaceEmbeddings(
+                    model_name=str(local_model_path), # 直接使用本地路徑
+                    model_kwargs=model_kwargs,
+                    encode_kwargs=encode_kwargs
+                )
+                logger.info(f"✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。")
+                return embeddings
+            except Exception as e:
+                logger.warning(f"⚠️ [Embedding Loader] 從本地路徑 '{local_model_path}' 加載模型失敗: {e}")
+                logger.warning(f"   -> 將回退到從網路下載的備援方案。")
+        else:
+            logger.info(f"ℹ️ [Embedding Loader] 未檢測到本地模型路徑 '{local_model_path}'。")
+
+        # --- 步驟 2: 如果本地加載失敗或不存在，則從網路下載 ---
+        logger.info(f"⏳ [Embedding Loader] 正在嘗試從網路 ({os.environ.get('HF_ENDPOINT', 'Hugging Face Hub')}) 下載模型 '{model_name_on_hub}'...")
+        logger.info("   (首次下載可能需要數分鐘，請耐心等候...)")
         try:
-            print(f"⏳ [Embedding Loader] 正在從 {os.environ.get('HF_ENDPOINT', 'Hugging Face Hub')} 下載或加載本地 Embedding 模型 '{model_name}'...")
-            print("   (首次下載可能需要數分鐘，請耐心等候...)")
-            
             embeddings = HuggingFaceEmbeddings(
-                model_name=model_name,
+                model_name=model_name_on_hub, # 使用網路名稱
                 model_kwargs=model_kwargs,
-                encode_kwargs=encode_kwargs
+                encode_kwargs=encode_kwargs,
+                # 指定一個快取目錄，模型會被下載到這裡，但我們優先使用上面的 project/models 路徑
+                cache_folder=str(PROJ_DIR / "models" / "cache")
             )
-            print(f"✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。")
+            logger.info(f"✅ [Embedding Loader] 網路下載並創建 Embedding 模型實例成功。")
+            logger.info(f"   -> 提示：為了未來能快速啟動，您可以將下載的模型檔案夾從 'models/cache' 移動到 'models/' 並重命名為 'stella-base-zh-v2'。")
             return embeddings
         except Exception as e:
-            logger.error(f"[{self.user_id}] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 🔥 [Embedding Loader] 創建本地 Embedding 模型實例最終失敗: {e}", exc_info=True)
             logger.error(f"   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。")
             logger.error(f"   -> 同時請檢查您的網路連線是否可以正常訪問 Hugging Face 或其鏡像站。")
             return None
@@ -5686,6 +5709,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
