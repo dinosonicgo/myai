@@ -1,9 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T19:47:25.832879 ###
+### AI Lover Log - Last updated at 2025-10-03T19:52:29.051145 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
-    raise new_e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 466, in _make_request
-    self._raise_timeout(err=e, url=url, timeout_value=conn.timeout)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 367, in _raise_timeout
     raise ReadTimeoutError(
 urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='hf-mirror.com', port=443): Read timed out. (read timeout=10)
@@ -300,3 +296,7 @@ NameError: name '_get_summarized_chat_history' is not defined
 2025-10-03 19:46:44 - [INFO] - [512280345618546699] [Direct RAG] 生成流程完成。
 2025-10-03 19:46:44 - [ERROR] - [512280345618546699] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。
 2025-10-03 19:46:45 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-03 19:51:56 - [INFO] - [512280345618546699] [撤銷] 已成功從場景 '512280345618546699_local_王國_王都_維利爾斯莊園_莊園領地邊緣的森林_一座被遺忘的古老神龕' 的短期記憶中撤銷上一回合。
+2025-10-03 19:51:56 - [INFO] - [512280345618546699] [撤銷-後端] 正在嘗試從資料庫刪除最新一條長期記憶...
+2025-10-03 19:51:56 - [WARNING] - [512280345618546699] [撤銷-後端] ⚠️ 在資料庫中沒有找到屬於該使用者的長期記憶可供刪除。
+2025-10-03 19:51:56 - [INFO] - [512280345618546699] [撤銷] 處於DM頻道，跳過刪除使用者訊息的步驟。
