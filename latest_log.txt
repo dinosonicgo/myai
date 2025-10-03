@@ -1,58 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T16:44:13.540250 ###
+### AI Lover Log - 2025-10-03T16:44:43.586125 ###
 
-2025-10-03 15:37:57 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 15:37:57 - [INFO] -   [最終 summary_context 長度]: 20025
-2025-10-03 15:37:57 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 15:37:57 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: 'AILover' object has no attribute '_query_lore_from_entities'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
-    final_state = await self.bot.main_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
-    async for _ in runner.atick(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
-    await arun_with_retry(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
-    return await task.proc.ainvoke(task.input, config)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
-    input = await step.ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 171, in retrieve_and_query_node
-    final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
-AttributeError: 'AILover' object has no attribute '_query_lore_from_entities'
-2025-10-03 15:46:10 - [INFO] - 正在編譯主對話圖 (main_graph)...
-2025-10-03 15:46:10 - [INFO] - ✅ 主對話圖編譯成功。
-2025-10-03 15:46:10 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
-2025-10-03 15:46:10 - [INFO] - ✅ 創世流程圖編譯成功。
-2025-10-03 15:46:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-03 15:46:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-03 15:46:10 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-03 15:46:10 - [INFO] - Discord Bot is ready!
-2025-10-03 15:46:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-03 15:46:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-03 15:46:16 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-03 15:51:56 - [INFO] - 正在編譯主對話圖 (main_graph)...
-2025-10-03 15:51:56 - [INFO] - ✅ 主對話圖編譯成功。
-2025-10-03 15:51:56 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
-2025-10-03 15:51:56 - [INFO] - ✅ 創世流程圖編譯成功。
-2025-10-03 15:51:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-03 15:51:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-03 15:51:56 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-03 15:51:56 - [INFO] - Discord Bot is ready!
-2025-10-03 15:51:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-03 15:51:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-03 15:52:02 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-03 15:53:47 - [INFO] - [512280345618546699] 後台重置任務開始...
-2025-10-03 15:53:47 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
-2025-10-03 15:53:47 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
-2025-10-03 15:53:49 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
-2025-10-03 15:53:49 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-10-03 15:53:49 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-10-03 15:53:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-03 15:53:58 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-10-03 15:53:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-10-03 15:53:58 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
 2025-10-03 15:53:58 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-10-03 15:53:58 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
@@ -300,3 +247,56 @@ json.decoder.JSONDecodeError: Expecting ',' delimiter: line 3 column 24 (char 51
 2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
 2025-10-03 16:44:13 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
 2025-10-03 16:44:13 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
+2025-10-03 16:44:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|1) LLM 感知成功。推斷出的目標地點: ['宅邸']
+2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。
+2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
+2025-10-03 16:44:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 22 條文檔 ---
+2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 22 條原始文檔 ---
+2025-10-03 16:44:17 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
+2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-03 16:44:17 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-03 16:44:17 - [INFO] -   [最終 summary_context 長度]: 20903
+2025-10-03 16:44:17 - [INFO] - --- RAG 流程結束 ---
+2025-10-03 16:44:17 - [INFO] - [512280345618546699] [LORE 查詢] 正在從查詢 '這段手稿片段描繪了角色米婭初次抵達一處宏偉宅邸，並在此與其主人，一位勳爵，進行了一次關鍵性的會面。此...' 中分析並提取實體...
+2025-10-03 16:44:17 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勳爵']
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] [LORE 查詢] 已識別出實體: ['米婭', '宅邸', '勳爵']，正在從資料庫檢索...
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] [LORE 查詢] 查詢完畢，共找到 5 條相關 LORE。
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 5 條相關LORE。
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
+2025-10-03 16:44:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-03 16:44:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇解析或驗證錯誤: JSONDecodeError。
+2025-10-03 16:44:18 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: Expecting ',' delimiter: line 3 column 24 (char 51)
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
+    final_state = await self.bot.main_graph.ainvoke(initial_state)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
+    async for _ in runner.atick(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
+    await arun_with_retry(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
+    input = await step.ainvoke(input, config, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 220, in expansion_decision_and_execution_node
+    decision = await ai_core.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 982, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 960, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(repaired_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
+    return _default_decoder.decode(s)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
+    obj, end = self.scan_once(s, idx)
+json.decoder.JSONDecodeError: Expecting ',' delimiter: line 3 column 24 (char 51)
