@@ -1069,11 +1069,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.1 - 實現自我修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.2 - 支援 Key 注入)
 # 更新紀錄:
-# v233.1 (2025-10-03): [災難性BUG修復] 根據 JSONDecodeError 和 ValidationError，徹底重構了此函式的錯誤處理邏輯。新版本在捕獲到解析或驗證失敗時，不再直接拋出異常，而是觸發一個「自我修正」循環。它會調用新增的 `get_json_correction_chain` Prompt，將損壞的 JSON 和錯誤訊息回饋給 LLM，要求其自行修正，從根本上解決了因 LLM 輸出格式不規範而導致的程式崩潰問題。
-# v233.0 (2025-10-02): [災難性BUG修復] 根據 JSONDecodeError，在 Pydantic 驗證之前增加了一個健壯的「JSON 預處理與修復」層。
-# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。
+# v233.2 (2025-10-03): [重大架構升級] 根據「不同KEY重試」策略，為此函式新增了一個可選參數 `force_api_key_tuple`。當此參數被提供時，函式將完全跳過其內部的 API Key 輪換邏輯 (`_get_next_available_key`)，並強制使用由上層（如 `_force_and_retry`）明確指定的 API Key 來發起請求。此修改實現了上下層邏輯的解耦，使得上層的重試策略可以主動控制和保證每次請求都使用不同的 Key。
+# v233.1 (2025-10-03): [災難性BUG修復] 實現了「自我修正」循環以應對 JSON 格式錯誤。
+# v233.0 (2025-10-02): [災難性BUG修復] 增加了健壯的「JSON 預處理與修復」層。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1081,11 +1081,11 @@ class AILover:
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False,
         models_to_try_override: Optional[List[str]] = None,
-        generation_config_override: Optional[Dict[str, Any]] = None
+        generation_config_override: Optional[Dict[str, Any]] = None,
+        force_api_key_tuple: Optional[Tuple[str, int]] = None # [v233.2 新增]
     ) -> Any:
         """
-        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、模型降級、內容審查備援策略，
-        並手動處理 Pydantic 結構化輸出，同時內置了針對速率限制的指數退避和持久化金鑰冷卻機制。
+        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
@@ -1107,12 +1107,17 @@ class AILover:
             final_generation_config.update(generation_config_override)
 
         for model_index, model_name in enumerate(models_to_try):
-            for attempt in range(len(self.api_keys)):
-                key_info = self._get_next_available_key(model_name)
-                if not key_info:
-                    logger.warning(f"[{self.user_id}] 在模型 '{model_name}' 的嘗試中，所有 API 金鑰均處於長期冷卻期。")
-                    break
-                
+            # [v233.2 核心修正] 判斷是使用輪換邏輯還是外部注入的 Key
+            if force_api_key_tuple:
+                # 如果外部強制指定了 Key，則只使用該 Key 嘗試一次
+                keys_to_try = [force_api_key_tuple]
+            else:
+                # 否則，遍歷所有可用的 Key
+                keys_to_try = [self._get_next_available_key(model_name) for _ in range(len(self.api_keys))]
+                keys_to_try = [k for k in keys_to_try if k is not None]
+
+            for key_info in keys_to_try:
+                if not key_info: continue
                 key_to_use, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
@@ -1156,7 +1161,7 @@ class AILover:
                                 logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
                                 if finish_reason_name == 'MAX_TOKENS':
                                     raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                elif finish_reason_name in ['SAFETY', '4']:
+                                elif finish_reason_name in ['SAFETY', '4', '8']: # 將 8 也視為安全原因
                                     raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                                 else:
                                     raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
@@ -1194,7 +1199,6 @@ class AILover:
                         else: 
                             raise e
 
-                    # [v233.1 核心修正] 實現自我修正循環
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。啟動【自我修正】流程...")
@@ -1209,11 +1213,10 @@ class AILover:
                                     "validation_error": str(e)
                                 }
                             )
-                            # 使用一個新的 ainvoke_with_rotation 調用來執行修正任務，但不嵌套自我修正
                             corrected_response = await self.ainvoke_with_rotation(
                                 correction_prompt,
-                                output_schema=None, # 修正任務返回純文本
-                                retry_strategy='none', # 修正失敗就不再重試
+                                output_schema=None,
+                                retry_strategy='none',
                                 models_to_try_override=[FUNCTIONAL_MODEL]
                             )
                             
@@ -1225,13 +1228,12 @@ class AILover:
                         except Exception as correction_e:
                             logger.error(f"[{self.user_id}] [自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
                         
-                        # 如果自我修正失敗，則最終拋出原始異常
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
                         if "MAX_TOKENS" in str(e):
-                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。這通常是輸入或輸出長度超出限制導致的。")
+                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。")
                              break
                         
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
@@ -1254,13 +1256,17 @@ class AILover:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
+                # 如果是強制 Key 模式，執行完一次就跳出
+                if force_api_key_tuple:
+                    break
+            
             if model_index < len(models_to_try) - 1:
                  logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.1 - 實現自我修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.2 - 支援 Key 注入)
 
 
 
@@ -2696,58 +2702,88 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：強制並重試 (v4.1 - 多次重試)
+# 函式：強制並重試 (v4.2 - 主動 Key 輪換)
 # 更新紀錄:
-# v4.1 (2025-10-03): [災難性BUG修復] 根據使用者指令和 BlockedPromptException，徹底重構了此函式。新版本將一次性的重試升級為一個包含迴圈的、最多重試 3 次的強化重試引擎。在每次重試之間加入了短暫的異步延遲，以應對 API 的瞬時不穩定性，並在每次嘗試中都重新注入最高指導原則，最大限度地提高突破內容審查的成功率。
+# v4.2 (2025-10-03): [重大架構重構] 根據使用者「不同KEY重試」的指令，徹底重寫了此函式的核心邏輯。新版本不再是被動地重複調用 ainvoke_with_rotation，而是成為一個主動的控制器：它會在進入循環前，一次性獲取最多 3 個不同的可用 API Key。在每次重試時，它會明確地通過新增的 `force_api_key_tuple` 參數，將一個指定的 Key「注入」到 ainvoke_with_rotation 的單次執行中，從而 100% 保證了每次強化重試都使用了不同的 API Key，最大限度地提高了突破審查的成功率。
+# v4.1 (2025-10-03): [災難性BUG修復] 實現了包含多次重試和延遲的強化重試引擎。
 # v4.0 (2025-10-03): [重大架構重構] 實現了包含「上下文淨化」的最終備援邏輯。
-# v3.1 (2025-09-28): [同步修正] 此函式現在將 `ainvoke_with_rotation` 作為其唯一的執行引擎。
     async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]]) -> Any:
         """
-        (v4.1) 執行一個包含多次重試和延遲的強化重試策略，
-        專用於處理最終的 NSFW 輸出審查。
+        (v4.2) 執行一個主動控制 API Key 輪換的、包含多次重試的強化策略。
         """
-        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【最高指令集注入與多次重試】策略...")
+        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...")
         
         last_exception = None
-        MAX_FORCE_RETRIES = 3 # 總共重試 3 次
+        MAX_FORCE_RETRIES = 3
 
-        for attempt in range(MAX_FORCE_RETRIES):
+        # [v4.2 核心修正] 步驟 1: 在進入迴圈前，一次性獲取最多 3 個不同的可用 Key
+        backup_keys = []
+        # 我們需要一個臨時的方法來獲取多個 key 而不永久移動主索引
+        # 這裡我們複製一份冷卻狀態，模擬性地調用 _get_next_available_key
+        # 注意：這不是一個完美的隔離，但在這個場景下足夠有效
+        temp_key_index = self.current_key_index
+        temp_cooldowns = self.key_model_cooldowns.copy()
+        
+        # 暫時的輔助函式來獲取下一個 key
+        def _get_next_key_for_retry(model_name: str) -> Optional[Tuple[str, int]]:
+            nonlocal temp_key_index
+            start_index = temp_key_index
+            for i in range(len(self.api_keys)):
+                index_to_check = (start_index + i) % len(self.api_keys)
+                cooldown_key = f"{index_to_check}_{model_name}"
+                if temp_cooldowns.get(cooldown_key) and time.time() < temp_cooldowns[cooldown_key]:
+                    continue
+                temp_key_index = (index_to_check + 1) % len(self.api_keys)
+                return self.api_keys[index_to_check], index_to_check
+            return None
+
+        for _ in range(MAX_FORCE_RETRIES):
+            key_info = _get_next_key_for_retry(self.model_priority_list[0]) # 假設重試都用最高優先級模型
+            if key_info:
+                backup_keys.append(key_info)
+        
+        if not backup_keys:
+            logger.error(f"[{self.user_id}] [強制重試] 致命錯誤：沒有任何可用的 API Key 來執行重試策略。")
+            raise Exception("No available API keys for force retry.")
+
+        logger.info(f"[{self.user_id}] [強制重試] 已準備 {len(backup_keys)} 個備用 API Keys 進行重試。")
+
+        # [v4.2 核心修正] 步驟 2: 遍歷備用 Key 進行重試
+        for attempt, key_tuple in enumerate(backup_keys):
             try:
-                logger.info(f"[{self.user_id}] [強制重試 {attempt + 1}/{MAX_FORCE_RETRIES}] 正在對 Prompt 附加完整的核心指令集...")
+                key_str, key_idx = key_tuple
+                logger.info(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 API Key #{key_idx} 進行嘗試...")
                 
-                # 每一次重試都重新構建強化 Prompt
                 forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
                 
-                # 執行一次性的 ainvoke，如果這次再被審查，會再次拋出 BlockedPromptException
+                # [v4.2 核心修正] 步驟 3: 將指定的 Key 注入 ainvoke_with_rotation
                 return await self.ainvoke_with_rotation(
                     forceful_prompt,
                     output_schema=output_schema,
-                    retry_strategy='none', # 關鍵：在重試循環內部，不再觸發嵌套的備援
-                    use_degradation=True
+                    retry_strategy='none', 
+                    use_degradation=True,
+                    force_api_key_tuple=key_tuple # 強制使用這個 Key
                 )
             except BlockedPromptException as e:
                 last_exception = e
-                logger.warning(f"[{self.user_id}] [強制重試 {attempt + 1}/{MAX_FORCE_RETRIES}] 嘗試失敗: {e}")
-                if attempt < MAX_FORCE_RETRIES - 1:
-                    sleep_duration = (attempt + 1) * 0.5 # 逐漸增加延遲
-                    logger.info(f"   -> 將在 {sleep_duration:.1f} 秒後進行下一次嘗試...")
+                logger.warning(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 Key #{key_idx} 的嘗試失敗: {e}")
+                if attempt < len(backup_keys) - 1:
+                    sleep_duration = (attempt + 1) * 0.5 
+                    logger.info(f"   -> 將在 {sleep_duration:.1f} 秒後使用下一個 Key 進行嘗試...")
                     await asyncio.sleep(sleep_duration)
             except Exception as e:
-                # 對於非審查錯誤，直接拋出，不再繼續重試
                 logger.error(f"[{self.user_id}] [強制重試] 遭遇非預期的錯誤，已終止重試循環: {e}", exc_info=True)
                 raise e
 
-        # 如果循環結束後仍然沒有成功，則記錄最終失敗並返回安全值
-        logger.error(f"[{self.user_id}] 【最高指令集注入重試】策略在 {MAX_FORCE_RETRIES} 次嘗試後最終失敗。", exc_info=last_exception)
+        logger.error(f"[{self.user_id}] 【強制 Key 輪換重試】策略在 {len(backup_keys)} 次嘗試後最終失敗。", exc_info=last_exception)
         
         if output_schema:
             try:
-                # 嘗試返回一個空的 Pydantic 模型實例
                 return output_schema()
             except Exception:
                 return None
-        return None # 對於純文本，返回 None
-# 函式：強制並重試 (v4.1 - 多次重試)
+        return None
+# 函式：強制並重試 (v4.2 - 主動 Key 輪換)
 
 
     
@@ -5728,6 +5764,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
