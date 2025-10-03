@@ -2,7 +2,7 @@
 
 #【【【【目前 LangChain 的LLM調用有BUG無法應用安全閥值，LLM相關嚴禁使用LangChain】】】】
 
-
+import os
 import re
 import json
 import time
@@ -5709,6 +5709,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
