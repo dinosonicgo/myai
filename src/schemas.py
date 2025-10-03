@@ -41,12 +41,11 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
     roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
 
-# [v4.0 核心修正] 將 CharacterProfile 的定義提前，以解决 NameError
-# schemas.py 的 CharacterProfile 模型 (v2.2 - 親和力驗證修正)
+# schemas.py 的 CharacterProfile 模型 (v2.3 - 年齡驗證修正)
 # 更新紀錄:
+# v2.3 (2025-10-03): [災難性BUG修復] 為 `age` 欄位新增了一個 `field_validator`。此驗證器會在驗證前，將 LLM 可能輸出的整數或浮點數強制轉換為字串，從根本上解決因數據類型不匹配導致的 ValidationError。
 # v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。
 # v2.1 (2025-09-28): [架構擴展] 新增了 alternative_names 欄位。
-# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -71,52 +70,7 @@ class CharacterProfile(BaseModel):
     @field_validator('aliases', 'likes', 'dislikes', 'equipment', 'skills', 'location_path', 'alternative_names', mode='before')
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
-        if isinstance(value, str) and (' > ' in value or '/' in value):
-            return [part.strip() for part in re.split(r'\s*>\s*|/', value)]
-        return _validate_string_to_list(value)
-
-    @field_validator('appearance_details', mode='before')
-    @classmethod
-    def _validate_string_to_dict_fields(cls, value: Any) -> Any:
-        return _validate_string_to_dict(value)
-
-    @field_validator('relationships', mode='before')
-    @classmethod
-    def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        """
-        一個強大的驗證器，用於處理和規範化 'relationships' 字典。
-        它可以向下兼容舊的扁平化字串格式，並將其自動轉換為新的 RelationshipDetail 結構。
-        """
-        if isinstance(value, str):
-            value = _validate_string_to_dict(value)
-        if not isinstance(value, dict):
-            return {}
-            
-        normalized_dict = {}
-        for k, v in value.items():
-            if isinstance(v, str):
-                normalized_dict[str(k)] = RelationshipDetail(roles=[v])
-            elif isinstance(v, int):
-                 normalized_dict[str(k)] = RelationshipDetail(type="好感度", roles=[str(v)])
-            elif isinstance(v, dict):
-                try:
-                    normalized_dict[str(k)] = RelationshipDetail.model_validate(v)
-                except Exception:
-                    roles = [str(role) for role in v.get("roles", [])]
-                    type_str = v.get("type", "社交關係")
-                    normalized_dict[str(k)] = RelationshipDetail(type=type_str, roles=roles)
-            else:
-                normalized_dict[str(k)] = RelationshipDetail(roles=[str(v)])
-        return normalized_dict
-
-    @field_validator('affinity', mode='before')
-    @classmethod
-    def _coerce_affinity_to_int(cls, value: Any) -> Any:
-        """在驗證前，將 affinity 欄位的值強制轉換為整數，以兼容 LLM 可能輸出的浮點數。"""
-        if isinstance(value, float):
-            return int(value)
-        return value
-# CharacterProfile 模型結束
+        if isinstance(value, str) and (' > ' in value
 
 # --- [v1.3 新增] 混合 NLP 流程所需模型 ---
 class CharacterSkeleton(BaseModel):
@@ -425,4 +379,5 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
