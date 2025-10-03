@@ -312,6 +312,12 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     return {"tool_results": results_summary}
 # 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
 
+
+
+
+
+
+
 # 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
 # 更新紀錄:
 # v3.1 (2025-10-03): [災難性BUG修復] 根據 KeyError: 'explicit_character_files_context'，在 context_vars 字典中補全了這個缺失的鍵。此修改確保了傳遞給模板格式化函式的數據是完整的，從根源上解決了因模板與數據不匹配而導致的程式崩潰問題。
@@ -358,6 +364,11 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|5) 【當前場景事實】組裝完畢。")
     return {"world_snapshot": final_world_snapshot}
 # 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
+
+
+
+
+
 
 # 函式：[新] 最終生成節點
 # 更新紀錄:
