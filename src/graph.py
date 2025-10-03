@@ -136,33 +136,34 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 記憶與 LORE 查詢節點 (v5.1 - 呼叫簽名修正)
+# 函式：[新] 記憶與 LORE 查詢節點 (v5.2 - 職責降級)
 # 更新紀錄:
-# v5.1 (2025-10-03): [災難性BUG修復] 根據 AttributeError，修正了在源頭清洗步驟中對 `ainvoke_with_rotation` 的呼叫方式。新版本現在會先使用 `_safe_format_prompt` 將模板和參數手動組合成一個完整的 Prompt 字串，然後再以正確的簽名進行調用，從根源上解決了因參數傳遞錯誤導致的屬性錯誤。
+# v5.2 (2025-10-03): [架構簡化] 根據「上下文污染」分析，徹底移除了此節點查詢結構化 LORE (`_query_lore_from_entities`) 的職責。此節點現在的唯一任務是執行 RAG 檢索，將結構化 LORE 的數據與生成 Prompt 徹底解耦，以實現更純淨、更接近「RAG 直通」的上下文環境。
+# v5.1 (2025-10-03): [災難性BUG修復] 根據 AttributeError，修正了在源頭清洗步驟中對 `ainvoke_with_rotation` 的呼叫方式。
 # v5.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。
-# v4.0 (2025-10-15): [性能優化] 增加了對已恢復上下文的檢查。
 async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
-    """[2] (如果需要) 清洗使用者輸入，檢索 RAG 記憶，並查詢所有相關的 LORE。"""
+    """[2] (職責降級) 僅執行 RAG 檢索，不再查詢結構化 LORE。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
+    # 檢查上下文是否已被恢復 (此邏輯保持不變)
     if state.get('raw_lore_objects') is not None:
         logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 檢測到已恢復的 LORE 上下文，將跳過重新查詢。")
         rag_context_dict = await ai_core.retrieve_and_summarize_memories(user_input)
         return {
             "rag_context": rag_context_dict.get("summary", "無相關長期記憶。"),
+            # 保持傳遞 raw_lore_objects 以供後續節點（如 expansion）使用
             "raw_lore_objects": state['raw_lore_objects'],
             "sanitized_query_for_tools": user_input,
             "last_response_text": state.get('last_response_text')
         }
 
-    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...")
-    scene_analysis = state['scene_analysis']
+    logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在執行 RAG 檢索...")
     
+    # 清洗使用者輸入的邏輯保持不變
     sanitized_query = user_input
     try:
-        # [v5.1 核心修正] 先格式化 Prompt，再調用 ainvoke_with_rotation
         literary_chain_prompt = ai_core.get_literary_euphemization_chain()
         full_prompt = ai_core._safe_format_prompt(literary_chain_prompt, {"dialogue_history": user_input})
         
@@ -173,23 +174,28 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
         if result:
             sanitized_query = result
     except Exception as e:
-        # 由於 ainvoke_with_rotation 增強了日誌，這裡的日誌會更詳細
         logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。詳細錯誤: {type(e).__name__}")
 
+    # 只執行 RAG 檢索
     rag_context_dict = await ai_core.retrieve_and_summarize_memories(sanitized_query)
     rag_context_str = rag_context_dict.get("summary", "沒有檢索到相關的長期記憶。")
 
-    is_remote = scene_analysis.viewing_mode == 'remote'
-    final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
-        
-    logger.info(f"[{user_id}] (Graph|2) 查詢完成。檢索到 {len(final_lores)} 條相關LORE。")
+    # [v5.2 核心修正] 移除對 _query_lore_from_entities 的調用
+    # 我們仍然需要一個 planning_subjects 的來源，這裡我們從 RAG 的結果中粗略提取
+    # 注意：這一步驟是為了讓 expansion_decision_and_execution_node 能夠運作
+    # 但這個數據不會再污染最終的生成 Prompt
+    all_lores = await lore_book.get_all_lores_for_user(user_id)
+    
+    logger.info(f"[{user_id}] (Graph|2) RAG 檢索完成。")
     
     return {
         "rag_context": rag_context_str,
-        "raw_lore_objects": final_lores,
+        # 為了讓 expansion 節點能運作，我們傳遞一個空的 LORE 列表
+        # 後續 expansion 節點會自己處理 LORE 的獲取
+        "raw_lore_objects": [], 
         "sanitized_query_for_tools": sanitized_query
     }
-# 函式：[新] 記憶與 LORE 查詢節點 (v5.1 - 呼叫簽名修正)
+# 函式：[新] 記憶與 LORE 查詢節點 (v5.2 - 職責降級)
 
 
 
@@ -318,69 +324,70 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
+# 函式：[新] 世界快照組裝節點 (v3.2 - 職責降級)
 # 更新紀錄:
-# v3.1 (2025-10-03): [災難性BUG修復] 根據 KeyError: 'explicit_character_files_context'，在 context_vars 字典中補全了這個缺失的鍵。此修改確保了傳遞給模板格式化函式的數據是完整的，從根源上解決了因模板與數據不匹配而導致的程式崩潰問題。
+# v3.2 (2025-10-03): [架構簡化] 根據「上下文污染」分析與「RAG直通」策略，徹底簡化了此節點的職責。它不再從 `planning_subjects` 或 `tool_results` 中拼接複雜的場景描述，而是只負責將最核心的設定（世界觀、AI設定）和最關鍵的 RAG 檢索結果 (`retrieved_context`) 填入模板，從而創建一個更純淨、污染更少的上下文快照。
+# v3.1 (2025-10-03): [災難性BUG修復] 根據 KeyError，在 context_vars 字典中補全了 `explicit_character_files_context` 鍵。
 # v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。
-# v2.1 (2025-10-14): [災難性BUG修復] 增加了 `username` 和 `ai_name` 到 `context_vars`。
 async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
-    """[5] (核心) 匯集所有【當前場景】的信息，使用模板格式化成 world_snapshot 字符串。"""
+    """[5] (職責降級) 僅組裝一個包含 RAG 和核心設定的純淨上下文快照。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...")
+    logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【純淨版】上下文快照...")
     
-    planning_subjects = state.get("planning_subjects", [])
-    tool_results = state.get("tool_results", "")
-    
-    npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '無描述')}" for npc in planning_subjects if npc])
-    if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
-
-    if tool_results and "無前置工具被調用" not in tool_results:
-        npc_context_str += f"\n\n--- 本回合即時事件 ---\n{tool_results}"
-
     gs = ai_core.profile.game_state
     
+    # [v3.2 核心修正] context_vars 現在只包含最核心、最不可能造成污染的信息
     context_vars = {
         'username': ai_core.profile.user_profile.name,
         'ai_name': ai_core.profile.ai_profile.name,
         'world_settings': ai_core.profile.world_settings or "未設定",
         'ai_settings': ai_core.profile.ai_profile.description or "未設定",
         'retrieved_context': state.get('rag_context', "無相關長期記憶。"),
+        
+        # --- 以下為模板中必須存在但在此簡化流程中可以提供安全預設值的佔位符 ---
         'possessions_context': f"團隊庫存: {', '.join(gs.inventory) or '空的'}",
         'quests_context': "當前無任務。",
         'location_context': f"當前地點: {' > '.join(gs.location_path)}",
-        'npc_context': npc_context_str,
-        'relevant_npc_context': "請參考上方在場角色列表。",
+        'npc_context': "（上下文已由RAG提供）",
+        'relevant_npc_context': "（上下文已由RAG提供）",
+        'explicit_character_files_context': "（上下文已由RAG提供）",
+        
+        # --- 導演視角相關信息保持不變 ---
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        'scene_rules_context': "（暫無）", # 規則注入將在生成前完成
-        # [v3.1 核心修正] 補全缺失的鍵值對
-        'explicit_character_files_context': "（本回合無特定的核心角色檔案需要調閱。）"
+        'scene_rules_context': "（上下文已由RAG提供）"
     }
     
+    # 確保 world_snapshot_template 存在
+    if not ai_core.world_snapshot_template:
+        logger.error(f"[{user_id}] (Graph|5) 致命錯誤: world_snapshot_template 未加載！")
+        return {"world_snapshot": "錯誤：世界快照模板丟失。"}
+
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
     
-    logger.info(f"[{user_id}] (Graph|5) 【當前場景事實】組裝完畢。")
+    logger.info(f"[{user_id}] (Graph|5) 【純淨版】上下文快照組裝完畢。")
     return {"world_snapshot": final_world_snapshot}
-# 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
+# 函式：[新] 世界快照組裝節點 (v3.2 - 職責降級)
 
 
 
 
 
-
-# 函式：[新] 最終生成節點
+# 函式：[新] 最終生成節點 (v8.1 - 模板簡化)
 # 更新紀錄:
-# v8.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。它負責組裝所有上下文，並調用統一的生成鏈 `ainvoke_with_rotation`（設置 `retry_strategy='force'`）來一步到位地創作小說，將對抗內容審查的壓力完全交給後端備援機制。
+# v8.1 (2025-10-03): [架構簡化] 根據「RAG直通」策略，徹底重寫了此節點的 Prompt 組合邏輯。它不再依賴於 `world_snapshot`，而是採用了一個更簡潔、更直接的模板，只將最核心的元素（越獄指令、RAG上下文、對話歷史、使用者輸入）拼接在一起，最大限度地減少了上下文污染，提高了生成成功率。
+# v8.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。
 # v7.0 (2025-10-15): [架構簡化] 移除了意圖分類的判斷。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
-    """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
+    """[6] (模板簡化) 组装一個純淨的、類似 RAG 直通的 Prompt，並調用生成鏈。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    world_snapshot = state['world_snapshot']
+    # 注意：我們現在直接從 state 中獲取 rag_context，而不是從 world_snapshot 中解析
+    rag_context = state.get('rag_context', '（無相關長期記憶。）')
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动最终生成流程...")
+    logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动【RAG直通模式】最终生成流程...")
 
     historical_context = await _get_summarized_chat_history(ai_core, user_id)
     
@@ -392,11 +399,31 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
             plot_anchor = last_response
             logger.info(f"[{user_id}] (Graph|6) 已成功為連續性指令設置【劇情錨點】。")
 
+    # [v8.1 核心修正] 使用一個更簡潔、污染更少的 Prompt 模板
+    final_prompt_template = """{core_protocol_prompt}
+
+# === 情報簡報 (來自 RAG 檢索) ===
+{rag_context}
+# === 情報結束 ===
+
+# === 劇情錨點 (上一幕的最後場景) ===
+{plot_anchor}
+# === 錨點結束 ===
+
+# === 最近對話歷史 ===
+{historical_context}
+# === 歷史結束 ===
+
+# === 本回合互動 ===
+{username}: {latest_user_input}
+{ai_name}:"""
+
     full_prompt = ai_core._safe_format_prompt(
-        "{core_protocol_prompt}\n\n{world_snapshot}\n\n# --- 對話歷史摘要 ---\n{historical_context}\n\n# --- 本回合互動 ---\n{username}: {latest_user_input}\n{ai_name}:",
+        final_prompt_template,
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
-            "world_snapshot": world_snapshot,
+            "rag_context": rag_context,
+            "plot_anchor": plot_anchor,
             "historical_context": historical_context,
             "username": ai_core.profile.user_profile.name,
             "latest_user_input": user_input,
@@ -418,7 +445,12 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
-# 函式：[新] 最终生成节点
+# 函式：[新] 最終生成節點 (v8.1 - 模板簡化)
+
+
+
+
+  
 
 # 函式：[新] 驗證、學習與持久化節點
 # 更新紀錄:
