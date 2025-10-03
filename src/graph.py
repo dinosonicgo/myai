@@ -132,9 +132,14 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     return {"scene_analysis": scene_analysis}
 # 函式：[新] 場景感知與上下文恢復節點
 
-# 函式：[新] 記憶與 LORE 查詢節點
+
+
+
+
+# 函式：[新] 記憶與 LORE 查詢節點 (v5.1 - 呼叫簽名修正)
 # 更新紀錄:
-# v5.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它負責執行 RAG 記憶檢索和所有相關的 LORE 查詢，為後續節點提供必要的上下文數據。
+# v5.1 (2025-10-03): [災難性BUG修復] 根據 AttributeError，修正了在源頭清洗步驟中對 `ainvoke_with_rotation` 的呼叫方式。新版本現在會先使用 `_safe_format_prompt` 將模板和參數手動組合成一個完整的 Prompt 字串，然後再以正確的簽名進行調用，從根源上解決了因參數傳遞錯誤導致的屬性錯誤。
+# v5.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。
 # v4.0 (2025-10-15): [性能優化] 增加了對已恢復上下文的檢查。
 async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     """[2] (如果需要) 清洗使用者輸入，檢索 RAG 記憶，並查詢所有相關的 LORE。"""
@@ -157,12 +162,19 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     
     sanitized_query = user_input
     try:
-        literary_chain = ai_core.get_literary_euphemization_chain()
-        result = await ai_core.ainvoke_with_rotation(literary_chain, {"dialogue_history": user_input}, retry_strategy='euphemize')
+        # [v5.1 核心修正] 先格式化 Prompt，再調用 ainvoke_with_rotation
+        literary_chain_prompt = ai_core.get_literary_euphemization_chain()
+        full_prompt = ai_core._safe_format_prompt(literary_chain_prompt, {"dialogue_history": user_input})
+        
+        result = await ai_core.ainvoke_with_rotation(
+            full_prompt, 
+            retry_strategy='euphemize'
+        )
         if result:
             sanitized_query = result
-    except Exception:
-        logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。")
+    except Exception as e:
+        # 由於 ainvoke_with_rotation 增強了日誌，這裡的日誌會更詳細
+        logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。詳細錯誤: {type(e).__name__}")
 
     rag_context_dict = await ai_core.retrieve_and_summarize_memories(sanitized_query)
     rag_context_str = rag_context_dict.get("summary", "沒有檢索到相關的長期記憶。")
@@ -177,7 +189,10 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
         "raw_lore_objects": final_lores,
         "sanitized_query_for_tools": sanitized_query
     }
-# 函式：[新] 記憶與 LORE 查詢節點
+# 函式：[新] 記憶與 LORE 查詢節點 (v5.1 - 呼叫簽名修正)
+
+
+
 
 # 函式：[新] LORE 擴展決策與執行節點
 # 更新紀錄:
