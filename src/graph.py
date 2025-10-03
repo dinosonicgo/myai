@@ -261,9 +261,10 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     return {"planning_subjects": [lore.content for lore in final_lores_map.values()]}
 # 函式：[新] LORE 擴展決策與執行節點
 
-# 函式：[新] 前置工具調用節點
+# 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
 # 更新紀錄:
-# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它的職責是在主小說生成之前，解析並執行使用者輸入中明確包含的工具調用指令（例如 `/equip`），以確保世界狀態的即時更新。
+# v3.1 (2025-10-03): [災難性BUG修復] 根據潛在的後續錯誤分析，徹底重構了此函式的工具執行邏輯。新版本不再錯誤地將 `ToolCallPlan` 包裝成 `TurnPlan`，而是直接調用正確的、更底層的 `_execute_tool_call_plan` 輔助函式來執行工具，確保了工具調用流程的正確性和連貫性。
+# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。
 # v2.1 (2025-10-14): [災難性BUG修復] 修正了 `CharacterAction` 驗證錯誤。
 async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     """[4] (全新) 判斷並執行使用者指令中明確的、需要改變世界狀態的動作。"""
@@ -295,7 +296,12 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     tool_context.set_context(user_id, ai_core)
     results_summary = ""
     try:
-        results_summary, _ = await ai_core._execute_tool_call_plan(tool_call_plan, ai_core.profile.game_state.location_path)
+        # [v3.1 核心修正] 直接調用正確的工具計畫執行函式
+        if not ai_core.profile:
+             raise Exception("AI Profile尚未初始化，無法獲取當前地點。")
+        current_location = ai_core.profile.game_state.location_path
+        results_summary, _ = await ai_core._execute_tool_call_plan(tool_call_plan, current_location)
+        
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|4) 前置工具執行時發生錯誤: {e}", exc_info=True)
         results_summary = f"系統事件：工具執行時發生嚴重錯誤: {e}"
@@ -304,7 +310,7 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|4) 前置工具執行完畢。")
     return {"tool_results": results_summary}
-# 函式：[新] 前置工具調用節點
+# 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
 
 # 函式：[新] 世界快照組裝節點
 # 更新紀錄:
