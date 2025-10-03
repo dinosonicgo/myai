@@ -9,8 +9,9 @@ from langchain_core.messages import BaseMessage
 from .schemas import (SceneAnalysisResult, WorldGenesisResult)
 from .ai_core import AILover
 
-# 類別：對話圖狀態 (v14.0 - 永久性轟炸架構)
+# 類別：對話圖狀態 (v15.0 - 永久性轟炸架構)
 # 更新紀錄:
+# v15.0 (2025-10-03): [重大架構重構] 根據全新的「永久性轟炸」與「直接RAG」架構，徹底重構了此狀態，以適配新的線性 Graph 工作流。
 # v14.0 (2025-10-15): [架構簡化] 移除了 `current_intent` 欄位。
 # v13.0 (2025-10-15): [健壯性] 新增了 `last_response_text` 欄位。
 class ConversationGraphState(TypedDict):
@@ -42,7 +43,7 @@ class ConversationGraphState(TypedDict):
     # --- 最終生成與輸出的數據載體 ---
     llm_response: str
     final_output: str
-# 類別：對話圖狀態 (v14.0 - 永久性轟炸架構)
+# 類別：對話圖狀態 (v15.0 - 永久性轟炸架構)
 
 # 類別：設定圖狀態
 class SetupGraphState(TypedDict):
@@ -56,3 +57,4 @@ class SetupGraphState(TypedDict):
     genesis_result: Optional["WorldGenesisResult"]
     opening_scene: str
 # 類別：設定圖狀態
+
