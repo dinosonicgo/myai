@@ -2930,9 +2930,10 @@ class ExtractionResult(BaseModel):
 # 函式：背景LORE精煉 (v7.1 - 接收任務式)
 
 
-# 函式：調用本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
+# 函式：調用本地Ollama模型執行LORE精煉 (v1.1 - 超時延長)
 # 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，創建此輔助函式。它作為備援的第二層，負責在雲端模型失敗時，將完整的 RAG 上下文和精煉任務交由本地、無審查的 Ollama 模型來執行，以確保數據處理的連續性和抗審查能力。
+# v1.1 (2025-10-03): [災難性BUG修復] 根據 httpx.ReadTimeout 錯誤日誌，將 httpx.AsyncClient 的超時時間從 300 秒大幅延長至 600 秒（10 分鐘），以給予本地模型在處理複雜的 LORE 精煉任務時足夠的響應時間。
+# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，創建此輔助函式。
     async def _invoke_local_ollama_refiner(self, character_name: str, base_profile: Dict, aggregated_context: Dict) -> Optional[CharacterProfile]:
         """
         呼叫本地運行的 Ollama 模型來執行單個角色的 LORE 精煉任務。
@@ -2962,7 +2963,8 @@ class ExtractionResult(BaseModel):
         }
         
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
+            # [v1.1 核心修正] 大幅延長超時時間至 600 秒
+            async with httpx.AsyncClient(timeout=600.0) as client:
                 response = await client.post("http://localhost:11434/api/generate", json=payload)
                 response.raise_for_status()
                 
@@ -2981,7 +2983,7 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE精煉-本地] 🔥 呼叫本地Ollama進行精煉時發生未知錯誤: {e}", exc_info=True)
             return None
-# 函式：調用本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
+# 函式：調用本地Ollama模型執行LORE精煉 (v1.1 - 超時延長)
 
 
 
@@ -5582,6 +5584,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
