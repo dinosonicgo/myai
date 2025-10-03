@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T12:25:55.812437 ###
+### AI Lover Log - Last updated at 2025-10-03T12:31:40.603622 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1661, in send
-    response = await self._send_handling_auth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1689, in _send_handling_auth
-    response = await self._send_handling_redirects(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1726, in _send_handling_redirects
-    response = await self._send_single_request(request)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1763, in _send_single_request
     response = await transport.handle_async_request(request)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 372, in handle_async_request
     with map_httpcore_exceptions():
@@ -300,3 +293,10 @@ name
 2025-10-03 11:50:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 11:50:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 11:50:23 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 12:31:26 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 12:31:26 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 12:31:26 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 12:31:26 - [INFO] - Discord Bot is ready!
+2025-10-03 12:31:29 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 12:31:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 12:31:29 - [INFO] - 已成功發送啟動成功通知給管理員。
