@@ -291,53 +291,87 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
-# 函式：RAG 直通生成 (v1.6 - 引入創意防火牆)
+# 函式：RAG 直通生成 (v1.7 - 實現 LORE 優先)
 # 更新紀錄:
-# v1.6 (2025-10-03): [災難性BUG修復] 根據 FinishReason: 8 (RECITATION) 錯誤，在最終生成 Prompt 中引入了【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE)】。這條新增的「創意防火牆」指令明確禁止 LLM 直接複製 RAG 上下文中的句子，並強制其必須用自己的語言進行重新創作和演繹。此修改旨在從 Prompt 工程的層面，根除因模型「懶惰地」複誦輸入上下文而觸發 Google API 引用審查機制的嚴重問題。
+# v1.7 (2025-10-03): [重大架構升級] 根據「LORE優先」原則，徹底重構了此函式的 Prompt 組裝邏輯。新版本在執行 RAG 檢索之前，會先根據對話中涉及的核心實體，從 SQL 資料庫中精準查詢其最新的結構化 LORE 數據。然後，它會將這些權威性的 LORE 事實，以一個全新的、擁有最高指令優先級的【🚨 絕對事實強制令】區塊的形式，注入到最終 Prompt 的頂部。此修改從根本上解決了 RAG 中過時的靜態信息與 LORE 中動態更新的信息之間的衝突問題，確保了 AI 的回應永遠基於最新的劇情狀態。
+# v1.6 (2025-10-03): [災難性BUG修復] 引入了「創意防火牆」以解決 RECITATION 錯誤。
 # v1.3 (2025-10-03): [災難性BUG修復] 徹底解耦了上下文快照的職責，修復了事後分析的數據流。
-# v1.2 (2025-10-03): [災難性BUG修復] 補全了注入使用者自訂回覆風格的關鍵步驟。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.6) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，內建創意防火牆。
+        (v1.7) 執行一個「LORE 優先」的、純粹的「指令 -> RAG -> LLM」生成流程。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{user_id}] [Direct RAG] 啟動純粹 RAG 直通生成流程...")
+        logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- 步驟 1: 處理連續性指令與上下文恢復 ---
+        # --- 步驟 1: 處理連續性指令 ---
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
-        
-        if is_continuation:
-            if self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
-                plot_anchor = self.last_context_snapshot["last_response_text"]
-                logger.info(f"[{user_id}] [Direct RAG] 已為連續性指令恢復劇情錨點。")
-            else:
-                logger.warning(f"[{user_id}] [Direct RAG] 檢測到連續性指令，但未找到上一輪的上下文快照。")
+        if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
+            plot_anchor = self.last_context_snapshot["last_response_text"]
 
-        # --- 步驟 2: 執行 RAG 檢索 ---
-        logger.info(f"[{user_id}] [Direct RAG] 正在執行 RAG 檢索...")
+        # --- 步驟 2: [v1.7 新增] 查詢權威性 LORE ---
+        absolute_truth_mandate = ""
+        contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=False)
+        
+        if contextual_entity_names:
+            # 根據名稱列表，從 SQL 數據庫精準獲取最新的 LORE 對象
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            relevant_lores = [lore for lore in all_lores if lore.content.get("name") in contextual_entity_names]
+            
+            if relevant_lores:
+                truth_statements = []
+                for lore in relevant_lores:
+                    # 格式化 LORE 內容為簡潔的事實陳述
+                    content = lore.content
+                    name = content.get("name")
+                    # 提取最關鍵、最可能更新的字段
+                    status = content.get("status")
+                    description = content.get("description", "")
+                    # 嘗試從描述中提取職位或身份
+                    match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
+                    role = match.group(1) or match.group(2) if match else None
+                    
+                    statement_parts = [f"{name} ({lore.category}):"]
+                    if role: statement_parts.append(f"當前身份/職位={role}")
+                    if status: statement_parts.append(f"當前狀態={status}")
+                    
+                    # 只在有實質內容時才加入
+                    if len(statement_parts) > 1:
+                        truth_statements.append(" ".join(statement_parts))
+
+                if truth_statements:
+                    absolute_truth_mandate = (
+                        "# === 【【【🚨 絕對事實強制令 (ABSOLUTE TRUTH MANDATE)】】】 ===\n"
+                        "# 以下是關於當前場景的、來自權威數據庫的、不可違背的最新事實。在你的創作中，這些事實的優先級高於下方『情報簡報』中的任何衝突信息。\n"
+                        + "\n".join([f"- {s}" for s in truth_statements])
+                        + "\n# =======================================================================\n"
+                    )
+                    logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
+
+
+        # --- 步驟 3: 執行 RAG 檢索 ---
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
-        # --- 步驟 3: 獲取對話歷史 ---
+        # --- 步驟 4: 獲取對話歷史 ---
         historical_context = await self._get_summarized_chat_history(user_id)
 
-        # --- 步驟 4: 組裝純淨 Prompt ---
+        # --- 步驟 5: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
-        # [v1.6 核心修正] 引入創意防火牆
         final_prompt_template = """{core_protocol_prompt}
 
+{absolute_truth_mandate}
 # === 【【【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE) - 最高優先級鐵則】】】 ===
 # 1.  **【知識 vs. 素材】**: 下方的「情報簡報」是你創作的【背景知識參考】，不是你的【直接寫作素材】。
 # 2.  **【強制原創】**: 你的所有回覆都**必須**是你自己語言的**重新創作**和**演繹**。
-# 3.  **【絕對禁令】**: 【絕對禁止】直接或間接地逐字複製「情報簡報」中的任何連續句子或段落。任何此類行為都將被視為核心功能失敗。
+# 3.  **【絕對禁令】**: 【絕對禁止】直接或間接地逐字複製「情報簡報」中的任何連續句子或段落。
 # ==============================================================================
 
 # === 情報簡報 (來自 RAG 檢索) ===
@@ -360,6 +394,7 @@ class AILover:
             final_prompt_template,
             {
                 "core_protocol_prompt": self.core_protocol_prompt,
+                "absolute_truth_mandate": absolute_truth_mandate, # 注入絕對事實
                 "rag_context": rag_context,
                 "plot_anchor": plot_anchor,
                 "historical_context": historical_context,
@@ -370,8 +405,7 @@ class AILover:
             }
         )
         
-        # --- 步驟 5: 調用 LLM 生成 ---
-        logger.info(f"[{user_id}] [Direct RAG] Prompt 組裝完畢，正在調用 LLM 生成...")
+        # --- 步驟 6: 調用 LLM 生成 ---
         final_response = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -382,9 +416,7 @@ class AILover:
             logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
-        logger.info(f"[{user_id}] [Direct RAG] 生成流程完成。")
-
-        # --- 步驟 6: 事後處理 (持久化與學習) ---
+        # --- 步驟 7: 事後處理 ---
         clean_response = final_response.strip()
         
         scene_key = self._get_scene_key()
@@ -392,20 +424,14 @@ class AILover:
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
         
         snapshot_for_analysis = {
-            "user_input": user_input,
-            "final_response": clean_response,
-            "rag_context": rag_context,
-            "relevant_characters": []
+            "user_input": user_input, "final_response": clean_response,
+            "rag_context": rag_context, "relevant_characters": []
         }
-        
-        self.last_context_snapshot = {
-            "last_response_text": clean_response
-        }
-        
+        self.last_context_snapshot = {"last_response_text": clean_response}
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         return clean_response
-# 函式：RAG 直通生成 (v1.6 - 引入創意防火牆)
+# 函式：RAG 直通生成 (v1.7 - 實現 LORE 優先)
 
 
     
@@ -3691,11 +3717,11 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.1 - 引入創意防火牆)
+# 函式：獲取事後分析器 Prompt (v4.2 - 強化更新捕捉)
 # 更新紀錄:
-# v4.1 (2025-10-03): [健壯性強化] 根據對 RECITATION 錯誤的系統性分析，在此 Prompt 中加入了針對 `memory_summary` 生成的【🚫 嚴禁複誦原則】。此防火牆指令強制 LLM 在生成記憶摘要時必須對輸入的對話進行重新創作和總結，而不是直接複製，從而系統性地預防了因「惰性複製」行為觸發的內容審查問題。
+# v4.2 (2025-10-03): [健壯性強化] 根據「LORE優先」原則，在此 Prompt 的核心規則中新增了【📈 衝突檢測與更新原則】。此原則明確指令 LLM 在進行事後分析時，必須主動地、優先地尋找對話中與【現有LORE摘要】相衝突的新資訊（例如角色晉升、狀態改變），並將這些衝突點解析為 `update_...` 工具調用。此修改旨在提高 LORE 系統的動態更新能力，確保角色和世界的狀態能夠隨著劇情的推進而演變。
+# v4.1 (2025-10-03): [健壯性強化] 引入了「創意防火牆」以解決 RECITATION 錯誤。
 # v4.0 (2025-10-02): [重大架構升級] 引入了「動態規則鏈接」的核心職責。
-# v3.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此 Prompt，引入了【結構化範例強制令】。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
@@ -3710,16 +3736,18 @@ class ExtractionResult(BaseModel):
 #     *   在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
 #     *   【絕對禁止】直接逐字複製「本回合的完整對話」中的任何連續句子。
 #
-# 2.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate) - 最高系統完整性鐵則】**:
+# 2.  **【📈 衝突檢測與更新原則 (Conflict Detection & Update Mandate)】**:
+#     *   你的**首要分析任務**，是將【本回合的完整對話】與【現有LORE摘要】進行交叉比對。
+#     *   如果對話中出現了與現有 LORE **相衝突或使其過時**的新資訊（例如：角色晉升、狀態改變、獲得新稱號），你【必須】優先生成一個 `update_...` 工具調用來修正這條 LORE。
+#     *   **範例**: 如果 LORE 摘要顯示「馬卡是二等兵」，但對話中他被稱為「馬卡士官長」，你必須生成 `update_npc_profile` 工具調用，將其 `description` 或相關欄位更新為「士官長」。
+#
+# 3.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate)】**:
 #     *   在分析完對話後，你【必須】檢查是否出現了以下兩種情況：
 #         a. 一個角色被賦予了一個**新的身份**（alias）。
 #         b. 一條新的、關於**行為規範或禮儀**的 `world_lore` 被創建。
-#     *   如果發生以上任一情況，你【必須】思考這個新的「身份」是否應該遵守某條已知的「規則」，或者這條新的「規則」應該適用於哪些已知的「身份」。
-#     *   你【必須】生成一個 `update_lore_template_keys` 工具調用來創建或更新這個鏈接。
+#     *   如果發生以上任一情況，你【必須】生成一個 `update_lore_template_keys` 工具調用來創建或更新這個鏈接。
 #
-# 3.  **【🔑 上下文繼承原則】**: 在生成任何 `update_npc_profile` 工具調用時，【必須】從【LORE上下文參考】中查找並使用該角色已有的 `lore_key`。
-#
-# 4.  **【👑 結構化範例強制令】**: 所有 `update_npc_profile` 工具調用，其 `parameters` 字典的結構【絕對必須】與範例一致（更新內容包裹在 `"updates"` 字典中）。
+# 4.  **【🔑 上下文繼承原則】**: 在生成任何 `update_npc_profile` 工具調用時，【必須】從【LORE上下文參考】中查找並使用該角色已有的 `lore_key`。
 #
 # 5.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
 #
@@ -3746,7 +3774,7 @@ class ExtractionResult(BaseModel):
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt (v4.1 - 引入創意防火牆)
+# 函式：獲取事後分析器 Prompt (v4.2 - 強化更新捕捉)
 
     
     
@@ -5830,6 +5858,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
