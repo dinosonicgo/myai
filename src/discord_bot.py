@@ -2082,7 +2082,10 @@ class BotCog(commands.Cog):
     # 函式：全域應用程式指令錯誤處理器
 # 類別：機器人核心功能集 (Cog)
 
-# 類別：AI 戀人機器人主體
+# 類別：AI 戀人機器人主體 (v1.1 - 新增Graph屬性)
+# 更新紀錄:
+# v1.1 (2025-10-03): [架構擴展] 新增了 self.main_graph 和 self.setup_graph 兩個實例屬性，並將其初始化為 None。這些屬性將在 setup_hook 中被賦值為編譯好的 LangGraph 實例，以供整個應用程式調用。
+# v1.0 (初始版本)
 class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
     def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock, is_ollama_available: bool):
@@ -2091,7 +2094,11 @@ class AILoverBot(commands.Bot):
         self.git_lock = git_lock
         self.is_ready_once = False
         self.is_ollama_available = is_ollama_available
+        # [v1.1 新增] 初始化 Graph 屬性
+        self.main_graph = None
+        self.setup_graph = None
     # 函式：初始化 AILoverBot
+
     
     # 函式：Discord 機器人設置鉤子
     async def setup_hook(self):
@@ -2138,6 +2145,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
