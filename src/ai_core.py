@@ -289,13 +289,14 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
-# 函式：RAG 直通生成 (v1.1 - 修正內部呼叫)
+# 函式：RAG 直通生成 (v1.2 - 注入風格指令)
 # 更新紀錄:
-# v1.1 (2025-10-03): [災難性BUG修復] 根據 NameError，將內部對 `_get_summarized_chat_history` 的呼叫方式從直接調用修正為 `self._get_summarized_chat_history`，以正確調用已遷移至類別內部的輔助方法。
+# v1.2 (2025-10-03): [災難性BUG修復] 根據使用者反饋，在最終 Prompt 的組裝邏輯中，補全了注入使用者自訂回覆風格 (`response_style_prompt`) 的關鍵步驟。新版本增加了一個「絕對風格強制令」區塊並將其放置在 Prompt 的末尾，確保 AI 的生成嚴格遵循使用者的風格設定，解決了 AI 風格退化的問題。
+# v1.1 (2025-10-03): [災難性BUG修復] 根據 NameError，修正了對 `_get_summarized_chat_history` 的內部呼叫方式。
 # v1.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，創建此全新的核心生成函式。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.1) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
+        (v1.2) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
         """
         user_id = self.user_id
         if not self.profile:
@@ -322,10 +323,13 @@ class AILover:
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
         # --- 步驟 3: 獲取對話歷史 ---
-        # [v1.1 核心修正] 更新呼叫方式
         historical_context = await self._get_summarized_chat_history(user_id)
 
         # --- 步驟 4: 組裝純淨 Prompt ---
+        # [v1.2 核心修正] 讀取使用者自訂風格，如果為空則提供預設值
+        user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
+        style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+
         final_prompt_template = """{core_protocol_prompt}
 
 # === 情報簡報 (來自 RAG 檢索) ===
@@ -342,7 +346,7 @@ class AILover:
 
 # === 本回合互動 ===
 {username}: {latest_user_input}
-{ai_name}:"""
+{ai_name}:{style_mandate}"""
 
         full_prompt = self._safe_format_prompt(
             final_prompt_template,
@@ -353,7 +357,8 @@ class AILover:
                 "historical_context": historical_context,
                 "username": self.profile.user_profile.name,
                 "latest_user_input": user_input,
-                "ai_name": self.profile.ai_profile.name
+                "ai_name": self.profile.ai_profile.name,
+                "style_mandate": style_mandate
             }
         )
         
@@ -383,9 +388,7 @@ class AILover:
         self.last_context_snapshot = {
             "last_response_text": clean_response,
             "user_input": user_input,
-            # 傳遞 RAG 結果，供事後分析使用
             "rag_context": rag_context, 
-            # 傳遞一個空的 LORE 列表，因為我們沒有查詢
             "relevant_characters": [] 
         }
         
@@ -393,7 +396,7 @@ class AILover:
         asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
         
         return clean_response
-# 函式：RAG 直通生成 (v1.1 - 修正內部呼叫)
+# 函式：RAG 直通生成 (v1.2 - 注入風格指令)
 
 
 
@@ -5752,6 +5755,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
