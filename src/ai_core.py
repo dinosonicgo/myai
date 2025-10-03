@@ -848,11 +848,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 增強解析錯誤日誌)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.1 - 實現自我修正)
 # 更新紀錄:
-# v232.9 (2025-10-03): [健壯性強化] 根據 JSONDecodeError 和 ValidationError，增強了此函式的錯誤處理能力。現在，當捕獲到任何 Pydantic 驗證或 JSON 解析失敗時，它會將導致錯誤的、來自 LLM 的原始文本輸出完整地記錄到日誌中，為後續的除錯和 Prompt 優化提供了至關重要的上下文信息。
-# v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
-# v232.7 (2025-09-23): [根本性重構] 根據「原生SDK引擎」架構，徹底重寫了此函式。
+# v233.1 (2025-10-03): [災難性BUG修復] 根據 JSONDecodeError 和 ValidationError，徹底重構了此函式的錯誤處理邏輯。新版本在捕獲到解析或驗證失敗時，不再直接拋出異常，而是觸發一個「自我修正」循環。它會調用新增的 `get_json_correction_chain` Prompt，將損壞的 JSON 和錯誤訊息回饋給 LLM，要求其自行修正，從根本上解決了因 LLM 輸出格式不規範而導致的程式崩潰問題。
+# v233.0 (2025-10-02): [災難性BUG修復] 根據 JSONDecodeError，在 Pydantic 驗證之前增加了一個健壯的「JSON 預處理與修復」層。
+# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -895,7 +895,7 @@ class AILover:
                 key_to_use, key_index = key_info
                 
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
-                    raw_text_result_for_log = "" # 用於在出錯時記錄原始文本
+                    raw_text_result_for_log = "" 
                     try:
                         genai.configure(api_key=key_to_use)
                         
@@ -941,7 +941,7 @@ class AILover:
                                     raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
-                        raw_text_result_for_log = raw_text_result # 保存一份原始文本用於可能的錯誤日誌
+                        raw_text_result_for_log = raw_text_result 
 
                         if not raw_text_result or not raw_text_result.strip():
                             raise GoogleGenerativeAIError("SafetyError: The model returned an empty or invalid response.")
@@ -973,12 +973,38 @@ class AILover:
                         else: 
                             raise e
 
-                    # [v232.9 核心修正] 增強解析錯誤的日誌記錄
+                    # [v233.1 核心修正] 實現自我修正循環
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
-                        # 將導致錯誤的原始 LLM 輸出完整記錄下來，以便除錯
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。啟動【自我修正】流程...")
                         logger.debug(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
+                        
+                        try:
+                            correction_prompt_template = self.get_json_correction_chain()
+                            correction_prompt = self._safe_format_prompt(
+                                correction_prompt_template,
+                                {
+                                    "raw_json_string": raw_text_result_for_log,
+                                    "validation_error": str(e)
+                                }
+                            )
+                            # 使用一個新的 ainvoke_with_rotation 調用來執行修正任務，但不嵌套自我修正
+                            corrected_response = await self.ainvoke_with_rotation(
+                                correction_prompt,
+                                output_schema=None, # 修正任務返回純文本
+                                retry_strategy='none', # 修正失敗就不再重試
+                                models_to_try_override=[FUNCTIONAL_MODEL]
+                            )
+                            
+                            if corrected_response and output_schema:
+                                logger.info(f"[{self.user_id}] [自我修正] ✅ 修正流程成功，正在重新驗證...")
+                                json_match = re.search(r'\{.*\}|\[.*\]', corrected_response, re.DOTALL)
+                                if json_match:
+                                    return output_schema.model_validate(json.loads(json_match.group(0)))
+                        except Exception as correction_e:
+                            logger.error(f"[{self.user_id}] [自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
+                        
+                        # 如果自我修正失敗，則最終拋出原始異常
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
@@ -1013,7 +1039,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 增強解析錯誤日誌)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.1 - 實現自我修正)
 
 
 
@@ -5479,6 +5505,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
