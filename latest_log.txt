@@ -1,18 +1,4 @@
-### AI Lover Log - Last updated at 2025-10-03T08:59:28.289812 ###
-
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 177, in _receive_response_headers
-    event = await self._receive_event(timeout=timeout)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 217, in _receive_event
-    data = await self._network_stream.read(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_backends\anyio.py", line 32, in read
-    with map_exceptions(exc_map):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
-    self.gen.throw(typ, value, traceback)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
-    raise to_exc(exc) from exc
-httpcore.ReadTimeout
-
-The above exception was the direct cause of the following exception:
+### AI Lover Log - Last updated at 2025-10-03T09:12:46.725763 ###
 
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2966, in _invoke_local_ollama_refiner
@@ -300,3 +286,17 @@ name
 2025-10-03 07:36:34 - [INFO] - [512280345618546699] [單體精煉] ✅ 驗證通過，成功為角色 '卡爾•維利爾斯勳爵' 生成精煉檔案。
 2025-10-03 07:36:34 - [INFO] - [512280345618546699] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '卡爾•維利爾斯勳爵' 的檔案。
 2025-10-03 07:36:36 - [INFO] - [512280345618546699] [LORE精煉 v7.1] 所有 2 個背景精煉任務已全部完成。
+2025-10-03 09:11:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 09:11:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 09:11:57 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 09:11:57 - [INFO] - Discord Bot is ready!
+2025-10-03 09:12:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 09:12:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 09:12:00 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 09:12:32 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 09:12:32 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 09:12:32 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 09:12:32 - [INFO] - Discord Bot is ready!
+2025-10-03 09:12:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 09:12:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 09:12:36 - [INFO] - 已成功發送啟動成功通知給管理員。
