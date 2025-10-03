@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T11:44:39.245828 ###
+### AI Lover Log - Last updated at 2025-10-03T11:50:34.063153 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2966, in _invoke_local_ollama_refiner
-    response = await client.post("http://localhost:11434/api/generate", json=payload)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1892, in post
-    return await self.request(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1574, in request
-    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1661, in send
     response = await self._send_handling_auth(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1689, in _send_handling_auth
@@ -300,3 +293,10 @@ name
 2025-10-03 09:12:35 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 09:12:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 09:12:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 11:50:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 11:50:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 11:50:20 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 11:50:20 - [INFO] - Discord Bot is ready!
+2025-10-03 11:50:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 11:50:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 11:50:23 - [INFO] - 已成功發送啟動成功通知給管理員。
