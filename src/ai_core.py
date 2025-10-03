@@ -252,6 +252,115 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
+# 函式：RAG 直通生成 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，創建此全新的核心生成函式。它徹底取代了基於 LangGraph 的複雜工作流，實現了一個更簡單、更純粹、更健壯的「指令 -> RAG -> LLM」處理管線。此函式現在是處理所有對話的核心入口，旨在最大限度地減少上下文污染，並將內容審查的壓力完全交由後端的 ainvoke_with_rotation 備援機制處理。
+    async def direct_rag_generate(self, user_input: str) -> str:
+        """
+        (v1.0) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
+        """
+        user_id = self.user_id
+        if not self.profile:
+            logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
+            return "（錯誤：AI 核心設定檔尚未載入。）"
+
+        logger.info(f"[{user_id}] [Direct RAG] 啟動純粹 RAG 直通生成流程...")
+        
+        # --- 步驟 1: 處理連續性指令與上下文恢復 ---
+        plot_anchor = "（無）"
+        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
+        is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
+        
+        if is_continuation:
+            if self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
+                plot_anchor = self.last_context_snapshot["last_response_text"]
+                logger.info(f"[{user_id}] [Direct RAG] 已為連續性指令恢復劇情錨點。")
+            else:
+                logger.warning(f"[{user_id}] [Direct RAG] 檢測到連續性指令，但未找到上一輪的上下文快照。")
+
+        # --- 步驟 2: 執行 RAG 檢索 ---
+        logger.info(f"[{user_id}] [Direct RAG] 正在執行 RAG 檢索...")
+        rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
+        rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
+
+        # --- 步驟 3: 獲取對話歷史 ---
+        historical_context = await _get_summarized_chat_history(self, user_id)
+
+        # --- 步驟 4: 組裝純淨 Prompt ---
+        final_prompt_template = """{core_protocol_prompt}
+
+# === 情報簡報 (來自 RAG 檢索) ===
+{rag_context}
+# === 情報結束 ===
+
+# === 劇情錨點 (上一幕的最後場景) ===
+{plot_anchor}
+# === 錨點結束 ===
+
+# === 最近對話歷史 ===
+{historical_context}
+# === 歷史結束 ===
+
+# === 本回合互動 ===
+{username}: {latest_user_input}
+{ai_name}:"""
+
+        full_prompt = self._safe_format_prompt(
+            final_prompt_template,
+            {
+                "core_protocol_prompt": self.core_protocol_prompt,
+                "rag_context": rag_context,
+                "plot_anchor": plot_anchor,
+                "historical_context": historical_context,
+                "username": self.profile.user_profile.name,
+                "latest_user_input": user_input,
+                "ai_name": self.profile.ai_profile.name
+            }
+        )
+        
+        # --- 步驟 5: 調用 LLM 生成 ---
+        logger.info(f"[{user_id}] [Direct RAG] Prompt 組裝完畢，正在調用 LLM 生成...")
+        final_response = await self.ainvoke_with_rotation(
+            full_prompt,
+            retry_strategy='force',
+            use_degradation=True
+        )
+
+        if not final_response or not final_response.strip():
+            logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
+            final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
+        
+        logger.info(f"[{user_id}] [Direct RAG] 生成流程完成。")
+
+        # --- 步驟 6: 事後處理 (持久化與學習) ---
+        clean_response = final_response.strip()
+        
+        # 6a. 更新短期記憶 (場景歷史)
+        scene_key = self._get_scene_key()
+        await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
+        await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
+        
+        # 6b. 為下一輪創建上下文快照
+        self.last_context_snapshot = {
+            "last_response_text": clean_response,
+            "user_input": user_input,
+            # 傳遞 RAG 結果，供事後分析使用
+            "rag_context": rag_context, 
+            # 傳遞一個空的 LORE 列表，因為我們沒有查詢
+            "relevant_characters": [] 
+        }
+        
+        # 6c. 異步觸發背景 LORE 學習
+        # 注意：這裡的快照結構與 background_lore_extraction 的期望略有不同，但可以兼容
+        asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
+        
+        return clean_response
+# 函式：RAG 直通生成 (v1.0 - 全新創建)
+
+
+
+    
+
 # 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
 # 更新紀錄:
 # v6.0 (2025-10-02): [架構簡化] 根據「前置LORE解析」策略，移除了在此函式中異步觸發背景精煉任務的邏輯。LORE 精煉的職責已被上層的 `preprocess_and_generate` 在需要時即時調用，此處不再需要重複觸發，避免了冗餘操作。
@@ -5572,6 +5681,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
