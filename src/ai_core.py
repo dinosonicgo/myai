@@ -968,7 +968,69 @@ class AILover:
 # 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - JSON格式修正)
 
 
-    
+# 函式：根據實體查詢 LORE (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此核心輔助函式。它的職責是接收查詢文本，調用 `_analyze_user_input` 進行實體分析，然後根據分析結果從資料庫中檢索所有相關的 LORE 條目。此函式的實現是修復 `retrieve_and_query_node` 節點崩潰的關鍵。
+    async def _query_lore_from_entities(self, query_text: str, is_remote_scene: bool = False) -> List[Lore]:
+        """
+        從查詢文本中提取實體，並返回所有相關的 LORE 對象。
+        """
+        if not self.profile:
+            return []
+
+        logger.info(f"[{self.user_id}] [LORE 查詢] 正在從查詢 '{query_text[:50]}...' 中分析並提取實體...")
+        
+        # 使用混合分析引擎提取實體
+        entities, _ = await self._analyze_user_input(query_text)
+        
+        # 在本地場景中，總是包含核心主角
+        if not is_remote_scene:
+            entities.append(self.profile.user_profile.name)
+            entities.append(self.profile.ai_profile.name)
+        
+        unique_entities = sorted(list(set(entities)), key=len, reverse=True)
+        
+        if not unique_entities:
+            logger.info(f"[{self.user_id}] [LORE 查詢] 未在查詢中識別出任何有效實體。")
+            return []
+            
+        logger.info(f"[{self.user_id}] [LORE 查詢] 已識別出實體: {unique_entities}，正在從資料庫檢索...")
+
+        # 從資料庫中批量獲取所有相關的 LORE
+        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+        
+        final_lores = []
+        found_keys = set()
+        
+        # 創建一個高效的查找表
+        name_to_lore_map = defaultdict(list)
+        for lore in all_lores:
+            if name := lore.content.get("name"):
+                name_to_lore_map[name].append(lore)
+            if aliases := lore.content.get("aliases"):
+                for alias in aliases:
+                    name_to_lore_map[alias].append(lore)
+
+        for entity_name in unique_entities:
+            # 遍歷所有 LORE，檢查名稱或別名是否匹配
+            for lore in all_lores:
+                if lore.key in found_keys:
+                    continue
+                
+                content = lore.content
+                name = content.get("name", "")
+                aliases = content.get("aliases", [])
+                
+                # 實現部分匹配和包含關係的查找
+                if (entity_name in name) or \
+                   (name in entity_name) or \
+                   any((entity_name in alias) or (alias in entity_name) for alias in aliases):
+                    final_lores.append(lore)
+                    found_keys.add(lore.key)
+        
+        logger.info(f"[{self.user_id}] [LORE 查詢] 查詢完畢，共找到 {len(final_lores)} 條相關 LORE。")
+        return final_lores
+# 函式：根據實體查詢 LORE (v1.0 - 全新創建)
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -5389,6 +5451,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
