@@ -2100,8 +2100,20 @@ class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
 
     
-    # 函式：Discord 機器人設置鉤子
+# 函式：Discord 機器人設置鉤子 (v1.1 - 編譯Graph)
+    # 更新紀錄:
+    # v1.1 (2025-10-03): [重大架構升級] 在此函式中導入了 `create_main_response_graph` 和 `create_setup_graph`。在 setup_hook 階段，它會立即編譯這兩個核心工作流圖，並將結果賦值給 `self.main_graph` 和 `self.setup_graph`，確保在機器人響應任何請求之前，所有的核心邏輯都已準備就緒。
+    # v1.0 (初始版本)
     async def setup_hook(self):
+        # [v1.1 新增] 導入並編譯 Graph
+        from src.graph import create_main_response_graph, create_setup_graph
+        logger.info("正在編譯主對話圖 (main_graph)...")
+        self.main_graph = create_main_response_graph()
+        logger.info("✅ 主對話圖編譯成功。")
+        logger.info("正在編譯創世流程圖 (setup_graph)...")
+        self.setup_graph = create_setup_graph()
+        logger.info("✅ 創世流程圖編譯成功。")
+
         cog = BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
@@ -2145,6 +2157,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
