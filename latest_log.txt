@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T23:05:58.985542 ###
+### AI Lover Log - Last updated at 2025-10-03T23:10:22.919362 ###
 
-    corrected_response = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1194, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1151, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-10-03 22:15:26 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] L1/L2 雲端重排最終失敗: Expecting ',' delimiter: line 25 column 1021 (char 5925)。
-2025-10-03 22:15:26 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
-2025-10-03 22:15:26 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:15:26 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:15:26 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
 2025-10-03 22:15:27 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 1.14 秒後進行第 2 次嘗試...
 2025-10-03 22:15:28 - [WARNING] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 遭遇臨時性 API 錯誤 (ResourceExhausted)。將在 2.25 秒後進行第 3 次嘗試...
 2025-10-03 22:15:30 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次內部重試後仍然失敗 (ResourceExhausted)。將輪換到下一個金鑰並觸發持久化冷卻。
@@ -300,3 +289,14 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 22:44:02 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-03 22:44:03 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-03 22:44:03 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-03 23:10:09 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 23:10:09 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 23:10:09 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 23:10:09 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 23:10:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 23:10:09 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 23:10:09 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 23:10:09 - [INFO] - Discord Bot is ready!
+2025-10-03 23:10:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 23:10:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 23:10:12 - [INFO] - 已成功發送啟動成功通知給管理員。
