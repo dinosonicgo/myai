@@ -1,8 +1,8 @@
-# src/graph.py 的中文註釋(v32.0 - 永久性轟炸架構)
+# src/graph.py 的中文註釋(v33.0 - 永久性轟炸架構)
 # 更新紀錄:
-# v32.0 (2025-10-15): [架構簡化] 根據「永久性轟炸」策略，移除了 `classify_intent_node`，並將其職責（處理連續性指令、恢復上下文快照）整合進了 `perceive_scene_node` 和 `validate_and_persist_node`，使流程更線性、更高效。
+# v33.0 (2025-10-03): [重大架構重構] 根據「永久性轟炸」與「直接RAG」策略，徹底重寫了主對話圖，用一個更簡單、更線性的新工作流取代了舊的 `preprocess_and_generate` 邏輯。
+# v32.0 (2025-10-15): [架構簡化] 根據「永久性轟炸」策略，移除了 `classify_intent_node`，並將其職責整合進了 `perceive_scene_node` 和 `validate_and_persist_node`。
 # v31.0 (2025-10-15): [架構重構] 將新的 `classify_intent_node` 作為圖的入口點，實現了「智能轟炸」策略。
-# v30.0 (2025-10-05): [重大架構重構] 根据最终确立的 v7.0 蓝图，彻底重写了整个对话图。
 import sys
 import asyncio
 import json
@@ -20,22 +20,29 @@ from . import lore_book, tools
 from .schemas import (CharacterProfile, ExpansionDecision, 
                       UserInputAnalysis, SceneAnalysisResult, SceneCastingResult, 
                       WorldGenesisResult, IntentClassificationResult, StyleAnalysisResult,
-                      CharacterQuantificationResult, ToolCall)
+                      ToolCall)
 from .tool_context import tool_context
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# --- [v32.0 新架构] 主對話圖 (Main Conversation Graph) 的節點 ---
+# --- [v33.0 新架構] 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# 函式：[新] 场景感知与上下文恢复节点
+# 函式：[新] 場景感知與上下文恢復節點
 # 更新紀錄:
-# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略，以解決在連續性指令（如“继续”）下，場景視角被錯誤重置的問題。同時整合了上下文快照的恢復邏輯。
+# v3.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。它作為圖的入口，負責分析用戶輸入、處理連續性指令、恢復上下文快照，並保持場景視角的連貫性。
+# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略。
 # v1.0 (2025-10-05): [重大架構重構] 根據 v7.0 藍圖創建此節點。
 async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     """[1] (入口) 分析用户输入，處理連續性指令，恢復上下文快照，並保持場景視角的連貫性。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    user_input = state['messages'][-1].content.strip()
+    # 確保 messages 列表不為空
+    if not state.get('messages'):
+        logger.error(f"[{user_id}] (Graph|1) 狀態中缺少 'messages'，無法感知場景。")
+        # 提供一個安全的預設值
+        return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：状态中缺少 messages。', action_summary="")}
+
+    user_input = state['messages'][-1].content.strip() if state['messages'] else ""
     logger.info(f"[{user_id}] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...")
 
     if not ai_core.profile:
@@ -49,7 +56,6 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     if any(user_input.lower().startswith(kw) for kw in continuation_keywords):
         logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態並恢復上下文快照。")
         
-        # 繼承上一輪的視角狀態
         scene_analysis = SceneAnalysisResult(
             viewing_mode=gs.viewing_mode,
             reasoning="繼承上一輪的場景狀態。",
@@ -57,7 +63,6 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
             action_summary=user_input
         )
         
-        # 嘗試從快照恢復上下文
         if ai_core.last_context_snapshot:
             logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功恢復上一輪的上下文快照。")
             return {
@@ -72,31 +77,33 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     # --- 步驟 2: 處理常規指令的視角更新 ---
     new_viewing_mode = 'local'
     new_target_path = None
+    final_reasoning = "場景感知完成。"
 
-    # 使用 LLM 進行智能推斷
     try:
-        location_chain = ai_core.get_contextual_location_chain()
-        # 為了節省 Token，這裡可以傳入一個空的上下文
+        location_chain = ai_core.get_location_extraction_prompt()
+        full_prompt = ai_core._safe_format_prompt(location_chain, {"user_input": user_input})
+        
+        from .schemas import SceneLocationExtraction
         location_result = await ai_core.ainvoke_with_rotation(
-            location_chain, 
-            {"user_input": user_input, "world_settings": ai_core.profile.world_settings or "未设定", "scene_context_json": "[]"},
+            full_prompt, 
+            output_schema=SceneLocationExtraction,
             retry_strategy='euphemize'
         )
-        if location_result and location_result.location_path:
-            logger.info(f"[{user_id}] (Graph|1) LLM 感知成功。推斷出的目標地點: {location_result.location_path}")
+        if location_result and location_result.has_explicit_location and location_result.location_path:
+            final_reasoning = f"LLM 感知成功。推斷出的目標地點: {location_result.location_path}"
+            logger.info(f"[{user_id}] (Graph|1) {final_reasoning}")
             new_target_path = location_result.location_path
             new_viewing_mode = 'remote'
     except Exception as e:
-        logger.warning(f"[{user_id}] (Graph|1) 地點推斷鏈失敗: {e}，將回退到基本邏輯。")
+        final_reasoning = f"地點推斷鏈失敗: {e}，將回退到基本邏輯。"
+        logger.warning(f"[{user_id}] (Graph|1) {final_reasoning}")
 
-    # --- 步驟 3: 應用「遠程優先」的狀態保持邏輯 ---
     final_viewing_mode = gs.viewing_mode
     final_target_path = gs.remote_target_path
 
     if gs.viewing_mode == 'remote':
-        is_explicit_local_move = any(user_input.startswith(kw) for kw in ["去", "前往", "移動到", "旅行到"])
-        is_direct_ai_interaction = ai_core.profile.ai_profile.name in user_input
-        if is_explicit_local_move or is_direct_ai_interaction:
+        is_explicit_local_move = any(kw in user_input for kw in ["我", ai_core.profile.user_profile.name, ai_core.profile.ai_profile.name])
+        if is_explicit_local_move and new_viewing_mode == 'local':
             final_viewing_mode = 'local'
             final_target_path = None
             logger.info(f"[{user_id}] (Graph|1) 檢測到明確的本地指令，導演視角從 'remote' 切換回 'local'。")
@@ -111,7 +118,6 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
             final_target_path = new_target_path
             logger.info(f"[{user_id}] (Graph|1) 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {final_target_path}")
 
-    # 更新並持久化遊戲狀態
     if gs.viewing_mode != final_viewing_mode or gs.remote_target_path != final_target_path:
         gs.viewing_mode = final_viewing_mode
         gs.remote_target_path = final_target_path
@@ -119,31 +125,31 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
     
     scene_analysis = SceneAnalysisResult(
         viewing_mode=gs.viewing_mode,
-        reasoning=f"場景感知完成。",
+        reasoning=final_reasoning,
         target_location_path=gs.remote_target_path,
         action_summary=user_input
     )
     return {"scene_analysis": scene_analysis}
-# 函式：[新] 场景感知与上下文恢复节点
+# 函式：[新] 場景感知與上下文恢復節點
 
 # 函式：[新] 記憶與 LORE 查詢節點
 # 更新紀錄:
-# v4.0 (2025-10-15): [性能優化] 增加了對已恢復上下文的檢查。如果上下文已由 `perceive_scene_node` 注入，則跳過所有耗時的查詢操作。
+# v5.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它負責執行 RAG 記憶檢索和所有相關的 LORE 查詢，為後續節點提供必要的上下文數據。
+# v4.0 (2025-10-15): [性能優化] 增加了對已恢復上下文的檢查。
 async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
     """[2] (如果需要) 清洗使用者輸入，檢索 RAG 記憶，並查詢所有相關的 LORE。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
     
-    # [v4.0 核心修正] 檢查上下文是否已被恢復
     if state.get('raw_lore_objects') is not None:
         logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 檢測到已恢復的 LORE 上下文，將跳過重新查詢。")
-        rag_context_str = await ai_core.retrieve_and_summarize_memories(user_input)
+        rag_context_dict = await ai_core.retrieve_and_summarize_memories(user_input)
         return {
-            "rag_context": rag_context_str,
+            "rag_context": rag_context_dict.get("summary", "無相關長期記憶。"),
             "raw_lore_objects": state['raw_lore_objects'],
             "sanitized_query_for_tools": user_input,
-            "last_response_text": state.get('last_response_text') # 保持傳遞
+            "last_response_text": state.get('last_response_text')
         }
 
     logger.info(f"[{user_id}] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...")
@@ -154,16 +160,12 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
         literary_chain = ai_core.get_literary_euphemization_chain()
         result = await ai_core.ainvoke_with_rotation(literary_chain, {"dialogue_history": user_input}, retry_strategy='euphemize')
         if result:
-            sanitized_query = result.content if hasattr(result, 'content') else str(result)
+            sanitized_query = result
     except Exception:
         logger.warning(f"[{user_id}] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。")
 
-    rag_context_str = "沒有檢索到相關的長期記憶。"
-    if len(user_input) > 10 or any(kw in user_input for kw in ["誰", "什麼", "回憶", "記得"]):
-        logger.info(f"[{user_id}] (Graph|2) 輸入較複雜，執行 RAG 檢索...")
-        rag_context_str = await ai_core.retrieve_and_summarize_memories(sanitized_query)
-    else:
-        logger.info(f"[{user_id}] (Graph|2) 輸入為簡單指令，跳過 RAG 檢索以節省配額。")
+    rag_context_dict = await ai_core.retrieve_and_summarize_memories(sanitized_query)
+    rag_context_str = rag_context_dict.get("summary", "沒有檢索到相關的長期記憶。")
 
     is_remote = scene_analysis.viewing_mode == 'remote'
     final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
@@ -179,10 +181,10 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
 
 # 函式：[新] LORE 擴展決策與執行節點
 # 更新紀錄:
-# v5.0 (2025-10-10): [災難性BUG修復] 徹底重構了節點的輸出邏輯，以中斷遞迴查詢風暴。
-# v4.0 (2025-10-15): [架構重構] 實現了「原子化角色創建」。
+# v6.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它取代了舊的重量級「即時精煉」，改為執行一個輕量級的決策：判斷是否需要在對話前為一個全新的實體創建一個「骨架 LORE」，以避免 LLM 憑空捏造。
+# v5.0 (2025-10-10): [災難性BUG修復] 徹底重構了節點的輸出邏輯。
 async def expansion_decision_and_execution_node(state: ConversationGraphState) -> Dict:
-    """[3] 決策是否需要擴展 LORE，如果需要，則立即執行擴展。"""
+    """[3] 決策是否需要擴展 LORE，如果需要，則立即執行輕量級的骨架創建。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     safe_query_text = state['sanitized_query_for_tools']
@@ -193,58 +195,50 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
         [{"name": lore.content.get("name"), "description": lore.content.get("description")} for lore in raw_lore_objects if lore.category == 'npc_profile'],
         ensure_ascii=False
     )
-    decision_chain = ai_core.get_expansion_decision_chain()
     
-    decision_params = {
+    decision_chain_prompt = ai_core.get_expansion_decision_chain()
+    full_prompt = ai_core._safe_format_prompt(decision_chain_prompt, {
         "user_input": safe_query_text, 
         "existing_characters_json": lightweight_lore_json
-    }
+    })
+    
     decision = await ai_core.ainvoke_with_rotation(
-        decision_chain, 
-        decision_params,
+        full_prompt, 
+        output_schema=ExpansionDecision,
         retry_strategy='euphemize'
     )
 
-    if not decision:
-        logger.warning(f"[{user_id}] (Graph|3) LORE擴展決策鏈失敗，啟動備援決策。")
-        decision = ExpansionDecision(should_expand=False, reasoning="備援：決策鏈失敗，預設不擴展。")
-
-    if not decision.should_expand:
-        logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {decision.reasoning}")
+    if not decision or not decision.should_expand:
+        reason = decision.reasoning if decision else "決策鏈失敗"
+        logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {reason}")
         return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
 
     logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
-    newly_created_lores: List[Lore] = []
+    newly_created_lores = []
     try:
-        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A: 嘗試使用原子化的主選角鏈...")
         gs = ai_core.profile.game_state
         effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
         
-        casting_chain = ai_core.get_scene_casting_chain()
+        casting_chain_prompt = ai_core.get_scene_casting_chain()
+        full_casting_prompt = ai_core._safe_format_prompt(casting_chain_prompt, {
+            "world_settings": ai_core.profile.world_settings or "", 
+            "current_location_path": " > ".join(effective_location_path), 
+            "user_input": safe_query_text
+        })
         cast_result = await ai_core.ainvoke_with_rotation(
-            casting_chain,
-            {
-                "world_settings": ai_core.profile.world_settings or "", 
-                "current_location_path": effective_location_path, 
-                "user_input": safe_query_text
-            },
+            full_casting_prompt,
+            output_schema=SceneCastingResult,
             retry_strategy='euphemize'
         )
         
-        if not cast_result: raise Exception("原子化主選角鏈返回空值")
-
-        newly_created_lores = await ai_core._add_cast_to_scene(cast_result)
-        created_names = [lore.content.get("name", "未知") for lore in newly_created_lores]
-        logger.info(f"[{user_id}] (Graph|3) 擴展 Plan A 成功，創建了 {len(created_names)} 位新角色。")
+        if cast_result:
+            newly_created_lores = await ai_core._add_cast_to_scene(cast_result)
+            created_names = [lore.content.get("name", "未知") for lore in newly_created_lores]
+            logger.info(f"[{user_id}] (Graph|3) 擴展成功，創建了 {len(created_names)} 位新角色骨架。")
         
     except Exception as e:
-        logger.warning(f"[{user_id}] (Graph|3) 擴展 Plan A 失敗: {e}。啟動【Gemini子任務鏈備援】...")
-        newly_created_lores = await ai_core.gemini_subtask_expansion_fallback(safe_query_text)
-        if newly_created_lores:
-             logger.info(f"[{user_id}] (Graph|3) 子任務鏈備援成功，創建了 {len(newly_created_lores)} 位新角色。")
-        else:
-             logger.error(f"[{user_id}] (Graph|3) 子任務鏈備援最終失敗。")
+        logger.error(f"[{user_id}] (Graph|3) LORE擴展執行時發生錯誤: {e}", exc_info=True)
     
     final_lore_objects = raw_lore_objects + newly_created_lores
     final_lores_map = {lore.key: lore for lore in final_lore_objects}
@@ -254,8 +248,8 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
 
 # 函式：[新] 前置工具調用節點
 # 更新紀錄:
+# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它的職責是在主小說生成之前，解析並執行使用者輸入中明確包含的工具調用指令（例如 `/equip`），以確保世界狀態的即時更新。
 # v2.1 (2025-10-14): [災難性BUG修復] 修正了 `CharacterAction` 驗證錯誤。
-# v2.0 (2025-10-07): [架構重構] 此节点的职责被扩展。
 async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     """[4] (全新) 判斷並執行使用者指令中明確的、需要改變世界狀態的動作。"""
     user_id = state['user_id']
@@ -263,10 +257,17 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...")
 
-    tool_parsing_chain = ai_core.get_preemptive_tool_parsing_chain()
+    tool_parsing_chain_prompt = ai_core.get_preemptive_tool_parsing_chain()
+    character_list_str = ", ".join([ps.get("name", "") for ps in state.get("planning_subjects", []) if ps])
+    full_prompt = ai_core._safe_format_prompt(tool_parsing_chain_prompt, {
+        "user_input": user_input, 
+        "character_list_str": character_list_str
+    })
+    
+    from .schemas import ToolCallPlan
     tool_call_plan = await ai_core.ainvoke_with_rotation(
-        tool_parsing_chain,
-        {"user_input": user_input, "character_list_str": ", ".join([ps.get("name", "") for ps in state.get("planning_subjects", [])])},
+        full_prompt,
+        output_schema=ToolCallPlan,
         retry_strategy='euphemize'
     )
     
@@ -277,20 +278,9 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|4) 解析到 {len(tool_call_plan.plan)} 個工具調用，準備執行...")
     
     tool_context.set_context(user_id, ai_core)
+    results_summary = ""
     try:
-        from .schemas import TurnPlan, CharacterAction
-        simple_turn_plan = TurnPlan(
-            character_actions=[
-                CharacterAction(
-                    character_name="system", 
-                    reasoning="preemptive tool execution", 
-                    tool_call=call,
-                    action_description=f"執行工具 {call.tool_name}."
-                ) 
-                for call in tool_call_plan.plan
-            ]
-        )
-        results_summary = await ai_core._execute_planned_actions(simple_turn_plan)
+        results_summary, _ = await ai_core._execute_tool_call_plan(tool_call_plan, ai_core.profile.game_state.location_path)
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|4) 前置工具執行時發生錯誤: {e}", exc_info=True)
         results_summary = f"系統事件：工具執行時發生嚴重錯誤: {e}"
@@ -303,8 +293,8 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
 
 # 函式：[新] 世界快照組裝節點
 # 更新紀錄:
+# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它的核心職責是匯集前面所有節點的處理結果（RAG、LORE、工具執行結果等），並使用 `world_snapshot_template.txt` 模板將它們格式化成一個巨大的、包含所有上下文的字符串，作為給最終生成模型的「單一信息源」。
 # v2.1 (2025-10-14): [災難性BUG修復] 增加了 `username` 和 `ai_name` 到 `context_vars`。
-# v2.0 (2025-10-07): [架構重構] 此节点的职责被简化。
 async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     """[5] (核心) 匯集所有【當前場景】的信息，使用模板格式化成 world_snapshot 字符串。"""
     user_id = state['user_id']
@@ -314,7 +304,7 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     planning_subjects = state.get("planning_subjects", [])
     tool_results = state.get("tool_results", "")
     
-    npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '無描述')}" for npc in planning_subjects])
+    npc_context_str = "\n".join([f"- **{npc.get('name', '未知NPC')}**: {npc.get('description', '無描述')}" for npc in planning_subjects if npc])
     if not npc_context_str: npc_context_str = "當前場景沒有已知的特定角色。"
 
     if tool_results and "無前置工具被調用" not in tool_results:
@@ -336,6 +326,7 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
+        'scene_rules_context': "（暫無）" # 規則注入將在生成前完成
     }
     
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
@@ -344,10 +335,10 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     return {"world_snapshot": final_world_snapshot}
 # 函式：[新] 世界快照組裝節點
 
-# 函式：[新] 最终生成节点
+# 函式：[新] 最終生成節點
 # 更新紀錄:
-# v7.0 (2025-10-15): [架構簡化] 移除了意圖分類的判斷，實現永久性轟炸。
-# v6.0 (2025-10-15): [健壯性] 實現了「智能轟炸」策略。
+# v8.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。它負責組裝所有上下文，並調用統一的生成鏈 `ainvoke_with_rotation`（設置 `retry_strategy='force'`）來一步到位地創作小說，將對抗內容審查的壓力完全交給後端備援機制。
+# v7.0 (2025-10-15): [架構簡化] 移除了意圖分類的判斷。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
     """[6] (全新) 组装所有上下文，并调用统一生成链来一步到位地创作小说。"""
     user_id = state['user_id']
@@ -366,75 +357,77 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
             plot_anchor = last_response
             logger.info(f"[{user_id}] (Graph|6) 已成功為連續性指令設置【劇情錨點】。")
 
-    prompt_template_runnable = ai_core.get_unified_generation_chain()
-    
-    final_retry_strategy: Literal['force', 'euphemize', 'none'] = 'force'
-    logger.info(f"[{user_id}] (Graph|6) [永久性轟炸] 已啟用 'force' 備援策略以最大化成功率。")
-    
-    final_response_raw = await ai_core.ainvoke_with_rotation(
-        prompt_template_runnable,
+    full_prompt = ai_core._safe_format_prompt(
+        "{core_protocol_prompt}\n\n{world_snapshot}\n\n# --- 對話歷史摘要 ---\n{historical_context}\n\n# --- 本回合互動 ---\n{username}: {latest_user_input}\n{ai_name}:",
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
-            "response_style_prompt": ai_core.profile.response_style_prompt or "預設風格",
-            "plot_anchor": plot_anchor,
-            "historical_context": historical_context,
             "world_snapshot": world_snapshot,
+            "historical_context": historical_context,
+            "username": ai_core.profile.user_profile.name,
             "latest_user_input": user_input,
-        },
-        retry_strategy=final_retry_strategy,
+            "ai_name": ai_core.profile.ai_profile.name
+        }
+    )
+    
+    logger.info(f"[{user_id}] (Graph|6) [永久性轟炸] 已啟用 'force' 備援策略以最大化成功率。")
+    
+    final_response = await ai_core.ainvoke_with_rotation(
+        full_prompt,
+        retry_strategy='force',
         use_degradation=True
     )
 
-    final_response = final_response_raw.content if hasattr(final_response_raw, 'content') else str(final_response_raw)
-
     if not final_response or not final_response.strip():
-        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在所有策略（包括 '{final_retry_strategy}'）之后最终失败！")
+        logger.critical(f"[{user_id}] (Graph|6) 核心生成链在所有策略之後最終失敗！")
         final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
 # 函式：[新] 最终生成节点
 
-# 函式：驗證、學習與持久化節點
+# 函式：[新] 驗證、學習與持久化節點
 # 更新紀錄:
+# v3.0 (2025-10-03): [全新創建] 根據「生成與學習分離」原則創建此節點。它作為圖的終點，負責所有事後處理工作：清理文本、異步觸發背景 LORE 提取、保存對話歷史，並為下一輪的連續性指令創建關鍵的上下文快照。
 # v2.8 (2025-10-15): [健壯性] 在此節點的末尾，創建並儲存上下文快照。
 async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     """[7] 清理文本、事後 LORE 提取、保存對話歷史，並為下一輪創建上下文快照。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
     user_input = state['messages'][-1].content
-    llm_response_raw = state['llm_response']
+    llm_response = state['llm_response']
     logger.info(f"[{user_id}] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...")
-
-    if hasattr(llm_response_raw, 'content'):
-        llm_response = llm_response_raw.content
-    else:
-        llm_response = str(llm_response_raw)
-        logger.warning(f"[{user_id}] (Graph|7) LLM 回應不是 AIMessage 物件，直接轉換為字符串。")
 
     clean_response = llm_response.strip()
     
-    asyncio.create_task(ai_core._background_lore_extraction(user_input, clean_response))
+    # 創建上下文快照以供後台任務使用
+    context_snapshot = {
+        "user_input": user_input,
+        "final_response": clean_response,
+        "scene_rules_context": "（暫無）", # 這裡可以從 state 中獲取，如果需要的話
+        "relevant_characters": [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
+    }
+    
+    # 異步觸發背景學習
+    asyncio.create_task(ai_core._background_lore_extraction(context_snapshot))
 
     if clean_response and "抱歉" not in clean_response:
-        chat_history_manager = ai_core.session_histories.setdefault(user_id, ChatMessageHistory())
-        chat_history_manager.add_user_message(user_input)
-        chat_history_manager.add_ai_message(clean_response)
-        last_interaction_text = f"使用者: {user_input}\n\nAI:\n{clean_response}"
-        asyncio.create_task(ai_core._save_interaction_to_dbs(last_interaction_text))
-        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並準備保存到 DB。")
+        scene_key = ai_core._get_scene_key()
+        await ai_core._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
+        await ai_core._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
+        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並持久化。")
 
-    context_snapshot = {
+    # 為下一輪的 "continue" 指令創建快照
+    snapshot_for_next_turn = {
         "raw_lore_objects": state.get("raw_lore_objects", []),
         "last_response_text": clean_response
     }
-    ai_core.last_context_snapshot = context_snapshot
+    ai_core.last_context_snapshot = snapshot_for_next_turn
     logger.info(f"[{user_id}] (Graph|7) 已為下一輪創建上下文快照。")
 
     logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     
     return {"final_output": clean_response}
-# 函式：驗證、學習與持久化節點
+# 函式：[新] 驗證、學習與持久化節點
 
 # 函式：獲取摘要後的對話歷史
 # 更新紀錄:
@@ -442,7 +435,10 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
 async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messages: int = 8) -> str:
     """提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。"""
     if not ai_core.profile: return "（沒有最近的對話歷史）"
-    chat_history_manager = ai_core.session_histories.get(user_id, ChatMessageHistory())
+    
+    scene_key = ai_core._get_scene_key()
+    chat_history_manager = ai_core.scene_histories.get(scene_key, ChatMessageHistory())
+
     if not chat_history_manager.messages:
         return "（沒有最近的對話歷史）"
         
@@ -453,8 +449,8 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
     raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
 
     try:
-        literary_chain = ai_core.get_literary_euphemization_chain()
-        summary = await ai_core.ainvoke_with_rotation(literary_chain, {"dialogue_history": raw_history_text}, retry_strategy='euphemize')
+        literary_chain_prompt = ai_core.get_literary_euphemization_chain()
+        summary = await ai_core.ainvoke_with_rotation(literary_chain_prompt, {"dialogue_history": raw_history_text}, retry_strategy='euphemize')
 
         if not summary or not summary.strip():
             raise Exception("Summarization returned empty content.")
@@ -466,9 +462,9 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
         return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
 # 函式：獲取摘要後的對話歷史
 
-# --- [v32.0 新架构] 图的构建 ---
+# --- [v33.0 新架構] 圖的構建 ---
 # 更新紀錄:
-# v32.0 (2025-10-15): [架構簡化] 移除了 `classify_intent_node`，恢復 `perceive_scene_node` 為入口點。
+# v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 `preprocess_and_generate` 流程的主對話圖。
 def create_main_response_graph() -> StateGraph:
     """创建并连接所有节点，构建最终的对话图。"""
     graph = StateGraph(ConversationGraphState)
@@ -492,9 +488,9 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("validate_and_persist", END)
     
     return graph.compile()
-# --- [v32.0 新架构] 图的构建 ---
+# --- [v33.0 新架構] 圖的構建 ---
 
-# --- Setup Graph (保持不变) ---
+# --- Setup Graph (保持不變) ---
 # 函式：處理世界聖經節點
 async def process_canon_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
@@ -504,17 +500,13 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
     try:
         if canon_text:
             logger.info(f"[{user_id}] (Setup Graph|1/4) 檢測到世界聖經文本 (長度: {len(canon_text)})，開始處理...")
-            await ai_core.add_canon_to_vector_store(canon_text)
-            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 A: 向量化儲存完成。")
-            await ai_core.parse_and_create_lore_from_canon(None, canon_text, is_setup_flow=True)
-            logger.info(f"[{user_id}] (Setup Graph|1/4) 步驟 B: LORE 智能解析完成。")
+            # 注意：此處 RAG 索引的構建已被移至更高層的協調器
+            await ai_core.parse_and_create_lore_from_canon(canon_text)
+            logger.info(f"[{user_id}] (Setup Graph|1/4) LORE 智能解析完成。")
         else:
             logger.info(f"[{user_id}] (Setup Graph|1/4) 未提供世界聖經文本，跳過處理。")
-        logger.info(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 節點執行成功。")
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 執行時發生嚴重錯誤: {e}", exc_info=True)
-    finally:
-        await asyncio.sleep(5.0)
     return {}
 # 函式：處理世界聖經節點
 
@@ -524,41 +516,10 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Setup Graph|2/4) Node: complete_profiles_node -> 節點已啟動，準備補完角色檔案...")
     try:
-        if not ai_core.profile:
-            logger.error(f"[{user_id}] (Setup Graph|2/4) ai_core.profile 為空，無法繼續。")
-            return {}
-        completion_chain = ai_core.get_profile_completion_chain()
-        literary_chain = ai_core.get_literary_euphemization_chain()
-        async def _safe_complete_profile(original_profile: CharacterProfile) -> CharacterProfile:
-            try:
-                safe_profile_data = original_profile.model_dump()
-                tasks_to_clean = {}
-                if (desc := safe_profile_data.get('description', '')): tasks_to_clean['description'] = literary_chain.ainvoke({"dialogue_history": desc})
-                if (appr := safe_profile_data.get('appearance', '')): tasks_to_clean['appearance'] = literary_chain.ainvoke({"dialogue_history": appr})
-                if tasks_to_clean:
-                    cleaned_results = await asyncio.gather(*tasks_to_clean.values(), return_exceptions=True)
-                    results_dict = dict(zip(tasks_to_clean.keys(), cleaned_results))
-                    if 'description' in results_dict and isinstance(results_dict['description'], str): safe_profile_data['description'] = results_dict['description']
-                    if 'appearance' in results_dict and isinstance(results_dict['appearance'], str): safe_profile_data['appearance'] = results_dict['appearance']
-                completed_safe_profile = await ai_core.ainvoke_with_rotation(completion_chain, {"profile_json": json.dumps(safe_profile_data, ensure_ascii=False)}, retry_strategy='euphemize')
-                if not completed_safe_profile: return original_profile
-                original_data = original_profile.model_dump()
-                completed_data = completed_safe_profile.model_dump()
-                for key, value in completed_data.items():
-                    if not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]:
-                        if value: original_data[key] = value
-                original_data.update({k: v for k, v in original_profile.model_dump().items() if v and k in ['description', 'appearance', 'name']})
-                return CharacterProfile.model_validate(original_data)
-            except Exception as e:
-                logger.error(f"[{user_id}] 為角色 '{original_profile.name}' 進行安全補完時發生錯誤: {e}", exc_info=True)
-                return original_profile
-        final_user_profile, final_ai_profile = await asyncio.gather(_safe_complete_profile(ai_core.profile.user_profile), _safe_complete_profile(ai_core.profile.ai_profile))
-        await ai_core.update_and_persist_profile({'user_profile': final_user_profile.model_dump(), 'ai_profile': final_ai_profile.model_dump()})
+        await ai_core.complete_character_profiles()
         logger.info(f"[{user_id}] (Setup Graph|2/4) Node: complete_profiles_node -> 節點執行成功。")
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|2/4) Node: complete_profiles_node -> 執行時發生嚴重錯誤: {e}", exc_info=True)
-    finally:
-        await asyncio.sleep(5.0)
     return {}
 # 函式：補完角色檔案節點
 
@@ -566,26 +527,14 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
 async def world_genesis_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
+    canon_text = state.get('canon_text')
     logger.info(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 節點已啟動...")
     genesis_result = None
     try:
-        if not ai_core.profile: raise Exception("AI Profile is not loaded.")
-        genesis_chain = ai_core.get_world_genesis_chain()
-        genesis_params = {"world_settings": ai_core.profile.world_settings or "未設定", "username": ai_core.profile.user_profile.name, "ai_name": ai_core.profile.ai_profile.name}
-        genesis_result = await ai_core.ainvoke_with_rotation(genesis_chain, genesis_params, retry_strategy='force')
-        if not genesis_result: raise Exception("世界創世鏈返回了空結果。")
-        gs = ai_core.profile.game_state
-        gs.location_path = genesis_result.location_path
-        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-        await lore_book.add_or_update_lore(user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
-        for npc in genesis_result.initial_npcs:
-            npc_key = " > ".join(genesis_result.location_path) + f" > {npc.name}"
-            await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, npc.model_dump())
+        await ai_core.generate_world_genesis(canon_text=canon_text)
         logger.info(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 節點執行成功。")
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 執行時發生嚴重錯誤: {e}", exc_info=True)
-    finally:
-        await asyncio.sleep(5.0)
     return {"genesis_result": genesis_result}
 # 函式：世界創世節點
 
@@ -593,10 +542,11 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     user_id = state['user_id']
     ai_core = state['ai_core']
+    canon_text = state.get('canon_text')
     opening_scene = ""
     logger.info(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 節點已啟動...")
     try:
-        opening_scene = await ai_core.generate_opening_scene()
+        opening_scene = await ai_core.generate_opening_scene(canon_text=canon_text)
         if not opening_scene or not opening_scene.strip():
             opening_scene = (f"在一片柔和的光芒中...")
         logger.info(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 節點執行成功。")
