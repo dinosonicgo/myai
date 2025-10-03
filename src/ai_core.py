@@ -2579,108 +2579,118 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成開場白 (v184.0 - RAG驅動智能導演)
+# 函式：生成開場白 (v186.0 - 決策執行合一)
 # 更新紀錄:
-# v184.0 (2025-10-03): [根本性重構] 根據「RAG驅動的智能開場導演」策略，徹底重寫了此函式。它不再盲目創作，而是首先執行一次高度語義化的 RAG 查詢，從完整的世界聖經中檢索出與「開場」主題最相關的場景片段。然後，它將這個由 RAG 精選出的「核心場景情報」連同角色檔案，一同交給 LLM，並下達一個清晰的「場景植入」指令。此修改將開場白從一個隨機的創作過程，轉變為一個由世界觀驅動的、高度情境化的智能導演過程。
-# v183.0 (2025-09-27): [災難性BUG修復] 引入了「本地安全代碼化」策略。
-# v182.1 (2025-09-25): [健壯性強化] 显式地通过 _safe_format_prompt 注入了 core_protocol_prompt。
+# v186.0 (2025-10-03): [重大架構重構] 根據「地點不一致」的最終診斷，將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。新版本不再依賴上游節點提供地點，而是完全自主地根據 RAG 檢索結果來決定最佳開場地點並創作場景。最關鍵的是，在場景生成【之後】，它會新增一個 LLM 調用，從已生成的開場白文本中【反向提取】出權威的地點路徑，並將其【回寫】到 GameState 中。此「決策與執行合一」的設計從根本上確保了系統記錄的初始地點與使用者看到的開場白絕對一致。
+# v185.1 (2025-10-03): [災難性BUG修復] 引入了「地點錨定」邏輯以解決地點不一致問題。
+# v185.0 (2025-10-03): [健壯性強化] 在 Prompt 中加入了「創意防火牆」。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
-        """(/start 流程 5/7) 根據 RAG 智能選擇的場景，撰寫故事的開場白。"""
+        """
+        (v186.0) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
+        """
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
 
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
-        gs = self.profile.game_state
-
-        # --- [v184.0 核心修正] RAG 驅動的場景選擇 ---
-        logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇開場場景...")
-        rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的初始場景或情境。"
         
-        # 我們直接調用 RAG 檢索，並獲取拼接好的原始文本
+        # --- 步驟 1: RAG 驅動的場景選擇與創作 ---
+        logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇並創作開場場景...")
+        rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。"
+        
         rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
         rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
 
-        location_lore = await lore_book.get_lore(self.user_id, 'location_info', " > ".join(gs.location_path))
-        location_description = location_lore.content.get('description', '一個神秘的地方') if location_lore else '一個神秘的地方'
-        
-        encoding_map = {v: k for k, v in self.DECODING_MAP.items()}
-        sorted_encoding_map = sorted(encoding_map.items(), key=lambda item: len(item[0]), reverse=True)
-        def encode_text(text: str) -> str:
-            if not text: return ""
-            for word, code in sorted_encoding_map:
-                text = text.replace(word, code)
-            return text
-
-        encoded_user_profile_json = encode_text(json.dumps(user_profile.model_dump(), indent=2, ensure_ascii=False))
-        encoded_ai_profile_json = encode_text(json.dumps(ai_profile.model_dump(), indent=2, ensure_ascii=False))
-        encoded_world_settings = encode_text(self.profile.world_settings)
-        encoded_rag_scene_context = encode_text(rag_scene_context)
-
-        full_template = f"""你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
-你的唯一任務是，基於所有源數據，為使用者角色「{user_profile.name}」與 AI 角色「{ai_profile.name}」創造一個**【深度定制化的、靜態的開場快照】**。
+        # 創作 Prompt 保持不變，給予 LLM 創作自由
+        opening_scene_prompt_template = """你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
+你的唯一任務是，基於所有源數據，為使用者角色「{username}」與 AI 角色「{ai_name}」創造一個**【深度定制化的、靜態的開場快照】**。
 
 # === 絕對敘事禁令 ===
-1.  **【👑 使用者主權鐵則】**: 你的旁白【絕對禁止】描寫、暗示或杜撰使用者角色「{user_profile.name}」的任何**主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。你只能對其進行**客觀的、靜態的外觀和姿態描述**。
-2.  **【🚫 角色純淨原則】**: 這個開場白是一個**二人世界**的開端。你的描述中【絕對禁止】出現**任何**除了「{user_profile.name}」和「{ai_profile.name}」之外的**具名或不具名的NPC**。
-3.  **【🚫 禁止杜撰情節】**: 這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情，如性愛、暴力或衝突。
+1.  **【👑 使用者主權鐵則】**: 你的旁白【絕對禁止】描寫、暗示或杜撰使用者角色「{username}」的任何**主觀思想、內心感受、情緒變化、未明確表達的動作、或未說出口的對話**。
+2.  **【🚫 角色純淨原則】**: 這個開場白是一個**二人世界**的開端。你的描述中【絕對禁止】出現**任何**除了「{username}」和「{ai_name}」之外的**具名或不具名的NPC**。
+3.  **【🚫 禁止杜撰情節】**: 這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情。
 
 # === 核心要求 ===
 1.  **【🎬 RAG場景融合強制令】**: 你【必須】深度閱讀並理解下方由 RAG 系統提供的【核心場景情報】。你的開場白所描寫的氛圍、環境細節、角色狀態，都【必須】與這份情報的設定嚴格保持一致。
-2.  **【角色植入】**: 將「{user_profile.name}」和「{ai_profile.name}」無縫地植入到【核心場景情報】所描寫的場景中。他們的穿著和姿態必須完全符合其【角色檔案】。
-3.  **【開放式結尾強制令】**: 你的開場白**結尾**【必須】是 **AI 角色「{ai_profile.name}」** 的一個動作或一句對話，將故事的控制權正式交給使用者。
+2.  **【角色植入】**: 將「{username}」和「{ai_name}」無縫地植入到【核心場景情報】所描寫的場景中。
+3.  **【開放式結尾強制令】**: 你的開場白**結尾**【必須】是 **AI 角色「{ai_name}」** 的一個動作或一句對話，將故事的控制權正式交給使用者。
 
 ---
 【世界觀核心】
-{{world_settings}}
+{world_settings}
 ---
 【核心場景情報 (由 RAG 根據世界聖經智能選擇)】:
-{{rag_scene_context}}
+{rag_scene_context}
 ---
-【使用者角色檔案：{user_profile.name}】
-{{user_profile_json}}
+【使用者角色檔案：{username}】
+{user_profile_json}
 ---
-【AI角色檔案：{ai_profile.name}】
-{{ai_profile_json}}
+【AI角色檔案：{ai_name}】
+{ai_profile_json}
 ---
-請嚴格遵循你在系統指令中學到的所有規則，並使用下方由使用者定義的風格，開始搭建一個寧靜、靜態且符合所有設定的開場場景。
----
-{self.profile.response_style_prompt or "預設風格：平衡的敘事與對話。"}
+{response_style_prompt}
 ---
 """
+        full_prompt = self._safe_format_prompt(
+            opening_scene_prompt_template,
+            {
+                "username": user_profile.name,
+                "ai_name": ai_profile.name,
+                "world_settings": self.profile.world_settings or "",
+                "rag_scene_context": rag_scene_context,
+                "user_profile_json": json.dumps(user_profile.model_dump(), ensure_ascii=False, indent=2),
+                "ai_profile_json": json.dumps(ai_profile.model_dump(), ensure_ascii=False, indent=2),
+                "response_style_prompt": self.profile.response_style_prompt or ""
+            },
+            inject_core_protocol=True
+        )
         
-        params = {
-            "world_settings": encoded_world_settings,
-            "rag_scene_context": encoded_rag_scene_context,
-            "user_profile_json": encoded_user_profile_json,
-            "ai_profile_json": encoded_ai_profile_json,
-        }
+        opening_scene = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
+        if not opening_scene or not opening_scene.strip():
+            opening_scene = f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡..."
         
-        full_prompt = self._safe_format_prompt(full_template, params, inject_core_protocol=True)
-        
-        final_opening_scene = ""
+        # --- 步驟 2: [v186.0 新增] 反向提取地點並更新狀態 ---
+        logger.info(f"[{self.user_id}] [/start] 開場白已生成，正在從中反向提取權威地點...")
         try:
-            initial_scene = await self.ainvoke_with_rotation(
-                full_prompt, 
-                retry_strategy='force',
-                use_degradation=True
-            )
+            location_extraction_prompt = self.get_location_extraction_prompt()
+            # 我們傳遞開場白文本給地點提取器
+            full_extraction_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": opening_scene})
             
-            if not initial_scene or not initial_scene.strip():
-                raise Exception("生成了空的場景內容。")
-            
-            decoded_scene = self._decode_lore_content(initial_scene, self.DECODING_MAP)
-            final_opening_scene = decoded_scene.strip()
-            
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] [/start] 開場白生成遭遇無法恢復的錯誤: {e}。啟動【安全備用開場白】。")
-            final_opening_scene = (
-                f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡，故事即將從這裡開始。"
-                "\n\n（系統提示：由於您的設定可能包含敏感詞彙，AI無法生成詳細的開場白，但您現在可以開始互動了。）"
+            from .schemas import SceneLocationExtraction
+            location_result = await self.ainvoke_with_rotation(
+                full_extraction_prompt, 
+                output_schema=SceneLocationExtraction,
+                models_to_try_override=[FUNCTIONAL_MODEL]
             )
 
-        return final_opening_scene
-# 函式：生成開場白 (v184.0 - RAG驅動智能導演)
+            if location_result and location_result.has_explicit_location and location_result.location_path:
+                authoritative_location_path = location_result.location_path
+                logger.info(f"[{self.user_id}] [/start] ✅ 地點提取成功: {' > '.join(authoritative_location_path)}。正在更新 GameState...")
+                
+                # 更新並持久化 GameState
+                gs = self.profile.game_state
+                gs.location_path = authoritative_location_path
+                await self.update_and_persist_profile({'game_state': gs.model_dump()})
+                
+                # (可選但推薦) 將這個地點也存入 LORE
+                location_name = authoritative_location_path[-1]
+                location_info = LocationInfo(name=location_name, description=f"故事開始的地方：{opening_scene[:200]}...")
+                await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(authoritative_location_path), location_info.model_dump())
+
+            else:
+                logger.warning(f"[{self.user_id}] [/start] ⚠️ 未能從開場白中提取出明確地點，將使用預設值。")
+                gs = self.profile.game_state
+                gs.location_path = ["故事的開端"]
+                await self.update_and_persist_profile({'game_state': gs.model_dump()})
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [/start] 在反向提取地點時發生錯誤: {e}", exc_info=True)
+            gs = self.profile.game_state
+            gs.location_path = ["未知的起點"]
+            await self.update_and_persist_profile({'game_state': gs.model_dump()})
+
+        return opening_scene
+# 函式：生成開場白 (v186.0 - 決策執行合一)
 
     
 
@@ -5858,6 +5868,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
