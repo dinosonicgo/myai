@@ -4210,36 +4210,41 @@ class ExtractionResult(BaseModel):
     
 
     
-    # ai_core.py 的 _create_embeddings_instance 函式 (v2.4 - 穩定性回退)
+  # 函式：創建 Embeddings 實例 (v2.5 - 增加下載超時)
     # 更新紀錄:
-    # v2.4 (2025-11-26): [灾难性BUG修复] 將 HuggingFaceEmbeddings 的導入來源還原回 `langchain_community`，以解決與 transformers==4.36.2 的依賴衝突，確保系統穩定性。
+    # v2.5 (2025-10-03): [災難性BUG修復] 根據 requests.exceptions.ReadTimeout 錯誤，在傳遞給 HuggingFaceEmbeddings 的 model_kwargs 中增加了 `'requests_kwargs': {'timeout': 120}`。此修改將模型下載的網路請求超時時間從預設的 10 秒延長至 120 秒，以應對網路波動或模型文件過大導致的下載超時問題，確保本地 RAG 系統的穩定初始化。
+    # v2.4 (2025-11-26): [灾难性BUG修复] 將 HuggingFaceEmbeddings 的導入來源還原回 `langchain_community`。
     # v2.3 (2025-11-26): [架構優化] 將導入來源遷移到新的 `langchain_huggingface` 套件。
-    # v2.2 (2025-11-26): [灾难性BUG修复] 修正了本地 Embedding 模型名稱。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.4 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
+        (v2.5 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例，用於在本地生成文本向量。
         """
-        # [v2.4 核心修正] 還原回舊的、但與依賴項兼容的導入路徑
         from langchain_community.embeddings import HuggingFaceEmbeddings
         
-        # [v2.2 核心修正] 修正模型名稱，v3 不存在，正確的名稱是 v2
         model_name = "infgrad/stella-base-zh-v2"
 
-        model_kwargs = {'device': 'cpu'} # 強制使用 CPU，避免在無 GPU 環境下出錯
+        # [v2.5 核心修正] 增加 requests_kwargs 以延長超時時間
+        model_kwargs = {
+            'device': 'cpu', # 強制使用 CPU，避免在無 GPU 環境下出錯
+            'requests_kwargs': {'timeout': 120} # 將下載超時時間延長至 120 秒
+        }
         encode_kwargs = {'normalize_embeddings': False}
         
         try:
-            logger.info(f"[{self.user_id}] 正在創建本地 Embedding 模型 '{model_name}' 實例...")
+            print(f"⏳ [Embedding Loader] 正在從 {os.environ.get('HF_ENDPOINT', 'Hugging Face Hub')} 下載或加載本地 Embedding 模型 '{model_name}'...")
+            print("   (首次下載可能需要數分鐘，請耐心等候...)")
+            
             embeddings = HuggingFaceEmbeddings(
                 model_name=model_name,
                 model_kwargs=model_kwargs,
                 encode_kwargs=encode_kwargs
             )
-            logger.info(f"[{self.user_id}] ✅ 本地 Embedding 模型實例創建成功。")
+            print(f"✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。")
             return embeddings
         except Exception as e:
             logger.error(f"[{self.user_id}] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: {e}", exc_info=True)
             logger.error(f"   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。")
+            logger.error(f"   -> 同時請檢查您的網路連線是否可以正常訪問 Hugging Face 或其鏡像站。")
             return None
     # 創建 Embeddings 實例 函式結束
 
@@ -5681,6 +5686,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
