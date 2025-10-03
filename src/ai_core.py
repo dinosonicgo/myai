@@ -848,11 +848,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - JSON格式修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 增強解析錯誤日誌)
 # 更新紀錄:
-# v233.0 (2025-10-02): [災難性BUG修復] 根據 JSONDecodeError，在 Pydantic 驗證之前增加了一個健壯的「JSON 預處理與修復」層。此層會自動將 LLM 可能生成的、不規範的 JSON 字符串（例如，使用單引號作為鍵、末尾有懸空逗號）修復為嚴格的 JSON 格式，從根本上解決了因格式問題導致的解析失敗。同時增強了異常捕獲，現在會在解析失敗時將原始錯誤字符串完整記錄到日誌中。
-# v232.9 (2025-09-30): [災難性BUG修復] 根據 AttributeError，將針對 `block_reason` 的防禦性類型檢查邏輯，同樣應用到了 `finish_reason` 上。
+# v232.9 (2025-10-03): [健壯性強化] 根據 JSONDecodeError 和 ValidationError，增強了此函式的錯誤處理能力。現在，當捕獲到任何 Pydantic 驗證或 JSON 解析失敗時，它會將導致錯誤的、來自 LLM 的原始文本輸出完整地記錄到日誌中，為後續的除錯和 Prompt 優化提供了至關重要的上下文信息。
 # v232.8 (2025-11-26): [灾难性BUG修复] 增加了對 `response.prompt_feedback.block_reason` 數據類型的防禦性檢查。
+# v232.7 (2025-09-23): [根本性重構] 根據「原生SDK引擎」架構，徹底重寫了此函式。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -954,11 +954,7 @@ class AILover:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
                             
                             clean_json_str = json_match.group(0)
-
-                            # [v233.0 核心修正] 增加 JSON 格式預處理與修復層
-                            # 1. 嘗試修復單引號問題
                             repaired_str = clean_json_str.replace("'", '"')
-                            # 2. 嘗試修復懸空逗號
                             repaired_str = re.sub(r',\s*(\}|\])', r'\1', repaired_str)
                             
                             return output_schema.model_validate(json.loads(repaired_str))
@@ -977,10 +973,11 @@ class AILover:
                         else: 
                             raise e
 
+                    # [v232.9 核心修正] 增強解析錯誤的日誌記錄
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
-                        # [v233.0 核心修正] 增強錯誤日誌
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。")
+                        # 將導致錯誤的原始 LLM 輸出完整記錄下來，以便除錯
                         logger.debug(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
                         raise e
 
@@ -1016,8 +1013,12 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.0 - JSON格式修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v232.9 - 增強解析錯誤日誌)
 
+
+
+
+    
 
 # 函式：根據實體查詢 LORE (v1.0 - 全新創建)
 # 更新紀錄:
@@ -5502,6 +5503,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
