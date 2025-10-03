@@ -1267,69 +1267,39 @@ class AILover:
 
     
 
-# 函式：根據實體查詢 LORE (v1.0 - 全新創建)
+# 函式：根據實體查詢 LORE (v2.0 - 職責重定義)
 # 更新紀錄:
-# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此核心輔助函式。它的職責是接收查詢文本，調用 `_analyze_user_input` 進行實體分析，然後根據分析結果從資料庫中檢索所有相關的 LORE 條目。此函式的實現是修復 `retrieve_and_query_node` 節點崩潰的關鍵。
-    async def _query_lore_from_entities(self, query_text: str, is_remote_scene: bool = False) -> List[Lore]:
+# v2.0 (2025-10-03): [重大架構重構] 根據「單一事實來源」原則，徹底重構了此函式的職責和返回值。它不再從 SQL 資料庫返回完整的 LORE 對象（以避免上下文污染），而是僅僅負責從輸入文本中分析並提取出一個純粹的、去重後的「實體名稱列表」。這個列表唯一的下游用途是強化 RAG 查詢的關鍵詞，確保了結構化 LORE 不再直接注入到生成 Prompt 中。
+# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此核心輔助函式。
+    async def _query_lore_from_entities(self, query_text: str, is_remote_scene: bool = False) -> List[str]:
         """
-        從查詢文本中提取實體，並返回所有相關的 LORE 對象。
+        (v2.0) 從查詢文本中提取實體，並【只返回】一個相關的【實體名稱列表】。
         """
         if not self.profile:
             return []
 
-        logger.info(f"[{self.user_id}] [LORE 查詢] 正在從查詢 '{query_text[:50]}...' 中分析並提取實體...")
+        logger.info(f"[{self.user_id}] [實體名稱提取] 正在從查詢 '{query_text[:50]}...' 中分析實體...")
         
-        # 使用混合分析引擎提取實體
+        # 步驟 1: 使用混合分析引擎提取文本中明確提及的實體
         entities, _ = await self._analyze_user_input(query_text)
         
-        # 在本地場景中，總是包含核心主角
+        # 步驟 2: 在本地場景中，總是包含核心主角
         if not is_remote_scene:
             entities.append(self.profile.user_profile.name)
             entities.append(self.profile.ai_profile.name)
         
-        unique_entities = sorted(list(set(entities)), key=len, reverse=True)
+        # 步驟 3: 對提取出的實體進行去重和排序
+        unique_entities = sorted(list(set(name for name in entities if name)), key=len, reverse=True)
         
         if not unique_entities:
-            logger.info(f"[{self.user_id}] [LORE 查詢] 未在查詢中識別出任何有效實體。")
+            logger.info(f"[{self.user_id}] [實體名稱提取] 未在查詢中識別出任何有效實體。")
             return []
             
-        logger.info(f"[{self.user_id}] [LORE 查詢] 已識別出實體: {unique_entities}，正在從資料庫檢索...")
-
-        # 從資料庫中批量獲取所有相關的 LORE
-        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+        logger.info(f"[{self.user_id}] [實體名稱提取] 查詢分析完成，共識別出 {len(unique_entities)} 個核心實體: {unique_entities}。")
         
-        final_lores = []
-        found_keys = set()
-        
-        # 創建一個高效的查找表
-        name_to_lore_map = defaultdict(list)
-        for lore in all_lores:
-            if name := lore.content.get("name"):
-                name_to_lore_map[name].append(lore)
-            if aliases := lore.content.get("aliases"):
-                for alias in aliases:
-                    name_to_lore_map[alias].append(lore)
-
-        for entity_name in unique_entities:
-            # 遍歷所有 LORE，檢查名稱或別名是否匹配
-            for lore in all_lores:
-                if lore.key in found_keys:
-                    continue
-                
-                content = lore.content
-                name = content.get("name", "")
-                aliases = content.get("aliases", [])
-                
-                # 實現部分匹配和包含關係的查找
-                if (entity_name in name) or \
-                   (name in entity_name) or \
-                   any((entity_name in alias) or (alias in entity_name) for alias in aliases):
-                    final_lores.append(lore)
-                    found_keys.add(lore.key)
-        
-        logger.info(f"[{self.user_id}] [LORE 查詢] 查詢完畢，共找到 {len(final_lores)} 條相關 LORE。")
-        return final_lores
-# 函式：根據實體查詢 LORE (v1.0 - 全新創建)
+        # 步驟 4: 只返回名稱列表，不再查詢和返回完整的 LORE 對象
+        return unique_entities
+# 函式：根據實體查詢 LORE (v2.0 - 職責重定義)
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -5598,81 +5568,60 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：檢索並摘要記憶 (v22.1 - 移除拼接上限)
+# 函式：檢索並摘要記憶 (v23.0 - 查詢強化)
 # 更新紀錄:
-# v22.1 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了在拼接 RAG 結果時的 `MAX_DOCS_FOR_SUMMARY` 數量上限。現在，函式会将所有经过初步筛选的、未去重的原始文档全部拼接起来，以进行最大化的上下文压力测试，确保信息在 RAG 流程中无任何截断。
+# v23.0 (2025-10-03): [重大架構重構] 根據「單一事實來源」原則，重構了此函式的查詢邏輯。它現在會先調用新版的 `_query_lore_from_entities` 來獲取一個核心實體名稱列表，然後將這些名稱與原始查詢文本合併，形成一個更豐富、更精準的「擴展查詢」，再發送給 RAG 檢索器。此修改利用了 LORE 的結構化信息來提升 RAG 的檢索精度，同時確保了 LORE 數據本身不會洩漏到最終的生成上下文中。
+# v22.1 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了在拼接 RAG 結果時的 `MAX_DOCS_FOR_SUMMARY` 數量上限。
 # v22.0 (2025-10-03): [功能調整] 根據使用者指令，徹底移除了 RAG 後處理中的「智能去重」邏輯。
-# v21.0 (2025-10-02): [性能優化] 將用於拼接 RAG 上下文的文檔數量上限（MAX_DOCS_FOR_SUMMARY）從 7 條大幅提升至 15 條。
-    async def retrieve_and_summarize_memories(self, query_text: str, contextual_profiles: Optional[List[CharacterProfile]] = None, filtering_profiles: Optional[List[CharacterProfile]] = None) -> Dict[str, str]:
+    async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v22.1) 執行RAG檢索，并将【所有】最相關的原始文檔直接拼接後返回（已移除去重和拼接上限）。
-        返回一個字典: {"rules": str, "summary": str}
+        (v23.0) 執行包含 LORE 關鍵詞強化的 RAG 檢索，并将所有最相關的原始文檔直接拼接後返回。
+        返回一個字典: {"summary": str}
         """
-        default_return = {"rules": "（無適用的特定規則）", "summary": "沒有檢索到相關的長期記憶。"}
+        default_return = {"summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
             logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
             return default_return
+
+        # [v23.0 核心修正] 步驟 1: 呼叫新版 _query_lore_from_entities 獲取核心實體名稱
+        # 這裡我們假設是在本地場景，如果需要區分，可以傳入 is_remote_scene 參數
+        contextual_entity_names = await self._query_lore_from_entities(query_text, is_remote_scene=False)
         
-        expanded_query = query_text
-        if contextual_profiles:
-            query_keywords = set(re.split(r'\s+', query_text))
-            for profile in contextual_profiles:
-                query_keywords.add(profile.name)
-                if profile.aliases:
-                    query_keywords.update(profile.aliases)
-            expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
-            logger.info(f"[{self.user_id}] [RAG查詢強化] 查詢已擴展為: '{expanded_query}'")
+        # [v23.0 核心修正] 步驟 2: 構建擴展查詢
+        query_keywords = set(re.split(r'\s+', query_text))
+        query_keywords.update(contextual_entity_names)
+        
+        # 按長度排序以提高檢索精度
+        expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
+        logger.info(f"[{self.user_id}] [RAG查詢強化] 查詢已擴展為: '{expanded_query}'")
         
         try:
             retrieved_docs = await self.retriever.ainvoke(expanded_query) if self.retriever else []
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
-            return {"rules": "（規則檢索失敗）", "summary": "檢索長期記憶時發生錯誤。"}
+            return {"summary": "檢索長期記憶時發生錯誤。"}
         
         if not retrieved_docs:
             logger.info(f"[{self.user_id}] [RAG檢索] 未檢索到任何文檔。")
             return default_return
 
-        logger.info(f"--- [RAG 透明度日誌 Step 1/4] 初步檢索到 {len(retrieved_docs)} 條文檔 ---")
+        logger.info(f"--- [RAG 透明度日誌] 初步檢索到 {len(retrieved_docs)} 條原始文檔 ---")
 
-        final_docs = retrieved_docs
-        logger.info(f"--- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 {len(final_docs)} 條原始文檔 ---")
-
-        final_docs_to_process = final_docs
-        if filtering_profiles:
-            filter_names = set(p.name for p in filtering_profiles) | set(alias for p in filtering_profiles for alias in p.aliases)
-            final_docs_to_process = [doc for doc in final_docs if any(name in doc.page_content for name in filter_names)]
-            logger.info(f"--- [RAG 透明度日誌 Step 3/4] 根據核心角色篩選後剩餘 {len(final_docs_to_process)} 條文檔 ---")
-
-        if not final_docs_to_process: return default_return
-
-        rule_docs = [doc for doc in final_docs_to_process if doc.metadata.get("source") == "lore" and doc.metadata.get("category") == "world_lore"]
-        other_docs = [doc for doc in final_docs_to_process if doc not in rule_docs]
-        
-        rules_context = "\n\n---\n\n".join([doc.page_content for doc in rule_docs[:3]]) or "（當前場景無特定的行為準則或世界觀設定）"
-        
-        summary_context = "沒有檢索到相關的歷史事件或記憶。"
-        docs_to_concatenate = other_docs + rule_docs[3:]
-
-        if docs_to_concatenate:
-            # [v22.1 核心修正] 移除 MAX_DOCS_FOR_SUMMARY 限制，使用所有可用文檔
-            selected_docs = docs_to_concatenate
+        # 拼接所有結果，不再進行摘要或去重
+        if retrieved_docs:
+            concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
             
-            concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in selected_docs])
-            
-            summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(selected_docs)} 條最相關原始文檔）】:\n"
+            summary_context_header = f"【背景歷史參考（來自 RAG 檢索的 {len(retrieved_docs)} 條最相關原始文檔）】:\n"
             summary_context = summary_context_header + concatenated_content
             
-            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接全部 {len(selected_docs)} 條原始文檔作為 summary_context。")
+            logger.info(f"[{self.user_id}] [RAG原文直通] ✅ 成功拼接全部 {len(retrieved_docs)} 條原始文檔作為 summary_context。")
+            
+            # 解碼內容以供最終使用
+            final_summary = self._decode_lore_content(summary_context, self.DECODING_MAP)
+            return {"summary": final_summary}
         
-        logger.info(f"--- [RAG 透明度日誌 Step 4/4] 最終輸出 ---")
-        logger.info(f"  [最終 rules_context 長度]: {len(rules_context)}")
-        logger.info(f"  [最終 summary_context 長度]: {len(summary_context)}")
-        logger.info("--- RAG 流程結束 ---")
-
-        return {"rules": rules_context, "summary": self._decode_lore_content(summary_context, self.DECODING_MAP)}
-# 函式：檢索並摘要記憶 (v22.1 - 移除拼接上限)
-
+        return default_return
+# 函式：檢索並摘要記憶 (v23.0 - 查詢強化)
 
 
     
@@ -5779,6 +5728,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
