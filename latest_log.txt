@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T17:32:35.369566 ###
+### AI Lover Log - Last updated at 2025-10-03T17:38:24.845069 ###
 
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-03 16:35:32 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
-2025-10-03 16:35:32 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
-2025-10-03 16:35:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-03 16:35:33 - [INFO] - [512280345618546699] (Graph|1) LLM 感知成功。推斷出的目標地點: ['宅邸']
-2025-10-03 16:35:33 - [INFO] - [512280345618546699] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。
 2025-10-03 16:35:33 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
 2025-10-03 16:35:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
 2025-10-03 16:35:34 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 'dict' object has no attribute 'model_validate'
@@ -300,3 +289,14 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 353, in assemble_world_snapshot_node
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
 KeyError: 'explicit_character_files_context'
+2025-10-03 17:38:10 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 17:38:10 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 17:38:10 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 17:38:10 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 17:38:10 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 17:38:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 17:38:11 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 17:38:11 - [INFO] - Discord Bot is ready!
+2025-10-03 17:38:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 17:38:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 17:38:14 - [INFO] - 已成功發送啟動成功通知給管理員。
