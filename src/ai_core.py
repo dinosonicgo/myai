@@ -4210,14 +4210,14 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：創建 Embeddings 實例 (v2.6 - 本地優先)
+# 函式：創建 Embeddings 實例 (v2.7 - 動態參數修正)
     # 更新紀錄:
-    # v2.6 (2025-10-03): [重大架構優化] 根據使用者需求，徹底重構了模型加載邏輯，實現了「本地優先，網路備援」策略。程式現在會首先檢查專案內 `models/stella-base-zh-v2` 路徑是否存在。如果存在，則直接從本地加載模型以實現快速啟動；如果不存在，則回退到從 Hugging Face 鏡像下載的原始邏輯。此修改大幅提升了程式在模型已下載情況下的啟動速度和離線可用性。
-    # v2.5 (2025-10-03): [災難性BUG修復] 根據 requests.exceptions.ReadTimeout 錯誤，增加了模型下載的網路請求超時時間。
-    # v2.4 (2025-11-26): [灾难性BUG修复] 將 HuggingFaceEmbeddings 的導入來源還原回 `langchain_community`。
+    # v2.7 (2025-10-03): [災難性BUG修復] 根據 TypeError: unexpected keyword argument 'requests_kwargs'，徹底重構了此函式的參數處理邏輯。新版本為本地加載和網路下載分別定義了不同的 `model_kwargs` 字典，確保了只有在執行網路下載時才會傳遞 `requests_kwargs` 參數，從根源上解決了本地加載時因不支援該參數而導致的 TypeError。
+    # v2.6 (2025-10-03): [重大架構優化] 實現了「本地優先，網路備援」策略。
+    # v2.5 (2025-10-03): [災難性BUG修復] 增加了模型下載的網路請求超時時間。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.6 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例。
+        (v2.7 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例。
         優先從本地 'models/stella-base-zh-v2' 目錄加載，如果失敗則回退到從網路下載。
         """
         from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -4227,7 +4227,13 @@ class ExtractionResult(BaseModel):
         # 模型的本地存儲路徑
         local_model_path = PROJ_DIR / "models" / "stella-base-zh-v2"
 
-        model_kwargs = {
+        # [v2.7 核心修正] 為本地和網路模式分別定義 kwargs
+        # 本地加載時，不需要網路相關參數
+        local_model_kwargs = {
+            'device': 'cpu'
+        }
+        # 網路下載時，需要延長超時時間
+        network_model_kwargs = {
             'device': 'cpu', 
             'requests_kwargs': {'timeout': 120} 
         }
@@ -4239,7 +4245,7 @@ class ExtractionResult(BaseModel):
             try:
                 embeddings = HuggingFaceEmbeddings(
                     model_name=str(local_model_path), # 直接使用本地路徑
-                    model_kwargs=model_kwargs,
+                    model_kwargs=local_model_kwargs,  # 使用不含 requests_kwargs 的版本
                     encode_kwargs=encode_kwargs
                 )
                 logger.info(f"✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。")
@@ -4256,9 +4262,8 @@ class ExtractionResult(BaseModel):
         try:
             embeddings = HuggingFaceEmbeddings(
                 model_name=model_name_on_hub, # 使用網路名稱
-                model_kwargs=model_kwargs,
+                model_kwargs=network_model_kwargs, # 使用包含 requests_kwargs 的版本
                 encode_kwargs=encode_kwargs,
-                # 指定一個快取目錄，模型會被下載到這裡，但我們優先使用上面的 project/models 路徑
                 cache_folder=str(PROJ_DIR / "models" / "cache")
             )
             logger.info(f"✅ [Embedding Loader] 網路下載並創建 Embedding 模型實例成功。")
@@ -5709,6 +5714,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
