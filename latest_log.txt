@@ -1,28 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T23:57:50.325867 ###
+### AI Lover Log - Last updated at 2025-10-04T00:02:53.514206 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-json.decoder.JSONDecodeError: Expecting ',' delimiter: line 25 column 1021 (char 6013)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1216, in ainvoke_with_rotation
-    corrected_response = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1194, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1151, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-10-03 22:17:48 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] L1/L2 雲端重排最終失敗: Expecting ',' delimiter: line 25 column 1021 (char 6013)。
-2025-10-03 22:17:48 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
-2025-10-03 22:17:48 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:17:48 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:17:48 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
 2025-10-03 22:17:49 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
 2025-10-03 22:17:49 - [WARNING] - [512280345618546699] [LORE精煉-L1] 雲端完整精煉被審查 (Prompt blocked due to 4)。降級至 L2 (本地模型)。
 2025-10-03 22:17:49 - [INFO] - [512280345618546699] [LORE精煉-本地] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '蛇人女奴' 進行精煉...
@@ -300,3 +277,26 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 23:57:43 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
 2025-10-03 23:57:43 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
 2025-10-03 23:57:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 23:58:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-03 23:58:19 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-03 23:58:21 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析任務...
+2025-10-03 23:58:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 23:58:23 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-03 23:58:23 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-03 23:58:23 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-03 23:58:25 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條預生成LORE，準備執行...
+2025-10-03 23:58:25 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
+2025-10-03 23:58:25 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在實體 '碧' 的更新。啟動事實查核...
+2025-10-03 23:58:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-03 23:58:26 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for update_npc_profile: Prompt blocked due to 4
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3205, in _execute_tool_call_plan
+    validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1259, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1216, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-03 23:58:26 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-03 23:58:26 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務失敗: for update_npc_profile: Prompt blocked due to 4
+2025-10-03 23:58:26 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
