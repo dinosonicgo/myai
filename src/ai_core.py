@@ -406,7 +406,58 @@ class AILover:
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
 # 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
 
+# 函式：獲取LORE擴展決策器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此函式。它的職責是提供一個 Prompt 模板，用於指導一個輕量級的 LLM 執行決策任務：判斷使用者輸入是否引入了一個全新的、需要創建 LORE 骨架的角色，以防止在主生成流程中出現 LLM 幻覺。
+    def get_expansion_decision_chain(self) -> str:
+        """獲取或創建一個用於決策是否擴展LORE的字符串模板。"""
+        prompt_template = """# TASK: 你是一位嚴謹的【LORE守門人】。
+# MISSION: 你的任務是分析【使用者最新指令】，並與【已知角色列表】進行比對，以判斷是否需要為一個**全新的、有名有姓的**角色創建一個新的LORE檔案骨架。
 
+# === 【【【🚨 核心決策規則 (CORE DECISION RULES) - 絕對鐵則】】】 ===
+# 1.  **【擴展示機】**: 只有當使用者指令中明確引入了一個**全新的、有名有姓的、且不在已知角色列表中的**人物時，`should_expand` 才應為 `true`。
+# 2.  **【禁止擴展的情況】**: 在以下情況下，`should_expand` **必須**為 `false`：
+#     *   指令中提到的所有角色都已經存在於【已知角色列表】中。
+#     *   指令中提到的是一個模糊的代稱（例如「那個男人」、「一個衛兵」、「酒保」），而不是一個具體的專有名稱。
+#     *   指令中提到的名字是已知角色的別名、頭銜或部分名稱。
+# 3.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ExpansionDecision` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 範例 1 (需要擴展) ---
+# 輸入: "描述米婭在市場遇到一個名叫「湯姆」的鐵匠"
+# 已知角色: ["米婭"]
+# 輸出:
+# ```json
+# {
+#   "should_expand": true,
+#   "reasoning": "指令中引入了一個全新的、有名有姓的角色「湯姆」，他不在已知角色列表中。"
+# }
+# ```
+# --- 範例 2 (無需擴展) ---
+# 輸入: "讓米婭跟勳爵對話"
+# 已知角色: ["米婭", "卡爾·維利爾斯勳爵"]
+# 輸出:
+# ```json
+# {
+#   "should_expand": false,
+#   "reasoning": "指令中提到的'米婭'和'勳爵'都是已知角色。"
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【使用者最新指令】:
+{user_input}
+
+# ---
+# 【已知角色列表 (JSON)】:
+{existing_characters_json}
+
+# ---
+# 【你的決策JSON】:
+"""
+        return prompt_template
+# 函式：獲取LORE擴展決策器 Prompt (v1.0 - 全新創建)
     
 
 
@@ -5451,6 +5502,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
