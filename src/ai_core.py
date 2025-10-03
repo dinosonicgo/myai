@@ -3526,25 +3526,42 @@ class ExtractionResult(BaseModel):
 
 
 
-        # 函式：獲取地點提取器 Prompt (v1.0 - 全新創建)
+# 函式：獲取地點提取器 Prompt (v2.0 - 結構強化)
     # 更新紀錄:
-    # v1.0 (2025-09-27): [全新創建] 創建此函式作為修正「遠程觀察」模式下上下文丟失問題的核心。它提供一個高度聚焦的Prompt，專門用於從使用者的自然語言指令中提取出結構化的、可用於資料庫查詢的地點路徑。
+    # v2.0 (2025-10-03): [災難性BUG修復] 根據 ValidationError，徹底重寫了此 Prompt。新版本增加了更嚴格的【意圖判斷】規則，並提供了正反兩個【輸出結構範例】，以最大限度地確保 LLM 在任何情況下都能返回包含 `has_explicit_location` 欄位的、結構完整的 JSON，從根源上解決 Pydantic 驗證失敗的問題。
+    # v1.0 (2025-09-27): [全新創建] 創建此函式作為修正「遠程觀察」模式下上下文丟失問題的核心。
     def get_location_extraction_prompt(self) -> str:
         """獲取一個為「遠程觀察」模式設計的、專門用於從自然語言提取地點路徑的Prompt模板。"""
-        prompt_template = """# TASK: 你是一個高精度的地理位置識別與路徑解析引擎。
-# MISSION: 你的任務是分析一段【使用者指令】，並從中提取出其中描述的【核心場景地點】，將其轉換為一個結構化的【地點路徑列表】。
+        prompt_template = """# TASK: 你是一個高精度的場景意圖分析儀。
+# MISSION: 你的任務是分析【使用者指令】，判斷其中是否包含一個明確的【地點或場景描述】，並將其提取為結構化的路徑。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【層級化解析】**: 你必須將地點解析為一個有序的層級列表，從最大範圍到最精確的地點。例如：「維利爾斯莊園的洗衣房」應解析為 `["維利爾斯莊園", "洗衣房"]`。
-# 2.  **【忽略非地點信息】**: 你的唯一目標是提取**地點**。完全忽略指令中關於角色、動作、時間等所有非地點信息。
-# 3.  **【空路徑處理】**: 如果指令中完全沒有提及任何具體地點，則返回一個包含單一通用地點的列表，例如 `["未知地點"]`。
-# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合下方結構的JSON物件。
+# 1.  **【意圖判斷】**:
+#     *   如果指令明確描述了一個地點（例如「在宅邸」、「前往市場」、「描述森林深處」），則 `has_explicit_location` 必須為 `true`。
+#     *   如果指令是一個沒有地點上下文的動作（例如「攻擊他」、「繼續對話」、「她感覺如何？」），則 `has_explicit_location` 必須為 `false`。
+# 2.  **【路徑提取】**:
+#     *   如果 `has_explicit_location` 為 `true`，你【必須】將地點解析為一個層級化列表，放入 `location_path`。例如：「維利爾斯莊園的書房」應解析為 `["維利爾斯莊園", "書房"]`。
+#     *   如果 `has_explicit_location` 為 `false`，`location_path` 必須為 `null`。
+# 3.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `SceneLocationExtraction` Pydantic 模型的JSON物件。
 
 # === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 範例 1 (有地點) ---
+# 輸入: "描述一下維利爾斯家宅邸"
+# 輸出:
 # ```json
-# {{
-#   "location_path": ["維利爾斯莊園", "洗衣房"]
-# }}
+# {
+#   "has_explicit_location": true,
+#   "location_path": ["維利爾斯家宅邸"]
+# }
+# ```
+# --- 範例 2 (無地點) ---
+# 輸入: "她感覺如何？"
+# 輸出:
+# ```json
+# {
+#   "has_explicit_location": false,
+#   "location_path": null
+# }
 # ```
 
 # --- [INPUT DATA] ---
@@ -3553,7 +3570,7 @@ class ExtractionResult(BaseModel):
 {user_input}
 
 # ---
-# 【你解析出的地點路徑JSON】:
+# 【你分析後的場景意圖JSON】:
 """
         return prompt_template
     # 函式：獲取地點提取器 Prompt
@@ -5372,6 +5389,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
