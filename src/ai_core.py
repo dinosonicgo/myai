@@ -289,14 +289,14 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
-# 函式：RAG 直通生成 (v1.2 - 注入風格指令)
+# 函式：RAG 直通生成 (v1.3 - 快照解耦)
 # 更新紀錄:
-# v1.2 (2025-10-03): [災難性BUG修復] 根據使用者反饋，在最終 Prompt 的組裝邏輯中，補全了注入使用者自訂回覆風格 (`response_style_prompt`) 的關鍵步驟。新版本增加了一個「絕對風格強制令」區塊並將其放置在 Prompt 的末尾，確保 AI 的生成嚴格遵循使用者的風格設定，解決了 AI 風格退化的問題。
+# v1.3 (2025-10-03): [災難性BUG修復] 根據 "[事後分析] 快照不完整" 的錯誤日誌，徹底重構了函式末尾的上下文快照創建和傳遞邏輯。新版本將「為下一輪對話準備的快照」與「為本次事後分析準備的快照」進行了徹底解耦。現在，函式會創建一個專用的、結構完全符合 `_background_lore_extraction` 期望的 `snapshot_for_analysis` 字典，並將其傳遞給背景任務，從根源上解決了因鍵名不匹配和職責混亂導致的數據流錯誤。
+# v1.2 (2025-10-03): [災難性BUG修復] 在最終 Prompt 的組裝邏輯中，補全了注入使用者自訂回覆風格的關鍵步驟。
 # v1.1 (2025-10-03): [災難性BUG修復] 根據 NameError，修正了對 `_get_summarized_chat_history` 的內部呼叫方式。
-# v1.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，創建此全新的核心生成函式。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.2) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
+        (v1.3) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
         """
         user_id = self.user_id
         if not self.profile:
@@ -326,7 +326,6 @@ class AILover:
         historical_context = await self._get_summarized_chat_history(user_id)
 
         # --- 步驟 4: 組裝純淨 Prompt ---
-        # [v1.2 核心修正] 讀取使用者自訂風格，如果為空則提供預設值
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
@@ -384,20 +383,25 @@ class AILover:
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
         
-        # 6b. 為下一輪創建上下文快照
-        self.last_context_snapshot = {
-            "last_response_text": clean_response,
+        # [v1.3 核心修正] 創建一個專門用於事後分析的、結構正確的快照
+        snapshot_for_analysis = {
             "user_input": user_input,
-            "rag_context": rag_context, 
-            "relevant_characters": [] 
+            "final_response": clean_response, # 使用正確的鍵名
+            "rag_context": rag_context,
+            "relevant_characters": []
         }
         
-        # 6c. 異步觸發背景 LORE 學習
-        asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
+        # [v1.3 核心修正] 保持 self.last_context_snapshot 的職責單一
+        # 它只為下一輪的 "continue" 指令服務
+        self.last_context_snapshot = {
+            "last_response_text": clean_response
+        }
+        
+        # [v1.3 核心修正] 將專用的快照傳遞給背景任務
+        asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         return clean_response
-# 函式：RAG 直通生成 (v1.2 - 注入風格指令)
-
+# 函式：RAG 直通生成 (v1.3 - 快照解耦)
 
 
     
@@ -5775,6 +5779,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
