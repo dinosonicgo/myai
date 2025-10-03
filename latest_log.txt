@@ -1,75 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T22:40:30.881986 ###
+### AI Lover Log - Last updated at 2025-10-03T22:45:37.289485 ###
 
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['蛇人女奴']
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 3 個核心實體: ['蛇人女奴', 'DINO', '碧']。
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 查詢已擴展為: '的背景故事、起源和關鍵經歷的詳細描述。 '蛇人女奴' 蛇人女奴 DINO 關於 碧'
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...
-2025-10-03 22:15:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 22:15:03 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-03 22:15:03 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
-2025-10-03 22:15:03 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
-2025-10-03 22:15:03 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:15:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:03 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇解析或驗證錯誤: JSONDecodeError。啟動【自我修正】流程...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['蛇人女奴']
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 3 個核心實體: ['蛇人女奴', 'DINO', '碧']。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 查詢已擴展為: '與其他角色的關係是什麼？ '蛇人女奴' 蛇人女奴 DINO 碧'
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['蛇人女奴']
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 3 個核心實體: ['蛇人女奴', 'DINO', '碧']。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 查詢已擴展為: '的所有身份、頭銜、綽號和狀態是什麼？ '蛇人女奴' 蛇人女奴 DINO 碧'
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['蛇人女奴']
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 3 個核心實體: ['蛇人女奴', 'DINO', '碧']。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 查詢已擴展為: '擁有哪些技能或能力？ '蛇人女奴' 蛇人女奴 DINO 碧'
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...
-2025-10-03 22:15:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 22:15:04 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-03 22:15:04 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
-2025-10-03 22:15:04 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
-2025-10-03 22:15:04 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:15:04 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:15:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:06 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:15:06 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:15:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-03 22:15:14 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 22:15:14 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-03 22:15:14 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
-2025-10-03 22:15:14 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
-2025-10-03 22:15:14 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
-2025-10-03 22:15:14 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
-2025-10-03 22:15:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 22:15:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇解析或驗證錯誤: JSONDecodeError。啟動【自我修正】流程...
-2025-10-03 22:15:26 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 22:15:26 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: Prompt blocked due to 4
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1186, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(repaired_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-json.decoder.JSONDecodeError: Expecting ',' delimiter: line 25 column 1021 (char 5925)
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1216, in ainvoke_with_rotation
     corrected_response = await self.ainvoke_with_rotation(
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1194, in ainvoke_with_rotation
     raise e
@@ -300,3 +230,73 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 22:40:20 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 22:40:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 22:40:20 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-03 22:40:46 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-03 22:40:48 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-03 22:40:52 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-03 22:40:52 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 22:40:52 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-03 22:40:52 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 22:40:52 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 22:40:52 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-03 22:41:02 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-03 22:41:02 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 22:41:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-03 22:41:02 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-03 22:41:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 22:41:05 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-03 22:41:14 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-03 22:41:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-03 22:41:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 22:41:18 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-03 22:41:31 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-03 22:41:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-03 22:41:31 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 22:41:33 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-03 22:41:41 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-03 22:41:44 - [INFO] - [512280345618546699] [創世流程 v64.0] Graph 驅動的流程已啟動。
+2025-10-03 22:41:44 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
+2025-10-03 22:41:44 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
+2025-10-03 22:41:44 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 34 條傳入文檔構建純向量索引...
+2025-10-03 22:42:25 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
+2025-10-03 22:42:25 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行創世圖...
+2025-10-03 22:42:25 - [INFO] - [512280345618546699] (Setup Graph|2/4) Node: complete_profiles_node -> 節點已啟動，準備補完角色檔案...
+2025-10-03 22:42:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 22:42:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 22:42:30 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-03 22:42:30 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 22:42:30 - [INFO] - [512280345618546699] (Setup Graph|2/4) Node: complete_profiles_node -> 節點執行成功。
+2025-10-03 22:42:30 - [INFO] - [512280345618546699] (Setup Graph|3/4) Node: world_genesis -> 節點已啟動...
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] [/start] 初始地點 '王國 > 王都 > 維利爾斯莊園 > 莊園領地邊緣森林 > 被遺忘的古老神龕' 已成功生成並存入LORE。
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] (Setup Graph|3/4) Node: world_genesis -> 節點執行成功。
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 節點已啟動...
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇開場場景...
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] [實體名稱提取] 正在從查詢 '根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧 的背景，為他們的故事尋...' 中分析實體...
+2025-10-03 22:42:32 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['DINO', '碧']
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 2 個核心實體: ['DINO', '碧']。
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 查詢已擴展為: '的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的初始場景或情境。 根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧'
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [RAG Re-ranker 1/3] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-03 22:42:33 - [INFO] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...
+2025-10-03 22:43:16 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-03 22:43:16 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-03 22:43:16 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-03 22:43:16 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-10-03 22:43:16 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...
+2025-10-03 22:43:16 - [INFO] - [512280345618546699] [RAG Re-ranker L3] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行重排...
+2025-10-03 22:43:29 - [INFO] - [512280345618546699] [RAG Re-ranker L3] ✅ 本地模型重排成功。
+2025-10-03 22:43:29 - [WARNING] - [512280345618546699] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。
+2025-10-03 22:43:29 - [INFO] - [512280345618546699] [RAG Re-ranker 3/3] ✅ 成功拼接 20 條精選文檔作為 summary_context。
+2025-10-03 22:44:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-03 22:44:02 - [INFO] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 節點執行成功。
+2025-10-03 22:44:02 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-03 22:44:03 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-03 22:44:03 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
