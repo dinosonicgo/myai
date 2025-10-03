@@ -1,49 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T19:42:22.715978 ###
+### AI Lover Log - Last updated at 2025-10-03T19:47:25.832879 ###
 
-2025-10-03 19:15:19 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
-2025-10-03 19:15:19 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
-2025-10-03 19:15:21 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-03 19:15:25 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
-2025-10-03 19:15:26 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-03 19:15:26 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-03 19:15:26 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-03 19:15:26 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-03 19:15:26 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-10-03 19:15:58 - [ERROR] - [512280345618546699] 🔥 創建本地 Embedding 模型實例時發生致命錯誤: HTTPSConnectionPool(host='hf-mirror.com', port=443): Read timed out. (read timeout=10)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 464, in _make_request
-    self._validate_conn(conn)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 1093, in _validate_conn
-    conn.connect()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connection.py", line 790, in connect
-    sock_and_verified = _ssl_wrap_socket_and_match_hostname(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connection.py", line 969, in _ssl_wrap_socket_and_match_hostname
-    ssl_sock = ssl_wrap_socket(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\util\ssl_.py", line 480, in ssl_wrap_socket
-    ssl_sock = _ssl_wrap_socket_impl(sock, context, tls_in_tls, server_hostname)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\util\ssl_.py", line 524, in _ssl_wrap_socket_impl
-    return ssl_context.wrap_socket(sock, server_hostname=server_hostname)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\ssl.py", line 513, in wrap_socket
-    return self.sslsocket_class._create(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\ssl.py", line 1071, in _create
-    self.do_handshake()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\ssl.py", line 1342, in do_handshake
-    self._sslobj.do_handshake()
-TimeoutError: _ssl.c:980: The handshake operation timed out
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\requests\adapters.py", line 667, in send
-    resp = conn.urlopen(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 841, in urlopen
-    retries = retries.increment(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\util\retry.py", line 474, in increment
-    raise reraise(type(error), error, _stacktrace)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\util\util.py", line 39, in reraise
-    raise value
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 787, in urlopen
-    response = self._make_request(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 488, in _make_request
     raise new_e
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\urllib3\connectionpool.py", line 466, in _make_request
@@ -300,3 +256,47 @@ NameError: name '_get_summarized_chat_history' is not defined
 2025-10-03 19:42:11 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 19:42:11 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 19:42:12 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 19:44:21 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 19:44:21 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-03 19:44:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 19:44:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 19:44:21 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-03 19:44:28 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] [Direct RAG] 啟動純粹 RAG 直通生成流程...
+2025-10-03 19:44:28 - [INFO] - [512280345618546699] [Direct RAG] 正在執行 RAG 檢索...
+2025-10-03 19:44:30 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-03 19:44:30 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 19 條原始文檔 ---
+2025-10-03 19:44:30 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 19 條原始文檔作為 summary_context。
+2025-10-03 19:44:30 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-03 19:44:30 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-03 19:44:30 - [INFO] -   [最終 summary_context 長度]: 17897
+2025-10-03 19:44:30 - [INFO] - --- RAG 流程結束 ---
+2025-10-03 19:44:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 19:44:32 - [INFO] - [512280345618546699] [Direct RAG] Prompt 組裝完畢，正在調用 LLM 生成...
+2025-10-03 19:45:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-10-03 19:45:08 - [INFO] - [512280345618546699] [Direct RAG] 生成流程完成。
+2025-10-03 19:45:08 - [ERROR] - [512280345618546699] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。
+2025-10-03 19:45:09 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-03 19:46:14 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-03 19:46:14 - [INFO] - [512280345618546699] [Direct RAG] 啟動純粹 RAG 直通生成流程...
+2025-10-03 19:46:14 - [INFO] - [512280345618546699] [Direct RAG] 正在執行 RAG 檢索...
+2025-10-03 19:46:14 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 19 條文檔 ---
+2025-10-03 19:46:14 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 19 條原始文檔 ---
+2025-10-03 19:46:14 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 19 條原始文檔作為 summary_context。
+2025-10-03 19:46:14 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-03 19:46:14 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-03 19:46:14 - [INFO] -   [最終 summary_context 長度]: 18156
+2025-10-03 19:46:14 - [INFO] - --- RAG 流程結束 ---
+2025-10-03 19:46:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-03 19:46:16 - [INFO] - [512280345618546699] [Direct RAG] Prompt 組裝完畢，正在調用 LLM 生成...
+2025-10-03 19:46:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-10-03 19:46:44 - [INFO] - [512280345618546699] [Direct RAG] 生成流程完成。
+2025-10-03 19:46:44 - [ERROR] - [512280345618546699] [事後分析] 接收到的上下文快照不完整，缺少關鍵數據。
+2025-10-03 19:46:45 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
