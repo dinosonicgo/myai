@@ -1,55 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T15:35:33.526548 ###
+### AI Lover Log - 2025-10-03T15:38:20.079977 ###
 
-2025-10-03 07:32:38 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:32:38 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:32:38 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:32:38 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:32:38 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:32:38 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:32:38 - [INFO] -   [最終 summary_context 長度]: 19129
-2025-10-03 07:32:38 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:32:38 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
-2025-10-03 07:32:38 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 07:32:38 - [WARNING] - [512280345618546699] [LORE精煉-L1] 雲端完整精煉被審查 (Prompt blocked due to 4)。降級至 L2 (本地模型)。
-2025-10-03 07:32:38 - [INFO] - [512280345618546699] [LORE精煉-本地] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '勳爵' 進行精煉...
-2025-10-03 07:33:07 - [ERROR] - [512280345618546699] [LORE精煉-本地] 🔥 呼叫本地Ollama進行精煉時發生未知錯誤: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=35, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2977, in _invoke_local_ollama_refiner
-    validated_result = CharacterProfile.model_validate(parsed_json)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
-age
-  Input should be a valid string [type=string_type, input_value=35, input_type=int]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-2025-10-03 07:33:07 - [WARNING] - [512280345618546699] [LORE精煉-L3] L1和L2均失敗。啟動雲端『分治法』數據搶救...
-2025-10-03 07:33:07 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #4) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 07:33:07 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
-2025-10-03 07:33:07 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [LORE精煉-L3] ✅ 成功搶救 'description' 數據。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [單體精煉] ✅ 驗證通過，成功為角色 '勳爵' 生成精煉檔案。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [數據一致性] 正在重新加載 LORE 數據以確保獲取最新版本...
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [前置解析] 完成。已為 3 個核心角色準備好高質量 LORE。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [上下文篩選] 觸發「指令優先原則」，將指令中提及的角色設為核心目標。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [上下文篩選 in 'local' mode] 核心目標: ['米婭', '宅邸', '勳爵'], 背景角色: []
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [RAG查詢強化] 查詢已擴展為: 'Lord Karl Veriers 描述米婭在宅邸遇到勳爵 卡爾•維利爾斯勳爵 維利爾斯家宅邸 Jasper Bane Leo Tom 賈斯伯 瑪琳娜 米婭 湯姆 班恩 勳爵 宅邸 里奧'
-2025-10-03 07:33:10 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:10 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:10 - [INFO] - --- [RAG 透明度日誌 Step 3/4] 根據核心角色篩選後剩餘 17 條文檔 ---
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 17 條原始文檔作為 summary_context。
-2025-10-03 07:33:10 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:10 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:10 - [INFO] -   [最終 summary_context 長度]: 15927
-2025-10-03 07:33:10 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [動態注入] ✅ 已將 3 條即時解析的 LORE 注入 RAG 上下文。
-2025-10-03 07:33:10 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 53887 秒)。
-2025-10-03 07:33:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
-2025-10-03 07:33:45 - [INFO] - [512280345618546699] [純粹生成流程] 小說文本生成成功，並已為事後分析創建包含 3 條完整LORE的上下文快照。
-2025-10-03 07:33:46 - [INFO] - [512280345618546699] 回應已發送。正在啟動統一的「事後分析」任務...
 2025-10-03 07:33:48 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析任務...
 2025-10-03 07:33:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
 2025-10-03 07:33:51 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
@@ -300,3 +250,53 @@ AttributeError: 'AILoverBot' object has no attribute 'main_graph'
 2025-10-03 15:35:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 15:35:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 15:35:23 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 15:37:48 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 15:37:48 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-03 15:37:48 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 15:37:48 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 15:37:48 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-03 15:37:53 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-03 15:37:53 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-03 15:37:54 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
+2025-10-03 15:37:54 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
+2025-10-03 15:37:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 15:37:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
+2025-10-03 15:37:54 - [WARNING] - [512280345618546699] (Graph|1) 地點推斷鏈失敗: 1 validation error for SceneLocationExtraction
+has_explicit_location
+  Field required [type=missing, input_value={'location_path': ['宅邸']}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing，將回退到基本邏輯。
+2025-10-03 15:37:54 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
+2025-10-03 15:37:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-03 15:37:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: OutputParserException。
+2025-10-03 15:37:56 - [WARNING] - [512280345618546699] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。
+2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 21 條文檔 ---
+2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 21 條原始文檔 ---
+2025-10-03 15:37:57 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 21 條原始文檔作為 summary_context。
+2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-03 15:37:57 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-03 15:37:57 - [INFO] -   [最終 summary_context 長度]: 20025
+2025-10-03 15:37:57 - [INFO] - --- RAG 流程結束 ---
+2025-10-03 15:37:57 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: 'AILover' object has no attribute '_query_lore_from_entities'
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
+    final_state = await self.bot.main_graph.ainvoke(initial_state)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
+    async for chunk in self.astream(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
+    async for _ in runner.atick(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
+    await arun_with_retry(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
+    input = await step.ainvoke(input, config, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
+    ret = await self.afunc(*args, **kwargs)
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 171, in retrieve_and_query_node
+    final_lores = await ai_core._query_lore_from_entities(sanitized_query, is_remote_scene=is_remote)
+AttributeError: 'AILover' object has no attribute '_query_lore_from_entities'
