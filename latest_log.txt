@@ -1,28 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T16:38:23.852155 ###
+### AI Lover Log - Last updated at 2025-10-03T16:44:13.540250 ###
 
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-03 15:37:53 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-03 15:37:53 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-10-03 15:37:54 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
-2025-10-03 15:37:54 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
-2025-10-03 15:37:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-03 15:37:54 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。
-2025-10-03 15:37:54 - [WARNING] - [512280345618546699] (Graph|1) 地點推斷鏈失敗: 1 validation error for SceneLocationExtraction
-has_explicit_location
-  Field required [type=missing, input_value={'location_path': ['宅邸']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing，將回退到基本邏輯。
-2025-10-03 15:37:54 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
-2025-10-03 15:37:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-03 15:37:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇解析或驗證錯誤: OutputParserException。
-2025-10-03 15:37:56 - [WARNING] - [512280345618546699] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。
-2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 21 條文檔 ---
-2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 21 條原始文檔 ---
-2025-10-03 15:37:57 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 21 條原始文檔作為 summary_context。
-2025-10-03 15:37:57 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
 2025-10-03 15:37:57 - [INFO] -   [最終 rules_context 長度]: 20
 2025-10-03 15:37:57 - [INFO] -   [最終 summary_context 長度]: 20025
 2025-10-03 15:37:57 - [INFO] - --- RAG 流程結束 ---
@@ -300,3 +277,26 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
     obj, end = self.scan_once(s, idx)
 json.decoder.JSONDecodeError: Expecting ',' delimiter: line 3 column 24 (char 51)
+2025-10-03 16:43:57 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 16:43:57 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 16:43:57 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 16:43:57 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 16:43:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 16:43:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 16:43:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 16:43:58 - [INFO] - Discord Bot is ready!
+2025-10-03 16:44:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 16:44:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 16:44:01 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 16:44:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 16:44:09 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-03 16:44:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 16:44:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 16:44:09 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-03 16:44:13 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
