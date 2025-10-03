@@ -1,93 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T17:38:24.845069 ###
+### AI Lover Log - Last updated at 2025-10-03T17:43:27.980793 ###
 
-2025-10-03 16:35:33 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
-2025-10-03 16:35:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-03 16:35:34 - [ERROR] - [512280345618546699] 在 ainvoke 期間發生未知錯誤 (模型: gemini-2.5-flash-lite): 'dict' object has no attribute 'model_validate'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 964, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(repaired_str))
-AttributeError: 'dict' object has no attribute 'model_validate'
-2025-10-03 16:35:34 - [WARNING] - [512280345618546699] (Graph|2) 源頭清洗失敗，將使用原始輸入進行查詢。
-2025-10-03 16:35:35 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 21 條文檔 ---
-2025-10-03 16:35:35 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 21 條原始文檔 ---
-2025-10-03 16:35:35 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 21 條原始文檔作為 summary_context。
-2025-10-03 16:35:35 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 16:35:35 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 16:35:35 - [INFO] -   [最終 summary_context 長度]: 19977
-2025-10-03 16:35:35 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 16:35:35 - [INFO] - [512280345618546699] [LORE 查詢] 正在從查詢 '描述米婭在宅邸遇到勳爵...' 中分析並提取實體...
-2025-10-03 16:35:35 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勳爵']
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] [LORE 查詢] 已識別出實體: ['宅邸', '勳爵', '米婭']，正在從資料庫檢索...
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] [LORE 查詢] 查詢完畢，共找到 5 條相關 LORE。
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 5 條相關LORE。
-2025-10-03 16:35:36 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
-2025-10-03 16:35:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-03 16:35:37 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇解析或驗證錯誤: JSONDecodeError。
-2025-10-03 16:35:37 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: Expecting ',' delimiter: line 3 column 24 (char 51)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
-    final_state = await self.bot.main_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
-    async for _ in runner.atick(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
-    await arun_with_retry(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
-    return await task.proc.ainvoke(task.input, config)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
-    input = await step.ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 205, in expansion_decision_and_execution_node
-    decision = await ai_core.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 985, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 964, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(repaired_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-json.decoder.JSONDecodeError: Expecting ',' delimiter: line 3 column 24 (char 51)
-2025-10-03 16:43:57 - [INFO] - 正在編譯主對話圖 (main_graph)...
-2025-10-03 16:43:57 - [INFO] - ✅ 主對話圖編譯成功。
-2025-10-03 16:43:57 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
-2025-10-03 16:43:57 - [INFO] - ✅ 創世流程圖編譯成功。
-2025-10-03 16:43:57 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-03 16:43:57 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
-2025-10-03 16:43:58 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
-2025-10-03 16:43:58 - [INFO] - Discord Bot is ready!
-2025-10-03 16:44:00 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
-2025-10-03 16:44:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-03 16:44:01 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-03 16:44:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-03 16:44:09 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-10-03 16:44:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-03 16:44:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-03 16:44:09 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
-2025-10-03 16:44:13 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
-2025-10-03 16:44:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|1) LLM 感知成功。推斷出的目標地點: ['宅邸']
-2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。
-2025-10-03 16:44:14 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
-2025-10-03 16:44:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 22 條文檔 ---
-2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 22 條原始文檔 ---
-2025-10-03 16:44:17 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
-2025-10-03 16:44:17 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
 2025-10-03 16:44:17 - [INFO] -   [最終 rules_context 長度]: 20
 2025-10-03 16:44:17 - [INFO] -   [最終 summary_context 長度]: 20903
 2025-10-03 16:44:17 - [INFO] - --- RAG 流程結束 ---
@@ -300,3 +212,91 @@ KeyError: 'explicit_character_files_context'
 2025-10-03 17:38:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 17:38:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 17:38:14 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 17:38:41 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 17:38:41 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-03 17:38:41 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 17:38:41 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 17:38:41 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] 啟動 Graph-based 對話流程...
+2025-10-03 17:38:45 - [INFO] - [512280345618546699] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...
+2025-10-03 17:38:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 17:38:46 - [INFO] - [512280345618546699] (Graph|1) LLM 感知成功。推斷出的目標地點: ['宅邸']
+2025-10-03 17:38:46 - [INFO] - [512280345618546699] (Graph|1) 未檢測到本地切換信號，導演視角保持為 'remote'。
+2025-10-03 17:38:46 - [INFO] - [512280345618546699] (Graph|2) Node: retrieve_and_query -> 正在檢索記憶與查詢LORE...
+2025-10-03 17:38:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-03 17:38:49 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 22 條文檔 ---
+2025-10-03 17:38:49 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 22 條原始文檔 ---
+2025-10-03 17:38:49 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
+2025-10-03 17:38:49 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
+2025-10-03 17:38:49 - [INFO] -   [最終 rules_context 長度]: 20
+2025-10-03 17:38:49 - [INFO] -   [最終 summary_context 長度]: 20896
+2025-10-03 17:38:49 - [INFO] - --- RAG 流程結束 ---
+2025-10-03 17:38:49 - [INFO] - [512280345618546699] [LORE 查詢] 正在從查詢 '**情節概述**
+
+在一個充滿權勢與誘惑的宅邸場景中，角色米婭與勳爵進行了一次初步的互動。這次會面標...' 中分析並提取實體...
+2025-10-03 17:38:49 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '勳爵', '宅邸']
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] [LORE 查詢] 已識別出實體: ['勳爵', '米婭', '宅邸']，正在從資料庫檢索...
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] [LORE 查詢] 查詢完畢，共找到 5 條相關 LORE。
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 5 條相關LORE。
+2025-10-03 17:38:50 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
+2025-10-03 17:38:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-03 17:38:51 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇解析或驗證錯誤: JSONDecodeError。啟動【自我修正】流程...
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|3) 決策結果：無需擴展。理由: 指令中提到的'米婭'和'勳爵'（卡爾•維利爾斯勳爵）都是已知角色。未引入任何全新的、有名有姓的角色。
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|4) 未解析到明確的工具調用。
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【當前場景事實】...
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|5) 【當前場景事實】組裝完畢。
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|6) Node: final_generation -> 启动最终生成流程...
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] (Graph|6) [永久性轟炸] 已啟用 'force' 備援策略以最大化成功率。
+2025-10-03 17:38:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 17544 秒)。
+2025-10-03 17:38:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-03 17:38:55 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【最高指令集注入重試】策略...
+2025-10-03 17:38:55 - [INFO] - [512280345618546699] 已對 Prompt 附加完整的核心指令集，正在進行強化重試...
+2025-10-03 17:38:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-03 17:38:57 - [ERROR] - [512280345618546699] 【最高指令集注入重試】策略最終失敗: Prompt blocked due to 4
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 992, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2593, in _force_and_retry
+    return await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1035, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 992, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-03 17:38:57 - [CRITICAL] - [512280345618546699] (Graph|6) 核心生成链在所有策略之後最終失敗！
+2025-10-03 17:38:57 - [INFO] - [512280345618546699] (Graph|6) 最终生成流程完成。
+2025-10-03 17:38:57 - [INFO] - [512280345618546699] (Graph|7) Node: validate_and_persist -> 正在驗證、學習與持久化...
+2025-10-03 17:38:57 - [INFO] - [512280345618546699] (Graph|7) 已為下一輪創建上下文快照。
+2025-10-03 17:38:57 - [INFO] - [512280345618546699] (Graph|7) 狀態持久化完成。
+2025-10-03 17:38:58 - [INFO] - [512280345618546699] Graph 流程執行完畢，回應已發送。
+2025-10-03 17:38:59 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析任務...
+2025-10-03 17:39:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-03 17:39:01 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-03 17:39:01 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-03 17:39:01 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-03 17:39:03 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條預生成LORE，準備執行...
+2025-10-03 17:39:03 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
+2025-10-03 17:39:03 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在實體 '未知實體' 的更新。啟動事實查核...
+2025-10-03 17:39:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-03 17:39:04 - [WARNING] - [512280345618546699] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。
+2025-10-03 17:39:04 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-03 17:39:04 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展已执行。
+2025-10-03 17:39:04 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
