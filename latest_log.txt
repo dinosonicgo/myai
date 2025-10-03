@@ -1,69 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T15:52:10.314608 ###
+### AI Lover Log - Last updated at 2025-10-03T15:57:13.583186 ###
 
-pydantic_core._pydantic_core.ValidationError: 1 validation error for UpdateLoreTemplateKeysArgs
-lore_category
-  Field required [type=missing, input_value={'lore_key': '宅邸 > ...s': ['宅邸 > 米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-03 07:33:56 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-10-03 07:33:56 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功 (修正後創建): 已為新實體 '米婭' 創建檔案。
-任務成功 (修正後創建): 已為新實體 '卡爾•維利爾斯勳爵' 創建檔案。
-任務失敗: for update_lore_template_keys: 1 validation error for UpdateLoreTemplateKeysArgs
-lore_category
-  Field required [type=missing, input_value={'lore_key': '宅邸 > ...s': ['宅邸 > 米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-03 07:33:56 - [INFO] - [512280345618546699] [精煉觸發器] 檢測到 2 條新/陳舊 LORE，正在異步觸發背景精煉服務...
-2025-10-03 07:33:56 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [LORE精煉 v7.1] 背景精煉服務已啟動，收到 2 個精煉任務。
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [單體精煉 v11.0] 正在為角色 '米婭' 啟動三層降級精煉流程...
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:59 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:59 - [INFO] -   [最終 summary_context 長度]: 19128
-2025-10-03 07:33:59 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:59 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:59 - [INFO] -   [最終 summary_context 長度]: 19001
-2025-10-03 07:33:59 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:59 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:59 - [INFO] -   [最終 summary_context 長度]: 19010
-2025-10-03 07:33:59 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:59 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:59 - [INFO] -   [最終 summary_context 長度]: 19041
-2025-10-03 07:33:59 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 1/4] 初步檢索到 20 條文檔 ---
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 2/4] 去重已禁用，使用全部 20 條原始文檔 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [RAG原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-03 07:33:59 - [INFO] - --- [RAG 透明度日誌 Step 4/4] 最終輸出 ---
-2025-10-03 07:33:59 - [INFO] -   [最終 rules_context 長度]: 20
-2025-10-03 07:33:59 - [INFO] -   [最終 summary_context 長度]: 19071
-2025-10-03 07:33:59 - [INFO] - --- RAG 流程結束 ---
-2025-10-03 07:33:59 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
-2025-10-03 07:34:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #5) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-03 07:34:00 - [WARNING] - [512280345618546699] [LORE精煉-L1] 雲端完整精煉被審查 (Prompt blocked due to 4)。降級至 L2 (本地模型)。
-2025-10-03 07:34:00 - [INFO] - [512280345618546699] [LORE精煉-本地] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為角色 '米婭' 進行精煉...
-2025-10-03 07:36:23 - [ERROR] - [512280345618546699] [LORE精煉-本地] 🔥 呼叫本地Ollama進行精煉時發生未知錯誤: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'title': '城鎮區與...的分裂與混亂。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2977, in _invoke_local_ollama_refiner
-    validated_result = CharacterProfile.model_validate(parsed_json)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
 name
   Field required [type=missing, input_value={'title': '城鎮區與...的分裂與混亂。'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
@@ -300,3 +236,67 @@ AttributeError: 'AILover' object has no attribute '_query_lore_from_entities'
 2025-10-03 15:51:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 15:51:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 15:52:02 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 15:53:47 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-03 15:53:47 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-03 15:53:47 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-03 15:53:49 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-03 15:53:49 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-03 15:53:49 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-03 15:53:51 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-03 15:53:58 - [INFO] - [512280345618546699] (UI Event) WorldSettingsModal submitted. is_setup_flow: True
+2025-10-03 15:53:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 15:53:58 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-03 15:53:58 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 15:53:58 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 15:53:58 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-03 15:54:02 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-03 15:54:02 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 15:54:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-03 15:54:02 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-03 15:54:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 15:54:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-03 15:54:14 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-03 15:54:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-03 15:54:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 15:54:15 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-03 15:54:25 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-03 15:54:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-03 15:54:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-03 15:54:27 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-03 15:54:37 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-03 15:54:39 - [INFO] - [512280345618546699] [創世流程 v64.0] Graph 驅動的流程已啟動。
+2025-10-03 15:54:39 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
+2025-10-03 15:54:39 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
+2025-10-03 15:54:39 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 34 條傳入文檔構建純向量索引...
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行創世圖...
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] (Setup Graph|1/4) Node: process_canon -> 節點已啟動。
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] (Setup Graph|1/4) 檢測到世界聖經文本 (長度: 27258)，開始處理...
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-03 15:55:18 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:55:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-03 15:55:33 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] ✅ 成功！
+2025-10-03 15:55:33 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
+2025-10-03 15:55:33 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:55:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-03 15:55:54 - [INFO] - [512280345618546699] [LORE 解析 2-1/5] ✅ 成功！
+2025-10-03 15:55:54 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
+2025-10-03 15:55:54 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:56:07 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #2.
+2025-10-03 15:56:07 - [INFO] - [512280345618546699] [LORE 解析 3-1/5] ✅ 成功！
+2025-10-03 15:56:07 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
+2025-10-03 15:56:07 - [INFO] - [512280345618546699] [LORE 解析 4-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:56:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-03 15:56:26 - [INFO] - [512280345618546699] [LORE 解析 4-1/5] ✅ 成功！
+2025-10-03 15:56:26 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-10-03 15:56:26 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:56:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-03 15:56:41 - [INFO] - [512280345618546699] [LORE 解析 5-1/5] ✅ 成功！
+2025-10-03 15:56:41 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 6/8...
+2025-10-03 15:56:41 - [INFO] - [512280345618546699] [LORE 解析 6-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-03 15:56:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #5.
+2025-10-03 15:56:59 - [INFO] - [512280345618546699] [LORE 解析 6-1/5] ✅ 成功！
+2025-10-03 15:56:59 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 7/8...
+2025-10-03 15:56:59 - [INFO] - [512280345618546699] [LORE 解析 7-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
