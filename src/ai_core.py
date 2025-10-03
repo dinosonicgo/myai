@@ -252,12 +252,50 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-# 函式：RAG 直通生成 (v1.0 - 全新創建)
+
+
+    # 函式：獲取摘要後的對話歷史 (v1.0 - 遷移至 AILover 類)
 # 更新紀錄:
-# v1.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，創建此全新的核心生成函式。它徹底取代了基於 LangGraph 的複雜工作流，實現了一個更簡單、更純粹、更健壯的「指令 -> RAG -> LLM」處理管線。此函式現在是處理所有對話的核心入口，旨在最大限度地減少上下文污染，並將內容審查的壓力完全交由後端的 ainvoke_with_rotation 備援機制處理。
+# v1.0 (2025-10-03): [重大架構重構] 根據 NameError，將此函式從 graph.py 物理遷移至 ai_core.py，並將其定義為 AILover 類別的一個內部方法。此修改解決了因作用域問題和循環導入風險導致的 NameError，同時改善了程式碼的內聚性，使處理對話歷史的邏輯回歸到其所屬的核心類中。
+    async def _get_summarized_chat_history(self, user_id: str, num_messages: int = 8) -> str:
+        """提取並摘要最近的對話歷史，並內建一個強大的、基於「文學評論家」重寫的 NSFW 內容安全備援機制。"""
+        if not self.profile: return "（沒有最近的對話歷史）"
+        
+        scene_key = self._get_scene_key()
+        chat_history_manager = self.scene_histories.get(scene_key, ChatMessageHistory())
+
+        if not chat_history_manager.messages:
+            return "（沒有最近的對話歷史）"
+            
+        recent_messages = chat_history_manager.messages[-num_messages:]
+        if not recent_messages:
+            return "（沒有最近的對話歷史）"
+
+        raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
+
+        try:
+            literary_chain_prompt = self.get_literary_euphemization_chain()
+            full_prompt = self._safe_format_prompt(literary_chain_prompt, {"dialogue_history": raw_history_text})
+            summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='euphemize')
+
+            if not summary or not summary.strip():
+                raise Exception("Summarization returned empty content.")
+                
+            return f"【最近對話摘要】:\n{summary}"
+
+        except Exception as e:
+            logger.error(f"[{user_id}] (History Summarizer) 生成摘要時發生錯誤: {e}。返回中性提示。")
+            return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
+# 函式：獲取摘要後的對話歷史
+
+
+# 函式：RAG 直通生成 (v1.1 - 修正內部呼叫)
+# 更新紀錄:
+# v1.1 (2025-10-03): [災難性BUG修復] 根據 NameError，將內部對 `_get_summarized_chat_history` 的呼叫方式從直接調用修正為 `self._get_summarized_chat_history`，以正確調用已遷移至類別內部的輔助方法。
+# v1.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，創建此全新的核心生成函式。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.0) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
+        (v1.1) 執行一個純粹的「指令 -> RAG -> LLM」生成流程，不經過 Graph。
         """
         user_id = self.user_id
         if not self.profile:
@@ -284,7 +322,8 @@ class AILover:
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
         # --- 步驟 3: 獲取對話歷史 ---
-        historical_context = await _get_summarized_chat_history(self, user_id)
+        # [v1.1 核心修正] 更新呼叫方式
+        historical_context = await self._get_summarized_chat_history(user_id)
 
         # --- 步驟 4: 組裝純淨 Prompt ---
         final_prompt_template = """{core_protocol_prompt}
@@ -351,11 +390,10 @@ class AILover:
         }
         
         # 6c. 異步觸發背景 LORE 學習
-        # 注意：這裡的快照結構與 background_lore_extraction 的期望略有不同，但可以兼容
         asyncio.create_task(self._background_lore_extraction(self.last_context_snapshot))
         
         return clean_response
-# 函式：RAG 直通生成 (v1.0 - 全新創建)
+# 函式：RAG 直通生成 (v1.1 - 修正內部呼叫)
 
 
 
@@ -5714,6 +5752,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
