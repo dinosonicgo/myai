@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T15:46:24.278885 ###
+### AI Lover Log - Last updated at 2025-10-03T15:52:10.314608 ###
 
-2025-10-03 07:33:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-03 07:33:56 - [INFO] - [512280345618546699] [抗幻覺] 事實查核裁定為 CREATE。正在創建新的 LORE...
-2025-10-03 07:33:56 - [ERROR] - [512280345618546699] (LORE Executor) 任務失敗: for update_lore_template_keys: 1 validation error for UpdateLoreTemplateKeysArgs
-lore_category
-  Field required [type=missing, input_value={'lore_key': '宅邸 > ...s': ['宅邸 > 米婭']}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2738, in _execute_tool_call_plan
-    validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 1 validation error for UpdateLoreTemplateKeysArgs
 lore_category
   Field required [type=missing, input_value={'lore_key': '宅邸 > ...s': ['宅邸 > 米婭']}, input_type=dict]
@@ -300,3 +289,14 @@ AttributeError: 'AILover' object has no attribute '_query_lore_from_entities'
 2025-10-03 15:46:14 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 15:46:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 15:46:16 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 15:51:56 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 15:51:56 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 15:51:56 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 15:51:56 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 15:51:56 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 15:51:56 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 15:51:56 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 15:51:56 - [INFO] - Discord Bot is ready!
+2025-10-03 15:51:59 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 15:51:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 15:52:02 - [INFO] - 已成功發送啟動成功通知給管理員。
