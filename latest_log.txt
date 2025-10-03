@@ -1,28 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T18:49:54.972686 ###
+### AI Lover Log - Last updated at 2025-10-03T18:55:13.010804 ###
 
-2025-10-03 16:44:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-03 16:44:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇解析或驗證錯誤: JSONDecodeError。
-2025-10-03 16:44:18 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: Expecting ',' delimiter: line 3 column 24 (char 51)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
-    final_state = await self.bot.main_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
-    async for _ in runner.atick(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
-    await arun_with_retry(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_retry.py", line 137, in arun_with_retry
-    return await task.proc.ainvoke(task.input, config)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 693, in ainvoke
-    input = await step.ainvoke(input, config, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\_internal\_runnable.py", line 457, in ainvoke
-    ret = await self.afunc(*args, **kwargs)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 220, in expansion_decision_and_execution_node
-    decision = await ai_core.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 982, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 960, in ainvoke_with_rotation
     return output_schema.model_validate(json.loads(repaired_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
     return _default_decoder.decode(s)
@@ -300,3 +277,26 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 17:49:05 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-03 17:49:05 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-03 17:49:06 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 18:54:54 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 18:54:54 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 18:54:54 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 18:54:54 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 18:54:54 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 18:54:54 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 18:54:54 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 18:54:54 - [INFO] - Discord Bot is ready!
+2025-10-03 18:54:57 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 18:54:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 18:54:57 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-03 18:55:04 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-03 18:55:04 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-03 18:55:04 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-03 18:55:04 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-03 18:55:04 - [INFO] - [512280345618546699] 正在創建本地 Embedding 模型 'infgrad/stella-base-zh-v2' 實例...
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] ✅ 本地 Embedding 模型實例創建成功。
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-03 18:55:12 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
