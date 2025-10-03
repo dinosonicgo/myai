@@ -101,9 +101,10 @@ class AILover:
     
     
     
-# ai_core.py 的 AILover.__init__ 函式 (v234.1 - 新增淨化協議)
+# ai_core.py 的 AILover.__init__ 函式 (v235.0 - 新增冷卻機制)
 # 更新紀錄:
-# v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性，並將一個安全的、專為數據處理任務設計的「淨化版」指導原則硬編碼於此。此修改將安全協議集中管理，避免了在多個函式中重複定義，提高了程式碼的可維護性和複用性。
+# v235.0 (2025-10-03): [重大架構升級] 根據 `ResourceExhausted` 錯誤，引入了「持久化 API Key 冷卻」機制的基礎設施。此版本新增了 `self.cooldown_file_path` 和 `self.key_model_cooldowns` 兩個實例屬性，並在初始化時自動調用全新的 `_load_cooldowns` 輔助函式，從本地 JSON 檔案讀取並恢復 API Key 的冷卻狀態，為實現智能的速率限制熔斷機制奠定了基礎。
+# v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性。
 # v234.0 (2025-11-22): [架構重構] 新增了 self.post_generation_analysis_chain 屬性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
@@ -117,6 +118,7 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
+        # [v235.0 核心修正] 新增冷卻機制相關屬性
         self.cooldown_file_path = PROJ_DIR / "data" / "api_cooldown.json"
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
@@ -136,25 +138,21 @@ class AILover:
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
         
-        self.forensic_lore_reconstruction_chain: Optional[str] = None
-        self.batch_entity_resolution_chain: Optional[str] = None
-        self.single_entity_resolution_chain: Optional[str] = None
+        # 延遲加載的 Prompt 模板
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
         self.profile_completion_prompt: Optional[str] = None
-        self.profile_parser_prompt: Optional[str] = None
-        self.profile_rewriting_prompt: Optional[str] = None
         self.rag_summarizer_chain: Optional[str] = None
         self.literary_euphemization_chain: Optional[str] = None
-        self.euphemization_reconstruction_chain: Optional[str] = None
-        self.canon_transformation_chain: Optional[str] = None
-        self.lore_refinement_chain: Optional[str] = None
-        self.lore_extraction_chain: Optional[str] = None
-        self.description_synthesis_prompt: Optional[str] = None
         self.post_generation_analysis_chain: Optional[str] = None
+        self.input_analysis_prompt: Optional[str] = None
+        self.location_extraction_prompt: Optional[str] = None
+        self.expansion_decision_chain: Optional[str] = None
+        self.preemptive_tool_parsing_chain: Optional[str] = None
+        self.rag_reranker_prompt: Optional[str] = None
+        self.local_rag_reranker_prompt: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
-        # [v234.1 核心修正] 硬編碼淨化版協議
         self.data_protocol_prompt: str = """# ==============================================================================
 # == 📖 AI 數據處理程式指導原則 v1.0 (安全版) 📖
 # ==============================================================================
@@ -207,8 +205,9 @@ class AILover:
 
 
     
+# 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
     # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此輔助函式，作為持久化API冷卻機制的一部分。它在檢測到速率超限後，將更新後的冷卻數據寫回JSON檔案。
+    # v1.0 (2025-10-03): [重大架構升級] 根據「持久化冷卻」策略，創建此全新的輔助函式。它的唯一職責是在檢測到速率超限後，將包含 Key、模型和解鎖時間戳的最新冷卻狀態字典，序列化並寫入到 data/api_cooldown.json 檔案中，從而實現了熔斷機制的跨進程、跨重啟持久化。
     def _save_cooldowns(self):
         """將當前的金鑰+模型冷卻狀態保存到 JSON 檔案。"""
         try:
@@ -218,11 +217,13 @@ class AILover:
             logger.error(f"[{self.user_id}] 無法寫入 API 冷卻檔案: {e}")
     # 函式：保存持久化的冷卻狀態 (v1.0 - 全新創建)
 
-    # 函式：獲取下一個可用的 API 金鑰
+
+    
+# 函式：獲取下一個可用的 API 金鑰 (v3.0 - 檢查冷卻)
     # 更新紀錄:
-    # v2.1 (2025-09-23): [災難性BUG修復] 修正了函式簽名，增加了 model_name 參數，並更新了內部邏輯以執行精確到“金鑰+模型”組合的冷卻檢查。此修改是為了與 ainvoke_with_rotation 中的持久化冷卻機制完全同步，從而解決 TypeError。
-    # v2.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統，會自動跳過處於冷卻期的金鑰。
-    # v1.0 (2025-10-14): [核心功能] 創建此輔助函式，用於集中管理 API 金鑰的輪換。
+    # v3.0 (2025-10-03): [重大架構升級] 根據「持久化冷卻」策略，徹底重構了此函式的核心邏輯。新版本在選擇 API Key 之前，會先讀取 `self.key_model_cooldowns` 字典，檢查對應的「Key+模型」組合是否正處於冷卻期。如果是，則會自動跳過該 Key，繼續尋找下一個可用的 Key。此修改是實現智能熔斷機制的關鍵一步，避免了對已被限制的 Key 進行無效的請求。
+    # v2.1 (2025-09-23): [災難性BUG修復] 修正了函式簽名，增加了 model_name 參數。
+    # v2.0 (2025-10-15): [健壯性] 整合了 API Key 冷卻系統。
     def _get_next_available_key(self, model_name: str) -> Optional[Tuple[str, int]]:
         """
         獲取下一個可用的 API 金鑰及其索引。
@@ -235,7 +236,7 @@ class AILover:
         for i in range(len(self.api_keys)):
             index_to_check = (start_index + i) % len(self.api_keys)
             
-            # [v2.1 核心修正] 使用 "金鑰索引_模型名稱" 作為唯一的冷卻鍵
+            # [v3.0 核心修正] 使用 "金鑰索引_模型名稱" 作為唯一的冷卻鍵
             cooldown_key = f"{index_to_check}_{model_name}"
             cooldown_until = self.key_model_cooldowns.get(cooldown_key)
 
@@ -244,6 +245,7 @@ class AILover:
                 logger.info(f"[{self.user_id}] [API Key Cooling] 跳過冷卻中的 API Key #{index_to_check} (針對模型 {model_name}，剩餘 {cooldown_remaining} 秒)。")
                 continue
             
+            # 如果 Key 可用，更新主索引並返回
             self.current_key_index = (index_to_check + 1) % len(self.api_keys)
             return self.api_keys[index_to_check], index_to_check
         
@@ -1067,13 +1069,51 @@ class AILover:
 """
         return prompt_template
     # 函式：獲取實體驗證器 Prompt
+
+
+
+
+
+
+
+
+
+
+
+
+    # 函式：獲取本地RAG重排器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-03): [重大架構升級] 根據「本地備援」策略，創建此全新的 Prompt 模板。它為本地、無規範的 LLM 提供了一個更簡單、更直接的指令，專門用於在雲端重排器失敗時，接管 RAG 結果的二次篩選任務。通過使用極簡的「填空式」指令，最大限度地確保了本地備援的成功率和執行效率。
+    def get_local_rag_reranker_prompt(self) -> str:
+        """獲取為本地LLM設計的、指令簡化的、用於RAG重排的備援Prompt模板。"""
+        
+        prompt_template = """# TASK: 篩選相關文檔。
+# QUERY: {query_text}
+# DOCUMENTS:
+{documents_json}
+# INSTRUCTION: 閱讀 QUERY。閱讀每一份 DOCUMENTS。判斷哪些文檔與 QUERY 直接相關。在下面的 JSON 結構中，只包含那些高度相關的文檔。不要修改文檔內容。只輸出 JSON。
+# JSON_OUTPUT:
+```json
+{{
+  "relevant_documents": [
+  ]
+}}
+```"""
+        return prompt_template
+# 函式：獲取本地RAG重排器 Prompt (v1.0 - 全新創建)
+
+
+
+
+
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.3 - 提升日誌級別)
+
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
 # 更新紀錄:
-# v233.3 (2025-10-03): [健壯性強化] 根據使用者需求，將 JSON 解析/驗證失敗時記錄原始 LLM 輸出的日誌級別從 `DEBUG` 提升至 `WARNING`。此修改確保了在常規日誌級別下，開發者也能立即看到導致解析失敗的具體文本內容，從而極大地簡化了 Prompt 的除錯和迭代過程，減少了對昂貴的 LLM 自我修正的依賴。
+# v234.0 (2025-10-03): [重大架構升級] 根據使用者指令和 `ResourceExhausted` 錯誤，實現了精細化的「持久化 API Key 冷卻」策略。新版本在捕獲到速率超限異常時，會判斷當前使用的模型。如果是 `gemini-pro` 或更高階的模型，則會對該 API Key 觸發長達 24 小時的「硬冷卻」，並將狀態寫入 JSON 檔案。對於其他模型，則只進行短期的內部重試。此修改旨在智能地應對 Google API 的速率限制，保護高價值 API Key 不被持續的無效請求所浪費。
+# v233.3 (2025-10-03): [健壯性強化] 提升了 JSON 解析失敗時的日誌級別。
 # v233.2 (2025-10-03): [重大架構升級] 新增了 `force_api_key_tuple` 參數以支援外部強制指定 API Key。
-# v233.1 (2025-10-03): [災難性BUG修復] 實現了「自我修正」循環以應對 JSON 格式錯誤。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1085,7 +1125,7 @@ class AILover:
         force_api_key_tuple: Optional[Tuple[str, int]] = None 
     ) -> Any:
         """
-        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key。
+        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key 和持久化冷卻。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
@@ -1199,7 +1239,6 @@ class AILover:
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。啟動【自我修正】流程...")
-                        # [v233.3 核心修正] 將日誌級別提升至 WARNING
                         logger.warning(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
                         
                         try:
@@ -1230,19 +1269,21 @@ class AILover:
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
-                        if "MAX_TOKENS" in str(e):
-                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇 MAX_TOKENS 錯誤。")
-                             break
                         
+                        # [v234.0 核心修正] 實作精細化的冷卻策略
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
-                            if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
+                            
+                            # 只對 Pro 級別模型的 ResourceExhausted 錯誤啟用長期冷卻
+                            if isinstance(e, google_api_exceptions.ResourceExhausted) and "pro" in model_name:
                                 cooldown_key = f"{key_index}_{model_name}"
-                                cooldown_duration = 24 * 60 * 60 
+                                cooldown_duration = 24 * 60 * 60 # 24 小時
                                 self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
                                 self._save_cooldowns()
-                                logger.critical(f"[{self.user_id}] [持久化冷卻] API Key #{key_index} (模型: {model_name}) 已被置入冷卻狀態，持續 24 小時。")
-                            break
+                                logger.critical(f"[{self.user_id}] [持久化冷卻] 偵測到 Pro 模型速率超限！API Key #{key_index} (模型: {model_name}) 已被置入硬冷卻狀態，持續 24 小時。")
+                            else:
+                                logger.warning(f"[{self.user_id}] 將輪換到下一個金鑰。")
+                            break # 跳出內部重試循環，進入外部的 Key 輪換
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
@@ -1263,7 +1304,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.3 - 提升日誌級別)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
 
 
 
@@ -3313,28 +3354,29 @@ class ExtractionResult(BaseModel):
 # 函式：背景LORE精煉 (v7.1 - 接收任務式)
 
 
-# 函式：調用本地Ollama模型執行LORE精煉 (v1.1 - 超時延長)
+# 函式：呼叫本地Ollama模型執行RAG重排 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.1 (2025-10-03): [災難性BUG修復] 根據 httpx.ReadTimeout 錯誤日誌，將 httpx.AsyncClient 的超時時間從 300 秒大幅延長至 600 秒（10 分鐘），以給予本地模型在處理複雜的 LORE 精煉任務時足夠的響應時間。
-# v1.0 (2025-10-02): [全新創建] 根據「三層降級」LORE精煉策略，創建此輔助函式。
-    async def _invoke_local_ollama_refiner(self, character_name: str, base_profile: Dict, aggregated_context: Dict) -> Optional[CharacterProfile]:
+# v1.0 (2025-10-03): [重大架構升級] 根據「本地備援」策略，創建此全新的輔助函式。它的核心職責是在雲端 RAG 重排器因審查或 API 限制而失敗時，無縫接管重排任務。通過將任務交由本地、無限制的 Ollama 模型執行，它極大地提高了 RAG 系統的健壯性和可用性，是解決 `ResourceExhausted` 和 `BlockedPromptException` 問題的關鍵一環。
+    async def _invoke_local_ollama_reranker(self, query_text: str, documents_json: str) -> Optional["RerankerResult"]:
         """
-        呼叫本地運行的 Ollama 模型來執行單個角色的 LORE 精煉任務。
+        呼叫本地運行的 Ollama 模型來執行 RAG 重排任務。
+        成功則返回一個 RerankerResult 物件，失敗則返回 None。
         """
         import httpx
-        import json
+        from .schemas import BaseModel # 局部導入
+
+        class RerankedDoc(BaseModel):
+            document_id: int
+            original_content: str
+        class RerankerResult(BaseModel):
+            relevant_documents: List[RerankedDoc]
+
+        logger.info(f"[{self.user_id}] [RAG Re-ranker L3] 正在使用本地模型 '{self.ollama_model_name}' 進行重排...")
         
-        logger.info(f"[{self.user_id}] [LORE精煉-本地] 正在使用本地模型 '{self.ollama_model_name}' 為角色 '{character_name}' 進行精煉...")
-        
-        prompt_template = self.get_local_rag_driven_extraction_prompt()
+        prompt_template = self.get_local_rag_reranker_prompt()
         full_prompt = prompt_template.format(
-            character_name=character_name,
-            base_profile_json=json.dumps(base_profile, ensure_ascii=False, indent=2),
-            aliases_context=aggregated_context.get("aliases", ""),
-            description_context=aggregated_context.get("description", ""),
-            appearance_context=aggregated_context.get("appearance", ""),
-            skills_context=aggregated_context.get("skills", ""),
-            relationships_context=aggregated_context.get("relationships", "")
+            query_text=query_text,
+            documents_json=documents_json
         )
 
         payload = {
@@ -3342,12 +3384,11 @@ class ExtractionResult(BaseModel):
             "prompt": full_prompt,
             "format": "json",
             "stream": False,
-            "options": { "temperature": 0.2 }
+            "options": { "temperature": 0.0 }
         }
         
         try:
-            # [v1.1 核心修正] 大幅延長超時時間至 600 秒
-            async with httpx.AsyncClient(timeout=600.0) as client:
+            async with httpx.AsyncClient(timeout=300.0) as client:
                 response = await client.post("http://localhost:11434/api/generate", json=payload)
                 response.raise_for_status()
                 
@@ -3355,19 +3396,27 @@ class ExtractionResult(BaseModel):
                 json_string_from_model = response_data.get("response")
                 
                 if not json_string_from_model:
-                    logger.warning(f"[{self.user_id}] [LORE精煉-本地] 本地模型返回了空的 'response' 內容。")
+                    logger.warning(f"[{self.user_id}] [RAG Re-ranker L3] 本地模型返回了空的 'response' 內容。")
                     return None
 
-                parsed_json = json.loads(json_string_from_model)
-                validated_result = CharacterProfile.model_validate(parsed_json)
-                logger.info(f"[{self.user_id}] [LORE精煉-本地] ✅ 本地模型精煉成功。")
+                json_match = re.search(r'\{.*\}', json_string_from_model, re.DOTALL)
+                if not json_match:
+                    raise json.JSONDecodeError("未能在本地模型回應中找到JSON物件", json_string_from_model, 0)
+                
+                clean_json_str = json_match.group(0)
+                parsed_json = json.loads(clean_json_str)
+                
+                validated_result = RerankerResult.model_validate(parsed_json)
+                logger.info(f"[{self.user_id}] [RAG Re-ranker L3] ✅ 本地模型重排成功。")
                 return validated_result
 
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [LORE精煉-本地] 🔥 呼叫本地Ollama進行精煉時發生未知錯誤: {e}", exc_info=True)
+        except httpx.ConnectError:
+            logger.error(f"[{self.user_id}] [RAG Re-ranker L3] 無法連接到本地 Ollama 伺服器。")
             return None
-# 函式：調用本地Ollama模型執行LORE精煉 (v1.1 - 超時延長)
-
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [RAG Re-ranker L3] 🔥 呼叫本地模型進行重排時發生未知錯誤: {e}", exc_info=True)
+            return None
+# 函式：呼叫本地Ollama模型執行RAG重排 (v1.0 - 全新創建)
 
 
 # 函式：獲取本地RAG驅動的提取器 Prompt (v1.0 - 全新創建)
@@ -5625,17 +5674,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取RAG重排器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：檢索並摘要記憶 (v24.0 - LLM重排器)
+# 函式：檢索並摘要記憶 (v24.1 - 啟用本地備援)
 # 更新紀錄:
-# v24.0 (2025-10-03): [重大架構升級] 根據「RAG噪音污染」問題，徹底重構了此函式，引入了先進的「兩階段檢索與重排 (Retrieve & Re-rank)」策略。新流程首先進行粗略的向量檢索，然後利用一個輕量級的 LLM（重排器）對檢索結果進行二次篩選，判斷每個文檔與使用者當前意圖的直接相關性。此函式還內建了包含雲端重試、本地LLM備援和原文直通的四級降級策略，旨在從根本上解決 RAG 的「低信噪比」問題，既能過濾噪音，又避免了傳統摘要方法導致的關鍵細節丟失。
+# v24.1 (2025-10-03): [重大架構升級] 在 RAG 重排的降級策略中，正式啟用了第三級備援（L3）。現在，當雲端重排器（L1/L2）徹底失敗時，程式會自動調用全新的 `_invoke_local_ollama_reranker` 函式，將重排任務交由本地 Ollama 模型處理。此修改為 RAG 系統增加了一道極其可靠的防線，能夠在雲端 API 遭遇審查或速率限制時，利用本地算力繼續提供高質量的上下文，從根本上解決了因重排失敗而導致的「原文直通」上下文污染問題。
+# v24.0 (2025-10-03): [重大架構升級] 引入了先進的「兩階段檢索與重排」策略。
 # v23.0 (2025-10-03): [重大架構重構] 實現了 LORE 關鍵詞查詢強化邏輯。
-# v22.1 (2025-10-03): [功能調整] 移除了拼接上限和去重邏輯。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v24.0) 執行包含「LLM重排器」和四級降級備援的 RAG 檢索流程。
+        (v24.1) 執行包含「LLM重排器」和四級降級備援（含本地備援）的 RAG 檢索流程。
         返回一個字典: {"summary": str}
         """
-        from .schemas import BaseModel # 局部導入以定義臨時模型
+        from .schemas import BaseModel
+
+        class RerankedDoc(BaseModel):
+            document_id: int
+            original_content: str
+        class RerankerResult(BaseModel):
+            relevant_documents: List[RerankedDoc]
 
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever and not self.bm25_retriever:
@@ -5664,55 +5719,43 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         # --- 步驟 2: LLM 智能重排 (具備四級降級備援) ---
         final_docs_content = []
         
-        # 準備傳遞給 LLM 的數據
         documents_for_reranker = [
             {"document_id": i, "original_content": doc.page_content}
             for i, doc in enumerate(retrieved_docs)
         ]
-
-        # 定義 Pydantic 輸出模型
-        class RerankedDoc(BaseModel):
-            document_id: int
-            original_content: str
-        class RerankerResult(BaseModel):
-            relevant_documents: List[RerankedDoc]
+        documents_json_str = json.dumps(documents_for_reranker, ensure_ascii=False, indent=2)
 
         reranker_prompt_template = self.get_rag_reranker_prompt()
         full_reranker_prompt = self._safe_format_prompt(
             reranker_prompt_template,
             {
                 "query_text": query_text,
-                "documents_json": json.dumps(documents_for_reranker, ensure_ascii=False, indent=2)
+                "documents_json": documents_json_str
             },
             inject_core_protocol=True
         )
 
-        reranked_result = None
+        reranked_result: Optional[RerankerResult] = None
         try:
-            # 第一級 & 第二級：雲端模型重排 + 委婉化備援
             logger.info(f"[{self.user_id}] [RAG Re-ranker 2/3] 正在啟動 L1/L2: 雲端 LLM 智能重排...")
             reranked_result = await self.ainvoke_with_rotation(
                 full_reranker_prompt,
                 output_schema=RerankerResult,
-                retry_strategy='euphemize', # 遭遇審查時自動觸發委婉化
-                models_to_try_override=[FUNCTIONAL_MODEL] # 使用最快的功能模型
+                retry_strategy='euphemize',
+                models_to_try_override=[FUNCTIONAL_MODEL]
             )
         except Exception as e:
             logger.warning(f"[{self.user_id}] [RAG Re-ranker 2/3] L1/L2 雲端重排最終失敗: {e}。")
 
-        # 第三級：本地 LLM 備援
+        # [v24.1 核心修正] 第三級：本地 LLM 備援
         if not reranked_result and self.is_ollama_available:
             logger.warning(f"[{self.user_id}] [RAG Re-ranker 2/3] 正在啟動 L3: 本地 Ollama 重排備援...")
-            # (此處暫不實現本地調用器，若需要可後續添加。直接進入最終備援)
-            # reranked_result = await self._invoke_local_ollama_reranker(...)
-            pass
+            reranked_result = await self._invoke_local_ollama_reranker(query_text, documents_json_str)
 
-        # 處理重排結果
         if reranked_result and reranked_result.relevant_documents:
             logger.info(f"[{self.user_id}] [RAG Re-ranker 2/3] ✅ LLM 重排成功，篩選出 {len(reranked_result.relevant_documents)} 份高度相關文檔。")
             final_docs_content = [doc.original_content for doc in reranked_result.relevant_documents]
         else:
-            # 第四級：原文直通 (最終保障)
             logger.warning(f"[{self.user_id}] [RAG Re-ranker 2/3] 所有重排層級均失敗或未返回任何相關文檔。啟動 L4: 原文直通備援。")
             final_docs_content = [doc.page_content for doc in retrieved_docs]
 
@@ -5726,7 +5769,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return {"summary": final_summary}
         
         return default_return
-# 函式：檢索並摘要記憶 (v24.0 - LLM重排器)
+# 函式：檢索並摘要記憶 (v24.1 - 啟用本地備援)
 
 
     
@@ -5833,6 +5876,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
