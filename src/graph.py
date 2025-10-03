@@ -312,9 +312,10 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     return {"tool_results": results_summary}
 # 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
 
-# 函式：[新] 世界快照組裝節點
+# 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
 # 更新紀錄:
-# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它的核心職責是匯集前面所有節點的處理結果（RAG、LORE、工具執行結果等），並使用 `world_snapshot_template.txt` 模板將它們格式化成一個巨大的、包含所有上下文的字符串，作為給最終生成模型的「單一信息源」。
+# v3.1 (2025-10-03): [災難性BUG修復] 根據 KeyError: 'explicit_character_files_context'，在 context_vars 字典中補全了這個缺失的鍵。此修改確保了傳遞給模板格式化函式的數據是完整的，從根源上解決了因模板與數據不匹配而導致的程式崩潰問題。
+# v3.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。
 # v2.1 (2025-10-14): [災難性BUG修復] 增加了 `username` 和 `ai_name` 到 `context_vars`。
 async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     """[5] (核心) 匯集所有【當前場景】的信息，使用模板格式化成 world_snapshot 字符串。"""
@@ -347,14 +348,16 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
         'player_location': " > ".join(gs.location_path),
         'viewing_mode': gs.viewing_mode,
         'remote_target_path_str': " > ".join(gs.remote_target_path) if gs.remote_target_path else "未指定",
-        'scene_rules_context': "（暫無）" # 規則注入將在生成前完成
+        'scene_rules_context': "（暫無）", # 規則注入將在生成前完成
+        # [v3.1 核心修正] 補全缺失的鍵值對
+        'explicit_character_files_context': "（本回合無特定的核心角色檔案需要調閱。）"
     }
     
     final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
     
     logger.info(f"[{user_id}] (Graph|5) 【當前場景事實】組裝完畢。")
     return {"world_snapshot": final_world_snapshot}
-# 函式：[新] 世界快照組裝節點
+# 函式：[新] 世界快照組裝節點 (v3.1 - 鍵值完整性修正)
 
 # 函式：[新] 最終生成節點
 # 更新紀錄:
