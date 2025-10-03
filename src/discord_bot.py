@@ -1313,11 +1313,11 @@ class BotCog(commands.Cog):
 
 
     
-# 函式：監聽並處理所有符合條件的訊息 (v63.0 - 對接Graph架構)
+# 函式：監聽並處理所有符合條件的訊息 (v64.0 - 對接 RAG 直通)
     # 更新紀錄:
-    # v63.0 (2025-10-03): [重大架構重構] 徹底重寫了此函式的核心邏輯。它現在不再調用舊的 `preprocess_and_generate`，而是負責構建初始的 `ConversationGraphState`，並直接調用 `main_graph.ainvoke()` 來驅動全新的、基於圖的工作流，實現了對話處理邏輯的現代化改造。
+    # v64.0 (2025-10-03): [重大架構重構] 根據「RAG直通」的最終策略，徹底簡化了此函式的核心邏輯。它現在不再調用複雜的 Graph 工作流，而是直接調用全新的 `ai_instance.direct_rag_generate()` 函式。此修改將對話處理流程還原為最純粹、最高效的「指令 -> RAG -> LLM」模式，完成了本次架構的終極簡化。
+    # v63.0 (2025-10-03): [重大架構重構] 徹底重寫了此函式的核心邏輯，對接到 Graph 架構。
     # v62.0 (2025-10-02): [功能擴展] 新增了兩個核心的管理員調試指令。
-    # v61.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，再次徹底重構了創世流程 `_perform_full_setup_flow`。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -1349,24 +1349,9 @@ class BotCog(commands.Cog):
 
         async with message.channel.typing():
             try:
-                logger.info(f"[{user_id}] 啟動 Graph-based 對話流程...")
-
-                # 確保 main_graph 已被編譯
-                if not self.bot.main_graph:
-                    logger.error(f"[{user_id}] 災難性錯誤: main_graph 未被編譯，無法處理訊息。")
-                    await message.channel.send("抱歉，系統內部圖形引擎未準備就緒，請聯繫管理員。")
-                    return
-
-                # 構建初始狀態
-                initial_state = {
-                    "user_id": user_id,
-                    "ai_core": ai_instance,
-                    "messages": [HumanMessage(content=user_input)]
-                }
-
-                # 調用 Graph
-                final_state = await self.bot.main_graph.ainvoke(initial_state)
-                final_response = final_state.get("final_output")
+                # [v64.0 核心修正] 直接調用全新的 RAG 直通生成函式
+                logger.info(f"[{user_id}] 啟動 RAG 直通對話流程...")
+                final_response = await ai_instance.direct_rag_generate(user_input)
                 
                 if final_response and final_response.strip():
                     view = RegenerateView(cog=self)
@@ -1374,14 +1359,14 @@ class BotCog(commands.Cog):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    logger.info(f"[{user_id}] Graph 流程執行完畢，回應已發送。")
+                    logger.info(f"[{user_id}] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。")
 
                 else:
-                    logger.error(f"為使用者 {user_id} 的 Graph 流程返回了空的或無效的回應。")
+                    logger.error(f"為使用者 {user_id} 的 RAG 直通流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的 Graph 流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的 RAG 直通流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
     # 函式：監聽並處理所有符合條件的訊息
 
@@ -2151,6 +2136,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
