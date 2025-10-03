@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-03T19:00:16.370908 ###
+### AI Lover Log - Last updated at 2025-10-03T19:05:43.744274 ###
 
-2025-10-03 17:06:17 - [INFO] - [512280345618546699] (Graph|2) 查詢完成。檢索到 0 條相關LORE。
-2025-10-03 17:06:17 - [INFO] - [512280345618546699] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...
-2025-10-03 17:06:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-03 17:06:18 - [INFO] - [512280345618546699] (Graph|3) 決策結果：無需擴展。理由: 使用者指令中並未引入任何新的、有名有姓的角色。指令主要是在指示我作為一個文學評論家來處理後續的【小說手稿片段】，並未提及任何具體人物。
-2025-10-03 17:06:18 - [INFO] - [512280345618546699] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...
-2025-10-03 17:06:18 - [ERROR] - 處理使用者 512280345618546699 的 Graph 流程時發生異常: 'AILover' object has no attribute 'get_preemptive_tool_parsing_chain'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1368, in on_message
-    final_state = await self.bot.main_graph.ainvoke(initial_state)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 3088, in ainvoke
-    async for chunk in self.astream(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\main.py", line 2926, in astream
     async for _ in runner.atick(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langgraph\pregel\_runner.py", line 295, in atick
@@ -300,3 +289,14 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-03 18:55:31 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
 2025-10-03 18:55:31 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
 2025-10-03 18:55:31 - [INFO] - [512280345618546699] [事後分析] 背景分析與處理任務完成。
+2025-10-03 19:05:29 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-03 19:05:29 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-03 19:05:29 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-03 19:05:29 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-03 19:05:29 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-03 19:05:29 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-03 19:05:30 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-03 19:05:30 - [INFO] - Discord Bot is ready!
+2025-10-03 19:05:32 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-03 19:05:32 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-03 19:05:33 - [INFO] - 已成功發送啟動成功通知給管理員。
