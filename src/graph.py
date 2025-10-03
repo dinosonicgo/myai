@@ -635,26 +635,24 @@ async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     return {"opening_scene": opening_scene}
 # 函式：生成開場白節點
 
-# 函式：創建設定圖 (v34.0 - 移除LORE解析)
+# 函式：創建設定圖 (v35.0 - 徹底移除LORE解析)
 # 更新紀錄:
-# v34.0 (2025-10-03): [重大架構簡化] 根據「完全向量RAG直通」的最終策略，從創世圖中徹底移除了 `process_canon` 節點及其相關的邊。此修改確保了在 `/start` 流程中，除了必要的角色檔案補完和開場白生成外，不再對世界聖經執行任何形式的、昂貴的 LLM 結構化 LORE 解析，使創世流程更快速、更經濟。
+# v35.0 (2025-10-03): [重大架構重構] 根據「對話驅動的增量學習」最終策略，從創世圖中徹底移除了 `process_canon` 節點。此修改確保了在 `/start` 流程中，除了必要的角色檔案補完和開場白生成外，不再對世界聖經執行任何形式的 LORE 解析。所有 LORE 的創建將完全依賴於對話後的事後分析鏈，實現了 LORE 的「即時與增量」學習。
+# v34.0 (2025-10-03): [重大架構簡化] 根據「完全向量RAG直通」的最終策略，從創世圖中徹底移除了 `process_canon` 節點及其相關的邊。
 # v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 `preprocess_and_generate` 流程的主對話圖。
 def create_setup_graph() -> StateGraph:
-    """創建設定圖 (v34.0 - 已移除 LORE 解析)"""
+    """創建設定圖 (v35.0 - 已徹底移除 LORE 解析)"""
     graph = StateGraph(SetupGraphState)
 
-    # [v34.0 核心修正] 不再添加 process_canon_node
-    # graph.add_node("process_canon", process_canon_node)
-    
+    # [v35.0 核心修正] 節點列表中已無 process_canon
     graph.add_node("complete_profiles", complete_profiles_node)
     graph.add_node("world_genesis", world_genesis_node)
     graph.add_node("generate_opening_scene", generate_opening_scene_node)
     
-    # [v34.0 核心修正] 將入口點直接設置為 complete_profiles
+    # [v35.0 核心修正] 將入口點直接設置為 complete_profiles
     graph.set_entry_point("complete_profiles")
     
-    # [v34.0 核心修正] 調整邊的連接
-    # graph.add_edge("process_canon", "complete_profiles")
+    # [v35.0 核心修正] 創世流程的第一步現在是補完角色檔案
     graph.add_edge("complete_profiles", "world_genesis")
     graph.add_edge("world_genesis", "generate_opening_scene")
     graph.add_edge("generate_opening_scene", END)
