@@ -1069,11 +1069,11 @@ class AILover:
     # 函式：獲取實體驗證器 Prompt
     
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.2 - 支援 Key 注入)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.3 - 提升日誌級別)
 # 更新紀錄:
-# v233.2 (2025-10-03): [重大架構升級] 根據「不同KEY重試」策略，為此函式新增了一個可選參數 `force_api_key_tuple`。當此參數被提供時，函式將完全跳過其內部的 API Key 輪換邏輯 (`_get_next_available_key`)，並強制使用由上層（如 `_force_and_retry`）明確指定的 API Key 來發起請求。此修改實現了上下層邏輯的解耦，使得上層的重試策略可以主動控制和保證每次請求都使用不同的 Key。
+# v233.3 (2025-10-03): [健壯性強化] 根據使用者需求，將 JSON 解析/驗證失敗時記錄原始 LLM 輸出的日誌級別從 `DEBUG` 提升至 `WARNING`。此修改確保了在常規日誌級別下，開發者也能立即看到導致解析失敗的具體文本內容，從而極大地簡化了 Prompt 的除錯和迭代過程，減少了對昂貴的 LLM 自我修正的依賴。
+# v233.2 (2025-10-03): [重大架構升級] 新增了 `force_api_key_tuple` 參數以支援外部強制指定 API Key。
 # v233.1 (2025-10-03): [災難性BUG修復] 實現了「自我修正」循環以應對 JSON 格式錯誤。
-# v233.0 (2025-10-02): [災難性BUG修復] 增加了健壯的「JSON 預處理與修復」層。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1082,7 +1082,7 @@ class AILover:
         use_degradation: bool = False,
         models_to_try_override: Optional[List[str]] = None,
         generation_config_override: Optional[Dict[str, Any]] = None,
-        force_api_key_tuple: Optional[Tuple[str, int]] = None # [v233.2 新增]
+        force_api_key_tuple: Optional[Tuple[str, int]] = None 
     ) -> Any:
         """
         一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key。
@@ -1107,12 +1107,9 @@ class AILover:
             final_generation_config.update(generation_config_override)
 
         for model_index, model_name in enumerate(models_to_try):
-            # [v233.2 核心修正] 判斷是使用輪換邏輯還是外部注入的 Key
             if force_api_key_tuple:
-                # 如果外部強制指定了 Key，則只使用該 Key 嘗試一次
                 keys_to_try = [force_api_key_tuple]
             else:
-                # 否則，遍歷所有可用的 Key
                 keys_to_try = [self._get_next_available_key(model_name) for _ in range(len(self.api_keys))]
                 keys_to_try = [k for k in keys_to_try if k is not None]
 
@@ -1161,7 +1158,7 @@ class AILover:
                                 logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
                                 if finish_reason_name == 'MAX_TOKENS':
                                     raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                elif finish_reason_name in ['SAFETY', '4', '8']: # 將 8 也視為安全原因
+                                elif finish_reason_name in ['SAFETY', '4', '8']:
                                     raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                                 else:
                                     raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
@@ -1202,7 +1199,8 @@ class AILover:
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。啟動【自我修正】流程...")
-                        logger.debug(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
+                        # [v233.3 核心修正] 將日誌級別提升至 WARNING
+                        logger.warning(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
                         
                         try:
                             correction_prompt_template = self.get_json_correction_chain()
@@ -1237,7 +1235,7 @@ class AILover:
                              break
                         
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。將輪換到下一個金鑰並觸發持久化冷卻。")
+                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and model_name in ["gemini-2.5-pro", "gemini-2.5-flash"]:
                                 cooldown_key = f"{key_index}_{model_name}"
                                 cooldown_duration = 24 * 60 * 60 
@@ -1256,7 +1254,6 @@ class AILover:
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
-                # 如果是強制 Key 模式，執行完一次就跳出
                 if force_api_key_tuple:
                     break
             
@@ -1266,8 +1263,7 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.2 - 支援 Key 注入)
-
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v233.3 - 提升日誌級別)
 
 
 
@@ -2170,12 +2166,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
 
 
-    # 函式：分析使用者輸入 (v1.0 - 全新創建)
+ # 函式：分析使用者輸入 (v1.1 - 增強錯誤捕獲)
 # 更新紀錄:
-# v1.0 (2025-10-03): [全新創建] 根據「LLM+雙引擎」混合分析策略，創建此核心分析協調器。它實現了一個兩層降級的分析流程：首先，嘗試使用 LLM（第一層）進行高精度的語義分析，以一步到位地提取核心實體和意圖。如果 LLM 因任何原因失敗，它會立即、無縫地回退到純程式化的「雙引擎」提取器（第二層），確保在任何情況下都能為後續流程提供一個絕對可靠的實體列表，從根源上解決因實體提取失敗導致的災難性連鎖反應。
+# v1.1 (2025-10-03): [健壯性強化] 根據使用者需求，增強了此函式中 LLM 分析失敗時的錯誤捕獲與日誌記錄邏輯。現在，當 `ainvoke_with_rotation` 拋出異常時，`except` 區塊會使用 `exc_info=True` 來記錄完整的錯誤堆疊追蹤，這將為 Pydantic 的 `ValidationError` 或 `JSONDecodeError` 提供詳細的上下文，極大地簡化了除錯過程。
+# v1.0 (2025-10-03): [全新創建] 根據「LLM+雙引擎」混合分析策略，創建此核心分析協調器。
     async def _analyze_user_input(self, user_input: str) -> Tuple[List[str], str]:
         """
-        (v1.0) 使用「LLM 優先，雙引擎備援」策略，分析用戶輸入。
+        (v1.1) 使用「LLM 優先，雙引擎備援」策略，分析用戶輸入。
         返回一個元組 (核心實體列表, 核心意圖字符串)。
         """
         # --- 第一層：LLM 分析 ---
@@ -2184,8 +2181,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             analysis_prompt_template = self.get_input_analysis_prompt()
             full_prompt = self._safe_format_prompt(
                 analysis_prompt_template,
-                {"user_input": user_input},
-                inject_core_protocol=True # 使用淨化版協議
+                {"user_input": user_input}
             )
             
             class InputAnalysisResult(BaseModel):
@@ -2203,18 +2199,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.info(f"[{self.user_id}] [輸入分析-L1] ✅ LLM 分析成功。提取實體: {analysis_result.core_entities}")
                 return analysis_result.core_entities, analysis_result.core_intent
             else:
-                # LLM 返回了空結果，也視為失敗
                 raise ValueError("LLM returned empty or invalid analysis.")
 
         except Exception as e:
-            logger.warning(f"[{self.user_id}] [輸入分析-L1] 🔥 LLM 分析失敗 ({type(e).__name__})。降級至 L2 (雙引擎程式化備援)...")
+            # [v1.1 核心修正] 使用 exc_info=True 記錄完整的錯誤堆疊追蹤
+            logger.warning(f"[{self.user_id}] [輸入分析-L1] 🔥 LLM 分析失敗 ({type(e).__name__})。降級至 L2 (雙引擎程式化備援)...", exc_info=True)
             
             # --- 第二層：雙引擎備援 ---
             entities = await self._extract_entities_from_input(user_input)
             # 在備援模式下，核心意圖直接使用原始輸入
             intent = user_input
             return entities, intent
-# 函式：分析使用者輸入 (v1.0 - 全新創建)
+# 函式：分析使用者輸入 (v1.1 - 增強錯誤捕獲)
 
 
     
@@ -5859,6 +5855,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
