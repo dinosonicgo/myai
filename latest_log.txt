@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T23:12:01.484231 ###
+### AI Lover Log - Last updated at 2025-10-04T23:17:45.967470 ###
 
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
     raise validation_error
 pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
 safety_settings -> __key__
@@ -300,3 +292,11 @@ AttributeError: 'int' object has no attribute 'name'
 2025-10-04 23:08:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-04 23:08:03 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
 2025-10-04 23:08:03 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
+2025-10-04 23:17:31 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-04 23:17:35 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-04 23:17:35 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-04 23:17:35 - [INFO] - 正在全域同步應用程式指令...
+2025-10-04 23:17:35 - [INFO] - ✅ 指令已全域同步！
+2025-10-04 23:17:35 - [INFO] - Discord Bot setup hook finished!
+2025-10-04 23:17:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-04 23:17:38 - [INFO] - 已成功發送啟動成功通知給管理員。
