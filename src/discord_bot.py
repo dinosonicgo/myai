@@ -2084,26 +2084,31 @@ class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
 
     
-# 函式：Discord 機器人設置鉤子 (v1.4 - 內部動態導入)
+# 函式：Discord 機器人設置鉤子 (v1.5 - 顯式自我引用)
 # 更新紀錄:
-# v1.4 (2025-10-04): [災難性BUG修復] 採用了終極的「內部動態導入」策略。將 Cog 的實例化和 View 的註冊邏輯移回 setup_hook，並在函式內部才進行 Cog 的引用，以確保在執行時所有類別都已加載，徹底解決 NameError 和 on_ready 死鎖問題。
+# v1.5 (2025-10-04): [災難性BUG修復-終極方案] 採用「顯式自我引用」策略。通過 `sys.modules[__name__]` 獲取對當前模組的直接引用，並用 `current_module.ClassName` 的方式調用，以繞過因模組初始化悖論導致的 NameError。
+# v1.4 (2025-10-04): [災難性BUG修復] 採用了「內部動態導入」策略。
 # v1.3 (2025-10-04): [災難性BUG修復] 將所有 `self.add_view()` 的調用從 `setup_hook` 移至 `on_ready` 事件。
-# v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，徹底移除了所有與 LangGraph 相關的程式碼。
     async def setup_hook(self):
-        # [v1.4 核心修正] 在函式內部實例化和添加 Cog
-        cog = BotCog(self, self.git_lock, self.is_ollama_available)
+        # [v1.5 核心修正] 獲取對當前模組的直接句柄，以繞過作用域解析問題
+        current_module = sys.modules[__name__]
+
+        # 使用模組句柄來明確地訪問 BotCog 類
+        cog = current_module.BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
         # 註冊背景任務
         cog.connection_watcher.start()
         
-        # 在 setup_hook 中註冊持久化視圖是官方推薦的最佳實踐
         logger.info("正在 setup_hook 中註冊持久化 UI 視圖...")
-        self.add_view(StartSetupView(cog=cog))
-        self.add_view(ContinueToUserSetupView(cog=cog))
-        self.add_view(ContinueToAiSetupView(cog=cog))
-        self.add_view(ContinueToCanonSetupView(cog=cog))
-        self.add_view(RegenerateView(cog=cog))
+        
+        # [v1.5 核心修正] 使用模組句柄來明確地訪問所有 View 類
+        self.add_view(current_module.StartSetupView(cog=cog))
+        self.add_view(current_module.ContinueToUserSetupView(cog=cog))
+        self.add_view(current_module.ContinueToAiSetupView(cog=cog))
+        self.add_view(current_module.ContinueToCanonSetupView(cog=cog))
+        self.add_view(current_module.RegenerateView(cog=cog))
+        
         logger.info("✅ 所有持久化 UI 視圖已在 setup_hook 中成功註冊。")
 
         try:
@@ -2125,11 +2130,11 @@ class AILoverBot(commands.Bot):
 
     
     
-# 函式：機器人準備就緒時的事件處理器 (v1.2 - 移除視圖註冊)
+# 函式：機器人準備就緒時的事件處理器 (v1.3 - 恢復原狀)
 # 更新紀錄:
-# v1.2 (2025-10-04): [災難性BUG修復] 移除了在 on_ready 中註冊視圖的邏輯，將其歸還給 setup_hook，以解決潛在的死鎖問題。
+# v1.3 (2025-10-04): [災難性BUG修復] 移除了所有與視圖註冊相關的邏輯，將其完全歸還給 setup_hook。
+# v1.2 (2025-10-04): [災難性BUG修復] 移除了在 on_ready 中註冊視圖的邏輯。
 # v1.1 (2025-10-04): [災難性BUG修復] 將持久化視圖的註冊邏輯移至此處。
-# v1.0 (初始版本)
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         if not self.is_ready_once:
@@ -2143,6 +2148,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 機器人準備就緒時的事件處理器 函式結束
 # 類別：AI 戀人機器人主體
+
 
 
 
