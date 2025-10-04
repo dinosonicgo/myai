@@ -4747,14 +4747,14 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v18.0 - 移除異步觸發)
+# 函式：解析並從世界聖經創建LORE (v18.1 - 原生流程驗證)
 # 更新紀錄:
-# v18.0 (2025-10-02): [災難性BUG修復] 根據「串行化」原則，徹底移除了此函式末尾對 `asyncio.create_task` 的調用。此修改將 LORE 精煉的觸發權完全交還給上層的協調器（`_perform_full_setup_flow`），使其成為一個純粹的、同步的 LORE 解析與 SQL 存儲函式，從根源上解決了因過早觸發背景任務而導致的災難性競爭條件。
-# v17.0 (2025-10-02): [災難性BUG修復] 根據「職責單一化」原則，徹底移除了此函式中所有與 RAG 寫入相關的邏輯。
-# v16.0 (2025-10-02): [根本性重構] 根據「雙軌並行」策略，徹底重構了數據處理流程。
+# v18.1 (2025-10-04): [架構驗證] 確認此函式的同步執行特性（無異步任務觸發）完全符合新的原生、串行化創世流程，版本號更新以標記其在新架構下的適用性。
+# v18.0 (2025-10-02): [災難性BUG修復] 徹底移除了此函式末尾對 `asyncio.create_task` 的調用，解決了災難性競爭條件。
+# v17.0 (2025-10-02): [災難性BUG修復] 徹底移除了此函式中所有與 RAG 寫入相關的邏輯。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v18.0】僅執行 LORE 解析管線，並將結果存入 SQL 資料庫。
+        【總指揮 v18.1】僅執行 LORE 解析管線，並將結果存入 SQL 資料庫。
         不再觸發任何背景任務。
         """
         if not self.profile:
@@ -4786,9 +4786,7 @@ class ExtractionResult(BaseModel):
         await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in parsing_result_object.world_lores])
         
         logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。")
-        
-        # [v18.0 核心修正] 移除異步觸發，將 LORE 精煉的協調工作完全交給上層調用者
-# 函式：解析並從世界聖經創建LORE (v18.0 - 移除異步觸發)
+# 解析並從世界聖經創建LORE 函式結束
 
 
 
@@ -5899,6 +5897,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
