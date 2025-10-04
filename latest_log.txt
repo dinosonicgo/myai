@@ -1,93 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T23:06:52.836514 ###
+### AI Lover Log - Last updated at 2025-10-04T23:12:01.484231 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #3 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #4 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #4 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #4 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #5 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #5 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
 safety_settings -> __key__
   value is not a valid integer (type=type_error.integer)
 Traceback (most recent call last):
@@ -300,3 +212,91 @@ AttributeError: 'int' object has no attribute 'name'
 2025-10-04 23:06:42 - [INFO] - Discord Bot setup hook finished!
 2025-10-04 23:06:45 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-04 23:06:45 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-04 23:06:54 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-04 23:06:54 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-04 23:06:54 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-04 23:06:54 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-04 23:06:54 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-04 23:07:01 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-04 23:07:01 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 1 條訊息。
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] [實體名稱提取] 正在從查詢 '抓住碧的頭髮，讓她為我口交...' 中分析實體...
+2025-10-04 23:07:01 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-04 23:07:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-04 23:07:02 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['碧']
+2025-10-04 23:07:02 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 2 個核心實體: ['DINO', '碧']。
+2025-10-04 23:07:02 - [INFO] - [512280345618546699] [實體名稱提取] 正在從查詢 '抓住碧的頭髮，讓她為我口交...' 中分析實體...
+2025-10-04 23:07:02 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-04 23:07:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-04 23:07:03 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['碧']
+2025-10-04 23:07:03 - [INFO] - [512280345618546699] [實體名稱提取] 查詢分析完成，共識別出 2 個核心實體: ['DINO', '碧']。
+2025-10-04 23:07:03 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '抓住碧的頭髮，讓她為我口交 DINO 碧'
+2025-10-04 23:07:04 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-04 23:07:04 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-04 23:07:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-04 23:07:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-04 23:07:40 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-04 23:07:42 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-04 23:07:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-04 23:07:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-04 23:07:44 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-04 23:07:44 - [INFO] - [512280345618546699] (Euphemizer) 已提取安全的情報殘片: ['碧', 'ACTION-B', 'ROLE-B', 'REACT-B', 'DINO', 'CODE-M-GEN-A']
+2025-10-04 23:08:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-04 23:08:01 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇解析或驗證錯誤: JSONDecodeError。啟動【自我修正】流程...
+2025-10-04 23:08:01 - [WARNING] - [512280345618546699] 導致解析錯誤的原始 LLM 輸出: 
+--- START RAW ---
+```json
+{
+  "npc_profiles": [
+    {
+      "name": "碧",
+      "aliases": [],
+      "description": "一位神秘而強勢的女性。根據殘片情報推斷，她扮演著 `ROLE-B` 的角色，並對一頭龍型生物進行了高度親密的互動。",
+      "location_path": [],
+      "gender": "女",
+      "race": "未知",
+      "status": "活躍",
+      "age": "未知 (推測為成年)",
+      "appearance": "外貌不詳，但其行為透露出極大的自信與掌控力。",
+      "skills": [
+        "異種生物調教",
+        "精神支配"
+      ]
+    }
+  ],
+  "locations": [],
+  "items": [],
+  "creatures": [
+    {
+      "name": "DINO",
+      "aliases": [
+        "龍獸"
+      ],
+      "description": "一頭被稱為'DINO'的龍型生物。情報顯示其擁有巨大的 `CODE-M-GEN-A`，並在與'碧'的互動中產生了 `REACT-B` 的強烈生理反應。",
+      "abilities": [
+        "強大的肉體",
+        "對特定刺激產生劇烈反應"
+      ]
+    }
+  ],
+  "quests": [],
+  "world_lores": [
+    {
+      "title": "碧與龍獸的支配儀式",
+      "aliases": [],
+      "content": "根據一份殘缺的情報記錄，名為'碧'的個體以 `ROLE-B` 的身份，對一頭代號為'DINO'的龍型生物的 `CODE-M-GEN-A` 執行了 `ACTION-B`。在此過程中，該生物出現了 `REACT-B` 的生理反應。此事件揭示了異種生物之間可能存在的複雜權力與支配服從關係。",
+      "category": "異聞錄"
+    }
+  ]
+}
+```
+--- END RAW ---
+2025-10-04 23:08:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-04 23:08:03 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
+2025-10-04 23:08:03 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
