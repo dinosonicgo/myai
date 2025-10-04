@@ -312,12 +312,13 @@ class AILover:
 
 
 
-# 函式：獲取 LangChain LLM 實例 (v1.0 - 全新創建)
+# 函式：獲取 LangChain LLM 實例 (v1.1 - 格式最終修正)
 # 更新紀錄:
-# v1.0 (2025-10-18): [全新創建] 根據「回歸 LangChain」架構創建此函式。它作為所有 ChatGoogleGenerativeAI 實例的唯一創建來源，硬性規定了正確的安全閥值格式，確保配置的絕對正確與統一。
+# v1.1 (2025-10-18): [災難性BUG修復] 根據 Pydantic ValidationError，將 safety_settings 的格式還原為 LangChain 期望的 Dict[HarmCategory, HarmBlockThreshold] 格式，以通過其內部驗證。
+# v1.0 (2025-10-18): [全新創建] 根據「回歸 LangChain」架構創建此函式。
     def _get_langchain_llm(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
-        [v1.0 核心] 創建並返回一個 ChatGoogleGenerativeAI 實例，作為統一的 LLM 呼叫中心。
+        [v1.1 核心] 創建並返回一個 ChatGoogleGenerativeAI 實例，作為統一的 LLM 呼叫中心。
         如果提供了 google_api_key，則優先使用它；否則，從內部輪換獲取。
         """
         key_to_use = google_api_key
@@ -326,19 +327,24 @@ class AILover:
         if not key_to_use:
             key_info = self._get_next_available_key(model_name)
             if not key_info:
-                return None # 沒有可用的金鑰
+                logger.warning(f"[{self.user_id}] [LLM Factory] 無法獲取可用的 API Key 來創建模型 '{model_name}' 的實例。")
+                return None 
             key_to_use, key_index = key_info
             key_index_log = str(key_index)
 
         generation_config = {"temperature": temperature}
         
-        # 根據藍圖，使用被驗證有效的、類似原生 SDK 的字典列表格式
-        safety_settings_langchain = [
-            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-        ]
+        # ▼▼▼▼▼▼▼▼▼▼ 核心修正 ▼▼▼▼▼▼▼▼▼▼
+        # 還原為 LangChain 官方要求的 Dict[Enum, Enum] 格式。
+        # 這將解決 Pydantic ValidationError。
+        # 我們相信新版的 langchain-google-genai 已修復了此格式過去靜默失效的底層 bug。
+        safety_settings_langchain_format = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        # ▲▲▲▲▲▲▲▲▲▲ 核心修正 ▲▲▲▲▲▲▲▲▲▲
         
         logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log})")
         
@@ -346,15 +352,15 @@ class AILover:
             return ChatGoogleGenerativeAI(
                 model=model_name,
                 google_api_key=key_to_use,
-                safety_settings=safety_settings_langchain,
+                safety_settings=safety_settings_langchain_format, # <-- 使用修正後的 LangChain 格式
                 generation_config=generation_config,
-                max_retries=1, # 禁用 LangChain 的內部重試，由 ainvoke_with_rotation 統一管理
+                max_retries=1, 
                 request_timeout=180
             )
         except Exception as e:
             logger.error(f"[{self.user_id}] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: {e}", exc_info=True)
             return None
-# 函式：獲取 LangChain LLM 實例 (v1.0 - 全新創建)
+# 函式：獲取 LangChain LLM 實例 (v1.1 - 格式最終修正)
 
 
     
@@ -1062,14 +1068,14 @@ class AILover:
     # 函式：獲取LORE更新事實查核器 Prompt
     
 
-# 函式：創建 LangChain LLM 實例 (v4.0 - 待廢棄)
+# 函式：創建 LangChain LLM 實例 (v4.1 - 格式修正同步)
 # 更新紀錄:
-# v4.0 (2025-10-18): [架構重構] [DEPRECATED] 將此函式標記為待廢棄，並將其內部實現替換為直接呼叫新建的 _get_langchain_llm，以統一 LLM 實例的創建邏輯。
+# v4.1 (2025-10-18): [架構同步] 隨同 _get_langchain_llm 的安全閥值格式修正而同步更新版本號。
+# v4.0 (2025-10-18): [架構重構] [DEPRECATED] 將此函式標記為待廢棄，並將其內部實現替換為直接呼叫新建的 _get_langchain_llm。
 # v3.3 (2025-09-23): [架構調整] 降級為輔助功能專用。
-# v3.2 (2025-10-15): [災難性BUG修復] 修正了 AttributeError。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
-        [v4.0 DEPRECATED] 創建並返回一個 ChatGoogleGenerativeAI 實例。
+        [v4.1 DEPRECATED] 創建並返回一個 ChatGoogleGenerativeAI 實例。
         此函式已被 _get_langchain_llm 取代，僅為保持向後兼容性而保留。
         """
         warnings.warn(
@@ -1083,7 +1089,7 @@ class AILover:
             model_name=model_name,
             google_api_key=google_api_key
         )
-# 函式：創建 LangChain LLM 實例 (v4.0 - 待廢棄)
+# 函式：創建 LangChain LLM 實例 (v4.1 - 格式修正同步)
 
 
     # 函式：獲取LORE提取器 Prompt (v1.5 - 核心主角保護)
@@ -6128,6 +6134,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
