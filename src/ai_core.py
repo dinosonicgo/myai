@@ -1258,11 +1258,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.1 - 精準 JSON 提取)
 # 更新紀錄:
-# v234.0 (2025-10-03): [重大架構升級] 根據使用者指令和 `ResourceExhausted` 錯誤，實現了精細化的「持久化 API Key 冷卻」策略。新版本在捕獲到速率超限異常時，會判斷當前使用的模型。如果是 `gemini-pro` 或更高階的模型，則會對該 API Key 觸發長達 24 小時的「硬冷卻」，並將狀態寫入 JSON 檔案。對於其他模型，則只進行短期的內部重試。此修改旨在智能地應對 Google API 的速率限制，保護高價值 API Key 不被持續的無效請求所浪費。
+# v234.1 (2025-10-04): [災難性BUG修復] 根據 JSONDecodeError，徹底重構了從 LLM 原始輸出中提取 JSON 的邏輯。新版本優先從 "```json ... ```" Markdown 塊中提取，如果失敗，再回退到尋找第一個完整的 JSON 物件。此「精準提取」策略取代了舊的貪婪正則表達式，從根本上解決了因 LLM 輸出多個 JSON 或額外文本而導致的解析失敗問題。
+# v234.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
 # v233.3 (2025-10-03): [健壯性強化] 提升了 JSON 解析失敗時的日誌級別。
-# v233.2 (2025-10-03): [重大架構升級] 新增了 `force_api_key_tuple` 參數以支援外部強制指定 API Key。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1337,7 +1337,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
                         if response.candidates:
-                            finish_reason = response.candidates[0].finish_reason
+                            finish_reason = response.candidates.finish_reason
                             if hasattr(finish_reason, 'name'):
                                 finish_reason_name = finish_reason.name
                             else:
@@ -1361,11 +1361,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
-                            json_match = re.search(r'\{.*\}|\[.*\]', raw_text_result, re.DOTALL)
-                            if not json_match:
+                            # [v234.1 核心修正] 引入全新的、更健壯的 JSON 提取邏輯
+                            clean_json_str = None
+                            # 策略一：優先從 ```json ... ``` Markdown 塊中提取
+                            match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", raw_text_result, re.DOTALL)
+                            if match:
+                                clean_json_str = match.group(1)
+                            else:
+                                # 策略二：如果找不到 Markdown 塊，則尋找第一個出現的完整 JSON 物件或陣列
+                                brace_match = re.search(r'\{.*\}', raw_text_result, re.DOTALL)
+                                bracket_match = re.search(r'\[.*\]', raw_text_result, re.DOTALL)
+                                if brace_match:
+                                    clean_json_str = brace_match.group(0)
+                                elif bracket_match:
+                                    clean_json_str = bracket_match.group(0)
+
+                            if not clean_json_str:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
                             
-                            clean_json_str = json_match.group(0)
+                            # 對提取出的字串進行清理和修復
                             repaired_str = clean_json_str.replace("'", '"')
                             repaired_str = re.sub(r',\s*(\}|\])', r'\1', repaired_str)
                             
@@ -1408,9 +1422,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             
                             if corrected_response and output_schema:
                                 logger.info(f"[{self.user_id}] [自我修正] ✅ 修正流程成功，正在重新驗證...")
-                                json_match = re.search(r'\{.*\}|\[.*\]', corrected_response, re.DOTALL)
-                                if json_match:
-                                    return output_schema.model_validate(json.loads(json_match.group(0)))
+                                # [v234.1 核心修正] 在自我修正後也使用新的提取邏輯
+                                corrected_clean_json_str = None
+                                match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", corrected_response, re.DOTALL)
+                                if match:
+                                    corrected_clean_json_str = match.group(1)
+                                else:
+                                    brace_match = re.search(r'\{.*\}', corrected_response, re.DOTALL)
+                                    if brace_match: corrected_clean_json_str = brace_match.group(0)
+                                
+                                if corrected_clean_json_str:
+                                    return output_schema.model_validate(json.loads(corrected_clean_json_str))
                         except Exception as correction_e:
                             logger.error(f"[{self.user_id}] [自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
                         
@@ -1419,11 +1441,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
                         
-                        # [v234.0 核心修正] 實作精細化的冷卻策略
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
                             
-                            # 只對 Pro 級別模型的 ResourceExhausted 錯誤啟用長期冷卻
                             if isinstance(e, google_api_exceptions.ResourceExhausted) and "pro" in model_name:
                                 cooldown_key = f"{key_index}_{model_name}"
                                 cooldown_duration = 24 * 60 * 60 # 24 小時
@@ -1432,7 +1452,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 logger.critical(f"[{self.user_id}] [持久化冷卻] 偵測到 Pro 模型速率超限！API Key #{key_index} (模型: {model_name}) 已被置入硬冷卻狀態，持續 24 小時。")
                             else:
                                 logger.warning(f"[{self.user_id}] 將輪換到下一個金鑰。")
-                            break # 跳出內部重試循環，進入外部的 Key 輪換
+                            break
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
@@ -1453,7 +1473,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
+# 帶輪換和備援策略的原生 API 調用引擎 函式結束
 
 
 
@@ -3884,11 +3904,11 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.3 - 創意防火牆)
+# 函式：獲取事後分析器 Prompt (v4.4 - 主鍵強制原則)
 # 更新紀錄:
-# v4.3 (2025-10-04): [災難性BUG修復] 根據 RECITATION 錯誤，在 Prompt 中加入了【🚫 嚴禁複誦原則】。此「創意防火牆」指令強制模型必須重新創作和總結，而不是複製輸入的對話，從根本上解決了因 AI 自我抄襲檢測而導致的背景分析失敗問題。
+# v4.4 (2025-10-04): [災難性BUG修復] 新增了【🔑 主鍵強制原則】。此規則強制 LLM 只有在能從上下文中確定一個已存在 LORE 的精確 `lore_key` 時，才能生成 `update_...` 工具調用，從根源上杜絕了對「未知實體」的幻覺更新任務。
+# v4.3 (2025-10-04): [災難性BUG修復] 根據 RECITATION 錯誤，在 Prompt 中加入了「創意防火牆」指令。
 # v4.2 (2025-10-03): [健壯性強化] 增加了【📈 衝突檢測與更新原則】。
-# v4.1 (2025-10-03): [健壯性強化] 引入了「創意防火牆」以解決 RECITATION 錯誤。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
@@ -3899,22 +3919,24 @@ class ExtractionResult(BaseModel):
 #   3.  **規則鏈接**: 動態維護「身份」與「行為規則」之間的繼承關係。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE) - 最高優先級鐵則】**:
-#     *   輸入的「本回合的完整對話」是你分析的【背景資料】，不是你的【寫作素材】。
-#     *   你的所有輸出（特別是 `memory_summary`）**必須**是你自己語言的**重新創作**、**總結**和**演繹**。
-#     *   【絕對禁止】直接或間接地逐字複製「本回合的完整對話」中的任何連續句子或段落。
+# 1.  **【🚫 嚴禁複誦原則 (針對記憶摘要)】**:
+#     *   在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
+#     *   【絕對禁止】直接逐字複製「本回合的完整對話」中的任何連續句子。
 #
-# 2.  **【📈 衝突檢測與更新原則 (Conflict Detection & Update Mandate)】**:
+# 2.  **【🔑 主鍵強制原則 (Primary Key Mandate) - 最高優先級】**:
+#     *   在生成任何 `update_...` 類型的工具調用時，你**【絕對必須】**確保 `parameters` 字典中包含一個**精確的、從【現有LORE摘要】或【LORE上下文參考】中獲取的 `lore_key`**。
+#     *   如果你認為某個實體需要更新，但在參考情報中**找不到其對應的 `lore_key`**，你**【必須】**將其視為一個**新實體**，並改為生成一個 `create_new_...` 工具調用。
+#     *   【絕對禁止】生成任何沒有 `lore_key` 的 `update_...` 工具調用。
+#
+# 3.  **【📈 衝突檢測與更新原則 (Conflict Detection & Update Mandate)】**:
 #     *   你的**首要分析任務**，是將【本回合的完整對話】與【現有LORE摘要】進行交叉比對。
-#     *   如果對話中出現了與現有 LORE **相衝突或使其過時**的新資訊（例如：角色晉升、狀態改變、獲得新稱號），你【必須】優先生成一個 `update_...` 工具調用來修正這條 LORE。
+#     *   如果對話中出現了與現有 LORE **相衝突或使其過時**的新資訊，你【必須】優先生成一個 `update_...` 工具調用來修正這條 LORE（前提是你能找到它的 `lore_key`）。
 #
-# 3.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate)】**:
+# 4.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate)】**:
 #     *   在分析完對話後，你【必須】檢查是否出現了以下兩種情況：
 #         a. 一個角色被賦予了一個**新的身份**（alias）。
 #         b. 一條新的、關於**行為規範或禮儀**的 `world_lore` 被創建。
 #     *   如果發生以上任一情況，你【必須】生成一個 `update_lore_template_keys` 工具調用來創建或更新這個鏈接。
-#
-# 4.  **【🔑 上下文繼承原則】**: 在生成任何 `update_npc_profile` 工具調用時，【必須】從【LORE上下文參考】中查找並使用該角色已有的 `lore_key`。
 #
 # 5.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
 #
@@ -3942,7 +3964,6 @@ class ExtractionResult(BaseModel):
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
 # 獲取事後分析器 Prompt 函式結束
-
     
     
     
@@ -6025,6 +6046,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
