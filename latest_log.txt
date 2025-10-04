@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T20:41:59.466124 ###
+### AI Lover Log - Last updated at 2025-10-04T20:47:32.731118 ###
 
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
 2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #2 創建 LLM 實例，跳過。
 2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
 2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
@@ -300,3 +289,14 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 558, in _response_to_result
     generation_info["finish_reason"] = candidate.finish_reason.name
 AttributeError: 'int' object has no attribute 'name'
+2025-10-04 20:47:19 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-04 20:47:19 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-04 20:47:19 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-04 20:47:19 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-04 20:47:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-04 20:47:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-04 20:47:19 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-04 20:47:19 - [INFO] - Discord Bot is ready!
+2025-10-04 20:47:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-04 20:47:22 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-04 20:47:23 - [INFO] - 已成功發送啟動成功通知給管理員。
