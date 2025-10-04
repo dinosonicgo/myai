@@ -103,11 +103,11 @@ class AILover:
     
     
     
-# 函式：初始化AI核心 (v236.0 - 移除代碼化)
+# 函式：初始化AI核心 (v237.0 - 補全屬性)
 # 更新紀錄:
-# v236.0 (2025-10-04): [重大架構簡化] 根據使用者指令和 RECITATION 錯誤分析，徹底移除了已被證實無效的 DECODING_MAP 代碼化系統。
+# v237.0 (2025-10-05): [災難性BUG修復] 根據 AttributeError，為所有使用延遲加載模式的 Prompt 模板，在 __init__ 中補全了對應的實例屬性定義（例如 self.batch_entity_resolution_chain = None），從根源上解決了屬性未定義的錯誤。
+# v236.0 (2025-10-04): [重大架構簡化] 徹底移除了已被證實無效的 DECODING_MAP 代碼化系統。
 # v235.0 (2025-10-03): [重大架構升級] 引入了「持久化 API Key 冷卻」機制的基礎設施。
-# v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -120,19 +120,16 @@ class AILover:
         if not self.api_keys:
             raise ValueError("未找到任何 Google API 金鑰。")
         
-        # [v235.0 核心修正] 新增冷卻機制相關屬性
         self.cooldown_file_path = PROJ_DIR / "data" / "api_cooldown.json"
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
-
-        # [v236.0 核心修正] 移除 DECODING_MAP
         
         self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
         self.last_context_snapshot: Optional[Dict[str, Any]] = None
         self.last_user_input: Optional[str] = None
         
-        # 延遲加載的 Prompt 模板
+        # [v237.0 核心修正] 為所有延遲加載的 Prompt 模板補全屬性定義
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
         self.profile_completion_prompt: Optional[str] = None
@@ -145,6 +142,9 @@ class AILover:
         self.preemptive_tool_parsing_chain: Optional[str] = None
         self.rag_reranker_prompt: Optional[str] = None
         self.local_rag_reranker_prompt: Optional[str] = None
+        self.batch_entity_resolution_chain: Optional[str] = None
+        self.description_synthesis_prompt: Optional[str] = None
+        self.euphemization_reconstruction_chain: Optional[str] = None
         
         self.core_protocol_prompt: str = ""
         self.data_protocol_prompt: str = """# ==============================================================================
@@ -174,7 +174,6 @@ class AILover:
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
 # 初始化AI核心 函式結束
-
 
     
 
@@ -381,14 +380,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v1.9 - 集成通用 LORE 擴展)
+# 函式：RAG 直通生成 (v2.0 - 感知遠景模式)
 # 更新紀錄:
-# v1.9 (2025-10-04): [重大架構升級] 在 RAG 檢索之前，集成了一個全新的、統一的「通用 LORE 擴展管線」。此管線取代了舊的、僅針對 NPC 的擴展邏輯，能夠智能識別並為所有類別的新 LORE 實體（角色、地點、物品等）創建骨架檔案，確保新概念能被即時索引和檢索。
+# v2.0 (2025-10-05): [邏輯修正] 根據「遠景」模式的邏輯缺陷，修正了對 `_query_lore_from_entities` 的調用。現在會先檢查當前的 `viewing_mode`，並將正確的場景狀態傳遞給實體提取器，從而防止在遠景模式下將主角名字錯誤地注入 RAG 查詢。
+# v1.9 (2025-10-04): [重大架構升級] 集成了一個全新的、統一的「通用 LORE 擴展管線」。
 # v1.8 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統相關的邏輯，並加入了「創意防火牆」。
-# v1.7 (2025-10-03): [重大架構升級] 實現了「LORE優先」原則。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.9) 執行一個包含「通用 LORE 擴展」、LORE 優先、RAG 直通的完整生成流程。
+        (v2.0) 執行一個包含「通用 LORE 擴展」、LORE 優先、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -397,7 +396,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- 步驟 1: [v1.9 新增] 通用 LORE 擴展管線 ---
+        # --- 步驟 1: 通用 LORE 擴展管線 ---
         try:
             logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -421,7 +420,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
                 logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...")
-                # 調用現有的保存函式來批量處理所有新 LORE
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in expansion_result.npc_profiles])
                 await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
                 await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
@@ -434,7 +432,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         except Exception as e:
             logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中發生錯誤: {e}", exc_info=True)
-            # 即使擴展失敗，主流程也應繼續
 
         # --- 步驟 2: 處理連續性指令 ---
         plot_anchor = "（無）"
@@ -445,7 +442,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         # --- 步驟 3: 查詢權威性 LORE ---
         absolute_truth_mandate = ""
-        contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=False)
+        # [v2.0 核心修正] 檢查當前的 viewing_mode 來決定場景類型
+        is_remote = self.profile.game_state.viewing_mode == 'remote'
+        contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=is_remote)
         
         if contextual_entity_names:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -476,7 +475,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         + "\n# =======================================================================\n"
                     )
                     logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
-
 
         # --- 步驟 4: 執行 RAG 檢索 ---
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
@@ -2597,10 +2595,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取描述合成器 Prompt
 
 
-    # 函式：獲取批量實體解析器 Prompt
-    # 更新紀錄:
-    # v1.1 (2025-09-24): [健壯性強化] 在Prompt中增加了一個詳細的、結構完美的“輸出結構範例”。此修改為LLM提供了一個清晰的模仿目標，旨在通過範例教學的方式，根除因LLM自由發揮、創造錯誤鍵名（如 'input_name'）而導致的ValidationError。
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。
+# 函式：獲取批量實體解析器 Prompt (v1.2 - 修正緩存變數)
+# 更新紀錄:
+# v1.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，將 Prompt 模板的延遲加載緩存變數從 `self.batch_entity_resolution_chain` 修正為正確的 `self.batch_entity_resolution_chain`，解決了因複製貼上錯誤導致的屬性未定義問題。
+# v1.1 (2025-09-24): [健壯性強化] 在Prompt中增加了一個詳細的、結構完美的“輸出結構範例”。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。
     def get_batch_entity_resolution_prompt(self) -> str:
         """獲取或創建一個專門用於批量實體解析的字符串模板。"""
         if self.batch_entity_resolution_chain is None:
@@ -2651,7 +2650,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 """
             self.batch_entity_resolution_chain = prompt_template
         return self.batch_entity_resolution_chain
-    # 函式：獲取批量實體解析器 Prompt
+# 獲取批量實體解析器 Prompt 函式結束
     
 
 
@@ -3551,13 +3550,14 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v7.1 - 接收任務式)
+# 函式：背景LORE精煉 (v7.2 - 移除代碼化殘餘)
 # 更新紀錄:
-# v7.1 (2025-10-02): [架構重構] 根據「事件驅動」模型，重構了此函式的職責。它不再主動從數據庫中拉取所有需要精煉的 LORE，而是被動地接收一個由上游觸發器（如 `execute_lore_updates_from_summary`）傳入的、具體的待處理 LORE 對象列表。此修改使其成為一個更通用的、可被任何流程按需調用的「精煉服務」。
-# v7.0 (2025-10-02): [根本性重構] 根據「前置LORE解析」策略，此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。
+# v7.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，徹底移除了函式末尾對已被廢棄的 _decode_lore_content 函式的調用，完成了代碼化系統的最終清理。
+# v7.1 (2025-10-02): [架構重構] 根據「事件驅動」模型，重構了此函式的職責，使其成為一個可被按需調用的「精煉服務」。
+# v7.0 (2025-10-02): [根本性重構] 將此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。
     async def _background_lore_refinement(self, lores_to_refine: List[Lore]):
         """
-        (背景任務 v7.1) 接收一個 LORE 對象列表，並逐一調用單體精煉器對其進行升級。
+        (背景任務 v7.2) 接收一個 LORE 對象列表，並逐一調用單體精煉器對其進行升級。
         """
         try:
             # 如果是從創世流程觸發，給予足夠的延遲以等待 RAG 構建完成
@@ -3565,7 +3565,7 @@ class ExtractionResult(BaseModel):
             is_large_batch = len(lores_to_refine) > 5
             await asyncio.sleep(15.0 if is_large_batch else 3.0)
             
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.1] 背景精煉服務已啟動，收到 {len(lores_to_refine)} 個精煉任務。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.2] 背景精煉服務已啟動，收到 {len(lores_to_refine)} 個精煉任務。")
 
             if not lores_to_refine:
                 logger.info(f"[{self.user_id}] [LORE精煉] 任務列表為空，服務結束。")
@@ -3576,8 +3576,9 @@ class ExtractionResult(BaseModel):
                 refined_profile = await self._refine_single_lore_object(lore)
 
                 if refined_profile:
-                    # 如果精煉成功，則更新數據庫
-                    final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
+                    # [v7.2 核心修正] 移除對 _decode_lore_content 的調用，直接使用精煉後的數據
+                    final_content_to_save = refined_profile.model_dump()
+                    
                     await lore_book.add_or_update_lore(
                         user_id=self.user_id,
                         category='npc_profile',
@@ -3591,11 +3592,11 @@ class ExtractionResult(BaseModel):
 
                 await asyncio.sleep(1.5)
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.1] 所有 {len(lores_to_refine)} 個背景精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉 v7.2] 所有 {len(lores_to_refine)} 個背景精煉任務已全部完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 背景 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景LORE精煉 (v7.1 - 接收任務式)
+# 背景LORE精煉 函式結束
 
 
 # 函式：呼叫本地Ollama模型執行RAG重排 (v1.0 - 全新創建)
@@ -6075,6 +6076,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
