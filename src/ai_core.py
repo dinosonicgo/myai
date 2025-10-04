@@ -1846,23 +1846,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.4 - 數據流修正)
+# 函式：背景事後分析 (v7.5 - 引入智慧分流)
 # 更新紀錄:
-# v7.4 (2025-10-03): [災難性BUG修復] 根據 "[事後分析] 接收到的上下文快照不完整" 的錯誤日誌，修正了此函式從 `context_snapshot` 字典中讀取數據的邏輯。新版本現在會使用正確的鍵名（`user_input`, `final_response`）來獲取數據，確保了即使在 RAG 直通流程下，事後分析鏈也能獲得必要的上下文，從而恢復 LORE 學習和記憶摘要功能。
+# v7.5 (2025-10-03): [災難性BUG修復] 根據「主角LORE隔離」原則，將此函式從一個單純的分析器升級為「分析與分流總指揮官」。新版本在從 LLM 獲取工具調用計畫後，增加了一個關鍵的【智慧分流】步驟：它會遍歷所有計畫中的更新，判斷每一個更新的目標是核心主角（用戶/AI）還是 NPC。針對主角的更新將被立即、直接地通過 `update_and_persist_profile` 應用；而針對 NPC 的更新則會被收集起來，交由下游的 LORE 執行器處理。此修改從數據流的源頭徹底分離了主角和 NPC 的更新路徑，根除了將主角錯誤地當作 LORE 進行操作的嚴重邏輯問題。
+# v7.4 (2025-10-03): [災難性BUG修復] 修正了事後分析函式讀取上下文快照的數據流。
 # v7.3 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重構了此函式。
-# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
+        (v7.5 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
         """
         if not self.profile:
             return
         
-        # [v7.4 核心修正] 使用正確的鍵名從快照中讀取數據
         user_input = context_snapshot.get("user_input")
-        final_response = context_snapshot.get("final_response") # 舊鍵名是 "final_response_text"
-        scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
-        relevant_characters_lore = context_snapshot.get("relevant_characters", [])
+        final_response = context_snapshot.get("final_response")
         
         if not user_input or not final_response:
             logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少 'user_input' 或 'final_response' 數據。")
@@ -1870,32 +1867,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
         try:
             await asyncio.sleep(2.0)
-            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
+            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
             
+            # --- 步驟 1: LLM 分析 (保持不變) ---
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
-
-            relevant_lore_context_str = "（本回合無明確的核心互動LORE）"
-            if relevant_characters_lore:
-                lore_snippets = []
-                for lore_dict in relevant_characters_lore:
-                    # 確保 lore_dict 是一個字典
-                    if isinstance(lore_dict, dict):
-                        key = lore_dict.get('key', '未知Key')
-                        name = lore_dict.get('content', {}).get('name', '未知名稱')
-                        lore_snippets.append(f"- 角色: {name}, lore_key: {key}")
-                if lore_snippets:
-                    relevant_lore_context_str = "\n".join(lore_snippets)
             
             prompt_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
-                "final_response_text": final_response, # Prompt 模板需要 'final_response_text'
-                "scene_rules_context": scene_rules_context,
-                "relevant_lore_context": relevant_lore_context_str
+                "final_response_text": final_response,
+                "scene_rules_context": context_snapshot.get("scene_rules_context", "（無）"),
+                "relevant_lore_context": "（暫不提供，以避免循環依賴）"
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -1907,20 +1893,59 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無任何更新。")
                 return
 
+            # --- 步驟 2: 記憶摘要處理 (保持不變) ---
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
+            # --- 步驟 3: [v7.5 核心修正] 智慧分流 ---
             if analysis_result.lore_updates:
-                await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
+                npc_lore_updates = []
+                user_name_lower = self.profile.user_profile.name.lower()
+                ai_name_lower = self.profile.ai_profile.name.lower()
+
+                for call in analysis_result.lore_updates:
+                    # 只處理 update 類型的調用，create 類型理論上不應針對主角
+                    if call.tool_name.startswith("update_"):
+                        params = call.parameters
+                        updates_dict = params.get("updates", {})
+                        
+                        # 檢查多個可能的名稱欄位
+                        target_name = updates_dict.get("name") or params.get("standardized_name") or (params.get("lore_key", "").split(" > ")[-1])
+                        
+                        if not target_name:
+                            npc_lore_updates.append(call)
+                            continue
+                        
+                        target_name_lower = target_name.lower()
+
+                        # 分流到主角更新路徑
+                        if target_name_lower == user_name_lower:
+                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對使用者角色 '{target_name}' 的更新，正在直接應用...")
+                            await self.update_and_persist_profile({'user_profile': updates_dict})
+                        elif target_name_lower == ai_name_lower:
+                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對AI角色 '{target_name}' 的更新，正在直接應用...")
+                            await self.update_and_persist_profile({'ai_profile': updates_dict})
+                        else:
+                            # 分流到 NPC 更新路徑
+                            npc_lore_updates.append(call)
+                    else:
+                        # 所有非 update 的調用（如 create）都歸為 NPC LORE 處理
+                        npc_lore_updates.append(call)
+
+                # --- 步驟 4: 執行 NPC LORE 更新 ---
+                if npc_lore_updates:
+                    await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in npc_lore_updates]})
+                else:
+                    logger.info(f"[{self.user_id}] [智慧分流] 本次分析未檢測到需要更新的 NPC LORE。")
             
-            logger.info(f"[{self.user_id}] [事後分析] 背景分析與處理任務完成。")
+            logger.info(f"[{self.user_id}] [事後分析] 背景分析與分流任務完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析 (v7.4 - 數據流修正)
+# 函式：背景事後分析 (v7.5 - 引入智慧分流)
 
 
     
@@ -5868,6 +5893,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
