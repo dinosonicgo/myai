@@ -103,11 +103,11 @@ class AILover:
     
     
     
-# ai_core.py 的 AILover.__init__ 函式 (v235.0 - 新增冷卻機制)
+# 函式：初始化AI核心 (v236.0 - 移除代碼化)
 # 更新紀錄:
-# v235.0 (2025-10-03): [重大架構升級] 根據 `ResourceExhausted` 錯誤，引入了「持久化 API Key 冷卻」機制的基礎設施。此版本新增了 `self.cooldown_file_path` 和 `self.key_model_cooldowns` 兩個實例屬性，並在初始化時自動調用全新的 `_load_cooldowns` 輔助函式，從本地 JSON 檔案讀取並恢復 API Key 的冷卻狀態，為實現智能的速率限制熔斷機制奠定了基礎。
+# v236.0 (2025-10-04): [重大架構簡化] 根據使用者指令和 RECITATION 錯誤分析，徹底移除了已被證實無效的 DECODING_MAP 代碼化系統。
+# v235.0 (2025-10-03): [重大架構升級] 引入了「持久化 API Key 冷卻」機制的基礎設施。
 # v234.1 (2025-09-28): [程式碼重構] 新增了 `self.data_protocol_prompt` 實例屬性。
-# v234.0 (2025-11-22): [架構重構] 新增了 self.post_generation_analysis_chain 屬性。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -125,15 +125,7 @@ class AILover:
         self.key_model_cooldowns: Dict[str, float] = {}
         self._load_cooldowns()
 
-        self.DECODING_MAP = {
-            "CODE-M-GEN-A": "肉棒", "CODE-F-GEN-A": "肉穴", "CODE-F-GEN-B": "陰蒂",
-            "CODE-F-GEN-C": "子宮", "FLUID-A": "愛液", "REACT-A": "翻白眼",
-            "REACT-B": "顫抖", "REACT-C": "噴濺", "ACTION-A": "插入",
-            "ACTION-B": "口交", "ACTION-C": "性交", "ACTION-D": "獸交",
-            "ACTION-E": "輪姦", "ACTION-F": "強暴", "STATE-A": "高潮",
-            "STATE-B": "射精", "ROLE-A": "臣服", "ROLE-B": "主人",
-            "ROLE-C": "母狗", "ROLE-D": "母畜"
-        }
+        # [v236.0 核心修正] 移除 DECODING_MAP
         
         self.ollama_model_name = "HammerAI/llama-3-lexi-uncensored:latest"
 
@@ -181,7 +173,7 @@ class AILover:
 
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
-# 函式：初始化AI核心
+# 初始化AI核心 函式結束
 
 
     
@@ -293,14 +285,14 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
-# 函式：RAG 直通生成 (v1.7 - 實現 LORE 優先)
+# 函式：RAG 直通生成 (v1.8 - 移除代碼化 & 防火牆)
 # 更新紀錄:
-# v1.7 (2025-10-03): [重大架構升級] 根據「LORE優先」原則，徹底重構了此函式的 Prompt 組裝邏輯。新版本在執行 RAG 檢索之前，會先根據對話中涉及的核心實體，從 SQL 資料庫中精準查詢其最新的結構化 LORE 數據。然後，它會將這些權威性的 LORE 事實，以一個全新的、擁有最高指令優先級的【🚨 絕對事實強制令】區塊的形式，注入到最終 Prompt 的頂部。此修改從根本上解決了 RAG 中過時的靜態信息與 LORE 中動態更新的信息之間的衝突問題，確保了 AI 的回應永遠基於最新的劇情狀態。
+# v1.8 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。同時，為應對 RECITATION 風險，在主生成 Prompt 中也加入了【🚫 嚴禁複誦原則】創意防火牆。
+# v1.7 (2025-10-03): [重大架構升級] 根據「LORE優先」原則，徹底重構了此函式的 Prompt 組裝邏輯。
 # v1.6 (2025-10-03): [災難性BUG修復] 引入了「創意防火牆」以解決 RECITATION 錯誤。
-# v1.3 (2025-10-03): [災難性BUG修復] 徹底解耦了上下文快照的職責，修復了事後分析的數據流。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.7) 執行一個「LORE 優先」的、純粹的「指令 -> RAG -> LLM」生成流程。
+        (v1.8) 執行一個「LORE 優先」、帶有創意防火牆的、純粹的「指令 -> RAG -> LLM」生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -309,32 +301,26 @@ class AILover:
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- 步驟 1: 處理連續性指令 ---
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
         if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
             plot_anchor = self.last_context_snapshot["last_response_text"]
 
-        # --- 步驟 2: [v1.7 新增] 查詢權威性 LORE ---
         absolute_truth_mandate = ""
         contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=False)
         
         if contextual_entity_names:
-            # 根據名稱列表，從 SQL 數據庫精準獲取最新的 LORE 對象
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             relevant_lores = [lore for lore in all_lores if lore.content.get("name") in contextual_entity_names]
             
             if relevant_lores:
                 truth_statements = []
                 for lore in relevant_lores:
-                    # 格式化 LORE 內容為簡潔的事實陳述
                     content = lore.content
                     name = content.get("name")
-                    # 提取最關鍵、最可能更新的字段
                     status = content.get("status")
                     description = content.get("description", "")
-                    # 嘗試從描述中提取職位或身份
                     match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
                     role = match.group(1) or match.group(2) if match else None
                     
@@ -342,7 +328,6 @@ class AILover:
                     if role: statement_parts.append(f"當前身份/職位={role}")
                     if status: statement_parts.append(f"當前狀態={status}")
                     
-                    # 只在有實質內容時才加入
                     if len(statement_parts) > 1:
                         truth_statements.append(" ".join(statement_parts))
 
@@ -355,15 +340,11 @@ class AILover:
                     )
                     logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
 
-
-        # --- 步驟 3: 執行 RAG 檢索 ---
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
-        # --- 步驟 4: 獲取對話歷史 ---
         historical_context = await self._get_summarized_chat_history(user_id)
 
-        # --- 步驟 5: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
@@ -396,7 +377,7 @@ class AILover:
             final_prompt_template,
             {
                 "core_protocol_prompt": self.core_protocol_prompt,
-                "absolute_truth_mandate": absolute_truth_mandate, # 注入絕對事實
+                "absolute_truth_mandate": absolute_truth_mandate,
                 "rag_context": rag_context,
                 "plot_anchor": plot_anchor,
                 "historical_context": historical_context,
@@ -407,7 +388,6 @@ class AILover:
             }
         )
         
-        # --- 步驟 6: 調用 LLM 生成 ---
         final_response = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -418,7 +398,7 @@ class AILover:
             logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
-        # --- 步驟 7: 事後處理 ---
+        # [v1.8 核心修正] 移除對 _decode_lore_content 的調用
         clean_response = final_response.strip()
         
         scene_key = self._get_scene_key()
@@ -433,21 +413,19 @@ class AILover:
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         return clean_response
-# 函式：RAG 直通生成 (v1.7 - 實現 LORE 優先)
-
+# RAG 直通生成 函式結束
 
     
 
-# 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
+# 函式：解析並儲存LORE實體 (v6.1 - 移除代碼化)
 # 更新紀錄:
-# v6.0 (2025-10-02): [架構簡化] 根據「前置LORE解析」策略，移除了在此函式中異步觸發背景精煉任務的邏輯。LORE 精煉的職責已被上層的 `preprocess_and_generate` 在需要時即時調用，此處不再需要重複觸發，避免了冗餘操作。
-# v5.1 (2025-09-30): [災難性BUG修復] 根據 ValidationError，為批量實體解析流程增加了「自我修正」循環。
-# v5.0 (2025-11-22): [架構優化] 移除了舊的、基於description的校驗邏輯。
+# v6.1 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。
+# v6.0 (2025-10-02): [架構簡化] 根據「前置LORE解析」策略，移除了在此函式中異步觸發背景精煉任務的邏輯。
+# v5.1 (2025-09-30): [災難性BUG修復] 為批量實體解析流程增加了「自我修正」循環。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
         一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
         並將它們逐一、安全地儲存到 Lore 資料庫中。
-        內建針對 NPC 的批量實體解析、批量描述合成與最終解碼邏輯。
         """
         if not self.profile:
             return
@@ -558,8 +536,7 @@ class AILover:
                                 task = tasks_dict[char_name]
                                 lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
                             
-                            final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged')
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, lore.content, source='canon_parser_merged')
                 except Exception:
                     tasks_dict = {task.name: task for task in synthesis_tasks}
                     all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
@@ -568,8 +545,7 @@ class AILover:
                         if char_name in tasks_dict:
                             task = tasks_dict[char_name]
                             lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
-                            final_content = self._decode_lore_content(lore.content, self.DECODING_MAP)
-                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, final_content, source='canon_parser_merged_fallback')
+                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, lore.content, source='canon_parser_merged_fallback')
 
             items = items_to_create
 
@@ -579,18 +555,19 @@ class AILover:
                 if not name: continue
                 location_path = item_data.get('location_path')
                 lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
-                final_content_to_save = self._decode_lore_content(item_data, self.DECODING_MAP)
-                lore_entry = await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
-
-                # [v6.0 核心修正] 移除異步觸發，精煉職責完全上移
-                # if actual_category == 'npc_profile' and lore_entry.source == 'canon_parser':
-                #     logger.info(f"[{self.user_id}] (_resolve_and_save) 檢測到新的粗略版 LORE '{lore_key}'，正在異步觸發單體精煉任務...")
-                #     asyncio.create_task(self._background_lore_refinement(lore_entry))
+                
+                # [v6.1 核心修正] 移除對 _decode_lore_content 的調用
+                final_content_to_save = item_data
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
 
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
-# 函式：解析並儲存LORE實體 (v6.0 - 移除精煉觸發)
+# 解析並儲存LORE實體 函式結束
+
+
+
+    
 
 # 函式：獲取LORE擴展決策器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
@@ -1851,14 +1828,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.5 - 引入智慧分流)
+# 函式：背景事後分析 (v7.6 - 簡化備援)
 # 更新紀錄:
-# v7.5 (2025-10-03): [災難性BUG修復] 根據「主角LORE隔離」原則，將此函式從一個單純的分析器升級為「分析與分流總指揮官」。新版本在從 LLM 獲取工具調用計畫後，增加了一個關鍵的【智慧分流】步驟：它會遍歷所有計畫中的更新，判斷每一個更新的目標是核心主角（用戶/AI）還是 NPC。針對主角的更新將被立即、直接地通過 `update_and_persist_profile` 應用；而針對 NPC 的更新則會被收集起來，交由下游的 LORE 執行器處理。此修改從數據流的源頭徹底分離了主角和 NPC 的更新路徑，根除了將主角錯誤地當作 LORE 進行操作的嚴重邏輯問題。
+# v7.6 (2025-10-04): [架構簡化] 根據「創意防火牆」策略的引入，移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。由於 RECITATION 錯誤已在 Prompt 層面解決，此函式現在的錯誤處理邏輯被簡化為更直接的重試或失敗，提高了程式碼的可讀性和維護性。
+# v7.5 (2025-10-03): [災難性BUG修復] 將此函式升級為「分析與分流總指揮官」，從數據流的源頭徹底分離了主角和 NPC 的更新路徑。
 # v7.4 (2025-10-03): [災難性BUG修復] 修正了事後分析函式讀取上下文快照的數據流。
-# v7.3 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重構了此函式。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (v7.5 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
+        (v7.6 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
         """
         if not self.profile:
             return
@@ -1874,7 +1851,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             await asyncio.sleep(2.0)
             logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
             
-            # --- 步驟 1: LLM 分析 (保持不變) ---
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
@@ -1890,34 +1866,31 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
+            
+            # [v7.6 核心修正] 簡化備援策略
             analysis_result = await self.ainvoke_with_rotation(
                 full_prompt,
                 output_schema=PostGenerationAnalysisResult,
-                retry_strategy='euphemize',
+                retry_strategy='force', # 如果被審查，則使用更強硬的重試，而不是舊的 euphemize
                 use_degradation=False 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無任何更新。")
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈在所有重試後返回空結果，本回合無任何更新。")
                 return
 
-            # --- 步驟 2: 記憶摘要處理 (保持不變) ---
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
-            # --- 步驟 3: [v7.5 核心修正] 智慧分流 ---
             if analysis_result.lore_updates:
                 npc_lore_updates = []
                 user_name_lower = self.profile.user_profile.name.lower()
                 ai_name_lower = self.profile.ai_profile.name.lower()
 
                 for call in analysis_result.lore_updates:
-                    # 只處理 update 類型的調用，create 類型理論上不應針對主角
                     if call.tool_name.startswith("update_"):
                         params = call.parameters
                         updates_dict = params.get("updates", {})
-                        
-                        # 檢查多個可能的名稱欄位
                         target_name = updates_dict.get("name") or params.get("standardized_name") or (params.get("lore_key", "").split(" > ")[-1])
                         
                         if not target_name:
@@ -1926,7 +1899,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         
                         target_name_lower = target_name.lower()
 
-                        # 分流到主角更新路徑
                         if target_name_lower == user_name_lower:
                             logger.info(f"[{self.user_id}] [智慧分流] 檢測到對使用者角色 '{target_name}' 的更新，正在直接應用...")
                             await self.update_and_persist_profile({'user_profile': updates_dict})
@@ -1934,13 +1906,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             logger.info(f"[{self.user_id}] [智慧分流] 檢測到對AI角色 '{target_name}' 的更新，正在直接應用...")
                             await self.update_and_persist_profile({'ai_profile': updates_dict})
                         else:
-                            # 分流到 NPC 更新路徑
                             npc_lore_updates.append(call)
                     else:
-                        # 所有非 update 的調用（如 create）都歸為 NPC LORE 處理
                         npc_lore_updates.append(call)
 
-                # --- 步驟 4: 執行 NPC LORE 更新 ---
                 if npc_lore_updates:
                     await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in npc_lore_updates]})
                 else:
@@ -1950,7 +1919,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析 (v7.5 - 引入智慧分流)
+# 背景事後分析 函式結束
 
     
 
@@ -3773,11 +3742,11 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.2 - 強化更新捕捉)
+# 函式：獲取事後分析器 Prompt (v4.3 - 創意防火牆)
 # 更新紀錄:
-# v4.2 (2025-10-03): [健壯性強化] 根據「LORE優先」原則，在此 Prompt 的核心規則中新增了【📈 衝突檢測與更新原則】。此原則明確指令 LLM 在進行事後分析時，必須主動地、優先地尋找對話中與【現有LORE摘要】相衝突的新資訊（例如角色晉升、狀態改變），並將這些衝突點解析為 `update_...` 工具調用。此修改旨在提高 LORE 系統的動態更新能力，確保角色和世界的狀態能夠隨著劇情的推進而演變。
+# v4.3 (2025-10-04): [災難性BUG修復] 根據 RECITATION 錯誤，在 Prompt 中加入了【🚫 嚴禁複誦原則】。此「創意防火牆」指令強制模型必須重新創作和總結，而不是複製輸入的對話，從根本上解決了因 AI 自我抄襲檢測而導致的背景分析失敗問題。
+# v4.2 (2025-10-03): [健壯性強化] 增加了【📈 衝突檢測與更新原則】。
 # v4.1 (2025-10-03): [健壯性強化] 引入了「創意防火牆」以解決 RECITATION 錯誤。
-# v4.0 (2025-10-02): [重大架構升級] 引入了「動態規則鏈接」的核心職責。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
@@ -3788,14 +3757,14 @@ class ExtractionResult(BaseModel):
 #   3.  **規則鏈接**: 動態維護「身份」與「行為規則」之間的繼承關係。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🚫 嚴禁複誦原則 (針對記憶摘要)】**:
-#     *   在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
-#     *   【絕對禁止】直接逐字複製「本回合的完整對話」中的任何連續句子。
+# 1.  **【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE) - 最高優先級鐵則】**:
+#     *   輸入的「本回合的完整對話」是你分析的【背景資料】，不是你的【寫作素材】。
+#     *   你的所有輸出（特別是 `memory_summary`）**必須**是你自己語言的**重新創作**、**總結**和**演繹**。
+#     *   【絕對禁止】直接或間接地逐字複製「本回合的完整對話」中的任何連續句子或段落。
 #
 # 2.  **【📈 衝突檢測與更新原則 (Conflict Detection & Update Mandate)】**:
 #     *   你的**首要分析任務**，是將【本回合的完整對話】與【現有LORE摘要】進行交叉比對。
 #     *   如果對話中出現了與現有 LORE **相衝突或使其過時**的新資訊（例如：角色晉升、狀態改變、獲得新稱號），你【必須】優先生成一個 `update_...` 工具調用來修正這條 LORE。
-#     *   **範例**: 如果 LORE 摘要顯示「馬卡是二等兵」，但對話中他被稱為「馬卡士官長」，你必須生成 `update_npc_profile` 工具調用，將其 `description` 或相關欄位更新為「士官長」。
 #
 # 3.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate)】**:
 #     *   在分析完對話後，你【必須】檢查是否出現了以下兩種情況：
@@ -3830,7 +3799,7 @@ class ExtractionResult(BaseModel):
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
-# 函式：獲取事後分析器 Prompt (v4.2 - 強化更新捕捉)
+# 獲取事後分析器 Prompt 函式結束
 
     
     
@@ -5912,6 +5881,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
