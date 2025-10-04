@@ -44,10 +44,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, AliasCh
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_chroma import Chroma
 import chromadb
-# [v301.0 核心修正] 移除了以下這行，因為 InternalError 在新版 chromadb 中已不存在，且程式碼中並未使用
-# from chromadb.errors import InternalError
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# [核心修正] 将 "retrievs" 修正为 "retrievers"
 from langchain.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 from Levenshtein import ratio as levenshtein_ratio
@@ -64,9 +61,14 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
                       NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
-from src.config import settings
+# [v301.1 核心修正] 將絕對導入改為相對導入
+from .config import settings
 from .logger import logger
 from .tool_context import tool_context
+
+
+
+
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -5910,6 +5912,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
