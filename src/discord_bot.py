@@ -26,13 +26,14 @@ import time
 from pathlib import Path
 
 from .logger import logger
-from .ai_core import AILover, GENERATION_MODEL_PRIORITY # [v62.0 核心修正] 導入常量
+from .ai_core import AILover, GENERATION_MODEL_PRIORITY
 from . import lore_book
 from .lore_book import Lore
 from .database import AsyncSessionLocal, UserData, MemoryData, init_db, SceneHistoryData
 from .schemas import CharacterProfile, LocationInfo, WorldGenesisResult
 from .models import UserProfile, GameState
-from src.config import settings
+# [v62.1 核心修正] 將絕對導入改為相對導入
+from .config import settings
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -2135,6 +2136,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
