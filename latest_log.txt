@@ -1,25 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T00:00:03.193187 ###
+### AI Lover Log - Last updated at 2025-10-05T00:03:04.452655 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 787, in agenerate_prompt
-    return await self.agenerate(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 747, in agenerate
-    raise exceptions[0]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 923, in _agenerate_with_cache
-    result = await self._agenerate(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 809, in _agenerate
-    return _response_to_result(response)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 558, in _response_to_result
-    generation_info["finish_reason"] = candidate.finish_reason.name
-AttributeError: 'int' object has no attribute 'name'
-2025-10-04 19:43:36 - [ERROR] - 處理使用者 512280345618546699 的 RAG 直通流程時發生異常: 'int' object has no attribute 'name'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 1354, in on_message
-    final_response = await ai_instance.direct_rag_generate(user_input)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 519, in direct_rag_generate
-    final_response = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1404, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1292, in ainvoke_with_rotation
     response = await asyncio.wait_for(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
     return fut.result()
@@ -300,3 +280,23 @@ AttributeError: 'AILover' object has no attribute 'DECODING_MAP'
 2025-10-04 23:49:45 - [INFO] - Discord Bot setup hook finished!
 2025-10-04 23:49:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-04 23:49:48 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-05 00:00:50 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-05 00:00:50 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-05 00:00:50 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-05 00:00:50 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-05 00:00:50 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-05 00:00:52 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-05 00:00:52 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
+2025-10-05 00:02:50 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 00:02:53 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 00:02:53 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 00:02:53 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 00:02:53 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 00:02:53 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 00:02:56 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 00:02:57 - [INFO] - 已成功發送啟動成功通知給管理員。
