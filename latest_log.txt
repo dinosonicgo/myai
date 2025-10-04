@@ -1,27 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T00:03:04.452655 ###
+### AI Lover Log - Last updated at 2025-10-05T00:08:59.656803 ###
 
-    response = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 298, in ainvoke
-    llm_result = await self.agenerate_prompt(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 787, in agenerate_prompt
-    return await self.agenerate(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 747, in agenerate
-    raise exceptions[0]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\language_models\chat_models.py", line 923, in _agenerate_with_cache
-    result = await self._agenerate(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 809, in _agenerate
-    return _response_to_result(response)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\chat_models.py", line 558, in _response_to_result
-    generation_info["finish_reason"] = candidate.finish_reason.name
-AttributeError: 'int' object has no attribute 'name'
-2025-10-04 20:47:19 - [INFO] - 正在編譯主對話圖 (main_graph)...
-2025-10-04 20:47:19 - [INFO] - ✅ 主對話圖編譯成功。
-2025-10-04 20:47:19 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
-2025-10-04 20:47:19 - [INFO] - ✅ 創世流程圖編譯成功。
-2025-10-04 20:47:19 - [INFO] - 所有持久化 UI 視圖已成功註冊。
-2025-10-04 20:47:19 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
 2025-10-04 20:47:19 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
 2025-10-04 20:47:19 - [INFO] - Discord Bot is ready!
 2025-10-04 20:47:22 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
@@ -300,3 +278,25 @@ AttributeError: 'AILover' object has no attribute 'DECODING_MAP'
 2025-10-05 00:02:53 - [INFO] - Discord Bot setup hook finished!
 2025-10-05 00:02:56 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-05 00:02:57 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-05 00:03:35 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-05 00:03:35 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-05 00:03:35 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-05 00:03:35 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-05 00:03:35 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-05 00:03:37 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-05 00:03:37 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 5 條訊息。
+2025-10-05 00:03:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['response_style_prompt']
+2025-10-05 00:03:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-05 00:08:45 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 00:08:48 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 00:08:48 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 00:08:48 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 00:08:49 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 00:08:49 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 00:08:51 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 00:08:52 - [INFO] - 已成功發送啟動成功通知給管理員。
