@@ -1506,29 +1506,32 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：根據實體查詢 LORE (v2.0 - 職責重定義)
+# 函式：根據實體查詢 LORE (v2.1 - 修正場景判斷)
 # 更新紀錄:
-# v2.0 (2025-10-03): [重大架構重構] 根據「單一事實來源」原則，徹底重構了此函式的職責和返回值。它不再從 SQL 資料庫返回完整的 LORE 對象（以避免上下文污染），而是僅僅負責從輸入文本中分析並提取出一個純粹的、去重後的「實體名稱列表」。這個列表唯一的下游用途是強化 RAG 查詢的關鍵詞，確保了結構化 LORE 不再直接注入到生成 Prompt 中。
-# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此核心輔助函式。
+# v2.1 (2025-10-05): [災難性BUG修復] 徹底重構了此函式的邏輯。現在，它會先獲取一個純淨的實體列表，然後再根據 `is_remote_scene` 參數的值，明確地、有意識地決定是否要將主角的名字添加進去。此修改從根本上解決了在遠景模式下，主角名字依然會被錯誤添加的邏輯漏洞。
+# v2.0 (2025-10-03): [重大架構重構] 此函式的職責被重定義為僅返回一個純粹的「實體名稱列表」。
     async def _query_lore_from_entities(self, query_text: str, is_remote_scene: bool = False) -> List[str]:
         """
-        (v2.0) 從查詢文本中提取實體，並【只返回】一個相關的【實體名稱列表】。
+        (v2.1) 從查詢文本中提取實體，並根據場景模式決定是否包含主角，最終返回一個相關的【實體名稱列表】。
         """
         if not self.profile:
             return []
 
-        logger.info(f"[{self.user_id}] [實體名稱提取] 正在從查詢 '{query_text[:50]}...' 中分析實體...")
+        logger.info(f"[{self.user_id}] [實體名稱提取] 正在從查詢 '{query_text[:50]}...' 中分析實體 (場景模式: {'遠景' if is_remote_scene else '本地'})...")
         
-        # 步驟 1: 使用混合分析引擎提取文本中明確提及的實體
-        entities, _ = await self._analyze_user_input(query_text)
+        # 步驟 1: 使用混合分析引擎，獲取一個只包含文本中明確提及的實體的「純淨列表」
+        explicit_entities, _ = await self._analyze_user_input(query_text)
         
-        # 步驟 2: 在本地場景中，總是包含核心主角
+        # 步驟 2: 根據場景模式，有意識地決定是否添加主角
+        final_entities = set(explicit_entities)
+        
         if not is_remote_scene:
-            entities.append(self.profile.user_profile.name)
-            entities.append(self.profile.ai_profile.name)
+            logger.info(f"[{self.user_id}] [實體名稱提取] 檢測到為本地場景，正在將主角添加至核心實體列表。")
+            final_entities.add(self.profile.user_profile.name)
+            final_entities.add(self.profile.ai_profile.name)
         
-        # 步驟 3: 對提取出的實體進行去重和排序
-        unique_entities = sorted(list(set(name for name in entities if name)), key=len, reverse=True)
+        # 步驟 3: 對最終的實體集合進行去重和排序
+        unique_entities = sorted(list(name for name in final_entities if name), key=len, reverse=True)
         
         if not unique_entities:
             logger.info(f"[{self.user_id}] [實體名稱提取] 未在查詢中識別出任何有效實體。")
@@ -1536,9 +1539,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
         logger.info(f"[{self.user_id}] [實體名稱提取] 查詢分析完成，共識別出 {len(unique_entities)} 個核心實體: {unique_entities}。")
         
-        # 步驟 4: 只返回名稱列表，不再查詢和返回完整的 LORE 對象
         return unique_entities
-# 函式：根據實體查詢 LORE (v2.0 - 職責重定義)
+# 根據實體查詢 LORE 函式結束
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -2017,14 +2019,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.6 - 簡化備援)
+# 函式：背景事後分析 (v7.7 - 傳入地點上下文)
 # 更新紀錄:
-# v7.6 (2025-10-04): [架構簡化] 根據「創意防火牆」策略的引入，移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。由於 RECITATION 錯誤已在 Prompt 層面解決，此函式現在的錯誤處理邏輯被簡化為更直接的重試或失敗，提高了程式碼的可讀性和維護性。
-# v7.5 (2025-10-03): [災難性BUG修復] 將此函式升級為「分析與分流總指揮官」，從數據流的源頭徹底分離了主角和 NPC 的更新路徑。
-# v7.4 (2025-10-03): [災難性BUG修復] 修正了事後分析函式讀取上下文快照的數據流。
+# v7.7 (2025-10-05): [災難性BUG修復] 為了配合【主鍵合成原則】，此函式現在會從 GameState 中獲取當前的有效地點路徑，並將其作為新的上下文變數 `current_location_path_str` 傳遞給事後分析 Prompt，確保 LLM 擁有合成 `lore_key` 所需的全部資訊。
+# v7.6 (2025-10-04): [架構簡化] 移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。
+# v7.5 (2025-10-03): [災難性BUG修復] 將此函式升級為「分析與分流總指揮官」。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (v7.6 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
+        (v7.7 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
         """
         if not self.profile:
             return
@@ -2040,6 +2042,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             await asyncio.sleep(2.0)
             logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
             
+            # [v7.7 核心修正] 獲取當前有效地點路徑以供 Prompt 使用
+            gs = self.profile.game_state
+            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+            current_location_path_str = " > ".join(effective_location_path)
+            
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
@@ -2047,6 +2054,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             prompt_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
+                "current_location_path_str": current_location_path_str, # 傳入地點路徑
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
                 "final_response_text": final_response,
@@ -2056,11 +2064,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
             
-            # [v7.6 核心修正] 簡化備援策略
             analysis_result = await self.ainvoke_with_rotation(
                 full_prompt,
                 output_schema=PostGenerationAnalysisResult,
-                retry_strategy='force', # 如果被審查，則使用更強硬的重試，而不是舊的 euphemize
+                retry_strategy='force',
                 use_degradation=False 
             )
 
@@ -2338,19 +2345,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
 
 
-# 函式：從使用者輸入中提取實體 (v2.0 - 雙引擎程式化)
+# 函式：從使用者輸入中提取實體 (v2.1 - 移除主角注入)
 # 更新紀錄:
-# v2.0 (2025-10-03): [根本性重構] 根據「LLM+雙引擎」混合分析策略，此函式被徹底重寫為一個純程式化的、作為備援方案的「雙引擎」提取器。它不再包含任何 LLM 調用，而是結合了「高精度字典匹配」（針對已知 LORE）和「spaCy 命名實體識別」（針對新實體），為分析流程提供了一個快速、可靠且無審查風險的最終防線。
-# v1.0 (2025-09-25): [全新創建] 創建此函式作為「指令驅動LORE注入」策略的核心。
+# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。此函式的職責被純化為僅從輸入文本中提取實體，而將「是否包含主角」的決策權上移給調用者，以解決遠景模式下的上下文污染問題。
+# v2.0 (2025-10-03): [根本性重構] 此函式被徹底重寫為一個純程式化的、作為備援方案的「雙引擎」提取器。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.0 - 備援方案) 使用「字典匹配」+「NER」雙引擎，從使用者輸入中快速提取實體。"""
+        """(v2.1 - 純提取器) 使用「字典匹配」+「NER」雙引擎，從使用者輸入中快速提取實體。"""
         
         # --- 第一引擎：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
-        if self.profile:
-            known_names.add(self.profile.user_profile.name)
-            known_names.add(self.profile.ai_profile.name)
+
+        # [v2.1 核心修正] 移除此處的主角名字注入，將此函式變為一個純粹的提取器
+        # if self.profile:
+        #     known_names.add(self.profile.user_profile.name)
+        #     known_names.add(self.profile.ai_profile.name)
 
         for lore in all_lores:
             if name := lore.content.get("name"): known_names.add(name)
@@ -2358,18 +2367,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         found_entities = set()
         if known_names:
-            # 按長度降序排序以優先匹配長名字（例如 "卡爾·維利爾斯" 而不是 "卡爾"）
             sorted_names = sorted([name for name in known_names if name], key=len, reverse=True)
-            # 構建一個高效的正則表達式
             pattern = re.compile('|'.join(re.escape(name) for name in sorted_names))
             found_entities.update(pattern.findall(user_input))
         
         # --- 第二引擎：後備命名實體識別 (NER) ---
-        # 即使字典匹配成功，我們仍然運行 NER 以捕捉任何【新】實體
         try:
             nlp = spacy.load('zh_core_web_sm')
             doc = nlp(user_input)
-            # 只添加字典中沒有的、新發現的實體
             for ent in doc.ents:
                 if ent.label_ in ('PERSON', 'ORG', 'GPE') and ent.text not in found_entities:
                     found_entities.add(ent.text)
@@ -2381,8 +2386,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return list(found_entities)
         
         return []
-# 函式：從使用者輸入中提取實體 (v2.0 - 雙引擎程式化)
-
+# 從使用者輸入中提取實體 函式結束
 
     # 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
@@ -3934,39 +3938,28 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.4 - 主鍵強制原則)
+# 函式：獲取事後分析器 Prompt (v4.5 - 注入主鍵合成原則)
 # 更新紀錄:
-# v4.4 (2025-10-04): [災難性BUG修復] 新增了【🔑 主鍵強制原則】。此規則強制 LLM 只有在能從上下文中確定一個已存在 LORE 的精確 `lore_key` 時，才能生成 `update_...` 工具調用，從根源上杜絕了對「未知實體」的幻覺更新任務。
-# v4.3 (2025-10-04): [災難性BUG修復] 根據 RECITATION 錯誤，在 Prompt 中加入了「創意防火牆」指令。
-# v4.2 (2025-10-03): [健壯性強化] 增加了【📈 衝突檢測與更新原則】。
+# v4.5 (2025-10-05): [災難性BUG修復] 新增了【🔑 主鍵合成原則】，明確指導 LLM 在生成 `create_new_...` 工具調用時，必須根據當前場景地點和實體名稱合成一個有效的 `lore_key`，從根源上解決了因缺少 `lore_key` 而導致的 Pydantic ValidationError。
+# v4.4 (2025-10-04): [災難性BUG修復] 新增了【🔑 主鍵強制原則】，解決了對「未知實體」的幻覺更新任務。
+# v4.3 (2025-10-04): [災難性BUG修復] 在 Prompt 中加入了「創意防火牆」指令以解決 RECITATION 錯誤。
     def get_post_generation_analysis_chain(self) -> str:
         """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
             prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】。
-# MISSION: 你的任務是審查【本回合的完整對話】及所有【參考情報】，並執行三項關鍵任務：
-#   1.  **記憶摘要**: 提煉一段精煉的、無害化的核心事件總結。
-#   2.  **LORE 更新**: 生成所有必要的工具調用，以創建或修正 LORE 實體。
-#   3.  **規則鏈接**: 動態維護「身份」與「行為規則」之間的繼承關係。
+# MISSION: 你的任務是審查【本回合的完整對話】及所有【參考情報】，並生成一個完整的、可執行的【LORE更新計畫】。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🚫 嚴禁複誦原則 (針對記憶摘要)】**:
-#     *   在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
-#     *   【絕對禁止】直接逐字複製「本回合的完整對話」中的任何連續句子。
+# 1.  **【🚫 嚴禁複誦原則 (針對記憶摘要)】**: 在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
 #
-# 2.  **【🔑 主鍵強制原則 (Primary Key Mandate) - 最高優先級】**:
-#     *   在生成任何 `update_...` 類型的工具調用時，你**【絕對必須】**確保 `parameters` 字典中包含一個**精確的、從【現有LORE摘要】或【LORE上下文參考】中獲取的 `lore_key`**。
-#     *   如果你認為某個實體需要更新，但在參考情報中**找不到其對應的 `lore_key`**，你**【必須】**將其視為一個**新實體**，並改為生成一個 `create_new_...` 工具調用。
-#     *   【絕對禁止】生成任何沒有 `lore_key` 的 `update_...` 工具調用。
+# 2.  **【🔑 主鍵合成原則 (Key Synthesis Principle) - 最高優先級】**:
+#     *   **創建時 (CREATE)**: 當你生成一個 `create_new_...` 工具調用時，你**【絕對必須】**為其合成一個 `lore_key`。合成規則為：`{current_location_path_str} > {standardized_name}`。
+#     *   **更新時 (UPDATE)**: 當你生成一個 `update_...` 工具調用時，你**【絕對必須】**從【現有LORE摘要】中找到並使用其已存在的 `lore_key`。
+#     *   【絕對禁止】生成任何沒有 `lore_key` 的 LORE 操作工具調用。
 #
-# 3.  **【📈 衝突檢測與更新原則 (Conflict Detection & Update Mandate)】**:
-#     *   你的**首要分析任務**，是將【本回合的完整對話】與【現有LORE摘要】進行交叉比對。
-#     *   如果對話中出現了與現有 LORE **相衝突或使其過時**的新資訊，你【必須】優先生成一個 `update_...` 工具調用來修正這條 LORE（前提是你能找到它的 `lore_key`）。
+# 3.  **【📈 衝突檢測與更新原則】**: 你的首要任務是將對話與【現有LORE摘要】比對。如果發現衝突或過時的信息，你【必須】優先生成 `update_...` 工具調用來修正（前提是你能找到 `lore_key`）。
 #
-# 4.  **【🔗 動態規則鏈接原則 (Dynamic Rule-Linking Mandate)】**:
-#     *   在分析完對話後，你【必須】檢查是否出現了以下兩種情況：
-#         a. 一個角色被賦予了一個**新的身份**（alias）。
-#         b. 一條新的、關於**行為規範或禮儀**的 `world_lore` 被創建。
-#     *   如果發生以上任一情況，你【必須】生成一個 `update_lore_template_keys` 工具調用來創建或更新這個鏈接。
+# 4.  **【🔗 動態規則鏈接原則】**: 在分析後，檢查是否有新的「身份(alias)」或「行為規則(world_lore)」被創建。如果有，**必須**生成 `update_lore_template_keys` 工具調用來鏈接它們。
 #
 # 5.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
 #
@@ -3974,6 +3967,9 @@ class ExtractionResult(BaseModel):
 
 # --- [INPUT DATA] ---
 
+# 【當前場景地點路徑 (用於合成 lore_key)】:
+{current_location_path_str}
+# ---
 # 【LORE上下文參考 (本回合核心角色的既有數據)】:
 {relevant_lore_context}
 # ---
@@ -6076,6 +6072,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
