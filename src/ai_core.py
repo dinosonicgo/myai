@@ -380,23 +380,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v2.0 - 感知遠景模式)
+# 函式：RAG 直通生成 (v2.1 - 引入短期記憶感知的查詢擴展)
 # 更新紀錄:
-# v2.0 (2025-10-05): [邏輯修正] 根據「遠景」模式的邏輯缺陷，修正了對 `_query_lore_from_entities` 的調用。現在會先檢查當前的 `viewing_mode`，並將正確的場景狀態傳遞給實體提取器，從而防止在遠景模式下將主角名字錯誤地注入 RAG 查詢。
-# v1.9 (2025-10-04): [重大架構升級] 集成了一個全新的、統一的「通用 LORE 擴展管線」。
-# v1.8 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統相關的邏輯，並加入了「創意防火牆」。
+# v2.1 (2025-10-05): [重大逻辑升级] 引入了「短期記憶感知的查詢擴展」。在進行RAG查詢前，系統現在會從当前场景的短期对话历史中提取近期实体，并将其与当前指令的实体合并。这使得AI能够正确理解缺少主语的指令（如“拿起它”），并根据场景上下文推断出正确的行动者，从根本上解决了场景连续性问题。
+# v2.0 (2025-10-05): [邏輯修正] 修正了对 `_query_lore_from_entities` 的调用，使其能够感知远景模式。
+# v1.9 (2025-10-04): [重大架構升級] 集成了一个全新的、统一的「通用 LORE 擴展管線」。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.0) 執行一個包含「通用 LORE 擴展」、LORE 優先、RAG 直通的完整生成流程。
+        (v2.1) 执行一个包含「短期记忆感知」、通用 LORE 扩展、LORE 优先、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
-            logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
-            return "（錯誤：AI 核心設定檔尚未載入。）"
+            logger.error(f"[{user_id}] [Direct RAG] 致命错误: AI Profile 未初始化。")
+            return "（错误：AI 核心設定檔尚未載入。）"
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- 步驟 1: 通用 LORE 擴展管線 ---
+        # --- 步骤 1: 通用 LORE 扩展管线 ---
         try:
             logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -420,6 +420,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
                 logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...")
+                # 調用現有的保存函式來批量處理所有新 LORE
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in expansion_result.npc_profiles])
                 await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
                 await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
@@ -433,22 +434,41 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中發生錯誤: {e}", exc_info=True)
 
-        # --- 步驟 2: 處理連續性指令 ---
+        # --- [v2.1 核心修正] 步驟 2: 短期記憶感知的查詢擴展 ---
+        logger.info(f"[{user_id}] [查詢擴展] 正在整合短期記憶以感知場景上下文...")
+        scene_key = self._get_scene_key()
+        chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
+        recent_history_text = "\n".join([msg.content for msg in chat_history.messages[-4:]]) # 提取最近4條訊息
+        
+        # 从短期历史和当前指令中分别提取实体
+        entities_from_history = await self._extract_entities_from_input(recent_history_text)
+        entities_from_input, _ = await self._analyze_user_input(user_input)
+        
+        # 合并并去重，构建一个完整的场景实体列表
+        scene_entities = set(entities_from_history)
+        scene_entities.update(entities_from_input)
+
+        # 如果是本地场景，确保主角在实体列表中
+        if self.profile.game_state.viewing_mode == 'local':
+            scene_entities.add(self.profile.user_profile.name)
+            scene_entities.add(self.profile.ai_profile.name)
+        
+        final_query_keywords = sorted(list(name for name in scene_entities if name), key=len, reverse=True)
+        logger.info(f"[{user_id}] [查詢擴展] 場景感知完成，核心實體: {final_query_keywords}")
+
+        # --- 步驟 3: 處理連續性指令 ---
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
         if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
             plot_anchor = self.last_context_snapshot["last_response_text"]
 
-        # --- 步驟 3: 查詢權威性 LORE ---
+        # --- 步驟 4: 查詢權威性 LORE ---
         absolute_truth_mandate = ""
-        # [v2.0 核心修正] 檢查當前的 viewing_mode 來決定場景類型
-        is_remote = self.profile.game_state.viewing_mode == 'remote'
-        contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=is_remote)
-        
-        if contextual_entity_names:
+        # 使用我们刚刚构建的、更完整的实体列表来查询 LORE
+        if final_query_keywords:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in contextual_entity_names]
+            relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
             
             if relevant_lores:
                 truth_statements = []
@@ -476,14 +496,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     )
                     logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
 
-        # --- 步驟 4: 執行 RAG 檢索 ---
-        rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
+        # --- 步驟 5: 執行 RAG 檢索 ---
+        # 使用合并后的实体列表和原始输入来构建最终的RAG查询
+        expanded_query = user_input + " " + " ".join(final_query_keywords)
+        rag_context_dict = await self.retrieve_and_summarize_memories(expanded_query)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
-        # --- 步驟 5: 獲取對話歷史 ---
+        # --- 步驟 6: 獲取對話歷史 ---
         historical_context = await self._get_summarized_chat_history(user_id)
 
-        # --- 步驟 6: 組裝最終 Prompt ---
+        # --- 步驟 7: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
@@ -527,7 +549,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             }
         )
         
-        # --- 步驟 7: 調用 LLM 生成 ---
+        # --- 步驟 8: 調用 LLM 生成 ---
         final_response = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -538,7 +560,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
-        # --- 步驟 8: 事後處理 ---
+        # --- 步驟 9: 事後處理 ---
         clean_response = final_response.strip()
         
         scene_key = self._get_scene_key()
@@ -1506,41 +1528,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：根據實體查詢 LORE (v2.1 - 修正場景判斷)
+# 函式：根據實體查詢 LORE (v2.2 - 職責簡化)
 # 更新紀錄:
-# v2.1 (2025-10-05): [災難性BUG修復] 徹底重構了此函式的邏輯。現在，它會先獲取一個純淨的實體列表，然後再根據 `is_remote_scene` 參數的值，明確地、有意識地決定是否要將主角的名字添加進去。此修改從根本上解決了在遠景模式下，主角名字依然會被錯誤添加的邏輯漏洞。
-# v2.0 (2025-10-03): [重大架構重構] 此函式的職責被重定義為僅返回一個純粹的「實體名稱列表」。
+# v2.2 (2025-10-05): [架構簡化] 根據「短期記憶感知查詢擴展」的引入，此函式的核心邏輯已被上移至 `direct_rag_generate`。此函式现在被简化为一个纯粹的包装器，其主要职责是调用 `_analyze_user_input`，不再处理任何与场景模式相关的复杂逻辑。
+# v2.1 (2025-10-05): [災難性BUG修復] 徹底重構了此函式的邏輯以解决远景模式下的上下文污染问题。
     async def _query_lore_from_entities(self, query_text: str, is_remote_scene: bool = False) -> List[str]:
         """
-        (v2.1) 從查詢文本中提取實體，並根據場景模式決定是否包含主角，最終返回一個相關的【實體名稱列表】。
+        (v2.2) (职责简化) 从查询文本中提取实体，並返回一个相关的【实体名称列表】。
+        注意：场景模式的判断逻辑已被移至上游调用者。
         """
         if not self.profile:
             return []
 
-        logger.info(f"[{self.user_id}] [實體名稱提取] 正在從查詢 '{query_text[:50]}...' 中分析實體 (場景模式: {'遠景' if is_remote_scene else '本地'})...")
+        logger.info(f"[{self.user_id}] [实体名称提取 (v2.2)] 正在从查询 '{query_text[:50]}...' 中分析实体...")
         
-        # 步驟 1: 使用混合分析引擎，獲取一個只包含文本中明確提及的實體的「純淨列表」
-        explicit_entities, _ = await self._analyze_user_input(query_text)
-        
-        # 步驟 2: 根據場景模式，有意識地決定是否添加主角
-        final_entities = set(explicit_entities)
-        
-        if not is_remote_scene:
-            logger.info(f"[{self.user_id}] [實體名稱提取] 檢測到為本地場景，正在將主角添加至核心實體列表。")
-            final_entities.add(self.profile.user_profile.name)
-            final_entities.add(self.profile.ai_profile.name)
-        
-        # 步驟 3: 對最終的實體集合進行去重和排序
-        unique_entities = sorted(list(name for name in final_entities if name), key=len, reverse=True)
-        
-        if not unique_entities:
-            logger.info(f"[{self.user_id}] [實體名稱提取] 未在查詢中識別出任何有效實體。")
-            return []
-            
-        logger.info(f"[{self.user_id}] [實體名稱提取] 查詢分析完成，共識別出 {len(unique_entities)} 個核心實體: {unique_entities}。")
-        
-        return unique_entities
-# 根據實體查詢 LORE 函式結束
+        # 核心逻辑：直接调用分析
 
 
     # 函式：獲取場景焦點識別器Prompt (v1.0 - 全新創建)
@@ -6072,6 +6074,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
