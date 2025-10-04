@@ -51,58 +51,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.retrievers import EnsembleRetriever
 from langchain_community.retrievers import BM25Retriever
 from Levenshtein import ratio as levenshtein_ratio
-#【【【【目前 LangChain 的LLM調用有BUG無法應用安全閥值，LLM相關嚴禁使用LangChain】】】】
-
-import os
-import re
-import json
-import time
-import shutil
-import warnings
-import datetime
-from typing import List, Dict, Optional, Any, Literal, Callable, Tuple, Type
-import asyncio
-import gc
-from pathlib import Path
-from sqlalchemy import select, or_, delete, update
-from collections import defaultdict
-import functools
-import pickle
-
-import spacy
-from spacy.tokens import Doc
-
-from google.api_core.exceptions import ResourceExhausted, InternalServerError, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
-from langchain_google_genai._common import GoogleGenerativeAIError
-# [v303.0 核心修正] 移除原生 SDK 的 BlockedPromptException，後續將使用 LangChain 的異常
-# from google.generativeai.types.generation_types import BlockedPromptException
-
-from langchain_google_genai import (
-    ChatGoogleGenerativeAI, 
-    GoogleGenerativeAIEmbeddings,
-    HarmCategory,
-    HarmBlockThreshold
-)
-from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from langchain.output_parsers import BooleanOutputParser
-from langchain_core.exceptions import OutputParserException
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
-from langchain_core.runnables import Runnable, RunnablePassthrough, RunnableParallel, RunnableBinding, RunnableLambda
-from langchain_core.documents import Document
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage, BaseMessage
-from langchain_core._api.deprecation import LangChainDeprecationWarning
-from pydantic import BaseModel, Field, ValidationError, field_validator, AliasChoices
-from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_chroma import Chroma
-import chromadb
-# [v301.0 核心修正] 移除了以下這行，因為 InternalError 在新版 chromadb 中已不存在，且程式碼中並未使用
-# from chromadb.errors import InternalError
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-# [核心修正] 将 "retrievs" 修正为 "retrievers"
-from langchain.retrievers import EnsembleRetriever
-from langchain_community.retrievers import BM25Retriever
-from Levenshtein import ratio as levenshtein_ratio
 
 from . import tools, lore_tools, lore_book
 from .lore_book import add_or_update_lore as db_add_or_update_lore, get_lores_by_category_and_filter, Lore
@@ -114,16 +62,11 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult,
-                      BrainstormedEventHook, PossibilityBrainstormResult, FinalEventDecision) # [v303.0 核心修正] 導入新模型
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 from src.config import settings
 from .logger import logger
 from .tool_context import tool_context
-
-
-
-
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -311,59 +254,6 @@ class AILover:
     # 獲取下一個可用的 API 金鑰 函式結束
 
 
-
-# 函式：獲取 LangChain LLM 實例 (v1.1 - 格式最終修正)
-# 更新紀錄:
-# v1.1 (2025-10-18): [災難性BUG修復] 根據 Pydantic ValidationError，將 safety_settings 的格式還原為 LangChain 期望的 Dict[HarmCategory, HarmBlockThreshold] 格式，以通過其內部驗證。
-# v1.0 (2025-10-18): [全新創建] 根據「回歸 LangChain」架構創建此函式。
-    def _get_langchain_llm(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
-        """
-        [v1.1 核心] 創建並返回一個 ChatGoogleGenerativeAI 實例，作為統一的 LLM 呼叫中心。
-        如果提供了 google_api_key，則優先使用它；否則，從內部輪換獲取。
-        """
-        key_to_use = google_api_key
-        key_index_log = "provided"
-        
-        if not key_to_use:
-            key_info = self._get_next_available_key(model_name)
-            if not key_info:
-                logger.warning(f"[{self.user_id}] [LLM Factory] 無法獲取可用的 API Key 來創建模型 '{model_name}' 的實例。")
-                return None 
-            key_to_use, key_index = key_info
-            key_index_log = str(key_index)
-
-        generation_config = {"temperature": temperature}
-        
-        # ▼▼▼▼▼▼▼▼▼▼ 核心修正 ▼▼▼▼▼▼▼▼▼▼
-        # 還原為 LangChain 官方要求的 Dict[Enum, Enum] 格式。
-        # 這將解決 Pydantic ValidationError。
-        # 我們相信新版的 langchain-google-genai 已修復了此格式過去靜默失效的底層 bug。
-        safety_settings_langchain_format = {
-            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
-        }
-        # ▲▲▲▲▲▲▲▲▲▲ 核心修正 ▲▲▲▲▲▲▲▲▲▲
-        
-        logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log})")
-        
-        try:
-            return ChatGoogleGenerativeAI(
-                model=model_name,
-                google_api_key=key_to_use,
-                safety_settings=safety_settings_langchain_format, # <-- 使用修正後的 LangChain 格式
-                generation_config=generation_config,
-                max_retries=1, 
-                request_timeout=180
-            )
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: {e}", exc_info=True)
-            return None
-# 函式：獲取 LangChain LLM 實例 (v1.1 - 格式最終修正)
-
-
-    
 
 
     # 函式：獲取摘要後的對話歷史 (v1.0 - 遷移至 AILover 類)
@@ -1068,28 +958,47 @@ class AILover:
     # 函式：獲取LORE更新事實查核器 Prompt
     
 
-# 函式：創建 LangChain LLM 實例 (v4.1 - 格式修正同步)
+# 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 # 更新紀錄:
-# v4.1 (2025-10-18): [架構同步] 隨同 _get_langchain_llm 的安全閥值格式修正而同步更新版本號。
-# v4.0 (2025-10-18): [架構重構] [DEPRECATED] 將此函式標記為待廢棄，並將其內部實現替換為直接呼叫新建的 _get_langchain_llm。
-# v3.3 (2025-09-23): [架構調整] 降級為輔助功能專用。
+# v3.3 (2025-09-23): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例。
+# v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
-        [v4.1 DEPRECATED] 創建並返回一個 ChatGoogleGenerativeAI 實例。
-        此函式已被 _get_langchain_llm 取代，僅為保持向後兼容性而保留。
+        [輔助功能專用] 創建並返回一個 ChatGoogleGenerativeAI 實例。
+        主要用於 Embedding 等仍需 LangChain 模型的非生成性任務。
+        如果提供了 google_api_key，則優先使用它；否則，從內部輪換獲取。
         """
-        warnings.warn(
-            "`_create_llm_instance` is deprecated and will be removed in a future version. "
-            "Use `_get_langchain_llm` instead.",
-            DeprecationWarning,
-            stacklevel=2
+        key_to_use = google_api_key
+        key_index_log = "provided"
+        
+        if not key_to_use:
+            # [v2.1 核心修正] 修正此處的調用以匹配 _get_next_available_key 的新簽名
+            key_info = self._get_next_available_key(model_name)
+            if not key_info:
+                return None # 沒有可用的金鑰
+            key_to_use, key_index = key_info
+            key_index_log = str(key_index)
+        
+        generation_config = {"temperature": temperature}
+        
+        # 轉換為 LangChain 期望的格式
+        safety_settings_langchain = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
+        
+        logger.info(f"[{self.user_id}] 正在創建 LangChain 模型 '{model_name}' 實例 (API Key index: {key_index_log}) [輔助功能專用]")
+        
+        return ChatGoogleGenerativeAI(
+            model=model_name,
+            google_api_key=key_to_use,
+            safety_settings=safety_settings_langchain,
+            generation_config=generation_config,
+            max_retries=1 # 禁用 LangChain 的內部重試
         )
-        return self._get_langchain_llm(
-            temperature=temperature,
-            model_name=model_name,
-            google_api_key=google_api_key
-        )
-# 函式：創建 LangChain LLM 實例 (v4.1 - 格式修正同步)
+# 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 
 
     # 函式：獲取LORE提取器 Prompt (v1.5 - 核心主角保護)
@@ -1228,11 +1137,11 @@ class AILover:
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.0 - LangChain 核心遷移)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
 # 更新紀錄:
-# v235.0 (2025-10-18): [重大架構重構] 根據「回歸 LangChain」架構，徹底重寫了此函式的核心 API 調用邏輯。所有對原生 google-generativeai SDK 的直接呼叫均被移除，改為通過新建的 _get_langchain_llm() 輔助函式獲取 LangChain 的 ChatGoogleGenerativeAI 實例，並使用其 .ainvoke() 方法執行。錯誤捕捉邏輯也已適配 LangChain 的異常類型，從而實現了統一、可靠且能正確應用安全閥值的 LLM 呼叫核心。
-# v234.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
+# v234.0 (2025-10-03): [重大架構升級] 根據使用者指令和 `ResourceExhausted` 錯誤，實現了精細化的「持久化 API Key 冷卻」策略。新版本在捕獲到速率超限異常時，會判斷當前使用的模型。如果是 `gemini-pro` 或更高階的模型，則會對該 API Key 觸發長達 24 小時的「硬冷卻」，並將狀態寫入 JSON 檔案。對於其他模型，則只進行短期的內部重試。此修改旨在智能地應對 Google API 的速率限制，保護高價值 API Key 不被持續的無效請求所浪費。
 # v233.3 (2025-10-03): [健壯性強化] 提升了 JSON 解析失敗時的日誌級別。
+# v233.2 (2025-10-03): [重大架構升級] 新增了 `force_api_key_tuple` 參數以支援外部強制指定 API Key。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1244,10 +1153,11 @@ class AILover:
         force_api_key_tuple: Optional[Tuple[str, int]] = None 
     ) -> Any:
         """
-        一個高度健壯的 LangChain API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key 和持久化冷卻。
+        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key 和持久化冷卻。
         """
-        # [v235.0 核心修正] 移除所有原生 genai SDK 的導入和使用
-        from httpx import HTTPStatusError
+        import google.generativeai as genai
+        from google.generativeai.types.generation_types import BlockedPromptException
+        from google.api_core import exceptions as google_api_exceptions
         import random
 
         if models_to_try_override:
@@ -1278,24 +1188,50 @@ class AILover:
                 for retry_attempt in range(IMMEDIATE_RETRY_LIMIT):
                     raw_text_result_for_log = "" 
                     try:
-                        # [v235.0 核心修正] 使用新建的工廠函式獲取 LangChain LLM 實例
-                        llm = self._get_langchain_llm(
-                            temperature=final_generation_config.get("temperature", 0.7),
-                            model_name=model_name,
-                            google_api_key=key_to_use
-                        )
-                        if not llm:
-                            logger.warning(f"[{self.user_id}] 無法為 Key #{key_index} 創建 LLM 實例，跳過。")
-                            continue
+                        genai.configure(api_key=key_to_use)
+                        
+                        safety_settings_sdk = [
+                            {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+                            {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+                        ]
 
-                        # [v235.0 核心修正] 使用 LangChain 的 .ainvoke() 方法
+                        model = genai.GenerativeModel(model_name=model_name, safety_settings=safety_settings_sdk)
+                        
                         response = await asyncio.wait_for(
-                            llm.ainvoke(full_prompt),
+                            model.generate_content_async(
+                                full_prompt,
+                                generation_config=genai.types.GenerationConfig(**final_generation_config)
+                            ),
                             timeout=180.0
                         )
                         
-                        # [v235.0 核心修正] LangChain 的輸出是一個 AIMessage 物件
-                        raw_text_result = response.content
+                        if response.prompt_feedback.block_reason:
+                            block_reason = response.prompt_feedback.block_reason
+                            if hasattr(block_reason, 'name'):
+                                reason_str = block_reason.name
+                            else:
+                                reason_str = str(block_reason)
+                            raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+                        
+                        if response.candidates:
+                            finish_reason = response.candidates[0].finish_reason
+                            if hasattr(finish_reason, 'name'):
+                                finish_reason_name = finish_reason.name
+                            else:
+                                finish_reason_name = str(finish_reason)
+
+                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']:
+                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                                if finish_reason_name == 'MAX_TOKENS':
+                                    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                elif finish_reason_name in ['SAFETY', '4', '8']:
+                                    raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
+                                else:
+                                    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+
+                        raw_text_result = response.text
                         raw_text_result_for_log = raw_text_result 
 
                         if not raw_text_result or not raw_text_result.strip():
@@ -1316,35 +1252,17 @@ class AILover:
                         else:
                             return raw_text_result
 
-                    # [v235.0 核心修正] 調整異常捕捉以適應 LangChain
-                    except (GoogleGenerativeAIError, HTTPStatusError) as e:
-                        # LangChain 可能會將安全錯誤包裝在這些異常中
-                        error_str = str(e)
-                        is_safety_error = "safety" in error_str.lower() or "blocked" in error_str.lower()
-                        
-                        if is_safety_error:
-                            last_exception = e
-                            logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
-                            if retry_strategy == 'none':
-                                raise e 
-                            elif retry_strategy == 'euphemize':
-                                return await self._euphemize_and_retry(full_prompt, output_schema, e)
-                            elif retry_strategy == 'force':
-                                return await self._force_and_retry(full_prompt, output_schema)
-                            else: 
-                                raise e
-                        else:
-                            # 如果不是安全錯誤，則視為臨時 API 錯誤
-                            last_exception = e
-                            # ... (下方的臨時錯誤處理邏輯保持不變) ...
-                            if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                                logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
-                                break
-                            sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
-                            logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
-                            await asyncio.sleep(sleep_time)
-                            continue
-
+                    except (BlockedPromptException, GoogleGenerativeAIError) as e:
+                        last_exception = e
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
+                        if retry_strategy == 'none':
+                            raise e 
+                        elif retry_strategy == 'euphemize':
+                            return await self._euphemize_and_retry(full_prompt, output_schema, e)
+                        elif retry_strategy == 'force':
+                            return await self._force_and_retry(full_prompt, output_schema)
+                        else: 
+                            raise e
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
                         last_exception = e
@@ -1377,13 +1295,15 @@ class AILover:
                         
                         raise e
 
-                    except (ResourceExhausted, InternalServerError, ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
+                    except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
                         last_exception = e
                         
+                        # [v234.0 核心修正] 實作精細化的冷卻策略
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
                             
-                            if isinstance(e, ResourceExhausted) and "pro" in model_name:
+                            # 只對 Pro 級別模型的 ResourceExhausted 錯誤啟用長期冷卻
+                            if isinstance(e, google_api_exceptions.ResourceExhausted) and "pro" in model_name:
                                 cooldown_key = f"{key_index}_{model_name}"
                                 cooldown_duration = 24 * 60 * 60 # 24 小時
                                 self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
@@ -1391,7 +1311,7 @@ class AILover:
                                 logger.critical(f"[{self.user_id}] [持久化冷卻] 偵測到 Pro 模型速率超限！API Key #{key_index} (模型: {model_name}) 已被置入硬冷卻狀態，持續 24 小時。")
                             else:
                                 logger.warning(f"[{self.user_id}] 將輪換到下一個金鑰。")
-                            break 
+                            break # 跳出內部重試循環，進入外部的 Key 輪換
                         
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
@@ -1412,170 +1332,9 @@ class AILover:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.0 - LangChain 核心遷移)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 精細化冷卻)
 
 
-
-
-
-    # 函式：獲取場景填充決策器 Prompt (v2.0 - 氛圍感知)
-# 更新紀錄:
-# v2.0 (2025-10-18): [重大架構重構] 根據「動態事件導演」藍圖徹底重寫此 Prompt。它不再是一個簡單的擴展決策器，而是升級為一個「氛圍感知決策器」。通過注入「氛圍保護鐵則」，它現在的核心職責是分析最近的對話摘要（scene_atmosphere），判斷當前場景的氛圍是否適合引入新事件，從而避免在親密或關鍵劇情中被不合時宜的事件打斷。
-# v1.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，全新創建此函式 (原名 get_expansion_decision_chain)。
-    def get_scene_population_decision_prompt(self) -> str:
-        """獲取或創建一個用於決策是否填充場景動態事件的字符串模板。"""
-        prompt_template = """# TASK: 你是一位資深的【電影導演】與【劇本節奏掌控者】。
-# MISSION: 你的任務是分析【當前場景氛圍】（基於最近的對話），並根據下方的【氛圍保護鐵則】，判斷現在是否是一個引入【新的動態事件】（例如一個NPC路過、一個意外發現等）的**合適時機**。
-
-# === 【【【🚨 核心決策規則 (CORE DECISION RULES) - 絕對鐵則】】】 ===
-# 1.  **【👑 氛圍保護鐵則 (Atmosphere Protection Mandate) - 最高優先級】**:
-#     *   **[絕對禁止打擾]**: 如果【當前場景氛圍】明確指向以下任何一種情況，`should_populate` **【絕對必須】** 為 `false`：
-#         a. 角色之間正在進行**深入的、私密的、情感強烈的對話**。
-#         b. 場景涉及**親密的身體接觸或性互動**。
-#         c. 一個**重大的、正在進行中的劇情高潮**尚未結束。
-#         d. 場景發生在一個**極度私密的空間**（如臥室、浴室）。
-#     *   **[允許填充]**: 只有當場景氛圍是**平靜的、過渡性的、探索性的**，或者角色處於**等待、旅行、或無所事事**的狀態時，`should_populate` 才應為 `true`。
-# 2.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `ExpansionDecision` Pydantic 模型的JSON物件。
-
-# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
-# --- 範例 1 (禁止打擾) ---
-# 輸入氛圍: "場景描寫了兩個角色之間一次徹底的物理征服與結合。"
-# 輸出:
-# ```json
-# {
-#   "should_expand": false,
-#   "reasoning": "當前場景氛圍極度私密且涉及性互動，根據氛圍保護鐵則，絕對禁止引入任何外部事件打擾。"
-# }
-# ```
-# --- 範例 2 (允許填充) ---
-# 輸入氛圍: "使用者和AI在市場上閒逛，觀察著周圍的攤販。"
-# 輸出:
-# ```json
-# {
-#   "should_expand": true,
-#   "reasoning": "當前場景是公開的、探索性的過渡場景，角色處於觀察狀態，這是引入動態事件以豐富世界的絕佳時機。"
-# }
-# ```
-
-# --- [INPUT DATA] ---
-
-# 【當前場景氛圍 (基於最近的對話摘要)】:
-{scene_atmosphere}
-
-# ---
-# 【你的決策JSON】:
-"""
-        # [v2.0 核心修正] 為了向下兼容，將舊的 prompt 引用指向新的 prompt
-        self.expansion_decision_chain = prompt_template
-        return prompt_template
-# 函式：獲取場景填充決策器 Prompt (v2.0 - 氛圍感知)
-
-# 函式：獲取可能性引擎 Prompt (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-18): [全新創建] 根據「動態事件導演」藍圖創建此 Prompt。其核心是注入「意義性填充原則」，強制 LLM 從多個維度（類型、基調）進行腦力激盪，生成橫跨多類別、具有潛在敘事價值的事件鉤子，從源頭杜絕無意義的場景填充。
-    def get_possibility_engine_prompt(self) -> str:
-        """獲取或創建一個用於「可能性引擎」腦力激盪的字符串模板。"""
-        prompt_template = """# TASK: 你是一位極富創造力的【世界事件生成AI】，擅長在一個既定的場景中，腦力激盪出各種可能發生的、有意義的事件。
-# MISSION: 你的任務是基於【當前情境】，生成一個包含【至少5個】不同類型、不同基調的【事件鉤子 (Event Hooks)】列表。這些鉤子將作為後續導演決策的候選選項。
-
-# === 【【【🚨 核心創作規則 (CORE CREATION RULES) - 絕對鐵則】】】 ===
-# 1.  **【👑 意義性填充原則 (Meaningful Population Principle) - 最高優先級】**:
-#     *   你的每一個事件鉤子都【必須】具有**潛在的敘事價值**。它應該能夠：
-#         a. 揭示世界觀的一角。
-#         b. 引入一個新的角色或關係。
-#         c. 觸發一個潛在的任務或衝突。
-#         d. 改變當前的場景氛圍。
-#     *   【**絕對禁止**】生成任何無關緊要、缺乏後續發展潛力的事件（例如：「一隻鳥飛過」、「風吹動了樹葉」、「一個無名路人走過」）。
-#
-# 2.  **【🎲 多樣性強制令 (Diversity Mandate)】**:
-#     *   你的輸出【必須】橫跨**多種事件類型** (`event_type`)，例如：`npc_encounter` (NPC遭遇), `environmental_event` (環境事件), `item_discovery` (物品發現), `quest_lead` (任務線索), `disaster` (小型災害)。
-#     *   你的輸出【必須】包含**不同的基調** (`tone`)，包括 `positive` (正向), `neutral` (中性), 和 `negative` (負向) 的事件。
-#
-# 3.  **【🧩 情境融合原則 (Contextual Integration)】**:
-#     *   你構思的所有事件都【必須】與【當前情境】（特別是地點和氛圍）高度相關且邏輯自洽。
-#
-# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `PossibilityBrainstormResult` Pydantic 模型的JSON物件。
-
-# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
-# ```json
-# {
-#   "event_hooks": [
-#     {
-#       "event_type": "npc_encounter",
-#       "tone": "neutral",
-#       "description": "一位身穿兜帽、步履蹣跚的老婦人從巷子裡走出來，她似乎在尋找什麼東西，目光掃過主角一行人。",
-#       "reasoning": "在市場的喧囂中引入一個神秘的NPC，可以作為任務線索或氛圍營造的引子。"
-#     },
-#     {
-#       "event_type": "item_discovery",
-#       "tone": "positive",
-#       "description": "在一個不起眼的貨攤下，主角發現了一枚閃爍著微光的、刻有古代符文的硬幣。",
-#       "reasoning": "提供一個小的、意外的發現，可以作為世界觀的補充或一個長期謎題的開端。"
-#     }
-#   ]
-# }
-# ```
-
-# --- [INPUT DATA] ---
-
-# 【當前情-境】:
-{scene_context}
-
-# ---
-# 【你腦力激盪出的事件鉤子JSON】:
-"""
-        return prompt_template
-# 函式：獲取可能性引擎 Prompt (v1.0 - 全新創建)
-
-
-
-    # 函式：獲取導演決策 Prompt (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-10-18): [全新創建] 根據「動態事件導演」藍圖創建此 Prompt。它作為決策層的核心，注入了「主角光環鐵則」、「氛圍保護鐵則」和「意義性審核鐵則」，指導 LLM 從腦力激盪出的多個事件選項中，基於核心敘事原則挑選出最優的單一事件來執行。
-    def get_director_decision_prompt(self) -> str:
-        """獲取或創建一個用於「導演決策」的字符串模板。"""
-        prompt_template = """# TASK: 你是一位擁有最終決定權的【首席敘事導演】。
-# MISSION: 你的任務是審查一份由下屬 creative AI 腦力激盪出的【候選事件列表】，並基於【導演核心原則】和【當前場景情境】，從中挑選出【一個】最優的事件來執行。
-
-# === 【【【🚨 導演核心原則 (DIRECTOR'S CORE PRINCIPLES) - 絕對鐵則】】】 ===
-# 1.  **【👑 主角光環鐵則 (Protagonist Aura Mandate)】**:
-#     *   最終選擇的事件【必須】與主角（特別是使用者角色）的體驗**直接相關**。事件應該是圍繞主角發生的，而不是一個無關的背景噪音。
-#
-# 2.  **【🎭 氛圍保護鐵則 (Atmosphere Protection Mandate)】**:
-#     *   你的選擇【必須】與【當前場景氛圍】保持一致或形成有趣的對比，但【絕對禁止】破壞性的打擾。如果氛圍是私密的，選擇的事件也應該是微妙的、非侵入性的。
-#
-# 3.  **【⚖️ 意義性審核鐵則 (Meaningfulness Audit Mandate)】**:
-#     *   你【必須】重新評估每個選項的敘事價值。選擇那個最有潛力引發有趣互動、推動角色發展或深化世界觀的事件。
-#
-# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `FinalEventDecision` Pydantic 模型的JSON物件。
-
-# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
-# ```json
-# {
-#   "final_decision": {
-#     "event_type": "npc_encounter",
-#     "tone": "neutral",
-#     "description": "一位身穿兜帽、步履蹣跚的老婦人從巷子裡走出來，她似乎在尋找什麼東西，目光掃過主角一行人。",
-#     "reasoning": "在市場的喧囂中引入一個神秘的NPC，可以作為任務線索或氛圍營造的引子。"
-#   },
-#   "justification": "在所有選項中，遭遇神秘老婦人最符合『主角光環』原則，因為她的目光直接與主角產生了聯繫。同時，這是一個中性事件，不會破壞當前探索的氛圍，且敘事潛力最高。"
-# }
-# ```
-
-# --- [INPUT DATA] ---
-
-# 【當前場景情境】:
-{scene_context}
-
-# ---
-# 【候選事件列表 (從中擇一)】:
-{event_hooks_json}
-
-# ---
-# 【你的最終導演決策JSON】:
-"""
-        return prompt_template
-# 函式：獲取導演決策 Prompt (v1.0 - 全新創建)
 
     
 
@@ -2087,20 +1846,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.5 - 引入智慧分流)
+# 函式：背景事後分析 (v7.4 - 數據流修正)
 # 更新紀錄:
-# v7.5 (2025-10-03): [災難性BUG修復] 根據「主角LORE隔離」原則，將此函式從一個單純的分析器升級為「分析與分流總指揮官」。新版本在從 LLM 獲取工具調用計畫後，增加了一個關鍵的【智慧分流】步驟：它會遍歷所有計畫中的更新，判斷每一個更新的目標是核心主角（用戶/AI）還是 NPC。針對主角的更新將被立即、直接地通過 `update_and_persist_profile` 應用；而針對 NPC 的更新則會被收集起來，交由下游的 LORE 執行器處理。此修改從數據流的源頭徹底分離了主角和 NPC 的更新路徑，根除了將主角錯誤地當作 LORE 進行操作的嚴重邏輯問題。
-# v7.4 (2025-10-03): [災難性BUG修復] 修正了事後分析函式讀取上下文快照的數據流。
+# v7.4 (2025-10-03): [災難性BUG修復] 根據 "[事後分析] 接收到的上下文快照不完整" 的錯誤日誌，修正了此函式從 `context_snapshot` 字典中讀取數據的邏輯。新版本現在會使用正確的鍵名（`user_input`, `final_response`）來獲取數據，確保了即使在 RAG 直通流程下，事後分析鏈也能獲得必要的上下文，從而恢復 LORE 學習和記憶摘要功能。
 # v7.3 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重構了此函式。
+# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (v7.5 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
+        (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
         """
         if not self.profile:
             return
         
+        # [v7.4 核心修正] 使用正確的鍵名從快照中讀取數據
         user_input = context_snapshot.get("user_input")
-        final_response = context_snapshot.get("final_response")
+        final_response = context_snapshot.get("final_response") # 舊鍵名是 "final_response_text"
+        scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
+        relevant_characters_lore = context_snapshot.get("relevant_characters", [])
         
         if not user_input or not final_response:
             logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少 'user_input' 或 'final_response' 數據。")
@@ -2108,21 +1870,32 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
         try:
             await asyncio.sleep(2.0)
-            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
+            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
             
-            # --- 步驟 1: LLM 分析 (保持不變) ---
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
+
+            relevant_lore_context_str = "（本回合無明確的核心互動LORE）"
+            if relevant_characters_lore:
+                lore_snippets = []
+                for lore_dict in relevant_characters_lore:
+                    # 確保 lore_dict 是一個字典
+                    if isinstance(lore_dict, dict):
+                        key = lore_dict.get('key', '未知Key')
+                        name = lore_dict.get('content', {}).get('name', '未知名稱')
+                        lore_snippets.append(f"- 角色: {name}, lore_key: {key}")
+                if lore_snippets:
+                    relevant_lore_context_str = "\n".join(lore_snippets)
             
             prompt_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
-                "final_response_text": final_response,
-                "scene_rules_context": context_snapshot.get("scene_rules_context", "（無）"),
-                "relevant_lore_context": "（暫不提供，以避免循環依賴）"
+                "final_response_text": final_response, # Prompt 模板需要 'final_response_text'
+                "scene_rules_context": scene_rules_context,
+                "relevant_lore_context": relevant_lore_context_str
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -2134,59 +1907,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無任何更新。")
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
                 return
 
-            # --- 步驟 2: 記憶摘要處理 (保持不變) ---
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
-            # --- 步驟 3: [v7.5 核心修正] 智慧分流 ---
             if analysis_result.lore_updates:
-                npc_lore_updates = []
-                user_name_lower = self.profile.user_profile.name.lower()
-                ai_name_lower = self.profile.ai_profile.name.lower()
-
-                for call in analysis_result.lore_updates:
-                    # 只處理 update 類型的調用，create 類型理論上不應針對主角
-                    if call.tool_name.startswith("update_"):
-                        params = call.parameters
-                        updates_dict = params.get("updates", {})
-                        
-                        # 檢查多個可能的名稱欄位
-                        target_name = updates_dict.get("name") or params.get("standardized_name") or (params.get("lore_key", "").split(" > ")[-1])
-                        
-                        if not target_name:
-                            npc_lore_updates.append(call)
-                            continue
-                        
-                        target_name_lower = target_name.lower()
-
-                        # 分流到主角更新路徑
-                        if target_name_lower == user_name_lower:
-                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對使用者角色 '{target_name}' 的更新，正在直接應用...")
-                            await self.update_and_persist_profile({'user_profile': updates_dict})
-                        elif target_name_lower == ai_name_lower:
-                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對AI角色 '{target_name}' 的更新，正在直接應用...")
-                            await self.update_and_persist_profile({'ai_profile': updates_dict})
-                        else:
-                            # 分流到 NPC 更新路徑
-                            npc_lore_updates.append(call)
-                    else:
-                        # 所有非 update 的調用（如 create）都歸為 NPC LORE 處理
-                        npc_lore_updates.append(call)
-
-                # --- 步驟 4: 執行 NPC LORE 更新 ---
-                if npc_lore_updates:
-                    await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in npc_lore_updates]})
-                else:
-                    logger.info(f"[{self.user_id}] [智慧分流] 本次分析未檢測到需要更新的 NPC LORE。")
+                await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
             
-            logger.info(f"[{self.user_id}] [事後分析] 背景分析與分流任務完成。")
+            logger.info(f"[{self.user_id}] [事後分析] 背景分析與處理任務完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析 (v7.5 - 引入智慧分流)
+# 函式：背景事後分析 (v7.4 - 數據流修正)
 
 
     
@@ -6134,9 +5868,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
-
-
-
 
 
 

@@ -1,8 +1,8 @@
-# schemas.py v5.0 (新增動態事件導演模型)
+# schemas.py v4.0 (定义顺序修正)
 # 更新紀錄:
-# v5.0 (2025-10-18): [架構擴展] 新增了 BrainstormedEventHook, PossibilityBrainstormResult, FinalEventDecision 三個 Pydantic 模型，為「動態事件導演」系統提供資料結構基礎。
-# v4.0 (2025-10-02): [灾难性BUG修复] 调整了文件内 Pydantic 模型的定义顺序，以解决 NameError。
-# v3.0 (2025-09-27): [災難性BUG修復] 补全了缺失的 LoreClassificationResult 和 BatchClassificationResult 类定义。
+# v4.0 (2025-10-02): [灾难性BUG修复] 调整了文件内 Pydantic 模型的定义顺序，将 CharacterProfile 和 RelationshipDetail 的定义移至文件靠前位置，以解决因前向引用导致的 NameError 启动失败问题。同时移除了重复的 BatchRefinementResult 定义。
+# v3.0 (2025-09-27): [災難性BUG修復] 补全了缺失的 LoreClassificationResult 和 BatchClassificationResult 类定义，并将 WorldLore 的 'title' 统一为 'name' 以解决 ValidationError。
+# v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
 
 import json
 import re
@@ -395,23 +395,6 @@ class SceneLocationExtraction(BaseModel):
     has_explicit_location: bool = Field(description="如果使用者指令中包含一個明確的地點或场景描述，则为 true。")
     location_path: Optional[List[str]] = Field(default=None, description="如果 has_explicit_location 为 true，则此處為提取出的、層級化的地點路徑列表。")
 
-# [v5.0 新增] 動態事件導演系統模型
-class BrainstormedEventHook(BaseModel):
-    """由可能性引擎腦力激盪出的單一事件鉤子。"""
-    event_type: Literal['npc_encounter', 'environmental_event', 'item_discovery', 'quest_lead', 'disaster'] = Field(description="事件的類型。")
-    tone: Literal['positive', 'neutral', 'negative'] = Field(description="事件的基調。")
-    description: str = Field(description="對事件鉤子的簡潔、生動的描述。")
-    reasoning: str = Field(description="為什麼這個事件在此時此地發生是合理的。")
-
-class PossibilityBrainstormResult(BaseModel):
-    """包裹所有腦力激盪出的事件鉤子的模型。"""
-    event_hooks: List[BrainstormedEventHook] = Field(description="一個包含多個不同類型和基調的事件鉤子的列表。")
-
-class FinalEventDecision(BaseModel):
-    """導演最終決策的模型。"""
-    final_decision: BrainstormedEventHook = Field(description="從所有選項中最終選出的、最適合當前場景的事件。")
-    justification: str = Field(description="導演選擇這個事件的最終理由，說明它如何符合核心敘事原則。")
-
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -449,7 +432,6 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
-# [v5.0 新增]
-BrainstormedEventHook.model_rebuild()
-PossibilityBrainstormResult.model_rebuild()
-FinalEventDecision.model_rebuild()
+
+
+

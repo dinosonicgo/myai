@@ -541,10 +541,9 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
         return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
 # 函式：獲取摘要後的對話歷史
 
-# 函式：創建主回應圖 (v34.0 - 整合動態事件導演)
+# --- [v33.0 新架構] 圖的構建 ---
 # 更新紀錄:
-# v34.0 (2025-10-18): [重大架構升級] 將全新的 proactive_scene_population_node 整合到主對話圖中。該節點現在位於 preemptive_tool_call 和 assemble_world_snapshot 之間，正式激活了「動態事件導演」系統，使其能夠在每次對話中智能地判斷並注入有意義的場景事件。
-# v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 preprocess_and_generate 流程的主對話圖。
+# v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 `preprocess_and_generate` 流程的主對話圖。
 def create_main_response_graph() -> StateGraph:
     """创建并连接所有节点，构建最终的对话图。"""
     graph = StateGraph(ConversationGraphState)
@@ -553,8 +552,6 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("retrieve_and_query", retrieve_and_query_node)
     graph.add_node("expansion_decision_and_execution", expansion_decision_and_execution_node)
     graph.add_node("preemptive_tool_call", preemptive_tool_call_node)
-    # [v34.0 核心修正] 新增動態事件導演節點
-    graph.add_node("proactive_scene_population", proactive_scene_population_node)
     graph.add_node("assemble_world_snapshot", assemble_world_snapshot_node)
     graph.add_node("final_generation", final_generation_node)
     graph.add_node("validate_and_persist", validate_and_persist_node)
@@ -564,15 +561,13 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("perceive_scene", "retrieve_and_query")
     graph.add_edge("retrieve_and_query", "expansion_decision_and_execution")
     graph.add_edge("expansion_decision_and_execution", "preemptive_tool_call")
-    # [v34.0 核心修正] 重新連接邊，將新節點插入流程
-    graph.add_edge("preemptive_tool_call", "proactive_scene_population")
-    graph.add_edge("proactive_scene_population", "assemble_world_snapshot")
+    graph.add_edge("preemptive_tool_call", "assemble_world_snapshot")
     graph.add_edge("assemble_world_snapshot", "final_generation")
     graph.add_edge("final_generation", "validate_and_persist")
     graph.add_edge("validate_and_persist", END)
     
     return graph.compile()
-# 函式：創建主回應圖 (v34.0 - 整合動態事件導演)
+# --- [v33.0 新架構] 圖的構建 ---
 
 # --- Setup Graph (保持不變) ---
 # 函式：處理世界聖經節點
@@ -640,89 +635,6 @@ async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
     return {"opening_scene": opening_scene}
 # 函式：生成開場白節點
 
-
-# 函式：[新] 場景動態填充節點 (v1.0 - 動態事件導演)
-# 更新紀錄:
-# v1.0 (2025-10-18): [重大架構重構] 根據「動態事件導演」藍圖，徹底重寫此節點的內部邏輯。新版本實現了完整的「三層式」工作流：首先調用氛圍決策器判斷時機，如果時機合適，則接著調用可能性引擎進行腦力激盪，最後由導演決策器從中選出唯一的、有意義的事件，並將其描述注入到狀態中，從而實現了智慧的、有節奏的場景填充。
-async def proactive_scene_population_node(state: ConversationGraphState) -> Dict:
-    """[X] (動態事件導演) 根據場景氛圍，決策、腦補並選擇一個有意義的動態事件來豐富世界。"""
-    user_id = state['user_id']
-    ai_core = state['ai_core']
-    logger.info(f"[{user_id}] (Graph|X) Node: proactive_scene_population -> 啟動動態事件導演...")
-
-    # --- 步驟 1: 情境感知 ---
-    try:
-        scene_atmosphere = await ai_core._get_summarized_chat_history(user_id)
-        logger.info(f"[{user_id}] (Graph|X) [導演-1/4] 獲取當前場景氛圍成功。")
-    except Exception as e:
-        logger.error(f"[{user_id}] (Graph|X) [導演-1/4] 獲取場景氛圍失敗: {e}", exc_info=True)
-        return {"tool_results": state.get('tool_results', "")} # 失敗則不進行任何操作
-
-    # --- 步驟 2: 氛圍決策 ---
-    try:
-        decision_prompt = ai_core.get_scene_population_decision_prompt()
-        full_prompt = ai_core._safe_format_prompt(decision_prompt, {"scene_atmosphere": scene_atmosphere})
-        decision = await ai_core.ainvoke_with_rotation(full_prompt, output_schema=ExpansionDecision)
-
-        if not decision or not decision.should_expand:
-            reason = decision.reasoning if decision else "決策鏈返回空"
-            logger.info(f"[{user_id}] (Graph|X) [導演-2/4] 決策：不填充事件。理由: {reason}")
-            return {"tool_results": state.get('tool_results', "")} # 根據氛圍，決定不打擾
-        
-        logger.info(f"[{user_id}] (Graph|X) [導演-2/4] 決策：填充事件。理由: {decision.reasoning}")
-
-    except Exception as e:
-        logger.error(f"[{user_id}] (Graph|X) [導演-2/4] 氛圍決策階段失敗: {e}", exc_info=True)
-        return {"tool_results": state.get('tool_results', "")}
-
-    # --- 步驟 3: 腦力激盪 ---
-    try:
-        gs = ai_core.profile.game_state
-        location_str = " > ".join(gs.remote_target_path if gs.viewing_mode == 'remote' else gs.location_path)
-        scene_context = f"地點: {location_str}\n氛圍: {scene_atmosphere}"
-
-        possibility_prompt = ai_core.get_possibility_engine_prompt()
-        full_possibility_prompt = ai_core._safe_format_prompt(possibility_prompt, {"scene_context": scene_context})
-        brainstorm_result = await ai_core.ainvoke_with_rotation(full_possibility_prompt, output_schema=PossibilityBrainstormResult)
-        
-        if not brainstorm_result or not brainstorm_result.event_hooks:
-            logger.warning(f"[{user_id}] (Graph|X) [導演-3/4] 可能性引擎未能腦力激盪出任何事件。")
-            return {"tool_results": state.get('tool_results', "")}
-            
-        logger.info(f"[{user_id}] (Graph|X) [導演-3/4] 可能性引擎成功生成 {len(brainstorm_result.event_hooks)} 個事件鉤子。")
-
-    except Exception as e:
-        logger.error(f"[{user_id}] (Graph|X) [導演-3/4] 腦力激盪階段失敗: {e}", exc_info=True)
-        return {"tool_results": state.get('tool_results', "")}
-
-    # --- 步驟 4: 最終決策 ---
-    try:
-        director_prompt = ai_core.get_director_decision_prompt()
-        event_hooks_json = json.dumps([hook.model_dump() for hook in brainstorm_result.event_hooks], ensure_ascii=False, indent=2)
-        full_director_prompt = ai_core._safe_format_prompt(director_prompt, {
-            "scene_context": scene_context,
-            "event_hooks_json": event_hooks_json
-        })
-        final_decision_obj = await ai_core.ainvoke_with_rotation(full_director_prompt, output_schema=FinalEventDecision)
-
-        if not final_decision_obj or not final_decision_obj.final_decision:
-            logger.warning(f"[{user_id}] (Graph|X) [導演-4/4] 導演未能做出最終決策。")
-            return {"tool_results": state.get('tool_results', "")}
-
-        final_event = final_decision_obj.final_decision
-        logger.info(f"[{user_id}] (Graph|X) [導演-4/4] 最終決策：執行 '{final_event.event_type}' 事件。理由: {final_decision_obj.justification}")
-        
-        # --- 步驟 5: 狀態注入 ---
-        existing_results = state.get('tool_results', "")
-        event_string = f"\n【動態事件】: {final_event.description}"
-        final_results = (existing_results + event_string).strip()
-        
-        return {"tool_results": final_results}
-
-    except Exception as e:
-        logger.error(f"[{user_id}] (Graph|X) [導演-4/4] 最終決策階段失敗: {e}", exc_info=True)
-        return {"tool_results": state.get('tool_results', "")}
-# 函式：[新] 場景動態填充節點 (v1.0 - 動態事件導演)
 
 
 
