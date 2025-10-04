@@ -565,18 +565,23 @@ class BotCog(commands.Cog, name="BotCog"):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-    # 函式：執行完整的後台創世流程 (v65.0 - 原生創世流程)
+# 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
+# 更新紀錄:
+# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。創世流程的職責被簡化為純粹的檔案補完和開場白生成。
+# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
+# v64.0 (2025-10-03): [重大架構重構] 改為調用 LangGraph 來驅動整個創世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v65.0) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
+        """(v65.1) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v65.0] 原生 Python 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
+            # --- 步驟 1: 構建 RAG 索引 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
@@ -587,6 +592,8 @@ class BotCog(commands.Cog, name="BotCog"):
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
 
+            # --- 步驟 2: 原生順序執行創世流程 ---
+            
             logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
@@ -598,6 +605,7 @@ class BotCog(commands.Cog, name="BotCog"):
             if not opening_scene:
                  raise Exception("原生創世流程未能成功生成開場白。")
 
+            # --- 步驟 3: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
@@ -615,7 +623,7 @@ class BotCog(commands.Cog, name="BotCog"):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-    # 執行完整的後台創世流程 函式結束
+# 執行完整的後台創世流程 函式結束
 
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> Optional[AILover]:
