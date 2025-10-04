@@ -32,7 +32,6 @@ from .lore_book import Lore
 from .database import AsyncSessionLocal, UserData, MemoryData, init_db, SceneHistoryData
 from .schemas import CharacterProfile, LocationInfo, WorldGenesisResult
 from .models import UserProfile, GameState
-# [v62.1 核心修正] 將絕對導入改為相對導入
 from .config import settings
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
@@ -2085,19 +2084,27 @@ class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
 
     
-# 函式：Discord 機器人設置鉤子 (v1.3 - 移除視圖註冊)
+# 函式：Discord 機器人設置鉤子 (v1.4 - 內部動態導入)
 # 更新紀錄:
-# v1.3 (2025-10-04): [災難性BUG修復] 根據持續的 NameError，將所有 `self.add_view()` 的調用從 `setup_hook` 移至 `on_ready` 事件，以解決因模組加載時序問題導致的啟動失敗。
+# v1.4 (2025-10-04): [災難性BUG修復] 採用了終極的「內部動態導入」策略。將 Cog 的實例化和 View 的註冊邏輯移回 setup_hook，並在函式內部才進行 Cog 的引用，以確保在執行時所有類別都已加載，徹底解決 NameError 和 on_ready 死鎖問題。
+# v1.3 (2025-10-04): [災難性BUG修復] 將所有 `self.add_view()` 的調用從 `setup_hook` 移至 `on_ready` 事件。
 # v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，徹底移除了所有與 LangGraph 相關的程式碼。
-# v1.1 (2025-10-03): [重大架構升級] 在此函式中導入並編譯了兩個核心工作流圖。
     async def setup_hook(self):
+        # [v1.4 核心修正] 在函式內部實例化和添加 Cog
         cog = BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
+        # 註冊背景任務
         cog.connection_watcher.start()
         
-        # [v1.3 核心修正] 移除此處的所有 add_view 調用，將它們延遲到 on_ready 中執行。
-        logger.info("Cog 與背景任務已成功註冊，持久化 UI 視圖將在 on_ready 中註冊。")
+        # 在 setup_hook 中註冊持久化視圖是官方推薦的最佳實踐
+        logger.info("正在 setup_hook 中註冊持久化 UI 視圖...")
+        self.add_view(StartSetupView(cog=cog))
+        self.add_view(ContinueToUserSetupView(cog=cog))
+        self.add_view(ContinueToAiSetupView(cog=cog))
+        self.add_view(ContinueToCanonSetupView(cog=cog))
+        self.add_view(RegenerateView(cog=cog))
+        logger.info("✅ 所有持久化 UI 視圖已在 setup_hook 中成功註冊。")
 
         try:
             if settings.TEST_GUILD_ID:
@@ -2149,6 +2156,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
 # 機器人準備就緒時的事件處理器 函式結束
 # 類別：AI 戀人機器人主體
+
 
 
 
