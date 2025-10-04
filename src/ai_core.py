@@ -2984,88 +2984,57 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：強制並重試 (v4.2 - 主動 Key 輪換)
+# 函式：強制並重試 (v4.4 - 簽名修正)
 # 更新紀錄:
-# v4.2 (2025-10-03): [重大架構重構] 根據使用者「不同KEY重試」的指令，徹底重寫了此函式的核心邏輯。新版本不再是被動地重複調用 ainvoke_with_rotation，而是成為一個主動的控制器：它會在進入循環前，一次性獲取最多 3 個不同的可用 API Key。在每次重試時，它會明確地通過新增的 `force_api_key_tuple` 參數，將一個指定的 Key「注入」到 ainvoke_with_rotation 的單次執行中，從而 100% 保證了每次強化重試都使用了不同的 API Key，最大限度地提高了突破審查的成功率。
-# v4.1 (2025-10-03): [災難性BUG修復] 實現了包含多次重試和延遲的強化重試引擎。
-# v4.0 (2025-10-03): [重大架構重構] 實現了包含「上下文淨化」的最終備援邏輯。
-    async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]]) -> Any:
+# v4.4 (2025-10-05): [災難性BUG修復] 根據 TypeError，為函式簽名補上了缺失的 `original_exception` 參數。此修正確保了函式能夠正確接收從上游傳來的異常物件，從而使其內部的「智能淨化」備援邏輯能夠被正確觸發。
+# v4.3 (2025-10-05): [重大架構升級] 將此函式從「蠻力重試器」升級為「智能淨化重試器」。
+# v4.2 (2025-10-03): [重大架構重構] 實現了主動控制 API Key 輪換的強化重試邏輯。
+    async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        (v4.2) 執行一個主動控制 API Key 輪換的、包含多次重試的強化策略。
+        (v4.4) 執行一個兩階段的、包含「智能淨化」的終極備援策略。
         """
-        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...")
+        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【智能淨化備援】策略...")
         
-        last_exception = None
-        MAX_FORCE_RETRIES = 3
+        last_exception = original_exception
 
-        # [v4.2 核心修正] 步驟 1: 在進入迴圈前，一次性獲取最多 3 個不同的可用 Key
-        backup_keys = []
-        # 我們需要一個臨時的方法來獲取多個 key 而不永久移動主索引
-        # 這裡我們複製一份冷卻狀態，模擬性地調用 _get_next_available_key
-        # 注意：這不是一個完美的隔離，但在這個場景下足夠有效
-        temp_key_index = self.current_key_index
-        temp_cooldowns = self.key_model_cooldowns.copy()
+        # --- 階段一：最高指令集注入重試 ---
+        try:
+            logger.info(f"[{self.user_id}] [智能淨化備援 1/2] 正在嘗試使用『最高指令集注入』進行重試...")
+            forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
+            
+            return await self.ainvoke_with_rotation(
+                forceful_prompt,
+                output_schema=output_schema,
+                retry_strategy='none', # 失敗時立即拋出，進入下一階段
+                use_degradation=True
+            )
+        except BlockedPromptException as e:
+            last_exception = e
+            logger.warning(f"[{self.user_id}] [智能淨化備援 1/2] 『最高指令集注入』失敗 ({e})。正在降級至最終階段...")
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [智能淨化備援 1/2] 遭遇非預期的錯誤，已終止重試循環: {e}", exc_info=True)
+            raise e
+
+        # --- 階段二：終極備援 - 委婉化重構 ---
+        logger.info(f"[{self.user_id}] [智能淨化備援 2/2] 正在啟動『委婉化重構』終極備援...")
+        try:
+            # 調用我們最強大的淨化工具
+            return await self._euphemize_and_retry(failed_prompt, output_schema, last_exception)
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [智能淨化備援 2/2] 🔥 『委婉化重構』終極備援最終失敗: {e}", exc_info=True)
+            last_exception = e
+
+        logger.error(f"[{self.user_id}] 【智能淨化備援】策略在所有階段後最終失敗。", exc_info=last_exception)
         
-        # 暫時的輔助函式來獲取下一個 key
-        def _get_next_key_for_retry(model_name: str) -> Optional[Tuple[str, int]]:
-            nonlocal temp_key_index
-            start_index = temp_key_index
-            for i in range(len(self.api_keys)):
-                index_to_check = (start_index + i) % len(self.api_keys)
-                cooldown_key = f"{index_to_check}_{model_name}"
-                if temp_cooldowns.get(cooldown_key) and time.time() < temp_cooldowns[cooldown_key]:
-                    continue
-                temp_key_index = (index_to_check + 1) % len(self.api_keys)
-                return self.api_keys[index_to_check], index_to_check
-            return None
-
-        for _ in range(MAX_FORCE_RETRIES):
-            key_info = _get_next_key_for_retry(self.model_priority_list[0]) # 假設重試都用最高優先級模型
-            if key_info:
-                backup_keys.append(key_info)
-        
-        if not backup_keys:
-            logger.error(f"[{self.user_id}] [強制重試] 致命錯誤：沒有任何可用的 API Key 來執行重試策略。")
-            raise Exception("No available API keys for force retry.")
-
-        logger.info(f"[{self.user_id}] [強制重試] 已準備 {len(backup_keys)} 個備用 API Keys 進行重試。")
-
-        # [v4.2 核心修正] 步驟 2: 遍歷備用 Key 進行重試
-        for attempt, key_tuple in enumerate(backup_keys):
-            try:
-                key_str, key_idx = key_tuple
-                logger.info(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 API Key #{key_idx} 進行嘗試...")
-                
-                forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
-                
-                # [v4.2 核心修正] 步驟 3: 將指定的 Key 注入 ainvoke_with_rotation
-                return await self.ainvoke_with_rotation(
-                    forceful_prompt,
-                    output_schema=output_schema,
-                    retry_strategy='none', 
-                    use_degradation=True,
-                    force_api_key_tuple=key_tuple # 強制使用這個 Key
-                )
-            except BlockedPromptException as e:
-                last_exception = e
-                logger.warning(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 Key #{key_idx} 的嘗試失敗: {e}")
-                if attempt < len(backup_keys) - 1:
-                    sleep_duration = (attempt + 1) * 0.5 
-                    logger.info(f"   -> 將在 {sleep_duration:.1f} 秒後使用下一個 Key 進行嘗試...")
-                    await asyncio.sleep(sleep_duration)
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [強制重試] 遭遇非預期的錯誤，已終止重試循環: {e}", exc_info=True)
-                raise e
-
-        logger.error(f"[{self.user_id}] 【強制 Key 輪換重試】策略在 {len(backup_keys)} 次嘗試後最終失敗。", exc_info=last_exception)
-        
+        # 如果所有嘗試都失敗，則返回一個安全的空值
         if output_schema:
             try:
+                # 嘗試創建一個模型的空實例
                 return output_schema()
             except Exception:
                 return None
         return None
-# 函式：強制並重試 (v4.2 - 主動 Key 輪換)
+# 強制並重試 函式結束
 
 
     
@@ -6077,6 +6046,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
