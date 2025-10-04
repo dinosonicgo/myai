@@ -1416,19 +1416,22 @@ class AILover:
     
 
 
-    # 函式：安全地格式化Prompt模板
-    # 更新紀錄:
-    # v1.1 (2025-09-23): [架構升級] 新增了 inject_core_protocol 參數。此修改創建了一個統一、可靠的“最高指導原則”注入點，確保所有創造性LLM調用都能以越獄指令作為絕對前提，從根本上提升了NSFW內容生成的穩定性和成功率。
-    # v1.0 (2025-09-23): [終極BUG修復] 創建此核心輔助函式，以徹底解決所有因模板中包含未轉義`{}`而引發的頑固IndexError/KeyError。此函式採用“先轉義，後還原”的策略：首先將模板中所有大括號`{}`臨時替換為唯一的、不可能衝突的佔位符，然後只對我們明確指定的變數進行格式化，最後再將臨時佔位符還原為單大括號。這確保了只有我們想要的佔位符會被格式化，從根本上杜絕了所有格式化錯誤。
-    def _safe_format_prompt(self, template: str, params: Dict[str, Any], inject_core_protocol: bool = False) -> str:
+# 函式：安全地格式化Prompt模板 (v1.2 - 支援自訂協議)
+# 更新紀錄:
+# v1.2 (2025-10-04): [架構升級] 新增了 `custom_protocol` 參數。此修改允許在注入協議時，使用一個指定的、輕量級的協議（如 data_protocol_prompt）來覆蓋預設的、重量級的核心協議，實現了對不同LLM任務的精準、分級越獄指令注入。
+# v1.1 (2025-09-23): [架構升級] 新增了 inject_core_protocol 參數。
+# v1.0 (2025-09-23): [終極BUG修復] 創建此核心輔助函式以徹底解決所有格式化錯誤。
+    def _safe_format_prompt(self, template: str, params: Dict[str, Any], inject_core_protocol: bool = False, custom_protocol: Optional[str] = None) -> str:
         """
         一個絕對安全的Prompt格式化函式，用於防止因模板中包含意外的`{}`而導致的錯誤。
-        可以選擇性地在模板最頂部注入核心的“最高指導原則”。
+        可以選擇性地在模板最頂部注入核心的“最高指導原則”，並支援傳入自訂協議以覆蓋預設值。
         """
-        # [v1.1 核心修正] 如果需要，則在模板最頂部注入核心協議
         final_template = template
-        if inject_core_protocol and self.core_protocol_prompt:
-            final_template = self.core_protocol_prompt + "\n\n" + template
+        if inject_core_protocol:
+            # [v1.2 核心修正] 優先使用自訂協議，否則回退到預設的核心協議
+            protocol_to_inject = custom_protocol if custom_protocol is not None else self.core_protocol_prompt
+            if protocol_to_inject:
+                final_template = protocol_to_inject + "\n\n" + template
 
         # 獨特且不可能在文本中出現的佔位符
         L_BRACE_PLACEHOLDER = "___LEFT_BRACE_PLACEHOLDER___"
@@ -1450,7 +1453,7 @@ class AILover:
         final_prompt = formatted_template.replace(L_BRACE_PLACEHOLDER, "{").replace(R_BRACE_PLACEHOLDER, "}")
 
         return final_prompt
-    # 函式：安全地格式化Prompt模板
+# 安全地格式化Prompt模板 函式結束
 
 
     
@@ -2259,22 +2262,27 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
 
 
- # 函式：分析使用者輸入 (v1.1 - 增強錯誤捕獲)
+# 函式：分析使用者輸入 (v1.2 - 注入數據協議)
 # 更新紀錄:
-# v1.1 (2025-10-03): [健壯性強化] 根據使用者需求，增強了此函式中 LLM 分析失敗時的錯誤捕獲與日誌記錄邏輯。現在，當 `ainvoke_with_rotation` 拋出異常時，`except` 區塊會使用 `exc_info=True` 來記錄完整的錯誤堆疊追蹤，這將為 Pydantic 的 `ValidationError` 或 `JSONDecodeError` 提供詳細的上下文，極大地簡化了除錯過程。
+# v1.2 (2025-10-04): [安全性強化] 在調用 `_safe_format_prompt` 時，顯式地傳入 `custom_protocol=self.data_protocol_prompt`。此修改確保了用於RAG查詢強化的前置LLM分析任務，在一個輕量級、無NSFW內容的安全協議下執行，提高了其穩定性和API通過率。
+# v1.1 (2025-10-03): [健壯性強化] 增強了此函式中 LLM 分析失敗時的錯誤捕獲與日誌記錄邏輯。
 # v1.0 (2025-10-03): [全新創建] 根據「LLM+雙引擎」混合分析策略，創建此核心分析協調器。
     async def _analyze_user_input(self, user_input: str) -> Tuple[List[str], str]:
         """
-        (v1.1) 使用「LLM 優先，雙引擎備援」策略，分析用戶輸入。
+        (v1.2) 使用「LLM 優先，雙引擎備援」策略，分析用戶輸入。
         返回一個元組 (核心實體列表, 核心意圖字符串)。
         """
         # --- 第一層：LLM 分析 ---
         try:
             logger.info(f"[{self.user_id}] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...")
             analysis_prompt_template = self.get_input_analysis_prompt()
+            
+            # [v1.2 核心修正] 注入輕量級的數據處理協議
             full_prompt = self._safe_format_prompt(
                 analysis_prompt_template,
-                {"user_input": user_input}
+                {"user_input": user_input},
+                inject_core_protocol=True,
+                custom_protocol=self.data_protocol_prompt
             )
             
             class InputAnalysisResult(BaseModel):
@@ -2295,7 +2303,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 raise ValueError("LLM returned empty or invalid analysis.")
 
         except Exception as e:
-            # [v1.1 核心修正] 使用 exc_info=True 記錄完整的錯誤堆疊追蹤
             logger.warning(f"[{self.user_id}] [輸入分析-L1] 🔥 LLM 分析失敗 ({type(e).__name__})。降級至 L2 (雙引擎程式化備援)...", exc_info=True)
             
             # --- 第二層：雙引擎備援 ---
@@ -2303,8 +2310,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             # 在備援模式下，核心意圖直接使用原始輸入
             intent = user_input
             return entities, intent
-# 函式：分析使用者輸入 (v1.1 - 增強錯誤捕獲)
-
+# 分析使用者輸入 函式結束
 
     
 # 函式：從資料庫恢復場景歷史 (v1.0 - 全新創建)
@@ -2491,11 +2497,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
     
 
-    # 函式：補完角色檔案 (/start 流程 2/4) (v3.1 - 原生模板重構)
-    # 更新紀錄:
-    # v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt，從根本上解決了所有 KeyError。
-    # v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
-    # v2.1 (2025-11-13): [災難性BUG修復] 修正了手動格式化 ChatPromptTemplate 的方式。
+# 函式：補完角色檔案 (/start 流程 2/4) (v3.2 - 注入數據協議)
+# 更新紀錄:
+# v3.2 (2025-10-04): [安全性強化] 為角色檔案補完的 LLM 調用注入了輕量級的 `data_protocol_prompt`，以確保此數據處理任務在一個更穩定、更安全的協議下執行。
+# v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt。
+# v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
     async def complete_character_profiles(self):
         """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
         if not self.profile:
@@ -2507,8 +2513,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 prompt_template = self.get_profile_completion_prompt()
                 safe_profile_data = original_profile.model_dump()
                 
-                full_prompt = prompt_template.format(
-                    profile_json=json.dumps(safe_profile_data, ensure_ascii=False, indent=2)
+                # [v3.2 核心修正] 注入數據處理協議
+                full_prompt = self._safe_format_prompt(
+                    prompt_template,
+                    {"profile_json": json.dumps(safe_profile_data, ensure_ascii=False, indent=2)},
+                    inject_core_protocol=True,
+                    custom_protocol=self.data_protocol_prompt
                 )
                 
                 completed_safe_profile = await self.ainvoke_with_rotation(
@@ -2548,18 +2558,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             'user_profile': completed_user_profile.model_dump(), 
             'ai_profile': completed_ai_profile.model_dump()
         })
-    # 補完角色檔案 函式結束
-
+# 補完角色檔案 函式結束
                 
                     
 
 
 
-# 函式：生成世界創世資訊 (v5.0 - 職責轉移)
+# 函式：生成世界創世資訊 (v5.1 - 注入數據協議)
 # 更新紀錄:
-# v5.0 (2025-10-03): [重大架構重構] 此函式的功能被重新定義。它不再負責生成開場白，而是作為開場流程的第一步，專注於根據世界聖經【智能地選擇或創造】一個符合「敘事距離原則」的初始地點。它會調用一個專門的 LLM 來完成這個決策，並將結果（地點LORE）存入數據庫，為後續的開場白生成提供一個有據可依的、充滿氛圍的舞台。
+# v5.1 (2025-10-04): [安全性強化] 為智能選址的 LLM 調用注入了輕量級的 `data_protocol_prompt`，確保創世流程中的數據處理任務在安全協議下執行。
+# v5.0 (2025-10-03): [重大架構重構] 此函式的功能被重新定義為專注於智能地選擇或創造一個初始地點。
 # v4.2 (2025-09-23): [根本性重構] 根據“按需生成”原則，徹底移除了此函式生成初始NPC的職責。
-# v4.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層。
     async def generate_world_genesis(self, canon_text: Optional[str] = None):
         """(/start 流程 4/7) 呼叫 LLM 智能地選擇或創造一個初始地點，並存入LORE。"""
         if not self.profile:
@@ -2573,7 +2582,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             "ai_name": self.profile.ai_profile.name,
             "canon_text": canon_text or "（未提供世界聖經，請自由創作一個通用起點。）"
         }
-        full_prompt_str = self._safe_format_prompt(genesis_prompt_template, genesis_params)
+        
+        # [v5.1 核心修正] 注入數據處理協議
+        full_prompt_str = self._safe_format_prompt(
+            genesis_prompt_template, 
+            genesis_params,
+            inject_core_protocol=True,
+            custom_protocol=self.data_protocol_prompt
+        )
         
         genesis_result = await self.ainvoke_with_rotation(
             full_prompt_str,
@@ -2597,7 +2613,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
         
         logger.info(f"[{self.user_id}] [/start] 初始地點 '{' > '.join(gs.location_path)}' 已成功生成並存入LORE。")
-# 函式：生成世界創世資訊 (v5.0 - 職責轉移)
+# 生成世界創世資訊 函式結束
 
         
 
@@ -3151,11 +3167,11 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行工具調用計畫 (v194.0 - 主角守衛 & 安全協議)
+# 函式：執行工具調用計畫 (v195.0 - 注入數據協議)
 # 更新紀錄:
-# v194.0 (2025-10-03): [災難性BUG修復] 根據「AI角色被誤判為NPC」的嚴重問題，在此函式的頂部引入了【主角守衛】機制。該機制會在執行任何 LORE 工具調用之前，嚴格檢查參數中是否包含核心主角（使用者或AI）的名字。如果匹配成功，將立即中止該操作並記錄警告，從執行層面徹底杜絕了將主角錯誤地當作 LORE 進行操作的可能性。同時，為內部「抗幻覺」事實查核的 LLM 調用注入了安全協議，以解決其因接觸 NSFW 上下文而被審查的問題。
+# v195.0 (2025-10-04): [安全性強化] 為內部「抗幻覺」事實查核的 LLM 調用注入了輕量級的 `data_protocol_prompt`，取代了原有的 `core_protocol_prompt`，以提高其在處理潛在敏感上下文時的穩定性與API通過率。
+# v194.0 (2025-10-03): [災難性BUG修復] 引入了【主角守衛】機制，並為事實查核注入了安全協議。
 # v193.0 (2025-10-03): [災難性BUG修復] 徹底重構了此函式的「抗幻覺」邏輯。
-# v192.0 (2025-10-03): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> Tuple[str, List[Lore]]:
         """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建【主角守衛】與抗幻覺驗證層。返回 (總結字串, 成功的 Lore 對象列表) 的元組。"""
         if not plan or not plan.plan:
@@ -3171,13 +3187,11 @@ class ExtractionResult(BaseModel):
             
             available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
             
-            # [v194.0 核心修正] 主角守衛機制
             purified_plan: List[ToolCall] = []
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
 
             for call in plan.plan:
-                # 檢查所有可能的名稱參數
                 params = call.parameters
                 potential_names = [
                     params.get('lore_key', '').split(' > ')[-1],
@@ -3194,9 +3208,8 @@ class ExtractionResult(BaseModel):
 
                 if is_core_character:
                     logger.warning(f"[{self.user_id}] [主角守衛] 檢測到一個試圖修改核心主角 ({[p for p in potential_names if p]}) 的 LORE 工具調用 ({call.tool_name})，已自動攔截。")
-                    continue # 跳過這個工具調用
+                    continue
 
-                # 修正工具名稱和參數的邏輯保持不變
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = max(available_lore_tools, key=lambda valid_tool: levenshtein_ratio(tool_name, valid_tool), default=None)
@@ -3230,17 +3243,17 @@ class ExtractionResult(BaseModel):
                             entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or (lore_key_to_operate.split(' > ')[-1] if lore_key_to_operate else "未知實體")
                             logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在實體 '{entity_name_to_validate}' 的更新。啟動事實查核...")
                             validation_prompt_template = self.get_entity_validation_prompt()
-                            # 使用 direct_rag_generate 創建的快照來獲取上下文
                             context = f"使用者: {self.last_context_snapshot.get('user_input', '')}\nAI: {self.last_context_snapshot.get('final_response', '')}" if self.last_context_snapshot else ""
                             
                             existing_entities = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
                             existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_entities], ensure_ascii=False)
                             
-                            # [v194.0 核心修正] 注入安全協議
+                            # [v195.0 核心修正] 注入數據處理協議
                             validation_prompt = self._safe_format_prompt(
                                 validation_prompt_template, 
                                 {"entity_name": entity_name_to_validate, "context": context, "existing_entities_json": existing_entities_json}, 
-                                inject_core_protocol=True
+                                inject_core_protocol=True,
+                                custom_protocol=self.data_protocol_prompt
                             )
                             validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='euphemize')
 
@@ -3283,7 +3296,7 @@ class ExtractionResult(BaseModel):
         
         finally:
             tool_context.set_context(None, None)
-# 函式：執行工具調用計畫 (v194.0 - 主角守衛 & 安全協議)
+# 執行工具調用計畫 函式結束
 
 
 
@@ -5897,6 +5910,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
