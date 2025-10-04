@@ -5920,14 +5920,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取RAG重排器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：檢索並摘要記憶 (v25.1 - 移除代碼化殘餘)
+# 函式：檢索並摘要記憶 (v25.2 - 防禦性修正)
 # 更新紀錄:
-# v25.1 (2025-10-04): [災難性BUG修復] 根據 AttributeError，徹底移除了函式末尾對已被廢棄的 _decode_lore_content 函式的調用。此修改完成了代碼化系統的最終清理。
-# v25.0 (2025-10-03): [重大架構回退] 徹底廢除了 LLM 重排器機制，回退到純粹的「原文直通」管道。
-# v24.1 (2025-10-03): [重大架構升級] 在 RAG 重排的降級策略中，正式啟用了第三級備援（L3）。
+# v25.2 (2025-10-05): [災難性BUG修復] 根據 TypeError，在調用 `query_keywords.update()` 之前，增加了一道防禦性檢查，確保從 _query_lore_from_entities 返回的變數是一個可迭代的物件，防止因上游返回 None 而導致的程式崩潰。
+# v25.1 (2025-10-04): [災難性BUG修復] 徹底移除了函式末尾對已被廢棄的 _decode_lore_content 函式的調用。
+# v25.0 (2025-10-03): [重大架構回退] 回退到純粹的「原文直通」管道。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v25.1) 執行「原文直通」RAG 檢索，不經過任何 LLM 篩選或摘要。
+        (v25.2) 執行「原文直通」RAG 檢索，不經過任何 LLM 篩選或摘要。
         返回一個字典: {"summary": str}
         """
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
@@ -5936,9 +5936,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return default_return
 
         # --- 步驟 1: 查詢強化 ---
-        contextual_entity_names = await self._query_lore_from_entities(query_text, is_remote_scene=False)
+        # [v25.2 核心修正] 沿用舊的查詢擴展邏輯，因為新的邏輯已移至 direct_rag_generate
+        contextual_entity_names = await self._query_lore_from_entities(query_text)
         query_keywords = set(re.split(r'\s+', query_text))
-        query_keywords.update(contextual_entity_names)
+        
+        # [v25.2 核心修正] 防禦性檢查
+        if contextual_entity_names and isinstance(contextual_entity_names, list):
+            query_keywords.update(contextual_entity_names)
+            
         expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
         logger.info(f"[{self.user_id}] [RAG 原文直通] 查詢已擴展為: '{expanded_query}'")
         
@@ -5962,8 +5967,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         logger.info(f"[{self.user_id}] [RAG 原文直通] ✅ 成功拼接全部 {len(retrieved_docs)} 條原始文檔作為 summary_context。")
         
-        # [v25.1 核心修正] 移除對已廢棄的 _decode_lore_content 的調用
-        # final_summary = self._decode_lore_content(summary_context, self.DECODING_MAP)
         final_summary = summary_context
         
         return {"summary": final_summary}
@@ -6074,6 +6077,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
