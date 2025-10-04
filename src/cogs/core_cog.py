@@ -510,17 +510,138 @@ class CharacterSettingsModal(discord.ui.Modal):
     # 函式：處理 Modal 提交事件
 # 類別：設定角色檔案的 Modal
 
-# 類別：設定世界觀的 Modal
 class WorldSettingsModal(discord.ui.Modal):
-    # 函式：初始化 WorldSettingsModal
     def __init__(self, cog: "BotCog", current_world: str, is_setup_flow: bool = False, original_interaction_message_id: int = None):
         super().__init__(title="步驟 1/3: 世界觀設定", timeout=600.0)
         self.cog = cog
         self.is_setup_flow = is_setup_flow
         self.original_interaction_message_id = original_interaction_message_id
-        self.world_settings = discord.ui.TextInput(label="世界觀核心原則", style=discord.TextStyle.paragraph, max_length=4000, default=current_world, placeholder="請描述這個世界的基本規則...")
+        self.world_settings = discord.ui.TextInput(label="世界觀核心原則", style=discord.TextStyle.paragraph, max_length=4000, default=current_world)
         self.add_item(self.world_settings)
-    # 函式：初始化 WorldSettingsModal
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        if self.original_interaction_message_id:
+            try:
+                msg = await interaction.channel.fetch_message(self.original_interaction_message_id)
+                view = discord.ui.View.from_message(msg)
+                for item in view.children: item.disabled = True
+                await msg.edit(view=view)
+            except (discord.errors.NotFound, AttributeError): pass
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
+        if not ai_instance:
+            await interaction.followup.send("錯誤：無法初始化 AI 核心。", ephemeral=True)
+            if self.is_setup_flow: self.cog.active_setups.discard(user_id)
+            return
+        await ai_instance.update_and_persist_profile({'world_settings': self.world_settings.value})
+        if self.is_setup_flow:
+            await interaction.followup.send("✅ 世界觀已設定！", view=ContinueToUserSetupView(cog=self.cog), ephemeral=True)
+        else:
+            await interaction.followup.send("✅ 世界觀設定已更新！", ephemeral=True)
+
+class ResponseStyleModal(discord.ui.Modal, title="自訂 AI 回覆風格"):
+    response_style = discord.ui.TextInput(label="回覆風格指令", style=discord.TextStyle.paragraph, required=True, max_length=4000)
+    def __init__(self, cog: "BotCog", current_style: str):
+        super().__init__()
+        self.cog = cog
+        self.response_style.default = current_style
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+        if not ai_instance:
+            await interaction.followup.send("錯誤：找不到您的資料。", ephemeral=True)
+            return
+        if await ai_instance.update_and_persist_profile({'response_style_prompt': self.response_style.value}):
+            await interaction.followup.send("✅ AI 回覆風格已更新！", ephemeral=True)
+        else:
+            await interaction.followup.send("錯誤：更新失敗。", ephemeral=True)
+
+class SettingsChoiceView(discord.ui.View):
+    def __init__(self, cog: "BotCog"):
+        super().__init__(timeout=180)
+        self.cog = cog
+    @discord.ui.button(label="👤 使用者角色設定", style=discord.ButtonStyle.primary, emoji="👤")
+    async def user_settings_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id))
+        profile_data = ai_instance.profile.user_profile.model_dump() if ai_instance and ai_instance.profile else {}
+        modal = CharacterSettingsModal(self.cog, title="👤 使用者角色設定", profile_data=profile_data, profile_type='user', is_setup_flow=False)
+        await interaction.response.send_modal(modal)
+    @discord.ui.button(label="❤️ AI 戀人設定", style=discord.ButtonStyle.success, emoji="❤️")
+    async def ai_settings_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id))
+        profile_data = ai_instance.profile.ai_profile.model_dump() if ai_instance and ai_instance.profile else {}
+        modal = CharacterSettingsModal(self.cog, title="❤️ AI 戀人設定", profile_data=profile_data, profile_type='ai', is_setup_flow=False)
+        await interaction.response.send_modal(modal)
+    @discord.ui.button(label="🌍 世界觀設定", style=discord.ButtonStyle.secondary, emoji="🌍")
+    async def world_settings_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        ai_instance = await self.cog.get_or_create_ai_instance(str(interaction.user.id))
+        world_settings = ai_instance.profile.world_settings if ai_instance and ai_instance.profile else ""
+        modal = WorldSettingsModal(self.cog, current_world=world_settings, is_setup_flow=False)
+        await interaction.response.send_modal(modal)
+
+class EditProfileRootView(discord.ui.View):
+    def __init__(self, cog: "BotCog", original_user_id: int):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.original_user_id = original_user_id
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.original_user_id:
+            await interaction.response.send_message("你無法操作此指令。", ephemeral=True)
+            return False
+        return True
+    async def _send_profile_for_editing(self, interaction: discord.Interaction, target_type: Literal['user', 'ai']):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+        if not ai_instance or not ai_instance.profile:
+            await interaction.followup.send("錯誤：找不到您的資料。", ephemeral=True)
+            return
+        profile = ai_instance.profile.user_profile if target_type == 'user' else ai_instance.profile.ai_profile
+        title_prefix = "👤 您的角色檔案" if target_type == 'user' else "❤️ AI 戀人檔案"
+        content_str = json.dumps(profile.model_dump(), ensure_ascii=False, indent=2)
+        view = ConfirmAndEditView(cog=self.cog, target_type=target_type, target_key=profile.name, display_name=profile.name, original_description=profile.description or "")
+        if len(content_str) > 1000:
+            try:
+                temp_dir = PROJ_DIR / "temp"
+                temp_dir.mkdir(exist_ok=True)
+                file_path = temp_dir / f"profile_{interaction.user.id}_{int(time.time())}.json"
+                with open(file_path, 'w', encoding='utf-8') as f: f.write(content_str)
+                file_name = f"{profile.name}.json"
+                await interaction.followup.send(
+                    f"這是您選擇角色的檔案（內容過長，已作為檔案發送）。",
+                    file=discord.File(file_path, filename=file_name), view=view, ephemeral=True
+                )
+                os.remove(file_path)
+            except Exception as e:
+                logger.error(f"[{user_id}] 創建或發送個人檔案時出錯: {e}", exc_info=True)
+                await interaction.followup.send("錯誤：創建檔案時發生問題。", ephemeral=True)
+        else:
+            embed = _create_profile_embed(profile, title_prefix)
+            await interaction.followup.send("這是您選擇角色的檔案，請預覽後點擊按鈕修改：", embed=embed, view=view, ephemeral=True)
+    @discord.ui.button(label="👤 編輯我的檔案", style=discord.ButtonStyle.primary)
+    async def edit_user(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._send_profile_for_editing(interaction, 'user')
+    @discord.ui.button(label="❤️ 編輯 AI 戀人檔案", style=discord.ButtonStyle.success)
+    async def edit_ai(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._send_profile_for_editing(interaction, 'ai')
+    @discord.ui.button(label="👥 編輯 NPC 檔案", style=discord.ButtonStyle.secondary)
+    async def edit_npc(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        all_npcs = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
+        if not all_npcs:
+            await interaction.followup.send("您的世界中還沒有 NPC。", ephemeral=True)
+            return
+        view = discord.ui.View(timeout=180)
+        view.add_item(NpcEditSelect(self.cog, all_npcs))
+        await interaction.followup.send("請選擇您要編輯的 NPC：", view=view, ephemeral=True)
+
+
+
+
+
+    
         
     # 函式：處理 Modal 提交事件
     async def on_submit(self, interaction: discord.Interaction):
