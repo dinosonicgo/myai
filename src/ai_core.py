@@ -285,14 +285,110 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
-# 函式：RAG 直通生成 (v1.8 - 移除代碼化 & 防火牆)
+
+
+
+
+
+    # 函式：獲取通用 LORE 擴展管線 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.8 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。同時，為應對 RECITATION 風險，在主生成 Prompt 中也加入了【🚫 嚴禁複誦原則】創意防火牆。
-# v1.7 (2025-10-03): [重大架構升級] 根據「LORE優先」原則，徹底重構了此函式的 Prompt 組裝邏輯。
-# v1.6 (2025-10-03): [災難性BUG修復] 引入了「創意防火牆」以解決 RECITATION 錯誤。
+# v1.0 (2025-10-04): [重大架構升級] 創建此全新的、統一的 LORE 擴展 Prompt。它取代了舊的、僅針對 NPC 的鏈，能夠指導 LLM 從使用者輸入中識別、分類並為所有 LORE 類別（角色、地點、物品等）批量生成骨架檔案，極大地增強了 AI 的動態世界構建能力。
+    def get_lore_expansion_pipeline_prompt(self) -> str:
+        """獲取或創建一個專門用於通用 LORE 擴展（識別、分類、生成骨架）的字符串模板。"""
+        
+        pydantic_definitions = """
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []
+class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""
+class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"
+class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""
+class Quest(BaseModel): name: str; aliases: List[str] = []; description: str = ""
+class WorldLore(BaseModel): name: str = Field(validation_alias=AliasChoices('name', 'title')); content: str = Field(validation_alias=AliasChoices('content', 'description')); category: str = "未知"
+class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; locations: List[LocationInfo] = []; items: List[ItemInfo] = []; creatures: List[CreatureInfo] = []; quests: List[Quest] = []; world_lores: List[WorldLore] = []
+"""
+        
+        base_prompt = """# TASK: 你是一位高度智能、觀察力敏銳的【首席世界觀記錄官 (Chief Lore Officer)】。
+# MISSION: 你的任務是分析【使用者最新指令】，並與【已知LORE實體列表】進行比對。如果指令中引入了任何**全新的、有名有姓的**實體（不論是角色、地點、物品、傳說還是任務），你必須立即執行三項操作：**1. 識別，2. 分類，3. 為其生成一個極簡的骨架檔案**。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【擴展示機】**: 只有當使用者指令中明確引入了一個**全新的、有名有姓的、且不在已知LORE實體列表中的**實體時，才需要為其創建骨架。
+# 2.  **【禁止擴展的情況】**: 在以下情況下，你**必須**返回一個空的JSON物件 `{}`：
+#     *   指令中提到的所有實體都已經存在於【已知LORE實體列表】中。
+#     *   指令中提到的是一個模糊的代稱（例如「那個男人」、「一座森林」、「一把劍」），而不是一個具體的專有名稱。
+# 3.  **【骨架生成原則】**:
+#     *   你生成的骨架檔案**必須是極簡的**。
+#     *   `name` 字段必須是指令中提到的名字。
+#     *   `description` 字段應該是根據指令上下文生成的、一句話的核心描述。
+#     *   對於 `npc_profile`，如果上下文提供了地點，應填充 `location_path`。
+# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CanonParsingResult` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回一個空的JSON物件 `{}`。
+
+# === 【【【⚙️ 輸出結構與思考過程範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 輸入情報 ---
+# - 使用者指令: "科技獵人走進『鏽蝕之心』酒館，從一個名叫『鐵手』的改造人那裡，接下了一個尋找傳說中的『奧術核心』的任務。"
+# - 已知LORE: ["科技獵人"]
+#
+# --- 你的思考過程 (僅供參考) ---
+# 1.  **識別**: 「鏽蝕之心」、「鐵手」、「奧術核心」是新名詞。
+# 2.  **分類**: 「鏽蝕之心」是酒館 -> `location_info`。「鐵手」是改造人 -> `npc_profile`。「奧術核心」是傳說中的物品 -> `item_info` 或 `quest` 標的。
+# 3.  **生成骨架**: 為這三者分別生成極簡的檔案。
+#
+# --- 最終JSON輸出 ---
+# ```json
+# {
+#   "npc_profiles": [
+#     {
+#       "name": "鐵手",
+#       "description": "一個在『鏽蝕之心』酒館活動的改造人。",
+#       "location_path": ["鏽蝕之心"]
+#     }
+#   ],
+#   "locations": [
+#     {
+#       "name": "鏽蝕之心",
+#       "description": "一個科技獵人進入的酒館。"
+#     }
+#   ],
+#   "items": [],
+#   "creatures": [],
+#   "quests": [
+#     {
+#       "name": "尋找奧術核心",
+#       "description": "一個由『鐵手』發布的、尋找傳說中『奧術核心』的任務。"
+#     }
+#   ],
+#   "world_lores": []
+# }
+# ```
+
+# === 【【【Pydantic模型定義 (供你參考結構)】】】 ===
+# ```python
+""" + pydantic_definitions + """
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【使用者最新指令】:
+{user_input}
+
+# ---
+# 【已知LORE實體列表 (JSON)】:
+{existing_lore_json}
+
+# ---
+# 【你生成的LORE擴展骨架JSON】:
+"""
+        return self.data_protocol_prompt + "\n\n" + base_prompt
+# 獲取通用 LORE 擴展管線 Prompt 函式結束
+
+    
+
+# 函式：RAG 直通生成 (v1.9 - 集成通用 LORE 擴展)
+# 更新紀錄:
+# v1.9 (2025-10-04): [重大架構升級] 在 RAG 檢索之前，集成了一個全新的、統一的「通用 LORE 擴展管線」。此管線取代了舊的、僅針對 NPC 的擴展邏輯，能夠智能識別並為所有類別的新 LORE 實體（角色、地點、物品等）創建骨架檔案，確保新概念能被即時索引和檢索。
+# v1.8 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統相關的邏輯，並加入了「創意防火牆」。
+# v1.7 (2025-10-03): [重大架構升級] 實現了「LORE優先」原則。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v1.8) 執行一個「LORE 優先」、帶有創意防火牆的、純粹的「指令 -> RAG -> LLM」生成流程。
+        (v1.9) 執行一個包含「通用 LORE 擴展」、LORE 優先、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -301,26 +397,67 @@ class AILover:
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
+        # --- 步驟 1: [v1.9 新增] 通用 LORE 擴展管線 ---
+        try:
+            logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
+            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+            existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
+            
+            expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
+            expansion_prompt = self._safe_format_prompt(
+                expansion_prompt_template,
+                {
+                    "user_input": user_input,
+                    "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)
+                }
+            )
+            
+            expansion_result = await self.ainvoke_with_rotation(
+                expansion_prompt,
+                output_schema=CanonParsingResult,
+                retry_strategy='force',
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+
+            if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
+                logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...")
+                # 調用現有的保存函式來批量處理所有新 LORE
+                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in expansion_result.npc_profiles])
+                await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
+                await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
+                await self._resolve_and_save("creatures", [p.model_dump() for p in expansion_result.creatures])
+                await self._resolve_and_save("quests", [p.model_dump() for p in expansion_result.quests])
+                await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in expansion_result.world_lores])
+                logger.info(f"[{user_id}] [LORE 擴展] 新的 LORE 骨架已成功創建並存入資料庫。")
+            else:
+                logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中發生錯誤: {e}", exc_info=True)
+            # 即使擴展失敗，主流程也應繼續
+
+        # --- 步驟 2: 處理連續性指令 ---
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
         if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
             plot_anchor = self.last_context_snapshot["last_response_text"]
 
+        # --- 步驟 3: 查詢權威性 LORE ---
         absolute_truth_mandate = ""
         contextual_entity_names = await self._query_lore_from_entities(user_input, is_remote_scene=False)
         
         if contextual_entity_names:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            relevant_lores = [lore for lore in all_lores if lore.content.get("name") in contextual_entity_names]
+            relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in contextual_entity_names]
             
             if relevant_lores:
                 truth_statements = []
                 for lore in relevant_lores:
                     content = lore.content
-                    name = content.get("name")
+                    name = content.get("name") or content.get("title")
                     status = content.get("status")
-                    description = content.get("description", "")
+                    description = content.get("description", "") or content.get("content", "")
                     match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
                     role = match.group(1) or match.group(2) if match else None
                     
@@ -340,11 +477,15 @@ class AILover:
                     )
                     logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
 
+
+        # --- 步驟 4: 執行 RAG 檢索 ---
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
+        # --- 步驟 5: 獲取對話歷史 ---
         historical_context = await self._get_summarized_chat_history(user_id)
 
+        # --- 步驟 6: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
@@ -388,6 +529,7 @@ class AILover:
             }
         )
         
+        # --- 步驟 7: 調用 LLM 生成 ---
         final_response = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -398,7 +540,7 @@ class AILover:
             logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
-        # [v1.8 核心修正] 移除對 _decode_lore_content 的調用
+        # --- 步驟 8: 事後處理 ---
         clean_response = final_response.strip()
         
         scene_key = self._get_scene_key()
@@ -5881,6 +6023,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
