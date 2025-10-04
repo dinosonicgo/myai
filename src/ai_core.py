@@ -1292,11 +1292,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.1 - 精準 JSON 提取)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.2 - API 訪問修正)
 # 更新紀錄:
-# v234.1 (2025-10-04): [災難性BUG修復] 根據 JSONDecodeError，徹底重構了從 LLM 原始輸出中提取 JSON 的邏輯。新版本優先從 "```json ... ```" Markdown 塊中提取，如果失敗，再回退到尋找第一個完整的 JSON 物件。此「精準提取」策略取代了舊的貪婪正則表達式，從根本上解決了因 LLM 輸出多個 JSON 或額外文本而導致的解析失敗問題。
+# v234.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，修正了對 API 回應中 `response.candidates` 的訪問方式，從 `response.candidates.finish_reason` 改為 `response.candidates[0].finish_reason`，並增加了對列表是否為空的健壯性檢查，以正確處理 Google API 的回應結構。
+# v234.1 (2025-10-04): [災難性BUG修復] 引入了更健壯的「精準 JSON 提取」邏輯，以解決 JSONDecodeError。
 # v234.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
-# v233.3 (2025-10-03): [健壯性強化] 提升了 JSON 解析失敗時的日誌級別。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1370,8 +1370,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 reason_str = str(block_reason)
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
-                        if response.candidates:
-                            finish_reason = response.candidates.finish_reason
+                        # [v234.2 核心修正] 檢查 candidates 列表是否為空，並從第一個元素 [0] 獲取 finish_reason
+                        if response.candidates and len(response.candidates) > 0:
+                            finish_reason = response.candidates[0].finish_reason
                             if hasattr(finish_reason, 'name'):
                                 finish_reason_name = finish_reason.name
                             else:
@@ -1395,14 +1396,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
-                            # [v234.1 核心修正] 引入全新的、更健壯的 JSON 提取邏輯
                             clean_json_str = None
-                            # 策略一：優先從 ```json ... ``` Markdown 塊中提取
                             match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", raw_text_result, re.DOTALL)
                             if match:
                                 clean_json_str = match.group(1)
                             else:
-                                # 策略二：如果找不到 Markdown 塊，則尋找第一個出現的完整 JSON 物件或陣列
                                 brace_match = re.search(r'\{.*\}', raw_text_result, re.DOTALL)
                                 bracket_match = re.search(r'\[.*\]', raw_text_result, re.DOTALL)
                                 if brace_match:
@@ -1413,7 +1411,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             if not clean_json_str:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
                             
-                            # 對提取出的字串進行清理和修復
                             repaired_str = clean_json_str.replace("'", '"')
                             repaired_str = re.sub(r',\s*(\}|\])', r'\1', repaired_str)
                             
@@ -1429,7 +1426,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         elif retry_strategy == 'euphemize':
                             return await self._euphemize_and_retry(full_prompt, output_schema, e)
                         elif retry_strategy == 'force':
-                            return await self._force_and_retry(full_prompt, output_schema)
+                            return await self._force_and_retry(full_prompt, output_schema, e)
                         else: 
                             raise e
 
@@ -1456,7 +1453,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             
                             if corrected_response and output_schema:
                                 logger.info(f"[{self.user_id}] [自我修正] ✅ 修正流程成功，正在重新驗證...")
-                                # [v234.1 核心修正] 在自我修正後也使用新的提取邏輯
                                 corrected_clean_json_str = None
                                 match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", corrected_response, re.DOTALL)
                                 if match:
@@ -1508,7 +1504,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
 # 帶輪換和備援策略的原生 API 調用引擎 函式結束
-
 
 
     
@@ -6080,6 +6075,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
