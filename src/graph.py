@@ -541,9 +541,10 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
         return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
 # 函式：獲取摘要後的對話歷史
 
-# --- [v33.0 新架構] 圖的構建 ---
+# 函式：創建主回應圖 (v34.0 - 整合動態事件導演)
 # 更新紀錄:
-# v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 `preprocess_and_generate` 流程的主對話圖。
+# v34.0 (2025-10-18): [重大架構升級] 將全新的 proactive_scene_population_node 整合到主對話圖中。該節點現在位於 preemptive_tool_call 和 assemble_world_snapshot 之間，正式激活了「動態事件導演」系統，使其能夠在每次對話中智能地判斷並注入有意義的場景事件。
+# v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 preprocess_and_generate 流程的主對話圖。
 def create_main_response_graph() -> StateGraph:
     """创建并连接所有节点，构建最终的对话图。"""
     graph = StateGraph(ConversationGraphState)
@@ -552,6 +553,8 @@ def create_main_response_graph() -> StateGraph:
     graph.add_node("retrieve_and_query", retrieve_and_query_node)
     graph.add_node("expansion_decision_and_execution", expansion_decision_and_execution_node)
     graph.add_node("preemptive_tool_call", preemptive_tool_call_node)
+    # [v34.0 核心修正] 新增動態事件導演節點
+    graph.add_node("proactive_scene_population", proactive_scene_population_node)
     graph.add_node("assemble_world_snapshot", assemble_world_snapshot_node)
     graph.add_node("final_generation", final_generation_node)
     graph.add_node("validate_and_persist", validate_and_persist_node)
@@ -561,13 +564,15 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("perceive_scene", "retrieve_and_query")
     graph.add_edge("retrieve_and_query", "expansion_decision_and_execution")
     graph.add_edge("expansion_decision_and_execution", "preemptive_tool_call")
-    graph.add_edge("preemptive_tool_call", "assemble_world_snapshot")
+    # [v34.0 核心修正] 重新連接邊，將新節點插入流程
+    graph.add_edge("preemptive_tool_call", "proactive_scene_population")
+    graph.add_edge("proactive_scene_population", "assemble_world_snapshot")
     graph.add_edge("assemble_world_snapshot", "final_generation")
     graph.add_edge("final_generation", "validate_and_persist")
     graph.add_edge("validate_and_persist", END)
     
     return graph.compile()
-# --- [v33.0 新架構] 圖的構建 ---
+# 函式：創建主回應圖 (v34.0 - 整合動態事件導演)
 
 # --- Setup Graph (保持不變) ---
 # 函式：處理世界聖經節點
