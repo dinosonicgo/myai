@@ -112,13 +112,18 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
 
 # --- 持久化視圖與 Modals ---
 
-# 類別：/start 指令的初始設定視圖
-class StartSetupView(discord.ui.View):
-    # 函式：初始化 StartSetupView
-    def __init__(self, *, cog: "BotCog"):
-        super().__init__(timeout=None)
-        self.cog = cog
-    # 函式：初始化 StartSetupView
+# 函式：初始化 AILoverBot (v1.2 - 移除Graph屬性)
+# 更新紀錄:
+# v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，移除了 self.main_graph 和 self.setup_graph 兩個已廢棄的實例屬性。
+# v1.1 (2025-10-03): [架構擴展] 新增了 self.main_graph 和 self.setup_graph 兩個實例屬性。
+# v1.0 (初始版本)
+    def __init__(self, shutdown_event: asyncio.Event, git_lock: asyncio.Lock, is_ollama_available: bool):
+        super().__init__(command_prefix='/', intents=intents, activity=discord.Game(name="與你共度時光"))
+        self.shutdown_event = shutdown_event
+        self.git_lock = git_lock
+        self.is_ready_once = False
+        self.is_ollama_available = is_ollama_available
+# 初始化 AILoverBot 函式結束
 
     # 函式：處理「開始設定」按鈕點擊事件
     @discord.ui.button(label="🚀 開始設定", style=discord.ButtonStyle.success, custom_id="persistent_start_setup_button")
@@ -1122,31 +1127,23 @@ class BotCog(commands.Cog):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-# 函式：執行完整的後台創世流程 (v64.0 - Graph驅動)
+# 函式：執行完整的後台創世流程 (v65.0 - 原生創世流程)
 # 更新紀錄:
-# v64.0 (2025-10-03): [重大架構重構] 徹底重寫了此函式的執行邏輯。它不再手動、線性地調用 ai_core 的各個創世方法，而是構建一個符合 `SetupGraphState` 的初始狀態字典，並直接調用已編譯好的 `self.bot.setup_graph.ainvoke()` 來驅動整個創世流程。此修改將創世邏輯完全交由 LangGraph 管理，使其與主對話流程的架構保持一致，提高了可維護性和健壯性。
-# v63.0 (2025-10-03): [架構簡化] 根據「RAG驅動的智能開場導演」策略，徹底移除了流程中對 `generate_world_genesis` 的調用。
-# v62.0 (2025-10-02): [根本性重構] 根據“純向量RAG優先”的最終策略，徹底簡化了創世流程。
+# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph (`setup_graph`) 的依賴。現在，此函式以原生的、線性的 await 方式依次調用 ai_core 中的各個創世函式，實現了完全的原生Python控制流，徹底完成了「去LangGraph化」的目標。
+# v64.0 (2025-10-03): [重大架構重構] 徹底重寫了此函式的執行邏輯，改為調用 LangGraph 來驅動整個創世流程。
+# v63.0 (2025-10-03): [架構簡化] 移除了流程中對 `generate_world_genesis` 的調用。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v64.0) 一個由 LangGraph 驅動的、獨立的後台創世流程。"""
+        """(v65.0) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v64.0] Graph 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v65.0] 原生 Python 驅動的流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # [v64.0 核心修正] 構建初始狀態並調用 Setup Graph
-            initial_state = {
-                "user_id": user_id,
-                "ai_core": ai_instance,
-                "canon_text": canon_text
-            }
-
-            # 在調用 Graph 之前，需要先手動執行 RAG 索引的構建
-            # 因為 Graph 節點依賴於一個已準備好的 RAG 環境
+            # --- 步驟 1: 構建 RAG 索引 (此邏輯保持不變) ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
@@ -1155,15 +1152,23 @@ class BotCog(commands.Cog):
             
             logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
-            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行創世圖...")
+            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
 
-            final_state = await self.bot.setup_graph.ainvoke(initial_state)
-            opening_scene = final_state.get("opening_scene")
+            # --- 步驟 2: [v65.0 核心修正] 原生順序執行創世流程 ---
+            # 原 Graph 流程: complete_profiles -> generate_opening_scene
+            
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
+
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 2/2: 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
+            logger.info(f"[{user_id}] [後台創世-原生] 開場白生成成功。")
 
             if not opening_scene:
-                 raise Exception("創世圖 (Setup Graph) 未能成功生成開場白。")
+                 raise Exception("原生創世流程未能成功生成開場白。")
 
-            # --- 最終步驟: 發送開場白並清理 ---
+            # --- 步驟 3: 發送開場白並清理 (此邏輯保持不變) ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
@@ -1181,7 +1186,7 @@ class BotCog(commands.Cog):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# 函式：執行完整的後台創世流程 (v64.0 - Graph驅動)
+# 執行完整的後台創世流程 函式結束
 
 
 
@@ -2079,20 +2084,12 @@ class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
 
     
-# 函式：Discord 機器人設置鉤子 (v1.1 - 編譯Graph)
-    # 更新紀錄:
-    # v1.1 (2025-10-03): [重大架構升級] 在此函式中導入了 `create_main_response_graph` 和 `create_setup_graph`。在 setup_hook 階段，它會立即編譯這兩個核心工作流圖，並將結果賦值給 `self.main_graph` 和 `self.setup_graph`，確保在機器人響應任何請求之前，所有的核心邏輯都已準備就緒。
-    # v1.0 (初始版本)
+# 函式：Discord 機器人設置鉤子 (v1.2 - 移除Graph編譯)
+# 更新紀錄:
+# v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，徹底移除了所有與 LangGraph 導入、編譯相關的程式碼。
+# v1.1 (2025-10-03): [重大架構升級] 在此函式中導入並編譯了兩個核心工作流圖。
+# v1.0 (初始版本)
     async def setup_hook(self):
-        # [v1.1 新增] 導入並編譯 Graph
-        from src.graph import create_main_response_graph, create_setup_graph
-        logger.info("正在編譯主對話圖 (main_graph)...")
-        self.main_graph = create_main_response_graph()
-        logger.info("✅ 主對話圖編譯成功。")
-        logger.info("正在編譯創世流程圖 (setup_graph)...")
-        self.setup_graph = create_setup_graph()
-        logger.info("✅ 創世流程圖編譯成功。")
-
         cog = BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
@@ -2120,7 +2117,9 @@ class AILoverBot(commands.Bot):
             logger.error(f"🔥 應用程式指令同步失敗: {e}", exc_info=True)
         
         logger.info("Discord Bot is ready!")
-    # 函式：Discord 機器人設置鉤子
+# Discord 機器人設置鉤子 函式結束
+
+    
     
     # 函式：機器人準備就緒時的事件處理器
     async def on_ready(self):
@@ -2136,6 +2135,7 @@ class AILoverBot(commands.Bot):
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
     # 函式：機器人準備就緒時的事件處理器
 # 類別：AI 戀人機器人主體
+
 
 
 
