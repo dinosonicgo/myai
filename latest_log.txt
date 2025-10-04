@@ -1,12 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T22:13:51.692577 ###
+### AI Lover Log - Last updated at 2025-10-04T22:15:24.492420 ###
 
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #3 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
 safety_settings -> __key__
   value is not a valid integer (type=type_error.integer)
 Traceback (most recent call last):
@@ -300,3 +293,10 @@ AttributeError: 'int' object has no attribute 'name'
 2025-10-04 20:50:42 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
 2025-10-04 20:50:42 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-04 20:50:43 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-04 22:15:10 - [INFO] - Cog 與背景任務已成功註冊，持久化 UI 視圖將在 on_ready 中註冊。
+2025-10-04 22:15:10 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-04 22:15:10 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-04 22:15:10 - [INFO] - Discord Bot setup hook finished!
+2025-10-04 22:15:13 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-04 22:15:13 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-04 22:15:13 - [INFO] - Bot 首次準備就緒，正在註冊持久化 UI 視圖...
