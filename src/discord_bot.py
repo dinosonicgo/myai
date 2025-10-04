@@ -2085,23 +2085,19 @@ class AILoverBot(commands.Bot):
     # 函式：初始化 AILoverBot
 
     
-# 函式：Discord 機器人設置鉤子 (v1.2 - 移除Graph編譯)
+# 函式：Discord 機器人設置鉤子 (v1.3 - 移除視圖註冊)
 # 更新紀錄:
-# v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，徹底移除了所有與 LangGraph 導入、編譯相關的程式碼。
+# v1.3 (2025-10-04): [災難性BUG修復] 根據持續的 NameError，將所有 `self.add_view()` 的調用從 `setup_hook` 移至 `on_ready` 事件，以解決因模組加載時序問題導致的啟動失敗。
+# v1.2 (2025-10-04): [重大架構重構] 根據「去LangGraph化」策略，徹底移除了所有與 LangGraph 相關的程式碼。
 # v1.1 (2025-10-03): [重大架構升級] 在此函式中導入並編譯了兩個核心工作流圖。
-# v1.0 (初始版本)
     async def setup_hook(self):
         cog = BotCog(self, self.git_lock, self.is_ollama_available)
         await self.add_cog(cog)
 
         cog.connection_watcher.start()
         
-        self.add_view(StartSetupView(cog=cog))
-        self.add_view(ContinueToUserSetupView(cog=cog))
-        self.add_view(ContinueToAiSetupView(cog=cog))
-        self.add_view(ContinueToCanonSetupView(cog=cog))
-        self.add_view(RegenerateView(cog=cog))
-        logger.info("所有持久化 UI 視圖已成功註冊。")
+        # [v1.3 核心修正] 移除此處的所有 add_view 調用，將它們延遲到 on_ready 中執行。
+        logger.info("Cog 與背景任務已成功註冊，持久化 UI 視圖將在 on_ready 中註冊。")
 
         try:
             if settings.TEST_GUILD_ID:
@@ -2117,25 +2113,43 @@ class AILoverBot(commands.Bot):
         except Exception as e:
             logger.error(f"🔥 應用程式指令同步失敗: {e}", exc_info=True)
         
-        logger.info("Discord Bot is ready!")
+        logger.info("Discord Bot setup hook finished!")
 # Discord 機器人設置鉤子 函式結束
 
     
     
-    # 函式：機器人準備就緒時的事件處理器
+# 函式：機器人準備就緒時的事件處理器 (v1.1 - 延遲視圖註冊)
+# 更新紀錄:
+# v1.1 (2025-10-04): [災難性BUG修復] 將持久化視圖 (Persistent Views) 的註冊邏輯從 `setup_hook` 移至此處，並使用 `is_ready_once` 旗標確保只執行一次。此修改解決了因模組加載時序問題導致的 NameError。
+# v1.0 (初始版本)
     async def on_ready(self):
         logger.info(f'Logged in as {self.user} (ID: {self.user.id})')
         if not self.is_ready_once:
+            
+            # [v1.1 核心修正] 在此處註冊持久化視圖
+            logger.info("Bot 首次準備就緒，正在註冊持久化 UI 視圖...")
+            cog = self.get_cog("BotCog")
+            if cog:
+                self.add_view(StartSetupView(cog=cog))
+                self.add_view(ContinueToUserSetupView(cog=cog))
+                self.add_view(ContinueToAiSetupView(cog=cog))
+                self.add_view(ContinueToCanonSetupView(cog=cog))
+                self.add_view(RegenerateView(cog=cog))
+                logger.info("✅ 所有持久化 UI 視圖已成功註冊。")
+            else:
+                logger.error("🔥 致命錯誤: 未能獲取 BotCog 實例，無法註冊持久化視圖！")
+
             self.is_ready_once = True
             if settings.ADMIN_USER_ID:
                 try:
-                    admin_user = self.get_user(int(settings.ADMIN_USER_ID)) or await self.bot.fetch_user(int(settings.ADMIN_USER_ID))
+                    admin_user = self.get_user(int(settings.ADMIN_USER_ID)) or await self.fetch_user(int(settings.ADMIN_USER_ID))
                     await admin_user.send(f"✅ **系統啟動成功！**")
                     logger.info(f"已成功發送啟動成功通知給管理員。")
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
-    # 函式：機器人準備就緒時的事件處理器
+# 機器人準備就緒時的事件處理器 函式結束
 # 類別：AI 戀人機器人主體
+
 
 
 
