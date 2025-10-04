@@ -746,6 +746,54 @@ class BotCog(commands.Cog, name="BotCog"):
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 執行完整的後台創世流程 函式結束
 
+
+
+# 函式：查看角色檔案指令 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-04): [功能擴展] 根據使用者需求，全新創建此指令。它提供了一個簡單、直接的方式，讓使用者可以隨時查看自己或 AI 戀人的完整 LORE 檔案，極大地提升了遊戲的沉浸感和可用性。
+    @app_commands.command(name="profile", description="查看您或 AI 戀人的詳細角色檔案。")
+    @app_commands.describe(target="選擇您想查看的角色檔案。")
+    @app_commands.choices(target=[
+        app_commands.Choice(name="👤 我自己", value="user"),
+        app_commands.Choice(name="❤️ AI 戀人", value="ai"),
+    ])
+    async def profile(self, interaction: discord.Interaction, target: app_commands.Choice[str]):
+        """查看您或 AI 戀人的詳細角色檔案。"""
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+
+        ai_instance = await self.get_or_create_ai_instance(user_id)
+        if not ai_instance or not ai_instance.profile:
+            await interaction.followup.send("❌ 錯誤：找不到您的使用者資料。請先使用 `/start` 指令進行初始設定。", ephemeral=True)
+            return
+
+        try:
+            profile_to_show: Optional[CharacterProfile] = None
+            title_prefix = ""
+
+            if target.value == "user":
+                profile_to_show = ai_instance.profile.user_profile
+                title_prefix = "👤 您的角色檔案"
+            elif target.value == "ai":
+                profile_to_show = ai_instance.profile.ai_profile
+                title_prefix = f"❤️ AI 戀人檔案"
+            
+            if not profile_to_show:
+                await interaction.followup.send("❌ 錯誤：未能加載指定的角色檔案。", ephemeral=True)
+                return
+
+            # 使用現有的輔助函式來創建 Embed
+            embed = _create_profile_embed(profile_to_show, title_prefix)
+            
+            # 發送 Embed 回應
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 在執行 /profile 指令時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 顯示角色檔案時發生未預期的錯誤: `{type(e).__name__}`", ephemeral=True)
+# 查看角色檔案指令 函式結束
+
+    
     # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> Optional[AILover]:
         if user_id in self.ai_instances:
