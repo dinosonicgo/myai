@@ -1,23 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T18:28:02.277669 ###
+### AI Lover Log - Last updated at 2025-10-04T18:30:23.280638 ###
 
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #5 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash' 實例 (API Key index: provided)
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 346, in _get_langchain_llm
-    return ChatGoogleGenerativeAI(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\load\serializable.py", line 113, in __init__
-    super().__init__(*args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #5 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] [Model Degradation] 模型 'gemini-2.5-flash' 的所有金鑰均嘗試失敗。正在降級到下一個模型...
-2025-10-04 18:24:55 - [INFO] - [512280345618546699] 正在創建 LangChain 模型 'gemini-2.5-flash-lite' 實例 (API Key index: provided)
 2025-10-04 18:24:55 - [ERROR] - [512280345618546699] 創建 ChatGoogleGenerativeAI 實例時發生錯誤: 1 validation error for ChatGoogleGenerativeAI
 safety_settings -> __key__
   value is not a valid integer (type=type_error.integer)
@@ -300,3 +282,21 @@ Exception: ainvoke_with_rotation failed without a specific exception.
 2025-10-04 18:24:55 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-04 18:24:55 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-04 18:24:55 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-04 18:30:09 - [INFO] - 正在編譯主對話圖 (main_graph)...
+2025-10-04 18:30:09 - [INFO] - ✅ 主對話圖編譯成功。
+2025-10-04 18:30:09 - [INFO] - 正在編譯創世流程圖 (setup_graph)...
+2025-10-04 18:30:09 - [INFO] - ✅ 創世流程圖編譯成功。
+2025-10-04 18:30:09 - [INFO] - 所有持久化 UI 視圖已成功註冊。
+2025-10-04 18:30:09 - [INFO] - 正在嘗試將應用程式指令 (Slash Commands) 全域同步到 Discord...
+2025-10-04 18:30:09 - [INFO] - ✅ 應用程式指令全域同步成功！(注意：全域指令更新可能需要長達一小時才能在所有伺服器生效)
+2025-10-04 18:30:09 - [INFO] - Discord Bot is ready!
+2025-10-04 18:30:12 - [INFO] - 【健康檢查 & Keep-Alive】背景任務已啟動。
+2025-10-04 18:30:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-04 18:30:12 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-04 18:30:18 - [INFO] - [512280345618546699] 後台重置任務開始...
+2025-10-04 18:30:18 - [INFO] - [512280345618546699] 未檢測到活躍的 AI 實例，直接進行清理。
+2025-10-04 18:30:18 - [INFO] - [512280345618546699] 正在清除所有資料庫記錄...
+2025-10-04 18:30:19 - [INFO] - [512280345618546699] 所有資料庫記錄已成功清除。
+2025-10-04 18:30:19 - [INFO] - [512280345618546699] (Robust Delete) 正在啟動對目錄 data\vector_stores\512280345618546699 的健壯刪除流程...
+2025-10-04 18:30:19 - [INFO] - [512280345618546699] (Robust Delete) ✅ 在第 1 次嘗試中成功刪除目錄: data\vector_stores\512280345618546699
+2025-10-04 18:30:21 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
