@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-04T23:17:45.967470 ###
+### AI Lover Log - Last updated at 2025-10-04T23:23:27.448188 ###
 
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for ChatGoogleGenerativeAI
-safety_settings -> __key__
-  value is not a valid integer (type=type_error.integer)
-2025-10-04 18:24:55 - [WARNING] - [512280345618546699] 無法為 Key #5 創建 LLM 實例，跳過。
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
-2025-10-04 18:24:55 - [ERROR] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 執行時發生嚴重錯誤: ainvoke_with_rotation failed without a specific exception.
-Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\graph.py", line 633, in generate_opening_scene_node
     opening_scene = await ai_core.generate_opening_scene(canon_text=canon_text)
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2908, in generate_opening_scene
@@ -300,3 +292,11 @@ AttributeError: 'int' object has no attribute 'name'
 2025-10-04 23:17:35 - [INFO] - Discord Bot setup hook finished!
 2025-10-04 23:17:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-04 23:17:38 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-04 23:23:13 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-04 23:23:16 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-04 23:23:16 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-04 23:23:16 - [INFO] - 正在全域同步應用程式指令...
+2025-10-04 23:23:17 - [INFO] - ✅ 指令已全域同步！
+2025-10-04 23:23:17 - [INFO] - Discord Bot setup hook finished!
+2025-10-04 23:23:19 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-04 23:23:20 - [INFO] - 已成功發送啟動成功通知給管理員。
