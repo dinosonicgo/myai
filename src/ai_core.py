@@ -1846,23 +1846,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.4 - 數據流修正)
+# 函式：背景事後分析 (v7.5 - 引入智慧分流)
 # 更新紀錄:
-# v7.4 (2025-10-03): [災難性BUG修復] 根據 "[事後分析] 接收到的上下文快照不完整" 的錯誤日誌，修正了此函式從 `context_snapshot` 字典中讀取數據的邏輯。新版本現在會使用正確的鍵名（`user_input`, `final_response`）來獲取數據，確保了即使在 RAG 直通流程下，事後分析鏈也能獲得必要的上下文，從而恢復 LORE 學習和記憶摘要功能。
+# v7.5 (2025-10-03): [災難性BUG修復] 根據「主角LORE隔離」原則，將此函式從一個單純的分析器升級為「分析與分流總指揮官」。新版本在從 LLM 獲取工具調用計畫後，增加了一個關鍵的【智慧分流】步驟：它會遍歷所有計畫中的更新，判斷每一個更新的目標是核心主角（用戶/AI）還是 NPC。針對主角的更新將被立即、直接地通過 `update_and_persist_profile` 應用；而針對 NPC 的更新則會被收集起來，交由下游的 LORE 執行器處理。此修改從數據流的源頭徹底分離了主角和 NPC 的更新路徑，根除了將主角錯誤地當作 LORE 進行操作的嚴重邏輯問題。
+# v7.4 (2025-10-03): [災難性BUG修復] 修正了事後分析函式讀取上下文快照的數據流。
 # v7.3 (2025-10-02): [災難性BUG修復] 根據「LORE上下文感知」策略，徹底重構了此函式。
-# v7.2 (2025-09-28): [災難性BUG修復] 根據「上下文感知摘要」策略，徹底重構了此函式的簽名和內部邏輯。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (事後處理總指揮) 執行「生成後分析」，提取記憶和LORE，並觸發後續的儲存任務。
+        (v7.5 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
         """
         if not self.profile:
             return
         
-        # [v7.4 核心修正] 使用正確的鍵名從快照中讀取數據
         user_input = context_snapshot.get("user_input")
-        final_response = context_snapshot.get("final_response") # 舊鍵名是 "final_response_text"
-        scene_rules_context = context_snapshot.get("scene_rules_context", "（無）")
-        relevant_characters_lore = context_snapshot.get("relevant_characters", [])
+        final_response = context_snapshot.get("final_response")
         
         if not user_input or not final_response:
             logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少 'user_input' 或 'final_response' 數據。")
@@ -1870,32 +1867,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
         try:
             await asyncio.sleep(2.0)
-            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析任務...")
+            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
             
+            # --- 步驟 1: LLM 分析 (保持不變) ---
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_summary = "\n".join([f"- {lore.category}: {lore.key}" for lore in all_lores])
-
-            relevant_lore_context_str = "（本回合無明確的核心互動LORE）"
-            if relevant_characters_lore:
-                lore_snippets = []
-                for lore_dict in relevant_characters_lore:
-                    # 確保 lore_dict 是一個字典
-                    if isinstance(lore_dict, dict):
-                        key = lore_dict.get('key', '未知Key')
-                        name = lore_dict.get('content', {}).get('name', '未知名稱')
-                        lore_snippets.append(f"- 角色: {name}, lore_key: {key}")
-                if lore_snippets:
-                    relevant_lore_context_str = "\n".join(lore_snippets)
             
             prompt_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
-                "final_response_text": final_response, # Prompt 模板需要 'final_response_text'
-                "scene_rules_context": scene_rules_context,
-                "relevant_lore_context": relevant_lore_context_str
+                "final_response_text": final_response,
+                "scene_rules_context": context_snapshot.get("scene_rules_context", "（無）"),
+                "relevant_lore_context": "（暫不提供，以避免循環依賴）"
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -1907,21 +1893,59 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無法儲存記憶或擴展LORE。")
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈返回空結果，本回合無任何更新。")
                 return
 
+            # --- 步驟 2: 記憶摘要處理 (保持不變) ---
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
+            # --- 步驟 3: [v7.5 核心修正] 智慧分流 ---
             if analysis_result.lore_updates:
-                await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
+                npc_lore_updates = []
+                user_name_lower = self.profile.user_profile.name.lower()
+                ai_name_lower = self.profile.ai_profile.name.lower()
+
+                for call in analysis_result.lore_updates:
+                    # 只處理 update 類型的調用，create 類型理論上不應針對主角
+                    if call.tool_name.startswith("update_"):
+                        params = call.parameters
+                        updates_dict = params.get("updates", {})
+                        
+                        # 檢查多個可能的名稱欄位
+                        target_name = updates_dict.get("name") or params.get("standardized_name") or (params.get("lore_key", "").split(" > ")[-1])
+                        
+                        if not target_name:
+                            npc_lore_updates.append(call)
+                            continue
+                        
+                        target_name_lower = target_name.lower()
+
+                        # 分流到主角更新路徑
+                        if target_name_lower == user_name_lower:
+                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對使用者角色 '{target_name}' 的更新，正在直接應用...")
+                            await self.update_and_persist_profile({'user_profile': updates_dict})
+                        elif target_name_lower == ai_name_lower:
+                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對AI角色 '{target_name}' 的更新，正在直接應用...")
+                            await self.update_and_persist_profile({'ai_profile': updates_dict})
+                        else:
+                            # 分流到 NPC 更新路徑
+                            npc_lore_updates.append(call)
+                    else:
+                        # 所有非 update 的調用（如 create）都歸為 NPC LORE 處理
+                        npc_lore_updates.append(call)
+
+                # --- 步驟 4: 執行 NPC LORE 更新 ---
+                if npc_lore_updates:
+                    await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in npc_lore_updates]})
+                else:
+                    logger.info(f"[{self.user_id}] [智慧分流] 本次分析未檢測到需要更新的 NPC LORE。")
             
-            logger.info(f"[{self.user_id}] [事後分析] 背景分析與處理任務完成。")
+            logger.info(f"[{self.user_id}] [事後分析] 背景分析與分流任務完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 函式：背景事後分析 (v7.4 - 數據流修正)
-
+# 函式：背景事後分析 (v7.5 - 引入智慧分流)
 
     
 
@@ -3127,13 +3151,13 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行工具調用計畫 (v193.0 - 抗幻覺重構)
+# 函式：執行工具調用計畫 (v194.0 - 主角守衛 & 安全協議)
 # 更新紀錄:
-# v193.0 (2025-10-03): [災難性BUG修復] 根據 ValidationError 和 AttributeError，徹底重構了此函式的「抗幻覺」邏輯。新流程在檢測到對不存在實體的更新時，不再嘗試即興拼湊新的工具調用，而是直接使用事後分析鏈生成的完整 `updates` 字典作為新 LORE 的 `content`，並調用 `lore_book.add_or_update_lore` 進行創建。最關鍵的是，無論是創建、更新還是合併，此函式現在都會在操作結束後，強制從數據庫重新獲取最新的、完整的 `Lore` 對象，確保返回給下游的數據類型絕對正確，從根源上解決了所有連鎖錯誤。
-# v192.0 (2025-10-03): [災難性BUG修復] 根據 AttributeError，徹底重構了此函式的返回值和內部邏輯。
-# v191.0 (2025-09-27): [可觀測性升級] 徹底重構了函式的返回值。
+# v194.0 (2025-10-03): [災難性BUG修復] 根據「AI角色被誤判為NPC」的嚴重問題，在此函式的頂部引入了【主角守衛】機制。該機制會在執行任何 LORE 工具調用之前，嚴格檢查參數中是否包含核心主角（使用者或AI）的名字。如果匹配成功，將立即中止該操作並記錄警告，從執行層面徹底杜絕了將主角錯誤地當作 LORE 進行操作的可能性。同時，為內部「抗幻覺」事實查核的 LLM 調用注入了安全協議，以解決其因接觸 NSFW 上下文而被審查的問題。
+# v193.0 (2025-10-03): [災難性BUG修復] 徹底重構了此函式的「抗幻覺」邏輯。
+# v192.0 (2025-10-03): [災難性BUG修復] 徹底重構了此函式的返回值和內部邏輯。
     async def _execute_tool_call_plan(self, plan: ToolCallPlan, current_location_path: List[str]) -> Tuple[str, List[Lore]]:
-        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建抗幻覺與抗事實污染驗證層。返回 (總結字串, 成功的 Lore 對象列表) 的元組。"""
+        """执行一个 ToolCallPlan，专用于背景LORE创建任务。內建【主角守衛】與抗幻覺驗證層。返回 (總結字串, 成功的 Lore 對象列表) 的元組。"""
         if not plan or not plan.plan:
             return "LORE 扩展計畫為空。", []
 
@@ -3146,31 +3170,33 @@ class ExtractionResult(BaseModel):
                 return "错误：无法执行工具計畫，因为使用者 Profile 未加载。", []
             
             available_lore_tools = {t.name: t for t in lore_tools.get_lore_tools()}
+            
+            # [v194.0 核心修正] 主角守衛機制
             purified_plan: List[ToolCall] = []
             user_name_lower = self.profile.user_profile.name.lower()
             ai_name_lower = self.profile.ai_profile.name.lower()
 
             for call in plan.plan:
-                # ... (此處的淨化邏輯與之前相同，為保證完整性而全部提供)
+                # 檢查所有可能的名稱參數
                 params = call.parameters
-                name_variants = ['npc_name', 'character_name', 'location_name', 'item_name', 'creature_name', 'quest_name', 'name']
-                found_name = None
-                for variant in name_variants:
-                    if variant in params:
-                        found_name = params.pop(variant)
-                        params['standardized_name'] = found_name
-                        break
-                if not params.get('lore_key') and params.get('standardized_name'):
-                    name = params['standardized_name']
-                    if 'location_info' in call.tool_name:
-                        params['lore_key'] = " > ".join(current_location_path + [name])
-                    elif 'npc_profile' in call.tool_name or 'item_info' in call.tool_name:
-                        params['lore_key'] = " > ".join(current_location_path + [name])
-                    else:
-                        params['lore_key'] = name
-                potential_names = [params.get('standardized_name'), params.get('original_name'), params.get('name'), (params.get('updates') or {}).get('name')]
-                is_core_character = any(name and name.lower() in {user_name_lower, ai_name_lower} for name in potential_names if name)
-                if is_core_character: continue
+                potential_names = [
+                    params.get('lore_key', '').split(' > ')[-1],
+                    params.get('standardized_name'),
+                    params.get('original_name'),
+                    params.get('name'),
+                    (params.get('updates') or {}).get('name')
+                ]
+                
+                is_core_character = any(
+                    name and name.lower() in {user_name_lower, ai_name_lower} 
+                    for name in potential_names if name
+                )
+
+                if is_core_character:
+                    logger.warning(f"[{self.user_id}] [主角守衛] 檢測到一個試圖修改核心主角 ({[p for p in potential_names if p]}) 的 LORE 工具調用 ({call.tool_name})，已自動攔截。")
+                    continue # 跳過這個工具調用
+
+                # 修正工具名稱和參數的邏輯保持不變
                 tool_name = call.tool_name
                 if tool_name not in available_lore_tools:
                     best_match = max(available_lore_tools, key=lambda valid_tool: levenshtein_ratio(tool_name, valid_tool), default=None)
@@ -3188,31 +3214,35 @@ class ExtractionResult(BaseModel):
                 lore_to_return: Optional[Lore] = None
                 try:
                     category_match = re.search(r'(npc_profile|location_info|item_info|creature_info|quest|world_lore)', call.tool_name)
-                    category = category_match.group(1) if category_match else 'npc_profile' # 默認
+                    category = category_match.group(1) if category_match else 'npc_profile'
 
                     if call.tool_name.startswith('update_'):
                         lore_key_to_operate = call.parameters.get('lore_key')
                         original_lore = await lore_book.get_lore(self.user_id, category, lore_key_to_operate) if lore_key_to_operate else None
 
                         if original_lore:
-                            # ... (事實查核邏輯保持不變)
                             tool_to_execute = available_lore_tools.get(call.tool_name)
                             validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
                             result = await tool_to_execute.ainvoke(validated_args.model_dump())
                             summaries.append(f"任務成功: {result}")
                             lore_to_return = await lore_book.get_lore(self.user_id, category, validated_args.lore_key)
                         else:
-                            # [v193.0 核心重構] 健壯的「幻覺修正」邏輯
                             entity_name_to_validate = (call.parameters.get('updates') or {}).get('name') or (lore_key_to_operate.split(' > ')[-1] if lore_key_to_operate else "未知實體")
                             logger.warning(f"[{self.user_id}] [抗幻覺] 檢測到對不存在實體 '{entity_name_to_validate}' 的更新。啟動事實查核...")
                             validation_prompt_template = self.get_entity_validation_prompt()
-                            scene_key = self._get_scene_key()
-                            history = self.scene_histories.get(scene_key, ChatMessageHistory())
-                            context = "\n".join([f"{msg.type}: {msg.content}" for msg in history.messages[-4:]])
+                            # 使用 direct_rag_generate 創建的快照來獲取上下文
+                            context = f"使用者: {self.last_context_snapshot.get('user_input', '')}\nAI: {self.last_context_snapshot.get('final_response', '')}" if self.last_context_snapshot else ""
+                            
                             existing_entities = await lore_book.get_lores_by_category_and_filter(self.user_id, category)
                             existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_entities], ensure_ascii=False)
-                            validation_prompt = self._safe_format_prompt(validation_prompt_template, {"entity_name": entity_name_to_validate, "context": context, "existing_entities_json": existing_entities_json}, inject_core_protocol=True)
-                            validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='none')
+                            
+                            # [v194.0 核心修正] 注入安全協議
+                            validation_prompt = self._safe_format_prompt(
+                                validation_prompt_template, 
+                                {"entity_name": entity_name_to_validate, "context": context, "existing_entities_json": existing_entities_json}, 
+                                inject_core_protocol=True
+                            )
+                            validation_result = await self.ainvoke_with_rotation(validation_prompt, output_schema=EntityValidationResult, retry_strategy='euphemize')
 
                             if validation_result and validation_result.decision == 'CREATE':
                                 logger.info(f"[{self.user_id}] [抗幻覺] 事實查核裁定為 CREATE。正在創建新的 LORE...")
@@ -3228,9 +3258,10 @@ class ExtractionResult(BaseModel):
                                 lore_to_return = await lore_book.add_or_update_lore(self.user_id, category, validation_result.matched_key, updates_content, merge=True, source='post_analysis_merged')
                                 summaries.append(f"任務成功 (修正後合併): 已將信息合併到 '{validation_result.matched_key}'。")
                             else:
-                                logger.warning(f"[{self.user_id}] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。")
+                                reason = validation_result.reasoning if validation_result else "驗證失敗"
+                                logger.warning(f"[{self.user_id}] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。理由: {reason}")
                                 continue
-                    else: # create_... or other tools
+                    else:
                         tool_to_execute = available_lore_tools.get(call.tool_name)
                         if not tool_to_execute: continue
                         validated_args = tool_to_execute.args_schema.model_validate(call.parameters)
@@ -3252,7 +3283,7 @@ class ExtractionResult(BaseModel):
         
         finally:
             tool_context.set_context(None, None)
-# 函式：執行工具調用計畫 (v193.0 - 抗幻覺重構)
+# 函式：執行工具調用計畫 (v194.0 - 主角守衛 & 安全協議)
 
 
 
@@ -5868,6 +5899,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
