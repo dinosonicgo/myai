@@ -1,17 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T00:20:33.919080 ###
+### AI Lover Log - Last updated at 2025-10-05T00:23:20.414103 ###
 
-2025-10-05 00:08:49 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 00:08:49 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 00:08:51 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 00:08:52 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 00:09:19 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-05 00:09:19 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-10-05 00:09:19 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-05 00:09:19 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 00:09:19 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 00:09:21 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 00:09:21 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 00:09:21 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
 2025-10-05 00:09:21 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
 2025-10-05 00:09:21 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
 2025-10-05 00:09:21 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
@@ -300,3 +288,15 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3580, in _background_lore_refinement
     final_content_to_save = self._decode_lore_content(refined_profile.model_dump(), self.DECODING_MAP)
 AttributeError: 'AILover' object has no attribute 'DECODING_MAP'
+2025-10-05 00:22:36 - [INFO] - [512280345618546699] [撤銷] 已成功從場景 '512280345618546699_local_聖凱瑟琳學院_高塔書房' 的短期記憶中撤銷上一回合。
+2025-10-05 00:22:36 - [INFO] - [512280345618546699] [撤銷-後端] 正在嘗試從資料庫刪除最新一條長期記憶...
+2025-10-05 00:22:38 - [INFO] - [512280345618546699] [撤銷-後端] ✅ 成功刪除 ID 為 2 的長期記憶。
+2025-10-05 00:22:38 - [INFO] - [512280345618546699] [撤銷] 處於DM頻道，跳過刪除使用者訊息的步驟。
+2025-10-05 00:23:06 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 00:23:09 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 00:23:09 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 00:23:09 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 00:23:09 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 00:23:09 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 00:23:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 00:23:13 - [INFO] - 已成功發送啟動成功通知給管理員。
