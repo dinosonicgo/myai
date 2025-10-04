@@ -2963,52 +2963,84 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：強制並重試 (v4.4 - 簽名修正)
+# 函式：強制並重試 (v4.2.1 - 簽名修正與邏輯恢復)
 # 更新紀錄:
-# v4.4 (2025-10-05): [災難性BUG修復] 根據 TypeError，為函式簽名補上了缺失的 `original_exception` 參數。此修正確保了函式能夠正確接收從上游傳來的異常物件，從而使其內部的「智能淨化」備援邏輯能夠被正確觸發。
-# v4.3 (2025-10-05): [重大架構升級] 將此函式從「蠻力重試器」升級為「智能淨化重試器」。
+# v4.2.1 (2025-10-05): [災難性BUG修復] 根據 TypeError，為函式簽名補上了缺失的 `original_exception` 參數。同時，根據使用者指令，恢復了其核心功能：一個純粹的、通过主动轮换 API Key 来进行多次强硬重试的备援机制，并移除了对内容净化逻辑的调用。
 # v4.2 (2025-10-03): [重大架構重構] 實現了主動控制 API Key 輪換的強化重試邏輯。
+# v4.1 (2025-10-03): [災難性BUG修復] 實現了包含多次重試和延遲的強化重試引擎。
     async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        (v4.4) 執行一個兩階段的、包含「智能淨化」的終極備援策略。
+        (v4.2.1) 執行一個主動控制 API Key 輪換的、包含多次重試的強化策略。
         """
-        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查。啟動【智能淨化備援】策略...")
+        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查 ({original_exception})。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...")
         
         last_exception = original_exception
+        MAX_FORCE_RETRIES = 3
 
-        # --- 階段一：最高指令集注入重試 ---
-        try:
-            logger.info(f"[{self.user_id}] [智能淨化備援 1/2] 正在嘗試使用『最高指令集注入』進行重試...")
-            forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
-            
-            return await self.ainvoke_with_rotation(
-                forceful_prompt,
-                output_schema=output_schema,
-                retry_strategy='none', # 失敗時立即拋出，進入下一階段
-                use_degradation=True
-            )
-        except BlockedPromptException as e:
-            last_exception = e
-            logger.warning(f"[{self.user_id}] [智能淨化備援 1/2] 『最高指令集注入』失敗 ({e})。正在降級至最終階段...")
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [智能淨化備援 1/2] 遭遇非預期的錯誤，已終止重試循環: {e}", exc_info=True)
-            raise e
+        # 步驟 1: 在進入迴圈前，一次性獲取最多 N 個不同的可用 Key
+        backup_keys = []
+        # 為了不影響主 Key 索引，我們使用一個臨時索引來探索可用的 Key
+        temp_key_index = self.current_key_index
+        
+        # 暫時的輔助函式來獲取下一個 key，而不會永久移动主索引
+        def _get_next_key_for_retry(model_name: str, start_index: int) -> Optional[Tuple[str, int]]:
+            for i in range(len(self.api_keys)):
+                index_to_check = (start_index + i) % len(self.api_keys)
+                cooldown_key = f"{index_to_check}_{model_name}"
+                if self.key_model_cooldowns.get(cooldown_key) and time.time() < self.key_model_cooldowns[cooldown_key]:
+                    continue
+                return self.api_keys[index_to_check], index_to_check
+            return None
 
-        # --- 階段二：終極備援 - 委婉化重構 ---
-        logger.info(f"[{self.user_id}] [智能淨化備援 2/2] 正在啟動『委婉化重構』終極備援...")
-        try:
-            # 調用我們最強大的淨化工具
-            return await self._euphemize_and_retry(failed_prompt, output_schema, last_exception)
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [智能淨化備援 2/2] 🔥 『委婉化重構』終極備援最終失敗: {e}", exc_info=True)
-            last_exception = e
+        # 填充备用 Key 列表，确保不重复
+        current_start_index = self.current_key_index
+        for _ in range(MAX_FORCE_RETRIES):
+            key_info = _get_next_key_for_retry(self.model_priority_list[0], current_start_index)
+            if key_info and key_info not in backup_keys:
+                backup_keys.append(key_info)
+                current_start_index = (key_info[1] + 1) % len(self.api_keys) # 从下一个位置开始寻找
+            else:
+                # 如果找不到更多唯一的、可用的 key，就停止
+                break
+        
+        if not backup_keys:
+            logger.error(f"[{self.user_id}] [強制重試] 致命錯誤：沒有任何可用的 API Key 來執行重試策略。")
+            raise Exception("No available API keys for force retry.")
 
-        logger.error(f"[{self.user_id}] 【智能淨化備援】策略在所有階段後最終失敗。", exc_info=last_exception)
+        logger.info(f"[{self.user_id}] [強制重試] 已準備 {len(backup_keys)} 個備用 API Keys 進行重試。")
+
+        # 步驟 2: 遍歷備用 Key 進行重試
+        for attempt, key_tuple in enumerate(backup_keys):
+            try:
+                key_str, key_idx = key_tuple
+                logger.info(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 API Key #{key_idx} 進行嘗試...")
+                
+                forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
+                
+                # 步驟 3: 將指定的 Key 注入 ainvoke_with_rotation
+                return await self.ainvoke_with_rotation(
+                    forceful_prompt,
+                    output_schema=output_schema,
+                    retry_strategy='none', # 失敗時拋出異常，以便此循環捕獲
+                    use_degradation=True,
+                    force_api_key_tuple=key_tuple # 強制使用這個 Key
+                )
+            except BlockedPromptException as e:
+                last_exception = e
+                logger.warning(f"[{self.user_id}] [強制重試 {attempt + 1}/{len(backup_keys)}] 使用 Key #{key_idx} 的嘗試失敗: {e}")
+                if attempt < len(backup_keys) - 1:
+                    sleep_duration = (attempt + 1) * 0.5 
+                    logger.info(f"   -> 將在 {sleep_duration:.1f} 秒後使用下一個 Key 進行嘗試...")
+                    await asyncio.sleep(sleep_duration)
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [強制重試] 遭遇非預期的錯誤，已終止重試循環: {e}", exc_info=True)
+                raise e
+
+        logger.error(f"[{self.user_id}] 【強制 Key 輪換重試】策略在 {len(backup_keys)} 次嘗試後最終失敗。", exc_info=last_exception)
         
         # 如果所有嘗試都失敗，則返回一個安全的空值
         if output_schema:
             try:
-                # 嘗試創建一個模型的空實例
                 return output_schema()
             except Exception:
                 return None
@@ -6025,6 +6057,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
