@@ -380,19 +380,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v2.1 - 引入短期記憶感知的查詢擴展)
+# 函式：RAG 直通生成 (v2.3 - 統一備援標籤)
 # 更新紀錄:
-# v2.1 (2025-10-05): [重大逻辑升级] 引入了「短期記憶感知的查詢擴展」。在進行RAG查詢前，系統現在會從当前场景的短期对话历史中提取近期实体，并将其与当前指令的实体合并。这使得AI能够正确理解缺少主语的指令（如“拿起它”），并根据场景上下文推断出正确的行动者，从根本上解决了场景连续性问题。
-# v2.0 (2025-10-05): [邏輯修正] 修正了对 `_query_lore_from_entities` 的调用，使其能够感知远景模式。
-# v1.9 (2025-10-04): [重大架構升級] 集成了一个全新的、统一的「通用 LORE 擴展管線」。
+# v2.3 (2025-10-05): [災難性BUG修復] 根據備援系統 `_euphemize_and_retry` 的失敗日誌，重構了最終 Prompt 模板。將【最近對話歷史】和【本回合互動】合併並重命名為統一的【本回合的完整對話】區塊，確保了在主生成流程被審查時，備援系統能夠正確找到並「消毒」對話內容。
+# v2.2 (2025-10-05): [災難性BUG修復-終極方案] 再次徹底重構了查詢擴展邏輯，解決了遠景模式下的上下文污染問題。
+# v2.1 (2025-10-05): [重大逻辑升级] 引入了「短期記憶感知的查詢擴展」。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.1) 执行一个包含「短期记忆感知」、通用 LORE 扩展、LORE 优先、RAG 直通的完整生成流程。
+        (v2.3) 執行一個包含「短期記憶感知」、通用 LORE 擴展、LORE 優先、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
-            logger.error(f"[{user_id}] [Direct RAG] 致命错误: AI Profile 未初始化。")
-            return "（错误：AI 核心設定檔尚未載入。）"
+            logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
+            return "（錯誤：AI 核心設定檔尚未載入。）"
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
@@ -405,22 +405,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
             expansion_prompt = self._safe_format_prompt(
                 expansion_prompt_template,
-                {
-                    "user_input": user_input,
-                    "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)
-                }
+                {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
             )
             
             expansion_result = await self.ainvoke_with_rotation(
-                expansion_prompt,
-                output_schema=CanonParsingResult,
-                retry_strategy='force',
-                models_to_try_override=[FUNCTIONAL_MODEL]
+                expansion_prompt, output_schema=CanonParsingResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL]
             )
 
             if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
                 logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...")
-                # 調用現有的保存函式來批量處理所有新 LORE
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in expansion_result.npc_profiles])
                 await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
                 await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
@@ -430,31 +423,33 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.info(f"[{user_id}] [LORE 擴展] 新的 LORE 骨架已成功創建並存入資料庫。")
             else:
                 logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
-
         except Exception as e:
             logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中發生錯誤: {e}", exc_info=True)
 
-        # --- [v2.1 核心修正] 步驟 2: 短期記憶感知的查詢擴展 ---
+        # --- 步驟 2: 短期記憶感知的查詢擴展 ---
         logger.info(f"[{user_id}] [查詢擴展] 正在整合短期記憶以感知場景上下文...")
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
-        recent_history_text = "\n".join([msg.content for msg in chat_history.messages[-4:]]) # 提取最近4條訊息
+        recent_history_text = "\n".join([msg.content for msg in chat_history.messages[-4:]])
         
-        # 从短期历史和当前指令中分别提取实体
         entities_from_history = await self._extract_entities_from_input(recent_history_text)
         entities_from_input, _ = await self._analyze_user_input(user_input)
         
-        # 合并并去重，构建一个完整的场景实体列表
         scene_entities = set(entities_from_history)
         scene_entities.update(entities_from_input)
 
-        # 如果是本地场景，确保主角在实体列表中
-        if self.profile.game_state.viewing_mode == 'local':
-            scene_entities.add(self.profile.user_profile.name)
-            scene_entities.add(self.profile.ai_profile.name)
+        is_remote = self.profile.game_state.viewing_mode == 'remote'
+        protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
+
+        if is_remote:
+            logger.info(f"[{user_id}] [查詢擴展] 檢測到為遠景模式，正在從核心實體列表中移除主角...")
+            scene_entities.difference_update(protagonist_names)
+        else:
+            logger.info(f"[{user_id}] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。")
+            scene_entities.update(protagonist_names)
         
         final_query_keywords = sorted(list(name for name in scene_entities if name), key=len, reverse=True)
-        logger.info(f"[{user_id}] [查詢擴展] 場景感知完成，核心實體: {final_query_keywords}")
+        logger.info(f"[{user_id}] [查詢擴展] 場景感知完成，最終核心實體: {final_query_keywords}")
 
         # --- 步驟 3: 處理連續性指令 ---
         plot_anchor = "（無）"
@@ -465,39 +460,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         # --- 步驟 4: 查詢權威性 LORE ---
         absolute_truth_mandate = ""
-        # 使用我们刚刚构建的、更完整的实体列表来查询 LORE
         if final_query_keywords:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
-            
             if relevant_lores:
                 truth_statements = []
                 for lore in relevant_lores:
-                    content = lore.content
-                    name = content.get("name") or content.get("title")
-                    status = content.get("status")
-                    description = content.get("description", "") or content.get("content", "")
-                    match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
-                    role = match.group(1) or match.group(2) if match else None
-                    
+                    content = lore.content; name = content.get("name") or content.get("title"); status = content.get("status"); description = content.get("description", "") or content.get("content", ""); match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description); role = match.group(1) or match.group(2) if match else None
                     statement_parts = [f"{name} ({lore.category}):"]
                     if role: statement_parts.append(f"當前身份/職位={role}")
                     if status: statement_parts.append(f"當前狀態={status}")
-                    
-                    if len(statement_parts) > 1:
-                        truth_statements.append(" ".join(statement_parts))
-
+                    if len(statement_parts) > 1: truth_statements.append(" ".join(statement_parts))
                 if truth_statements:
-                    absolute_truth_mandate = (
-                        "# === 【【【🚨 絕對事實強制令 (ABSOLUTE TRUTH MANDATE)】】】 ===\n"
-                        "# 以下是關於當前場景的、來自權威數據庫的、不可違背的最新事實。在你的創作中，這些事實的優先級高於下方『情報簡報』中的任何衝突信息。\n"
-                        + "\n".join([f"- {s}" for s in truth_statements])
-                        + "\n# =======================================================================\n"
-                    )
+                    absolute_truth_mandate = ("# === 【【【🚨 絕對事實強制令 ... 】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements]) + "\n# =======================================================================\n")
                     logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
 
         # --- 步驟 5: 執行 RAG 檢索 ---
-        # 使用合并后的实体列表和原始输入来构建最终的RAG查询
         expanded_query = user_input + " " + " ".join(final_query_keywords)
         rag_context_dict = await self.retrieve_and_summarize_memories(expanded_query)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
@@ -508,6 +486,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         # --- 步驟 7: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+
+        # [v2.3 核心修正] 合併對話歷史和當前互動，並使用統一的標籤
+        full_dialogue_context = f"{historical_context}\n{self.profile.user_profile.name}: {user_input}"
 
         final_prompt_template = """{core_protocol_prompt}
 
@@ -526,12 +507,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {plot_anchor}
 # === 錨點結束 ===
 
-# === 最近對話歷史 ===
-{historical_context}
-# === 歷史結束 ===
+# === 【本回合的完整對話】 ===
+{full_dialogue_context}
+# === 對話結束 ===
 
-# === 本回合互動 ===
-{username}: {latest_user_input}
 {ai_name}:{style_mandate}"""
 
         full_prompt = self._safe_format_prompt(
@@ -541,9 +520,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "absolute_truth_mandate": absolute_truth_mandate,
                 "rag_context": rag_context,
                 "plot_anchor": plot_anchor,
-                "historical_context": historical_context,
-                "username": self.profile.user_profile.name,
-                "latest_user_input": user_input,
+                "full_dialogue_context": full_dialogue_context, # 使用合併後的對話上下文
                 "ai_name": self.profile.ai_profile.name,
                 "style_mandate": style_mandate
             }
@@ -1630,59 +1607,48 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-    # 函式：委婉化並重試
-    # 更新紀錄:
-    # v4.2 (2025-09-24): [災難性BUG修復] 修正了雙重無害化策略中的一個邏輯錯誤。現在，函式會正確地從“已代碼化”的文本中提取安全的技術代碼作為關鍵詞，而不是錯誤地從原文中提取敏感詞，從而確保了備援鏈自身的絕對安全。
-    # v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。
-    # v4.0 (2025-09-23): [根本性重構] 採用了更可靠的“代碼化解構”策略。
+# 函式：委婉化並重試 (v4.3 - 強化標籤匹配 & 移除代碼化)
+# 更新紀錄:
+# v4.3 (2025-10-05): [災難性BUG修復] 徹底重構此函式。1. 擴充了 `patterns_to_try` 列表，使其能夠匹配主生成 Prompt 中新的 `【本回合的完整對話】` 標籤。2. 完全移除了所有與已被廢棄的「代碼化」系統相關的邏輯，改為直接從原始文本中提取敏感詞彙，確保備援流程的有效性。
+# v4.2 (2025-09-24): [災難性BUG修復] 修正了雙重無害化策略中的一個邏輯錯誤。
+# v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        一個健壯的、通用的備援機制，採用「代碼化解構-無害化重構」策略來處理內容審查失敗。
+        一個健壯的、通用的備援機制，採用「提取關鍵詞-文學性重構」策略來處理內容審查失敗。
         """
-        if isinstance(original_exception, GoogleAPICallError) and "embed_content" in str(original_exception):
-            logger.error(f"[{self.user_id}] 【Embedding 速率限制】: 檢測到 Embedding API 速率限制，將立即觸發安全備援，跳過重試。")
-            return None
-
         logger.warning(f"[{self.user_id}] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...")
         
         try:
             text_to_sanitize = None
+            # [v4.3 核心修正] 擴充正則表達式列表以匹配所有可能的對話區塊
             patterns_to_try = [
-                r"【遊戲設計筆記】:\s*([\s\S]*?)---", # for get_canon_transformation_chain
-                r"【劇情上下文 \(可能經過代碼化處理\)】:\s*([\s\S]*?)---", # for get_character_details_parser_chain
-                r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---", # for get_lore_update_fact_check_prompt
-                r"【本回合的完整對話】:\s*([\s\S]*?)---", # for get_lore_extraction_chain
-                r"【小說手稿片段】:\s*([\s\S]*?)---", # for get_literary_euphemization_chain
-                r"【批量描述合成任務】:\s*(\{[\s\S]*\})" # for get_description_synthesis_prompt
+                r"【本回合的完整對話】\s*:\s*([\s\S]*?)# === 對話結束 ===", # 主生成 Prompt
+                r"【本回合的完整對話】\s*:\s*([\s\S]*?)---",          # 事後分析 Prompt
+                r"【小說手稿片段】\s*:\s*([\s\S]*?)---",             # 文學性摘要 Prompt
+                # 其他舊有的、用於數據處理的 Prompt 標籤
+                r"【遊戲設計筆記】:\s*([\s\S]*?)---",
+                r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---",
             ]
             
             for pattern in patterns_to_try:
                 match = re.search(pattern, failed_prompt, re.IGNORECASE)
                 if match:
                     text_to_sanitize = match.group(1).strip()
-                    if text_to_sanitize.startswith('{') or text_to_sanitize.startswith('['):
-                        try:
-                            json_data = json.loads(text_to_sanitize)
-                            text_to_sanitize = json.dumps(json_data, ensure_ascii=False)
-                        except json.JSONDecodeError:
-                            pass
                     break
             
             if not text_to_sanitize:
                 logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。")
-                return None
-            
-            # [v4.2 核心修正] 雙重無害化：第一步，將提取出的原始文本進行本地代碼化
-            coded_text = text_to_sanitize
-            # 必須從 DECODING_MAP 的 value (原始詞) 映射到 key (代碼)
-            # 為了正確替換，我們需要一個反向的映射，並按長度排序以避免子字符串問題
-            reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-            for code, word in reversed_map:
-                 # DECODING_MAP 的結構是 code: word，所以我們需要反過來
-                 coded_text = coded_text.replace(word, code)
+                return None if not output_schema else output_schema()
 
-            # 第二步，從“已代碼化”的安全文本中提取關鍵詞（即技術代碼本身）
-            extracted_codes = {code for code in self.DECODING_MAP.keys() if code in coded_text}
+            # [v4.3 核心修正] 移除代碼化邏輯，改為直接提取敏感詞和角色名
+            # 我們需要一個預定義的敏感詞列表來進行匹配
+            NSFW_KEYWORDS = [
+                "肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "顫抖", "噴濺",
+                "插入", "口交", "性交", "獸交", "輪姦", "強暴", "高潮", "射精",
+                "臣服", "主人", "母狗", "母畜"
+            ]
+            
+            extracted_keywords = {word for word in NSFW_KEYWORDS if word in text_to_sanitize}
             
             all_names = set()
             if self.profile:
@@ -1691,32 +1657,45 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
             extracted_names = {name for name in all_names if name and name in text_to_sanitize}
             
-            final_keywords = list(extracted_codes | extracted_names)
+            final_keywords = list(extracted_keywords | extracted_names)
 
             if not final_keywords:
                 logger.warning(f"[{self.user_id}] (Euphemizer) 未能從被審查的文本中提取出任何已知關鍵詞，無法進行重構。")
-                return output_schema() if output_schema else None
+                return None if not output_schema else output_schema()
 
-            logger.info(f"[{self.user_id}] (Euphemizer) 已提取安全的情報殘片: {final_keywords}")
+            logger.info(f"[{self.user_id}] (Euphemizer) 已提取用於重構的關鍵詞: {final_keywords}")
 
-            reconstruction_template = self.get_forensic_lore_reconstruction_chain()
+            # 使用文學性重構鏈來生成一個安全的版本
+            reconstruction_template = self.get_literary_euphemization_chain()
+            # 它的輸入是 dialogue_history，我們將其偽裝成一個對話
             reconstruction_prompt = self._safe_format_prompt(
                 reconstruction_template,
-                {"keywords": str(final_keywords)},
-                inject_core_protocol=True
+                {"dialogue_history": f"核心概念: {', '.join(final_keywords)}"}
             )
             
+            # 使用這個安全的、委婉的文本來替換原始 Prompt 中的敏感部分
+            safe_summary = await self.ainvoke_with_rotation(reconstruction_prompt, retry_strategy='none')
+            
+            if not safe_summary:
+                 raise Exception("委婉化重構鏈未能生成有效的安全摘要。")
+
+            # 將原始失敗的 Prompt 中的敏感部分替換為安全摘要
+            sanitized_prompt = failed_prompt.replace(text_to_sanitize, f"【以下為經過安全處理的情節概述】:\n{safe_summary}\n")
+
+            logger.info(f"[{self.user_id}] (Euphemizer) 已生成淨化後的 Prompt，正在進行最終嘗試...")
+            
+            # 使用淨化後的 Prompt 進行最後一次嘗試
             return await self.ainvoke_with_rotation(
-                reconstruction_prompt,
+                sanitized_prompt,
                 output_schema=output_schema,
-                retry_strategy='none',
+                retry_strategy='none', # 這是最後的機會，不再重試
                 use_degradation=True
             )
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 【通用化解構】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
-            return output_schema() if output_schema else None
-    # 函式：委婉化並重試
+            return None if not output_schema else output_schema()
+# 委婉化並重試 函式結束
 
 
 
@@ -6046,6 +6025,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
