@@ -395,6 +395,35 @@ class SceneLocationExtraction(BaseModel):
     has_explicit_location: bool = Field(description="如果使用者指令中包含一個明確的地點或场景描述，则为 true。")
     location_path: Optional[List[str]] = Field(default=None, description="如果 has_explicit_location 为 true，则此處為提取出的、層級化的地點路徑列表。")
 
+
+# --- [v4.1 新增] 批次精煉 + 程式化校驗流程所需模型 ---
+
+class ProgrammaticFacts(BaseModel):
+    """
+    定義了由程式碼（Regex+spaCy）從文本中提取出的、高可靠性的事實數據點的結構。
+    """
+    verified_aliases: List[str] = Field(default_factory=list, description="由程式碼提取並驗證的身份/別名列表。")
+    verified_age: str = Field(default="未知", description="由程式碼提取的年齡資訊。")
+    description_sentences: List[str] = Field(default_factory=list, description="由程式碼提取的所有與角色相關的敘述性句子片段。")
+
+class BatchRefinementInput(BaseModel):
+    """
+    定義了傳遞給第三階段 LLM 批量潤色任務的輸入資料結構（針對單個角色）。
+    傳遞給 LLM 的將是這個物件的列表。
+    """
+    base_profile: Dict[str, Any] = Field(description="從 LORE 擴展管線中生成的原始角色骨架。")
+    facts: ProgrammaticFacts = Field(description="由程式碼從 RAG 上下文中提取出的高可靠性事實數據點。")
+
+class BatchRefinementResult(BaseModel):
+    """
+    定義了第三階段 LLM 批量潤色任務的預期輸出結構。
+    """
+    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
+
+
+
+
+
 # --- 確保所有模型都已更新 ---
 CharacterProfile.model_rebuild()
 Quest.model_rebuild()
@@ -426,12 +455,18 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
+
+
+# (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
+BatchRefinementInput.model_rebuild()
+BatchRefinementResult.model_rebuild()
 RelationshipDetail.model_rebuild()
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
