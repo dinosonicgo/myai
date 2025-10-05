@@ -1,5 +1,6 @@
-# src/cogs/core_cog.py 的中文註釋(v1.1 - 補全管理員功能)
+# src/cogs/core_cog.py 的中文註釋(v1.2 - 完整性修復)
 # 更新紀錄:
+# v1.2 (2025-12-08): [災難性BUG修復] 補全了 `/start` 指令所依賴的 `ConfirmStartView` 類別和 `_reset_user_data` 輔助函式，並恢復了其他所有缺失的 UI 元件，從根本上解決了指令無回應的問題。
 # v1.1 (2025-12-08): [功能補全] 新增了 _perform_update_and_restart 和 push_log_to_github_repo 兩個核心輔助函式，並將它們與 /admin_force_update 和 /admin_push_log 指令正確掛鉤，完整地實現了管理員的遠程更新與日誌推送功能。
 # v1.0 (2025-10-04): [災難性BUG修復-終極方案] 創建此 Cog 檔案，將所有指令、UI元件 (Views/Modals) 和事件監聽器從主 bot 檔案中分離出來。此結構性重構旨在徹底解決因模組初始化悖論導致的 NameError 和 AttributeError。
 
@@ -114,7 +115,82 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
+# 函式：創建角色檔案 Embed (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的輔助函式，用於生成標準化的角色檔案 Embed。
+def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed:
+    """一個輔助函式，用於為給定的 CharacterProfile 創建一個標準化的 discord.Embed。"""
+    embed = Embed(
+        title=f"{title_prefix}: {profile.name}",
+        description=f"```{profile.description or '暫無描述。'}```",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="性別", value=profile.gender or "未設定", inline=True)
+    embed.add_field(name="年齡", value=profile.age or "未知", inline=True)
+    embed.add_field(name="種族", value=profile.race or "未知", inline=True)
+    if profile.appearance:
+        embed.add_field(name="外觀", value=profile.appearance, inline=False)
+    if profile.aliases:
+        embed.add_field(name="別名/身份", value=", ".join(profile.aliases), inline=False)
+    if profile.skills:
+        embed.add_field(name="技能", value=", ".join(profile.skills), inline=False)
+    return embed
+# 函式：創建角色檔案 Embed
+
 # --- 持久化視圖與 Modals ---
+
+# 類別：確認 /start 的視圖 (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的視圖，它是 /start 指令能夠正常運作的關鍵。
+class ConfirmStartView(discord.ui.View):
+    """用於 /start 指令的確認視圖。"""
+    def __init__(self, *, cog: "BotCog"):
+        super().__init__(timeout=180.0)
+        self.cog = cog
+        self.message: Optional[discord.Message] = None
+        self.original_interaction_user_id: Optional[int] = None
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.original_interaction_user_id:
+            await interaction.response.send_message("這不是給你的按鈕。", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="確定重置", style=discord.ButtonStyle.danger)
+    async def confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        user_id = str(interaction.user.id)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        
+        # 禁用視圖中的所有按鈕
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            await self.message.edit(view=self)
+
+        await interaction.followup.send("正在為您清除所有舊資料...", ephemeral=True)
+        
+        # 執行重置
+        await self.cog._reset_user_data(user_id)
+        
+        await interaction.followup.send("資料已清空！正在為您準備全新的開始...", ephemeral=True)
+        
+        # 發送新的設定流程視圖
+        initial_view = StartSetupView(cog=self.cog)
+        await interaction.followup.send(
+            "**歡迎來到 AI Lover！**\n一切都已為您重置，讓我們開始一段全新的旅程吧。\n請點擊下方按鈕開始您的初始設定。",
+            view=initial_view,
+            ephemeral=True
+        )
+        self.stop()
+
+    @discord.ui.button(label="取消", style=discord.ButtonStyle.secondary)
+    async def cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        if self.message:
+            await self.message.edit(content="操作已取消。", view=self)
+        self.stop()
+# 類別：確認 /start 的視圖
 
 # 類別：/start 指令的初始設定視圖
 class StartSetupView(discord.ui.View):
@@ -638,10 +714,177 @@ class EditProfileRootView(discord.ui.View):
         view.add_item(NpcEditSelect(self.cog, all_npcs))
         await interaction.followup.send("請選擇您要編輯的 NPC：", view=view, ephemeral=True)
 
+# 類別：確認並編輯的視圖 (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的視圖，它是 /edit_profile 指令能夠正常運作的關鍵。
+class ConfirmAndEditView(discord.ui.View):
+    def __init__(self, cog: "BotCog", target_type: Literal['user', 'ai', 'npc'], target_key: str, display_name: str, original_description: str):
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.target_type = target_type
+        self.target_key = target_key
+        self.display_name = display_name
+        self.original_description = original_description
 
+    @discord.ui.button(label="✍️ 使用自然語言編輯", style=discord.ButtonStyle.primary)
+    async def edit_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = EditInstructionModal(
+            cog=self.cog,
+            target_type=self.target_type,
+            target_key=self.target_key,
+            display_name=self.display_name,
+            original_description=self.original_description
+        )
+        await interaction.response.send_modal(modal)
+# 類別：確認並編輯的視圖
 
+# 類別：編輯指令的 Modal (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的 Modal，它是 /edit_profile 指令能夠正常運作的關鍵。
+class EditInstructionModal(discord.ui.Modal):
+    def __init__(self, cog: "BotCog", target_type: Literal['user', 'ai', 'npc'], target_key: str, display_name: str, original_description: str):
+        super().__init__(title=f"編輯 {display_name} 的檔案")
+        self.cog = cog
+        self.target_type = target_type
+        self.target_key = target_key
+        self.original_description = original_description
 
+        self.instruction = discord.ui.TextInput(
+            label="請輸入您的編輯指令",
+            style=discord.TextStyle.paragraph,
+            placeholder=f"例如：為 {display_name} 增加一個設定：她其實非常喜歡小動物，特別是貓。",
+            required=True
+        )
+        self.add_item(self.instruction)
 
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        
+        try:
+            ai_instance = await self.cog.get_or_create_ai_instance(user_id)
+            if not ai_instance:
+                raise Exception("AI 實例未初始化。")
+
+            rewriting_prompt_template = ai_instance.get_profile_rewriting_prompt()
+            full_prompt = ai_instance._safe_format_prompt(
+                rewriting_prompt_template,
+                {
+                    "original_description": self.original_description,
+                    "edit_instruction": self.instruction.value
+                }
+            )
+            
+            new_description = await ai_instance.ainvoke_with_rotation(full_prompt)
+
+            if not new_description or not new_description.strip():
+                raise Exception("AI 未能生成有效的描述。")
+
+            if self.target_type in ['user', 'ai']:
+                profile_attr = f"{self.target_type}_profile"
+                profile_to_update = getattr(ai_instance.profile, profile_attr)
+                profile_to_update.description = new_description
+                await ai_instance.update_and_persist_profile({profile_attr: profile_to_update.model_dump()})
+            else: # npc
+                await lore_book.add_or_update_lore(user_id, 'npc_profile', self.target_key, {'description': new_description}, merge=True)
+
+            await interaction.followup.send("✅ 檔案已成功更新！", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 在編輯檔案時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 編輯失敗: {e}", ephemeral=True)
+# 類別：編輯指令的 Modal
+
+# 類別：NPC 編輯選擇器 (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的 Select 元件，它是 /edit_profile 編輯 NPC 功能的關鍵。
+class NpcEditSelect(discord.ui.Select):
+    def __init__(self, cog: "BotCog", npcs: List[Lore]):
+        self.cog = cog
+        options = []
+        for npc_lore in npcs[:25]:
+            name = npc_lore.content.get('name', '未命名')
+            options.append(discord.SelectOption(label=name, value=npc_lore.key))
+        super().__init__(placeholder="選擇一個 NPC...", min_values=1, max_values=1, options=options)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        selected_key = self.values[0]
+        user_id = str(interaction.user.id)
+        
+        npc_lore = await lore_book.get_lore(user_id, 'npc_profile', selected_key)
+        if not npc_lore:
+            await interaction.followup.send("錯誤：找不到該 NPC 的資料。", ephemeral=True)
+            return
+        
+        profile = CharacterProfile.model_validate(npc_lore.content)
+        embed = _create_profile_embed(profile, "👥 NPC 檔案")
+        view = ConfirmAndEditView(
+            cog=self.cog, 
+            target_type='npc', 
+            target_key=selected_key, 
+            display_name=profile.name, 
+            original_description=profile.description or ""
+        )
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+# 類別：NPC 編輯選擇器
+
+# 類別：版本控制視圖 (v1.0 - 全新創建/補全)
+# 更新紀錄:
+# v1.0 (2025-12-08): [功能補全] 補全此缺失的視圖，它是 /admin_version_control 指令能夠正常運作的關鍵。
+class VersionControlView(discord.ui.View):
+    def __init__(self, cog: "BotCog", original_user_id: int):
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.original_user_id = original_user_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.original_user_id:
+            await interaction.response.send_message("你沒有權限操作此面板。", ephemeral=True)
+            return False
+        return True
+
+    def _run_git_command(self, command: list) -> Tuple[bool, str]:
+        try:
+            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=True, cwd=PROJ_DIR)
+            return True, process.stdout.strip()
+        except subprocess.CalledProcessError as e:
+            return False, e.stderr.strip() or e.stdout.strip()
+        except Exception as e:
+            return False, str(e)
+
+    async def _build_embed(self) -> discord.Embed:
+        success, status_output = await asyncio.to_thread(self._run_git_command, ['git', 'status', '-sb'])
+        if not success:
+            return Embed(title="Git 狀態錯誤", description=f"```{status_output}```", color=discord.Color.red())
+
+        branch_name = status_output.split('\n')[0].replace('## ', '').split('...')[0]
+        
+        _, local_hash = await asyncio.to_thread(self._run_git_command, ['git', 'rev-parse', 'HEAD'])
+        _, remote_hash = await asyncio.to_thread(self._run_git_command, ['git', 'rev-parse', f'origin/{branch_name}'])
+        
+        status_icon = "✅" if local_hash == remote_hash else "🔄"
+        status_text = "已是最新" if local_hash == remote_hash else "有可用更新"
+        
+        embed = Embed(title=f"{status_icon} 版本控制面板", color=discord.Color.blue())
+        embed.add_field(name="當前分支", value=f"`{branch_name}`", inline=True)
+        embed.add_field(name="同步狀態", value=status_text, inline=True)
+        embed.add_field(name="本地版本 (HEAD)", value=f"`{local_hash[:7]}`", inline=False)
+        embed.add_field(name="遠端版本 (origin)", value=f"`{remote_hash[:7]}`", inline=False)
+        return embed
+
+    @discord.ui.button(label="🔄 檢查更新", style=discord.ButtonStyle.secondary)
+    async def check_update(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        await asyncio.to_thread(self._run_git_command, ['git', 'fetch'])
+        embed = await self._build_embed()
+        await interaction.edit_original_response(embed=embed, view=self)
+
+    @discord.ui.button(label="🚀 強制更新並重啟", style=discord.ButtonStyle.danger)
+    async def force_update(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.edit_message(content="**指令已接收！** 正在執行強制更新並準備重啟...", embed=None, view=None)
+        asyncio.create_task(self.cog._perform_update_and_restart(interaction))
+# 類別：版本控制視圖
     
         
     # 函式：處理 Modal 提交事件
@@ -686,6 +929,91 @@ class BotCog(commands.Cog, name="BotCog"):
     def cog_unload(self):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
+
+    # 函式：重置使用者所有資料 (v1.0 - 全新創建/補全)
+    # 更新紀錄:
+    # v1.0 (2025-12-08): [功能補全] 補全此缺失的核心輔助函式，用於安全、徹底地清除使用者的所有資料。
+    async def _reset_user_data(self, user_id: str):
+        """徹底清除指定使用者的所有資料，包括記憶體、資料庫和檔案系統。"""
+        logger.info(f"[{user_id}] [Data Reset] 正在啟動使用者資料重置流程...")
+        
+        # 步驟 1: 關閉並從記憶體中移除 AI 實例
+        if user_id in self.ai_instances:
+            try:
+                await self.ai_instances[user_id].shutdown()
+                del self.ai_instances[user_id]
+                gc.collect()
+                logger.info(f"[{user_id}] [Data Reset] 記憶體中的 AI 實例已成功關閉並移除。")
+            except Exception as e:
+                logger.error(f"[{user_id}] [Data Reset] 關閉 AI 實例時發生錯誤: {e}", exc_info=True)
+
+        # 步驟 2: 刪除所有資料庫記錄
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(delete(UserData).where(UserData.user_id == user_id))
+                await session.execute(delete(MemoryData).where(MemoryData.user_id == user_id))
+                await session.execute(delete(Lore).where(Lore.user_id == user_id))
+                await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == user_id))
+                await session.commit()
+                logger.info(f"[{user_id}] [Data Reset] 所有相關的資料庫記錄已成功刪除。")
+        except Exception as e:
+            logger.error(f"[{user_id}] [Data Reset] 從資料庫刪除資料時發生錯誤: {e}", exc_info=True)
+
+        # 步驟 3: 刪除檔案系統中的向量儲存
+        try:
+            vector_store_path = PROJ_DIR / "data" / "vector_stores" / user_id
+            if vector_store_path.exists() and vector_store_path.is_dir():
+                await self._robust_rmtree(vector_store_path)
+                logger.info(f"[{user_id}] [Data Reset] 向量儲存目錄 '{vector_store_path}' 已成功刪除。")
+        except Exception as e:
+            logger.error(f"[{user_id}] [Data Reset] 刪除向量儲存目錄時發生錯誤: {e}", exc_info=True)
+            
+        logger.info(f"[{user_id}] [Data Reset] 資料重置流程已全部完成。")
+    # 函式：重置使用者所有資料
+
+    # 函式：健壯地刪除目錄樹 (v1.0 - 全新創建/補全)
+    # 更新紀錄:
+    # v1.0 (2025-12-08): [功能補全] 補全此缺失的輔助函式，用於在 Windows 上更可靠地刪除檔案。
+    async def _robust_rmtree(self, path: Path, max_retries=3, delay=1):
+        """一個更健壯的 rmtree 版本，用於處理 Windows 上的檔案鎖定問題。"""
+        for i in range(max_retries):
+            try:
+                shutil.rmtree(path)
+                return
+            except OSError as e:
+                logger.warning(f"刪除目錄 '{path}' 失敗 (嘗試 {i+1}/{max_retries}): {e}")
+                if i < max_retries - 1:
+                    await asyncio.sleep(delay)
+        logger.error(f"在 {max_retries} 次嘗試後，最終未能刪除目錄 '{path}'。")
+    # 函式：健壯地刪除目錄樹
+        
+    # 函式：背景處理世界聖經 (v1.0 - 全新創建/補全)
+    # 更新紀錄:
+    # v1.0 (2025-12-08): [功能補全] 補全此缺失的輔助函式，用於在背景執行世界聖經的處理。
+    async def _background_process_canon(self, interaction: discord.Interaction, content_text: str, is_setup_flow: bool):
+        """在背景處理世界聖經，包括 RAG 構建和 LORE 解析。"""
+        user_id = str(interaction.user.id)
+        try:
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=is_setup_flow)
+            if not ai_instance:
+                await interaction.followup.send("❌ 處理失敗：無法初始化 AI 核心。", ephemeral=True)
+                return
+
+            await ai_instance.parse_and_create_lore_from_canon(content_text)
+            
+            # 只有在非創世流程中才需要單獨重建 RAG
+            if not is_setup_flow:
+                await ai_instance.add_canon_to_vector_store(content_text)
+            
+            await interaction.followup.send("✅ 您的世界聖經已成功處理並整合到 AI 的知識庫中！", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 背景處理世界聖經時發生錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 處理您的世界聖經時發生嚴重錯誤: `{type(e).__name__}`", ephemeral=True)
+        finally:
+            if is_setup_flow:
+                self.active_setups.discard(user_id)
+    # 函式：背景處理世界聖經
 
     # 函式：執行強制更新並重啟 (v1.0 - 全新創建)
     # 更新紀錄:
