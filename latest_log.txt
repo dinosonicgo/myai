@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T18:32:46.690903 ###
+### AI Lover Log - Last updated at 2025-10-05T18:38:27.983731 ###
 
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.tool_name
-  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.parameters
   Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 lore_updates.3.tool_name
@@ -300,3 +289,14 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-05 18:32:36 - [INFO] - Discord Bot setup hook finished!
 2025-10-05 18:32:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-05 18:32:39 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-05 18:35:46 - [INFO] - [512280345618546699] [Admin Command] 手動觸發強制更新與重啟流程...
+2025-10-05 18:35:46 - [INFO] - [512280345618546699] [Admin Command] 已獲取 Git 鎖，開始執行同步...
+2025-10-05 18:35:51 - [INFO] - [512280345618546699] [Admin Command] Git 鎖已釋放。
+2025-10-05 18:38:13 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 18:38:16 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 18:38:16 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 18:38:16 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 18:38:17 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 18:38:17 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 18:38:19 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 18:38:20 - [INFO] - 已成功發送啟動成功通知給管理員。
