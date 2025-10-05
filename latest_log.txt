@@ -1,4 +1,4 @@
-### AI Lover Log - Last updated at 2025-10-05T19:28:59.701031 ###
+### AI Lover Log - Last updated at 2025-10-05T19:34:02.904113 ###
 
 2025-10-05 14:27:18 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
 2025-10-05 14:27:20 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
