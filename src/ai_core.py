@@ -3941,10 +3941,9 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：獲取RAG驅動的提取器 Prompt (v2.0 - 引入創意防火牆)
+# 函式：獲取RAG驅動的提取器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v2.0 (2025-10-03): [健壯性強化] 根據對 RECITATION 錯誤的系統性分析，在此 Prompt 中加入了【🚫 嚴禁複誦原則】。此防火牆指令強制 LLM 在進行 LORE 精煉（特別是生成 `description` 欄位）時，必須對 RAG 提供的上下文進行理解、總結和重新創作，而不是直接複製拼接，從而系統性地預防了因「惰性複製」行為觸發的內容審查問題。
-# v1.0 (2025-10-02): [全新創建] 根據「RAG驅動的單體精煉」終極策略創建此 Prompt。
+# v1.0 (2025-10-02): [全新創建] 根據「RAG驅動的單體精煉」終極策略創建此 Prompt。它指導雲端模型根據按屬性分類好的 RAG 上下文，一次性、智能地生成一個完整的 LORE 檔案。它包含「創意防火牆」指令，要求模型進行總結和重新創作，而不是直接複製，以最大限度地降低觸發內容審查的風險。
     def get_rag_driven_extraction_prompt(self) -> str:
         """獲取一個為 RAG 驅動的、填空式的 LORE 精煉任務設計的字符串模板。"""
         
@@ -6139,6 +6138,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
