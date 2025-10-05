@@ -3817,16 +3817,18 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：呼叫本地Ollama模型執行LORE精煉 (v1.0 - 全新創建)
+# 函式：呼叫本地Ollama模型執行LORE精煉 (v2.0 - 引入自我修正)
 # 更新紀錄:
-# v1.0 (2025-10-02): [全新創建] 根據「三層降級」策略創建此函式。它作為備援的第二層，負責在雲端模型失敗時，調用本地、無審查的 Ollama 模型來執行完整的 LORE 精煉任務，極大地提高了系統的抗審查能力。
+# v2.0 (2025-12-08): [健壯性強化] 內置了「JSON格式自我修正」的重試邏輯。如果本地模型首次返回的JSON無效，此函式會自動觸發第二次調用，要求模型修正自己的錯誤，從而大幅提高備援成功率。
+# v1.0 (2025-10-02): [全新創建] 根據「三層降級」策略創建此函式。
     async def _invoke_local_ollama_refiner(self, character_name: str, base_profile: Dict, context: Dict) -> Optional[CharacterProfile]:
         """
-        呼叫本地運行的 Ollama 模型來執行 LORE 精煉任務，內置一次JSON格式自我修正的重試機制。
+        (v2.0) 呼叫本地運行的 Ollama 模型來執行 LORE 精煉任務，內置一次JSON格式自我修正的重試機制。
         """
         import httpx
+        from pydantic import ValidationError
         
-        logger.info(f"[{self.user_id}] [LORE精煉-L2] 正在使用本地模型 '{self.ollama_model_name}' 為 '{character_name}' 進行精煉...")
+        logger.info(f"[{self.user_id}] [LORE精煉-L2] 正在使用本地模型 '{self.ollama_model_name}' 為 '{character_name}' 進行精煉 (Attempt 1/2)...")
         
         prompt_template = self.get_local_rag_driven_extraction_prompt()
         full_prompt = self._safe_format_prompt(
@@ -3859,17 +3861,55 @@ class ExtractionResult(BaseModel):
                 json_string_from_model = response_data.get("response")
                 
                 if not json_string_from_model:
-                    raise ValueError("本地模型返回了空的 'response' 內容。")
+                    raise ValueError("本地模型首次嘗試返回了空的 'response' 內容。")
 
                 parsed_json = json.loads(json_string_from_model)
                 validated_result = CharacterProfile.model_validate(parsed_json)
-                logger.info(f"[{self.user_id}] [LORE精煉-L2] ✅ 本地模型精煉成功。")
+                logger.info(f"[{self.user_id}] [LORE精煉-L2] ✅ 本地模型在首次嘗試中成功精煉。")
                 return validated_result
 
         except (json.JSONDecodeError, ValidationError) as e:
-            logger.warning(f"[{self.user_id}] [LORE精煉-L2] 本地模型解析失敗: {type(e).__name__}。正在嘗試自我修正...")
-            # 此處可以加入與 _invoke_local_ollama_parser 類似的自我修正邏輯，但為簡化，暫時直接返回失敗
-            return None
+            logger.warning(f"[{self.user_id}] [LORE精煉-L2] 本地模型首次解析失敗: {type(e).__name__}。啟動【自我修正】重試 (Attempt 2/2)...")
+            
+            try:
+                # 提取原始錯誤的json字符串
+                raw_json_string = ""
+                if 'json_string_from_model' in locals() and json_string_from_model:
+                    raw_json_string = json_string_from_model
+                elif hasattr(e, 'doc'): # JSONDecodeError
+                    raw_json_string = e.doc
+                elif hasattr(e, 'input'): # ValidationError
+                    raw_json_string = str(e.input)
+                else: # 如果都拿不到，就放棄修正
+                    raise e
+
+                correction_prompt_template = self.get_local_model_json_correction_prompt()
+                correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
+
+                correction_payload = {
+                    "model": self.ollama_model_name, "prompt": correction_prompt,
+                    "format": "json", "stream": False, "options": { "temperature": 0.0 }
+                }
+
+                async with httpx.AsyncClient(timeout=120.0) as client:
+                    correction_response = await client.post("http://localhost:11434/api/generate", json=correction_payload)
+                    correction_response.raise_for_status()
+                    
+                    correction_data = correction_response.json()
+                    corrected_json_string = correction_data.get("response")
+
+                    if not corrected_json_string:
+                        raise ValueError("本地模型自我修正嘗試返回了空的 'response' 內容。")
+                    
+                    corrected_parsed_json = json.loads(corrected_json_string)
+                    validated_result = CharacterProfile.model_validate(corrected_parsed_json)
+                    logger.info(f"[{self.user_id}] [LORE精煉-L2] ✅ 本地模型【自我修正】成功！")
+                    return validated_result
+            
+            except Exception as correction_e:
+                logger.error(f"[{self.user_id}] [LORE精煉-L2] 🔥 本地模型的【自我修正】嘗試最終失敗: {type(correction_e).__name__}", exc_info=True)
+                return None
+        
         except Exception as e:
             logger.error(f"[{self.user_id}] [LORE精煉-L2] 🔥 呼叫本地模型進行精煉時發生未知錯誤: {e}", exc_info=True)
             return None
@@ -6201,6 +6241,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
