@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v4.0 - 终极协同工作流实现)
+# 函式：RAG 直通生成 (v4.1 - 修正程式级备援逻辑)
 # 更新紀錄:
-# v4.0 (2025-12-08): [根本性重構] 最终实现了「四大步骤协同工作流」来创建LORE。流程包括：1. LLM/程式碼识别新实体；2. RAG定位相关文本；3. 程式碼（Regex+spaCy）精细提取事实；4. LLM批量润色（带有程式码拼接备援）。此方案最终兼顾了效率、成本、准确性和抗审查能力。
+# v4.1 (2025-12-08): [灾难性BUG修复] 修正了程式级备援 B 中的程式码，将对 Pydantic 模型物件错误的 `.get()` 字典方法调用，改为正确的 `.attribute` 属性访问，彻底解决了在备援路径中发生的 AttributeError。
+# v4.0 (2025-12-08): [根本性重構] 最终实现了「四大步骤协同工作流」来创建LORE。
 # v3.0 (2025-12-08): [根本性重構] 根據與使用者的最終討論，徹底重寫 LORE 創建流程。
-# v2.9.1 (2025-12-08): [完整性修復] 根據 AttributeError 提供此函式的完整版本。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v4.0) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
+        (v4.1) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -488,11 +488,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 # --- 步骤 4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
                 logger.info(f"[{user_id}] [LORE 創建-4/4] 正在嘗試 LLM 批量潤色...")
                 
-                from .schemas import BatchRefinementInput, BatchRefinementResult
+                from .schemas import BatchRefinementInput, BatchRefinementResult, ProgrammaticFacts
                 batch_input_for_refinement = [
                     BatchRefinementInput(
                         base_profile=targets_to_enrich[i].model_dump(),
-                        facts=facts_results[i]
+                        facts=ProgrammaticFacts(**facts_results[i])
                     )
                     for i in range(len(targets_to_enrich))
                 ]
@@ -508,7 +508,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     llm_result = await self.ainvoke_with_rotation(
                         full_prompt, 
                         output_schema=BatchRefinementResult,
-                        retry_strategy='force', # 对数据处理任务使用强力备援
+                        retry_strategy='force',
                         models_to_try_override=[FUNCTIONAL_MODEL]
                     )
                     if llm_result and llm_result.refined_profiles:
@@ -521,13 +521,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     # 【程式级备援 B】
                     for item in batch_input_for_refinement:
                         profile = CharacterProfile.model_validate(item.base_profile)
-                        facts = item.facts
-                        profile.aliases = sorted(list(set(profile.aliases + facts.get("verified_aliases", []))))
-                        if facts.get("verified_age", "未知") != "未知":
-                            profile.age = facts.get("verified_age")
+                        facts = item.facts # facts is already a ProgrammaticFacts object
+                        
+                        # [v4.1 核心修正] 使用 .attribute 访问 Pydantic 模型物件
+                        profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
+                        if facts.verified_age != "未知":
+                            profile.age = facts.verified_age
                         
                         existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
-                        all_desc_sentences = existing_desc + facts.get("description_sentences", [])
+                        all_desc_sentences = existing_desc + facts.description_sentences
                         if all_desc_sentences:
                             profile.description = "\n".join(sorted(list(set(all_desc_sentences))))
                         
@@ -732,14 +734,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：程式化屬性歸因
 
 
-# 函式：獲取批量精煉器 Prompt (v1.0 - 全新創建)
+# 函式：獲取批量精煉器 Prompt (v1.1 - 强制顶级字典输出)
 # 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 根據「批次精煉 + 程式化校驗」策略創建此 Prompt。它接收一批由程式碼提取出的、高質量的「事實數據點」，並指示 LLM 在一次呼叫中，為所有角色將零散的句子潤色成通順的描述，以兼顧效率與品質。
+# v1.1 (2025-12-08): [灾难性BUG修复] 根據 ValidationError，修改了 Prompt 指令和输出结构范例，强制要求 LLM 的最终输出必须是一个包含 `refined_profiles` 键的顶级字典，而不是一个裸列表，以解决 Pydantic 验证失败的问题。
+# v1.0 (2025-12-08): [全新創建] 根據「批次精煉 + 程式化校驗」策略創建此 Prompt。
     def get_batch_refinement_prompt(self) -> str:
         """獲取一個為“程式化歸因後批量潤色”策略設計的字符串模板。"""
         
         base_prompt = """# TASK: 你是一位資深的傳記作家和文本潤色專家。
-# MISSION: 你的任務是接收一份包含【多個角色檔案草稿】的批量數據。對於數據中的【每一個角色】，你需要將其對應的、已經過【程式化事實核查】的數據點（`verified_descriptions` 和 `verified_aliases`），整合成一份專業的、最終的角色檔案 JSON。
+# MISSION: 你的任務是接收一份包含【多個角色檔案草稿】的批量數據。對於數據中的【每一個角色】，你需要將其對應的、已經過【程式化事實核查】的數據點（`facts`），整合成一份專業的、最終的角色檔案 JSON。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1. **【✍️ 潤色與總結原則】**:
@@ -747,10 +750,28 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #    - 你可以調整語序、刪除重複信息、增加銜接詞，但【絕對禁止】添加任何 `description_sentences` 中未提及的**新事實**。
 #
 # 2. **【🛡️ 數據保真原則】**:
-#    - `verified_aliases` 和 `verified_age` 是由程式算法精確提取的結果，是絕對可信的。你【必須】將這些值**原封不動地、不加任何修改地**複製到最終輸出的對應欄位中。
-#    - 你【必須】以 `base_profile` 為基礎，在其上進行更新。
+#    - `facts` 中的 `verified_aliases` 和 `verified_age` 是由程式算法精確提取的結果，是絕對可信的。你【必須】將這些值**原封不動地、不加任何修改地**複製到最終輸出的對應欄位中。
+#    - 你【必須】以每个條目中的 `base_profile` 為基礎，在其上進行更新和填充。
 #
-# 3. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、包含所有輸入角色處理結果的 JSON 列表，每個物件都必須符合 `CharacterProfile` 的 Pydantic 結構。
+# 3. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchRefinementResult` Pydantic 模型的【單一JSON物件】。這個物件的頂層【必须有且只有】一個名為 `refined_profiles` 的鍵，其值是一個包含所有處理结果的列表。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {
+#   "refined_profiles": [
+#     {
+#       "name": "角色A的名字",
+#       "description": "為角色A潤色後的描述...",
+#       "...(其他欄位)..."
+#     },
+#     {
+#       "name": "角色B的名字",
+#       "description": "為角色B潤色後的描述...",
+#       "...(其他欄位)..."
+#     }
+#   ]
+# }
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -758,7 +779,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {batch_verified_data_json}
 
 ---
-# 【最終生成的批量潤色結果 JSON 列表】:
+# 【最終生成的批量潤色結果JSON (單一物件)】:
 """
         return base_prompt
 # 函式：獲取批量精煉器 Prompt
@@ -6410,6 +6431,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
