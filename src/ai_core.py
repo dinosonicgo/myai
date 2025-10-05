@@ -3805,7 +3805,7 @@ class ExtractionResult(BaseModel):
 # 【你的提取結果】:
 """
         return prompt
-# 函式：獲取簡單提取器 Prompt (v1.0 - 全新創建)
+# 函式：獲取簡單提取器 Prompt器 Prompt (v1.0 - 全新創建)
 
 
 
@@ -6138,6 +6138,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
