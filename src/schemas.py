@@ -135,10 +135,6 @@ class ExtractionResult(BaseModel):
     """包裹第一階段實體骨架提取結果的模型。"""
     characters: List[CharacterSkeleton] = Field(description="從文本中提取出的所有潛在角色實體的列表。")
 
-class BatchRefinementResult(BaseModel):
-    """包裹第二階段批量深度精煉結果的模型。"""
-    refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
-
 class Quest(BaseModel):
     name: str = Field(description="任務的標準化、唯一的官方名稱。")
     aliases: List[str] = Field(default_factory=list, description="此任務的其他已知稱呼或別名。")
@@ -459,13 +455,14 @@ SingleResolutionResult.model_rebuild()
 
 # (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
 BatchRefinementInput.model_rebuild()
-BatchRefinementResult.model_rebuild()
+
 RelationshipDetail.model_rebuild()
 LoreClassificationResult.model_rebuild()
 BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
