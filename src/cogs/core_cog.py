@@ -1,5 +1,6 @@
-# src/cogs/core_cog.py 的中文註釋(v1.0 - 結構分離)
+# src/cogs/core_cog.py 的中文註釋(v1.1 - 補全管理員功能)
 # 更新紀錄:
+# v1.1 (2025-12-08): [功能補全] 新增了 _perform_update_and_restart 和 push_log_to_github_repo 兩個核心輔助函式，並將它們與 /admin_force_update 和 /admin_push_log 指令正確掛鉤，完整地實現了管理員的遠程更新與日誌推送功能。
 # v1.0 (2025-10-04): [災難性BUG修復-終極方案] 創建此 Cog 檔案，將所有指令、UI元件 (Views/Modals) 和事件監聽器從主 bot 檔案中分離出來。此結構性重構旨在徹底解決因模組初始化悖論導致的 NameError 和 AttributeError。
 
 import discord
@@ -686,7 +687,114 @@ class BotCog(commands.Cog, name="BotCog"):
         self.connection_watcher.cancel()
     # 函式：Cog 卸載時執行的清理
 
-# 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
+    # 函式：執行強制更新並重啟 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-12-08): [功能補全] 創建此函式以實作 `/admin_force_update` 的後端邏輯。它會安全地獲取 Git 鎖，執行強制同步，並在成功後觸發全域關閉事件，由 launcher.py 負責後續的重啟。
+    async def _perform_update_and_restart(self, interaction: discord.Interaction):
+        """執行後台的 Git 強制更新並觸發重啟信號。"""
+        logger.info(f"[{interaction.user.id}] [Admin Command] 手動觸發強制更新與重啟流程...")
+        
+        def run_git_commands_sync() -> Tuple[bool, str]:
+            """在同步執行緒中執行的 Git 命令。"""
+            try:
+                # 步驟 1: 從遠端獲取最新變更
+                fetch_process = subprocess.run(
+                    ["git", "fetch"], 
+                    check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8'
+                )
+                
+                # 步驟 2: 強制重設本地分支到遠端 main 分支
+                reset_process = subprocess.run(
+                    ["git", "reset", "--hard", "origin/main"],
+                    check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8'
+                )
+                
+                return True, "✅ Git 同步成功！"
+            except subprocess.CalledProcessError as e:
+                error_output = e.stderr or e.stdout
+                logger.error(f"[Admin Command] Git 操作失敗: {error_output}")
+                return False, f"🔥 Git 操作失敗:\n```{error_output}```"
+            except FileNotFoundError:
+                logger.error("[Admin Command] 'git' 命令未找到。")
+                return False, "🔥 錯誤: 'git' 命令未找到。"
+            except Exception as e:
+                logger.error(f"[Admin Command] Git 操作時發生未知錯誤: {e}", exc_info=True)
+                return False, f"🔥 發生未知錯誤: {e}"
+
+        async with self.git_lock:
+            logger.info(f"[{interaction.user.id}] [Admin Command] 已獲取 Git 鎖，開始執行同步...")
+            success, message = await asyncio.to_thread(run_git_commands_sync)
+            
+            if success:
+                await interaction.followup.send(f"{message}\n🔄 **Bot 即將重啟...**", ephemeral=True)
+                await asyncio.sleep(2) # 給予 Discord 一點時間發送訊息
+                self.bot.shutdown_event.set() # 觸發全域關閉
+            else:
+                await interaction.followup.send(message, ephemeral=True)
+        
+        logger.info(f"[{interaction.user.id}] [Admin Command] Git 鎖已釋放。")
+    # 函式：執行強制更新並重啟
+
+    # 函式：推送日誌到 GitHub 倉庫 (v1.0 - 全新創建)
+    # 更新紀錄:
+    # v1.0 (2025-12-08): [功能補全] 創建此函式以實作 `/admin_push_log` 的後端邏輯。此函式改編自 `main.py` 中的自動推送邏輯，確保手動推送也能安全地獲取鎖並執行完整的 Git 工作流。
+    async def push_log_to_github_repo(self, interaction: discord.Interaction):
+        """安全地獲取鎖，並將最新的日誌檔案推送到 GitHub。"""
+        logger.info(f"[{interaction.user.id}] [Admin Command] 手動觸發日誌推送...")
+        
+        log_file_path = PROJ_DIR / "data" / "logs" / "app.log"
+        upload_log_path = PROJ_DIR / "latest_log.txt"
+
+        def run_git_commands_sync() -> Tuple[bool, str]:
+            """在同步執行緒中執行的 Git 命令，與自動化任務的邏輯保持一致。"""
+            try:
+                if not log_file_path.is_file():
+                    return False, "🔥 錯誤: 找不到日誌檔案 `data/logs/app.log`。"
+
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                latest_lines = lines[-300:]
+                log_content_to_write = "".join(latest_lines)
+                with open(upload_log_path, 'w', encoding='utf-8') as f:
+                    f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
+                    f.write(log_content_to_write)
+
+                subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
+                
+                commit_message = f"docs: Force push log by admin at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+                commit_process = subprocess.run(
+                    ["git", "commit", "-m", commit_message], 
+                    capture_output=True, text=True, encoding='utf-8', cwd=PROJ_DIR
+                )
+                if commit_process.returncode != 0 and "nothing to commit" not in commit_process.stdout:
+                    raise subprocess.CalledProcessError(
+                        commit_process.returncode, commit_process.args, commit_process.stdout, commit_process.stderr
+                    )
+
+                subprocess.run(["git", "pull", "--rebase"], check=True, cwd=PROJ_DIR, capture_output=True, text=True, encoding='utf-8')
+                subprocess.run(["git", "push", "origin", "main"], check=True, cwd=PROJ_DIR, capture_output=True)
+                
+                return True, f"✅ 最新的 **{len(latest_lines)}** 行日誌已成功推送到 GitHub！"
+
+            except subprocess.CalledProcessError as e:
+                error_output = e.stderr or e.stdout
+                if "CONFLICT" in str(error_output):
+                    subprocess.run(["git", "rebase", "--abort"], cwd=PROJ_DIR, capture_output=True)
+                if "nothing to commit" in str(error_output):
+                    return True, "ℹ️ 日誌內容與上次推送相比沒有變化，無需推送。"
+                return False, f"🔥 Git 指令執行失敗:\n```{error_output.strip()}```"
+            except Exception as e:
+                return False, f"🔥 執行時發生未知錯誤: {e}"
+
+        async with self.git_lock:
+            logger.info(f"[{interaction.user.id}] [Admin Command] 已獲取 Git 鎖，開始推送日誌...")
+            success, message = await asyncio.to_thread(run_git_commands_sync)
+            await interaction.followup.send(message, ephemeral=True)
+        
+        logger.info(f"[{interaction.user.id}] [Admin Command] Git 鎖已釋放。")
+    # 函式：推送日誌到 GitHub 倉庫
+
+    # 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
 # 更新紀錄:
 # v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。創世流程的職責被簡化為純粹的檔案補完和開場白生成。
 # v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
@@ -1028,14 +1136,16 @@ class BotCog(commands.Cog, name="BotCog"):
         await interaction.followup.send(f"已成功重置使用者 {target_user} 的所有資料。", ephemeral=True)
     # 指令：[管理員] 重置使用者資料
 
-    # 指令：[管理員] 強制更新程式碼
+    # 指令：[管理員] 強制更新程式碼 (v1.1 - 呼叫修正)
+    # 更新紀錄:
+    # v1.1 (2025-12-08): [功能補全] 將指令的實作改為呼叫新創建的 `_perform_update_and_restart` 輔助函式。
     @app_commands.command(name="admin_force_update", description="[管理員] 強制從 GitHub 同步最新程式碼並重啟機器人。")
     @app_commands.check(is_admin)
     async def admin_force_update(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         await interaction.followup.send("✅ **指令已接收！**\n正在背景中為您執行強制同步與重啟...", ephemeral=True)
         asyncio.create_task(self._perform_update_and_restart(interaction))
-    # 指令：[管理員] 強制更新程式碼
+    # 指令：[管理員] 強制更新程式碼 (v1.1 - 呼叫修正)
     
     # 指令：[管理員] 切換直連 LLM 模式
     @app_commands.command(name="admin_direct_mode", description="[管理員] 為指定使用者開啟或關閉直連 LLM 測試模式。")
@@ -1122,13 +1232,15 @@ class BotCog(commands.Cog, name="BotCog"):
             await interaction.followup.send(f"錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
     # 指令：[管理員] 查詢 Lore 詳細資料
         
-    # 指令：[管理員] 推送日誌
+    # 指令：[管理員] 推送日誌 (v1.1 - 呼叫修正)
+    # 更新紀錄:
+    # v1.1 (2025-12-08): [功能補全] 將指令的實作改為呼叫新創建的 `push_log_to_github_repo` 輔助函式。
     @app_commands.command(name="admin_push_log", description="[管理員] 強制將最新的日誌推送到GitHub倉庫。")
     @app_commands.check(is_admin)
     async def admin_push_log(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         await self.push_log_to_github_repo(interaction)
-    # 指令：[管理員] 推送日誌
+    # 指令：[管理員] 推送日誌 (v1.1 - 呼叫修正)
 
     # 指令：[管理員] 版本控制
     @app_commands.command(name="admin_version_control", description="[管理員] 打開圖形化版本控制面板。")
