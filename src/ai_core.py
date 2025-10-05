@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v2.8 - 异常处理与作用域修正)
+# 函式：RAG 直通生成 (v2.9 - 终极作用域修正)
 # 更新紀錄:
-# v2.8 (2025-12-08): [灾难性BUG修复] 重构了 LORE 回填流程中的 try...except 结构，将 RAG 上下文的获取也包含在内，解决了因云端精炼失败导致 rag_context 变量未定义，从而引发 UnboundLocalError 的致命错误。
-# v2.7 (2025-12-08): [灾难性BUG修复] 彻底重构了 LORE 回填的错误处理，完整地实现了「雲端審查 -> 本地無規範模型 -> 程式級備援」的三层降级策略。
-# v2.6 (2025-12-08): [灾难性BUG修复] 修正了 LORE 回填流程中的备援策略，改为调用更强硬的 _force_and_retry 策略。
+# v2.9 (2025-12-08): [灾难性BUG修复] 将 `rag_context` 变量的初始化提升到 try...except 块之前，彻底解决了当云端精炼失败后，因变量作用域问题导致 except 块中无法访问 rag_context，从而引发 UnboundLocalError 的最终顽固BUG。
+# v2.8 (2025-12-08): [灾难性BUG修复] 重构了 LORE 回填流程中的 try...except 结构。
+# v2.7 (2025-12-08): [灾难性BUG修复] 完整地实现了「雲端審查 -> 本地無規範模型 -> 程式級備援」的三层降级策略。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.8) 执行一个包含「三层降级LORE回填」、短期记忆感知、RAG 直通的完整生成流程。
+        (v2.9) 执行一个包含「三层降级LORE回填」、短期记忆感知、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -461,55 +461,55 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     for skeleton_profile in expansion_result.npc_profiles:
                         enriched_profile: Optional[CharacterProfile] = None
                         
-                        # [v2.8 核心修正] 扩大 try 块的范围，确保 rag_context 在整个备援链中都可见
+                        # [v2.9 核心修正] 将 rag_context 初始化移到 try 块之前
+                        rag_context: Optional[str] = None
                         try:
                             logger.info(f"[{user_id}] [LORE 回填] 正在為新 NPC '{skeleton_profile.name}' 檢索背景資訊...")
                             rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
                             rag_context = await self._raw_rag_retrieval(rag_query)
 
                             # --- 層級 1: 雲端精煉 ---
-                            try:
-                                logger.info(f"[{user_id}] [LORE 回填-L1] 正在為 '{skeleton_profile.name}' 嘗試雲端精煉...")
-                                refinement_template = self.get_lore_skeleton_refinement_prompt()
-                                refinement_prompt = self._safe_format_prompt(
-                                    refinement_template,
-                                    {
-                                        "pydantic_schema_str": json.dumps(CharacterProfile.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
-                                        "skeleton_json": skeleton_profile.model_dump_json(indent=2),
-                                        "rag_context": rag_context
-                                    }
-                                )
-                                enriched_profile = await self.ainvoke_with_rotation(
-                                    refinement_prompt, output_schema=CharacterProfile, 
-                                    models_to_try_override=[FUNCTIONAL_MODEL],
-                                    retry_strategy='none' 
-                                )
-                                if enriched_profile:
-                                    logger.info(f"[{user_id}] [LORE 回填-L1] ✅ 雲端精煉成功。")
-
-                            except BlockedPromptException as e:
-                                logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉遭遇審查 ({e})。降級至 L2 (本地模型)。")
-                            except Exception as e:
-                                logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉失敗 ({type(e).__name__})。降級至 L2 (本地模型)。")
-
-                            # --- 層級 2: 本地無審查精煉 ---
-                            if not enriched_profile and self.is_ollama_available:
-                                enriched_profile = await self._invoke_local_ollama_refiner(
-                                    skeleton_profile.name, 
-                                    skeleton_profile.model_dump(), 
-                                    {"aliases": rag_context, "description": rag_context, "appearance": rag_context, "skills": rag_context, "relationships": rag_context}
-                                )
-
-                            # --- 層級 3: 程式級備援 ---
+                            logger.info(f"[{user_id}] [LORE 回填-L1] 正在為 '{skeleton_profile.name}' 嘗試雲端精煉...")
+                            refinement_template = self.get_lore_skeleton_refinement_prompt()
+                            refinement_prompt = self._safe_format_prompt(
+                                refinement_template,
+                                {
+                                    "pydantic_schema_str": json.dumps(CharacterProfile.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
+                                    "skeleton_json": skeleton_profile.model_dump_json(indent=2),
+                                    "rag_context": rag_context or "無相關背景資訊。"
+                                }
+                            )
+                            enriched_profile = await self.ainvoke_with_rotation(
+                                refinement_prompt, output_schema=CharacterProfile, 
+                                models_to_try_override=[FUNCTIONAL_MODEL],
+                                retry_strategy='none' 
+                            )
                             if enriched_profile:
-                                enriched_npc_profiles.append(enriched_profile.model_dump())
-                            else:
-                                logger.error(f"[{user_id}] [LORE 回填-L3] 所有 LLM 精煉層級均失敗！為 '{skeleton_profile.name}' 觸發程式級備援，僅保存基礎骨架。")
-                                enriched_npc_profiles.append(skeleton_profile.model_dump())
+                                logger.info(f"[{user_id}] [LORE 回填-L1] ✅ 雲端精煉成功。")
 
-                        except Exception as inner_e:
-                            # 这个 except 捕获 _raw_rag_retrieval 或更深层次的错误
-                            logger.error(f"[{user_id}] [LORE 回填] 為 '{skeleton_profile.name}' 執行精煉流程時發生嚴重內部錯誤: {inner_e}。將僅保存基礎骨架。")
+                        except BlockedPromptException as e:
+                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉遭遇審查 ({e})。降級至 L2 (本地模型)。")
+                        except Exception as e:
+                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉失敗 ({type(e).__name__})。降級至 L2 (本地模型)。")
+
+                        # --- 層級 2: 本地無審查精煉 ---
+                        if not enriched_profile and self.is_ollama_available:
+                            # 确保 rag_context 在这里可用
+                            if rag_context is None: # 如果在 try 块中获取 rag_context 失败
+                                rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
+                                rag_context = await self._raw_rag_retrieval(rag_query)
+
+                            enriched_profile = await self._invoke_local_ollama_refiner(
+                                skeleton_profile.name, 
+                                skeleton_profile.model_dump(), 
+                                {"aliases": rag_context, "description": rag_context, "appearance": rag_context, "skills": rag_context, "relationships": rag_context}
+                            )
+
+                        # --- 層級 3: 程式級備援 ---
+                        if enriched_profile:
+                            enriched_npc_profiles.append(enriched_profile.model_dump())
+                        else:
+                            logger.error(f"[{user_id}] [LORE 回填-L3] 所有 LLM 精煉層級均失敗！為 '{skeleton_profile.name}' 觸發程式級備援，僅保存基礎骨架。")
                             enriched_npc_profiles.append(skeleton_profile.model_dump())
                 
                 # 將精煉後的結果和其他未處理的 LORE 一起儲存
@@ -523,7 +523,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             else:
                 logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
         except Exception as e:
-            # [v2.8 核心修正] 即便LORE扩展失败，也不应中断整个函式
             logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
 
         # --- 步驟 2: 短期記憶感知的查詢擴展 ---
@@ -652,6 +651,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+
+
                             
 
 
@@ -6271,6 +6272,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
