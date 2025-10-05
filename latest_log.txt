@@ -1,176 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T13:20:11.416291 ###
+### AI Lover Log - Last updated at 2025-10-05T13:25:14.460388 ###
 
-2025-10-05 07:59:50 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
-2025-10-05 07:59:50 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
-2025-10-05 08:00:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 08:00:40 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-05 08:00:41 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
-2025-10-05 08:00:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 08:00:44 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-05 08:00:45 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-05 08:00:45 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-05 08:00:47 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條預生成LORE，準備執行...
-2025-10-05 08:00:47 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
-2025-10-05 08:00:47 - [INFO] - [512280345618546699] [RAG增量更新] 已成功 添加 LORE '聖凱瑟琳學院 > 宅邸 > 勛爵' 到 RAG 索引。當前總文檔數: 35
-2025-10-05 08:00:47 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-10-05 08:00:47 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功: 已成功為新 NPC '卡爾·維利爾斯' 創建了檔案 (主鍵: '聖凱瑟琳學院 > 宅邸 > 勛爵')，地點: '未知地點'。
-2025-10-05 08:00:47 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-05 09:00:42 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 09:00:49 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 09:00:49 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 09:00:49 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 09:00:49 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 09:00:49 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 09:00:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 09:00:53 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 09:15:00 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 09:15:04 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 09:15:04 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 09:15:04 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 09:15:04 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 09:15:04 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 09:15:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 09:15:08 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 10:31:36 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 10:31:43 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 10:31:43 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 10:31:43 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 10:31:43 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 10:31:43 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 10:31:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 10:31:47 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 12:08:30 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 12:08:34 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 12:08:34 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 12:08:34 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 12:08:34 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 12:08:34 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 12:08:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 12:08:37 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 12:26:38 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-05 12:26:40 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-05 12:26:40 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-05 12:26:40 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-05 12:26:42 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-05 12:26:47 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-05 12:26:47 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-05 12:26:48 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-05 12:26:48 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 12:26:48 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 12:27:00 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 12:27:00 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 12:27:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-05 12:27:00 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-05 12:27:00 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:27:02 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-05 12:27:15 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-05 12:27:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-05 12:27:16 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:27:52 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-05 12:28:06 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-05 12:28:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-05 12:28:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] 正在關閉 AI 實例並釋放所有資源...
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] [資源管理] 正在釋放 RAG 資源...
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] [資源管理] RAG 資源已成功釋放。
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] AI 實例所有資源已成功釋放。
-2025-10-05 12:31:10 - [INFO] - [512280345618546699] [Data Reset] 記憶體中的 AI 實例已成功關閉並移除。
-2025-10-05 12:31:12 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-05 12:31:12 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-05 12:31:12 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-05 12:31:14 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-05 12:31:20 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 12:31:20 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 12:31:20 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-05 12:31:20 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-05 12:31:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:31:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-05 12:31:35 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-05 12:31:35 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-05 12:31:35 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:31:37 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-05 12:31:51 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-05 12:31:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-05 12:31:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:31:58 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-05 12:32:07 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-05 12:32:09 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
-2025-10-05 12:32:09 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
-2025-10-05 12:32:09 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
-2025-10-05 12:32:09 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
-2025-10-05 12:32:51 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
-2025-10-05 12:32:51 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
-2025-10-05 12:32:51 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧 的背景，為他們的故事尋...' 中分析实体...
-2025-10-05 12:32:54 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。 根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧'
-2025-10-05 12:32:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-05 12:32:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-05 12:33:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 12:33:28 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 魔法塔樓 > 頂層。正在更新 GameState...
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
-2025-10-05 12:33:29 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
-2025-10-05 12:33:30 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-05 12:33:30 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-05 12:35:01 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-05 12:35:01 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
-2025-10-05 12:35:01 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
-2025-10-05 12:35:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:35:03 - [INFO] - [512280345618546699] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...
-2025-10-05 12:35:03 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
-2025-10-05 12:35:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 12:35:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
-2025-10-05 12:35:13 - [INFO] - [512280345618546699] [LORE 擴展] 新的 LORE 骨架已成功創建並存入資料庫。
-2025-10-05 12:35:13 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
-2025-10-05 12:35:14 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'頂層', '法', '中央', '深色'}
-2025-10-05 12:35:14 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['DINO', '勛爵', '頂層', '米婭', '深色', '宅邸', '中央', '法', '碧']
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 勛爵 頂層 米婭 深色 宅邸 中央 法 碧...' 中分析实体...
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 勛爵 頂層 米婭 深色 宅邸 中央 法 碧'
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-05 12:35:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:35:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 12:35:52 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-05 12:35:54 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
-2025-10-05 12:35:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-05 12:35:56 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-05 13:02:40 - [INFO] - [512280345618546699] [Admin Command] 手動觸發強制更新與重啟流程...
-2025-10-05 13:02:40 - [INFO] - [512280345618546699] [Admin Command] 已獲取 Git 鎖，開始執行同步...
-2025-10-05 13:02:45 - [INFO] - [512280345618546699] [Admin Command] Git 鎖已釋放。
-2025-10-05 13:04:47 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 13:04:51 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 13:04:51 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 13:04:51 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 13:04:51 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 13:04:51 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 13:04:54 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 13:04:54 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 13:05:56 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-05 13:05:58 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
 2025-10-05 13:05:58 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
 2025-10-05 13:05:58 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
 2025-10-05 13:06:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
@@ -300,3 +129,174 @@ name
 2025-10-05 13:19:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-05 13:19:47 - [INFO] - [512280345618546699] (Euphemizer) 已生成淨化後的 Prompt，正在進行最終嘗試...
 2025-10-05 13:20:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 13:20:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 13:20:43 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-05 13:20:45 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-05 13:20:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 13:20:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。啟動【自我修正】流程...
+2025-10-05 13:20:47 - [WARNING] - [512280345618546699] 導致解析錯誤的原始 LLM 輸出: 
+--- START RAW ---
+```json
+{
+  "memory_summary": "在維利爾斯宅邸的走廊裡，僕人米婭在擦拭盔甲時，勛爵卡爾·維利爾斯出現。米婭按照規矩撩起裙子，暴露下體，並主動撐開雙腿，露出肉穴和陰蒂。她向勛爵乞求幹她。勛爵彎腰，捏住米婭曾被斬斷又重生的右手，詢問她是否還記得痛苦。米婭狂熱地回答，只記得勛爵的肉棒將痛苦變成了快樂，並請求勛爵再次用痛苦恩賜她。",
+  "lore_updates": [
+    {
+      "operation": "create_new_npc_profile",
+      "lore_key": "維利爾斯莊園 > 宅邸 > 米婭",
+      "profile": {
+        "name": "米婭",
+        "description": "維利爾斯莊園的僕人，對勛爵極度崇拜，曾被斬斷右手後又被勛爵「重生」，因此對勛爵的恩賜（包括痛苦）有著狂熱的渴望和獨特的生理反應。",
+        "gender": "female",
+        "aliases": [
+          "母畜"
+        ]
+      }
+    },
+    {
+      "operation": "create_new_npc_profile",
+      "lore_key": "維利爾斯莊園 > 宅邸 > 勛爵",
+      "profile": {
+        "name": "卡爾·維利爾斯",
+        "description": "維利爾斯莊園的主人，對僕人米婭進行心理和生理的雙重掌控，擅長利用其過去的創傷和對他的崇拜來進行操控。他的聲音充滿威嚴，行為冷靜而細緻。",
+        "gender": "male",
+        "aliases": [
+          "主人"
+        ]
+      }
+    },
+    {
+      "operation": "update_location_info",
+      "lore_key": "維利爾斯莊園 > 宅邸",
+      "update": {
+        "description": "宅邸內有漫長而寂靜的走廊，陽光透過彩繪玻璃窗灑下斑駁光影，牆壁掛有歷代祖先肖像。地板為冰冷大理石。米婭在此擦拭古老的騎士盔甲。"
+      }
+    },
+    {
+      "operation": "update_lore_template_keys",
+      "update": {
+        "new_lore_template_keys": [
+          "維利爾斯莊園 > 宅邸 > 米婭",
+          "維利爾斯莊園 > 宅邸 > 勛爵"
+        ]
+      }
+    }
+  ]
+}
+```
+--- END RAW ---
+2025-10-05 13:20:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 13:20:49 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
+2025-10-05 13:20:49 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: 8 validation errors for PostGenerationAnalysisResult
+lore_updates.0.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.0.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.tool_name
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.parameters
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.tool_name
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.parameters
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1542, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(corrected_clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 8 validation errors for PostGenerationAnalysisResult
+lore_updates.0.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.0.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.tool_name
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.parameters
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.tool_name
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.parameters
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-05 13:20:49 - [ERROR] - [512280345618546699] [事後分析] 任務主體發生未預期的異常: 8 validation errors for PostGenerationAnalysisResult
+lore_updates.0.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.0.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.tool_name
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.parameters
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.tool_name
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.parameters
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2128, in _background_lore_extraction
+    analysis_result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1546, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1494, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(repaired_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 8 validation errors for PostGenerationAnalysisResult
+lore_updates.0.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.0.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.tool_name
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.1.parameters
+  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.tool_name
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.2.parameters
+  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.tool_name
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+lore_updates.3.parameters
+  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
