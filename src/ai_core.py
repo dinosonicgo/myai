@@ -420,25 +420,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v2.9 - 终极作用域修正)
+# 函式：RAG 直通生成 (v3.0 - 终极协同工作流重构)
 # 更新紀錄:
-# v2.9 (2025-12-08): [灾难性BUG修复] 将 `rag_context` 变量的初始化提升到 try...except 块之前，彻底解决了当云端精炼失败后，因变量作用域问题导致 except 块中无法访问 rag_context，从而引发 UnboundLocalError 的最终顽固BUG。
-# v2.8 (2025-12-08): [灾难性BUG修复] 重构了 LORE 回填流程中的 try...except 结构。
-# v2.7 (2025-12-08): [灾难性BUG修复] 完整地实现了「雲端審查 -> 本地無規範模型 -> 程式級備援」的三层降级策略。
+# v3.0 (2025-12-08): [根本性重構] 根據與使用者的最終討論，徹底重寫 LORE 創建流程。新版本實現了「四大步骤协同工作流」：1. LLM/程式碼 識別新實體；2. RAG 定位相關文本；3. 程式碼（Regex+spaCy）精細提取事實；4. LLM 批量潤色（帶有程式碼拼接備援）。此方案兼顧了效率、成本、準確性和抗審查能力。
+# v2.9.1 (2025-12-08): [完整性修復] 根據 AttributeError 提供此函式的完整版本。
+# v2.9 (2025-12-08): [灾难性BUG修复] 修正了 UnboundLocalError。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.9) 执行一个包含「三层降级LORE回填」、短期记忆感知、RAG 直通的完整生成流程。
+        (v3.0) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
-            logger.error(f"[{user_id}] [Direct RAG] 致命错误: AI Profile 未初始化。")
-            return "（错误：AI 核心设定档尚未载入。）"
+            logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
+            return "（錯誤：AI 核心設定檔尚未載入。）"
 
         logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
-        # --- 步骤 1: 通用 LORE 扩展与资讯回填管线 ---
+        # --- 步骤 1: 识别上下文核心 (Identify) + 【程式级备援 A】---
         try:
-            logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
+            logger.info(f"[{user_id}] [LORE 創建-1/4] 正在識別新實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
             
@@ -448,84 +448,103 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
             )
             
-            expansion_result = await self.ainvoke_with_rotation(
-                expansion_prompt, output_schema=CanonParsingResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL]
-            )
+            expansion_result = None
+            try:
+                # 首先嘗試 LLM
+                expansion_result = await self.ainvoke_with_rotation(
+                    expansion_prompt, output_schema=CanonParsingResult, 
+                    retry_strategy='none', # 失敗時立即降級
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+            except Exception as e:
+                 logger.warning(f"[{user_id}] [LORE 創建-1/4] LLM 實體識別失敗 ({type(e).__name__})。觸發【程式級備援 A】...")
 
-            if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
-                logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體骨架，啟動【資訊回填】流程...")
+            if not expansion_result or not (expansion_result.npc_profiles or expansion_result.locations):
+                # 【程式级备援 A】
+                logger.info(f"[{user_id}] [LORE 創建-1/4備援] 使用 spaCy NER 進行實體識別...")
+                entities = await self._extract_entities_from_input(user_input)
+                new_entities = [e for e in entities if e not in existing_lore_names]
+                if new_entities:
+                    expansion_result = CanonParsingResult(
+                        npc_profiles=[CharacterProfile(name=name, description=f"在對話中提到的角色。") for name in new_entities]
+                    )
+
+            if expansion_result and (expansion_result.npc_profiles or expansion_result.locations):
+                logger.info(f"[{user_id}] [LORE 創建] ✅ 成功識別出新實體骨架。")
                 
-                # --- NPC 檔案回填 (三層降級) ---
-                enriched_npc_profiles = []
-                if expansion_result.npc_profiles:
-                    for skeleton_profile in expansion_result.npc_profiles:
-                        enriched_profile: Optional[CharacterProfile] = None
+                # --- 步骤 2: RAG 语义定位 (Locate) ---
+                logger.info(f"[{user_id}] [LORE 創建-2/4] 正在為新實體執行 RAG 語義定位...")
+                targets_to_enrich = expansion_result.npc_profiles
+                rag_contexts = {}
+                for skeleton in targets_to_enrich:
+                    rag_query = f"關於角色 '{skeleton.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
+                    rag_contexts[skeleton.name] = await self._raw_rag_retrieval(rag_query)
+
+                # --- 步骤 3: 程式化精细提取 (Extract) ---
+                logger.info(f"[{user_id}] [LORE 創建-3/4] 正在執行雙引擎程式化提取...")
+                programmatic_facts = {}
+                for name, context in rag_contexts.items():
+                    programmatic_facts[name] = await self._programmatic_attribute_extraction(context, name)
+                
+                # --- 步骤 4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
+                logger.info(f"[{user_id}] [LORE 創建-4/4] 正在嘗試 LLM 批量潤色...")
+                batch_input_for_refinement = [
+                    {
+                        "base_profile": next(p.model_dump() for p in targets_to_enrich if p.name == name),
+                        "facts": facts
+                    }
+                    for name, facts in programmatic_facts.items()
+                ]
+                
+                final_profiles: List[CharacterProfile] = []
+                try:
+                    refinement_prompt_template = self.get_batch_refinement_prompt()
+                    full_prompt = self._safe_format_prompt(
+                        refinement_prompt_template,
+                        {"batch_verified_data_json": json.dumps(batch_input_for_refinement, ensure_ascii=False, indent=2)}
+                    )
+                    
+                    class BatchRefinementOutput(BaseModel):
+                        profiles: List[CharacterProfile]
+
+                    # 使用 retry_strategy='force' 確保數據處理的成功率
+                    llm_result = await self.ainvoke_with_rotation(
+                        full_prompt, 
+                        output_schema=BatchRefinementOutput,
+                        retry_strategy='force',
+                        models_to_try_override=[FUNCTIONAL_MODEL]
+                    )
+                    if llm_result and llm_result.profiles:
+                         final_profiles = llm_result.profiles
+                         logger.info(f"[{user_id}] [LORE 創建-4/4] ✅ LLM 批量潤色成功。")
+                    else:
+                        raise ValueError("LLM 批量潤色返回了空結果。")
+                except Exception as e:
+                    logger.warning(f"[{user_id}] [LORE 創建-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
+                    # 【程式级备援 B】
+                    for item in batch_input_for_refinement:
+                        profile = CharacterProfile.model_validate(item["base_profile"])
+                        facts = item["facts"]
+                        profile.aliases = list(set(profile.aliases + facts.get("verified_aliases", [])))
+                        profile.age = facts.get("verified_age", profile.age)
                         
-                        # [v2.9 核心修正] 将 rag_context 初始化移到 try 块之前
-                        rag_context: Optional[str] = None
-                        try:
-                            logger.info(f"[{user_id}] [LORE 回填] 正在為新 NPC '{skeleton_profile.name}' 檢索背景資訊...")
-                            rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
-                            rag_context = await self._raw_rag_retrieval(rag_query)
+                        # 簡單拼接描述
+                        existing_desc = [profile.description] if profile.description else []
+                        all_desc = existing_desc + facts.get("description_sentences", [])
+                        profile.description = "\n".join(sorted(list(set(all_desc))))
+                        
+                        final_profiles.append(profile)
 
-                            # --- 層級 1: 雲端精煉 ---
-                            logger.info(f"[{user_id}] [LORE 回填-L1] 正在為 '{skeleton_profile.name}' 嘗試雲端精煉...")
-                            refinement_template = self.get_lore_skeleton_refinement_prompt()
-                            refinement_prompt = self._safe_format_prompt(
-                                refinement_template,
-                                {
-                                    "pydantic_schema_str": json.dumps(CharacterProfile.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
-                                    "skeleton_json": skeleton_profile.model_dump_json(indent=2),
-                                    "rag_context": rag_context or "無相關背景資訊。"
-                                }
-                            )
-                            enriched_profile = await self.ainvoke_with_rotation(
-                                refinement_prompt, output_schema=CharacterProfile, 
-                                models_to_try_override=[FUNCTIONAL_MODEL],
-                                retry_strategy='none' 
-                            )
-                            if enriched_profile:
-                                logger.info(f"[{user_id}] [LORE 回填-L1] ✅ 雲端精煉成功。")
+                # 最终储存
+                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
+                logger.info(f"[{user_id}] [LORE 創建] 新的 LORE (已精煉) 已成功創建並存入資料庫。")
 
-                        except BlockedPromptException as e:
-                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉遭遇審查 ({e})。降級至 L2 (本地模型)。")
-                        except Exception as e:
-                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉失敗 ({type(e).__name__})。降級至 L2 (本地模型)。")
-
-                        # --- 層級 2: 本地無審查精煉 ---
-                        if not enriched_profile and self.is_ollama_available:
-                            # 确保 rag_context 在这里可用
-                            if rag_context is None: # 如果在 try 块中获取 rag_context 失败
-                                rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
-                                rag_context = await self._raw_rag_retrieval(rag_query)
-
-                            enriched_profile = await self._invoke_local_ollama_refiner(
-                                skeleton_profile.name, 
-                                skeleton_profile.model_dump(), 
-                                {"aliases": rag_context, "description": rag_context, "appearance": rag_context, "skills": rag_context, "relationships": rag_context}
-                            )
-
-                        # --- 層級 3: 程式級備援 ---
-                        if enriched_profile:
-                            enriched_npc_profiles.append(enriched_profile.model_dump())
-                        else:
-                            logger.error(f"[{user_id}] [LORE 回填-L3] 所有 LLM 精煉層級均失敗！為 '{skeleton_profile.name}' 觸發程式級備援，僅保存基礎骨架。")
-                            enriched_npc_profiles.append(skeleton_profile.model_dump())
-                
-                # 將精煉後的結果和其他未處理的 LORE 一起儲存
-                await self._resolve_and_save("npc_profiles", enriched_npc_profiles)
-                await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
-                await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
-                await self._resolve_and_save("creatures", [p.model_dump() for p in expansion_result.creatures])
-                await self._resolve_and_save("quests", [p.model_dump() for p in expansion_result.quests])
-                await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in expansion_result.world_lores])
-                logger.info(f"[{user_id}] [LORE 擴展] 新的 LORE (包含已回填資訊) 已成功創建並存入資料庫。")
             else:
                 logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
         except Exception as e:
             logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
 
-        # --- 步驟 2: 短期記憶感知的查詢擴展 ---
+        # --- 後續的主生成流程保持不變 ---
         logger.info(f"[{user_id}] [查詢擴展] 正在整合短期記憶以感知場景上下文...")
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
@@ -541,23 +560,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
 
         if is_remote:
-            logger.info(f"[{user_id}] [查詢擴展] 檢測到為遠景模式，正在從核心實體列表中移除主角...")
             scene_entities.difference_update(protagonist_names)
         else:
-            logger.info(f"[{user_id}] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。")
             scene_entities.update(protagonist_names)
         
         final_query_keywords = sorted(list(name for name in scene_entities if name), key=len, reverse=True)
         logger.info(f"[{user_id}] [查詢擴展] 場景感知完成，最終核心實體: {final_query_keywords}")
 
-        # --- 步驟 3: 處理連續性指令 ---
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
         is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
         if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
             plot_anchor = self.last_context_snapshot["last_response_text"]
 
-        # --- 步驟 4: 查詢權威性 LORE ---
         absolute_truth_mandate = ""
         if final_query_keywords:
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -572,17 +587,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     if len(statement_parts) > 1: truth_statements.append(" ".join(statement_parts))
                 if truth_statements:
                     absolute_truth_mandate = ("# === 【【【🚨 絕對事實強制令 ... 】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements]) + "\n# =======================================================================\n")
-                    logger.info(f"[{user_id}] [LORE 優先] 已成功注入 {len(truth_statements)} 條絕對事實。")
 
-        # --- 步驟 5: 執行 RAG 檢索 ---
         expanded_query = user_input + " " + " ".join(final_query_keywords)
         rag_context_dict = await self.retrieve_and_summarize_memories(expanded_query)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
-        # --- 步驟 6: 獲取對話歷史 ---
         historical_context = await self._get_summarized_chat_history(user_id)
 
-        # --- 步驟 7: 組裝最終 Prompt ---
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
@@ -624,7 +635,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             }
         )
         
-        # --- 步驟 8: 調用 LLM 生成 ---
         final_response = await self.ainvoke_with_rotation(
             full_prompt,
             retry_strategy='force',
@@ -635,7 +645,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
-        # --- 步驟 9: 事後處理 ---
         clean_response = final_response.strip()
         
         scene_key = self._get_scene_key()
@@ -651,8 +660,104 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+            
 
 
+# 函式：程式化屬性歸因 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-08): [全新創建] 根據「程式碼主導，LLM輔助」的終極策略，創建此核心函式。它使用 Regex 和 spaCy 的混合方法，在本地、高效地從 RAG 檢索到的文本中提取結構化和敘事性的角色屬性，為後續的 LLM 潤色或程式級備援提供高質量的「事實數據點」。
+    async def _programmatic_attribute_extraction(self, text: str, character_name: str) -> Dict[str, Any]:
+        """
+        使用 Regex 和 spaCy 的雙引擎，從給定的文本塊中提取指定角色的屬性。
+        返回一個包含已驗證事實的字典。
+        """
+        facts = {
+            "verified_aliases": [],
+            "verified_age": "未知",
+            "description_sentences": []
+        }
+        
+        # --- 引擎 A: 正則表達式 (處理半結構化數據) ---
+        try:
+            # 提取身份/別名
+            identity_match = re.search(r"^\s*\*\s*身份[:：\s]*(.*)", text, re.MULTILINE)
+            if identity_match:
+                aliases_text = identity_match.group(1)
+                # 使用正則表達式分割常見分隔符，並處理括號內的內容
+                found_aliases = re.split(r'[,、，\s]\s*|(?<=\))(?=[\u4e00-\u9fa5a-zA-Z])', aliases_text)
+                facts["verified_aliases"].extend([alias.strip() for alias in found_aliases if alias.strip()])
+
+            # 提取年齡/外貌
+            age_appearance_match = re.search(r"^\s*\*\s*年齡/外貌[:：\s]*(.*)", text, re.MULTILINE)
+            if age_appearance_match:
+                age_text = age_appearance_match.group(1).split('。')[0] # 通常年齡在第一句
+                facts["verified_age"] = age_text.strip()
+                facts["description_sentences"].append(age_appearance_match.group(1).strip())
+            
+            # 提取其他標籤
+            other_tags_matches = re.findall(r"^\s*\*\s*([^:]+)[:：\s]*(.*)", text, re.MULTILINE)
+            for match in other_tags_matches:
+                tag_name, tag_content = match
+                if "身份" not in tag_name and "年齡/外貌" not in tag_name:
+                    facts["description_sentences"].append(tag_content.strip())
+        except Exception as e:
+            logger.warning(f"[{self.user_id}] [Programmatic Extraction] Regex 引擎執行時出錯: {e}")
+
+        # --- 引擎 B: spaCy (處理敘事性文本) ---
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+            doc = nlp(text)
+            
+            # 將提取到的別名也加入關鍵詞，以提高匹配率
+            name_variants = {character_name} | set(facts["verified_aliases"])
+            
+            for sent in doc.sents:
+                # 只要句子中包含角色名或其任何一個已知的別名
+                if any(variant in sent.text for variant in name_variants):
+                    # 避免重複添加已由 Regex 處理的句子
+                    if not sent.text.strip().startswith('*') and sent.text.strip() not in facts["description_sentences"]:
+                         facts["description_sentences"].append(sent.text.strip())
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [Programmatic Extraction] spaCy 引擎執行失敗: {e}")
+
+        # 清理和去重
+        facts["verified_aliases"] = sorted(list(set(alias for alias in facts["verified_aliases"] if alias)))
+        facts["description_sentences"] = sorted(list(set(sent for sent in facts["description_sentences"] if sent)))
+
+        return facts
+# 函式：程式化屬性歸因
+
+
+# 函式：獲取批量精煉器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-08): [全新創建] 根據「批次精煉 + 程式化校驗」策略創建此 Prompt。它接收一批由程式碼提取出的、高質量的「事實數據點」，並指示 LLM 在一次呼叫中，為所有角色將零散的句子潤色成通順的描述，以兼顧效率與品質。
+    def get_batch_refinement_prompt(self) -> str:
+        """獲取一個為“程式化歸因後批量潤色”策略設計的字符串模板。"""
+        
+        base_prompt = """# TASK: 你是一位資深的傳記作家和文本潤色專家。
+# MISSION: 你的任務是接收一份包含【多個角色檔案草稿】的批量數據。對於數據中的【每一個角色】，你需要將其對應的、已經過【程式化事實核查】的數據點（`verified_descriptions` 和 `verified_aliases`），整合成一份專業的、最終的角色檔案 JSON。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【✍️ 潤色與總結原則】**:
+#    - 你的核心任務是將 `description_sentences` 列表中的所有句子，用通順、連貫、文學性的語言，**重寫並組織**成一段單一的、高質量的 `description` 字符串。
+#    - 你可以調整語序、刪除重複信息、增加銜接詞，但【絕對禁止】添加任何 `description_sentences` 中未提及的**新事實**。
+#
+# 2. **【🛡️ 數據保真原則】**:
+#    - `verified_aliases` 和 `verified_age` 是由程式算法精確提取的結果，是絕對可信的。你【必須】將這些值**原封不動地、不加任何修改地**複製到最終輸出的對應欄位中。
+#    - 你【必須】以 `base_profile` 為基礎，在其上進行更新。
+#
+# 3. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、包含所有輸入角色處理結果的 JSON 列表，每個物件都必須符合 `CharacterProfile` 的 Pydantic 結構。
+
+# --- [INPUT DATA] ---
+
+# 【批量程式化事實數據點 (BATCH OF VERIFIED FACTUAL DATA)】:
+{batch_verified_data_json}
+
+---
+# 【最終生成的批量潤色結果 JSON 列表】:
+"""
+        return base_prompt
+# 函式：獲取批量精煉器 Prompt
                             
 
 
@@ -6301,6 +6406,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
