@@ -2326,25 +2326,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
 
 
-# 函式：從使用者輸入中提取實體 (v2.1 - 移除主角注入)
+# 函式：從使用者輸入中提取實體 (v2.2 - 降噪修正)
 # 更新紀錄:
-# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。此函式的職責被純化為僅從輸入文本中提取實體，而將「是否包含主角」的決策權上移給調用者，以解決遠景模式下的上下文污染問題。
+# v2.2 (2025-10-05): [災難性BUG修復] 根據 RAG 查詢污染日誌，徹底重構了此函式。1. 移除了提取普通名詞的備用邏輯，這是噪音詞的主要來源。2. 強化了 spaCy NER，使其能夠提取多種類型的命名實體（地點、組織等），而不僅僅是人名。此修改旨在確保只有高質量的命名實體被用於查詢擴展，從根本上解決資訊偏差問題。
+# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。
 # v2.0 (2025-10-03): [根本性重構] 此函式被徹底重寫為一個純程式化的、作為備援方案的「雙引擎」提取器。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.1 - 純提取器) 使用「字典匹配」+「NER」雙引擎，從使用者輸入中快速提取實體。"""
+        """(v2.2 - 降噪版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
         
         # --- 第一引擎：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
 
-        # [v2.1 核心修正] 移除此處的主角名字注入，將此函式變為一個純粹的提取器
-        # if self.profile:
-        #     known_names.add(self.profile.user_profile.name)
-        #     known_names.add(self.profile.ai_profile.name)
-
         for lore in all_lores:
-            if name := lore.content.get("name"): known_names.add(name)
-            if aliases := lore.content.get("aliases"): known_names.update(aliases)
+            if name := (lore.content.get("name") or lore.content.get("title")): 
+                known_names.add(name)
+            if aliases := lore.content.get("aliases"): 
+                known_names.update(aliases)
         
         found_entities = set()
         if known_names:
@@ -2356,14 +2354,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         try:
             nlp = spacy.load('zh_core_web_sm')
             doc = nlp(user_input)
+            
+            # [v2.2 核心修正] 擴大實體標籤範圍，只提取真正的命名實體
             for ent in doc.ents:
-                if ent.label_ in ('PERSON', 'ORG', 'GPE') and ent.text not in found_entities:
-                    found_entities.add(ent.text)
+                if ent.label_ in ('PERSON', 'ORG', 'GPE', 'LOC', 'FAC', 'PRODUCT', 'EVENT', 'WORK_OF_ART') and ent.text not in found_entities:
+                    found_entities.add(ent.text.strip())
         except Exception as e:
             logger.error(f"[{self.user_id}] [雙引擎實體提取] spaCy NER 引擎執行失敗: {e}")
         
+        # [v2.2 核心修正] 徹底移除提取普通名詞的策略三，這是噪音的主要來源
+
         if found_entities:
-            logger.info(f"[{self.user_id}] [雙引擎實體提取] 備援方案成功提取實體: {found_entities}")
+            logger.info(f"[{self.user_id}] [雙引擎實體提取] 成功提取高質量實體: {found_entities}")
             return list(found_entities)
         
         return []
@@ -6057,6 +6059,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
