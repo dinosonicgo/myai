@@ -1,86 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T20:34:53.380047 ###
+### AI Lover Log - Last updated at 2025-10-05T20:39:57.266420 ###
 
-2025-10-05 14:32:10 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的所有已知資訊、背景故事、外貌、性格和能力。 '勛爵' 關於角色'
-2025-10-05 14:32:10 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-05 14:32:10 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-05 14:32:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 14:32:12 - [INFO] - [512280345618546699] [LORE 回填] ✅ 成功為 '勛爵' 填充了詳細資訊。
-2025-10-05 14:32:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
-2025-10-05 14:32:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 14:32:22 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
-2025-10-05 14:32:22 - [INFO] - [512280345618546699] [LORE 擴展] 新的 LORE (包含已回填資訊) 已成功創建並存入資料庫。
-2025-10-05 14:32:22 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
-2025-10-05 14:32:23 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'美麗', '後巷', '靴子', '爭吵聲'}
-2025-10-05 14:32:23 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['DINO', '爭吵聲', '美麗', '靴子', '勛爵', '後巷', '宅邸', '米婭', '碧']
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 爭吵聲 美麗 靴子 勛爵 後巷 宅邸 米婭 碧...' 中分析实体...
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 爭吵聲 美麗 靴子 勛爵 後巷 宅邸 米婭 碧'
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
-2025-10-05 14:32:24 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-05 14:32:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 14:33:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 14:33:07 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-05 14:33:08 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
-2025-10-05 14:33:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 14:33:11 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-05 14:33:11 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-05 14:33:11 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-05 14:33:11 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-05 16:14:35 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 16:14:38 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 16:14:38 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 16:14:38 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 16:14:39 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 16:14:39 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 16:14:42 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 16:14:42 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 16:25:19 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 16:25:23 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 16:25:23 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 16:25:23 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 16:25:23 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 16:25:23 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 16:25:26 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 16:25:26 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 17:29:09 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-05 17:29:11 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-05 17:29:11 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-05 17:29:11 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-05 17:29:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-05 17:29:18 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-05 17:29:18 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-05 17:29:18 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-05 17:29:18 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 17:29:18 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 17:29:20 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 17:29:20 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 17:29:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-05 17:29:20 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-05 17:29:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 17:29:23 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-05 17:29:34 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-05 17:29:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-05 17:29:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 17:29:36 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-05 17:29:46 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-05 17:29:47 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-05 17:29:47 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-05 17:29:49 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-05 17:29:55 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-05 17:29:57 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
-2025-10-05 17:29:57 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
-2025-10-05 17:29:57 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
-2025-10-05 17:29:57 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
-2025-10-05 17:30:43 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
-2025-10-05 17:30:43 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
-2025-10-05 17:30:43 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
-2025-10-05 17:30:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 17:30:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 17:30:47 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
 2025-10-05 17:30:47 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-10-05 17:30:47 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
 2025-10-05 17:30:47 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
@@ -300,3 +219,84 @@ AttributeError: 'AILover' object has no attribute '_raw_rag_retrieval'
 2025-10-05 20:32:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
 2025-10-05 20:32:44 - [WARNING] - [512280345618546699] [LORE 回填-L1] 雲端精煉遭遇審查 (Prompt blocked due to 4)。降級至 L2 (本地模型)。
 2025-10-05 20:32:44 - [INFO] - [512280345618546699] [LORE精煉-L2] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 為 '米婭' 進行精煉 (Attempt 1/2)...
+2025-10-05 20:37:45 - [ERROR] - [512280345618546699] [LORE精煉-L2] 🔥 呼叫本地模型進行精煉時發生未知錯誤: 
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 69, in map_httpcore_exceptions
+    yield
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 373, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection.py", line 103, in handle_async_request
+    return await self._connection.handle_async_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 136, in handle_async_request
+    raise exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 106, in handle_async_request
+    ) = await self._receive_response_headers(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 177, in _receive_response_headers
+    event = await self._receive_event(timeout=timeout)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_backends\anyio.py", line 32, in read
+    with map_exceptions(exc_map):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3917, in _invoke_local_ollama_refiner
+    response = await client.post("http://localhost:11434/api/generate", json=payload)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1892, in post
+    return await self.request(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1574, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1661, in send
+    response = await self._send_handling_auth(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1689, in _send_handling_auth
+    response = await self._send_handling_redirects(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1726, in _send_handling_redirects
+    response = await self._send_single_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1763, in _send_single_request
+    response = await transport.handle_async_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 372, in handle_async_request
+    with map_httpcore_exceptions():
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 86, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout
+2025-10-05 20:37:45 - [ERROR] - [512280345618546699] [LORE 回填-L3] 所有 LLM 精煉層級均失敗！為 '米婭' 觸發程式級備援，僅保存基礎骨架。
+2025-10-05 20:37:45 - [INFO] - [512280345618546699] [LORE 回填] 正在為新 NPC '勛爵' 檢索背景資訊...
+2025-10-05 20:37:45 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '勛爵' 的所有已知資訊、背景故事、外貌、性格和能力。'
+2025-10-05 20:37:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-05 20:37:45 - [INFO] - [512280345618546699] [LORE 回填-L1] 正在為 '勛爵' 嘗試雲端精煉...
+2025-10-05 20:37:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 20:37:47 - [INFO] - [512280345618546699] [LORE 回填-L1] ✅ 雲端精煉成功。
+2025-10-05 20:37:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
+2025-10-05 20:37:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 20:37:59 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
+2025-10-05 20:37:59 - [INFO] - [512280345618546699] [LORE 擴展] 新的 LORE (包含已回填資訊) 已成功創建並存入資料庫。
+2025-10-05 20:37:59 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
+2025-10-05 20:38:00 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'這永恆', '識聖', '彩繪玻璃窗', '藏書庫'}
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['彩繪玻璃窗', 'DINO', '這永恆', '藏書庫', '米婭', '宅邸', '勛爵', '識聖', '碧']
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 彩繪玻璃窗 DINO 這永恆 藏書庫 米婭 宅邸 勛爵 識聖 碧...' 中分析实体...
+2025-10-05 20:38:01 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 彩繪玻璃窗 DINO 這永恆 藏書庫 米婭 宅邸 勛爵 識聖 碧'
+2025-10-05 20:38:02 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 20:38:02 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 20:38:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 20:38:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 20:38:47 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-05 20:38:49 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-05 20:38:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 20:38:52 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
