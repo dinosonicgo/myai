@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v3.0 - 终极协同工作流重构)
+# 函式：RAG 直通生成 (v4.0 - 终极协同工作流实现)
 # 更新紀錄:
-# v3.0 (2025-12-08): [根本性重構] 根據與使用者的最終討論，徹底重寫 LORE 創建流程。新版本實現了「四大步骤协同工作流」：1. LLM/程式碼 識別新實體；2. RAG 定位相關文本；3. 程式碼（Regex+spaCy）精細提取事實；4. LLM 批量潤色（帶有程式碼拼接備援）。此方案兼顧了效率、成本、準確性和抗審查能力。
+# v4.0 (2025-12-08): [根本性重構] 最终实现了「四大步骤协同工作流」来创建LORE。流程包括：1. LLM/程式碼识别新实体；2. RAG定位相关文本；3. 程式碼（Regex+spaCy）精细提取事实；4. LLM批量润色（带有程式码拼接备援）。此方案最终兼顾了效率、成本、准确性和抗审查能力。
+# v3.0 (2025-12-08): [根本性重構] 根據與使用者的最終討論，徹底重寫 LORE 創建流程。
 # v2.9.1 (2025-12-08): [完整性修復] 根據 AttributeError 提供此函式的完整版本。
-# v2.9 (2025-12-08): [灾难性BUG修复] 修正了 UnboundLocalError。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v3.0) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
+        (v4.0) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -436,24 +436,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
-        # --- 步骤 1: 识别上下文核心 (Identify) + 【程式级备援 A】---
+        # --- 四大步骤协同工作流 ---
         try:
+            # --- 步骤 1: 识别上下文核心 (Identify) + 【程式级备援 A】---
             logger.info(f"[{user_id}] [LORE 創建-1/4] 正在識別新實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
             
-            expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
-            expansion_prompt = self._safe_format_prompt(
-                expansion_prompt_template,
-                {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
-            )
-            
-            expansion_result = None
+            expansion_result: Optional[CanonParsingResult] = None
             try:
-                # 首先嘗試 LLM
+                # 主路径 (LLM)
+                expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
+                expansion_prompt = self._safe_format_prompt(
+                    expansion_prompt_template,
+                    {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
+                )
                 expansion_result = await self.ainvoke_with_rotation(
                     expansion_prompt, output_schema=CanonParsingResult, 
-                    retry_strategy='none', # 失敗時立即降級
+                    retry_strategy='none', # 失败时立即降级
                     models_to_try_override=[FUNCTIONAL_MODEL]
                 )
             except Exception as e:
@@ -461,39 +461,40 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             if not expansion_result or not (expansion_result.npc_profiles or expansion_result.locations):
                 # 【程式级备援 A】
-                logger.info(f"[{user_id}] [LORE 創建-1/4備援] 使用 spaCy NER 進行實體識別...")
+                logger.info(f"[{user_id}] [LORE 創建-1/4備援] 使用 spaCy NER + 字典匹配进行实体识别...")
                 entities = await self._extract_entities_from_input(user_input)
-                new_entities = [e for e in entities if e not in existing_lore_names]
+                new_entities = [e for e in entities if e not in existing_lore_names and e not in [self.profile.user_profile.name, self.profile.ai_profile.name]]
                 if new_entities:
                     expansion_result = CanonParsingResult(
                         npc_profiles=[CharacterProfile(name=name, description=f"在對話中提到的角色。") for name in new_entities]
                     )
 
-            if expansion_result and (expansion_result.npc_profiles or expansion_result.locations):
-                logger.info(f"[{user_id}] [LORE 創建] ✅ 成功識別出新實體骨架。")
+            if expansion_result and (expansion_result.npc_profiles):
+                targets_to_enrich = expansion_result.npc_profiles
+                logger.info(f"[{user_id}] [LORE 創建] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
                 
                 # --- 步骤 2: RAG 语义定位 (Locate) ---
                 logger.info(f"[{user_id}] [LORE 創建-2/4] 正在為新實體執行 RAG 語義定位...")
-                targets_to_enrich = expansion_result.npc_profiles
-                rag_contexts = {}
-                for skeleton in targets_to_enrich:
-                    rag_query = f"關於角色 '{skeleton.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
-                    rag_contexts[skeleton.name] = await self._raw_rag_retrieval(rag_query)
+                rag_contexts = {
+                    skeleton.name: await self._raw_rag_retrieval(f"關於角色 '{skeleton.name}' 的所有已知資訊、背景故事、外貌、性格和能力。")
+                    for skeleton in targets_to_enrich
+                }
 
                 # --- 步骤 3: 程式化精细提取 (Extract) ---
                 logger.info(f"[{user_id}] [LORE 創建-3/4] 正在執行雙引擎程式化提取...")
-                programmatic_facts = {}
-                for name, context in rag_contexts.items():
-                    programmatic_facts[name] = await self._programmatic_attribute_extraction(context, name)
+                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[skeleton.name], skeleton.name) for skeleton in targets_to_enrich]
+                facts_results = await asyncio.gather(*programmatic_facts_tasks)
                 
                 # --- 步骤 4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
                 logger.info(f"[{user_id}] [LORE 創建-4/4] 正在嘗試 LLM 批量潤色...")
+                
+                from .schemas import BatchRefinementInput, BatchRefinementResult
                 batch_input_for_refinement = [
-                    {
-                        "base_profile": next(p.model_dump() for p in targets_to_enrich if p.name == name),
-                        "facts": facts
-                    }
-                    for name, facts in programmatic_facts.items()
+                    BatchRefinementInput(
+                        base_profile=targets_to_enrich[i].model_dump(),
+                        facts=facts_results[i]
+                    )
+                    for i in range(len(targets_to_enrich))
                 ]
                 
                 final_profiles: List[CharacterProfile] = []
@@ -501,21 +502,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     refinement_prompt_template = self.get_batch_refinement_prompt()
                     full_prompt = self._safe_format_prompt(
                         refinement_prompt_template,
-                        {"batch_verified_data_json": json.dumps(batch_input_for_refinement, ensure_ascii=False, indent=2)}
+                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input_for_refinement], ensure_ascii=False, indent=2)}
                     )
                     
-                    class BatchRefinementOutput(BaseModel):
-                        profiles: List[CharacterProfile]
-
-                    # 使用 retry_strategy='force' 確保數據處理的成功率
                     llm_result = await self.ainvoke_with_rotation(
                         full_prompt, 
-                        output_schema=BatchRefinementOutput,
-                        retry_strategy='force',
+                        output_schema=BatchRefinementResult,
+                        retry_strategy='force', # 对数据处理任务使用强力备援
                         models_to_try_override=[FUNCTIONAL_MODEL]
                     )
-                    if llm_result and llm_result.profiles:
-                         final_profiles = llm_result.profiles
+                    if llm_result and llm_result.refined_profiles:
+                         final_profiles = llm_result.refined_profiles
                          logger.info(f"[{user_id}] [LORE 創建-4/4] ✅ LLM 批量潤色成功。")
                     else:
                         raise ValueError("LLM 批量潤色返回了空結果。")
@@ -523,15 +520,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.warning(f"[{user_id}] [LORE 創建-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
                     # 【程式级备援 B】
                     for item in batch_input_for_refinement:
-                        profile = CharacterProfile.model_validate(item["base_profile"])
-                        facts = item["facts"]
-                        profile.aliases = list(set(profile.aliases + facts.get("verified_aliases", [])))
-                        profile.age = facts.get("verified_age", profile.age)
+                        profile = CharacterProfile.model_validate(item.base_profile)
+                        facts = item.facts
+                        profile.aliases = sorted(list(set(profile.aliases + facts.get("verified_aliases", []))))
+                        if facts.get("verified_age", "未知") != "未知":
+                            profile.age = facts.get("verified_age")
                         
-                        # 簡單拼接描述
-                        existing_desc = [profile.description] if profile.description else []
-                        all_desc = existing_desc + facts.get("description_sentences", [])
-                        profile.description = "\n".join(sorted(list(set(all_desc))))
+                        existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
+                        all_desc_sentences = existing_desc + facts.get("description_sentences", [])
+                        if all_desc_sentences:
+                            profile.description = "\n".join(sorted(list(set(all_desc_sentences))))
                         
                         final_profiles.append(profile)
 
@@ -660,6 +658,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+
+
+
+
+
+    
             
 
 
@@ -6406,6 +6410,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
