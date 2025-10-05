@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T18:27:00.417910 ###
+### AI Lover Log - Last updated at 2025-10-05T18:32:46.690903 ###
 
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 8 validation errors for PostGenerationAnalysisResult
-lore_updates.0.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.0.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 lore_updates.1.tool_name
   Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
@@ -300,3 +292,11 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-05 17:34:00 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
 2025-10-05 17:34:00 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
 2025-10-05 17:34:02 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
+2025-10-05 18:32:32 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 18:32:35 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 18:32:35 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 18:32:35 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 18:32:36 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 18:32:36 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 18:32:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 18:32:39 - [INFO] - 已成功發送啟動成功通知給管理員。
