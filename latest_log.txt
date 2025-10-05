@@ -1,83 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T13:15:08.320707 ###
+### AI Lover Log - Last updated at 2025-10-05T13:20:11.416291 ###
 
-2025-10-05 00:43:35 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 00:43:35 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 00:43:37 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-05 00:43:37 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 13 條訊息。
-2025-10-05 00:43:38 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-05 00:43:38 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
-2025-10-05 00:43:38 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
-2025-10-05 00:43:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:43:39 - [INFO] - [512280345618546699] [LORE 擴展] 無需擴展新的 LORE。
-2025-10-05 00:43:39 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
-2025-10-05 00:43:39 - [INFO] - [512280345618546699] [雙引擎實體提取] 備援方案成功提取實體: {'宅邸', '卡爾•', '米婭', '靴子', '拱形窗', '姿勢', '西側', '勛爵'}
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['DINO', '卡爾•', '拱形窗', '宅邸', '米婭', '靴子', '姿勢', '西側', '勛爵', '碧']
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 卡爾• 拱形窗 宅邸 米婭 靴子 姿勢 西側 勛爵 碧...' 中分析实体...
-2025-10-05 00:43:40 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 卡爾• 拱形窗 宅邸 米婭 靴子 姿勢 西側 勛爵 碧'
-2025-10-05 00:43:41 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 22 份候選文檔。
-2025-10-05 00:43:41 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
-2025-10-05 00:43:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:43:46 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-05 00:43:46 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查。啟動【智能淨化備援】策略...
-2025-10-05 00:43:46 - [INFO] - [512280345618546699] [智能淨化備援 1/2] 正在嘗試使用『最高指令集注入』進行重試...
-2025-10-05 00:44:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-05 00:44:40 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-05 00:44:41 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
-2025-10-05 00:44:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:44:47 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-05 00:44:47 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-05 00:44:47 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-05 00:44:47 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-05 00:50:02 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-05 00:50:05 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-05 00:50:05 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-05 00:50:05 - [INFO] - 正在全域同步應用程式指令...
-2025-10-05 00:50:06 - [INFO] - ✅ 指令已全域同步！
-2025-10-05 00:50:06 - [INFO] - Discord Bot setup hook finished!
-2025-10-05 00:50:09 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-05 00:50:09 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-05 07:59:32 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-05 07:59:32 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
-2025-10-05 07:59:32 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-05 07:59:32 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-05 07:59:32 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-05 07:59:41 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 34 條文檔到 RAG 語料庫。
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 15 條訊息。
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
-2025-10-05 07:59:41 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
-2025-10-05 07:59:42 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 07:59:42 - [INFO] - [512280345618546699] [LORE 擴展] 無需擴展新的 LORE。
-2025-10-05 07:59:42 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
-2025-10-05 07:59:43 - [INFO] - [512280345618546699] [雙引擎實體提取] 備援方案成功提取實體: {'墨水瓶', '宅邸', '與本質', '斷分', '夏卡爾', '王都', '卡爾勳', '王國', '勛爵', '卡爾·維利爾斯', '米婭熟練', '甬道', '米婭'}
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['卡爾·維利爾斯', 'DINO', '米婭熟練', '墨水瓶', '與本質', '夏卡爾', '卡爾勳', '宅邸', '斷分', '王都', '王國', '勛爵', '甬道', '米婭', '碧']
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 卡爾·維利爾斯 DINO 米婭熟練 墨水瓶 與本質 夏卡爾 卡爾勳 宅邸 斷...' 中分析实体...
-2025-10-05 07:59:44 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 卡爾·維利爾斯 DINO 米婭熟練 墨水瓶 與本質 夏卡爾 卡爾勳 宅邸 斷分 王都 王國 勛爵 甬道 米婭 碧'
-2025-10-05 07:59:46 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 22 份候選文檔。
-2025-10-05 07:59:46 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
-2025-10-05 07:59:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 07:59:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-05 07:59:50 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
 2025-10-05 07:59:50 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
 2025-10-05 07:59:50 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
 2025-10-05 08:00:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
@@ -300,3 +222,81 @@
 2025-10-05 13:08:35 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-05 13:08:35 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-05 13:08:35 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-05 13:19:28 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-05 13:19:28 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
+2025-10-05 13:19:28 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [LORE 擴展] ✅ 檢測到新實體骨架，啟動【資訊回填】流程...
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [LORE 回填] 正在為新 NPC '米婭' 檢索背景資訊...
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '關於角色 '米婭' 的所有已知資訊、背景故事、外貌、性格和能力。...' 中分析实体...
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的所有已知資訊、背景故事、外貌、性格和能力。 '米婭' 關於角色'
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 13:19:29 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 13:19:30 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 13:19:30 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-05 13:19:30 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-10-05 13:19:30 - [ERROR] - [512280345618546699] 【通用化解構】策略最終失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。將觸發安全備援。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1721, in _euphemize_and_retry
+    return None if not output_schema else output_schema()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 193, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-05 13:19:30 - [WARNING] - [512280345618546699] [LORE 回填] 為 '米婭' 精煉時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。將僅保存基礎骨架。
+2025-10-05 13:19:30 - [INFO] - [512280345618546699] [LORE 回填] 正在為新 NPC '勛爵' 檢索背景資訊...
+2025-10-05 13:19:30 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '關於角色 '勛爵' 的所有已知資訊、背景故事、外貌、性格和能力。...' 中分析实体...
+2025-10-05 13:19:30 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的所有已知資訊、背景故事、外貌、性格和能力。 '勛爵' 關於角色'
+2025-10-05 13:19:30 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 13:19:30 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 13:19:31 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 13:19:31 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-05 13:19:31 - [ERROR] - [512280345618546699] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。
+2025-10-05 13:19:31 - [ERROR] - [512280345618546699] 【通用化解構】策略最終失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。將觸發安全備援。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1721, in _euphemize_and_retry
+    return None if not output_schema else output_schema()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 193, in __init__
+    self.__pydantic_validator__.validate_python(data, self_instance=self)
+pydantic_core._pydantic_core.ValidationError: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-05 13:19:31 - [WARNING] - [512280345618546699] [LORE 回填] 為 '勛爵' 精煉時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。將僅保存基礎骨架。
+2025-10-05 13:19:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
+2025-10-05 13:19:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 13:19:42 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
+2025-10-05 13:19:42 - [INFO] - [512280345618546699] [LORE 擴展] 新的 LORE (包含已回填資訊) 已成功創建並存入資料庫。
+2025-10-05 13:19:42 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'輕輕', '後花園'}
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['DINO', '後花園', '米婭', '宅邸', '輕輕', '勛爵', '碧']
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 後花園 米婭 宅邸 輕輕 勛爵 碧...' 中分析实体...
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 後花園 米婭 宅邸 輕輕 勛爵 碧'
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 13:19:43 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 13:19:46 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
+2025-10-05 13:19:46 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 13:19:46 - [WARNING] - [512280345618546699] 內部鏈意外遭遇審查。啟動【通用化解構-重構】策略...
+2025-10-05 13:19:46 - [INFO] - [512280345618546699] (Euphemizer) 已提取用於重構的關鍵詞: ['碧', 'DINO', '主人']
+2025-10-05 13:19:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 13:19:47 - [INFO] - [512280345618546699] (Euphemizer) 已生成淨化後的 Prompt，正在進行最終嘗試...
+2025-10-05 13:20:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
