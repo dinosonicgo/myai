@@ -1,35 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T12:34:01.273860 ###
+### AI Lover Log - Last updated at 2025-10-05T12:39:04.613634 ###
 
-2025-10-05 00:37:27 - [INFO] - [512280345618546699] [LORE 擴展] 無需擴展新的 LORE。
-2025-10-05 00:37:27 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
-2025-10-05 00:37:29 - [INFO] - [512280345618546699] [雙引擎實體提取] 備援方案成功提取實體: {'聖女', '卡爾•', '姿勢', '靴子', '勛爵', '拱形窗', '泛起', '米婭', '宅邸', '握著', '西側'}
-2025-10-05 00:37:29 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，核心實體: ['DINO', '卡爾•', '拱形窗', '聖女', '姿勢', '靴子', '勛爵', '泛起', '米婭', '宅邸', '握著', '西側', '碧']
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 卡爾• 拱形窗 聖女 姿勢 靴子 勛爵 泛起 米婭 宅邸 握著 西...' 中分析实体...
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 卡爾• 拱形窗 聖女 姿勢 靴子 勛爵 泛起 米婭 宅邸 握著 西側 碧'
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 21 份候選文檔。
-2025-10-05 00:37:30 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 21 條原始文檔作為 summary_context。
-2025-10-05 00:37:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-05 00:37:35 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-05 00:37:35 - [ERROR] - 處理使用者 512280345618546699 的 RAG 直通流程時發生異常: AILover._force_and_retry() takes 3 positional arguments but 4 were given
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1391, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 867, in on_message
-    final_response = await ai_instance.direct_rag_generate(user_input)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 553, in direct_rag_generate
-    final_response = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1449, in ainvoke_with_rotation
-    return await self._force_and_retry(full_prompt, output_schema, e)
-TypeError: AILover._force_and_retry() takes 3 positional arguments but 4 were given
 2025-10-05 00:40:07 - [INFO] - 正在加載核心 Cog (core_cog)...
 2025-10-05 00:40:10 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
 2025-10-05 00:40:10 - [INFO] - ✅ 核心 Cog 加載成功。
@@ -300,3 +270,33 @@ TypeError: AILover._force_and_retry() takes 3 positional arguments but 4 were gi
 2025-10-05 12:33:29 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-05 12:33:30 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-05 12:33:30 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-05 12:35:01 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-05 12:35:01 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
+2025-10-05 12:35:01 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
+2025-10-05 12:35:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 12:35:03 - [INFO] - [512280345618546699] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...
+2025-10-05 12:35:03 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
+2025-10-05 12:35:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 12:35:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'location_info' 類別處理 1 個實體...
+2025-10-05 12:35:13 - [INFO] - [512280345618546699] [LORE 擴展] 新的 LORE 骨架已成功創建並存入資料庫。
+2025-10-05 12:35:13 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
+2025-10-05 12:35:14 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'頂層', '法', '中央', '深色'}
+2025-10-05 12:35:14 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['DINO', '勛爵', '頂層', '米婭', '深色', '宅邸', '中央', '法', '碧']
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [LORE 優先] 已成功注入 2 條絕對事實。
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 DINO 勛爵 頂層 米婭 深色 宅邸 中央 法 碧...' 中分析实体...
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 DINO 勛爵 頂層 米婭 深色 宅邸 中央 法 碧'
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 12:35:15 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 12:35:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 12:35:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-05 12:35:52 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-05 12:35:54 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-05 12:35:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-05 12:35:56 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-05 12:35:56 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
