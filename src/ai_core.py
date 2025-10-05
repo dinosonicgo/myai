@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v2.4 - LORE 創建流程重構)
+# 函式：RAG 直通生成 (v2.7 - 實現三層降級備援)
 # 更新紀錄:
-# v2.4 (2025-12-08): [災難性BUG修復] 徹底重構了 LORE 擴展管線。當檢測到新實體時，不再直接儲存骨架，而是先用實體名稱對 RAG 進行靶向查詢，然後調用一個新的精煉 Prompt，將 RAG 檢索到的詳細資訊回填到 LORE 骨架中，最後才儲存這個被豐富過的 LORE。
-# v2.3 (2025-10-05): [災難性BUG修復] 根據備援系統 `_euphemize_and_retry` 的失敗日誌，重構了最終 Prompt 模板。
-# v2.2 (2025-10-05): [災難性BUG修復-終極方案] 再次徹底重構了查詢擴展邏輯，解決了遠景模式下的上下文污染問題。
+# v2.7 (2025-12-08): [災難性BUG修復] 徹底重構了 LORE 回填的錯誤處理，完整地實現了「雲端審查 -> 本地無規範模型 -> 程式級備援」的三層降級策略，從根本上解決了 LORE 無法在審查環境下正確更新的頑固問題。
+# v2.6 (2025-12-08): [災難性BUG修復] 修正了 LORE 回填流程中的備援策略，改為調用更強硬的 _force_and_retry 策略。
+# v2.5 (2025-12-08): [災難性BUG修復] 在 LORE 回填流程中，將 RAG 查詢修正為呼叫全新的 _raw_rag_retrieval 函式。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.4) 執行一個包含「LORE回填」、短期記憶感知、RAG 直通的完整生成流程。
+        (v2.7) 執行一個包含「三層降級LORE回填」、短期記憶感知、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -436,7 +436,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- [v2.4 核心修正] 步驟 1: 通用 LORE 擴展與資訊回填管線 ---
+        # --- 步驟 1: 通用 LORE 擴展與資訊回填管線 ---
         try:
             logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -455,32 +455,53 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
                 logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體骨架，啟動【資訊回填】流程...")
                 
-                # --- NPC 檔案回填 ---
+                # --- [v2.7] NPC 檔案回填 (三層降級) ---
                 enriched_npc_profiles = []
                 if expansion_result.npc_profiles:
-                    refinement_template = self.get_lore_skeleton_refinement_prompt()
                     for skeleton_profile in expansion_result.npc_profiles:
+                        enriched_profile: Optional[CharacterProfile] = None
+                        
+                        # --- 層級 1: 雲端精煉 ---
                         try:
-                            logger.info(f"[{user_id}] [LORE 回填] 正在為新 NPC '{skeleton_profile.name}' 檢索背景資訊...")
+                            logger.info(f"[{user_id}] [LORE 回填-L1] 正在為 '{skeleton_profile.name}' 嘗試雲端精煉...")
                             rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
-                            rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
-                            rag_context = rag_context_dict.get("summary", "無相關背景資訊。")
+                            rag_context = await self._raw_rag_retrieval(rag_query)
 
+                            refinement_template = self.get_lore_skeleton_refinement_prompt()
                             refinement_prompt = self._safe_format_prompt(
                                 refinement_template,
                                 {
-                                    "pydantic_schema_str": CharacterProfile.model_json_schema(by_alias=False),
-                                    "skeleton_json": skeleton_profile.model_dump_json(),
+                                    "pydantic_schema_str": json.dumps(CharacterProfile.model_json_schema(by_alias=False), ensure_ascii=False, indent=2),
+                                    "skeleton_json": skeleton_profile.model_dump_json(indent=2),
                                     "rag_context": rag_context
                                 }
                             )
                             enriched_profile = await self.ainvoke_with_rotation(
-                                refinement_prompt, output_schema=CharacterProfile, models_to_try_override=[FUNCTIONAL_MODEL]
+                                refinement_prompt, output_schema=CharacterProfile, 
+                                models_to_try_override=[FUNCTIONAL_MODEL],
+                                retry_strategy='none' # 審查時直接拋出異常，以便降級
                             )
+                            if enriched_profile:
+                                logger.info(f"[{user_id}] [LORE 回填-L1] ✅ 雲端精煉成功。")
+
+                        except BlockedPromptException as e:
+                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉遭遇審查 ({e})。降級至 L2 (本地模型)。")
+                        except Exception as e:
+                            logger.warning(f"[{user_id}] [LORE 回填-L1] 雲端精煉失敗 ({type(e).__name__})。降級至 L2 (本地模型)。")
+
+                        # --- 層級 2: 本地無審查精煉 ---
+                        if not enriched_profile and self.is_ollama_available:
+                            enriched_profile = await self._invoke_local_ollama_refiner(
+                                skeleton_profile.name, 
+                                skeleton_profile.model_dump(), 
+                                {"aliases": rag_context, "description": rag_context, "appearance": rag_context, "skills": rag_context, "relationships": rag_context}
+                            )
+
+                        # --- 層級 3: 程式級備援 ---
+                        if enriched_profile:
                             enriched_npc_profiles.append(enriched_profile.model_dump())
-                            logger.info(f"[{user_id}] [LORE 回填] ✅ 成功為 '{skeleton_profile.name}' 填充了詳細資訊。")
-                        except Exception as refine_e:
-                            logger.warning(f"[{user_id}] [LORE 回填] 為 '{skeleton_profile.name}' 精煉時失敗: {refine_e}。將僅保存基礎骨架。")
+                        else:
+                            logger.error(f"[{user_id}] [LORE 回填-L3] 所有 LLM 精煉層級均失敗！為 '{skeleton_profile.name}' 觸發程式級備援，僅保存基礎骨架。")
                             enriched_npc_profiles.append(skeleton_profile.model_dump())
                 
                 # 將精煉後的結果和其他未處理的 LORE 一起儲存
@@ -557,7 +578,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
 
-        # [v2.3 核心修正] 合併對話歷史和當前互動，並使用統一的標籤
         full_dialogue_context = f"{historical_context}\n{self.profile.user_profile.name}: {user_input}"
 
         final_prompt_template = """{core_protocol_prompt}
@@ -590,7 +610,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "absolute_truth_mandate": absolute_truth_mandate,
                 "rag_context": rag_context,
                 "plot_anchor": plot_anchor,
-                "full_dialogue_context": full_dialogue_context, # 使用合併後的對話上下文
+                "full_dialogue_context": full_dialogue_context,
                 "ai_name": self.profile.ai_profile.name,
                 "style_mandate": style_mandate
             }
@@ -6241,6 +6261,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
