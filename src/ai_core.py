@@ -816,7 +816,36 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 解析並儲存LORE實體 函式結束
 
 
+# 函式：執行純粹的 RAG 原始文檔檢索 (v1.1 - 完整性補全)
+# 更新紀錄:
+# v1.1 (2025-12-08): [災難性BUG修復] 根據 AttributeError 補全此函式的完整定義。
+# v1.0 (2025-12-08): [災難性BUG修復] 創建此核心輔助函式，專門用於 LORE 回填流程。
+    async def _raw_rag_retrieval(self, query_text: str) -> str:
+        """
+        執行一次純粹的 RAG 檢索，不經過任何 LLM 摘要或篩選，直接返回拼接後的原始文檔內容。
+        專為需要最高保真度資訊的內部流程（如 LORE 回填）設計。
+        """
+        if not self.retriever:
+            logger.warning(f"[{self.user_id}] [Raw RAG] 檢索器未初始化，無法執行原始檢索。")
+            return "錯誤：檢索器未初始化。"
 
+        try:
+            logger.info(f"[{self.user_id}] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '{query_text}'")
+            retrieved_docs = await self.retriever.ainvoke(query_text)
+            
+            if not retrieved_docs:
+                logger.info(f"[{self.user_id}] [Raw RAG] 未檢索到任何文檔。")
+                return "（未找到相關的背景資訊）"
+
+            # 直接拼接所有文檔的內容
+            concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
+            logger.info(f"[{self.user_id}] [Raw RAG] ✅ 成功檢索到 {len(retrieved_docs)} 份原始文檔。")
+            return concatenated_content
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [Raw RAG] 執行原始檢索時發生錯誤: {e}", exc_info=True)
+            return f"檢索時發生錯誤: {e}"
+# 函式：執行純粹的 RAG 原始文檔檢索
     
 
 # 函式：獲取LORE擴展決策器 Prompt (v1.0 - 全新創建)
@@ -6272,6 +6301,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
