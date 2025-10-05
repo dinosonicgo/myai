@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T12:03:00.143119 ###
+### AI Lover Log - Last updated at 2025-10-05T12:08:45.284480 ###
 
-2025-10-05 00:25:01 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 18 條原始文檔作為 summary_context。
-2025-10-05 00:25:01 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
-2025-10-05 00:25:02 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-05 00:25:02 - [WARNING] - [512280345618546699] [LORE精煉-L1] 雲端完整精煉被審查 (Prompt blocked due to 4)。降級至 L2 (本地模型)。
-2025-10-05 00:25:02 - [ERROR] - [512280345618546699] [單體精煉] 在為角色 '米婭' 執行精煉時發生未知嚴重錯誤: 'AILover' object has no attribute '_invoke_local_ollama_refiner'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3815, in _refine_single_lore_object
-    refined_profile = await self._invoke_local_ollama_refiner(character_name, lore_to_refine.content, aggregated_context)
 AttributeError: 'AILover' object has no attribute '_invoke_local_ollama_refiner'. Did you mean: '_invoke_local_ollama_reranker'?
 2025-10-05 00:25:02 - [WARNING] - [512280345618546699] [LORE精煉-背景] ⏩ 為角色 '米婭' 的背景精煉失敗或無效，跳過更新。
 2025-10-05 00:25:04 - [INFO] - [512280345618546699] [LORE精煉 v7.2] 所有 1 個背景精煉任務已全部完成。
@@ -300,3 +292,11 @@ TypeError: AILover._force_and_retry() takes 3 positional arguments but 4 were gi
 2025-10-05 10:31:43 - [INFO] - Discord Bot setup hook finished!
 2025-10-05 10:31:46 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-05 10:31:47 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-05 12:08:30 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-05 12:08:34 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-05 12:08:34 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-05 12:08:34 - [INFO] - 正在全域同步應用程式指令...
+2025-10-05 12:08:34 - [INFO] - ✅ 指令已全域同步！
+2025-10-05 12:08:34 - [INFO] - Discord Bot setup hook finished!
+2025-10-05 12:08:37 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-05 12:08:37 - [INFO] - 已成功發送啟動成功通知給管理員。
