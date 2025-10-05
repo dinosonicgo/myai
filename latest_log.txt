@@ -1,69 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-05T17:31:15.728679 ###
+### AI Lover Log - Last updated at 2025-10-05T17:36:18.850298 ###
 
-  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1542, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(corrected_clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 8 validation errors for PostGenerationAnalysisResult
-lore_updates.0.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.0.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.tool_name
-  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.parameters
-  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.3.tool_name
-  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.3.parameters
-  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-05 13:20:49 - [ERROR] - [512280345618546699] [事後分析] 任務主體發生未預期的異常: 8 validation errors for PostGenerationAnalysisResult
-lore_updates.0.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.0.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['母畜']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.tool_name
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.1.parameters
-  Field required [type=missing, input_value={'operation': 'create_new... 'aliases': ['主人']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.tool_name
-  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.2.parameters
-  Field required [type=missing, input_value={'operation': 'update_loc...老的騎士盔甲。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.3.tool_name
-  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-lore_updates.3.parameters
-  Field required [type=missing, input_value={'operation': 'update_lor... > 宅邸 > 勛爵']}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2128, in _background_lore_extraction
-    analysis_result = await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1546, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1494, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(repaired_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
     return cls.__pydantic_validator__.validate_python(
 pydantic_core._pydantic_core.ValidationError: 8 validation errors for PostGenerationAnalysisResult
@@ -300,3 +236,67 @@ name
 2025-10-05 17:31:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-10-05 17:31:14 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
 2025-10-05 17:31:15 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-05 17:31:15 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-05 17:31:15 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-05 17:33:42 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-05 17:33:42 - [INFO] - [512280345618546699] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...
+2025-10-05 17:33:42 - [INFO] - [512280345618546699] [LORE 擴展] 正在檢查是否需要擴展 LORE...
+2025-10-05 17:33:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 17:33:44 - [INFO] - [512280345618546699] [LORE 擴展] ✅ 檢測到新實體骨架，啟動【資訊回填】流程...
+2025-10-05 17:33:44 - [INFO] - [512280345618546699] [LORE 回填-L1] 正在為 '米婭' 嘗試雲端精煉...
+2025-10-05 17:33:44 - [WARNING] - [512280345618546699] [LORE 回填-L1] 雲端精煉失敗 (AttributeError)。降級至 L2 (本地模型)。
+2025-10-05 17:33:44 - [ERROR] - [512280345618546699] [LORE 擴展] 在前置 LORE 擴展管線中發生錯誤: local variable 'rag_context' referenced before assignment
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 497, in direct_rag_generate
+    {"aliases": rag_context, "description": rag_context, "appearance": rag_context, "skills": rag_context, "relationships": rag_context}
+UnboundLocalError: local variable 'rag_context' referenced before assignment
+2025-10-05 17:33:44 - [INFO] - [512280345618546699] [查詢擴展] 正在整合短期記憶以感知場景上下文...
+2025-10-05 17:33:44 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: {'研究室', '拱形窗', '略顯', '地毯', '這片屬於學者', '墨水與'}
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '宅邸', '勛爵']
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [查詢擴展] 檢測到為本地場景，正在將主角添加至核心實體列表。
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [查詢擴展] 場景感知完成，最終核心實體: ['這片屬於學者', 'DINO', '研究室', '拱形窗', '墨水與', '宅邸', '略顯', '米婭', '地毯', '勛爵', '碧']
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '描述米婭在宅邸遇到勛爵 這片屬於學者 DINO 研究室 拱形窗 墨水與 宅邸 略顯 米婭 地毯 勛爵...' 中分析实体...
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '描述米婭在宅邸遇到勛爵 這片屬於學者 DINO 研究室 拱形窗 墨水與 宅邸 略顯 米婭 地毯 勛爵 碧'
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 20 份候選文檔。
+2025-10-05 17:33:45 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-05 17:33:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 17:33:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 17:33:48 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-05 17:33:48 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-05 17:33:48 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-05 17:33:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 17:33:50 - [WARNING] - [512280345618546699] [強制重試 1/3] 使用 Key #0 的嘗試失敗: Prompt blocked due to 4
+2025-10-05 17:33:50 - [INFO] -    -> 將在 0.5 秒後使用下一個 Key 進行嘗試...
+2025-10-05 17:33:51 - [INFO] - [512280345618546699] [強制重試 2/3] 使用 API Key #1 進行嘗試...
+2025-10-05 17:33:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 17:33:53 - [WARNING] - [512280345618546699] [強制重試 2/3] 使用 Key #1 的嘗試失敗: Prompt blocked due to 4
+2025-10-05 17:33:53 - [INFO] -    -> 將在 1.0 秒後使用下一個 Key 進行嘗試...
+2025-10-05 17:33:54 - [INFO] - [512280345618546699] [強制重試 3/3] 使用 API Key #2 進行嘗試...
+2025-10-05 17:33:56 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-05 17:33:56 - [WARNING] - [512280345618546699] [強制重試 3/3] 使用 Key #2 的嘗試失敗: Prompt blocked due to 4
+2025-10-05 17:33:56 - [ERROR] - [512280345618546699] 【強制 Key 輪換重試】策略在 3 次嘗試後最終失敗。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1468, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3123, in _force_and_retry
+    return await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1522, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1468, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-05 17:33:56 - [CRITICAL] - [512280345618546699] [Direct RAG] 核心生成链在所有策略之後最終失敗！
+2025-10-05 17:33:56 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-05 17:33:58 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-05 17:34:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-05 17:34:00 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-05 17:34:00 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-05 17:34:00 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-05 17:34:02 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
