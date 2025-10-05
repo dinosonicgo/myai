@@ -378,16 +378,56 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return self.data_protocol_prompt + "\n\n" + base_prompt
 # 獲取通用 LORE 擴展管線 Prompt 函式結束
 
+
+
+
+
+# 函式：獲取 LORE 骨架精煉器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-08): [全新創建] 根據「LORE 回填」策略創建此 Prompt。它的核心職責是接收一個基礎的 LORE 骨架和一份從 RAG 檢索到的上下文，並指示 LLM 使用上下文來豐富和填充骨架，生成一個更詳細的 LORE 檔案。
+    def get_lore_skeleton_refinement_prompt(self) -> str:
+        """獲取或創建一個專門用於根據 RAG 上下文精煉 LORE 骨架的字符串模板。"""
+        
+        base_prompt = """# TASK: 你是一位嚴謹的【數據擴充專家】與【檔案管理員】。
+# MISSION: 你的任務是接收一份極簡的【LORE 骨架 JSON】和一份從世界聖經中檢索出的【相關背景情報】。你需要利用情報中的所有可用資訊，來填充和豐富這個骨架，生成一個盡可能詳細、準確的【最終 LORE 檔案 JSON】。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1.  **【情報優先原則】**: 【相關背景情報】是你填充數據的【唯一依據】。你生成的檔案中所有欄位的內容，都【必須】能在情報中找到直接或間接的證據支持。
+# 2.  **【禁止幻覺原則】**: 【絕對禁止】添加任何情報中未提及的推論或捏造事實。如果情報中沒有提到某個欄位（例如 `age`），則保持其在骨架中的原始值（例如 `"未知"`）。
+# 3.  **【骨架保留原則】**: 對於情報中未提供資訊的欄位，你【必須】保留【LORE 骨架 JSON】中的原始值。
+# 4.  **【結構強制令】**: 你的唯一輸出【必須】是一個純淨的、其結構與提供的【目標 Pydantic 結構】完全匹配的 JSON 物件。
+
+# === 【【【目標 Pydantic 結構 (供你參考)】】】 ===
+# ```python
+{pydantic_schema_str}
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【LORE 骨架 JSON (待填充)】:
+{skeleton_json}
+
+# ---
+# 【相關背景情報 (你的填充依據)】:
+{rag_context}
+
+# ---
+# 【你生成的最終 LORE 檔案 JSON】:
+"""
+        return self.data_protocol_prompt + "\n\n" + base_prompt
+# 函式：獲取 LORE 骨架精煉器 Prompt (v1.0 - 全新創建)
+
+
     
 
-# 函式：RAG 直通生成 (v2.3 - 統一備援標籤)
+# 函式：RAG 直通生成 (v2.4 - LORE 創建流程重構)
 # 更新紀錄:
-# v2.3 (2025-10-05): [災難性BUG修復] 根據備援系統 `_euphemize_and_retry` 的失敗日誌，重構了最終 Prompt 模板。將【最近對話歷史】和【本回合互動】合併並重命名為統一的【本回合的完整對話】區塊，確保了在主生成流程被審查時，備援系統能夠正確找到並「消毒」對話內容。
+# v2.4 (2025-12-08): [災難性BUG修復] 徹底重構了 LORE 擴展管線。當檢測到新實體時，不再直接儲存骨架，而是先用實體名稱對 RAG 進行靶向查詢，然後調用一個新的精煉 Prompt，將 RAG 檢索到的詳細資訊回填到 LORE 骨架中，最後才儲存這個被豐富過的 LORE。
+# v2.3 (2025-10-05): [災難性BUG修復] 根據備援系統 `_euphemize_and_retry` 的失敗日誌，重構了最終 Prompt 模板。
 # v2.2 (2025-10-05): [災難性BUG修復-終極方案] 再次徹底重構了查詢擴展邏輯，解決了遠景模式下的上下文污染問題。
-# v2.1 (2025-10-05): [重大逻辑升级] 引入了「短期記憶感知的查詢擴展」。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v2.3) 執行一個包含「短期記憶感知」、通用 LORE 擴展、LORE 優先、RAG 直通的完整生成流程。
+        (v2.4) 執行一個包含「LORE回填」、短期記憶感知、RAG 直通的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -396,7 +436,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟動 LORE 優先的 RAG 直通生成流程...")
         
-        # --- 步骤 1: 通用 LORE 扩展管线 ---
+        # --- [v2.4 核心修正] 步驟 1: 通用 LORE 擴展與資訊回填管線 ---
         try:
             logger.info(f"[{user_id}] [LORE 擴展] 正在檢查是否需要擴展 LORE...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -413,14 +453,44 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if expansion_result and (expansion_result.npc_profiles or expansion_result.locations or expansion_result.items or expansion_result.creatures or expansion_result.quests or expansion_result.world_lores):
-                logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體，正在創建骨架檔案...")
-                await self._resolve_and_save("npc_profiles", [p.model_dump() for p in expansion_result.npc_profiles])
+                logger.info(f"[{user_id}] [LORE 擴展] ✅ 檢測到新實體骨架，啟動【資訊回填】流程...")
+                
+                # --- NPC 檔案回填 ---
+                enriched_npc_profiles = []
+                if expansion_result.npc_profiles:
+                    refinement_template = self.get_lore_skeleton_refinement_prompt()
+                    for skeleton_profile in expansion_result.npc_profiles:
+                        try:
+                            logger.info(f"[{user_id}] [LORE 回填] 正在為新 NPC '{skeleton_profile.name}' 檢索背景資訊...")
+                            rag_query = f"關於角色 '{skeleton_profile.name}' 的所有已知資訊、背景故事、外貌、性格和能力。"
+                            rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
+                            rag_context = rag_context_dict.get("summary", "無相關背景資訊。")
+
+                            refinement_prompt = self._safe_format_prompt(
+                                refinement_template,
+                                {
+                                    "pydantic_schema_str": CharacterProfile.model_json_schema(by_alias=False),
+                                    "skeleton_json": skeleton_profile.model_dump_json(),
+                                    "rag_context": rag_context
+                                }
+                            )
+                            enriched_profile = await self.ainvoke_with_rotation(
+                                refinement_prompt, output_schema=CharacterProfile, models_to_try_override=[FUNCTIONAL_MODEL]
+                            )
+                            enriched_npc_profiles.append(enriched_profile.model_dump())
+                            logger.info(f"[{user_id}] [LORE 回填] ✅ 成功為 '{skeleton_profile.name}' 填充了詳細資訊。")
+                        except Exception as refine_e:
+                            logger.warning(f"[{user_id}] [LORE 回填] 為 '{skeleton_profile.name}' 精煉時失敗: {refine_e}。將僅保存基礎骨架。")
+                            enriched_npc_profiles.append(skeleton_profile.model_dump())
+                
+                # 將精煉後的結果和其他未處理的 LORE 一起儲存
+                await self._resolve_and_save("npc_profiles", enriched_npc_profiles)
                 await self._resolve_and_save("locations", [p.model_dump() for p in expansion_result.locations])
                 await self._resolve_and_save("items", [p.model_dump() for p in expansion_result.items])
                 await self._resolve_and_save("creatures", [p.model_dump() for p in expansion_result.creatures])
                 await self._resolve_and_save("quests", [p.model_dump() for p in expansion_result.quests])
                 await self._resolve_and_save("world_lores", [p.model_dump(by_alias=True) for p in expansion_result.world_lores])
-                logger.info(f"[{user_id}] [LORE 擴展] 新的 LORE 骨架已成功創建並存入資料庫。")
+                logger.info(f"[{user_id}] [LORE 擴展] 新的 LORE (包含已回填資訊) 已成功創建並存入資料庫。")
             else:
                 logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
         except Exception as e:
@@ -553,6 +623,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+
+
+
+
+
+
+
+
+
+    
 
     
 
@@ -6059,6 +6139,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
