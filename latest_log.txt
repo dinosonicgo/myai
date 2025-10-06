@@ -1,51 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T00:01:26.646404 ###
+### AI Lover Log - Last updated at 2025-10-07T00:06:29.971417 ###
 
-2025-10-06 23:23:47 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
-2025-10-06 23:23:47 - [INFO] - [512280345618546699] [動態世界-1/5] 正在進行意圖分類...
-2025-10-06 23:23:48 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-06 23:23:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。啟動【自我修正】流程...
-2025-10-06 23:23:48 - [WARNING] - [512280345618546699] 導致解析錯誤的原始 LLM 輸出: 
---- START RAW ---
-```json
-{
-  "intent": "nsfw_interactive"
-}
-```
---- END RAW ---
-2025-10-06 23:23:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-06 23:23:49 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-06 23:23:49 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: 2 validation errors for IntentClassificationResult
-intent_type
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive', 'reasoning': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-reasoning
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1770, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(corrected_clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for IntentClassificationResult
-intent_type
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive', 'reasoning': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-reasoning
-  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
-    For further information visit https://errors.pydantic.dev/2.8/v/string_type
-2025-10-06 23:23:49 - [ERROR] - [512280345618546699] [動態世界] 在前置 LORE 更新流程中发生严重错误: 2 validation errors for IntentClassificationResult
-intent_type
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-reasoning
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 447, in direct_rag_generate
-    intent_result = await self.ainvoke_with_rotation(full_intent_prompt, output_schema=IntentClassificationResult, models_to_try_override=[FUNCTIONAL_MODEL])
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1774, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1722, in ainvoke_with_rotation
     return output_schema.model_validate(json.loads(repaired_str))
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
     return cls.__pydantic_validator__.validate_python(
@@ -300,3 +254,49 @@ AttributeError: 'int' object has no attribute 'name'
 2025-10-07 00:01:25 - [INFO] - [512280345618546699] [主生成] 開始執行對話生成...
 2025-10-07 00:01:26 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['爵從', '握著', '拱形', '米婭纖細', '勛爵', '這正', '將積蓄', '泛起', '聖女', '米婭']
 2025-10-07 00:01:26 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-07 00:01:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-07 00:01:27 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '勛爵']
+2025-10-07 00:01:27 - [INFO] - [512280345618546699] [主生成] 查詢擴展完成，最終核心實體: ['DINO', '米婭纖細', '將積蓄', '爵從', '握著', '拱形', '勛爵', '這正', '泛起', '聖女', '米婭', '碧']
+2025-10-07 00:01:27 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '米婭是母畜，會立刻起身用口舌為勛爵清潔肉棒 DINO 米婭纖細 將積蓄 爵從 握著 拱形 勛爵 這正 泛起 聖女 米婭 碧'
+2025-10-07 00:01:28 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 17 份候選文檔。
+2025-10-07 00:01:28 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 17 條原始文檔作為 summary_context。
+2025-10-07 00:01:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-07 00:01:31 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-07 00:01:31 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-07 00:01:31 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-07 00:01:31 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-07 00:01:33 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-07 00:01:33 - [WARNING] - [512280345618546699] [強制重試 1/3] 使用 Key #0 的嘗試失敗: Prompt blocked due to 4
+2025-10-07 00:01:33 - [INFO] -    -> 將在 0.5 秒後使用下一個 Key 進行嘗試...
+2025-10-07 00:01:34 - [INFO] - [512280345618546699] [強制重試 2/3] 使用 API Key #1 進行嘗試...
+2025-10-07 00:01:36 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-07 00:01:36 - [WARNING] - [512280345618546699] [強制重試 2/3] 使用 Key #1 的嘗試失敗: Prompt blocked due to 4
+2025-10-07 00:01:36 - [INFO] -    -> 將在 1.0 秒後使用下一個 Key 進行嘗試...
+2025-10-07 00:01:37 - [INFO] - [512280345618546699] [強制重試 3/3] 使用 API Key #2 進行嘗試...
+2025-10-07 00:01:39 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-07 00:01:39 - [WARNING] - [512280345618546699] [強制重試 3/3] 使用 Key #2 的嘗試失敗: Prompt blocked due to 4
+2025-10-07 00:01:39 - [ERROR] - [512280345618546699] 【強制 Key 輪換重試】策略在 3 次嘗試後最終失敗。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1680, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3306, in _force_and_retry
+    return await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1736, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1680, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-07 00:01:39 - [CRITICAL] - [512280345618546699] [Direct RAG] 核心生成链在所有策略之後最終失敗！
+2025-10-07 00:01:40 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-07 00:01:41 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [事後分析] 本次分析未檢測到需要更新或創建的 LORE。
+2025-10-07 00:01:43 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
