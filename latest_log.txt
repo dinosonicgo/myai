@@ -1,110 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-06T23:26:30.913180 ###
+### AI Lover Log - Last updated at 2025-10-06T23:31:34.111296 ###
 
-2025-10-06 21:56:52 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
-2025-10-06 21:56:52 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功: 已成功更新 NPC '米婭' 的檔案。
-任務成功: 已成功更新 NPC '勛爵' 的檔案。
-2025-10-06 21:56:52 - [INFO] - [512280345618546699] [精煉觸發器] 檢測到 2 條新/陳舊 LORE，正在異步觸發背景精煉服務...
-2025-10-06 21:56:52 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [LORE精煉 v7.2] 背景精煉服務已啟動，收到 2 個精煉任務。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [單體精煉 v10.0] 正在為角色 '米婭' 啟動三層降級精煉流程...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''米婭' 的所有身份、頭銜、綽號和狀態是什麼？...' 中分析实体...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的所有身份、頭銜、綽號和狀態是什麼？ '米婭''
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '關於 '米婭' 的背景故事、起源和關鍵經歷的詳細描述。...' 中分析实体...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的背景故事、起源和關鍵經歷的詳細描述。 '米婭' 關於'
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '對 '米婭' 外貌的詳細描寫。...' 中分析实体...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '外貌的詳細描寫。 '米婭' 對'
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''米婭' 擁有哪些技能或能力？...' 中分析实体...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '擁有哪些技能或能力？ '米婭''
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''米婭' 與其他角色的關係是什麼？...' 中分析实体...
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '與其他角色的關係是什麼？ '米婭''
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:55 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
-2025-10-06 21:56:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-06 21:56:58 - [INFO] - [512280345618546699] [單體精煉] ✅ 驗證通過，成功為角色 '米婭' 生成精煉檔案。
-2025-10-06 21:56:58 - [INFO] - [512280345618546699] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '米婭' 的檔案。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [單體精煉 v10.0] 正在為角色 '勛爵' 啟動三層降級精煉流程...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''勛爵' 的所有身份、頭銜、綽號和狀態是什麼？...' 中分析实体...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的所有身份、頭銜、綽號和狀態是什麼？ '勛爵''
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '關於 '勛爵' 的背景故事、起源和關鍵經歷的詳細描述。...' 中分析实体...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '的背景故事、起源和關鍵經歷的詳細描述。 '勛爵' 關於'
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 '對 '勛爵' 外貌的詳細描寫。...' 中分析实体...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '外貌的詳細描寫。 '勛爵' 對'
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''勛爵' 擁有哪些技能或能力？...' 中分析实体...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '擁有哪些技能或能力？ '勛爵''
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [实体名称提取 (v2.2)] 正在从查询 ''勛爵' 與其他角色的關係是什麼？...' 中分析实体...
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 查詢已擴展為: '與其他角色的關係是什麼？ '勛爵''
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] 粗略檢索成功，獲得 2 份候選文檔。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
-2025-10-06 21:56:59 - [INFO] - [512280345618546699] [LORE精煉-L1] 正在嘗試使用雲端模型 (gemini-2.5-flash-lite) 進行完整精煉...
-2025-10-06 21:57:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-06 21:57:02 - [INFO] - [512280345618546699] [單體精煉] ✅ 驗證通過，成功為角色 '勛爵' 生成精煉檔案。
-2025-10-06 21:57:02 - [INFO] - [512280345618546699] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '勛爵' 的檔案。
-2025-10-06 21:57:03 - [INFO] - [512280345618546699] [LORE精煉 v7.2] 所有 2 個背景精煉任務已全部完成。
-2025-10-06 22:29:38 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-06 22:29:42 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-06 22:29:42 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-06 22:29:42 - [INFO] - 正在全域同步應用程式指令...
-2025-10-06 22:29:42 - [INFO] - ✅ 指令已全域同步！
-2025-10-06 22:29:42 - [INFO] - Discord Bot setup hook finished!
-2025-10-06 22:29:45 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-06 22:29:45 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-06 22:35:23 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-06 22:35:26 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-06 22:35:26 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-06 22:35:26 - [INFO] - 正在全域同步應用程式指令...
-2025-10-06 22:35:27 - [INFO] - ✅ 指令已全域同步！
-2025-10-06 22:35:27 - [INFO] - Discord Bot setup hook finished!
-2025-10-06 22:35:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-06 22:35:30 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-06 22:54:22 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-06 22:54:26 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-06 22:54:26 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-06 22:54:26 - [INFO] - 正在全域同步應用程式指令...
-2025-10-06 22:54:26 - [INFO] - ✅ 指令已全域同步！
-2025-10-06 22:54:26 - [INFO] - Discord Bot setup hook finished!
-2025-10-06 22:54:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-06 22:54:30 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-06 23:01:00 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-06 23:01:03 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-06 23:01:03 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-06 23:01:03 - [INFO] - 正在全域同步應用程式指令...
-2025-10-06 23:01:03 - [INFO] - ✅ 指令已全域同步！
-2025-10-06 23:01:03 - [INFO] - Discord Bot setup hook finished!
-2025-10-06 23:01:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-06 23:01:07 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-06 23:05:36 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-06 23:05:38 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-06 23:05:38 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-06 23:05:38 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-06 23:05:41 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-06 23:05:46 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-06 23:05:46 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-06 23:05:46 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-06 23:05:46 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-06 23:05:46 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-06 23:05:54 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-06 23:05:54 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-06 23:05:54 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-06 23:05:54 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-06 23:05:54 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-06 23:05:57 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
 2025-10-06 23:06:12 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
 2025-10-06 23:06:13 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
 2025-10-06 23:06:13 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
@@ -300,3 +195,108 @@ reasoning
 2025-10-06 23:25:08 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功 (修正後合併): 已將信息合併到 '宅邸 > 米婭'。
 任務成功 (修正後合併): 已將信息合併到 '宅邸 > 勛爵'。
 2025-10-06 23:25:08 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
+2025-10-06 23:30:45 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-06 23:30:45 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-06 23:30:45 - [INFO] - [512280345618546699] [動態世界-1/5] 正在進行意圖分類...
+2025-10-06 23:30:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-06 23:30:46 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤: ValidationError。啟動【自我修正】流程...
+2025-10-06 23:30:46 - [WARNING] - [512280345618546699] 導致解析錯誤的原始 LLM 輸出: 
+--- START RAW ---
+```json
+{
+  "intent": "nsfw_interactive"
+}
+```
+--- END RAW ---
+2025-10-06 23:30:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-06 23:30:47 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
+2025-10-06 23:30:47 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: 1 validation error for IntentClassificationResult
+intent_type
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive', 'reasoning': ''}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1770, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(corrected_clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for IntentClassificationResult
+intent_type
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive', 'reasoning': ''}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-06 23:30:47 - [ERROR] - [512280345618546699] [動態世界] 在前置 LORE 更新流程中发生严重错误: 2 validation errors for IntentClassificationResult
+intent_type
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+reasoning
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 447, in direct_rag_generate
+    intent_result = await self.ainvoke_with_rotation(full_intent_prompt, output_schema=IntentClassificationResult, models_to_try_override=[FUNCTIONAL_MODEL])
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1774, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1722, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(repaired_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 2 validation errors for IntentClassificationResult
+intent_type
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+reasoning
+  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-06 23:30:47 - [INFO] - [512280345618546699] [主生成] 開始執行對話生成...
+2025-10-06 23:30:48 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['握著', '泛起', '爵從', '聖女', '瞰著', '米婭纖細', '將積蓄', '勛爵', '這正', '拱形', '卡爾•', '米婭', '何雄性', '姿勢']
+2025-10-06 23:30:48 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
+2025-10-06 23:30:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-06 23:30:50 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '勛爵']
+2025-10-06 23:30:50 - [INFO] - [512280345618546699] [主生成] 查詢擴展完成，最終核心實體: ['米婭纖細', 'DINO', '何雄性', '卡爾•', '將積蓄', '握著', '泛起', '爵從', '聖女', '瞰著', '勛爵', '這正', '拱形', '米婭', '姿勢', '碧']
+2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '米婭是母畜，會立刻起身用口舌為勛爵清潔肉棒 米婭纖細 DINO 何雄性 卡爾• 將積蓄 握著 泛起 爵從 聖女 瞰著 勛爵 這正 拱形 米婭 姿勢 碧'
+2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 2 份候選文檔。
+2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
+2025-10-06 23:30:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-06 23:30:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-06 23:30:53 - [WARNING] - [512280345618546699] 最終生成鏈遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-06 23:30:53 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-06 23:30:53 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-06 23:30:55 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-06 23:31:01 - [WARNING] - [512280345618546699] [強制重試 1/3] 使用 Key #0 的嘗試失敗: Prompt blocked due to 4
+2025-10-06 23:31:01 - [INFO] -    -> 將在 0.5 秒後使用下一個 Key 進行嘗試...
+2025-10-06 23:31:02 - [INFO] - [512280345618546699] [強制重試 2/3] 使用 API Key #1 進行嘗試...
+2025-10-06 23:31:04 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-06 23:31:04 - [WARNING] - [512280345618546699] [強制重試 2/3] 使用 Key #1 的嘗試失敗: Prompt blocked due to 4
+2025-10-06 23:31:04 - [INFO] -    -> 將在 1.0 秒後使用下一個 Key 進行嘗試...
+2025-10-06 23:31:05 - [INFO] - [512280345618546699] [強制重試 3/3] 使用 API Key #2 進行嘗試...
+2025-10-06 23:31:06 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-06 23:31:06 - [WARNING] - [512280345618546699] [強制重試 3/3] 使用 Key #2 的嘗試失敗: Prompt blocked due to 4
+2025-10-06 23:31:06 - [ERROR] - [512280345618546699] 【強制 Key 輪換重試】策略在 3 次嘗試後最終失敗。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1676, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3314, in _force_and_retry
+    return await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1730, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1676, in ainvoke_with_rotation
+    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
+2025-10-06 23:31:07 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-06 23:31:09 - [INFO] - [512280345618546699] [事後分析] 正在啟動背景分析與分流任務...
+2025-10-06 23:31:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-06 23:31:10 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-06 23:31:10 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-06 23:31:10 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-06 23:31:12 - [INFO] - [512280345618546699] 背景任務：檢測到 2 條 LORE 更新，準備執行...
+2025-10-06 23:31:12 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 2 個修正後的LORE任务 ---
+2025-10-06 23:31:13 - [INFO] - [512280345618546699] [RAG增量更新] 已成功 更新 LORE '宅邸 > 米婭' 到 RAG 索引。當前總文檔數: 2
+2025-10-06 23:31:13 - [INFO] - [512280345618546699] [RAG增量更新] 已成功 更新 LORE '宅邸 > 勛爵' 到 RAG 索引。當前總文檔數: 2
+2025-10-06 23:31:13 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-06 23:31:13 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功: 已成功更新 NPC '米婭' 的檔案。
+任務成功: 已成功更新 NPC '勛爵' 的檔案。
+2025-10-06 23:31:13 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
