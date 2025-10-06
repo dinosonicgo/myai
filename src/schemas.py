@@ -357,8 +357,10 @@ class ExpansionDecision(BaseModel):
     should_expand: bool = Field(description="如果當前對話適合進行世界構建，則為 true。")
     reasoning: str = Field(description="做出此決定的理由。")
 
+# 類別：意圖分類結果
 class IntentClassificationResult(BaseModel):
-    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive'] = Field(description="對使用者輸入意圖的最終分類。")
+    """用於包裹使用者輸入意圖分類結果的模型。"""
+    intent_type: Literal['sfw', 'nsfw_interactive', 'nsfw_descriptive', 'exploration', 'task_oriented'] = Field(description="對使用者輸入意圖的最終分類。'sfw': 常规安全互动；'nsfw_interactive': 亲密互动；'nsfw_descriptive': 描述性NSFW请求；'exploration': 探索或无明确目标；'task_oriented': 执行特定任务。")
     reasoning: str = Field(description="做出此分類的理由。")
 
 class StyleAnalysisResult(BaseModel):
@@ -417,6 +419,14 @@ class BatchRefinementResult(BaseModel):
     refined_profiles: List[CharacterProfile] = Field(description="一個包含所有被成功精煉後的角色檔案的列表。")
 
 
+# 類別：場景選角結果
+class SceneCastingResult(BaseModel):
+    """用於包裹“AI场景导演”生成的动态世界元素的模型。"""
+    newly_created_npcs: List[CharacterProfile] = Field(default_factory=list, description="根据场景动态创造出的、有名有姓的核心NPC列表。")
+    quests: List[Quest] = Field(default_factory=list, description="根据场景动态创造出的、可供玩家发现的情节钩子或任务列表。")
+    ambient_events: List[str] = Field(default_factory=list, description="为丰富世界而设计的、正在发生的背景事件的文字描述列表（可以是正面、中立或负面的）。")
+
+
 
 
 
@@ -451,7 +461,7 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-
+SceneCastingResult.model_rebuild()
 
 # (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
 BatchRefinementInput.model_rebuild()
@@ -462,6 +472,7 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
