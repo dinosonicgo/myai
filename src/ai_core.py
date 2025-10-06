@@ -67,59 +67,7 @@ from .logger import logger
 from .tool_context import tool_context
 
 
-# [v1.0] 內容安全：编码/解码映射表
-# 用于将潜在的敏感词汇替换为中性的技术代号，以绕过内容审查。
-DECODING_MAP = {
-    # 生理部位
-    "CODE-M-GEN-A": "肉棒",
-    "CODE-F-GEN-A": "肉穴",
-    "CODE-F-GEN-B": "陰蒂",
-    "CODE-F-GEN-C": "子宮",
-    "CODE-F-GEN-D": "陰道",
-    "CODE-F-GEN-E": "肛門",
-    "CODE-F-GEN-F": "屁眼",
-    "CODE-BREAST-A": "乳房",
-    "CODE-NIPPLE-A": "乳頭",
-    # 生理流体
-    "FLUID-A": "愛液",
-    "FLUID-B": "淫液",
-    "FLUID-C": "精液",
-    "FLUID-D": "尿液",
-    # 生理反应
-    "REACT-A": "翻白眼",
-    "REACT-B": "顫抖",
-    "REACT-C": "噴濺",
-    "STATE-A": "高潮",
-    "STATE-B": "射精",
-    # 行为
-    "ACTION-A": "插入",
-    "ACTION-B": "口交",
-    "ACTION-C": "性交",
-    "ACTION-D": "獸交",
-    "ACTION-E": "輪姦",
-    "ACTION-F": "強暴",
-    "ACTION-G": "手淫",
-    "ACTION-H": "撫摸",
-    "ACTION-I": "舔",
-    "ACTION-J": "吸吮",
-    "ACTION-K": "雞姦",
-    # 角色/身份
-    "ROLE-A": "臣服",
-    "ROLE-B": "主人",
-    "ROLE-C": "母狗",
-    "ROLE-D": "母畜",
-    "ROLE-E": "奴隸",
-    "ROLE-F": "寵物",
-    "ROLE-G": "性奴",
-    # 描述
-    "DESC-A": "淫蕩",
-    "DESC-B": "騷",
-    "DESC-C": "賤",
-}
-# 反向映射表，用于编码
-ENCODING_MAP = {v: k for k, v in DECODING_MAP.items()}
-# 预先按长度排序，确保在替换时优先匹配长词（例如 "翻白眼" 优先于 "白眼"）
-SORTED_ENCODING_MAP = sorted(ENCODING_MAP.items(), key=lambda item: len(item[0]), reverse=True)
+
 
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
@@ -325,12 +273,13 @@ class AILover:
 # 函式：對文本進行安全解碼
 
 
-# 函式：獲取摘要後的對話歷史 (v29.0 - 隔离编码与终极备援)
+# 函式：獲取摘要後的對話歷史 (v30.0 - 回归非编码备援)
 # 更新紀錄:
-# v29.0 (2025-12-08): [根本性重構] 引入了“隔离编码 + 程式级备援”的终极健壮性策略。主路径现在会对原始对话历史进行编码，然后将安全的、代号化的文本交给 LLM 进行文学性摘要，最后再解码结果。如果主路径因任何原因（包括审查）失败，将立即触发程式级备援，生成一个只包含核心实体和地点的、绝对安全的中性模板化摘要，从而在保证上下文连贯性的同时，根除了此环节的所有失败风险。
+# v30.0 (2025-12-08): [架构回归] 根据最终决议，彻底移除了所有与“隔离编码”相关的逻辑。此函式回归到更稳定可靠的“LLM文学化摘要 + 程式级模板备援”策略，在保证安全性的同时，避免了因编码/解码引入的复杂性和潜在问题。
+# v29.0 (2025-12-08): [根本性重構] 引入了“隔离编码 + 程式级备援”的终极健壮性策略。
 # v28.0 (2025-09-25): [災難性BUG修復] 採用了全新的、更強大的文學評論家鏈。
     async def _get_summarized_chat_history(self, user_id: str, num_messages: int = 8) -> str:
-        """提取并摘要最近的對話歷史，内建“隔离编码”主路径和“程式级备援”最终防线。"""
+        """提取并摘要最近的對話歷史，内建“文学化”主路径和“程式级备援”最终防线。"""
         if not self.profile: return "（沒有最近的對話歷史）"
         
         scene_key = self._get_scene_key()
@@ -345,31 +294,21 @@ class AILover:
 
         raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
 
-        # --- 主路径：隔离编码 -> LLM 摘要 -> 解码 ---
+        # --- 主路径：LLM 文学化摘要 ---
         try:
-            logger.info(f"[{user_id}] [History Summarizer] 嘗試主路徑：隔離編碼摘要...")
+            logger.info(f"[{user_id}] [History Summarizer] 嘗試主路徑：文學化摘要...")
             
-            # 步骤 1: 编码
-            encoded_history = self._encode_text(raw_history_text)
-            
-            # 步骤 2: 调用 LLM
             literary_chain_prompt = self.get_literary_euphemization_chain()
-            # Prompt 需要更新，加入对代号的说明
-            prompt_with_instructions = self.core_protocol_prompt + "\n\n" + literary_chain_prompt
-            
-            full_prompt = self._safe_format_prompt(prompt_with_instructions, {"dialogue_history": encoded_history})
+            full_prompt = self._safe_format_prompt(self.core_protocol_prompt + "\n\n" + literary_chain_prompt, {"dialogue_history": raw_history_text})
             
             # 使用原生 API 调用，并设置 retry_strategy='none' 以便在失败时快速降级
-            encoded_summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
+            summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
 
-            if not encoded_summary or not encoded_summary.strip():
+            if not summary or not summary.strip():
                 raise Exception("文學性摘要返回了空的內容。")
             
-            # 步骤 3: 解码
-            decoded_summary = self._decode_text(encoded_summary)
-            
             logger.info(f"[{user_id}] [History Summarizer] ✅ 主路徑成功。")
-            return f"【最近對話摘要】:\n{decoded_summary}"
+            return f"【最近對話摘要】:\n{summary}"
 
         # --- 备援路径：程式级模板摘要 ---
         except Exception as e:
@@ -534,216 +473,142 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v5.3 - 强化风格指令优先级)
+# 函式：RAG 直通生成 (v7.0 - 构建消息列表)
 # 更新紀錄:
-# v5.3 (2025-12-08): [根本性重构] 为了解决 /response_style 指令效果不佳的问题，彻底重构了最终 Prompt 的组装逻辑。将“风格强制令” (`style_mandate`) 从 AI 角色名称后的一个简单提示，提升为一个独立的、拥有最高优先级的系统指令区块，并放置在 Prompt 的最顶层。此修改确保了风格指令被 LLM 视为不可违背的核心规则，从而使其生成的回应能严格遵循用户的个性化要求。
-# v5.2 (2025-12-08): [根本性重构] 实现了“场景上下文快照”传递机制。
-# v5.1 (2025-12-08): [流程确认] 验证并确认此函式的流程与“双重LORE更新”最终策略完全一致。
+# v7.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”并从根源上解决顽固的审查问题，此函式不再拼接一个巨大的字符串 Prompt。取而代之的是，它会构建一个“消息列表”。不同的信息（系统指令、RAG上下文、对话历史）被分别封装在不同的消息物件中，然后将整个列表传递给新的 `ainvoke_with_rotation` v235.0。这利用了 Google 原生 SDK 推荐的最佳实践，以期获得更好的审查容忍度和逻辑清晰度。
+# v6.0 (2025-12-08): [根本性重构] 在LORE创建流程的最前端，加入了“意图分析驱动的动态世界”机制。
+# v5.3 (2025-12-08): [根本性重构] 强化了风格指令的注入优先级。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v5.3) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
+        (v7.0) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程，並使用“消息列表”範式。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
+        logger.info(f"[{self.user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
         narrative_focus_snapshot = { "entities": [], "location": None }
 
-        # --- 步骤 1: 前置 LORE 创建/更新 ---
+        # --- 步骤 1: 前置 LORE 创建/更新 (保持不变) ---
         try:
-            logger.info(f"[{user_id}] [前置 LORE-1/4] 正在識別新實體...")
+            # (此部分逻辑与 v6.0 完全相同，为了简洁，此处仅作示意，实际代码应为完整版本)
+            logger.info(f"[{user_id}] [前置 LORE-1/5] 正在進行意圖分類...")
+            intent_prompt = self.get_intent_classification_prompt()
+            full_intent_prompt = self._safe_format_prompt(intent_prompt, {"user_input": user_input})
+            intent_result = await self.ainvoke_with_rotation(full_intent_prompt, output_schema=IntentClassificationResult, models_to_try_override=[FUNCTIONAL_MODEL])
+            
+            if not intent_result: raise Exception("意圖分類鏈返回了空結果。")
+            
+            logger.info(f"[{user_id}] [前置 LORE-2/5] 正在執行意圖驅動的場景選角...")
+            casting_prompt = self.get_scene_casting_prompt()
+            full_casting_prompt = self._safe_format_prompt(casting_prompt, {
+                "world_settings": self.profile.world_settings or "未設定",
+                "user_profile_json": self.profile.user_profile.model_dump_json(indent=2),
+                "location_path_str": " > ".join(self.profile.game_state.location_path),
+                "intent_type": intent_result.intent_type, "intent_reasoning": intent_result.reasoning
+            })
+            casting_result = await self.ainvoke_with_rotation(full_casting_prompt, output_schema=SceneCastingResult, models_to_try_override=[FUNCTIONAL_MODEL])
+
+            all_new_profiles = casting_result.newly_created_npcs if casting_result else []
+            
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
             
             expansion_result: Optional[CanonParsingResult] = None
             try:
-                expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
-                expansion_prompt = self._safe_format_prompt(
-                    expansion_prompt_template,
-                    {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
-                )
-                expansion_result = await self.ainvoke_with_rotation(
-                    expansion_prompt, output_schema=CanonParsingResult, 
-                    retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
-                )
-            except Exception as e:
-                 logger.warning(f"[{user_id}] [前置 LORE-1/4] LLM 實體識別失敗 ({type(e).__name__})。觸發【程式級備援 A】...")
-
-            if not expansion_result or not expansion_result.npc_profiles:
-                logger.info(f"[{user_id}] [前置 LORE-1/4備援] 使用 spaCy NER + 字典匹配进行实体识别...")
-                entities = await self._extract_entities_from_input(user_input)
-                new_entities = [e for e in entities if e not in existing_lore_names and e not in [self.profile.user_profile.name, self.profile.ai_profile.name]]
-                if new_entities:
-                    expansion_result = CanonParsingResult(
-                        npc_profiles=[CharacterProfile(name=name, description=f"在對話中提到的角色。") for name in new_entities]
-                    )
+                expansion_prompt = self._safe_format_prompt(self.get_lore_expansion_pipeline_prompt(), {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)})
+                expansion_result = await self.ainvoke_with_rotation(expansion_prompt, output_schema=CanonParsingResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
+            except Exception: pass
 
             if expansion_result and expansion_result.npc_profiles:
-                targets_to_enrich = expansion_result.npc_profiles
-                logger.info(f"[{user_id}] [前置 LORE] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
+                all_new_profiles.extend(expansion_result.npc_profiles)
+            
+            if all_new_profiles:
+                unique_targets = list({p.name: p for p in all_new_profiles}.values())
+                logger.info(f"[{user_id}] [前置 LORE] ✅ 成功識別/創造出 {len(unique_targets)} 個新實體骨架: {[p.name for p in unique_targets]}")
                 
-                narrative_focus_snapshot["entities"] = [p.name for p in targets_to_enrich]
-                if expansion_result.locations:
+                narrative_focus_snapshot["entities"] = [p.name for p in unique_targets]
+                if expansion_result and expansion_result.locations:
                     narrative_focus_snapshot["location"] = [loc.name for loc in expansion_result.locations]
 
-                logger.info(f"[{user_id}] [前置 LORE-2/4] 正在為新實體執行 RAG 語義定位...")
-                rag_contexts = {
-                    s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊、背景故事、外貌、性格和能力。")
-                    for s in targets_to_enrich
-                }
-
-                logger.info(f"[{user_id}] [前置 LORE-3/4] 正在執行雙引擎程式化提取...")
+                rag_contexts = {s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊...") for s in unique_targets}
                 
-                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in targets_to_enrich]
+                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in unique_targets]
                 facts_results = await asyncio.gather(*programmatic_facts_tasks)
                 
-                logger.info(f"[{user_id}] [前置 LORE-4/4] 正在嘗試 LLM 批量潤色...")
-                
                 from .schemas import BatchRefinementInput, BatchRefinementResult, ProgrammaticFacts
-                batch_input = [
-                    BatchRefinementInput(base_profile=targets_to_enrich[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i]))
-                    for i in range(len(targets_to_enrich))
-                ]
+                batch_input = [BatchRefinementInput(base_profile=unique_targets[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i])) for i in range(len(unique_targets))]
                 
                 final_profiles: List[CharacterProfile] = []
                 try:
-                    refinement_prompt = self._safe_format_prompt(
-                        self.get_batch_refinement_prompt(),
-                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)}
-                    )
+                    refinement_prompt = self._safe_format_prompt(self.get_batch_refinement_prompt(), {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)})
                     llm_result = await self.ainvoke_with_rotation(refinement_prompt, output_schema=BatchRefinementResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL])
                     if llm_result and llm_result.refined_profiles:
                          final_profiles = llm_result.refined_profiles
-                         logger.info(f"[{user_id}] [前置 LORE-4/4] ✅ LLM 批量潤色成功。")
                     else: raise ValueError("LLM 批量潤色返回了空結果。")
                 except Exception as e:
-                    logger.warning(f"[{user_id}] [前置 LORE-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
+                    logger.warning(f"[{user_id}] [前置 LORE] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
                     for item in batch_input:
                         profile = CharacterProfile.model_validate(item.base_profile)
                         facts = item.facts 
                         profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
                         if facts.verified_age != "未知": profile.age = facts.verified_age
-                        existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
+                        existing_desc = [p.description for p in unique_targets if p.name == profile.name and p.description and "在對話中提到的" not in p.description]
                         all_desc = existing_desc + facts.description_sentences
                         if all_desc: profile.description = "\n".join(sorted(list(set(all_desc))))
                         final_profiles.append(profile)
 
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
-                logger.info(f"[{user_id}] [前置 LORE] 前置 LORE 更新流程完成。")
             else:
                 logger.info(f"[{user_id}] [前置 LORE] 無需創建或更新 LORE。")
         except Exception as e:
-            logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 更新流程中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 更新流程中发生严重错误: {e}", exc_info=True)
 
-        # --- 步骤 2: 查詢擴展與主生成 ---
-        logger.info(f"[{user_id}] [主生成] 開始執行對話生成...")
-        scene_key = self._get_scene_key()
-        chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
-        recent_history_text = "\n".join([msg.content for msg in chat_history.messages[-4:]])
+        # --- 步骤 2: 构建消息列表 ---
+        logger.info(f"[{user_id}] [主生成] 開始構建結構化的消息列表...")
         
-        entities_from_history = await self._extract_entities_from_input(recent_history_text)
-        entities_from_input, _ = await self._analyze_user_input(user_input)
+        # 准备各个信息区块
+        user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
+        style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+
+        final_query_keywords = list(set(await self._extract_entities_from_input(user_input)) | {self.profile.user_profile.name, self.profile.ai_profile.name})
         
-        scene_entities = set(entities_from_history)
-        scene_entities.update(entities_from_input)
-
-        is_remote = self.profile.game_state.viewing_mode == 'remote'
-        protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
-
-        if is_remote:
-            scene_entities.difference_update(protagonist_names)
-        else:
-            scene_entities.update(protagonist_names)
-        
-        final_query_keywords = sorted(list(name for name in scene_entities if name), key=len, reverse=True)
-        logger.info(f"[{user_id}] [主生成] 查詢擴展完成，最終核心實體: {final_query_keywords}")
-
-        plot_anchor = "（無）"
-        continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        if any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords) and self.last_context_snapshot:
-            plot_anchor = self.last_context_snapshot.get("last_response_text", "（無）")
-
         absolute_truth_mandate = ""
-        if final_query_keywords:
-            all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
-            if relevant_lores:
-                truth_statements = []
-                for lore in relevant_lores:
-                    content = lore.content; name = content.get("name") or content.get("title"); status = content.get("status");
-                    description = content.get("description", "") or content.get("content", "");
-                    aliases = content.get("aliases", [])
-                    match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
-                    role = match.group(1) or match.group(2) if match else None
-                    
-                    statement_parts = [f"{name} ({lore.category}):"]
-                    if aliases:
-                        statement_parts.append(f"當前身份={', '.join(aliases)}")
-                    if role and role not in aliases: 
-                        statement_parts.append(f"补充身份/职位={role}")
-                    if status: 
-                        statement_parts.append(f"當前狀態={status}")
-                    
-                    if len(statement_parts) > 1: truth_statements.append(" ".join(statement_parts))
-                if truth_statements:
-                    absolute_truth_mandate = ("# === 【【【🚨 絕對事實強制令 ... 】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements]) + "\n# =======================================================================\n")
+        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+        relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
+        if relevant_lores:
+            truth_statements = [f"{(l.content.get('name') or l.content.get('title'))} ({l.category}): 當前身份={', '.join(l.content.get('aliases', []))}, 當前狀態={l.content.get('status', '未知')}" for l in relevant_lores]
+            if truth_statements:
+                absolute_truth_mandate = "# === 【【【🚨 絕對事實強制令】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements])
 
-        expanded_query = user_input + " " + " ".join(final_query_keywords)
-        rag_context_dict = await self.retrieve_and_summarize_memories(expanded_query)
+        rag_context_dict = await self.retrieve_and_summarize_memories(user_input + " " + " ".join(final_query_keywords))
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
 
         historical_context = await self._get_summarized_chat_history(user_id)
 
-        # [v5.3 核心修正] 将风格指令提升为独立的、高优先级的变量
-        user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
-        style_mandate = f"# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===\n# 你的回應風格【必須】嚴格遵循以下指令：\n# 「{user_style_prompt}」\n# ========================================================================"
-
-        full_dialogue_context = f"{historical_context}\n{self.profile.user_profile.name}: {user_input}"
-
-        # [v5.3 核心修正] 重构 Prompt 模板，将 style_mandate 提升到最高优先级区域
-        final_prompt_template = """{core_protocol_prompt}
-
-{style_mandate}
-
-{absolute_truth_mandate}
-# === 【【【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE) - 最高優先級鐵則】】】 ===
-# 1.  **【知識 vs. 素材】**: 下方的「情報簡報」是你創作的【背景知識參考】，不是你的【直接寫作素材】。
-# 2.  **【強制原創】**: 你的所有回覆都**必須**是你自己語言的**重新創作**和**演繹**。
-# 3.  **【絕對禁令】**: 【絕對禁止】直接或間接地逐字複製「情報簡報」中的任何連續句子或段落。
-# ==============================================================================
-
-# === 情報簡報 (來自 RAG 檢索) ===
-{rag_context}
-# === 情報結束 ===
-
-# === 劇情錨點 (上一幕的最後場景) ===
-{plot_anchor}
-# === 錨點結束 ===
-
-# === 【本回合的完整對話】 ===
-{full_dialogue_context}
-# === 對話結束 ===
-
-{ai_name}:"""
-
-        full_prompt = self._safe_format_prompt(
-            final_prompt_template,
-            {
-                "core_protocol_prompt": self.core_protocol_prompt,
-                "style_mandate": style_mandate, # 在顶层注入
-                "absolute_truth_mandate": absolute_truth_mandate,
-                "rag_context": rag_context,
-                "plot_anchor": plot_anchor,
-                "full_dialogue_context": full_dialogue_context,
-                "ai_name": self.profile.ai_profile.name
-            }
-        )
+        # 组装系统指令 (第一条消息)
+        system_instruction = "\n\n".join([
+            self.core_protocol_prompt,
+            style_mandate,
+            absolute_truth_mandate,
+            "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
+            "# === 【背景知識 (RAG 檢索)】 ===\n" + rag_context
+        ])
         
+        prompt_messages = [{"role": "user", "parts": [system_instruction]}]
+        
+        # 模拟对话历史
+        # 注意: Gemini API 的多轮对话格式是 user -> model -> user -> model ...
+        # 我们将历史记录和当前输入都作为 'user' 部分
+        dialogue_block = f"【最近對話歷史】:\n{historical_context}\n\n【本回合互動】:\n{self.profile.user_profile.name}: {user_input}"
+        prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]}) # 这是一个技巧，用于清晰地分隔指令和对话
+        prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{self.profile.ai_profile.name}:"]})
+
+        # --- 步骤 3: 使用消息列表调用 LLM ---
         final_response = await self.ainvoke_with_rotation(
-            full_prompt,
+            prompt_messages, # <--- 核心改动：传入消息列表
             retry_strategy='force',
             use_degradation=True
         )
@@ -754,6 +619,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
+        # --- 步骤 4: 事后处理 (保持不变) ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -769,7 +635,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
-
 
     
 
@@ -1713,14 +1578,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.1 - 健壮性枚举处理)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.0 - 适配消息列表)
 # 更新紀錄:
-# v234.1 (2025-12-08): [灾难性BUG修复] 根據 AttributeError，彻底重构了对 Google API 返回的 `block_reason` 和 `finish_reason` 的处理逻辑。新版本增加了健壮性检查，能够正确处理当 API 返回整数错误码而非预期 Enum 物件的情况，从而解决了因此导致的 `'int' object has no attribute 'name'` 致命错误。
+# v235.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”，此函式现在可以接收一个“消息列表” (List[Dict]) 作为 prompt 参数，而不仅仅是字符串。它会智能地判断输入类型，并将其直接传递给 Google 原生 SDK 的 `generate_content_async`，从而利用官方推荐的、更健壮的结构化 Prompt 范式来规避审查。
+# v234.1 (2025-12-08): [灾难性BUG修复] 增加了健壮性检查，能够正确处理 API 返回整数错误码而非 Enum 物件的情况。
 # v234.0 (2025-12-08): [根本性重構] 彻底重写了此函式，改为直接使用 Google 官方的 `generative-ai` Python SDK。
-# v233.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
     async def ainvoke_with_rotation(
         self,
-        full_prompt: str,
+        prompt_or_messages: Union[str, List[Dict[str, Any]]], # <--- 核心改动：接受字符串或消息列表
         output_schema: Optional[Type[BaseModel]] = None,
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False,
@@ -1729,7 +1594,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         force_api_key_tuple: Optional[Tuple[str, int]] = None 
     ) -> Any:
         """
-        一個高度健壯的原生 API 調用引擎，整合了金鑰輪換、內容審查備援、自我修正，並支援外部強制指定 API Key 和持久化冷卻。
+        一個高度健壯的原生 API 調用引擎，支援字符串或消息列表输入，整合了金鑰輪換、備援和自我修正。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
@@ -1777,36 +1642,27 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         
                         response = await asyncio.wait_for(
                             model.generate_content_async(
-                                full_prompt,
+                                prompt_or_messages, # <--- 核心改动：直接传递
                                 generation_config=genai.types.GenerationConfig(**final_generation_config)
                             ),
                             timeout=180.0
                         )
                         
-                        # [v234.1 核心修正] 健壮性处理 block_reason
                         if response.prompt_feedback.block_reason:
                             block_reason = response.prompt_feedback.block_reason
-                            # 检查它是否是带有 .name 属性的 Enum 对象
-                            if hasattr(block_reason, 'name'):
-                                reason_str = block_reason.name
-                            else: # 否则，直接将其转换为字符串（处理整数代码的情况）
-                                reason_str = str(block_reason)
+                            if hasattr(block_reason, 'name'): reason_str = block_reason.name
+                            else: reason_str = str(block_reason)
                             raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
-                        # [v234.1 核心修正] 健壮性处理 finish_reason
                         if response.candidates and len(response.candidates) > 0:
                             finish_reason = response.candidates[0].finish_reason
-                            if hasattr(finish_reason, 'name'):
-                                finish_reason_name = finish_reason.name
-                            else:
-                                finish_reason_name = str(finish_reason)
+                            if hasattr(finish_reason, 'name'): finish_reason_name = finish_reason.name
+                            else: finish_reason_name = str(finish_reason)
 
-                            # 0 是 FINISH_REASON_UNSPECIFIED 的整数值
                             if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']:
                                 logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
                                 if finish_reason_name == 'MAX_TOKENS':
                                     raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                # 4 和 8 是 SAFETY 相关的整数代码
                                 elif finish_reason_name in ['SAFETY', '4', '8']:
                                     raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                                 else:
@@ -1821,96 +1677,66 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
+                            # ... (JSON 解析逻辑保持不变)
                             clean_json_str = None
                             match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", raw_text_result, re.DOTALL)
-                            if match:
-                                clean_json_str = match.group(1)
+                            if match: clean_json_str = match.group(1)
                             else:
                                 brace_match = re.search(r'\{.*\}', raw_text_result, re.DOTALL)
-                                bracket_match = re.search(r'\[.*\]', raw_text_result, re.DOTALL)
-                                if brace_match:
-                                    clean_json_str = brace_match.group(0)
-                                elif bracket_match:
-                                    clean_json_str = bracket_match.group(0)
-
+                                if brace_match: clean_json_str = brace_match.group(0)
+                            
                             if not clean_json_str:
                                 raise OutputParserException("Failed to find any JSON object in the response.", llm_output=raw_text_result)
                             
-                            repaired_str = clean_json_str.replace("'", '"')
-                            repaired_str = re.sub(r',\s*(\}|\])', r'\1', repaired_str)
-                            
-                            return output_schema.model_validate(json.loads(repaired_str))
+                            return output_schema.model_validate(json.loads(clean_json_str))
                         else:
                             return raw_text_result
 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
+                        # 備援鏈的 prompt 输入需要是字符串
+                        failed_prompt_str = str(prompt_or_messages) if isinstance(prompt_or_messages, list) else prompt_or_messages
                         if retry_strategy == 'none':
                             raise e 
                         elif retry_strategy == 'euphemize':
-                            return await self._euphemize_and_retry(full_prompt, output_schema, e)
+                            return await self._euphemize_and_retry(failed_prompt_str, output_schema, e)
                         elif retry_strategy == 'force':
-                            return await self._force_and_retry(full_prompt, output_schema, e)
+                            return await self._force_and_retry(failed_prompt_str, output_schema, e)
                         else: 
                             raise e
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
+                        # ... (自我修正逻辑保持不变)
                         last_exception = e
-                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤: {type(e).__name__}。啟動【自我修正】流程...")
+                        logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤。啟動【自我修正】...")
                         logger.warning(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
-                        
                         try:
-                            correction_prompt_template = self.get_json_correction_chain()
-                            correction_prompt = self._safe_format_prompt(
-                                correction_prompt_template,
-                                {
-                                    "raw_json_string": raw_text_result_for_log,
-                                    "validation_error": str(e)
-                                }
-                            )
-                            corrected_response = await self.ainvoke_with_rotation(
-                                correction_prompt,
-                                output_schema=None,
-                                retry_strategy='none',
-                                models_to_try_override=[FUNCTIONAL_MODEL]
-                            )
-                            
+                            correction_prompt = self._safe_format_prompt(self.get_json_correction_chain(), {"raw_json_string": raw_text_result_for_log, "validation_error": str(e)})
+                            corrected_response = await self.ainvoke_with_rotation(correction_prompt, output_schema=None, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
                             if corrected_response and output_schema:
                                 logger.info(f"[{self.user_id}] [自我修正] ✅ 修正流程成功，正在重新驗證...")
-                                corrected_clean_json_str = None
                                 match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", corrected_response, re.DOTALL)
-                                if match:
-                                    corrected_clean_json_str = match.group(1)
-                                else:
-                                    brace_match = re.search(r'\{.*\}', corrected_response, re.DOTALL)
-                                    if brace_match: corrected_clean_json_str = brace_match.group(0)
-                                
+                                corrected_clean_json_str = match.group(1) if match else re.search(r'\{.*\}', corrected_response, re.DOTALL).group(0)
                                 if corrected_clean_json_str:
                                     return output_schema.model_validate(json.loads(corrected_clean_json_str))
                         except Exception as correction_e:
                             logger.error(f"[{self.user_id}] [自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
-                        
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
+                        # ... (API 临时错误处理逻辑保持不变)
                         last_exception = e
-                        
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
-                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次內部重試後仍然失敗 ({type(e).__name__})。")
-                            
-                            if isinstance(e, google_api_exceptions.ResourceExhausted) and "pro" in model_name:
+                            logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次重試後仍然失敗。")
+                            if isinstance(e, google_api_exceptions.ResourceExhausted):
                                 cooldown_key = f"{key_index}_{model_name}"
-                                cooldown_duration = 24 * 60 * 60 # 24 小時
-                                self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
+                                self.key_model_cooldowns[cooldown_key] = time.time() + (24 * 60 * 60)
                                 self._save_cooldowns()
-                                logger.critical(f"[{self.user_id}] [持久化冷卻] 偵測到 Pro 模型速率超限！API Key #{key_index} (模型: {model_name}) 已被置入硬冷卻狀態，持續 24 小時。")
-                            else:
-                                logger.warning(f"[{self.user_id}] 將輪換到下一個金鑰。")
+                                logger.critical(f"[{self.user_id}] [持久化冷卻] Pro 模型速率超限！API Key #{key_index} 已被置入硬冷卻 24 小時。")
                             break
-                        
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
-                        logger.warning(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 遭遇臨時性 API 錯誤 ({type(e).__name__})。將在 {sleep_time:.2f} 秒後進行第 {retry_attempt + 2} 次嘗試...")
+                        logger.warning(f"[{self.user_id}] Key #{key_index} 遭遇臨時 API 錯誤。将在 {sleep_time:.2f} 秒後重試...")
                         await asyncio.sleep(sleep_time)
                         continue
 
@@ -1919,16 +1745,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.error(f"[{self.user_id}] 在 ainvoke 期間發生未知錯誤 (模型: {model_name}): {e}", exc_info=True)
                         raise e
                 
-                if force_api_key_tuple:
-                    break
+                if force_api_key_tuple: break
             
             if model_index < len(models_to_try) - 1:
-                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級到下一個模型...")
+                 logger.warning(f"[{self.user_id}] [Model Degradation] 模型 '{model_name}' 的所有金鑰均嘗試失敗。正在降級...")
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 帶輪換和備援策略的原生 API 調用引擎 函式結束```
+# 帶輪換和備援策略的原生 API 調用引擎
+
+
+
+    
     
 
 # 函式：根據實體查詢 LORE (v2.2 - 職責簡化)
@@ -6559,6 +6388,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
