@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T00:24:56.738503 ###
+### AI Lover Log - Last updated at 2025-10-07T00:29:01.898966 ###
 
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive', 'reasoning': ''}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-06 23:30:47 - [ERROR] - [512280345618546699] [動態世界] 在前置 LORE 更新流程中发生严重错误: 2 validation errors for IntentClassificationResult
-intent_type
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-reasoning
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 447, in direct_rag_generate
-    intent_result = await self.ainvoke_with_rotation(full_intent_prompt, output_schema=IntentClassificationResult, models_to_try_override=[FUNCTIONAL_MODEL])
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1774, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1722, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(repaired_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 2 validation errors for IntentClassificationResult
-intent_type
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-reasoning
-  Field required [type=missing, input_value={'intent': 'nsfw_interactive'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
 2025-10-06 23:30:47 - [INFO] - [512280345618546699] [主生成] 開始執行對話生成...
 2025-10-06 23:30:48 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['握著', '泛起', '爵從', '聖女', '瞰著', '米婭纖細', '將積蓄', '勛爵', '這正', '拱形', '卡爾•', '米婭', '何雄性', '姿勢']
 2025-10-06 23:30:48 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
@@ -300,3 +275,28 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-07 00:15:19 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: 任務成功: 已成功更新 NPC '米婭' 的檔案。
 任務成功: 已成功更新 NPC '勛爵' 的檔案。
 2025-10-07 00:15:19 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
+2025-10-07 00:28:48 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-07 00:28:52 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: NameError: name 'Union' is not defined
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
+    spec.loader.exec_module(lib)  # type: ignore
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 28, in <module>
+    from ..ai_core import AILover, GENERATION_MODEL_PRIORITY
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 100, in <module>
+    class AILover:
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1588, in AILover
+    prompt_or_messages: Union[str, List[Dict[str, Any]]], # <--- 核心改动：接受字符串或消息列表
+NameError: name 'Union' is not defined
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
+    await self.load_extension("src.cogs.core_cog")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: NameError: name 'Union' is not defined
