@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T00:34:05.279222 ###
+### AI Lover Log - Last updated at 2025-10-07T00:36:11.418624 ###
 
-2025-10-06 23:30:47 - [INFO] - [512280345618546699] [主生成] 開始執行對話生成...
-2025-10-06 23:30:48 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['握著', '泛起', '爵從', '聖女', '瞰著', '米婭纖細', '將積蓄', '勛爵', '這正', '拱形', '卡爾•', '米婭', '何雄性', '姿勢']
-2025-10-06 23:30:48 - [INFO] - [512280345618546699] [輸入分析-L1] 正在嘗試使用 LLM 進行語義分析...
-2025-10-06 23:30:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-06 23:30:50 - [INFO] - [512280345618546699] [輸入分析-L1] ✅ LLM 分析成功。提取實體: ['米婭', '勛爵']
-2025-10-06 23:30:50 - [INFO] - [512280345618546699] [主生成] 查詢擴展完成，最終核心實體: ['米婭纖細', 'DINO', '何雄性', '卡爾•', '將積蓄', '握著', '泛起', '爵從', '聖女', '瞰著', '勛爵', '這正', '拱形', '米婭', '姿勢', '碧']
-2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '米婭是母畜，會立刻起身用口舌為勛爵清潔肉棒 米婭纖細 DINO 何雄性 卡爾• 將積蓄 握著 泛起 爵從 聖女 瞰著 勛爵 這正 拱形 米婭 姿勢 碧'
-2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 2 份候選文檔。
 2025-10-06 23:30:50 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 2 條原始文檔作為 summary_context。
 2025-10-06 23:30:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-06 23:30:53 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
@@ -300,3 +292,11 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
     raise errors.ExtensionFailed(key, e) from e
 discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: NameError: name 'Union' is not defined
+2025-10-07 00:35:57 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-07 00:36:01 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-07 00:36:01 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-07 00:36:01 - [INFO] - 正在全域同步應用程式指令...
+2025-10-07 00:36:01 - [INFO] - ✅ 指令已全域同步！
+2025-10-07 00:36:01 - [INFO] - Discord Bot setup hook finished!
+2025-10-07 00:36:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-07 00:36:05 - [INFO] - 已成功發送啟動成功通知給管理員。
