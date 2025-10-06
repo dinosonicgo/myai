@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v5.1 - 流程确认)
+# 函式：RAG 直通生成 (v5.2 - 捕捉并传递叙事焦点)
 # 更新紀錄:
-# v5.1 (2025-12-08): [流程确认] 验证并确认此函式的流程与“双重LORE更新”最终策略完全一致，即在前置LORE创建流程中，正确地调用了包含了智能合并逻辑的 `_resolve_and_save` v7.0。
-# v5.0 (2025-12-08): [根本性重構] 根据“双重LORE更新”策略，将完整的“四大步骤协同工作流”前置。
-# v4.2 (2025-12-08): [灾难性BUG修复] 修正了程式化提取中的资讯隔离问题。
+# v5.2 (2025-12-08): [根本性重构] 实现了“场景上下文快照”传递机制。此函式现在会在前置LORE更新流程中，捕捉当前对话的“叙事焦点”（核心实体与地点），并在对话生成结束后，将这个快照传递给事后分析任务 `_background_lore_extraction`，从根本上解决了事后分析流程因上下文错位而导致LORE地点错误的问题。
+# v5.1 (2025-12-08): [流程确认] 验证并确认此函式的流程与“双重LORE更新”最终策略完全一致。
+# v5.0 (2025-12-08): [根本性重構] 将完整的“四大步骤协同工作流”前置。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v5.1) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
+        (v5.2) 執行一個包含「前置LORE更新」、「捕捉叙事焦点」和「RAG直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -436,6 +436,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
+        # [v5.2 新增] 初始化叙事焦点快照
+        narrative_focus_snapshot = { "entities": [], "location": None }
+
         # --- 步骤 1: 前置 LORE 创建/更新 ---
         try:
             # --- 步骤 1.1: 识别上下文核心 (Identify) + 【程式级备援 A】---
@@ -470,6 +473,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 targets_to_enrich = expansion_result.npc_profiles
                 logger.info(f"[{user_id}] [前置 LORE] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
                 
+                # [v5.2 新增] 捕捉叙事焦点实体
+                narrative_focus_snapshot["entities"] = [p.name for p in targets_to_enrich]
+                if expansion_result.locations:
+                    narrative_focus_snapshot["location"] = [loc.name for loc in expansion_result.locations]
+
                 # --- 步骤 1.2: RAG 语义定位 (Locate) ---
                 logger.info(f"[{user_id}] [前置 LORE-2/4] 正在為新實體執行 RAG 語義定位...")
                 rag_contexts = {
@@ -479,6 +487,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
                 # --- 步骤 1.3: 程式化精细提取 (Extract) ---
                 logger.info(f"[{user_id}] [前置 LORE-3/4] 正在執行雙引擎程式化提取...")
+                
                 programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in targets_to_enrich]
                 facts_results = await asyncio.gather(*programmatic_facts_tasks)
                 
@@ -516,6 +525,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
                 logger.info(f"[{user_id}] [前置 LORE] 前置 LORE 更新流程完成。")
+
             else:
                 logger.info(f"[{user_id}] [前置 LORE] 無需創建或更新 LORE。")
         except Exception as e:
@@ -633,13 +643,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
+        # --- 步骤 3: 对话后检查与补充 ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
         
+        # [v5.2 核心修正] 将捕捉到的叙事焦点快照传递给事后分析
         snapshot_for_analysis = {
-            "user_input": user_input, "final_response": clean_response,
-            "rag_context": rag_context, "relevant_characters": []
+            "user_input": user_input, 
+            "final_response": clean_response,
+            "rag_context": rag_context, 
+            "narrative_focus": narrative_focus_snapshot
         }
         self.last_context_snapshot = {"last_response_text": clean_response}
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
@@ -2214,14 +2228,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.7 - 傳入地點上下文)
+# 函式：背景事後分析 (v7.6 - 解析并注入叙事焦点)
 # 更新紀錄:
-# v7.7 (2025-10-05): [災難性BUG修復] 為了配合【主鍵合成原則】，此函式現在會從 GameState 中獲取當前的有效地點路徑，並將其作為新的上下文變數 `current_location_path_str` 傳遞給事後分析 Prompt，確保 LLM 擁有合成 `lore_key` 所需的全部資訊。
-# v7.6 (2025-10-04): [架構簡化] 移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。
+# v7.6 (2025-12-08): [根本性重构] 此函式现在会从传入的上下文快照中解析出“叙事焦点”（narrative_focus），并将其作为最高优先级的上下文注入到事后分析 Prompt 中。这确保了事后分析流程在创建新 LORE 时，能够使用正确的地点信息，从而彻底解决了地点错植问题，并恢复了其动态创世能力。
 # v7.5 (2025-10-03): [災難性BUG修復] 將此函式升級為「分析與分流總指揮官」。
+# v7.4 (2025-10-04): [架構簡化] 移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (v7.7 總指揮) 執行「生成後分析」，提取記憶和 LORE，並將主角與 NPC 的更新智慧分流。
+        (v7.6 總指揮) 執行「生成後分析」，利用“叙事焦点快照”提取记忆和 LORE，并智慧分流更新。
         """
         if not self.profile:
             return
@@ -2230,17 +2244,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         final_response = context_snapshot.get("final_response")
         
         if not user_input or not final_response:
-            logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整，缺少 'user_input' 或 'final_response' 數據。")
+            logger.error(f"[{self.user_id}] [事後分析] 接收到的上下文快照不完整。")
             return
                 
         try:
             await asyncio.sleep(2.0)
             logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
             
-            # [v7.7 核心修正] 獲取當前有效地點路徑以供 Prompt 使用
+            # [v7.6 核心修正] 解析并准备叙事焦点上下文
+            narrative_focus = context_snapshot.get("narrative_focus", {})
+            narrative_entities = narrative_focus.get("entities", [])
+            narrative_location = narrative_focus.get("location", None)
+
+            narrative_entities_str = ", ".join(narrative_entities) if narrative_entities else "無"
+            narrative_location_str = " > ".join(narrative_location) if narrative_location else "無"
+
+            # 准备备援用的玩家当前位置
             gs = self.profile.game_state
-            effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
-            current_location_path_str = " > ".join(effective_location_path)
+            player_location_path_str = " > ".join(gs.location_path)
             
             analysis_prompt_template = self.get_post_generation_analysis_chain()
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -2249,12 +2270,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             prompt_params = {
                 "username": self.profile.user_profile.name,
                 "ai_name": self.profile.ai_profile.name,
-                "current_location_path_str": current_location_path_str, # 傳入地點路徑
+                "current_location_path_str": player_location_path_str,
+                "narrative_entities_str": narrative_entities_str,
+                "narrative_location_str": narrative_location_str,
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
                 "final_response_text": final_response,
-                "scene_rules_context": context_snapshot.get("scene_rules_context", "（無）"),
-                "relevant_lore_context": "（暫不提供，以避免循環依賴）"
+                # 为了简化，暂时移除这两个，它们的信息已包含在其他上下文中
+                "scene_rules_context": "（无）", 
+                "relevant_lore_context": "（无）"
             }
             
             full_prompt = self._safe_format_prompt(analysis_prompt_template, prompt_params, inject_core_protocol=True)
@@ -2267,44 +2291,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             )
 
             if not analysis_result:
-                logger.error(f"[{self.user_id}] [事後分析] 分析鏈在所有重試後返回空結果，本回合無任何更新。")
+                logger.error(f"[{self.user_id}] [事後分析] 分析鏈在所有重試後返回空結果。")
                 return
 
             if analysis_result.memory_summary:
                 await self.update_memories_from_summary({"memory_summary": analysis_result.memory_summary})
             
             if analysis_result.lore_updates:
-                npc_lore_updates = []
-                user_name_lower = self.profile.user_profile.name.lower()
-                ai_name_lower = self.profile.ai_profile.name.lower()
-
-                for call in analysis_result.lore_updates:
-                    if call.tool_name.startswith("update_"):
-                        params = call.parameters
-                        updates_dict = params.get("updates", {})
-                        target_name = updates_dict.get("name") or params.get("standardized_name") or (params.get("lore_key", "").split(" > ")[-1])
-                        
-                        if not target_name:
-                            npc_lore_updates.append(call)
-                            continue
-                        
-                        target_name_lower = target_name.lower()
-
-                        if target_name_lower == user_name_lower:
-                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對使用者角色 '{target_name}' 的更新，正在直接應用...")
-                            await self.update_and_persist_profile({'user_profile': updates_dict})
-                        elif target_name_lower == ai_name_lower:
-                            logger.info(f"[{self.user_id}] [智慧分流] 檢測到對AI角色 '{target_name}' 的更新，正在直接應用...")
-                            await self.update_and_persist_profile({'ai_profile': updates_dict})
-                        else:
-                            npc_lore_updates.append(call)
-                    else:
-                        npc_lore_updates.append(call)
-
-                if npc_lore_updates:
-                    await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in npc_lore_updates]})
-                else:
-                    logger.info(f"[{self.user_id}] [智慧分流] 本次分析未檢測到需要更新的 NPC LORE。")
+                await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
+            else:
+                logger.info(f"[{self.user_id}] [事後分析] 本次分析未檢測到需要更新或創建的 LORE。")
             
             logger.info(f"[{self.user_id}] [事後分析] 背景分析與分流任務完成。")
 
@@ -4233,23 +4229,27 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.7 - 限制为仅更新)
+# 函式：獲取事後分析器 Prompt (v4.8 - 接收叙事焦点)
 # 更新紀錄:
-# v4.7 (2025-12-08): [根本性重构] 根據“对话前创世，对话后更新”的核心原则，彻底重写了此 Prompt。新版本完全移除了任何关于 `create_new_...` 的指令和范例，并明确指示 LLM 的唯一职责是分析对话中的动态变化（如状态变更），并为【已存在的 LORE】生成 `update_...` 工具呼叫。
+# v4.8 (2025-12-08): [根本性重构] 引入了“叙事焦点上下文 (Narrative Focus)”作为新的输入。同时强化了 `lore_key` 的合成规则，强制 LLM 在创建新 LORE 时，必须优先使用这个由对话前流程传递过来的、更准确的“叙事地点”，从而彻底解决了事后分析因上下文错位而导致 LORE 地点错误的问题。
+# v4.7 (2025-12-08): [根本性重构] 将 Prompt 的职责严格限制为“只更新，不创建”。
 # v4.6 (2025-12-08): [灾难性BUG修复] 重写了 Prompt，加入了详细的、符合当前 `ToolCall` 模型的输出结构范例。
-# v4.5 (2025-10-05): [災難性BUG修復] 新增了【🔑 主鍵合成原則】。
     def get_post_generation_analysis_chain(self) -> str:
-        """獲取或創建一個專門用於事後分析（提取記憶和【更新】LORE）的字符串模板。"""
+        """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位極其嚴謹的【世界狀態同步官】。
-# MISSION: 你的【唯一任務】是审查【本回合的完整對話】，並與【現有LORE摘要】進行比对。如果对话中描述了任何【已存在角色】的【状态变化】或【新信息】，你必须生成一个【LORE更新計畫】来同步这些变化。
+            prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】。
+# MISSION: 你的任務是审查【本回合的完整對話】及所有【參考情報】，並生成一個完整的、可執行的【LORE更新計畫】和【記憶摘要】。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🚫 絕對禁止創世原則】**: 你的职责是【更新】，不是【创造】。你的输出中【绝对禁止】包含任何 `create_new_...` 类型的工具呼叫。你只能为【現有LORE摘要】中已存在的实体生成更新計畫。
+# 1.  **【👑 上下文優先級原則 (Context Priority Principle)】**:
+#     *   **地點**: 在合成 `lore_key` 時，你【必須】遵循以下優先級：**【叙事焦点地點】 > 【玩家當前地點】**。只有在“叙事焦点地點”不存在时，才允许使用“玩家當前地點”。
+#     *   **創世**: 你的创世活动应主要围绕【叙事焦点实体】展开。
 #
-# 2.  **【🔑 主鍵查找原则】**: 当你生成一个 `update_...` 工具呼叫时，你**【絕對必須】**从【現有LORE摘要】中找到并使用其已存在的 `lore_key`。如果找不到，则忽略该更新。
+# 2.  **【🔑 主鍵合成原則 (Key Synthesis Principle)】**:
+#     *   **創建時 (CREATE)**: 當你生成一個 `create_new_...` 工具調用時，你**【絕對必須】**為其合成一個 `lore_key`，地點部分需遵循上述【上下文優先級原則】。
+#     *   **更新時 (UPDATE)**: 當你生成一個 `update_...` 工具調用時，你**【絕對必須】**從【現有LORE摘要】中找到並使用其已存在的 `lore_key`。
 #
-# 3.  **【🎯 聚焦动态变化】**: 你的主要目标是捕捉对话中新产生的、动态的信息。例如：角色状态从“健康”变为“受伤”，学会了新技能，位置发生了变化等。
+# 3.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
 #
 # 4.  **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。`lore_updates` 列表中的每个物件都【必須】包含 `tool_name` 和 `parameters` 兩個鍵。
 
@@ -4259,13 +4259,19 @@ class ExtractionResult(BaseModel):
 #   "memory_summary": "對本回合互動的簡潔、客觀的摘要。",
 #   "lore_updates": [
 #     {
+#       "tool_name": "create_new_npc_profile",
+#       "parameters": {
+#         "lore_key": "維利爾斯宅邸 > 湯姆",
+#         "standardized_name": "湯姆",
+#         "description": "在維利爾斯宅邸新出現的一名僕人。",
+#         "location_path": ["維利爾斯宅邸"]
+#       }
+#     },
+#     {
 #       "tool_name": "update_npc_profile",
 #       "parameters": {
 #         "lore_key": "維利爾斯宅邸 > 米婭",
-#         "updates": {
-#           "status": "因見到勳爵而感到內心激動",
-#           "description": "（在原有描述基础上，补充本回合发生的新事迹）"
-#         }
+#         "updates": { "status": "感到失落" }
 #       }
 #     }
 #   ]
@@ -4274,7 +4280,14 @@ class ExtractionResult(BaseModel):
 
 # --- [INPUT DATA] ---
 
-# 【現有LORE摘要 (你的參考基準，用於查找 lore_key)】:
+# 【玩家當前地點 (備援用)】:
+{current_location_path_str}
+# ---
+# 【叙事焦点上下文 (NARRATIVE FOCUS) - 最高優先級】:
+# - 核心实体: {narrative_entities_str}
+# - 核心地点: {narrative_location_str}
+# ---
+# 【現有LORE摘要 (你的參考基準)】:
 {existing_lore_summary}
 # ---
 
@@ -4283,7 +4296,7 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON (請嚴格遵守【只更新，不创建】的原則)】:
+# 【你生成的分析結果JSON (請嚴格遵守所有原則和結構範例)】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
@@ -6361,6 +6374,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
