@@ -623,6 +623,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return clean_response
 # RAG 直通生成 函式結束
 
+
     
 
 
@@ -676,6 +677,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return prompt_template
 # 函式：獲取場景選角 Prompt
 
+
+
+    
+
     
 # 函式：獲取意圖分類器 Prompt (v1.1 - 强化输出结构)
 # 更新紀錄:
@@ -715,6 +720,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 """
         return prompt_template
 # 函式：獲取意圖分類器 Prompt
+
+
+
+    
 
 
 # 函式：程式化屬性歸因 (v1.0 - 全新創建)
@@ -780,6 +789,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         return facts
 # 函式：程式化屬性歸因
+
+
+    
 
 
 # 函式：獲取批量精煉器 Prompt (v1.1 - 强制顶级字典输出)
@@ -6371,6 +6383,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
