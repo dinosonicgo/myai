@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v4.1 - 修正程式级备援逻辑)
+# 函式：RAG 直通生成 (v4.2 - 资讯隔离修正)
 # 更新紀錄:
-# v4.1 (2025-12-08): [灾难性BUG修复] 修正了程式级备援 B 中的程式码，将对 Pydantic 模型物件错误的 `.get()` 字典方法调用，改为正确的 `.attribute` 属性访问，彻底解决了在备援路径中发生的 AttributeError。
+# v4.2 (2025-12-08): [灾难性BUG修复] 在步骤3（程式化提取）的迴圈中，修正了对 `_programmatic_attribute_extraction` 的呼叫逻辑，确保每次呼叫时只传入与当前目标角色严格对应的 RAG 上下文，从而建立了严格的资讯隔离，从根本上解决了 LORE 内容互相污染的问题。
+# v4.1 (2025-12-08): [灾难性BUG修复] 修正了程式级备援 B 中的 AttributeError。
 # v4.0 (2025-12-08): [根本性重構] 最终实现了「四大步骤协同工作流」来创建LORE。
-# v3.0 (2025-12-08): [根本性重構] 根據與使用者的最終討論，徹底重寫 LORE 創建流程。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v4.1) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
+        (v4.2) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -482,7 +482,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
                 # --- 步骤 3: 程式化精细提取 (Extract) ---
                 logger.info(f"[{user_id}] [LORE 創建-3/4] 正在執行雙引擎程式化提取...")
-                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[skeleton.name], skeleton.name) for skeleton in targets_to_enrich]
+                
+                # [v4.2 核心修正] 确保为每个角色只传入其专属的 RAG 上下文
+                programmatic_facts_tasks = []
+                for skeleton in targets_to_enrich:
+                    task = self._programmatic_attribute_extraction(rag_contexts[skeleton.name], skeleton.name)
+                    programmatic_facts_tasks.append(task)
                 facts_results = await asyncio.gather(*programmatic_facts_tasks)
                 
                 # --- 步骤 4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
@@ -508,7 +513,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     llm_result = await self.ainvoke_with_rotation(
                         full_prompt, 
                         output_schema=BatchRefinementResult,
-                        retry_strategy='force',
+                        retry_strategy='force', 
                         models_to_try_override=[FUNCTIONAL_MODEL]
                     )
                     if llm_result and llm_result.refined_profiles:
@@ -521,9 +526,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     # 【程式级备援 B】
                     for item in batch_input_for_refinement:
                         profile = CharacterProfile.model_validate(item.base_profile)
-                        facts = item.facts # facts is already a ProgrammaticFacts object
+                        facts = item.facts 
                         
-                        # [v4.1 核心修正] 使用 .attribute 访问 Pydantic 模型物件
                         profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
                         if facts.verified_age != "未知":
                             profile.age = facts.verified_age
@@ -6431,6 +6435,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
