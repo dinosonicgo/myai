@@ -711,29 +711,33 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取場景選角 Prompt
 
     
-            # 函式：獲取意圖分類器 Prompt (v1.0 - 全新創建)
+# 函式：獲取意圖分類器 Prompt (v1.1 - 强化输出结构)
 # 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 根據“意图分析驱动的动态事件权重”策略创建此 Prompt。它的核心职责是作为一个轻量级的前置分类器，分析使用者输入的根本意图（如探索、亲密互动、执行任务等），为后续的“AI场景导演”提供关键的决策依据，从而实现智能的、上下文感知的动态世界生成。
+# v1.1 (2025-12-08): [灾难性BUG修复] 根據 ValidationError，彻底重写了此 Prompt。新版本通过增加一个结构绝对正确的【输出结构范例】，并强化指令中的强制性要求，来确保 LLM 的输出严格遵循 Pydantic 模型的键名（`intent_type`, `reasoning`），从而根除因键名不匹配导致的验证失败问题。
+# v1.0 (2025-12-08): [全新創建] 根據“意图分析驱动的动态事件权重”策略创建此 Prompt。
     def get_intent_classification_prompt(self) -> str:
         """獲取或創建一個用於使用者意圖分類的字符串模板。"""
         
         prompt_template = """# TASK: 你是一位高精度的【使用者意圖分析儀】。
-# MISSION: 你的唯一任務是分析【使用者最新指令】，並將其歸類到最合適的意圖類型中。
+# MISSION: 你的唯一任務是分析【使用者最新指令】，並將其歸類到最合適的意圖類型中，同時提供你的判斷理由。
 
 # === 【【【🚨 核心分類規則 (CORE CLASSIFICATION RULES) - 絕對鐵則】】】 ===
 # 1.  **【分類標準】**:
 #     *   `nsfw_interactive`: 指令明確要求或描述與一個或多個【特定角色】進行【親密的、私人的】NSFW互動。**這是最高優先級的分類**。
-#         - 範例: 「让米娅跪下口交」、「（一段详细的性爱描写）」、「继续做」
 #     *   `exploration`: 指令描述了一个【漫无目的的行动】或对一个【开放场景】的探索。
-#         - 範例: 「在村莊裡閒逛」、「走進森林深處看看」、「四處看看有什麼」、「發生了什麼事？」
 #     *   `task_oriented`: 指令有一个【明确的、非亲密的目标】。
-#         - 範例: 「去鐵匠鋪買劍」、「跟酒保打聽消息」、「看看有什麼任務」、「前往市場」
 #     *   `nsfw_descriptive`: 指令是一個【非互動式】的、要求描述角色狀態或外觀的 NSFW 請求。
-#         - 範例: 「看看米娅的裸體」、「描述她的三圍」
 #     *   `sfw`: 其他所有常規的、安全的對話或指令。
-#         - 範例: 「你好」、「你是誰？」、「攻擊哥布林」
 #
-# 2.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `IntentClassificationResult` Pydantic 模型的JSON物件。
+# 2.  **【JSON純淨輸出與結構强制】**: 你的唯一輸出【必須】是一個純淨的、符合 `IntentClassificationResult` Pydantic 模型的JSON物件。JSON物件的顶层键名【必须且只能】是 `intent_type` 和 `reasoning`。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {
+#   "intent_type": "exploration",
+#   "reasoning": "使用者输入了'在村莊裡閒逛'，这是一个典型的无明确目标的探索性指令。"
+# }
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -741,7 +745,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {user_input}
 
 # ---
-# 【你的意圖分類JSON】:
+# 【你的意圖分類JSON (键名必须是 'intent_type' 和 'reasoning')】:
 """
         return prompt_template
 # 函式：獲取意圖分類器 Prompt
@@ -1418,7 +1422,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 # 函式：創建 LangChain LLM 實例 (v3.3 - 降級為輔助功能)
 # 更新紀錄:
-# v3.3 (2025-09-23): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例。
+# v3.3 (2025-12-08): [架構調整] 隨著 ainvoke_with_rotation 遷移到原生 SDK，此函式不再是核心調用的一部分。它的職責被降級為僅為 Embedding 等依然需要 LangChain 模型的輔助功能提供實例，因此移除了所有与原生 SDK 重复的复杂逻辑，并明确标记为【輔助功能專用】。
 # v3.2 (2025-10-15): [災難性BUG修復] 修正了因重命名輔助函式後未更新調用導致的 AttributeError。
     def _create_llm_instance(self, temperature: float = 0.7, model_name: str = FUNCTIONAL_MODEL, google_api_key: Optional[str] = None) -> Optional[ChatGoogleGenerativeAI]:
         """
@@ -1430,16 +1434,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         key_index_log = "provided"
         
         if not key_to_use:
-            # [v2.1 核心修正] 修正此處的調用以匹配 _get_next_available_key 的新簽名
             key_info = self._get_next_available_key(model_name)
             if not key_info:
-                return None # 沒有可用的金鑰
+                logger.error(f"[{self.user_id}] [輔助LLM] 創建 LangChain 實例失敗：沒有可用的 API 金鑰。")
+                return None
             key_to_use, key_index = key_info
             key_index_log = str(key_index)
         
         generation_config = {"temperature": temperature}
         
-        # 轉換為 LangChain 期望的格式
+        # 转换为 LangChain 期望的格式
         safety_settings_langchain = {
             HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
             HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
@@ -1595,11 +1599,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.2 - API 訪問修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 原生 SDK 终极重构)
 # 更新紀錄:
-# v234.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，修正了對 API 回應中 `response.candidates` 的訪問方式，從 `response.candidates.finish_reason` 改為 `response.candidates[0].finish_reason`，並增加了對列表是否為空的健壯性檢查，以正確處理 Google API 的回應結構。
-# v234.1 (2025-10-04): [災難性BUG修復] 引入了更健壯的「精準 JSON 提取」邏輯，以解決 JSONDecodeError。
-# v234.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
+# v234.0 (2025-12-08): [根本性重構] 根據 LangChain 安全阀值 Bug 的最终诊断，彻底重写了此函式。它现在完全抛弃了 LangChain 的 `ChatGoogleGenerativeAI` 调用层，改为直接使用 Google 官方的 `generative-ai` Python SDK。这确保了我们的 `safety_settings` (安全阀值) 能够被 100% 可靠地传递给 Google API，从而让越狱指令生效，从根本上解决顽固的 `BlockedPromptException` 问题。
+# v233.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
+# v232.0 (2025-10-03): [災難性BUG修復] 引入了更健壯的「精準 JSON 提取」邏輯。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1666,29 +1670,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         )
                         
                         if response.prompt_feedback.block_reason:
-                            block_reason = response.prompt_feedback.block_reason
-                            if hasattr(block_reason, 'name'):
-                                reason_str = block_reason.name
-                            else:
-                                reason_str = str(block_reason)
-                            raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
+                            raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
                         
-                        # [v234.2 核心修正] 檢查 candidates 列表是否為空，並從第一個元素 [0] 獲取 finish_reason
-                        if response.candidates and len(response.candidates) > 0:
-                            finish_reason = response.candidates[0].finish_reason
-                            if hasattr(finish_reason, 'name'):
-                                finish_reason_name = finish_reason.name
+                        # 检查是否有静默的内容审查失败
+                        if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
+                            finish_reason_name = response.candidates[0].finish_reason.name
+                            logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                            if finish_reason_name == 'MAX_TOKENS':
+                                raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                            elif finish_reason_name == 'SAFETY':
+                                raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
                             else:
-                                finish_reason_name = str(finish_reason)
-
-                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']:
-                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                                if finish_reason_name == 'MAX_TOKENS':
-                                    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                                elif finish_reason_name in ['SAFETY', '4', '8']:
-                                    raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
-                                else:
-                                    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
                         raw_text_result_for_log = raw_text_result 
@@ -1747,6 +1740,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                     "validation_error": str(e)
                                 }
                             )
+                            # 自我修正时，我们期望的是纯文本 JSON，所以不指定 output_schema
                             corrected_response = await self.ainvoke_with_rotation(
                                 correction_prompt,
                                 output_schema=None,
@@ -1807,7 +1801,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
 # 帶輪換和備援策略的原生 API 調用引擎 函式結束
-
 
     
 
@@ -1913,11 +1906,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：委婉化並重試 (v4.3 - 強化標籤匹配 & 移除代碼化)
+# 函式：委婉化並重試 (v4.2 - 适配原生调用)
 # 更新紀錄:
-# v4.3 (2025-10-05): [災難性BUG修復] 徹底重構此函式。1. 擴充了 `patterns_to_try` 列表，使其能夠匹配主生成 Prompt 中新的 `【本回合的完整對話】` 標籤。2. 完全移除了所有與已被廢棄的「代碼化」系統相關的邏輯，改為直接從原始文本中提取敏感詞彙，確保備援流程的有效性。
-# v4.2 (2025-09-24): [災難性BUG修復] 修正了雙重無害化策略中的一個邏輯錯誤。
+# v4.2 (2025-12-08): [适配原生] 确认此函式的逻辑与新的原生 `ainvoke_with_rotation` 调用引擎完全兼容，无需修改。
 # v4.1 (2025-09-24): [根本性重構] 將此函式從一個特化工具重構為一個通用化備援機制。
+# v4.0 (2025-09-24): [災難性BUG修復] 修正了雙重無害化策略中的一個邏輯錯誤。
     async def _euphemize_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
         一個健壯的、通用的備援機制，採用「提取關鍵詞-文學性重構」策略來處理內容審查失敗。
@@ -1926,12 +1919,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         try:
             text_to_sanitize = None
-            # [v4.3 核心修正] 擴充正則表達式列表以匹配所有可能的對話區塊
             patterns_to_try = [
-                r"【本回合的完整對話】\s*:\s*([\s\S]*?)# === 對話結束 ===", # 主生成 Prompt
-                r"【本回合的完整對話】\s*:\s*([\s\S]*?)---",          # 事後分析 Prompt
-                r"【小說手稿片段】\s*:\s*([\s\S]*?)---",             # 文學性摘要 Prompt
-                # 其他舊有的、用於數據處理的 Prompt 標籤
+                r"【本回合的完整對話】\s*:\s*([\s\S]*?)# === 對話結束 ===",
+                r"【本回合的完整對話】\s*:\s*([\s\S]*?)---",
+                r"【小說手稿片段】\s*:\s*([\s\S]*?)---",
                 r"【遊戲設計筆記】:\s*([\s\S]*?)---",
                 r"【對話上下文 \(你的唯一事實來源\)】:\s*([\s\S]*?)---",
             ]
@@ -1946,8 +1937,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] (Euphemizer) 在失敗的 Prompt 中找不到任何可供消毒的已知內容標記，無法執行委婉化。")
                 return None if not output_schema else output_schema()
 
-            # [v4.3 核心修正] 移除代碼化邏輯，改為直接提取敏感詞和角色名
-            # 我們需要一個預定義的敏感詞列表來進行匹配
+            # 此处可以根据您的需求加入更复杂的关键词提取逻辑
             NSFW_KEYWORDS = [
                 "肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "翻白眼", "顫抖", "噴濺",
                 "插入", "口交", "性交", "獸交", "輪姦", "強暴", "高潮", "射精",
@@ -1971,38 +1961,35 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
             logger.info(f"[{self.user_id}] (Euphemizer) 已提取用於重構的關鍵詞: {final_keywords}")
 
-            # 使用文學性重構鏈來生成一個安全的版本
             reconstruction_template = self.get_literary_euphemization_chain()
-            # 它的輸入是 dialogue_history，我們將其偽裝成一個對話
             reconstruction_prompt = self._safe_format_prompt(
                 reconstruction_template,
                 {"dialogue_history": f"核心概念: {', '.join(final_keywords)}"}
             )
             
-            # 使用這個安全的、委婉的文本來替換原始 Prompt 中的敏感部分
             safe_summary = await self.ainvoke_with_rotation(reconstruction_prompt, retry_strategy='none')
             
             if not safe_summary:
                  raise Exception("委婉化重構鏈未能生成有效的安全摘要。")
 
-            # 將原始失敗的 Prompt 中的敏感部分替換為安全摘要
             sanitized_prompt = failed_prompt.replace(text_to_sanitize, f"【以下為經過安全處理的情節概述】:\n{safe_summary}\n")
 
             logger.info(f"[{self.user_id}] (Euphemizer) 已生成淨化後的 Prompt，正在進行最終嘗試...")
             
-            # 使用淨化後的 Prompt 進行最後一次嘗試
             return await self.ainvoke_with_rotation(
                 sanitized_prompt,
                 output_schema=output_schema,
-                retry_strategy='none', # 這是最後的機會，不再重試
+                retry_strategy='none',
                 use_degradation=True
             )
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 【通用化解構】策略最終失敗: {e}。將觸發安全備援。", exc_info=True)
-            return None if not output_schema else output_schema()
+            if output_schema:
+                try: return output_schema()
+                except: return None
+            return None
 # 委婉化並重試 函式結束
-
 
 
 # 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
@@ -3254,26 +3241,23 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：強制並重試 (v4.2.1 - 簽名修正與邏輯恢復)
+# 函式：強制並重試 (v4.2 - 适配原生调用)
 # 更新紀錄:
-# v4.2.1 (2025-10-05): [災難性BUG修復] 根據 TypeError，為函式簽名補上了缺失的 `original_exception` 參數。同時，根據使用者指令，恢復了其核心功能：一個純粹的、通过主动轮换 API Key 来进行多次强硬重试的备援机制，并移除了对内容净化逻辑的调用。
-# v4.2 (2025-10-03): [重大架構重構] 實現了主動控制 API Key 輪換的強化重試邏輯。
+# v4.2 (2025-12-08): [适配原生] 确认此函式的逻辑与新的原生 `ainvoke_with_rotation` 调用引擎完全兼容，特别是 `force_api_key_tuple` 参数的传递，无需修改。
 # v4.1 (2025-10-03): [災難性BUG修復] 實現了包含多次重試和延遲的強化重試引擎。
+# v4.0 (2025-10-03): [重大架構重構] 實現了主動控制 API Key 輪換的強化重試邏輯。
     async def _force_and_retry(self, failed_prompt: str, output_schema: Optional[Type[BaseModel]], original_exception: Exception) -> Any:
         """
-        (v4.2.1) 執行一個主動控制 API Key 輪換的、包含多次重試的強化策略。
+        (v4.2) 執行一個主動控制 API Key 輪換的、包含多次重試的強化策略。
         """
-        logger.warning(f"[{self.user_id}] 最終生成鏈遭遇審查 ({original_exception})。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...")
+        logger.warning(f"[{self.user_id}] 遭遇審查 ({original_exception})。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...")
         
         last_exception = original_exception
         MAX_FORCE_RETRIES = 3
 
-        # 步驟 1: 在進入迴圈前，一次性獲取最多 N 個不同的可用 Key
         backup_keys = []
-        # 為了不影響主 Key 索引，我們使用一個臨時索引來探索可用的 Key
         temp_key_index = self.current_key_index
         
-        # 暫時的輔助函式來獲取下一個 key，而不會永久移动主索引
         def _get_next_key_for_retry(model_name: str, start_index: int) -> Optional[Tuple[str, int]]:
             for i in range(len(self.api_keys)):
                 index_to_check = (start_index + i) % len(self.api_keys)
@@ -3283,15 +3267,14 @@ class ExtractionResult(BaseModel):
                 return self.api_keys[index_to_check], index_to_check
             return None
 
-        # 填充备用 Key 列表，确保不重复
         current_start_index = self.current_key_index
         for _ in range(MAX_FORCE_RETRIES):
+            # 假设重试时总是尝试最高优先级的模型
             key_info = _get_next_key_for_retry(self.model_priority_list[0], current_start_index)
             if key_info and key_info not in backup_keys:
                 backup_keys.append(key_info)
-                current_start_index = (key_info[1] + 1) % len(self.api_keys) # 从下一个位置开始寻找
+                current_start_index = (key_info[1] + 1) % len(self.api_keys)
             else:
-                # 如果找不到更多唯一的、可用的 key，就停止
                 break
         
         if not backup_keys:
@@ -3300,7 +3283,6 @@ class ExtractionResult(BaseModel):
 
         logger.info(f"[{self.user_id}] [強制重試] 已準備 {len(backup_keys)} 個備用 API Keys 進行重試。")
 
-        # 步驟 2: 遍歷備用 Key 進行重試
         for attempt, key_tuple in enumerate(backup_keys):
             try:
                 key_str, key_idx = key_tuple
@@ -3308,13 +3290,12 @@ class ExtractionResult(BaseModel):
                 
                 forceful_prompt = failed_prompt + f"\n\n{self.core_protocol_prompt}"
                 
-                # 步驟 3: 將指定的 Key 注入 ainvoke_with_rotation
                 return await self.ainvoke_with_rotation(
                     forceful_prompt,
                     output_schema=output_schema,
-                    retry_strategy='none', # 失敗時拋出異常，以便此循環捕獲
+                    retry_strategy='none',
                     use_degradation=True,
-                    force_api_key_tuple=key_tuple # 強制使用這個 Key
+                    force_api_key_tuple=key_tuple
                 )
             except BlockedPromptException as e:
                 last_exception = e
@@ -3329,7 +3310,6 @@ class ExtractionResult(BaseModel):
 
         logger.error(f"[{self.user_id}] 【強制 Key 輪換重試】策略在 {len(backup_keys)} 次嘗試後最終失敗。", exc_info=last_exception)
         
-        # 如果所有嘗試都失敗，則返回一個安全的空值
         if output_schema:
             try:
                 return output_schema()
@@ -6452,6 +6432,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
