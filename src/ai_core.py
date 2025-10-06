@@ -273,13 +273,15 @@ class AILover:
 # 函式：對文本進行安全解碼
 
 
-# 函式：獲取摘要後的對話歷史 (v30.0 - 回归非编码备援)
+# 函式：獲取摘要後的對話歷史 (v31.0 - 纯程式化中性摘要)
 # 更新紀錄:
-# v30.0 (2025-12-08): [架构回归] 根据最终决议，彻底移除了所有与“隔离编码”相关的逻辑。此函式回归到更稳定可靠的“LLM文学化摘要 + 程式级模板备援”策略，在保证安全性的同时，避免了因编码/解码引入的复杂性和潜在问题。
+# v31.0 (2025-12-08): [根本性重构] 遵照使用者指示，彻底移除了所有与“文学化摘要”相关的 LLM 调用环节。此函式现在回归为一个纯粹由程式码驱动的、绝对安全的“中性摘要”生成器。它只提取对话中的核心实体和地点，并将其填入一个固定的模板中，从而在保证基本上下文连贯性的同时，根除了所有在此环节可能发生的审查失败或资讯失真问题。
+# v30.0 (2025-12-08): [架构回归] 彻底移除了所有与“隔离编码”相关的逻辑。
 # v29.0 (2025-12-08): [根本性重構] 引入了“隔离编码 + 程式级备援”的终极健壮性策略。
-# v28.0 (2025-09-25): [災難性BUG修復] 採用了全新的、更強大的文學評論家鏈。
     async def _get_summarized_chat_history(self, user_id: str, num_messages: int = 8) -> str:
-        """提取并摘要最近的對話歷史，内建“文学化”主路径和“程式级备援”最终防线。"""
+        """
+        (v31.0) 提取最近的對話歷史，并通过纯程式码生成一个绝对安全的中性摘要。
+        """
         if not self.profile: return "（沒有最近的對話歷史）"
         
         scene_key = self._get_scene_key()
@@ -294,46 +296,31 @@ class AILover:
 
         raw_history_text = "\n".join([f"{'使用者' if isinstance(m, HumanMessage) else 'AI'}: {m.content}" for m in recent_messages])
 
-        # --- 主路径：LLM 文学化摘要 ---
+        # --- 纯程式化备援路径，现在作为主要方案 ---
         try:
-            logger.info(f"[{user_id}] [History Summarizer] 嘗試主路徑：文學化摘要...")
+            logger.info(f"[{user_id}] [History Summarizer] 執行純程式化中性摘要...")
             
-            literary_chain_prompt = self.get_literary_euphemization_chain()
-            full_prompt = self._safe_format_prompt(self.core_protocol_prompt + "\n\n" + literary_chain_prompt, {"dialogue_history": raw_history_text})
+            # 提取核心实体和地点
+            all_lores = await lore_book.get_all_lores_for_user(user_id)
+            known_names = {lore.content.get("name") for lore in all_lores if lore.content.get("name")}
+            known_names.add(self.profile.user_profile.name)
+            known_names.add(self.profile.ai_profile.name)
             
-            # 使用原生 API 调用，并设置 retry_strategy='none' 以便在失败时快速降级
-            summary = await self.ainvoke_with_rotation(full_prompt, retry_strategy='none')
+            involved_entities = {name for name in known_names if name and name in raw_history_text}
+            
+            location_str = " > ".join(self.profile.game_state.location_path)
 
-            if not summary or not summary.strip():
-                raise Exception("文學性摘要返回了空的內容。")
+            # 生成绝对安全的中性摘要
+            fallback_summary = f"上一輪的互動發生在【{location_str}】。"
+            if involved_entities:
+                fallback_summary += f" 核心參與角色包括：{', '.join(sorted(list(involved_entities)))}。"
             
-            logger.info(f"[{user_id}] [History Summarizer] ✅ 主路徑成功。")
-            return f"【最近對話摘要】:\n{summary}"
+            logger.info(f"[{user_id}] [History Summarizer] ✅ 程式化中性摘要成功生成。")
+            return f"【最近對話摘要（安全模式）】:\n{fallback_summary}"
 
-        # --- 备援路径：程式级模板摘要 ---
         except Exception as e:
-            logger.warning(f"[{user_id}] [History Summarizer] 主路徑失敗 ({type(e).__name__})。觸發【程式級備援】...")
-            try:
-                # 提取核心实体和地点
-                all_lores = await lore_book.get_all_lores_for_user(user_id)
-                known_names = {lore.content.get("name") for lore in all_lores if lore.content.get("name")}
-                known_names.add(self.profile.user_profile.name)
-                known_names.add(self.profile.ai_profile.name)
-                
-                involved_entities = {name for name in known_names if name and name in raw_history_text}
-                
-                location_str = " > ".join(self.profile.game_state.location_path)
-
-                # 生成绝对安全的中性摘要
-                fallback_summary = f"上一輪的互動發生在【{location_str}】。"
-                if involved_entities:
-                    fallback_summary += f" 核心參與角色包括：{', '.join(sorted(list(involved_entities)))}。"
-                
-                logger.info(f"[{user_id}] [History Summarizer] ✅ 程式級備援成功。")
-                return f"【最近對話摘要（安全模式）】:\n{fallback_summary}"
-            except Exception as fallback_e:
-                logger.error(f"[{user_id}] [History Summarizer] 🔥 程式級備援最終失敗: {fallback_e}", exc_info=True)
-                return "（歷史對話摘要因備援系統錯誤而生成失敗，部分上下文可能缺失。）"
+            logger.error(f"[{user_id}] [History Summarizer] 🔥 程式化摘要生成時發生未預期錯誤: {e}", exc_info=True)
+            return "（歷史對話摘要因程式錯誤而生成失敗，部分上下文可能缺失。）"
 # 函式：獲取摘要後的對話歷史
 
 
@@ -6384,6 +6371,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
