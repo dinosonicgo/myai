@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v4.2 - 资讯隔离修正)
+# 函式：RAG 直通生成 (v5.0 - 实现 LORE 前置更新)
 # 更新紀錄:
-# v4.2 (2025-12-08): [灾难性BUG修复] 在步骤3（程式化提取）的迴圈中，修正了对 `_programmatic_attribute_extraction` 的呼叫逻辑，确保每次呼叫时只传入与当前目标角色严格对应的 RAG 上下文，从而建立了严格的资讯隔离，从根本上解决了 LORE 内容互相污染的问题。
+# v5.0 (2025-12-08): [根本性重構] 根据“双重LORE更新”策略，将完整的“四大步骤协同工作流”从背景任务移动到此函式的最前端。这确保了在生成任何对话之前，系统会首先基于用户输入，动态地创建或合并与当前场景相关的 LORE，从而让后续的对话生成能够利用到这些最新的知识。
+# v4.2 (2025-12-08): [灾难性BUG修复] 修正了程式化提取中的资讯隔离问题。
 # v4.1 (2025-12-08): [灾难性BUG修复] 修正了程式级备援 B 中的 AttributeError。
-# v4.0 (2025-12-08): [根本性重構] 最终实现了「四大步骤协同工作流」来创建LORE。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v4.2) 執行一個包含「四大步骤协同工作流 LORE 创建」的完整生成流程。
+        (v5.0) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -436,16 +436,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
-        # --- 四大步骤协同工作流 ---
+        # --- [v5.0 核心修正] 步骤 1: 前置 LORE 创建/更新 ---
         try:
-            # --- 步骤 1: 识别上下文核心 (Identify) + 【程式级备援 A】---
-            logger.info(f"[{user_id}] [LORE 創建-1/4] 正在識別新實體...")
+            # --- 步骤 1.1: 识别上下文核心 (Identify) + 【程式级备援 A】---
+            logger.info(f"[{user_id}] [前置 LORE-1/4] 正在識別新實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
             
             expansion_result: Optional[CanonParsingResult] = None
             try:
-                # 主路径 (LLM)
                 expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
                 expansion_prompt = self._safe_format_prompt(
                     expansion_prompt_template,
@@ -453,15 +452,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 )
                 expansion_result = await self.ainvoke_with_rotation(
                     expansion_prompt, output_schema=CanonParsingResult, 
-                    retry_strategy='none', # 失败时立即降级
-                    models_to_try_override=[FUNCTIONAL_MODEL]
+                    retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
                 )
             except Exception as e:
-                 logger.warning(f"[{user_id}] [LORE 創建-1/4] LLM 實體識別失敗 ({type(e).__name__})。觸發【程式級備援 A】...")
+                 logger.warning(f"[{user_id}] [前置 LORE-1/4] LLM 實體識別失敗 ({type(e).__name__})。觸發【程式級備援 A】...")
 
-            if not expansion_result or not (expansion_result.npc_profiles or expansion_result.locations):
-                # 【程式级备援 A】
-                logger.info(f"[{user_id}] [LORE 創建-1/4備援] 使用 spaCy NER + 字典匹配进行实体识别...")
+            if not expansion_result or not expansion_result.npc_profiles:
+                logger.info(f"[{user_id}] [前置 LORE-1/4備援] 使用 spaCy NER + 字典匹配进行实体识别...")
                 entities = await self._extract_entities_from_input(user_input)
                 new_entities = [e for e in entities if e not in existing_lore_names and e not in [self.profile.user_profile.name, self.profile.ai_profile.name]]
                 if new_entities:
@@ -469,87 +466,64 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         npc_profiles=[CharacterProfile(name=name, description=f"在對話中提到的角色。") for name in new_entities]
                     )
 
-            if expansion_result and (expansion_result.npc_profiles):
+            if expansion_result and expansion_result.npc_profiles:
                 targets_to_enrich = expansion_result.npc_profiles
-                logger.info(f"[{user_id}] [LORE 創建] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
+                logger.info(f"[{user_id}] [前置 LORE] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
                 
-                # --- 步骤 2: RAG 语义定位 (Locate) ---
-                logger.info(f"[{user_id}] [LORE 創建-2/4] 正在為新實體執行 RAG 語義定位...")
+                # --- 步骤 1.2: RAG 语义定位 (Locate) ---
+                logger.info(f"[{user_id}] [前置 LORE-2/4] 正在為新實體執行 RAG 語義定位...")
                 rag_contexts = {
-                    skeleton.name: await self._raw_rag_retrieval(f"關於角色 '{skeleton.name}' 的所有已知資訊、背景故事、外貌、性格和能力。")
-                    for skeleton in targets_to_enrich
+                    s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊、背景故事、外貌、性格和能力。")
+                    for s in targets_to_enrich
                 }
 
-                # --- 步骤 3: 程式化精细提取 (Extract) ---
-                logger.info(f"[{user_id}] [LORE 創建-3/4] 正在執行雙引擎程式化提取...")
-                
-                # [v4.2 核心修正] 确保为每个角色只传入其专属的 RAG 上下文
-                programmatic_facts_tasks = []
-                for skeleton in targets_to_enrich:
-                    task = self._programmatic_attribute_extraction(rag_contexts[skeleton.name], skeleton.name)
-                    programmatic_facts_tasks.append(task)
+                # --- 步骤 1.3: 程式化精细提取 (Extract) ---
+                logger.info(f"[{user_id}] [前置 LORE-3/4] 正在執行雙引擎程式化提取...")
+                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in targets_to_enrich]
                 facts_results = await asyncio.gather(*programmatic_facts_tasks)
                 
-                # --- 步骤 4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
-                logger.info(f"[{user_id}] [LORE 創建-4/4] 正在嘗試 LLM 批量潤色...")
+                # --- 步骤 1.4: LLM 批量润色 (Refine) + 【程式级备援 B】 ---
+                logger.info(f"[{user_id}] [前置 LORE-4/4] 正在嘗試 LLM 批量潤色...")
                 
                 from .schemas import BatchRefinementInput, BatchRefinementResult, ProgrammaticFacts
-                batch_input_for_refinement = [
-                    BatchRefinementInput(
-                        base_profile=targets_to_enrich[i].model_dump(),
-                        facts=ProgrammaticFacts(**facts_results[i])
-                    )
+                batch_input = [
+                    BatchRefinementInput(base_profile=targets_to_enrich[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i]))
                     for i in range(len(targets_to_enrich))
                 ]
                 
                 final_profiles: List[CharacterProfile] = []
                 try:
-                    refinement_prompt_template = self.get_batch_refinement_prompt()
-                    full_prompt = self._safe_format_prompt(
-                        refinement_prompt_template,
-                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input_for_refinement], ensure_ascii=False, indent=2)}
+                    refinement_prompt = self._safe_format_prompt(
+                        self.get_batch_refinement_prompt(),
+                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)}
                     )
-                    
-                    llm_result = await self.ainvoke_with_rotation(
-                        full_prompt, 
-                        output_schema=BatchRefinementResult,
-                        retry_strategy='force', 
-                        models_to_try_override=[FUNCTIONAL_MODEL]
-                    )
+                    llm_result = await self.ainvoke_with_rotation(refinement_prompt, output_schema=BatchRefinementResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL])
                     if llm_result and llm_result.refined_profiles:
                          final_profiles = llm_result.refined_profiles
-                         logger.info(f"[{user_id}] [LORE 創建-4/4] ✅ LLM 批量潤色成功。")
-                    else:
-                        raise ValueError("LLM 批量潤色返回了空結果。")
+                         logger.info(f"[{user_id}] [前置 LORE-4/4] ✅ LLM 批量潤色成功。")
+                    else: raise ValueError("LLM 批量潤色返回了空結果。")
                 except Exception as e:
-                    logger.warning(f"[{user_id}] [LORE 創建-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
-                    # 【程式级备援 B】
-                    for item in batch_input_for_refinement:
+                    logger.warning(f"[{user_id}] [前置 LORE-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
+                    for item in batch_input:
                         profile = CharacterProfile.model_validate(item.base_profile)
-                        facts = item.facts 
-                        
+                        facts = item.facts
                         profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
-                        if facts.verified_age != "未知":
-                            profile.age = facts.verified_age
-                        
+                        if facts.verified_age != "未知": profile.age = facts.verified_age
                         existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
-                        all_desc_sentences = existing_desc + facts.description_sentences
-                        if all_desc_sentences:
-                            profile.description = "\n".join(sorted(list(set(all_desc_sentences))))
-                        
+                        all_desc = existing_desc + facts.description_sentences
+                        if all_desc: profile.description = "\n".join(sorted(list(set(all_desc))))
                         final_profiles.append(profile)
 
                 # 最终储存
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
-                logger.info(f"[{user_id}] [LORE 創建] 新的 LORE (已精煉) 已成功創建並存入資料庫。")
-
+                logger.info(f"[{user_id}] [前置 LORE] 前置 LORE 更新流程完成。")
             else:
-                logger.info(f"[{user_id}] [LORE 擴展] 無需擴展新的 LORE。")
+                logger.info(f"[{user_id}] [前置 LORE] 無需創建或更新 LORE。")
         except Exception as e:
-            logger.error(f"[{user_id}] [LORE 擴展] 在前置 LORE 擴展管線中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 更新流程中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
 
-        # --- 後續的主生成流程保持不變 ---
-        logger.info(f"[{user_id}] [查詢擴展] 正在整合短期記憶以感知場景上下文...")
+        # --- 步骤 2: 查詢擴展與主生成 ---
+        logger.info(f"[{user_id}] [主生成] 開始執行對話生成...")
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
         recent_history_text = "\n".join([msg.content for msg in chat_history.messages[-4:]])
@@ -569,25 +543,37 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             scene_entities.update(protagonist_names)
         
         final_query_keywords = sorted(list(name for name in scene_entities if name), key=len, reverse=True)
-        logger.info(f"[{user_id}] [查詢擴展] 場景感知完成，最終核心實體: {final_query_keywords}")
+        logger.info(f"[{user_id}] [主生成] 查詢擴展完成，最終核心實體: {final_query_keywords}")
 
         plot_anchor = "（無）"
         continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
-        is_continuation = any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords)
-        if is_continuation and self.last_context_snapshot and self.last_context_snapshot.get("last_response_text"):
-            plot_anchor = self.last_context_snapshot["last_response_text"]
+        if any(user_input.strip().lower().startswith(kw) for kw in continuation_keywords) and self.last_context_snapshot:
+            plot_anchor = self.last_context_snapshot.get("last_response_text", "（無）")
 
         absolute_truth_mandate = ""
         if final_query_keywords:
+            # 重新获取一次 LORE，确保拿到最新的
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
             if relevant_lores:
                 truth_statements = []
                 for lore in relevant_lores:
-                    content = lore.content; name = content.get("name") or content.get("title"); status = content.get("status"); description = content.get("description", "") or content.get("content", ""); match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description); role = match.group(1) or match.group(2) if match else None
+                    content = lore.content; name = content.get("name") or content.get("title"); status = content.get("status");
+                    description = content.get("description", "") or content.get("content", "");
+                    # 尝试从 aliases 和 description 中提取身份/职位
+                    aliases = content.get("aliases", [])
+                    match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
+                    role = match.group(1) or match.group(2) if match else None
+                    
                     statement_parts = [f"{name} ({lore.category}):"]
-                    if role: statement_parts.append(f"當前身份/職位={role}")
-                    if status: statement_parts.append(f"當前狀態={status}")
+                    # 将所有 aliases 作为身份注入
+                    if aliases:
+                        statement_parts.append(f"當前身份={', '.join(aliases)}")
+                    if role and role not in aliases: 
+                        statement_parts.append(f"补充身份/职位={role}")
+                    if status: 
+                        statement_parts.append(f"當前狀態={status}")
+                    
                     if len(statement_parts) > 1: truth_statements.append(" ".join(statement_parts))
                 if truth_statements:
                     absolute_truth_mandate = ("# === 【【【🚨 絕對事實強制令 ... 】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements]) + "\n# =======================================================================\n")
@@ -651,6 +637,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
+        # --- 步骤 3: 对话后检查与补充 ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -660,6 +647,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             "rag_context": rag_context, "relevant_characters": []
         }
         self.last_context_snapshot = {"last_response_text": clean_response}
+        # 保持事后分析的异步执行
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         return clean_response
@@ -801,15 +789,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：解析並儲存LORE實體 (v6.1 - 移除代碼化)
+# 函式：解析並儲存LORE實體 (v6.0 - 引入智能合併)
 # 更新紀錄:
-# v6.1 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。
-# v6.0 (2025-10-02): [架構簡化] 根據「前置LORE解析」策略，移除了在此函式中異步觸發背景精煉任務的邏輯。
+# v6.0 (2025-12-08): [根本性重構] 為了解決 LORE 重复问题，为此函式加入了“智能实体解析与合并”的核心逻辑。在创建任何新实体（特别是 NPC）之前，它会先调用一个 LLM 决策鏈，判断该实体是全新的(CREATE)还是已存在实体的别名(MERGE)。如果是合并，则将信息更新到现有条目中，从而彻底杜绝重复 LORE 的产生。
 # v5.1 (2025-09-30): [災難性BUG修復] 為批量實體解析流程增加了「自我修正」循環。
+# v5.0 (2025-10-02): [架構簡化] 移除了在此函式中異步觸發背景精煉任務的邏輯。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
-        一個內部輔助函式，負責接收從世界聖經解析出的實體列表，
-        並將它們逐一、安全地儲存到 Lore 資料庫中。
+        一個內部輔助函式，負責接收 LORE 實體列表，并通过智能实体解析来决定是创建新条目还是合并到现有条目，
+        最终安全地儲存到 Lore 資料庫中。
         """
         if not self.profile:
             return
@@ -821,6 +809,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{self.user_id}] (_resolve_and_save) 正在為 '{actual_category}' 類別處理 {len(items)} 個實體...")
         
+        # 仅对 npc_profile 执行智能合并逻辑
         if actual_category == 'npc_profile':
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
@@ -877,77 +866,36 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                         updates_to_merge[resolution.matched_key].append(original_item)
             else:
+                # 如果解析失败，则默认全部创建，以保证数据不丢失
                 items_to_create = new_npcs_from_parser
 
-            synthesis_tasks: List[SynthesisTask] = []
-            if updates_to_merge:
-                for matched_key, contents_to_merge in updates_to_merge.items():
-                    existing_lore = await lore_book.get_lore(self.user_id, 'npc_profile', matched_key)
-                    if not existing_lore: continue
-                    
-                    for new_content in contents_to_merge:
-                        new_description = new_content.get('description')
-                        if new_description and new_description.strip() and new_description not in existing_lore.content.get('description', ''):
-                            synthesis_tasks.append(SynthesisTask(name=existing_lore.content.get("name"), original_description=existing_lore.content.get("description", ""), new_information=new_description))
-                        
-                        for list_key in ['aliases', 'skills', 'equipment', 'likes', 'dislikes']:
-                            existing_lore.content.setdefault(list_key, []).extend(c for c in new_content.get(list_key, []) if c not in existing_lore.content[list_key])
-                        if 'relationships' in new_content:
-                             existing_lore.content.setdefault('relationships', {}).update(new_content['relationships'])
-                        
-                        for key, value in new_content.items():
-                            if key not in ['description', 'aliases', 'skills', 'equipment', 'likes', 'dislikes', 'name', 'relationships'] and value:
-                                existing_lore.content[key] = value
-                    
-                    await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, existing_lore.content)
+            # --- 合并更新 ---
+            for matched_key, contents_to_merge in updates_to_merge.items():
+                for new_content in contents_to_merge:
+                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, new_content, merge=True, source='resolved_merge')
 
-            if synthesis_tasks:
-                try:
-                    synthesis_prompt_template = self.get_description_synthesis_prompt()
-                    batch_input_json = json.dumps([task.model_dump() for task in synthesis_tasks], ensure_ascii=False, indent=2)
-                    synthesis_prompt = self._safe_format_prompt(synthesis_prompt_template, {"batch_input_json": batch_input_json}, inject_core_protocol=True)
-                    synthesis_result = await self.ainvoke_with_rotation(synthesis_prompt, output_schema=BatchSynthesisResult, retry_strategy='none', use_degradation=True)
-                    
-                    if synthesis_result and synthesis_result.synthesized_descriptions:
-                        results_dict = {res.name: res.description for res in synthesis_result.synthesized_descriptions}
-                        tasks_dict = {task.name: task for task in synthesis_tasks}
-                        all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
-                        for lore in all_merged_lores:
-                            char_name = lore.content.get('name')
-                            if char_name in results_dict:
-                                lore.content['description'] = results_dict[char_name]
-                            elif char_name in tasks_dict:
-                                task = tasks_dict[char_name]
-                                lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
-                            
-                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, lore.content, source='canon_parser_merged')
-                except Exception:
-                    tasks_dict = {task.name: task for task in synthesis_tasks}
-                    all_merged_lores = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') in tasks_dict)
-                    for lore in all_merged_lores:
-                        char_name = lore.content.get('name')
-                        if char_name in tasks_dict:
-                            task = tasks_dict[char_name]
-                            lore.content['description'] = f"{task.original_description}\n\n[補充資訊]:\n{task.new_information}"
-                            await lore_book.add_or_update_lore(self.user_id, 'npc_profile', lore.key, lore.content, source='canon_parser_merged_fallback')
-
+            # --- 创建新条目 ---
             items = items_to_create
 
+        # 对所有类别（包括筛选后待创建的NPC）执行标准保存逻辑
         for item_data in items:
             try:
                 name = item_data.get(title_key)
                 if not name: continue
+                # 如果是NPC，且没有 location_path，则使用当前游戏状态的地点
+                if actual_category == 'npc_profile' and not item_data.get('location_path'):
+                    item_data['location_path'] = self.profile.game_state.location_path
+
                 location_path = item_data.get('location_path')
                 lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
                 
-                # [v6.1 核心修正] 移除對 _decode_lore_content 的調用
                 final_content_to_save = item_data
-                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='canon_parser')
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='resolved_creation')
 
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
-# 解析並儲存LORE實體 函式結束
+# 解析並儲存LORE實體
 
 
 # 函式：執行純粹的 RAG 原始文檔檢索 (v1.1 - 完整性補全)
@@ -2856,11 +2804,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取描述合成器 Prompt
 
 
-# 函式：獲取批量實體解析器 Prompt (v1.2 - 修正緩存變數)
+# 函式：獲取批量實體解析器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，將 Prompt 模板的延遲加載緩存變數從 `self.batch_entity_resolution_chain` 修正為正確的 `self.batch_entity_resolution_chain`，解決了因複製貼上錯誤導致的屬性未定義問題。
-# v1.1 (2025-09-24): [健壯性強化] 在Prompt中增加了一個詳細的、結構完美的“輸出結構範例”。
-# v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。它指导 LLM 接收一批新发现的实体，并与现有数据库进行比对，为每一个新实体做出“创建(CREATE)”或“合并(MERGE)”的决策，是从根本上解决 LORE 重复问题的关键工具。
     def get_batch_entity_resolution_prompt(self) -> str:
         """獲取或創建一個專門用於批量實體解析的字符串模板。"""
         if self.batch_entity_resolution_chain is None:
@@ -2877,24 +2823,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
 # 你的輸出JSON的結構【必須】與下方範例完全一致。特別注意，每個決策物件的鍵名【必須】是 "original_name", "decision", "reasoning", "matched_key", "standardized_name"。
 # ```json
-# {{
+# {
 #   "resolutions": [
-#     {{
+#     {
 #       "original_name": "勳爵",
 #       "decision": "MERGE",
 #       "reasoning": "「勳爵」是現有角色「卡爾•維利爾斯」的頭銜，指代的是同一個人。",
 #       "matched_key": "王都 > 維利爾斯莊園 > 卡爾•維利爾斯",
 #       "standardized_name": "卡爾•維利爾斯"
-#     }},
-#     {{
+#     },
+#     {
 #       "original_name": "湯姆",
 #       "decision": "CREATE",
 #       "reasoning": "「湯姆」是一個全新的名字，在現有數據庫中沒有任何相似或相關的條目。",
 #       "matched_key": null,
 #       "standardized_name": "湯姆"
-#     }}
+#     }
 #   ]
-# }}
+# }
 # ```
 
 # --- [INPUT DATA] ---
@@ -6458,6 +6404,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
