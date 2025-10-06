@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v6.0 - 整合意图分析驱动的动态世界)
+# 函式：RAG 直通生成 (v5.3 - 强化风格指令优先级)
 # 更新紀錄:
-# v6.0 (2025-12-08): [根本性重构] 在LORE创建流程的最前端，加入了“意图分析驱动的动态世界”机制。系统现在会首先对用户输入进行意图分类，然后调用一个全新的“AI场景导演” Prompt (`get_scene_casting_prompt`)。该导演会根据意图（如`exploration`或`nsfw_interactive`）来智能地决定是否以及如何创造新的NPC、任务和动态事件，从而实现了上下文感知的、真正动态的世界扩展功能。
+# v5.3 (2025-12-08): [根本性重构] 为了解决 /response_style 指令效果不佳的问题，彻底重构了最终 Prompt 的组装逻辑。将“风格强制令” (`style_mandate`) 从 AI 角色名称后的一个简单提示，提升为一个独立的、拥有最高优先级的系统指令区块，并放置在 Prompt 的最顶层。此修改确保了风格指令被 LLM 视为不可违背的核心规则，从而使其生成的回应能严格遵循用户的个性化要求。
 # v5.2 (2025-12-08): [根本性重构] 实现了“场景上下文快照”传递机制。
 # v5.1 (2025-12-08): [流程确认] 验证并确认此函式的流程与“双重LORE更新”最终策略完全一致。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v6.0) 執行一個包含「意图分析驱动的动态世界」的完整生成流程。
+        (v5.3) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -438,103 +438,93 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         narrative_focus_snapshot = { "entities": [], "location": None }
 
-        # --- 步骤 1: 前置 LORE 创建/更新 (由意图分析驱动) ---
+        # --- 步骤 1: 前置 LORE 创建/更新 ---
         try:
-            # --- 步骤 1.1: 意图分类 (Intent Classification) ---
-            logger.info(f"[{user_id}] [動態世界-1/5] 正在進行意圖分類...")
-            intent_prompt = self.get_intent_classification_prompt()
-            full_intent_prompt = self._safe_format_prompt(intent_prompt, {"user_input": user_input})
-            intent_result = await self.ainvoke_with_rotation(full_intent_prompt, output_schema=IntentClassificationResult, models_to_try_override=[FUNCTIONAL_MODEL])
-            
-            if not intent_result:
-                raise Exception("意圖分類鏈返回了空結果。")
-            
-            logger.info(f"[{user_id}] [動態世界-1/5] ✅ 意圖分類成功: {intent_result.intent_type} (理由: {intent_result.reasoning})")
-
-            # --- 步骤 1.2: 意图驱动的场景选角 (Scene Casting) ---
-            logger.info(f"[{user_id}] [動態世界-2/5] 正在執行意圖驅動的場景選角...")
-            casting_prompt = self.get_scene_casting_prompt()
-            full_casting_prompt = self._safe_format_prompt(
-                casting_prompt,
-                {
-                    "world_settings": self.profile.world_settings or "未設定",
-                    "user_profile_json": self.profile.user_profile.model_dump_json(indent=2),
-                    "location_path_str": " > ".join(self.profile.game_state.location_path),
-                    "intent_type": intent_result.intent_type,
-                    "intent_reasoning": intent_result.reasoning
-                }
-            )
-            casting_result = await self.ainvoke_with_rotation(full_casting_prompt, output_schema=SceneCastingResult, models_to_try_override=[FUNCTIONAL_MODEL])
-
-            # 将动态创建的 LORE 和用户指令中明确提到的 LORE 合并
-            all_new_profiles = casting_result.newly_created_npcs if casting_result else []
-            
-            # --- 步骤 1.3: 识别使用者指令中的实体 ---
-            expansion_result: Optional[CanonParsingResult] = None
-            # ... (这部分逻辑与之前相同，用于捕捉用户明确提到的实体)
+            logger.info(f"[{user_id}] [前置 LORE-1/4] 正在識別新實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
             
+            expansion_result: Optional[CanonParsingResult] = None
             try:
+                expansion_prompt_template = self.get_lore_expansion_pipeline_prompt()
                 expansion_prompt = self._safe_format_prompt(
-                    self.get_lore_expansion_pipeline_prompt(),
+                    expansion_prompt_template,
                     {"user_input": user_input, "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)}
                 )
-                expansion_result = await self.ainvoke_with_rotation(expansion_prompt, output_schema=CanonParsingResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-            except Exception: pass # 失败也没关系，因为我们有备援
+                expansion_result = await self.ainvoke_with_rotation(
+                    expansion_prompt, output_schema=CanonParsingResult, 
+                    retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+            except Exception as e:
+                 logger.warning(f"[{user_id}] [前置 LORE-1/4] LLM 實體識別失敗 ({type(e).__name__})。觸發【程式級備援 A】...")
+
+            if not expansion_result or not expansion_result.npc_profiles:
+                logger.info(f"[{user_id}] [前置 LORE-1/4備援] 使用 spaCy NER + 字典匹配进行实体识别...")
+                entities = await self._extract_entities_from_input(user_input)
+                new_entities = [e for e in entities if e not in existing_lore_names and e not in [self.profile.user_profile.name, self.profile.ai_profile.name]]
+                if new_entities:
+                    expansion_result = CanonParsingResult(
+                        npc_profiles=[CharacterProfile(name=name, description=f"在對話中提到的角色。") for name in new_entities]
+                    )
 
             if expansion_result and expansion_result.npc_profiles:
-                all_new_profiles.extend(expansion_result.npc_profiles)
-
-            # --- 步骤 1.4 & 1.5: 知识回填与储存 (如果创造了任何新事物) ---
-            if all_new_profiles:
-                targets_to_enrich = all_new_profiles
-                # 去重
-                unique_targets = {p.name: p for p in targets_to_enrich}.values()
-                logger.info(f"[{user_id}] [動態世界] ✅ 成功識別/創造出 {len(unique_targets)} 個新實體骨架: {[p.name for p in unique_targets]}")
-
-                narrative_focus_snapshot["entities"] = [p.name for p in unique_targets]
-                if expansion_result and expansion_result.locations:
+                targets_to_enrich = expansion_result.npc_profiles
+                logger.info(f"[{user_id}] [前置 LORE] ✅ 成功識別出 {len(targets_to_enrich)} 個新實體骨架: {[p.name for p in targets_to_enrich]}")
+                
+                narrative_focus_snapshot["entities"] = [p.name for p in targets_to_enrich]
+                if expansion_result.locations:
                     narrative_focus_snapshot["location"] = [loc.name for loc in expansion_result.locations]
 
-                rag_contexts = {s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊...") for s in unique_targets}
+                logger.info(f"[{user_id}] [前置 LORE-2/4] 正在為新實體執行 RAG 語義定位...")
+                rag_contexts = {
+                    s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊、背景故事、外貌、性格和能力。")
+                    for s in targets_to_enrich
+                }
+
+                logger.info(f"[{user_id}] [前置 LORE-3/4] 正在執行雙引擎程式化提取...")
                 
-                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in unique_targets]
+                programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in targets_to_enrich]
                 facts_results = await asyncio.gather(*programmatic_facts_tasks)
+                
+                logger.info(f"[{user_id}] [前置 LORE-4/4] 正在嘗試 LLM 批量潤色...")
                 
                 from .schemas import BatchRefinementInput, BatchRefinementResult, ProgrammaticFacts
                 batch_input = [
-                    BatchRefinementInput(base_profile=list(unique_targets)[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i]))
-                    for i in range(len(unique_targets))
+                    BatchRefinementInput(base_profile=targets_to_enrich[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i]))
+                    for i in range(len(targets_to_enrich))
                 ]
                 
                 final_profiles: List[CharacterProfile] = []
                 try:
-                    refinement_prompt = self._safe_format_prompt(self.get_batch_refinement_prompt(), {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)})
+                    refinement_prompt = self._safe_format_prompt(
+                        self.get_batch_refinement_prompt(),
+                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)}
+                    )
                     llm_result = await self.ainvoke_with_rotation(refinement_prompt, output_schema=BatchRefinementResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL])
                     if llm_result and llm_result.refined_profiles:
                          final_profiles = llm_result.refined_profiles
+                         logger.info(f"[{user_id}] [前置 LORE-4/4] ✅ LLM 批量潤色成功。")
                     else: raise ValueError("LLM 批量潤色返回了空結果。")
                 except Exception as e:
-                    logger.warning(f"[{user_id}] [動態世界] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
+                    logger.warning(f"[{user_id}] [前置 LORE-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
                     for item in batch_input:
                         profile = CharacterProfile.model_validate(item.base_profile)
-                        facts = item.facts
+                        facts = item.facts 
                         profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
                         if facts.verified_age != "未知": profile.age = facts.verified_age
-                        existing_desc = [profile.description] if profile.description and "在對話中提到的" not in profile.description else []
+                        existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
                         all_desc = existing_desc + facts.description_sentences
                         if all_desc: profile.description = "\n".join(sorted(list(set(all_desc))))
                         final_profiles.append(profile)
 
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
-                logger.info(f"[{user_id}] [動態世界] 前置 LORE 更新流程完成。")
+                logger.info(f"[{user_id}] [前置 LORE] 前置 LORE 更新流程完成。")
             else:
-                logger.info(f"[{user_id}] [動態世界] 無需創建或更新 LORE。")
+                logger.info(f"[{user_id}] [前置 LORE] 無需創建或更新 LORE。")
         except Exception as e:
-            logger.error(f"[{user_id}] [動態世界] 在前置 LORE 更新流程中发生严重错误: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 更新流程中发生严重错误，但主生成流程将继续: {e}", exc_info=True)
 
-        # --- 步骤 2: 查詢擴展與主生成 (保持不變) ---
+        # --- 步骤 2: 查詢擴展與主生成 ---
         logger.info(f"[{user_id}] [主生成] 開始執行對話生成...")
         scene_key = self._get_scene_key()
         chat_history = self.scene_histories.get(scene_key, ChatMessageHistory())
@@ -593,16 +583,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         historical_context = await self._get_summarized_chat_history(user_id)
 
+        # [v5.3 核心修正] 将风格指令提升为独立的、高优先级的变量
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
-        style_mandate = f"\n\n# ===【✍️ 絕對風格強制令】===\n你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+        style_mandate = f"# === 【【【✍️ 絕對風格強制令 (ABSOLUTE STYLE MANDATE) ✍️】】】 ===\n# 你的回應風格【必須】嚴格遵循以下指令：\n# 「{user_style_prompt}」\n# ========================================================================"
 
         full_dialogue_context = f"{historical_context}\n{self.profile.user_profile.name}: {user_input}"
 
+        # [v5.3 核心修正] 重构 Prompt 模板，将 style_mandate 提升到最高优先级区域
         final_prompt_template = """{core_protocol_prompt}
 
+{style_mandate}
+
 {absolute_truth_mandate}
-# === 【【【🚫 嚴禁複誦原則 ... 】】】 ===
-... (內容與之前相同，此處省略以保持簡潔)
+# === 【【【🚫 嚴禁複誦原則 (NO-RECITATION MANDATE) - 最高優先級鐵則】】】 ===
+# 1.  **【知識 vs. 素材】**: 下方的「情報簡報」是你創作的【背景知識參考】，不是你的【直接寫作素材】。
+# 2.  **【強制原創】**: 你的所有回覆都**必須**是你自己語言的**重新創作**和**演繹**。
+# 3.  **【絕對禁令】**: 【絕對禁止】直接或間接地逐字複製「情報簡報」中的任何連續句子或段落。
 # ==============================================================================
 
 # === 情報簡報 (來自 RAG 檢索) ===
@@ -617,30 +613,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {full_dialogue_context}
 # === 對話結束 ===
 
-{ai_name}:{style_mandate}"""
-
-        final_prompt_template = final_prompt_template.replace("... (內容與之前相同，此處省略以保持簡潔)", """
-# 1.  **【知識 vs. 素材】**: 下方的「情報簡報」是你創作的【背景知識參考】，不是你的【直接寫作素材】。
-# 2.  **【強制原創】**: 你的所有回覆都**必須**是你自己語言的**重新創作**和**演繹**。
-# 3.  **【絕對禁令】**: 【絕對禁止】直接或間接地逐字複製「情報簡報」中的任何連續句子或段落。
-""")
+{ai_name}:"""
 
         full_prompt = self._safe_format_prompt(
             final_prompt_template,
             {
                 "core_protocol_prompt": self.core_protocol_prompt,
+                "style_mandate": style_mandate, # 在顶层注入
                 "absolute_truth_mandate": absolute_truth_mandate,
                 "rag_context": rag_context,
                 "plot_anchor": plot_anchor,
                 "full_dialogue_context": full_dialogue_context,
-                "ai_name": self.profile.ai_profile.name,
-                "style_mandate": style_mandate
+                "ai_name": self.profile.ai_profile.name
             }
         )
         
-        final_response = await self.ainvoke_with_rotation(full_prompt, retry_strategy='force', use_degradation=True)
+        final_response = await self.ainvoke_with_rotation(
+            full_prompt,
+            retry_strategy='force',
+            use_degradation=True
+        )
 
         if not final_response or not final_response.strip():
+            logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
         clean_response = final_response.strip()
@@ -660,6 +655,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+
+
+    
 
 
 
@@ -6454,6 +6452,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
