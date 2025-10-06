@@ -1599,11 +1599,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.0 - 原生 SDK 终极重构)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v234.1 - 健壮性枚举处理)
 # 更新紀錄:
-# v234.0 (2025-12-08): [根本性重構] 根據 LangChain 安全阀值 Bug 的最终诊断，彻底重写了此函式。它现在完全抛弃了 LangChain 的 `ChatGoogleGenerativeAI` 调用层，改为直接使用 Google 官方的 `generative-ai` Python SDK。这确保了我们的 `safety_settings` (安全阀值) 能够被 100% 可靠地传递给 Google API，从而让越狱指令生效，从根本上解决顽固的 `BlockedPromptException` 问题。
+# v234.1 (2025-12-08): [灾难性BUG修复] 根據 AttributeError，彻底重构了对 Google API 返回的 `block_reason` 和 `finish_reason` 的处理逻辑。新版本增加了健壮性检查，能够正确处理当 API 返回整数错误码而非预期 Enum 物件的情况，从而解决了因此导致的 `'int' object has no attribute 'name'` 致命错误。
+# v234.0 (2025-12-08): [根本性重構] 彻底重写了此函式，改为直接使用 Google 官方的 `generative-ai` Python SDK。
 # v233.0 (2025-10-03): [重大架構升級] 實現了精細化的「持久化 API Key 冷卻」策略。
-# v232.0 (2025-10-03): [災難性BUG修復] 引入了更健壯的「精準 JSON 提取」邏輯。
     async def ainvoke_with_rotation(
         self,
         full_prompt: str,
@@ -1669,19 +1669,34 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             timeout=180.0
                         )
                         
+                        # [v234.1 核心修正] 健壮性处理 block_reason
                         if response.prompt_feedback.block_reason:
-                            raise BlockedPromptException(f"Prompt blocked due to {response.prompt_feedback.block_reason.name}")
+                            block_reason = response.prompt_feedback.block_reason
+                            # 检查它是否是带有 .name 属性的 Enum 对象
+                            if hasattr(block_reason, 'name'):
+                                reason_str = block_reason.name
+                            else: # 否则，直接将其转换为字符串（处理整数代码的情况）
+                                reason_str = str(block_reason)
+                            raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
                         
-                        # 检查是否有静默的内容审查失败
-                        if response.candidates and response.candidates[0].finish_reason.name not in ['STOP', 'FINISH_REASON_UNSPECIFIED']:
-                            finish_reason_name = response.candidates[0].finish_reason.name
-                            logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
-                            if finish_reason_name == 'MAX_TOKENS':
-                                raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
-                            elif finish_reason_name == 'SAFETY':
-                                raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
+                        # [v234.1 核心修正] 健壮性处理 finish_reason
+                        if response.candidates and len(response.candidates) > 0:
+                            finish_reason = response.candidates[0].finish_reason
+                            if hasattr(finish_reason, 'name'):
+                                finish_reason_name = finish_reason.name
                             else:
-                                raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                finish_reason_name = str(finish_reason)
+
+                            # 0 是 FINISH_REASON_UNSPECIFIED 的整数值
+                            if finish_reason_name not in ['STOP', 'FINISH_REASON_UNSPECIFIED', '0']:
+                                logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇靜默失敗，生成因 '{finish_reason_name}' 而提前終止。")
+                                if finish_reason_name == 'MAX_TOKENS':
+                                    raise GoogleAPICallError(f"Generation stopped due to finish_reason: {finish_reason_name}")
+                                # 4 和 8 是 SAFETY 相关的整数代码
+                                elif finish_reason_name in ['SAFETY', '4', '8']:
+                                    raise BlockedPromptException(f"Generation stopped silently due to finish_reason: {finish_reason_name}")
+                                else:
+                                    raise google_api_exceptions.InternalServerError(f"Generation stopped due to finish_reason: {finish_reason_name}")
 
                         raw_text_result = response.text
                         raw_text_result_for_log = raw_text_result 
@@ -1740,7 +1755,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                     "validation_error": str(e)
                                 }
                             )
-                            # 自我修正时，我们期望的是纯文本 JSON，所以不指定 output_schema
                             corrected_response = await self.ainvoke_with_rotation(
                                 correction_prompt,
                                 output_schema=None,
@@ -1800,8 +1814,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
         raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 帶輪換和備援策略的原生 API 調用引擎 函式結束
-
+# 帶輪換和備援策略的原生 API 調用引擎 函式結束```
     
 
 # 函式：根據實體查詢 LORE (v2.2 - 職責簡化)
@@ -6432,6 +6445,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
