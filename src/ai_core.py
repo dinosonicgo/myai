@@ -9,7 +9,7 @@ import time
 import shutil
 import warnings
 import datetime
-from typing import List, Dict, Optional, Any, Literal, Callable, Tuple, Type
+from typing import List, Dict, Optional, Any, Literal, Callable, Tuple, Type, Union
 import asyncio
 import gc
 from pathlib import Path
@@ -1578,14 +1578,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.0 - 适配消息列表)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.1 - 确认修正)
 # 更新紀錄:
-# v235.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”，此函式现在可以接收一个“消息列表” (List[Dict]) 作为 prompt 参数，而不仅仅是字符串。它会智能地判断输入类型，并将其直接传递给 Google 原生 SDK 的 `generate_content_async`，从而利用官方推荐的、更健壮的结构化 Prompt 范式来规避审查。
+# v235.1 (2025-12-08): [完整性修复] 补全了文件顶部的 `from typing import Union` 导入，以解决 NameError。
+# v235.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”，此函式现在可以接收一个“消息列表” (List[Dict]) 作为 prompt 参数。
 # v234.1 (2025-12-08): [灾难性BUG修复] 增加了健壮性检查，能够正确处理 API 返回整数错误码而非 Enum 物件的情况。
-# v234.0 (2025-12-08): [根本性重構] 彻底重写了此函式，改为直接使用 Google 官方的 `generative-ai` Python SDK。
     async def ainvoke_with_rotation(
         self,
-        prompt_or_messages: Union[str, List[Dict[str, Any]]], # <--- 核心改动：接受字符串或消息列表
+        prompt_or_messages: Union[str, List[Dict[str, Any]]],
         output_schema: Optional[Type[BaseModel]] = None,
         retry_strategy: Literal['euphemize', 'force', 'none'] = 'euphemize',
         use_degradation: bool = False,
@@ -1642,7 +1642,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         
                         response = await asyncio.wait_for(
                             model.generate_content_async(
-                                prompt_or_messages, # <--- 核心改动：直接传递
+                                prompt_or_messages,
                                 generation_config=genai.types.GenerationConfig(**final_generation_config)
                             ),
                             timeout=180.0
@@ -1677,7 +1677,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LLM Success] Generation successful using model '{model_name}' with API Key #{key_index}.")
                         
                         if output_schema:
-                            # ... (JSON 解析逻辑保持不变)
                             clean_json_str = None
                             match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", raw_text_result, re.DOTALL)
                             if match: clean_json_str = match.group(1)
@@ -1695,7 +1694,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     except (BlockedPromptException, GoogleGenerativeAIError) as e:
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇內容審查或安全錯誤: {type(e).__name__}。")
-                        # 備援鏈的 prompt 输入需要是字符串
                         failed_prompt_str = str(prompt_or_messages) if isinstance(prompt_or_messages, list) else prompt_or_messages
                         if retry_strategy == 'none':
                             raise e 
@@ -1707,7 +1705,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             raise e
 
                     except (ValidationError, OutputParserException, json.JSONDecodeError) as e:
-                        # ... (自我修正逻辑保持不变)
                         last_exception = e
                         logger.warning(f"[{self.user_id}] 模型 '{model_name}' (Key #{key_index}) 遭遇解析或驗證錯誤。啟動【自我修正】...")
                         logger.warning(f"[{self.user_id}] 導致解析錯誤的原始 LLM 輸出: \n--- START RAW ---\n{raw_text_result_for_log}\n--- END RAW ---")
@@ -1725,7 +1722,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         raise e
 
                     except (google_api_exceptions.ResourceExhausted, google_api_exceptions.InternalServerError, google_api_exceptions.ServiceUnavailable, asyncio.TimeoutError, GoogleAPICallError) as e:
-                        # ... (API 临时错误处理逻辑保持不变)
                         last_exception = e
                         if retry_attempt >= IMMEDIATE_RETRY_LIMIT - 1:
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次重試後仍然失敗。")
@@ -6388,6 +6384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
