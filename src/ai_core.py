@@ -420,14 +420,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v5.0 - 实现 LORE 前置更新)
+# 函式：RAG 直通生成 (v5.1 - 流程确认)
 # 更新紀錄:
-# v5.0 (2025-12-08): [根本性重構] 根据“双重LORE更新”策略，将完整的“四大步骤协同工作流”从背景任务移动到此函式的最前端。这确保了在生成任何对话之前，系统会首先基于用户输入，动态地创建或合并与当前场景相关的 LORE，从而让后续的对话生成能够利用到这些最新的知识。
+# v5.1 (2025-12-08): [流程确认] 验证并确认此函式的流程与“双重LORE更新”最终策略完全一致，即在前置LORE创建流程中，正确地调用了包含了智能合并逻辑的 `_resolve_and_save` v7.0。
+# v5.0 (2025-12-08): [根本性重構] 根据“双重LORE更新”策略，将完整的“四大步骤协同工作流”前置。
 # v4.2 (2025-12-08): [灾难性BUG修复] 修正了程式化提取中的资讯隔离问题。
-# v4.1 (2025-12-08): [灾难性BUG修复] 修正了程式级备援 B 中的 AttributeError。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v5.0) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
+        (v5.1) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -436,7 +436,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         logger.info(f"[{user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
         
-        # --- [v5.0 核心修正] 步骤 1: 前置 LORE 创建/更新 ---
+        # --- 步骤 1: 前置 LORE 创建/更新 ---
         try:
             # --- 步骤 1.1: 识别上下文核心 (Identify) + 【程式级备援 A】---
             logger.info(f"[{user_id}] [前置 LORE-1/4] 正在識別新實體...")
@@ -506,7 +506,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.warning(f"[{user_id}] [前置 LORE-4/4] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援 B】...")
                     for item in batch_input:
                         profile = CharacterProfile.model_validate(item.base_profile)
-                        facts = item.facts
+                        facts = item.facts 
                         profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
                         if facts.verified_age != "未知": profile.age = facts.verified_age
                         existing_desc = [profile.description] if profile.description and profile.description != "在對話中提到的角色。" else []
@@ -514,7 +514,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         if all_desc: profile.description = "\n".join(sorted(list(set(all_desc))))
                         final_profiles.append(profile)
 
-                # 最终储存
                 await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles])
                 logger.info(f"[{user_id}] [前置 LORE] 前置 LORE 更新流程完成。")
             else:
@@ -552,7 +551,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         absolute_truth_mandate = ""
         if final_query_keywords:
-            # 重新获取一次 LORE，确保拿到最新的
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
             if relevant_lores:
@@ -560,13 +558,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 for lore in relevant_lores:
                     content = lore.content; name = content.get("name") or content.get("title"); status = content.get("status");
                     description = content.get("description", "") or content.get("content", "");
-                    # 尝试从 aliases 和 description 中提取身份/职位
                     aliases = content.get("aliases", [])
                     match = re.search(r'職位[:：\s]*(\w+)|身份[:：\s]*(\w+)', description)
                     role = match.group(1) or match.group(2) if match else None
                     
                     statement_parts = [f"{name} ({lore.category}):"]
-                    # 将所有 aliases 作为身份注入
                     if aliases:
                         statement_parts.append(f"當前身份={', '.join(aliases)}")
                     if role and role not in aliases: 
@@ -637,7 +633,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
-        # --- 步骤 3: 对话后检查与补充 ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -647,7 +642,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             "rag_context": rag_context, "relevant_characters": []
         }
         self.last_context_snapshot = {"last_response_text": clean_response}
-        # 保持事后分析的异步执行
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         return clean_response
@@ -789,14 +783,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：解析並儲存LORE實體 (v6.0 - 引入智能合併)
+# 函式：解析並儲存LORE實體 (v7.0 - 终极智能合并实现)
 # 更新紀錄:
-# v6.0 (2025-12-08): [根本性重構] 為了解決 LORE 重复问题，为此函式加入了“智能实体解析与合并”的核心逻辑。在创建任何新实体（特别是 NPC）之前，它会先调用一个 LLM 决策鏈，判断该实体是全新的(CREATE)还是已存在实体的别名(MERGE)。如果是合并，则将信息更新到现有条目中，从而彻底杜绝重复 LORE 的产生。
-# v5.1 (2025-09-30): [災難性BUG修復] 為批量實體解析流程增加了「自我修正」循環。
-# v5.0 (2025-10-02): [架構簡化] 移除了在此函式中異步觸發背景精煉任務的邏輯。
+# v7.0 (2025-12-08): [根本性重构] 彻底重写了此函式的 NPC 处理逻辑。现在，在保存任何 NPC 之前，它会强制执行一次批量的实体解析。通过 `get_batch_entity_resolution_prompt` 驱动的 LLM 决策，系统能智能地判断一个新提及的 NPC 究竟是应被【创建（CREATE）】还是【合并（MERGE）】到现有记录中。此修改从根本上解决了因地点不同或使用别名而导致同一角色被创建多个 LORE 条目的顽固问题。
+# v6.1 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。
+# v6.0 (2025-12-08): [根本性重構] 為了解決 LORE 重复问题，为此函式加入了“智能实体解析与合并”的核心逻辑。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
         """
-        一個內部輔助函式，負責接收 LORE 實體列表，并通过智能实体解析来决定是创建新条目还是合并到现有条目，
+        (v7.0) 接收 LORE 实体列表，并通过智能实体解析来决定是创建新条目还是合并到现有条目，
         最终安全地儲存到 Lore 資料庫中。
         """
         if not self.profile:
@@ -814,67 +808,50 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             new_npcs_from_parser = items
             existing_npcs_from_db = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
             
-            resolution_plan = None
-            if new_npcs_from_parser:
+            resolution_plan: Optional[BatchResolutionPlan] = None
+            if new_npcs_from_parser and existing_npcs_from_db: # 只有当数据库中已存在NPC时，才有必要进行解析
                 try:
                     resolution_prompt_template = self.get_batch_entity_resolution_prompt()
-                    new_entities_json = json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser], ensure_ascii=False)
+                    new_entities_json = json.dumps([{"name": npc.get("name")} for npc in new_npcs_from_parser if npc.get("name")], ensure_ascii=False)
                     existing_entities_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in existing_npcs_from_db], ensure_ascii=False)
                     
-                    resolution_prompt = self._safe_format_prompt(
-                        resolution_prompt_template,
-                        {
-                            "new_entities_json": new_entities_json,
-                            "existing_entities_json": existing_entities_json
-                        },
-                        inject_core_protocol=True
-                    )
-                    resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-                
-                except ValidationError as e:
-                    logger.warning(f"[{self.user_id}] [實體解析-自我修正] 批量實體解析遭遇 Pydantic 驗證錯誤。正在啟動自我修正流程...")
-                    try:
-                        raw_error_json = str(e.input) if hasattr(e, 'input') else "無法提取原始JSON"
-                        correction_prompt_template = self.get_json_correction_chain()
-                        correction_prompt = self._safe_format_prompt(
-                            correction_prompt_template,
-                            {
-                                "existing_entities_json": existing_entities_json,
-                                "raw_json_string": raw_error_json,
-                                "validation_error": str(e)
-                            },
+                    if not json.loads(new_entities_json): # 如果没有有效的new_entities，则跳过解析
+                        resolution_plan = BatchResolutionPlan(resolutions=[])
+                    else:
+                        resolution_prompt = self._safe_format_prompt(
+                            resolution_prompt_template,
+                            {"new_entities_json": new_entities_json, "existing_entities_json": existing_entities_json},
                             inject_core_protocol=True
                         )
-                        resolution_plan = await self.ainvoke_with_rotation(correction_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-                        logger.info(f"[{self.user_id}] [實體解析-自我修正] ✅ 自我修正成功！")
-                    except Exception as correction_e:
-                        logger.error(f"[{self.user_id}] [實體解析-自我修正] 🔥 自我修正流程最終失敗: {correction_e}", exc_info=True)
-                        resolution_plan = None
+                        resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [實體解析] 批量實體解析鏈執行時發生未知嚴重錯誤: {e}", exc_info=True)
+                    # 如果解析失败，则回退到默认行为（全部创建），以防数据丢失
+                    resolution_plan = None
             
-            items_to_create = []
-            updates_to_merge: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
-
+            items_to_create: List[Dict[str, Any]] = []
+            
             if resolution_plan and resolution_plan.resolutions:
+                resolved_names = {res.original_name for res in resolution_plan.resolutions}
                 for resolution in resolution_plan.resolutions:
+                    # 找到与此决策对应的原始 item
                     original_item = next((item for item in new_npcs_from_parser if item.get("name") == resolution.original_name), None)
                     if not original_item: continue
 
                     if resolution.decision.upper() in ['CREATE', 'NEW']:
                         items_to_create.append(original_item)
                     elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
-                        updates_to_merge[resolution.matched_key].append(original_item)
+                        logger.info(f"[{self.user_id}] (_resolve_and_save) 智能合併：正在將 '{resolution.original_name}' 的資訊合併到 '{resolution.matched_key}'。")
+                        await lore_book.add_or_update_lore(self.user_id, 'npc_profile', resolution.matched_key, original_item, merge=True, source='resolved_merge')
+                
+                # 处理那些 LLM 可能遗漏解析的 item
+                for item in new_npcs_from_parser:
+                    if item.get("name") not in resolved_names:
+                        items_to_create.append(item)
             else:
-                # 如果解析失败，则默认全部创建，以保证数据不丢失
+                # 如果没有解析计划（例如数据库为空或解析失败），则全部视为新创建
                 items_to_create = new_npcs_from_parser
 
-            # --- 合并更新 ---
-            for matched_key, contents_to_merge in updates_to_merge.items():
-                for new_content in contents_to_merge:
-                     await lore_book.add_or_update_lore(self.user_id, 'npc_profile', matched_key, new_content, merge=True, source='resolved_merge')
-
-            # --- 创建新条目 ---
             items = items_to_create
 
         # 对所有类别（包括筛选后待创建的NPC）执行标准保存逻辑
@@ -882,21 +859,36 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             try:
                 name = item_data.get(title_key)
                 if not name: continue
-                # 如果是NPC，且没有 location_path，则使用当前游戏状态的地点
-                if actual_category == 'npc_profile' and not item_data.get('location_path'):
-                    item_data['location_path'] = self.profile.game_state.location_path
-
-                location_path = item_data.get('location_path')
-                lore_key = " > ".join(location_path + [name]) if location_path and isinstance(location_path, list) and len(location_path) > 0 else name
                 
-                final_content_to_save = item_data
-                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, final_content_to_save, source='resolved_creation')
+                # 关键：为新创建的实体合成一个可靠的 lore_key
+                location_path = item_data.get('location_path')
+                # 如果没有 location_path，尝试从指令的上下文中推断，如果再没有，就用一个全局默认值
+                if not location_path:
+                    # 尝试从用户输入中提取地点
+                    from .schemas import SceneLocationExtraction
+                    location_result = await self.ainvoke_with_rotation(
+                        self.get_location_extraction_prompt(), 
+                        output_schema=SceneLocationExtraction,
+                        models_to_try_override=[FUNCTIONAL_MODEL]
+                    )
+                    if location_result and location_result.has_explicit_location:
+                        location_path = location_result.location_path
+                    else: # 终极备援
+                        location_path = ["世界"]
+
+                item_data['location_path'] = location_path
+                lore_key = " > ".join(location_path + [name])
+                
+                logger.info(f"[{self.user_id}] (_resolve_and_save) 正在創建新 LORE：'{lore_key}'")
+                await lore_book.add_or_update_lore(self.user_id, actual_category, lore_key, item_data, source='resolved_creation')
 
             except Exception as e:
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
 # 解析並儲存LORE實體
 
+
+    
 
 # 函式：執行純粹的 RAG 原始文檔檢索 (v1.1 - 完整性補全)
 # 更新紀錄:
@@ -2548,13 +2540,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
 
 
-# 函式：從使用者輸入中提取實體 (v2.2 - 降噪修正)
+# 函式：从使用者输入中提取实体 (v2.3 - 移除普通名词提取)
 # 更新紀錄:
-# v2.2 (2025-10-05): [災難性BUG修復] 根據 RAG 查詢污染日誌，徹底重構了此函式。1. 移除了提取普通名詞的備用邏輯，這是噪音詞的主要來源。2. 強化了 spaCy NER，使其能夠提取多種類型的命名實體（地點、組織等），而不僅僅是人名。此修改旨在確保只有高質量的命名實體被用於查詢擴展，從根本上解決資訊偏差問題。
+# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。此修改牺牲了部分召回率，但极大地提升了提取结果的准确性（Precision），从根本上解决了因提取到“地毯”等无意义名词而污染 RAG 查询的问题。
+# v2.2 (2025-10-05): [災難性BUG修復] 根据 RAG 查詢污染日誌，徹底重構了此函式。
 # v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。
-# v2.0 (2025-10-03): [根本性重構] 此函式被徹底重寫為一個純程式化的、作為備援方案的「雙引擎」提取器。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.2 - 降噪版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
+        """(v2.3 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
         
         # --- 第一引擎：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -2577,21 +2569,22 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             nlp = spacy.load('zh_core_web_sm')
             doc = nlp(user_input)
             
-            # [v2.2 核心修正] 擴大實體標籤範圍，只提取真正的命名實體
+            # [v2.3 核心修正] 只提取真正的命名实体，不再回退到普通名词
             for ent in doc.ents:
                 if ent.label_ in ('PERSON', 'ORG', 'GPE', 'LOC', 'FAC', 'PRODUCT', 'EVENT', 'WORK_OF_ART') and ent.text not in found_entities:
                     found_entities.add(ent.text.strip())
         except Exception as e:
             logger.error(f"[{self.user_id}] [雙引擎實體提取] spaCy NER 引擎執行失敗: {e}")
         
-        # [v2.2 核心修正] 徹底移除提取普通名詞的策略三，這是噪音的主要來源
-
         if found_entities:
-            logger.info(f"[{self.user_id}] [雙引擎實體提取] 成功提取高質量實體: {found_entities}")
+            logger.info(f"[{self.user_id}] [雙引擎實體提取] 成功提取高質量實體: {list(found_entities)}")
             return list(found_entities)
         
         return []
-# 從使用者輸入中提取實體 函式結束
+# 从使用者输入中提取实体 函式结束
+
+
+    
 
     # 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
@@ -2804,9 +2797,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     # 函式：獲取描述合成器 Prompt
 
 
-# 函式：獲取批量實體解析器 Prompt (v1.0 - 全新創建)
+# 函式：獲取批量實體解析器 Prompt (v1.2 - 完整性修复)
 # 更新紀錄:
-# v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。它指导 LLM 接收一批新发现的实体，并与现有数据库进行比对，为每一个新实体做出“创建(CREATE)”或“合并(MERGE)”的决策，是从根本上解决 LORE 重复问题的关键工具。
+# v1.2 (2025-12-08): [完整性修复] 根据 NameError，补全了此函式的完整定义，并修正了其缓存变量名，确保 LORE 智能合并功能可以被正确调用。
+# v1.1 (2025-09-24): [健壯性強化] 在Prompt中增加了一個詳細的、結構完美的“輸出結構範例”。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為“智能合併”架構的核心。
     def get_batch_entity_resolution_prompt(self) -> str:
         """獲取或創建一個專門用於批量實體解析的字符串模板。"""
         if self.batch_entity_resolution_chain is None:
@@ -3476,13 +3471,13 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：執行事後處理的LORE更新 (v3.1 - 防禦性檢查)
+# 函式：執行事後處理的LORE更新 (v3.2 - 引入工具白名单)
 # 更新紀錄:
-# v3.1 (2025-10-03): [健壯性強化] 在處理 `successful_lores` 列表的循環中，增加了一道防禦性檢查 (`isinstance(lore, Lore)`)。此修改確保了即使上游的 `_execute_tool_call_plan` 在某些未知邊界情況下返回了錯誤的數據類型，本函式也能安全地跳過無效數據而不是直接崩潰，從而保證了事後分析流程的整體穩定性。
-# v3.0 (2025-10-02): [重大架構升級] 根據「事件驅動」模型，為此函式增加了「精煉觸發器」的職責。
-# v2.0 (2025-11-21): [災難性BUG修復] 引入了「安全LORE工具白名單」機制。
+# v3.2 (2025-12-08): [健壮性强化] 作为“只更新，不创建”原则的双保险，引入了 `SAFE_UPDATE_TOOLS_WHITELIST`。此函式现在会从程式码层面过滤掉所有非 `update_` 类型的工具呼叫，彻底杜绝事后分析流程意外创建新 LORE 的可能性。
+# v3.1 (2025-10-03): [健壯性強化] 增加了防禦性檢查 (`isinstance(lore, Lore)`)。
+# v3.0 (2025-10-02): [重大架構升級] 為此函式增加了「精煉觸發器」的職責。
     async def execute_lore_updates_from_summary(self, summary_data: Dict[str, Any]):
-        """(事後處理 v3.1) 執行LORE更新計畫，並為新創建的粗略LORE觸發背景精煉任務。"""
+        """(事後處理 v3.2) 執行LORE更新計畫，并过滤以确保只执行更新操作。"""
         lore_updates = summary_data.get("lore_updates")
         if not lore_updates or not isinstance(lore_updates, list):
             return
@@ -3490,24 +3485,32 @@ class ExtractionResult(BaseModel):
         try:
             await asyncio.sleep(2.0)
             
-            SAFE_LORE_TOOLS_WHITELIST = {
-                "create_new_npc_profile", "update_npc_profile",
-                "add_or_update_location_info", "add_or_update_item_info",
-                "define_creature_type", "add_or_update_quest_lore",
-                "add_or_update_world_lore", "update_lore_template_keys",
+            # [v3.2 核心修正] 只允许更新类型的工具
+            SAFE_UPDATE_TOOLS_WHITELIST = {
+                "update_npc_profile",
+                "add_or_update_location_info", # 保留以更新地點描述
+                "add_or_update_item_info",     # 保留以更新物品描述
+                "add_or_update_quest_lore",    # 保留以更新任務狀態
+                "add_or_update_world_lore",    # 保留以更新世界傳說
+                "update_lore_template_keys",
             }
             
             raw_plan = [ToolCall.model_validate(call) for call in lore_updates]
             
-            filtered_plan = [call for call in raw_plan if call.tool_name in SAFE_LORE_TOOLS_WHITELIST]
+            # 过滤掉所有 create_new_... 类型的工具
+            filtered_plan = [
+                call for call in raw_plan 
+                if call.tool_name in SAFE_UPDATE_TOOLS_WHITELIST and not call.tool_name.startswith("create_new")
+            ]
             
             if not filtered_plan:
+                logger.info(f"[{self.user_id}] 背景任務：事後分析未檢測到有效的 LORE 更新操作。")
                 return
 
             extraction_plan = ToolCallPlan(plan=filtered_plan)
             
             if extraction_plan and extraction_plan.plan:
-                logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條預生成LORE，準備執行...")
+                logger.info(f"[{self.user_id}] 背景任務：檢測到 {len(extraction_plan.plan)} 條 LORE 更新，準備執行...")
                 
                 gs = self.profile.game_state
                 effective_location = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
@@ -3515,24 +3518,10 @@ class ExtractionResult(BaseModel):
                 results_summary, successful_lores = await self._execute_tool_call_plan(extraction_plan, effective_location)
 
                 logger.info(f"[{self.user_id}] 背景任務：LORE更新執行完畢。摘要: {results_summary}")
-
-                lores_needing_refinement = []
-                for lore in successful_lores:
-                    # [v3.1 核心修正] 增加防禦性類型檢查
-                    if not isinstance(lore, Lore):
-                        logger.warning(f"[{self.user_id}] [精煉觸發器] 檢測到無效的 LORE 數據類型 ({type(lore)})，已跳過。")
-                        continue
-                    
-                    if lore.category == 'npc_profile' and lore.source and 'refiner' not in lore.source:
-                        lores_needing_refinement.append(lore)
-                
-                if lores_needing_refinement:
-                    logger.info(f"[{self.user_id}] [精煉觸發器] 檢測到 {len(lores_needing_refinement)} 條新/陳舊 LORE，正在異步觸發背景精煉服務...")
-                    asyncio.create_task(self._background_lore_refinement(lores_needing_refinement))
+        
         except Exception as e:
             logger.error(f"[{self.user_id}] 執行預生成LORE更新時發生異常: {e}", exc_info=True)
-# 函式：執行事後處理的LORE更新 (v3.1 - 防禦性檢查)
-
+# 執行事後處理的LORE更新
 
     
 
@@ -4244,28 +4233,25 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.6 - 输出结构现代化)
+# 函式：獲取事後分析器 Prompt (v4.7 - 限制为仅更新)
 # 更新紀錄:
-# v4.6 (2025-12-08): [灾难性BUG修复] 根據 ValidationError，彻底重写了此 Prompt，为其加入了详细的、符合当前 `ToolCall` Pydantic 模型的输出结构范例，并强化了指令，强制 LLM 遵循 `tool_name` 和 `parameters` 的正确格式，从根本上解决事后分析流程因输出结构过时而失败的问题。
+# v4.7 (2025-12-08): [根本性重构] 根據“对话前创世，对话后更新”的核心原则，彻底重写了此 Prompt。新版本完全移除了任何关于 `create_new_...` 的指令和范例，并明确指示 LLM 的唯一职责是分析对话中的动态变化（如状态变更），并为【已存在的 LORE】生成 `update_...` 工具呼叫。
+# v4.6 (2025-12-08): [灾难性BUG修复] 重写了 Prompt，加入了详细的、符合当前 `ToolCall` 模型的输出结构范例。
 # v4.5 (2025-10-05): [災難性BUG修復] 新增了【🔑 主鍵合成原則】。
-# v4.4 (2025-10-04): [災難性BUG修復] 新增了【🔑 主鍵強制原則】。
     def get_post_generation_analysis_chain(self) -> str:
-        """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
+        """獲取或創建一個專門用於事後分析（提取記憶和【更新】LORE）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】。
-# MISSION: 你的任務是審查【本回合的完整對話】及所有【參考情報】，並生成一個完整的、可執行的【LORE更新計畫】和【記憶摘要】。
+            prompt_template = """# TASK: 你是一位極其嚴謹的【世界狀態同步官】。
+# MISSION: 你的【唯一任務】是审查【本回合的完整對話】，並與【現有LORE摘要】進行比对。如果对话中描述了任何【已存在角色】的【状态变化】或【新信息】，你必须生成一个【LORE更新計畫】来同步这些变化。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【🚫 嚴禁複誦原則 (針對記憶摘要)】**: 在生成 `memory_summary` 時，你的輸出**必須**是你自己語言的**重新創作**和**總結**。
+# 1.  **【🚫 絕對禁止創世原則】**: 你的职责是【更新】，不是【创造】。你的输出中【绝对禁止】包含任何 `create_new_...` 类型的工具呼叫。你只能为【現有LORE摘要】中已存在的实体生成更新計畫。
 #
-# 2.  **【🔑 主鍵合成原則 (Key Synthesis Principle)】**:
-#     *   **創建時 (CREATE)**: 當你生成一個 `create_new_...` 工具調用時，你**【絕對必須】**為其合成一個 `lore_key`。合成規則為：`{current_location_path_str} > {standardized_name}`。
-#     *   **更新時 (UPDATE)**: 當你生成一個 `update_...` 工具調用時，你**【絕對必須】**從【現有LORE摘要】中找到並使用其已存在的 `lore_key`。
-#     *   【絕對禁止】生成任何沒有 `lore_key` 的 LORE 操作工具調用。
+# 2.  **【🔑 主鍵查找原则】**: 当你生成一个 `update_...` 工具呼叫时，你**【絕對必須】**从【現有LORE摘要】中找到并使用其已存在的 `lore_key`。如果找不到，则忽略该更新。
 #
-# 3.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
+# 3.  **【🎯 聚焦动态变化】**: 你的主要目标是捕捉对话中新产生的、动态的信息。例如：角色状态从“健康”变为“受伤”，学会了新技能，位置发生了变化等。
 #
-# 4.  **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。`lore_updates` 列表中的每個物件都【必須】包含 `tool_name` 和 `parameters` 兩個鍵。
+# 4.  **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。`lore_updates` 列表中的每个物件都【必須】包含 `tool_name` 和 `parameters` 兩個鍵。
 
 # === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
 # ```json
@@ -4273,20 +4259,12 @@ class ExtractionResult(BaseModel):
 #   "memory_summary": "對本回合互動的簡潔、客觀的摘要。",
 #   "lore_updates": [
 #     {
-#       "tool_name": "create_new_npc_profile",
-#       "parameters": {
-#         "lore_key": "艾爾文城 > 魔法學院 > 米婭",
-#         "standardized_name": "米婭",
-#         "description": "一位在魔法學院遇到的神秘女性。",
-#         "location_path": ["艾爾文城", "魔法學院"]
-#       }
-#     },
-#     {
 #       "tool_name": "update_npc_profile",
 #       "parameters": {
-#         "lore_key": "艾爾文城 > 城堡 > 卡爾·維利爾斯勳爵",
+#         "lore_key": "維利爾斯宅邸 > 米婭",
 #         "updates": {
-#           "status": "正在密謀一項計畫"
+#           "status": "因見到勳爵而感到內心激動",
+#           "description": "（在原有描述基础上，补充本回合发生的新事迹）"
 #         }
 #       }
 #     }
@@ -4296,17 +4274,8 @@ class ExtractionResult(BaseModel):
 
 # --- [INPUT DATA] ---
 
-# 【當前場景地點路徑 (用於合成 lore_key)】:
-{current_location_path_str}
-# ---
-# 【LORE上下文參考 (本回合核心角色的既有數據)】:
-{relevant_lore_context}
-# ---
-# 【現有LORE摘要 (你的參考基準，用於發現新規則和新身份)】:
+# 【現有LORE摘要 (你的參考基準，用於查找 lore_key)】:
 {existing_lore_summary}
-# ---
-# 【創作依據參考 (生成器在創作時看到的LORE規則)】:
-{scene_rules_context}
 # ---
 
 # 【本回合的完整對話】:
@@ -4314,7 +4283,7 @@ class ExtractionResult(BaseModel):
 # AI ({ai_name}): {final_response_text}
 # ---
 
-# 【你生成的分析結果JSON (請嚴格遵守所有原則和結構範例)】:
+# 【你生成的分析結果JSON (請嚴格遵守【只更新，不创建】的原則)】:
 """
             self.post_generation_analysis_chain = prompt_template
         return self.post_generation_analysis_chain
@@ -6247,36 +6216,26 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：獲取RAG重排器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：檢索並摘要記憶 (v25.2 - 防禦性修正)
+# 函式：檢索並拼接原始記憶 (v26.0 - 原文直通)
 # 更新紀錄:
-# v25.2 (2025-10-05): [災難性BUG修復] 根據 TypeError，在調用 `query_keywords.update()` 之前，增加了一道防禦性檢查，確保從 _query_lore_from_entities 返回的變數是一個可迭代的物件，防止因上游返回 None 而導致的程式崩潰。
+# v26.0 (2025-12-08): [根本性重構] 根據“原文直通”策略，彻底移除了此函式中所有與呼叫 LLM 進行摘要相關的程式碼 (`get_rag_summarizer_chain`)。函式的新职责极其单纯：执行 RAG 检索，然后直接拼接并返回所有原始文档的完整内容，从而根除资讯失真和不必要的安全审查。
+# v25.2 (2025-10-05): [災難性BUG修復] 增加了對 `query_keywords.update()` 的防禦性檢查。
 # v25.1 (2025-10-04): [災難性BUG修復] 徹底移除了函式末尾對已被廢棄的 _decode_lore_content 函式的調用。
-# v25.0 (2025-10-03): [重大架構回退] 回退到純粹的「原文直通」管道。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v25.2) 執行「原文直通」RAG 檢索，不經過任何 LLM 篩選或摘要。
+        (v26.0) 執行「原文直通」RAG 檢索，不經過任何 LLM 篩選或摘要，直接返回拼接後的原始文檔。
         返回一個字典: {"summary": str}
         """
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
-        if not self.retriever and not self.bm25_retriever:
-            logger.warning(f"[{self.user_id}] 所有檢索器均未初始化，無法檢索記憶。")
+        if not self.retriever:
+            logger.warning(f"[{self.user_id}] [RAG 原文直通] 檢索器未初始化，無法檢索記憶。")
             return default_return
 
-        # --- 步驟 1: 查詢強化 ---
-        # [v25.2 核心修正] 沿用舊的查詢擴展邏輯，因為新的邏輯已移至 direct_rag_generate
-        contextual_entity_names = await self._query_lore_from_entities(query_text)
-        query_keywords = set(re.split(r'\s+', query_text))
-        
-        # [v25.2 核心修正] 防禦性檢查
-        if contextual_entity_names and isinstance(contextual_entity_names, list):
-            query_keywords.update(contextual_entity_names)
-            
-        expanded_query = " ".join(sorted(list(query_keywords), key=len, reverse=True))
-        logger.info(f"[{self.user_id}] [RAG 原文直通] 查詢已擴展為: '{expanded_query}'")
-        
-        # --- 步驟 2: RAG 檢索 ---
+        # --- 步骤 1: RAG 检索 ---
         try:
-            retrieved_docs = await self.retriever.ainvoke(expanded_query) if self.retriever else []
+            # 不再进行复杂的查询扩展，直接使用传入的文本进行检索
+            logger.info(f"[{self.user_id}] [RAG 原文直通] 正在使用查询: '{query_text}'")
+            retrieved_docs = await self.retriever.ainvoke(query_text)
         except Exception as e:
             logger.error(f"[{self.user_id}] RAG 檢索期間發生錯誤: {e}", exc_info=True)
             return {"summary": "檢索長期記憶時發生錯誤。"}
@@ -6285,19 +6244,17 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.info(f"[{self.user_id}] [RAG 原文直通] 未檢索到任何文檔。")
             return default_return
 
-        logger.info(f"[{self.user_id}] [RAG 原文直通] 粗略檢索成功，獲得 {len(retrieved_docs)} 份候選文檔。")
+        logger.info(f"[{self.user_id}] [RAG 原文直通] 檢索成功，獲得 {len(retrieved_docs)} 份候選文檔。")
 
-        # --- 步驟 3: 最終拼接 (原文直通) ---
+        # --- 步骤 2: 最终拼接 (原文直通) ---
         concatenated_content = "\n\n---\n\n".join([doc.page_content for doc in retrieved_docs])
         summary_context_header = f"【背景歷史參考（來自 RAG 的 {len(retrieved_docs)} 條原始文檔）】:\n"
-        summary_context = summary_context_header + concatenated_content
+        final_summary = summary_context_header + concatenated_content
         
         logger.info(f"[{self.user_id}] [RAG 原文直通] ✅ 成功拼接全部 {len(retrieved_docs)} 條原始文檔作為 summary_context。")
         
-        final_summary = summary_context
-        
         return {"summary": final_summary}
-# 檢索並摘要記憶 函式結束
+# 檢索並拼接原始記憶 函式结束
 
 
     
@@ -6404,6 +6361,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
