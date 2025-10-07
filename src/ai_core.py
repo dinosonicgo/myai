@@ -903,14 +903,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：解析並儲存LORE實體 (v7.1 - 返回物件支持)
+# 函式：解析並儲存LORE實體 (v7.2 - 移除地點備援LLM)
 # 更新紀錄:
-# v7.1 (2025-12-09): [功能擴展] 新增了 `return_lore_objects` 參數。當其為 True 時，函式將返回一個包含所有在此次操作中被創建或更新的 Lore 物件的列表。此修改是為了給上游的 `direct_rag_generate` 函式提供觸發後台精煉任務所需的物件列表。
-# v7.0 (2025-12-08): [根本性重构] 彻底重写了此函式的 NPC 处理逻辑，引入批量实体解析与智能合并。
-# v6.1 (2025-10-04): [架構簡化] 徹底移除了所有與代碼化系統 (_decode_lore_content) 相關的邏輯。
+# v7.2 (2025-12-12): [災難性BUG修復] 徹底移除了在 `if not location_path:` 條件塊中對 LLM 的備援調用。此修改旨在從根本上解決在 /start 流程中因批量創建無地點 LORE 而引發的 API 調用爆炸和格式化錯誤。現在，對於缺失地點的 LORE，系統會直接賦予一個安全的預設值 ["世界"]。
+# v7.1 (2025-12-09): [功能擴展] 新增了 `return_lore_objects` 參數以支持後台精煉。
+# v7.0 (2025-12-08): [根本性重构] 引入批量实体解析与智能合并。
     async def _resolve_and_save(self, category_str: str, items: List[Dict[str, Any]], title_key: str = 'name', return_lore_objects: bool = False) -> Optional[List[Lore]]:
         """
-        (v7.1) 接收 LORE 实体列表，并通过智能实体解析来决定是创建新条目还是合并到现有条目，
+        (v7.2) 接收 LORE 实体列表，并通过智能实体解析来决定是创建新条目还是合并到现有条目，
         最终安全地儲存到 Lore 資料庫中。可選擇性地返回被操作的 Lore 物件列表。
         """
         if not self.profile:
@@ -979,17 +979,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if not name: continue
                 
                 location_path = item_data.get('location_path')
+                
+                # 【【【核心修正 v7.2】】】
+                # 移除昂貴且不穩定的 LLM 調用備援
                 if not location_path:
-                    from .schemas import SceneLocationExtraction
-                    location_result = await self.ainvoke_with_rotation(
-                        self.get_location_extraction_prompt(), 
-                        output_schema=SceneLocationExtraction,
-                        models_to_try_override=[FUNCTIONAL_MODEL]
-                    )
-                    if location_result and location_result.has_explicit_location and location_result.location_path:
-                        location_path = location_result.location_path
-                    else:
-                        location_path = ["世界"]
+                    location_path = ["世界"] # 直接賦予一個安全的預設值
 
                 item_data['location_path'] = location_path
                 lore_key = " > ".join(location_path + [name])
@@ -1007,7 +1001,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return saved_lore_objects
         return None
 # 解析並儲存LORE實體
-
     
 
 
@@ -1873,43 +1866,38 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：安全地格式化Prompt模板 (v1.2 - 支援自訂協議)
+# 函式：安全地格式化Prompt模板 (v2.0 - 快速失敗)
 # 更新紀錄:
-# v1.2 (2025-10-04): [架構升級] 新增了 `custom_protocol` 參數。此修改允許在注入協議時，使用一個指定的、輕量級的協議（如 data_protocol_prompt）來覆蓋預設的、重量級的核心協議，實現了對不同LLM任務的精準、分級越獄指令注入。
+# v2.0 (2025-12-12): [災難性BUG修復] 徹底重構了此函式的核心邏輯，引入了「快速失敗」機制。舊版本的函式在遇到缺失的格式化鍵時會靜默地保留佔位符，導致向上游傳遞了格式錯誤的 Prompt，引發了難以追蹤的 LLM 格式幻覺。新版本會在格式化之前，嚴格檢查模板中所有的佔位符是否都能在傳入的參數中找到對應的值，如果找不到，將立即拋出一個清晰的 ValueError，從而在第一時間暴露程式碼層面的調用錯誤。
+# v1.2 (2025-10-04): [架構升級] 新增了 `custom_protocol` 參數。
 # v1.1 (2025-09-23): [架構升級] 新增了 inject_core_protocol 參數。
-# v1.0 (2025-09-23): [終極BUG修復] 創建此核心輔助函式以徹底解決所有格式化錯誤。
     def _safe_format_prompt(self, template: str, params: Dict[str, Any], inject_core_protocol: bool = False, custom_protocol: Optional[str] = None) -> str:
         """
-        一個絕對安全的Prompt格式化函式，用於防止因模板中包含意外的`{}`而導致的錯誤。
-        可以選擇性地在模板最頂部注入核心的“最高指導原則”，並支援傳入自訂協議以覆蓋預設值。
+        一個絕對安全的Prompt格式化函式，內建「快速失敗」機制以防止格式化錯誤。
         """
         final_template = template
         if inject_core_protocol:
-            # [v1.2 核心修正] 優先使用自訂協議，否則回退到預設的核心協議
             protocol_to_inject = custom_protocol if custom_protocol is not None else self.core_protocol_prompt
             if protocol_to_inject:
                 final_template = protocol_to_inject + "\n\n" + template
 
-        # 獨特且不可能在文本中出現的佔位符
-        L_BRACE_PLACEHOLDER = "___LEFT_BRACE_PLACEHOLDER___"
-        R_BRACE_PLACEHOLDER = "___RIGHT_BRACE_PLACEHOLDER___"
-
-        # 步驟 1: 將模板中所有的大括號替換為臨時佔位符
-        escaped_template = final_template.replace("{", L_BRACE_PLACEHOLDER).replace("}", R_BRACE_PLACEHOLDER)
-
-        # 步驟 2: 將我們真正想要格式化的變數的佔位符還原
-        for key in params.keys():
-            placeholder_to_restore = f"{L_BRACE_PLACEHOLDER}{key}{R_BRACE_PLACEHOLDER}"
-            actual_placeholder = f"{{{key}}}"
-            escaped_template = escaped_template.replace(placeholder_to_restore, actual_placeholder)
+        # 【核心修正 v2.0】 快速失敗機制
+        # 1. 找出模板中所有潛在的佔位符
+        placeholders = re.findall(r'\{([^}]+)\}', final_template)
         
-        # 步驟 3: 現在，模板中只有我們想要的佔位符是有效的，可以安全地進行格式化
-        formatted_template = escaped_template.format(**params)
+        # 2. 檢查所有佔位符是否都在 params 中有對應的鍵
+        missing_keys = [p for p in placeholders if p not in params]
+        
+        # 3. 如果有任何缺失的鍵，立即拋出一個清晰的錯誤
+        if missing_keys:
+            raise ValueError(f"格式化 Prompt 失敗：模板中需要的鍵 {missing_keys} 在提供的參數中缺失。")
 
-        # 步驟 4: 最後，將所有剩餘的臨時佔位符還原為普通的大括號
-        final_prompt = formatted_template.replace(L_BRACE_PLACEHOLDER, "{").replace(R_BRACE_PLACEHOLDER, "}")
-
-        return final_prompt
+        # 只有在所有鍵都存在的情況下，才執行格式化
+        try:
+            return final_template.format(**params)
+        except KeyError as e:
+             # 作為雙重保險，捕捉標準的 KeyError
+            raise ValueError(f"格式化 Prompt 時發生 KeyError: 鍵 '{e.args[0]}' 缺失。") from e
 # 安全地格式化Prompt模板 函式結束
 
 
@@ -6266,6 +6254,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
