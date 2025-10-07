@@ -246,36 +246,14 @@ class AILover:
         return None
     # 獲取下一個可用的 API 金鑰 函式結束
 
-# 函式：對文本進行安全編碼 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 創建此核心輔助函式，作為“隔离编码”策略的执行者。它使用预先排序的映射表，将文本中的所有敏感词高效地替换为中性技术代号。
-    def _encode_text(self, text: str) -> str:
-        """使用 SORTED_ENCODING_MAP 将文本中的敏感词替换为技术代号。"""
-        if not text:
-            return ""
-        # 遍歷排序後的映射表進行替換
-        for word, code in SORTED_ENCODING_MAP:
-            text = text.replace(word, code)
-        return text
-# 函式：對文本進行安全編碼
 
 
-    # 函式：對文本進行安全解碼 (v1.0 - 全新創建)
-# 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 創建此核心輔助函式，作為“隔离编码”策略的执行者。它將 LLM 返回的、包含技术代号的文本，安全地还原为包含原始敏感词的最终内容。
-    def _decode_text(self, text: str) -> str:
-        """使用 DECODING_MAP 将文本中的技术代号替换回原始敏感词。"""
-        if not text:
-            return ""
-        for code, word in DECODING_MAP.items():
-            text = text.replace(code, word)
-        return text
-# 函式：對文本進行安全解碼
+
 
 
 # 函式：獲取摘要後的對話歷史 (v31.0 - 纯程式化中性摘要)
 # 更新紀錄:
-# v31.0 (2025-12-08): [根本性重构] 遵照使用者指示，彻底移除了所有与“文学化摘要”相关的 LLM 调用环节。此函式现在回归为一个纯粹由程式码驱动的、绝对安全的“中性摘要”生成器。它只提取对话中的核心实体和地点，并将其填入一个固定的模板中，从而在保证基本上下文连贯性的同时，根除了所有在此环节可能发生的审查失败或资讯失真问题。
+# v31.0 (2025-12-08): [根本性重构] 遵照使用者指示，彻底移除了所有与“文学化摘要”相关的 LLM 调用环节。此函式现在回归为一个纯粹由程式码驱动的、絕對安全的“中性摘要”生成器。它只提取对话中的核心实体和地点，并将其填入一个固定的模板中，从而在保证基本上下文连贯性的同时，根除了所有在此环节可能发生的审查失败或资讯失真问题。
 # v30.0 (2025-12-08): [架构回归] 彻底移除了所有与“隔离编码”相关的逻辑。
 # v29.0 (2025-12-08): [根本性重構] 引入了“隔离编码 + 程式级备援”的终极健壮性策略。
     async def _get_summarized_chat_history(self, user_id: str, num_messages: int = 8) -> str:
@@ -5462,9 +5440,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/5] 正在嘗試【理想方案：雲端宏觀解析】...")
                     
                     sanitized_chunk = chunk
-                    reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
-                    for code, word in reversed_map:
-                        sanitized_chunk = sanitized_chunk.replace(word, code)
+                    # 【核心修正】移除對 DECODING_MAP 的依賴
+                    # reversed_map = sorted(self.DECODING_MAP.items(), key=lambda item: len(item[1]), reverse=True)
+                    # for code, word in reversed_map:
+                    #     sanitized_chunk = sanitized_chunk.replace(word, code)
 
                     transformation_template = self.get_canon_transformation_chain()
                     full_prompt = self._safe_format_prompt(
@@ -5568,8 +5547,10 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if not parsing_completed:
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-5/5] 正在嘗試【法醫級重構方案】...")
                     keywords = set()
-                    for word in self.DECODING_MAP.values():
-                        if word in chunk: keywords.add(word)
+                    
+                    # 【核心修正】移除對 DECODING_MAP 的依賴
+                    # for word in self.DECODING_MAP.values():
+                    #     if word in chunk: keywords.add(word)
                     
                     protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
                     try:
@@ -5605,7 +5586,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
 # 函式：執行 LORE 解析管線 (v3.9 - 終極降級管線)
-
 
 
 
@@ -6465,6 +6445,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
