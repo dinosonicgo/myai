@@ -1,41 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T21:49:55.372153 ###
+### AI Lover Log - Last updated at 2025-10-07T21:55:00.122128 ###
 
-2025-10-07 09:23:44 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
-2025-10-07 09:23:44 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
-2025-10-07 09:23:45 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-07 09:23:45 - [WARNING] - [512280345618546699] [強制重試 1/3] 使用 Key #0 的嘗試失敗: Prompt blocked due to 4
-2025-10-07 09:23:45 - [INFO] -    -> 將在 0.5 秒後使用下一個 Key 進行嘗試...
-2025-10-07 09:23:46 - [INFO] - [512280345618546699] [強制重試 2/3] 使用 API Key #1 進行嘗試...
-2025-10-07 09:23:48 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #1) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-07 09:23:48 - [WARNING] - [512280345618546699] [強制重試 2/3] 使用 Key #1 的嘗試失敗: Prompt blocked due to 4
-2025-10-07 09:23:48 - [INFO] -    -> 將在 1.0 秒後使用下一個 Key 進行嘗試...
-2025-10-07 09:23:49 - [INFO] - [512280345618546699] [強制重試 3/3] 使用 API Key #2 進行嘗試...
-2025-10-07 09:23:50 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-pro' (Key #2) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-07 09:23:50 - [WARNING] - [512280345618546699] [強制重試 3/3] 使用 Key #2 的嘗試失敗: Prompt blocked due to 4
-2025-10-07 09:23:50 - [ERROR] - [512280345618546699] 【強制 Key 輪換重試】策略在 3 次嘗試後最終失敗。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1654, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3244, in _force_and_retry
-    return await self.ainvoke_with_rotation(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1698, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1654, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-10-07 09:23:50 - [INFO] - [512280345618546699] [事後分析] 本次分析未檢測到需要更新或創建的 LORE。
-2025-10-07 09:23:50 - [INFO] - [512280345618546699] [事後分析] 背景分析與分流任務完成。
-2025-10-07 09:28:11 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['response_style_prompt']
-2025-10-07 09:28:13 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-07 09:33:56 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-07 09:33:56 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
-2025-10-07 09:33:56 - [INFO] - [512280345618546699] [前置 LORE-1/5] 正在進行意圖分類...
-2025-10-07 09:33:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-07 09:33:57 - [INFO] - [512280345618546699] [前置 LORE-2/5] 正在執行意圖驅動的場景選角...
 2025-10-07 09:33:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-07 09:33:58 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
@@ -300,3 +264,39 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-07 21:49:44 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
 2025-10-07 21:49:44 - [INFO] - ✅ 核心 Cog 加載成功。
 2025-10-07 21:49:44 - [INFO] - 正在全域同步應用程式指令...
+2025-10-07 21:50:18 - [INFO] - ✅ 指令已全域同步！
+2025-10-07 21:50:18 - [INFO] - Discord Bot setup hook finished!
+2025-10-07 21:50:20 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-07 21:50:21 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-07 21:53:49 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-07 21:53:52 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-07 21:53:52 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-07 21:53:52 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-07 21:53:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-07 21:53:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-07 21:53:58 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-07 21:53:58 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-07 21:53:59 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-07 21:53:59 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-07 21:54:06 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-07 21:54:06 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-07 21:54:06 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-07 21:54:06 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-07 21:54:06 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 21:54:08 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-07 21:54:15 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-07 21:54:15 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-07 21:54:15 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 21:54:17 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-07 21:54:26 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-07 21:54:27 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-07 21:54:27 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 21:54:29 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-07 21:54:34 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] [創世流程 v66.0] 原生 Python 驅動的流程已啟動。
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] [LORE 解析 1-1/5] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-07 21:54:37 - [ERROR] - [512280345618546699] [LORE 解析 1-1/5] 遭遇未知錯誤: 'AILover' object has no attribute 'DECODING_MAP'，正在降級。
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] [LORE 解析 1-2/5] 正在嘗試【本地備援方案：無審查解析】...
+2025-10-07 21:54:37 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
