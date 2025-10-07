@@ -1604,11 +1604,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v236.0 - 動態冷卻)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v236.1 - 終極錯誤報告)
 # 更新紀錄:
-# v236.0 (2025-12-11): [災難性BUG修復] 引入了「模型感知的動態冷卻策略」。在捕獲 ResourceExhausted 異常時，系統不再對所有模型都硬編碼 24 小時冷卻，而是會判斷模型名稱。對於速率限制較寬鬆的 Flash 模型，僅設置 65 秒的短期冷卻；對於限制嚴格的 Pro 模型，則保持較長的冷卻時間。此修改從根本上解決了因 Flash 模型短時超限而導致系統長時間癱瘓的問題。
+# v236.1 (2025-10-08): [災難性BUG修復] 增加了終極錯誤報告機制。當所有 API Key 都處於冷卻期而導致函式無法發起任何請求時，不再拋出模糊的通用異常，而是手動拋出一個明確的 `ResourceExhausted` 異常，從根本上解決了 `failed without a specific exception` 的問題。
+# v236.0 (2025-12-11): [災難性BUG修復] 引入了「模型感知的動態冷卻策略」。
 # v235.1 (2025-12-08): [完整性修复] 补全了文件顶部的 `from typing import Union` 导入。
-# v235.0 (2025-12-08): [根本性重构] 引入了消息列表输入支持。
     async def ainvoke_with_rotation(
         self,
         prompt_or_messages: Union[str, List[Dict[str, Any]]],
@@ -1783,8 +1783,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             else:
                  logger.error(f"[{self.user_id}] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: {last_exception}")
         
-        raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-# 帶輪換和備援策略的原生 API 調用引擎
+        if last_exception:
+            raise last_exception
+        else:
+            # [v236.1 核心修正] 如果沒有任何異常，但函式走到了這裡，意味著所有 API Key 都在冷卻中
+            from google.api_core.exceptions import ResourceExhausted
+            raise ResourceExhausted("ainvoke_with_rotation failed: All available API keys for the target models are currently on cooldown. Please wait before retrying.")
+# 帶輪換和備援策略的原生 API 調用引擎 函式結束
 
 
 
@@ -6469,6 +6474,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
