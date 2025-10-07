@@ -461,7 +461,7 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-SceneCastingResult.model_rebuild()
+
 
 # (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
 BatchRefinementInput.model_rebuild()
@@ -472,6 +472,7 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
