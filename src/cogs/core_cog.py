@@ -1126,55 +1126,53 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v66.0 - 引入程式級上下文淨化)
+# 函式：執行完整的後台創世流程 (v67.0 - 數據流修復與職責分離)
 # 更新紀錄:
-# v66.0 (2025-12-10): [災難性BUG修復] 徹底重構了此流程，引入了「程式級上下文淨化」步驟。在調用 `complete_character_profiles` 之前，此流程現在會先調用一個純程式碼的 `_sanitize_context_for_profile_completion` 函式來過濾世界聖經，從而為角色補完提供一個只包含宏觀設定的、絕對安全的上下文，從根本上解決了因上下文污染導致的身份錯置問題。
+# v67.0 (2025-12-12): [災難性BUG修復] 徹底重構了此函式的數據流。現在，它會先調用 ai_core 中新增的 `parse_and_create_lore_from_canon` 方法，來完成 LORE 的解析與保存。接著，它會從資料庫中重新獲取所有剛剛被創建的 LORE 物件，並將它們明確地傳遞給 `_background_lore_refinement` 來觸發後台精煉。此修改徹底解決了 LORE 解析結果被丟棄、數據流斷裂以及後台精煉未被觸發的根本問題。
+# v66.0 (2025-12-10): [災難性BUG修復] 引入了「程式級上下文淨化」步驟。
 # v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。
-# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v66.0) 一個由原生 Python 驅動的、包含程式級上下文淨化的後台創世流程。"""
+        """(v67.0) 一個由原生 Python 驅動的、數據流完整的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v66.0] 原生 Python 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v67.0] 原生 Python 驅動的流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- 步驟 1: 解析聖經中的 NPC 名稱 (用於後續淨化) ---
-            all_npc_profiles_from_canon: List[CharacterProfile] = []
+            # --- 步驟 1: 【核心修正】解析聖經，創建 LORE 骨架並存入資料庫 ---
             if canon_text and canon_text.strip():
-                # 我們在這裡執行一次快速的、僅用於提取骨架的解析
-                # 這是為了獲取一個 NPC 名稱列表，以便淨化器能更精準地工作
-                is_successful, parsing_result_object, _ = await ai_instance._execute_lore_parsing_pipeline(canon_text)
-                if is_successful and parsing_result_object:
-                    all_npc_profiles_from_canon = parsing_result_object.npc_profiles
+                logger.info(f"[{user_id}] [後台創世] 步驟 1/5: 正在解析世界聖經並創建 LORE 骨架...")
+                await ai_instance.parse_and_create_lore_from_canon(canon_text)
+                logger.info(f"[{user_id}] [後台創世] LORE 骨架已成功創建並存入資料庫。")
             
-            # --- 步驟 2: 構建 RAG 索引 (使用完整原文) ---
+            # --- 步驟 2: 【核心修正】觸發後台精煉任務 ---
+            all_lores_from_db = await lore_book.get_all_lores_for_user(user_id)
+            if all_lores_from_db:
+                logger.info(f"[{user_id}] [後台創世] 步驟 2/5: 檢測到 {len(all_lores_from_db)} 條 LORE，正在觸發後台精煉任務...")
+                asyncio.create_task(ai_instance._background_lore_refinement(all_lores_from_db))
+            
+            # --- 步驟 3: 構建 RAG 索引 (使用完整原文) ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
-                logger.info(f"[{user_id}] [後台創世] 正在將完整的世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
             
-            logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建 (使用完整原文)...")
+            logger.info(f"[{user_id}] [後台創世] 步驟 3/5: 正在觸發 RAG 索引創始構建 (使用完整原文)...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
 
-            # --- 步驟 3: 【核心修正】執行程式級上下文淨化 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 1/3: 正在對世界聖經進行程式級上下文淨化...")
-            npc_names_from_canon = [p.name for p in all_npc_profiles_from_canon]
-            sanitized_context = ai_instance._sanitize_context_for_profile_completion(canon_text or "", npc_names_from_canon)
-
             # --- 步驟 4: 補完角色檔案 (使用淨化後的上下文) ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 正在使用淨化後的上下文補完角色檔案...")
-            await ai_instance.complete_character_profiles(sanitized_context=sanitized_context)
+            logger.info(f"[{user_id}] [後台創世] 步驟 4/5: 正在補完角色檔案...")
+            # 注意：此處我們傳入一個空字串，因為角色補完不應再受聖經影響
+            await ai_instance.complete_character_profiles(sanitized_context="（角色補完階段不參考世界聖經，以確保檔案純淨）")
             logger.info(f"[{user_id}] [後台創世] 角色檔案補完成功。")
 
-            # --- 步驟 5: 生成開場白 (使用淨化後的上下文) ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 3/3: 正在生成開場白...")
-            opening_scene = await ai_instance.generate_opening_scene(canon_text=sanitized_context)
+            # --- 步驟 5: 生成開場白 ---
+            logger.info(f"[{user_id}] [後台創世] 步驟 5/5: 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [後台創世] 開場白生成成功。")
 
             if not opening_scene:
@@ -1199,7 +1197,6 @@ class BotCog(commands.Cog, name="BotCog"):
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 執行完整的後台創世流程 函式結束
-
 
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
