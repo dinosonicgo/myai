@@ -3828,7 +3828,6 @@ class ExtractionResult(BaseModel):
                 logger.warning(f"[{self.user_id}] [LORE精煉-分批] 所有批次處理完成後，未能得到任何有效的精煉檔案。")
                 return
 
-            # --- 步驟 4: 【核心修正 v9.2】單一事務批次化資料庫更新 ---
             logger.info(f"[{self.user_id}] [LORE精煉-分批] 正在對 {len(all_refined_profiles)} 個成功精煉的檔案執行【單一事務】資料庫更新...")
             
             lore_map_by_name = {lore.content.get('name'): lore for lore in npc_lores if lore.content.get('name')}
@@ -3838,7 +3837,6 @@ class ExtractionResult(BaseModel):
                 for refined_profile in all_refined_profiles:
                     original_lore = lore_map_by_name.get(refined_profile.name)
                     if original_lore and refined_profile.description and refined_profile.description.strip():
-                        # 在同一個 session 中直接查詢並更新，而不是調用外部函式
                         stmt = select(Lore).where(Lore.id == original_lore.id)
                         result = await session.execute(stmt)
                         lore_to_update = result.scalars().first()
@@ -3849,7 +3847,6 @@ class ExtractionResult(BaseModel):
                             lore_to_update.timestamp = time.time()
                             updated_count += 1
                 
-                # 在所有更新都準備好之後，執行一次 commit
                 await session.commit()
                 logger.info(f"[{self.user_id}] [LORE精煉-分批] ✅ {updated_count} 個 NPC 檔案已在單一事務中成功更新。")
 
@@ -3858,12 +3855,6 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 分批並發 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
 # 背景LORE精煉 函式結束
-
----
-
-至此，我們已經從根本上解決了 `database is locked` 的問題。通過將並行寫入改為單一事務內的串行更新，我們確保了資料庫操作的原子性和安全性，同時也提高了整體效率。
-
-請您將此最終版本的函式更新到您的程式碼中。我相信，這將是我們針對後台流程穩定性的最後一次、也是最關鍵的一次修正。
     
 
 
@@ -6230,6 +6221,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
