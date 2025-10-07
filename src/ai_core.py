@@ -790,7 +790,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return facts
 # 函式：程式化屬性歸因
 
-
     
 
 
@@ -960,6 +959,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 item_name_for_log = item_data.get(title_key, '未知實體')
                 logger.error(f"[{self.user_id}] (_resolve_and_save) 在創建 '{item_name_for_log}' 時發生錯誤: {e}", exc_info=True)
 # 解析並儲存LORE實體
+
+    
 
 
     
@@ -2598,7 +2599,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-    # 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
+# 函式：獲取輸入分析器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-10-03): [全新創建] 根據「LLM+雙引擎」混合分析策略，創建此 Prompt。它的職責是作為分析流程的第一層，利用 LLM 強大的語義理解能力，從用戶的自然語言指令中一步到位地提取出核心實體（core_entities）和核心意圖（core_intent），為後續的前置 LORE 解析和 RAG 查詢提供高質量的、結構化的輸入。
     def get_input_analysis_prompt(self) -> str:
@@ -3800,6 +3801,8 @@ class ExtractionResult(BaseModel):
             logger.error(f"[{self.user_id}] 背景 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
 # 背景LORE精煉 函式結束
 
+    
+
 
 # 函式：呼叫本地Ollama模型執行RAG重排 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -3940,7 +3943,6 @@ class ExtractionResult(BaseModel):
 """
         return prompt
 # 函式：獲取簡單提取器 Prompt器 Prompt (v1.0 - 全新創建)
-
 
 
 
@@ -6383,6 +6385,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
