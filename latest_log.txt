@@ -1,9 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T20:31:59.141099 ###
+### AI Lover Log - Last updated at 2025-10-07T20:37:02.443662 ###
 
-2025-10-07 09:18:45 - [INFO] - [512280345618546699] [前置 LORE] ✅ 成功識別/創造出 2 個新實體骨架: ['米婭', '勛爵']
-2025-10-07 09:18:45 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊...'
-2025-10-07 09:18:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-07 09:18:45 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '勛爵' 的所有已知資訊...'
 2025-10-07 09:18:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-07 09:18:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-07 09:18:57 - [INFO] - [512280345618546699] (_resolve_and_save) 正在為 'npc_profile' 類別處理 2 個實體...
@@ -300,3 +296,7 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-07 20:11:40 - [INFO] - Discord Bot setup hook finished!
 2025-10-07 20:11:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-07 20:11:44 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-07 20:36:38 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-07 20:36:40 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-07 20:36:40 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-07 20:36:40 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
