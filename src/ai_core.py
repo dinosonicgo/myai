@@ -2943,13 +2943,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
     
 
-# 函式：補完角色檔案 (/start 流程 2/4) (v3.2 - 注入數據協議)
+# 函式：補完角色檔案 (/start 流程 2/4) (v4.0 - 接收淨化上下文)
 # 更新紀錄:
-# v3.2 (2025-10-04): [安全性強化] 為角色檔案補完的 LLM 調用注入了輕量級的 `data_protocol_prompt`，以確保此數據處理任務在一個更穩定、更安全的協議下執行。
-# v3.1 (2025-09-22): [根本性重構] 拋棄了 LangChain 的 Prompt 處理層，改為使用 Python 原生的 .format() 方法來組合 Prompt。
-# v3.0 (2025-11-19): [根本性重構] 根據「原生SDK引擎」架構，徹底重構了此函式的 prompt 組合與調用邏輯。
-    async def complete_character_profiles(self):
-        """(/start 流程 2/4) 使用 LLM 補完使用者和 AI 的角色檔案。"""
+# v4.0 (2025-12-10): [災難性BUG修復] 徹底重構此函式，使其接收一個由外部傳入的、經過程式級淨化的 `sanitized_context`。此修改確保了 LLM 在補完檔案時，只會接觸到安全的宏觀世界觀，從根源上杜絕了因讀取到其他角色細節而導致的身份錯置問題。
+# v3.2 (2025-10-04): [安全性強化] 為 LLM 調用注入了輕量級的數據處理協議。
+# v3.1 (2025-09-22): [根本性重構] 拋棄 LangChain，改用原生 format 方法。
+    async def complete_character_profiles(self, sanitized_context: str):
+        """(/start 流程 2/4) 使用 LLM，在一個經過淨化的安全上下文中，補完使用者和 AI 的角色檔案。"""
         if not self.profile:
             logger.error(f"[{self.user_id}] [/start] ai_core.profile 為空，無法補完角色檔案。")
             return
@@ -2959,10 +2959,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 prompt_template = self.get_profile_completion_prompt()
                 safe_profile_data = original_profile.model_dump()
                 
-                # [v3.2 核心修正] 注入數據處理協議
                 full_prompt = self._safe_format_prompt(
                     prompt_template,
-                    {"profile_json": json.dumps(safe_profile_data, ensure_ascii=False, indent=2)},
+                    {
+                        "profile_json": json.dumps(safe_profile_data, ensure_ascii=False, indent=2),
+                        "sanitized_context": sanitized_context # 將淨化後的上下文傳入 Prompt
+                    },
                     inject_core_protocol=True,
                     custom_protocol=self.data_protocol_prompt
                 )
@@ -2981,10 +2983,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 completed_data = completed_safe_profile.model_dump()
 
                 for key, value in completed_data.items():
+                    # 只更新原本為空或預設值的欄位
                     if not original_data.get(key) or original_data.get(key) in [[], {}, "未設定", "未知", ""]:
                         if value: 
                             original_data[key] = value
                 
+                # 強制保留使用者輸入的核心資訊
                 original_data['description'] = original_profile.description
                 original_data['appearance'] = original_profile.appearance
                 original_data['name'] = original_profile.name
@@ -5887,24 +5891,31 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：獲取角色檔案補完 Prompt (v3.0 - 預設年齡強制令)
+# 函式：獲取角色檔案補完 Prompt (v4.0 - 接收淨化上下文)
 # 更新紀錄:
-# v3.0 (2025-09-27): [災難性BUG修復] 新增了【預設年齡強制令】，明確指示AI在age欄位缺失時，必須將其設定為符合「年輕成年人」的描述，從根本上解決了玩家角色被隨機設定為老年人的問題。
-# v2.2 (2025-09-22): [災難性BUG修復] 對模板中的字面大括號 `{}` 進行了轉義（改為 `{{}}`），以防止其被 Python 的 `.format()` 方法錯誤地解析為佔位符，從而解決了因此引發的 `IndexError`。
-# v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
+# v4.0 (2025-12-10): [災難性BUG修復] 新增了 `sanitized_context` 佔位符和【絕對隔離原則】，指導 LLM 在安全的宏觀上下文中進行創作，同時禁止它複製具體情節，從而解決身份錯置問題。
+# v3.0 (2025-09-27): [災難性BUG修復] 新增了【預設年齡強制令】。
+# v2.2 (2025-09-22): [災難性BUG修復] 轉義了模板中的字面大括號。
     def get_profile_completion_prompt(self) -> str:
         """獲取或創建一個專門用於角色檔案補完的字符串模板。"""
         if self.profile_completion_prompt is None:
             prompt_str = """你是一位资深的角色扮演游戏设定师。你的任务是接收一个不完整的角色 JSON，并将其补完为一个细节豐富、符合逻辑的完整角色。
 【核心規則】
-1.  **【絕對保留原則】**: 对于輸入JSON中【任何已經存在值】的欄位（特别是 `appearance_details` 字典內的鍵值對），你【絕對必須】原封不動地保留它們，【絕對禁止】修改或覆蓋。
-2.  **【👤 預設年齡強制令】**: 如果 `age` 欄位的值是 `null`, `"未知"`, 或空字符串 `""`，你【必須】將其補完為一個符合**「年輕成年人」**的描述（例如：「二十歲出頭」、「年輕的冒險者」等）。
-3.  **【增量補完原則】**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{{}}`的欄位。你【必須】基於已有的資訊（如名字、描述、已有的外觀細節），富有創造力地補完【其他缺失的部分】。
-4.  **【細節豐富化】**: 对于 `appearance_details`，如果缺少身高、体重、三围等細節，請基於角色描述進行合理的創造。
-5.  **【初始裝備】**: 对于 `equipment`，如果該欄位為空，請生成一套符合角色背景和描述的初始服裝或裝備。
-6.  **【輸出格式】**: 你的最終輸出【必須且只能】是一個符合 CharacterProfile Pydantic 格式的、補完後的完整 JSON 物件。
+1.  **【絕對保留原則】**: 对于輸入JSON中【任何已經存在值】的欄位（特别是 `name`, `description` 等），你【絕對必須】原封不動地保留它們，【絕對禁止】修改或覆蓋。
+2.  **【絕對隔離原則】**: 你可以參考下方的【世界觀背景參考】來獲取靈感，確保你的創造符合世界觀。但你【絕對禁止】直接複製參考中的任何具體情節、身份或稱號到你正在補完的角色身上。你的創造必須是基於常識和角色自身設定的獨特發揮。
+3.  **【👤 預設年齡強制令】**: 如果 `age` 欄位的值是 `null`, `"未知"`, 或空字符串 `""`，你【必須】將其補完為一個符合**「年輕成年人」**的描述（例如：「二十歲出頭」、「年輕的冒險者」等）。
+4.  **【增量補完原則】**: 你的任務是【只】填寫那些值為`null`、空字符串`""`、空列表`[]`或空字典`{{}}`的欄位。
+5.  **【輸出格式】**: 你的最終輸出【必須且只能】是一個符合 CharacterProfile Pydantic 格式的、補完後的完整 JSON 物件。
+
+---
+【世界觀背景參考 (World Setting Context)】
+{sanitized_context}
+---
 【不完整的角色 JSON】:
-{profile_json}"""
+{profile_json}
+---
+【你補完後的純淨 JSON 輸出】:
+"""
             self.profile_completion_prompt = prompt_str
         return self.profile_completion_prompt
 # 獲取角色檔案補完 Prompt 函式結束
@@ -6454,6 +6465,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
