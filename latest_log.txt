@@ -1,37 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T00:32:59.109395 ###
+### AI Lover Log - Last updated at 2025-10-08T00:40:34.684013 ###
 
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #3/8: 開始處理...
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '絲月' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•維利爾斯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉絲' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾莉諾' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '赫克托' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王埃德蒙三世' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:41 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老高' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '克拉拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '高爾' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '翠絲' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '迪茜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '亞瑟' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬丁' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '朱利安' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿利斯特' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瑪莉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老羅' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬克' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '費奇' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '湯瑪斯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛蓮娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:26:42 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:26:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:26:47 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:26:49 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
@@ -300,3 +268,35 @@ sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
 [SQL: UPDATE lore_book SET content=?, timestamp=?, source=? WHERE lore_book.id = ?]
 [parameters: ('{"name": "\\u611b\\u84ee\\u5a1c", "aliases": [], "alternative_names": [], "gender": "\\u5973\\u6027", "age": "\\u672a\\u77e5", "race": "\\u4eba\\u985 ... (483 characters truncated) ... 8cbb\\u5947": {"type": "\\u793e\\u4ea4\\u95dc\\u4fc2", "roles": ["\\u7236\\u89aa"]}}, "status": "\\u672a\\u77e5", "current_action": "\\u7ad9\\u8457"}', 1759854601.9483886, 'minibatch_refiner_v9_final', 30)]
 (Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-08 00:38:59 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 00:39:04 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 00:39:04 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 00:39:04 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 00:39:05 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 00:39:05 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 00:39:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 00:39:08 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 00:40:20 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 00:40:20 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: invalid character '，' (U+FF0C) (ai_core.py, line 3864)
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
+    spec.loader.exec_module(lib)  # type: ignore
+  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 28, in <module>
+    from ..ai_core import AILover, GENERATION_MODEL_PRIORITY
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3864
+    至此，我們已經從根本上解決了 `database is locked` 的問題。通過將並行寫入改為單一事務內的串行更新，我們確保了資料庫操作的原子性和安全性，同時也提高了整體效率。
+      ^
+SyntaxError: invalid character '，' (U+FF0C)
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
+    await self.load_extension("src.cogs.core_cog")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: invalid character '，' (U+FF0C) (ai_core.py, line 3864)
