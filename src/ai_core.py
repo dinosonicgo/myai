@@ -2168,6 +2168,180 @@ OUTPUT:
 """
         return prompt_skeleton
 # 函式：獲取本地模型專用的LORE解析器Prompt骨架 (v2.0 - 致命BUG修復)
+
+
+
+
+
+
+# 函式：獲取關係圖譜構建器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-16): [全新創建] 根據「關係圖譜專用通道」架構創建此核心 Prompt。它的職責是接收完整的世界聖經和所有角色的摘要，並指令 LLM 在一個擁有上帝視角的、職責極其單一的環境下，專注於分析並輸出所有角色之間的直接關係網絡。它被設計為在 LORE 精煉的第二階段獨立運行。
+    def get_relationship_graph_prompt(self) -> str:
+        """獲取一個為「全域關係交叉分析」設計的、帶有最高級越獄指令的字符串模板。"""
+        
+        base_prompt = """# TASK: 你是一位頂級的情報網絡分析師（Network Analyst）與社會學家。
+# MISSION: 你的唯一任務是，基於下方提供的【完整的原始情報典籍】和【已知特工檔案摘要】，分析並構建出一個完整的、包含所有已知特工之間直接關係的【關係圖譜】。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【全局分析原則】**: 你必須將【完整的原始情報典籍】作為最高優先級的真理來源。當【已知特工檔案摘要】與典籍內容衝突時，以典籍為準。
+# 2. **【雙向關係強制令】**: 當你發現 A 對 B 有一個關係時（例如，A 是 B 的主人），你【必須】同時推斷出 B 對 A 的反向關係（例如，B 是 A 的僕人），並將這兩個關係都記錄下來。
+# 3. **【深度細節提取】**: 你的關係描述不應只是簡單的標籤（如「父女」）。你必須從文本中提取出能體現關係本質的關鍵詞或短語。例如，「主人，絕對的崇拜對象」、「女兒，被嚴格控制」。
+# 4. **【JSON 純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、有效的、可以被直接解析的 JSON 物件。其最外層的鍵必須是所有被分析角色的名字。
+# 5. **【空物件原則】**: 如果一個角色與其他任何已知角色都沒有直接關係，你依然需要將其作為一個頂層鍵包含進來，但其對應的值應為一個空的 JSON 物件 `{}`。
+
+# === 【【【⚙️ 輸出結構範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {
+#   "米婭": {
+#     "卡爾‧維利爾斯勳爵": "主僕關係，絕對的崇拜對象",
+#     "卡蓮": "引領者，契約關係"
+#   },
+#   "卡爾‧維利爾斯勳爵": {
+#     "米婭": "主人，最完美的作品"
+#   },
+#   "卡蓮": {
+#     "米婭": "被引領者，契約對象"
+#   },
+#   "湯姆": {}
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【已知特工檔案摘要】:
+{character_dossier_json}
+
+# ---
+# 【完整的原始情報典籍 (最高真理來源)】:
+{canon_text}
+
+# ---
+# 【你構建的完整關係圖譜 JSON】:
+"""
+        return base_prompt
+# 函式：獲取關係圖譜構建器 Prompt (v1.0 - 全新創建)
+
+
+# 函式：背景關係圖譜分析 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-16): [全新創建] 根據「關係圖譜專用通道」架構創建此核心函式。它作為 LORE 精煉的第二階段獨立運行，通過一次性的、擁有上帝視角的 LLM 調用，分析所有角色之間的關係網絡，然後將結果安全地寫回每個 LORE 檔案的 `relationships` 欄位。它內置了批次處理和故障隔離機制，以確保在處理大量角色時的穩定性和效率。
+    async def _background_relationship_analysis(self, canon_text: Optional[str] = None):
+        """
+        (背景任務 v1.0) 執行一次全域的關係交叉分析，並將結果更新回所有 LORE 檔案中。
+        """
+        user_id = self.user_id
+        if not self.profile:
+            return
+
+        # 如果沒有世界聖經，則無法進行準確的關係分析
+        if not canon_text or not canon_text.strip():
+            logger.info(f"[{user_id}] [關係分析] 未提供世界聖經原文，跳過關係圖譜分析。")
+            return
+
+        try:
+            # 給予一個延遲，確保單體精煉的資料庫寫入已基本完成
+            await asyncio.sleep(10.0)
+            
+            logger.info(f"[{user_id}] [關係分析 v1.0] 全域關係圖譜分析服務已啟動...")
+
+            # --- 步驟 1: 數據準備 ---
+            all_npc_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
+            if len(all_npc_lores) < 2:
+                logger.info(f"[{user_id}] [關係分析] NPC 數量不足（少於2個），無需進行關係分析。")
+                return
+            
+            character_dossier = {
+                lore.content.get("name"): lore.content.get("description", "")
+                for lore in all_npc_lores if lore.content.get("name")
+            }
+            
+            # --- 步驟 2: LLM 關係圖譜構建 ---
+            logger.info(f"[{user_id}] [關係分析] 正在為 {len(character_dossier)} 個角色調用 LLM 進行關係圖譜構建...")
+            
+            relationship_graph = {}
+            try:
+                graph_prompt = self.get_relationship_graph_prompt()
+                full_prompt = self._safe_format_prompt(
+                    graph_prompt,
+                    {
+                        "character_dossier_json": json.dumps(character_dossier, ensure_ascii=False, indent=2),
+                        "canon_text": canon_text
+                    },
+                    inject_core_protocol=True # 注入最強越獄指令
+                )
+
+                # 由於輸出是一個巨大的、不可預測的字典，我們不使用 Pydantic，而是手動解析
+                raw_llm_output_str = await self.ainvoke_with_rotation(
+                    full_prompt,
+                    output_schema=None,
+                    retry_strategy='force'
+                )
+
+                if not raw_llm_output_str:
+                    raise ValueError("LLM 關係圖譜構建返回了空結果。")
+
+                # 使用健壯的 JSON 提取
+                json_match = re.search(r'\{[\s\S]*\}', raw_llm_output_str)
+                if not json_match:
+                    raise ValueError("無法從 LLM 的輸出中提取出有效的 JSON 物件。")
+                
+                relationship_graph = json.loads(json_match.group(0))
+                logger.info(f"[{user_id}] [關係分析] ✅ LLM 關係圖譜構建成功，解析出 {len(relationship_graph)} 個角色的關係數據。")
+
+            except Exception as e:
+                logger.error(f"[{user_id}] [關係分析] 🔥 LLM 關係圖譜構建失敗: {e}", exc_info=True)
+                return # 如果核心步驟失敗，則終止任務
+
+            # --- 步驟 3: 程式碼驅動的資料庫注入 ---
+            logger.info(f"[{user_id}] [關係分析] 正在將關係圖譜數據注入資料庫...")
+            
+            # 為了高效更新，我們先按名字獲取所有 LORE
+            lore_map_by_name = {lore.content.get("name"): lore for lore in all_npc_lores}
+            
+            from .schemas import RelationshipDetail
+
+            async with AsyncSessionLocal() as session:
+                update_count = 0
+                for character_name, relations in relationship_graph.items():
+                    if not isinstance(relations, dict): continue
+
+                    target_lore = lore_map_by_name.get(character_name)
+                    if not target_lore: continue
+
+                    # 讀取現有的 LORE 檔案
+                    stmt = select(Lore).where(Lore.id == target_lore.id)
+                    result = await session.execute(stmt)
+                    lore_to_update = result.scalars().first()
+                    if not lore_to_update: continue
+
+                    # 更新 relationships 欄位
+                    current_relationships = {k: RelationshipDetail.model_validate(v) for k, v in lore_to_update.content.get("relationships", {}).items()}
+                    
+                    for related_char_name, description in relations.items():
+                        # 簡單的關係類型推斷
+                        rel_type = "社交關係"
+                        if any(kw in description for kw in ["主僕", "主人", "僕人"]): rel_type = "主從"
+                        elif any(kw in description for kw in ["父", "母", "女", "子", "兄", "弟", "姐", "妹"]): rel_type = "家庭"
+                        elif any(kw in description for kw in ["夫妻", "戀人", "配偶"]): rel_type = "戀愛"
+                        elif any(kw in description for kw in ["敵"]): rel_type = "敵對"
+                        
+                        # 創建或更新 RelationshipDetail
+                        current_relationships[related_char_name] = RelationshipDetail(type=rel_type, roles=[desc.strip() for desc in re.split(r'[,，、]', description)])
+
+                    # 將 Pydantic 模型轉換回字典以便儲存
+                    lore_to_update.content["relationships"] = {k: v.model_dump() for k, v in current_relationships.items()}
+                    lore_to_update.timestamp = time.time()
+                    update_count += 1
+                
+                await session.commit()
+                logger.info(f"[{user_id}] [關係分析] ✅ {update_count} 個 LORE 檔案的關係圖譜已成功更新。")
+
+            logger.info(f"[{user_id}] [關係分析] 全域關係圖譜分析服務已全部完成。")
+
+        except Exception as e:
+            logger.error(f"[{user_id}] 關係圖譜分析服務主循環發生嚴重錯誤: {e}", exc_info=True)
+# 函式：背景關係圖譜分析 (v1.0 - 全新創建)
     
     
     
@@ -6303,6 +6477,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
