@@ -302,7 +302,32 @@ class AILover:
 # 函式：獲取摘要後的對話歷史
 
 
+# 函式：使用 spaCy 和規則提取實體 (v2.0 - 簡化備援版)
+# 更新紀錄:
+# v2.0 (2025-12-13): [架構重構] 恢復此函式，並將其職責簡化為一個純粹的、用於本地模型超時備援的工具。它現在只負責從文本中提取最關鍵的 PERSON 實體名稱，以便在 LORE 解析完全失敗時，至少能為角色創建一個 LORE 骨架。
+# v1.1 (2025-09-26): [災難性BUG修復] 移除了對 `doc.noun_chunks` 的呼叫。
+    async def _spacy_and_rule_based_entity_extraction(self, text_to_parse: str) -> set:
+        """【本地備援專用】結合 spaCy 和規則，從文本中提取潛在的 PERSON 實體名稱。"""
+        if not self.profile:
+            return set()
 
+        candidate_entities = set()
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+        except OSError:
+            logger.error(f"[{self.user_id}] [spaCy備援] 致命錯誤: 中文模型 'zh_core_web_sm' 未下載。")
+            return set()
+
+        doc = nlp(text_to_parse)
+        protagonist_names = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
+
+        # 只提取最可靠的 PERSON 命名實體
+        for ent in doc.ents:
+            if ent.label_ == 'PERSON' and len(ent.text) > 1 and ent.text.lower() not in protagonist_names:
+                candidate_entities.add(ent.text.strip())
+                
+        return candidate_entities
+# 函式：使用 spaCy 和規則提取實體 (v2.0 - 簡化備援版)
 
 
 
@@ -2007,14 +2032,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
     
-# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v1.4 - 超時備援)
 # 更新紀錄:
-# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配。
+# v1.4 (2025-12-13): [災難性BUG修復] 增加了對 `httpx.ReadTimeout` 的捕獲和處理。當本地模型因性能瓶頸而超時，此函式不再直接失敗，而是會觸發一個程式級的備援：調用 `_spacy_and_rule_based_entity_extraction` 從超時的文本塊中搶救出最核心的 NPC 名稱，並手動為其構建 LORE 骨架。此修改確保了即使在本地模型無響應的最壞情況下，系統依然能完成 LORE 的基礎創建，實現了優雅降級。
+# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表。
 # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
-# v1.0 (2025-09-26): [全新創建] 創建此函式作為LORE解析的本地備援方案。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
-        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
+        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置自我修正和超時備援。
         返回一個 CanonParsingResult 物件，如果失敗則返回 None。
         """
         import httpx
@@ -2035,7 +2060,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         pydantic_block = f"```python\n{pydantic_definitions}\n```"
         output_block = f"{start_tag}\n{example_json_output}\n{end_tag}"
         
-        # [v1.3 核心修正] 確保 format 參數與模板佔位符完全匹配
         full_prompt = prompt_skeleton.format(
             username=self.profile.user_profile.name,
             ai_name=self.profile.ai_profile.name,
@@ -2055,7 +2079,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         }
         
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
+            # 將超時縮短為 180 秒 (3分鐘)
+            async with httpx.AsyncClient(timeout=180.0) as client:
                 response = await client.post("http://localhost:11434/api/generate", json=payload)
                 response.raise_for_status()
                 
@@ -2075,24 +2100,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             logger.warning(f"[{self.user_id}] 本地模型首次解析失敗: {type(e).__name__}。啟動【自我修正】重試 (Attempt 2/2)...")
             
             try:
-                # 提取原始錯誤的json字符串
                 raw_json_string = ""
-                if hasattr(e, 'doc'): # JSONDecodeError
-                    raw_json_string = e.doc
-                elif hasattr(e, 'input'): # ValidationError
-                    raw_json_string = str(e.input)
-                else:
-                    raw_json_string = str(e)
+                if 'json_string_from_model' in locals() and json_string_from_model:
+                    raw_json_string = json_string_from_model
+                elif hasattr(e, 'doc'): raw_json_string = e.doc
+                elif hasattr(e, 'input'): raw_json_string = str(e.input)
+                else: raise e
 
                 correction_prompt_template = self.get_local_model_json_correction_prompt()
                 correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
 
                 correction_payload = {
-                    "model": self.ollama_model_name,
-                    "prompt": correction_prompt,
-                    "format": "json",
-                    "stream": False,
-                    "options": { "temperature": 0.0 }
+                    "model": self.ollama_model_name, "prompt": correction_prompt,
+                    "format": "json", "stream": False, "options": { "temperature": 0.0 }
                 }
 
                 async with httpx.AsyncClient(timeout=120.0) as client:
@@ -2114,6 +2134,26 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             except Exception as correction_e:
                 logger.error(f"[{self.user_id}] 本地模型的【自我修正】嘗試最終失敗: {type(correction_e).__name__}", exc_info=True)
                 return None
+        
+        # 【核心修正 v1.4】捕獲超時錯誤並觸發程式級備援
+        except httpx.ReadTimeout:
+            logger.warning(f"[{self.user_id}] [本地模型備援] 連接到 Ollama 伺服器超時。觸發【程式級數據搶救】...")
+            try:
+                npc_names = await self._spacy_and_rule_based_entity_extraction(canon_text)
+                if not npc_names:
+                    logger.warning(f"[{self.user_id}] [本地模型備援] spaCy 未能從超時的文本塊中搶救出任何 NPC 名稱。")
+                    return None
+                
+                logger.info(f"[{self.user_id}] [本地模型備援] ✅ spaCy 成功搶救出 {len(npc_names)} 個 NPC 名稱: {npc_names}")
+                
+                # 手動構建只包含 NPC 骨架的 CanonParsingResult
+                rescued_result = CanonParsingResult(
+                    npc_profiles=[CharacterProfile(name=name) for name in npc_names]
+                )
+                return rescued_result
+            except Exception as rescue_e:
+                logger.error(f"[{self.user_id}] [本地模型備援] 🔥 在執行 spaCy 數據搶救時發生嚴重錯誤: {rescue_e}", exc_info=True)
+                return None
 
         except httpx.ConnectError:
             logger.error(f"[{self.user_id}] 無法連接到本地 Ollama 伺服器。請確保 Ollama 正在運行並且在 http://localhost:11434 上可用。")
@@ -2124,7 +2164,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{self.user_id}] 呼叫本地 Ollama 模型時發生未知錯誤: {e}", exc_info=True)
             return None
-# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v1.4 - 超時備援)
 
 
     
@@ -5229,14 +5269,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：執行 LORE 解析管線 (v4.2 - 格式化錯誤備援)
+# 函式：執行 LORE 解析管線 (v4.3 - 任務專用協議)
 # 更新紀錄:
-# v4.2 (2025-12-13): [健壯性強化] 在調用 `_safe_format_prompt` 的地方周圍增加了 try...except 區塊。即使在未知的極端情況下 Prompt 格式化失敗，此修改也能確保錯誤被捕獲，僅跳過當前出錯的文本塊，而不會讓整個 LORE 解析流程崩潰。
+# v4.3 (2025-12-13): [災難性BUG修復] 修正了 LORE 解析任務的協議注入方式。不再注入為小說創作設計的 `core_protocol_prompt`，而是改為注入一個專為數據處理任務設計的、更簡潔、無衝突的 `data_protocol_prompt`。此修改旨在解決因 Prompt 任務目標衝突而導致的 LLM 困惑和審查失敗問題。
+# v4.2 (2025-12-13): [健壯性強化] 增加了格式化錯誤的備援。
 # v4.1 (2025-12-12): [災難性BUG修復] 修正了因參數缺失導致的 ValueError。
-# v4.0 (2025-12-11): [災難性BUG修復] 徹底移除了會引發 API 調用爆炸的第四層降級方案。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v4.2 核心 LORE 解析引擎】執行一個帶有格式化備援的、簡化的三層降級解析管線。
+        【v4.3 核心 LORE 解析引擎】執行一個使用任務專用協議的、簡化的三層降級解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
@@ -5285,22 +5325,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     prompt_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
-                        "canon_text": chunk,
-                        "player_location": "創世之間",
-                        "viewing_mode": "local",
-                        "remote_target_path_str": "無"
+                        "canon_text": chunk
                     }
                     
-                    # 【核心修正 v4.2】增加格式化錯誤的備援
                     try:
+                        # 【核心修正 v4.3】使用數據處理專用協議
                         full_prompt = self._safe_format_prompt(
                             transformation_template,
                             prompt_params,
-                            inject_core_protocol=True
+                            inject_core_protocol=True,
+                            custom_protocol=self.data_protocol_prompt
                         )
                     except Exception as format_error:
                         logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 格式化 Prompt 時發生致命錯誤: {format_error}。將中止此文本塊的處理。", exc_info=True)
-                        continue # 跳到下一個 chunk
+                        continue
 
                     parsing_result = await self.ainvoke_with_rotation(
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
@@ -5328,24 +5366,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
 
-            # --- 層級 3 (原層級 5): 【法醫級重構方案】終極備援 (Gemini) ---
+            # --- 層級 3: 【法醫級重構方案】終極備援 (Gemini) ---
             try:
                 if not parsing_completed:
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/3] 正在嘗試【法醫級重構方案】...")
-                    keywords = set()
-                    protagonist_names = {self.profile.user_profile.name, self.profile.ai_profile.name}
-                    try:
-                        nlp = spacy.load('zh_core_web_sm')
-                        doc = nlp(chunk)
-                        for ent in doc.ents:
-                            if ent.label_ == 'PERSON' and ent.text not in protagonist_names:
-                                keywords.add(ent.text)
-                    except Exception: pass
+                    keywords = await self._spacy_and_rule_based_entity_extraction(chunk)
                     
                     if keywords:
                         reconstruction_template = self.get_forensic_lore_reconstruction_chain()
                         full_prompt = self._safe_format_prompt(
-                            reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=False
+                            reconstruction_template, {"keywords": str(list(keywords))}, inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
                         )
                         parsing_result = await self.ainvoke_with_rotation(
                             full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
@@ -5366,7 +5396,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線 (v4.2 - 格式化錯誤備援)
+# 函式：執行 LORE 解析管線 (v4.3 - 任務專用協議)
 
 
 
@@ -6225,6 +6255,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
