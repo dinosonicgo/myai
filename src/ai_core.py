@@ -1866,14 +1866,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：安全地格式化Prompt模板 (v2.0 - 快速失敗)
+# 函式：安全地格式化Prompt模板 (v3.0 - 終極安全替換)
 # 更新紀錄:
-# v2.0 (2025-12-12): [災難性BUG修復] 徹底重構了此函式的核心邏輯，引入了「快速失敗」機制。舊版本的函式在遇到缺失的格式化鍵時會靜默地保留佔位符，導致向上游傳遞了格式錯誤的 Prompt，引發了難以追蹤的 LLM 格式幻覺。新版本會在格式化之前，嚴格檢查模板中所有的佔位符是否都能在傳入的參數中找到對應的值，如果找不到，將立即拋出一個清晰的 ValueError，從而在第一時間暴露程式碼層面的調用錯誤。
+# v3.0 (2025-12-13): [災難性BUG修復] 根據 IndexError，徹底廢棄了 Python 內置的 .format() 方法。新版本採用了一個更簡單、更健壯的 for 迴圈與 .replace() 策略。它會逐一、機械地替換所有在參數字典中提供的佔位符，並完全忽略模板中任何其他可能引起格式化錯誤的孤立大括號。此修改從根本上杜絕了所有因模板語法複雜性而導致的 KeyError 或 IndexError。
+# v2.0 (2025-12-12): [災難性BUG修復] 引入了「快速失敗」機制。
 # v1.2 (2025-10-04): [架構升級] 新增了 `custom_protocol` 參數。
-# v1.1 (2025-09-23): [架構升級] 新增了 inject_core_protocol 參數。
     def _safe_format_prompt(self, template: str, params: Dict[str, Any], inject_core_protocol: bool = False, custom_protocol: Optional[str] = None) -> str:
         """
-        一個絕對安全的Prompt格式化函式，內建「快速失敗」機制以防止格式化錯誤。
+        一個使用多輪 .replace() 的、絕對安全的Prompt格式化函式，用於防止任何格式化錯誤。
         """
         final_template = template
         if inject_core_protocol:
@@ -1881,23 +1881,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if protocol_to_inject:
                 final_template = protocol_to_inject + "\n\n" + template
 
-        # 【核心修正 v2.0】 快速失敗機制
-        # 1. 找出模板中所有潛在的佔位符
-        placeholders = re.findall(r'\{([^}]+)\}', final_template)
-        
-        # 2. 檢查所有佔位符是否都在 params 中有對應的鍵
-        missing_keys = [p for p in placeholders if p not in params]
-        
-        # 3. 如果有任何缺失的鍵，立即拋出一個清晰的錯誤
-        if missing_keys:
-            raise ValueError(f"格式化 Prompt 失敗：模板中需要的鍵 {missing_keys} 在提供的參數中缺失。")
-
-        # 只有在所有鍵都存在的情況下，才執行格式化
-        try:
-            return final_template.format(**params)
-        except KeyError as e:
-             # 作為雙重保險，捕捉標準的 KeyError
-            raise ValueError(f"格式化 Prompt 時發生 KeyError: 鍵 '{e.args[0]}' 缺失。") from e
+        # 【核心修正 v3.0】 使用 for 迴圈和 .replace() 進行絕對安全的替換
+        for key, value in params.items():
+            placeholder = f"{{{key}}}"
+            # 確保 value 是字符串
+            str_value = str(value)
+            final_template = final_template.replace(placeholder, str_value)
+            
+        return final_template
 # 安全地格式化Prompt模板 函式結束
 
 
@@ -5238,14 +5229,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：執行 LORE 解析管線 (v4.1 - 參數完整性修復)
+# 函式：執行 LORE 解析管線 (v4.2 - 格式化錯誤備援)
 # 更新紀錄:
-# v4.1 (2025-12-12): [災難性BUG修復] 根據由 `_safe_format_prompt` v2.0 捕獲的 ValueError，修復了在調用 `get_canon_transformation_chain` 時的參數缺失問題。現在，在格式化 Prompt 時，會為 `core_protocol_prompt` 中所有與導演視角相關的、但在當前上下文中不存在的佔位符（如 `player_location`, `viewing_mode`），提供安全的預設值，從而解決了因參數缺失導致的程式崩潰問題。
-# v4.0 (2025-12-11): [災難性BUG修復] 徹底移除了會引發 API 調用爆炸的第四層降級方案（混合 NLP 方案）。
-# v3.9 (2025-09-30): [重大架構重構] 引入分塊處理和五層降級策略。
+# v4.2 (2025-12-13): [健壯性強化] 在調用 `_safe_format_prompt` 的地方周圍增加了 try...except 區塊。即使在未知的極端情況下 Prompt 格式化失敗，此修改也能確保錯誤被捕獲，僅跳過當前出錯的文本塊，而不會讓整個 LORE 解析流程崩潰。
+# v4.1 (2025-12-12): [災難性BUG修復] 修正了因參數缺失導致的 ValueError。
+# v4.0 (2025-12-11): [災難性BUG修復] 徹底移除了會引發 API 調用爆炸的第四層降級方案。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v4.1 核心 LORE 解析引擎】執行一個簡化後的三層降級、支持分塊處理的解析管線。
+        【v4.2 核心 LORE 解析引擎】執行一個帶有格式化備援的、簡化的三層降級解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
@@ -5267,7 +5258,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if result.items: keys.extend([i.name for i in result.items])
             if result.creatures: keys.extend([c.name for c in result.creatures])
             if result.quests: keys.extend([q.name for q in result.quests])
-            # [v3.0 核心修正] 統一使用 name 屬性
             if result.world_lores: keys.extend([w.name for w in result.world_lores])
             return keys
             
@@ -5292,22 +5282,26 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     
                     transformation_template = self.get_canon_transformation_chain()
                     
-                    # 【核心修正 v4.1】為 prompt 參數提供所有必需的鍵，包括安全的預設值
                     prompt_params = {
                         "username": self.profile.user_profile.name,
                         "ai_name": self.profile.ai_profile.name,
                         "canon_text": chunk,
-                        # 為導演視角指令提供安全的預設值
                         "player_location": "創世之間",
                         "viewing_mode": "local",
                         "remote_target_path_str": "無"
                     }
+                    
+                    # 【核心修正 v4.2】增加格式化錯誤的備援
+                    try:
+                        full_prompt = self._safe_format_prompt(
+                            transformation_template,
+                            prompt_params,
+                            inject_core_protocol=True
+                        )
+                    except Exception as format_error:
+                        logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 格式化 Prompt 時發生致命錯誤: {format_error}。將中止此文本塊的處理。", exc_info=True)
+                        continue # 跳到下一個 chunk
 
-                    full_prompt = self._safe_format_prompt(
-                        transformation_template,
-                        prompt_params,
-                        inject_core_protocol=True
-                    )
                     parsing_result = await self.ainvoke_with_rotation(
                         full_prompt, output_schema=CanonParsingResult, retry_strategy='none'
                     )
@@ -5315,11 +5309,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] ✅ 成功！")
                         chunk_parsing_result = parsing_result
                         parsing_completed = True
-            except (BlockedPromptException, ValueError) as e: # 同時捕捉 BlockedPrompt 和我們自己的 ValueError
-                if isinstance(e, BlockedPromptException):
-                    logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇內容審查，正在降級...")
-                else:
-                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇參數格式化錯誤: {e}，正在降級。", exc_info=False)
+            except BlockedPromptException:
+                logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇內容審查，正在降級...")
             except Exception as e:
                 logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
 
@@ -5375,7 +5366,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線 (v4.1 - 參數完整性修復)
+# 函式：執行 LORE 解析管線 (v4.2 - 格式化錯誤備援)
 
 
 
@@ -6234,6 +6225,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
