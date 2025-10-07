@@ -2223,32 +2223,36 @@ OUTPUT:
 # 函式：獲取關係圖譜構建器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：背景關係圖譜分析 (v1.0 - 全新創建)
+# 函式：背景關係圖譜分析 (v1.1 - 支援微型分析)
 # 更新紀錄:
-# v1.0 (2025-12-16): [全新創建] 根據「關係圖譜專用通道」架構創建此核心函式。它作為 LORE 精煉的第二階段獨立運行，通過一次性的、擁有上帝視角的 LLM 調用，分析所有角色之間的關係網絡，然後將結果安全地寫回每個 LORE 檔案的 `relationships` 欄位。它內置了批次處理和故障隔離機制，以確保在處理大量角色時的穩定性和效率。
-    async def _background_relationship_analysis(self, canon_text: Optional[str] = None):
+# v1.1 (2025-12-17): [架構擴展] 新增了 `specific_lores_to_analyze` 可選參數。此函式現在具備兩種模式：在 `/start` 創世時，它會執行「全域分析」；在被事後分析流程觸發時，它會接收一個限定的角色列表，並只對這些核心角色執行一次「微型關係分析」。此修改使其成為一個可複用的、支持動態關係演化的核心組件。
+# v1.0 (2025-12-16): [全新創建] 根據「關係圖譜專用通道」架構創建此核心函式。
+    async def _background_relationship_analysis(self, canon_text: Optional[str] = None, specific_lores_to_analyze: Optional[List[Lore]] = None):
         """
-        (背景任務 v1.0) 執行一次全域的關係交叉分析，並將結果更新回所有 LORE 檔案中。
+        (背景任務 v1.1) 執行一次關係交叉分析。支持「全域」和「微型」兩種模式。
         """
         user_id = self.user_id
         if not self.profile:
             return
 
-        # 如果沒有世界聖經，則無法進行準確的關係分析
         if not canon_text or not canon_text.strip():
-            logger.info(f"[{user_id}] [關係分析] 未提供世界聖經原文，跳過關係圖譜分析。")
+            logger.info(f"[{self.user_id}] [關係分析] 未提供上下文原文，跳過關係圖譜分析。")
             return
 
         try:
-            # 給予一個延遲，確保單體精煉的資料庫寫入已基本完成
-            await asyncio.sleep(10.0)
+            await asyncio.sleep(1.0) # 微型分析可以更快啟動
             
-            logger.info(f"[{user_id}] [關係分析 v1.0] 全域關係圖譜分析服務已啟動...")
+            analysis_mode = "微型分析" if specific_lores_to_analyze is not None else "全域分析"
+            logger.info(f"[{self.user_id}] [關係分析 v1.1] 關係圖譜【{analysis_mode}】服務已啟動...")
 
             # --- 步驟 1: 數據準備 ---
-            all_npc_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
+            if specific_lores_to_analyze is not None:
+                all_npc_lores = specific_lores_to_analyze
+            else: # 全域模式
+                all_npc_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
+
             if len(all_npc_lores) < 2:
-                logger.info(f"[{user_id}] [關係分析] NPC 數量不足（少於2個），無需進行關係分析。")
+                logger.info(f"[{self.user_id}] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。")
                 return
             
             character_dossier = {
@@ -2257,7 +2261,7 @@ OUTPUT:
             }
             
             # --- 步驟 2: LLM 關係圖譜構建 ---
-            logger.info(f"[{user_id}] [關係分析] 正在為 {len(character_dossier)} 個角色調用 LLM 進行關係圖譜構建...")
+            logger.info(f"[{self.user_id}] [關係分析] 正在為 {len(character_dossier)} 個角色調用 LLM 進行關係圖譜構建...")
             
             relationship_graph = {}
             try:
@@ -2268,10 +2272,9 @@ OUTPUT:
                         "character_dossier_json": json.dumps(character_dossier, ensure_ascii=False, indent=2),
                         "canon_text": canon_text
                     },
-                    inject_core_protocol=True # 注入最強越獄指令
+                    inject_core_protocol=True
                 )
 
-                # 由於輸出是一個巨大的、不可預測的字典，我們不使用 Pydantic，而是手動解析
                 raw_llm_output_str = await self.ainvoke_with_rotation(
                     full_prompt,
                     output_schema=None,
@@ -2281,22 +2284,20 @@ OUTPUT:
                 if not raw_llm_output_str:
                     raise ValueError("LLM 關係圖譜構建返回了空結果。")
 
-                # 使用健壯的 JSON 提取
                 json_match = re.search(r'\{[\s\S]*\}', raw_llm_output_str)
                 if not json_match:
                     raise ValueError("無法從 LLM 的輸出中提取出有效的 JSON 物件。")
                 
                 relationship_graph = json.loads(json_match.group(0))
-                logger.info(f"[{user_id}] [關係分析] ✅ LLM 關係圖譜構建成功，解析出 {len(relationship_graph)} 個角色的關係數據。")
+                logger.info(f"[{self.user_id}] [關係分析] ✅ LLM 關係圖譜構建成功，解析出 {len(relationship_graph)} 個角色的關係數據。")
 
             except Exception as e:
-                logger.error(f"[{user_id}] [關係分析] 🔥 LLM 關係圖譜構建失敗: {e}", exc_info=True)
-                return # 如果核心步驟失敗，則終止任務
+                logger.error(f"[{self.user_id}] [關係分析] 🔥 LLM 關係圖譜構建失敗: {e}", exc_info=True)
+                return
 
             # --- 步驟 3: 程式碼驅動的資料庫注入 ---
-            logger.info(f"[{user_id}] [關係分析] 正在將關係圖譜數據注入資料庫...")
+            logger.info(f"[{self.user_id}] [關係分析] 正在將關係圖譜數據注入資料庫...")
             
-            # 為了高效更新，我們先按名字獲取所有 LORE
             lore_map_by_name = {lore.content.get("name"): lore for lore in all_npc_lores}
             
             from .schemas import RelationshipDetail
@@ -2309,39 +2310,34 @@ OUTPUT:
                     target_lore = lore_map_by_name.get(character_name)
                     if not target_lore: continue
 
-                    # 讀取現有的 LORE 檔案
                     stmt = select(Lore).where(Lore.id == target_lore.id)
                     result = await session.execute(stmt)
                     lore_to_update = result.scalars().first()
                     if not lore_to_update: continue
 
-                    # 更新 relationships 欄位
                     current_relationships = {k: RelationshipDetail.model_validate(v) for k, v in lore_to_update.content.get("relationships", {}).items()}
                     
                     for related_char_name, description in relations.items():
-                        # 簡單的關係類型推斷
                         rel_type = "社交關係"
                         if any(kw in description for kw in ["主僕", "主人", "僕人"]): rel_type = "主從"
                         elif any(kw in description for kw in ["父", "母", "女", "子", "兄", "弟", "姐", "妹"]): rel_type = "家庭"
                         elif any(kw in description for kw in ["夫妻", "戀人", "配偶"]): rel_type = "戀愛"
                         elif any(kw in description for kw in ["敵"]): rel_type = "敵對"
                         
-                        # 創建或更新 RelationshipDetail
                         current_relationships[related_char_name] = RelationshipDetail(type=rel_type, roles=[desc.strip() for desc in re.split(r'[,，、]', description)])
 
-                    # 將 Pydantic 模型轉換回字典以便儲存
                     lore_to_update.content["relationships"] = {k: v.model_dump() for k, v in current_relationships.items()}
                     lore_to_update.timestamp = time.time()
                     update_count += 1
                 
                 await session.commit()
-                logger.info(f"[{user_id}] [關係分析] ✅ {update_count} 個 LORE 檔案的關係圖譜已成功更新。")
+                logger.info(f"[{self.user_id}] [關係分析] ✅ {update_count} 個 LORE 檔案的關係圖譜已成功更新。")
 
-            logger.info(f"[{user_id}] [關係分析] 全域關係圖譜分析服務已全部完成。")
+            logger.info(f"[{self.user_id}] [關係分析] 全域關係圖譜分析服務已全部完成。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] 關係圖譜分析服務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景關係圖譜分析 (v1.0 - 全新創建)
+            logger.error(f"[{self.user_id}] 關係圖譜分析服務主循環發生嚴重錯誤: {e}", exc_info=True)
+# 函式：背景關係圖譜分析 (v1.1 - 支援微型分析)
     
     
     
@@ -2455,14 +2451,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：背景事後分析 (v7.6 - 解析并注入叙事焦点)
+# 函式：背景事後分析與關係演化 (v8.0 - 關係演化)
 # 更新紀錄:
-# v7.6 (2025-12-08): [根本性重构] 此函式现在会从传入的上下文快照中解析出“叙事焦点”（narrative_focus），并将其作为最高优先级的上下文注入到事后分析 Prompt 中。这确保了事后分析流程在创建新 LORE 时，能够使用正确的地点信息，从而彻底解决了地点错植问题，并恢复了其动态创世能力。
+# v8.0 (2025-12-17): [架構擴展] 將此函式升級為 LORE 動態演化的中樞。它現在會通過一個新增的 `relations_changed` 標記來智能判斷是否需要觸發一次「微型關係分析」。如果觸發，它會調用關係圖譜構建器，但僅使用當前回合的對話作為上下文，從而實現對角色關係網絡的、低成本的、增量式的動態更新。
+# v7.6 (2025-12-08): [根本性重构] 引入了「敘事焦點上下文」來解決地點錯植問題。
 # v7.5 (2025-10-03): [災難性BUG修復] 將此函式升級為「分析與分流總指揮官」。
-# v7.4 (2025-10-04): [架構簡化] 移除了對複雜的 `_euphemize_and_retry` 備援機制的依賴。
     async def _background_lore_extraction(self, context_snapshot: Dict[str, Any]):
         """
-        (v7.6 總指揮) 執行「生成後分析」，利用“叙事焦点快照”提取记忆和 LORE，并智慧分流更新。
+        (v8.0 總指揮) 執行「生成後分析」，提取记忆和 LORE，並在必要時觸發關係的動態演化。
         """
         if not self.profile:
             return
@@ -2476,17 +2472,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 
         try:
             await asyncio.sleep(2.0)
-            logger.info(f"[{self.user_id}] [事後分析] 正在啟動背景分析與分流任務...")
+            logger.info(f"[{self.user_id}] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...")
             
-            # [v7.6 核心修正] 解析并准备叙事焦点上下文
             narrative_focus = context_snapshot.get("narrative_focus", {})
             narrative_entities = narrative_focus.get("entities", [])
             narrative_location = narrative_focus.get("location", None)
-
             narrative_entities_str = ", ".join(narrative_entities) if narrative_entities else "無"
             narrative_location_str = " > ".join(narrative_location) if narrative_location else "無"
-
-            # 准备备援用的玩家当前位置
             gs = self.profile.game_state
             player_location_path_str = " > ".join(gs.location_path)
             
@@ -2503,7 +2495,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "existing_lore_summary": existing_lore_summary,
                 "user_input": user_input,
                 "final_response_text": final_response,
-                # 为了简化，暂时移除这两个，它们的信息已包含在其他上下文中
                 "scene_rules_context": "（无）", 
                 "relevant_lore_context": "（无）"
             }
@@ -2526,14 +2517,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             
             if analysis_result.lore_updates:
                 await self.execute_lore_updates_from_summary({"lore_updates": [call.model_dump() for call in analysis_result.lore_updates]})
-            else:
-                logger.info(f"[{self.user_id}] [事後分析] 本次分析未檢測到需要更新或創建的 LORE。")
             
-            logger.info(f"[{self.user_id}] [事後分析] 背景分析與分流任務完成。")
+            # --- 【核心修正 v8.0】關係演化智能觸發器 ---
+            if analysis_result.relations_changed:
+                logger.info(f"[{self.user_id}] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...")
+                
+                # 準備微型分析的上下文
+                involved_entity_names = await self._extract_entities_from_input(user_input + final_response)
+                involved_lores = [lore for lore in all_lores if lore.content.get("name") in involved_entity_names]
+                
+                # 複用我們已有的關係分析函式，但傳入一個限定的上下文
+                # 這裡我們傳遞當前回合的對話作為 canon_text
+                await self._background_relationship_analysis(
+                    canon_text=f"# 本回合對話上下文\n\n使用者: {user_input}\n\nAI: {final_response}",
+                    specific_lores_to_analyze=involved_lores # 傳入一個限定的角色列表
+                )
+            else:
+                logger.info(f"[{self.user_id}] [關係演化] 未檢測到關係變化，跳過分析。")
+
+            logger.info(f"[{self.user_id}] [事後分析 v8.0] 背景分析與關係演化任務完成。")
 
         except Exception as e:
             logger.error(f"[{self.user_id}] [事後分析] 任務主體發生未預期的異常: {e}", exc_info=True)
-# 背景事後分析 函式結束
+# 函式：背景事後分析與關係演化 (v8.0 - 關係演化)
 
     
 
@@ -4434,52 +4440,38 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：獲取事後分析器 Prompt (v4.8 - 接收叙事焦点)
+# 函式：獲取事後分析器 Prompt (v5.0 - 關係演化)
 # 更新紀錄:
-# v4.8 (2025-12-08): [根本性重构] 引入了“叙事焦点上下文 (Narrative Focus)”作为新的输入。同时强化了 `lore_key` 的合成规则，强制 LLM 在创建新 LORE 时，必须优先使用这个由对话前流程传递过来的、更准确的“叙事地点”，从而彻底解决了事后分析因上下文错位而导致 LORE 地点错误的问题。
-# v4.7 (2025-12-08): [根本性重构] 将 Prompt 的职责严格限制为“只更新，不创建”。
-# v4.6 (2025-12-08): [灾难性BUG修复] 重写了 Prompt，加入了详细的、符合当前 `ToolCall` 模型的输出结构范例。
+# v5.0 (2025-12-17): [架構擴展] 新增了「關係變化檢測器」指令。此 Prompt 現在會額外要求 LLM 判斷本次互動是否導致了角色關係的創建或改變，並通過一個新的 `relations_changed` 布林值欄位返回判斷結果。這是實現 LORE 關係動態演化的關鍵一步。
+# v4.8 (2025-12-08): [根本性重构] 引入了「敘事焦點上下文」作為地點判斷的最高優先級。
+# v4.7 (2025-12-08): [根本性重构] 將職責嚴格限制為「只更新，不創建」。
     def get_post_generation_analysis_chain(self) -> str:
-        """獲取或創建一個專門用於事後分析（提取記憶和LORE）的字符串模板。"""
+        """獲取或創建一個專門用於事後分析（提取記憶、LORE更新、關係變化檢測）的字符串模板。"""
         if self.post_generation_analysis_chain is None:
-            prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】。
-# MISSION: 你的任務是审查【本回合的完整對話】及所有【參考情報】，並生成一個完整的、可執行的【LORE更新計畫】和【記憶摘要】。
+            prompt_template = """# TASK: 你是一位極其嚴謹、具備高度邏輯推理能力的【世界觀首席架構師】與【社會關係分析師】。
+# MISSION: 你的任務是审查【本回合的完整對話】及所有【參考情報】，並生成一份包含三項內容的完整分析報告：1. 【記憶摘要】，2. 【LORE更新計畫】，3. 【關係變化判斷】。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
-# 1.  **【👑 上下文優先級原則 (Context Priority Principle)】**:
-#     *   **地點**: 在合成 `lore_key` 時，你【必須】遵循以下優先級：**【叙事焦点地點】 > 【玩家當前地點】**。只有在“叙事焦点地點”不存在时，才允许使用“玩家當前地點”。
-#     *   **創世**: 你的创世活动应主要围绕【叙事焦点实体】展开。
-#
-# 2.  **【🔑 主鍵合成原則 (Key Synthesis Principle)】**:
-#     *   **創建時 (CREATE)**: 當你生成一個 `create_new_...` 工具調用時，你**【絕對必須】**為其合成一個 `lore_key`，地點部分需遵循上述【上下文優先級原則】。
-#     *   **更新時 (UPDATE)**: 當你生成一個 `update_...` 工具調用時，你**【絕對必須】**從【現有LORE摘要】中找到並使用其已存在的 `lore_key`。
-#
-# 3.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
-#
-# 4.  **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。`lore_updates` 列表中的每个物件都【必須】包含 `tool_name` 和 `parameters` 兩個鍵。
+# 1.  **【關係變化檢測器】**: 你必須額外判斷，本次互動是否**引入了全新的角色關係**（例如，初次見面、結盟、宣誓效忠）或**顯著地、永久性地改變了現有的角色關係**（例如，從朋友變為敵人、從師徒變為夫妻）。如果檢測到此類變化，`relations_changed` 欄位【必須】為 `true`，否則為 `false`。
+# 2.  **【👑 上下文優先級原則】**: 在合成 `lore_key` 時，地點部分【必須】遵循以下優先級：**【叙事焦点地點】 > 【玩家當前地點】**。
+# 3.  **【🔑 主鍵合成原則】**: 在生成 `update_...` 工具調用時，你【必須】從【現有LORE摘要】中找到並使用其已存在的 `lore_key`。
+# 4.  **【🛑 主角排除原則】**: 絕對禁止為主角「{username}」或「{ai_name}」創建任何 LORE 更新工具。
+# 5.  **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `PostGenerationAnalysisResult` Pydantic 模型的JSON物件。
 
 # === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
 # ```json
 # {
-#   "memory_summary": "對本回合互動的簡潔、客觀的摘要。",
+#   "memory_summary": "在聖露修道院，米婭向卡蓮介紹了自己作為勳爵僕人的身份。",
 #   "lore_updates": [
-#     {
-#       "tool_name": "create_new_npc_profile",
-#       "parameters": {
-#         "lore_key": "維利爾斯宅邸 > 湯姆",
-#         "standardized_name": "湯姆",
-#         "description": "在維利爾斯宅邸新出現的一名僕人。",
-#         "location_path": ["維利爾斯宅邸"]
-#       }
-#     },
 #     {
 #       "tool_name": "update_npc_profile",
 #       "parameters": {
-#         "lore_key": "維利爾斯宅邸 > 米婭",
-#         "updates": { "status": "感到失落" }
+#         "lore_key": "聖露修道院 > 米婭",
+#         "updates": { "status": "正在向卡蓮佈道" }
 #       }
 #     }
-#   ]
+#   ],
+#   "relations_changed": true
 # }
 # ```
 
@@ -6477,6 +6469,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
