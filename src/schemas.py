@@ -387,6 +387,7 @@ class PostGenerationAnalysisResult(BaseModel):
     """用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫的模型。"""
     memory_summary: Optional[str] = Field(default=None, description="對本回合對話的簡潔、無害化總結，用於長期記憶。")
     lore_updates: List[ToolCall] = Field(default_factory=list, description="一個包含多個用於創建或更新LORE的工具呼叫計畫的列表。")
+    relations_changed: bool = Field(default=False, description="如果本次互動引入了新的角色關係或顯著改變了現有關係，則為 true。")
 
 class SceneLocationExtraction(BaseModel):
     """用於包裹从使用者指令中提取出的叙事意图地点的模型。"""
@@ -472,6 +473,7 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
