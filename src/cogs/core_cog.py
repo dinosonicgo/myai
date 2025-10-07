@@ -1126,16 +1126,16 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v68.0 - 修正競爭條件)
+# 函式：執行完整的後台創世流程 (v69.0 - 觸發關係分析)
 # 更新紀錄:
-# v68.0 (2025-12-14): [災難性BUG修復] 徹底重構了 `/start` 流程的異步執行順序，以解決災難性的競爭條件。舊版本會並行地觸發「RAG 創建」和依賴 RAG 的「LORE 精煉」，導致後者總是在前者完成前就嘗試訪問未初始化的檢索器。新版本將流程改為嚴格的線性 await 調用順序：1. 解析 LORE -> 2. **等待** RAG 創建完成 -> 3. 在 RAG 就緒後，才觸發後台 LORE 精煉。此修改從根本上確保了依賴關係的正確性。
+# v69.0 (2025-12-16): [架構擴展] 在流程的末尾，新增了對 `_background_relationship_analysis` 的異步任務調用。此修改將全新的「關係圖譜專用通道」正式整合進 `/start` 創世流程，確保在所有角色的 LORE 檔案被創建和初步精煉後，系統會自動執行一次全域的關係網絡分析，從而構建出一個更完整、更富有生機的世界。
+# v68.0 (2025-12-14): [災難性BUG修復] 修正了因並行處理導致的競爭條件。
 # v67.0 (2025-12-12): [災難性BUG修復] 修正了數據流斷裂問題。
-# v66.0 (2025-12-10): [災難性BUG修復] 引入了「程式級上下文淨化」步驟。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v68.0) 一個由原生 Python 驅動的、無競爭條件的、數據流完整的後台創世流程。"""
+        """(v69.0) 一個由原生 Python 驅動的、觸發關係分析的、數據流完整的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v68.0] 修正競爭條件後的原生流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v69.0] 觸發關係分析的最終版流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
@@ -1144,40 +1144,45 @@ class BotCog(commands.Cog, name="BotCog"):
 
             # --- 步驟 1: 解析聖經，創建 LORE 骨架並存入資料庫 ---
             if canon_text and canon_text.strip():
-                logger.info(f"[{user_id}] [後台創世] 步驟 1/5: 正在解析世界聖經並創建 LORE 骨架...")
+                logger.info(f"[{user_id}] [後台創世] 步驟 1/6: 正在解析世界聖經並創建 LORE 骨架...")
                 await ai_instance.parse_and_create_lore_from_canon(canon_text)
                 logger.info(f"[{user_id}] [後台創世] LORE 骨架已成功創建並存入資料庫。")
             
-            # --- 步驟 2: 構建 RAG 索引 (使用完整原文)。這一步必須在後台精煉之前完成 ---
+            # --- 步驟 2: 構建 RAG 索引 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
             
-            logger.info(f"[{user_id}] [後台創世] 步驟 2/5: 正在觸發 RAG 索引創始構建 (此步驟完成前將阻塞)...")
+            logger.info(f"[{user_id}] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
-            logger.info(f"[{user_id}] [後台創世] ✅ RAG 索引構建完成，檢索器現已可用。")
+            logger.info(f"[{user_id}] [後台創世] ✅ RAG 索引構建完成。")
 
-            # --- 步驟 3: 【核心修正】在 RAG 就緒後，才觸發後台精煉任務 ---
+            # --- 步驟 3: 觸發後台單體精煉任務 ---
             all_lores_from_db = await lore_book.get_all_lores_for_user(user_id)
             if all_lores_from_db:
-                logger.info(f"[{user_id}] [後台創世] 步驟 3/5: 檢測到 {len(all_lores_from_db)} 條 LORE，正在觸發**後台**精煉任務...")
+                logger.info(f"[{user_id}] [後台創世] 步驟 3/6: 檢測到 {len(all_lores_from_db)} 條 LORE，正在觸發**後台單體精煉**任務...")
                 asyncio.create_task(ai_instance._background_lore_refinement(all_lores_from_db))
             
-            # --- 步驟 4: 補完角色檔案 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 4/5: 正在補完角色檔案...")
+            # --- 步驟 4: 【核心修正】觸發後台關係分析任務 ---
+            if canon_text and all_lores_from_db:
+                logger.info(f"[{user_id}] [後台創世] 步驟 4/6: 正在觸發**後台關係圖譜分析**任務...")
+                asyncio.create_task(ai_instance._background_relationship_analysis(canon_text))
+
+            # --- 步驟 5: 補完角色檔案 ---
+            logger.info(f"[{user_id}] [後台創世] 步驟 5/6: 正在補完角色檔案...")
             await ai_instance.complete_character_profiles(sanitized_context="（角色補完階段不參考世界聖經，以確保檔案純淨）")
             logger.info(f"[{user_id}] [後台創世] 角色檔案補完成功。")
 
-            # --- 步驟 5: 生成開場白 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 5/5: 正在生成開場白...")
+            # --- 步驟 6: 生成開場白 ---
+            logger.info(f"[{user_id}] [後台創世] 步驟 6/6: 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
             logger.info(f"[{user_id}] [後台創世] 開場白生成成功。")
 
             if not opening_scene:
                  raise Exception("原生創世流程未能成功生成開場白。")
 
-            # --- 步驟 6: 發送開場白並清理 ---
+            # --- 最終步驟: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
