@@ -5238,14 +5238,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：執行 LORE 解析管線 (v4.0 - 移除混合 NLP)
+# 函式：執行 LORE 解析管線 (v4.1 - 參數完整性修復)
 # 更新紀錄:
-# v4.0 (2025-12-11): [災難性BUG修復] 根據日誌分析，徹底移除了管線中會引發 API 調用爆炸的第四層降級方案（混合 NLP 方案）。新的管線被簡化為一個更健壯、更高效的三層降級策略（雲端 -> 本地 -> 法醫級重構），從根本上解決了因 API 速率超限導致的系統性失敗。
+# v4.1 (2025-12-12): [災難性BUG修復] 根據由 `_safe_format_prompt` v2.0 捕獲的 ValueError，修復了在調用 `get_canon_transformation_chain` 時的參數缺失問題。現在，在格式化 Prompt 時，會為 `core_protocol_prompt` 中所有與導演視角相關的、但在當前上下文中不存在的佔位符（如 `player_location`, `viewing_mode`），提供安全的預設值，從而解決了因參數缺失導致的程式崩潰問題。
+# v4.0 (2025-12-11): [災難性BUG修復] 徹底移除了會引發 API 調用爆炸的第四層降級方案（混合 NLP 方案）。
 # v3.9 (2025-09-30): [重大架構重構] 引入分塊處理和五層降級策略。
-# v3.8 (2025-09-30): [災難性BUG修復] 對第一層增加了前置安全代碼化。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v4.0 核心 LORE 解析引擎】執行一個簡化後的三層降級、支持分塊處理的解析管線。
+        【v4.1 核心 LORE 解析引擎】執行一個簡化後的三層降級、支持分塊處理的解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
@@ -5267,6 +5267,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if result.items: keys.extend([i.name for i in result.items])
             if result.creatures: keys.extend([c.name for c in result.creatures])
             if result.quests: keys.extend([q.name for q in result.quests])
+            # [v3.0 核心修正] 統一使用 name 屬性
             if result.world_lores: keys.extend([w.name for w in result.world_lores])
             return keys
             
@@ -5290,9 +5291,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 正在嘗試【理想方案：雲端宏觀解析】...")
                     
                     transformation_template = self.get_canon_transformation_chain()
+                    
+                    # 【核心修正 v4.1】為 prompt 參數提供所有必需的鍵，包括安全的預設值
+                    prompt_params = {
+                        "username": self.profile.user_profile.name,
+                        "ai_name": self.profile.ai_profile.name,
+                        "canon_text": chunk,
+                        # 為導演視角指令提供安全的預設值
+                        "player_location": "創世之間",
+                        "viewing_mode": "local",
+                        "remote_target_path_str": "無"
+                    }
+
                     full_prompt = self._safe_format_prompt(
                         transformation_template,
-                        {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk},
+                        prompt_params,
                         inject_core_protocol=True
                     )
                     parsing_result = await self.ainvoke_with_rotation(
@@ -5302,8 +5315,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] ✅ 成功！")
                         chunk_parsing_result = parsing_result
                         parsing_completed = True
-            except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇內容審查，正在降級...")
+            except (BlockedPromptException, ValueError) as e: # 同時捕捉 BlockedPrompt 和我們自己的 ValueError
+                if isinstance(e, BlockedPromptException):
+                    logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇內容審查，正在降級...")
+                else:
+                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇參數格式化錯誤: {e}，正在降級。", exc_info=False)
             except Exception as e:
                 logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
 
@@ -5312,7 +5328,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 try:
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 正在嘗試【本地備援方案：無審查解析】...")
                     parsing_result = await self._invoke_local_ollama_parser(chunk)
-                    # 增加對本地模型返回空內容的判斷
                     if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
                         logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] ✅ 成功！")
                         chunk_parsing_result = parsing_result
@@ -5321,8 +5336,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                         logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 本地模型未能成功解析或返回空結果，正在降級...")
                 except Exception as e:
                     logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
-
-            # --- 【核心修正】徹底移除第四層：混合 NLP 方案 ---
 
             # --- 層級 3 (原層級 5): 【法醫級重構方案】終極備援 (Gemini) ---
             try:
@@ -5362,7 +5375,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線 (v4.0 - 移除混合 NLP)
+# 函式：執行 LORE 解析管線 (v4.1 - 參數完整性修復)
 
 
 
@@ -6221,6 +6234,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
