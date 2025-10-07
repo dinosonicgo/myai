@@ -1126,47 +1126,46 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v67.0 - 數據流修復與職責分離)
+# 函式：執行完整的後台創世流程 (v68.0 - 修正競爭條件)
 # 更新紀錄:
-# v67.0 (2025-12-12): [災難性BUG修復] 徹底重構了此函式的數據流。現在，它會先調用 ai_core 中新增的 `parse_and_create_lore_from_canon` 方法，來完成 LORE 的解析與保存。接著，它會從資料庫中重新獲取所有剛剛被創建的 LORE 物件，並將它們明確地傳遞給 `_background_lore_refinement` 來觸發後台精煉。此修改徹底解決了 LORE 解析結果被丟棄、數據流斷裂以及後台精煉未被觸發的根本問題。
+# v68.0 (2025-12-14): [災難性BUG修復] 徹底重構了 `/start` 流程的異步執行順序，以解決災難性的競爭條件。舊版本會並行地觸發「RAG 創建」和依賴 RAG 的「LORE 精煉」，導致後者總是在前者完成前就嘗試訪問未初始化的檢索器。新版本將流程改為嚴格的線性 await 調用順序：1. 解析 LORE -> 2. **等待** RAG 創建完成 -> 3. 在 RAG 就緒後，才觸發後台 LORE 精煉。此修改從根本上確保了依賴關係的正確性。
+# v67.0 (2025-12-12): [災難性BUG修復] 修正了數據流斷裂問題。
 # v66.0 (2025-12-10): [災難性BUG修復] 引入了「程式級上下文淨化」步驟。
-# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v67.0) 一個由原生 Python 驅動的、數據流完整的後台創世流程。"""
+        """(v68.0) 一個由原生 Python 驅動的、無競爭條件的、數據流完整的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v67.0] 原生 Python 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v68.0] 修正競爭條件後的原生流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- 步驟 1: 【核心修正】解析聖經，創建 LORE 骨架並存入資料庫 ---
+            # --- 步驟 1: 解析聖經，創建 LORE 骨架並存入資料庫 ---
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 步驟 1/5: 正在解析世界聖經並創建 LORE 骨架...")
                 await ai_instance.parse_and_create_lore_from_canon(canon_text)
                 logger.info(f"[{user_id}] [後台創世] LORE 骨架已成功創建並存入資料庫。")
             
-            # --- 步驟 2: 【核心修正】觸發後台精煉任務 ---
-            all_lores_from_db = await lore_book.get_all_lores_for_user(user_id)
-            if all_lores_from_db:
-                logger.info(f"[{user_id}] [後台創世] 步驟 2/5: 檢測到 {len(all_lores_from_db)} 條 LORE，正在觸發後台精煉任務...")
-                asyncio.create_task(ai_instance._background_lore_refinement(all_lores_from_db))
-            
-            # --- 步驟 3: 構建 RAG 索引 (使用完整原文) ---
+            # --- 步驟 2: 構建 RAG 索引 (使用完整原文)。這一步必須在後台精煉之前完成 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
             
-            logger.info(f"[{user_id}] [後台創世] 步驟 3/5: 正在觸發 RAG 索引創始構建 (使用完整原文)...")
+            logger.info(f"[{user_id}] [後台創世] 步驟 2/5: 正在觸發 RAG 索引創始構建 (此步驟完成前將阻塞)...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
-            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
+            logger.info(f"[{user_id}] [後台創世] ✅ RAG 索引構建完成，檢索器現已可用。")
 
-            # --- 步驟 4: 補完角色檔案 (使用淨化後的上下文) ---
+            # --- 步驟 3: 【核心修正】在 RAG 就緒後，才觸發後台精煉任務 ---
+            all_lores_from_db = await lore_book.get_all_lores_for_user(user_id)
+            if all_lores_from_db:
+                logger.info(f"[{user_id}] [後台創世] 步驟 3/5: 檢測到 {len(all_lores_from_db)} 條 LORE，正在觸發**後台**精煉任務...")
+                asyncio.create_task(ai_instance._background_lore_refinement(all_lores_from_db))
+            
+            # --- 步驟 4: 補完角色檔案 ---
             logger.info(f"[{user_id}] [後台創世] 步驟 4/5: 正在補完角色檔案...")
-            # 注意：此處我們傳入一個空字串，因為角色補完不應再受聖經影響
             await ai_instance.complete_character_profiles(sanitized_context="（角色補完階段不參考世界聖經，以確保檔案純淨）")
             logger.info(f"[{user_id}] [後台創世] 角色檔案補完成功。")
 
@@ -1198,6 +1197,9 @@ class BotCog(commands.Cog, name="BotCog"):
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 執行完整的後台創世流程 函式結束
 
+
+
+    
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
 # 更新紀錄:
