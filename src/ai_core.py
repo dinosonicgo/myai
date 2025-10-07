@@ -422,6 +422,77 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
+
+
+
+
+
+
+    # 函式：為角色檔案補完任務對上下文進行程式級淨化 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-10): [全新創建] 根據「程式級上下文淨化」策略創建此核心輔助函式。它完全不依賴 LLM，而是通過一系列正則表達式和關鍵詞過濾規則，從完整的世界聖經文本中移除最可能導致身份錯置的、關於具體角色的詳細描述和高風險 NSFW 內容，同時保留宏觀的世界觀設定。
+    def _sanitize_context_for_profile_completion(self, canon_text: str, existing_profile_names: List[str]) -> str:
+        """
+        [純程式碼] 為角色補完任務淨化上下文，移除具體角色細節，保留宏觀設定。
+        """
+        if not canon_text:
+            return "（無世界觀背景參考）"
+
+        logger.info(f"[{self.user_id}] [上下文淨化器] 正在對長度為 {len(canon_text)} 的世界聖經進行程式級淨化...")
+
+        # 步驟 1: 定義高風險關鍵詞和模式
+        # 擴展這個列表可以提高過濾的精準度
+        NSFW_KEYWORDS = [
+            "母畜", "肉棒", "肉穴", "陰蒂", "子宮", "愛液", "淫液", "精液",
+            "插入", "口交", "性交", "輪姦", "強暴", "高潮", "射精",
+            "臣服", "主人", "奴隸", "性奴"
+        ]
+        
+        # 用於匹配結構化角色檔案的模式 (例如 `* 角色名 (別名) - 「稱號」`)
+        # 這個正則表達式會匹配從 `* ` 或 `- ` 開始，直到下一個同樣模式或連續兩個換行符為止的整個區塊
+        profile_block_pattern = re.compile(r"(^[*-]\s+.+?$([\s\S]*?)(?=(^[*-]\s)|(\n\n)|$))", re.MULTILINE)
+        
+        # 步驟 2: 移除結構化的角色檔案區塊
+        # 這是最高效的淨化步驟，能一次性移除大量高風險細節
+        sanitized_text = profile_block_pattern.sub("", canon_text)
+        
+        # 步驟 3: 按行過濾，移除包含角色名和 NSFW 關鍵詞的句子
+        lines = sanitized_text.split('\n')
+        final_lines = []
+        for line in lines:
+            # 如果這一行很短，或者看起來像標題，通常是安全的，直接保留
+            if len(line.strip()) < 20 or line.strip().startswith(('#', '=', '---')):
+                final_lines.append(line)
+                continue
+
+            # 檢查是否同時包含已知角色名和 NSFW 關鍵詞
+            contains_profile_name = any(name in line for name in existing_profile_names)
+            contains_nsfw_keyword = any(keyword in line for keyword in NSFW_KEYWORDS)
+
+            if contains_profile_name and contains_nsfw_keyword:
+                # 如果同時包含，則丟棄這一行，因為它極有可能是具體的角色 NSFW 描述
+                continue
+            else:
+                # 否則，保留這一行
+                final_lines.append(line)
+        
+        sanitized_text = '\n'.join(final_lines)
+
+        # 步驟 4: 清理多餘的空白行
+        sanitized_text = re.sub(r'\n{3,}', '\n\n', sanitized_text).strip()
+
+        if not sanitized_text:
+            return "（世界聖經原文經過淨化後，未找到合適的宏觀背景資訊。）"
+            
+        logger.info(f"[{self.user_id}] [上下文淨化器] 淨化完成，上下文長度從 {len(canon_text)} 減少到 {len(sanitized_text)}。")
+        return sanitized_text
+# 函式：為角色檔案補完任務對上下文進行程式級淨化 (v1.0 - 全新創建)
+
+
+
+    
+
+
 # 函式：獲取 LORE 骨架精煉器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
 # v1.0 (2025-12-08): [全新創建] 根據「LORE 回填」策略創建此 Prompt。它的核心職責是接收一個基礎的 LORE 骨架和一份從 RAG 檢索到的上下文，並指示 LLM 使用上下文來豐富和填充骨架，生成一個更詳細的 LORE 檔案。
@@ -6383,6 +6454,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
