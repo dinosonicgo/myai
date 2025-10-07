@@ -1626,11 +1626,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 
 
-# 函式：帶輪換和備援策略的原生 API 調用引擎 (v235.1 - 确认修正)
+# 函式：帶輪換和備援策略的原生 API 調用引擎 (v236.0 - 動態冷卻)
 # 更新紀錄:
-# v235.1 (2025-12-08): [完整性修复] 补全了文件顶部的 `from typing import Union` 导入，以解决 NameError。
-# v235.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”，此函式现在可以接收一个“消息列表” (List[Dict]) 作为 prompt 参数。
-# v234.1 (2025-12-08): [灾难性BUG修复] 增加了健壮性检查，能够正确处理 API 返回整数错误码而非 Enum 物件的情况。
+# v236.0 (2025-12-11): [災難性BUG修復] 引入了「模型感知的動態冷卻策略」。在捕獲 ResourceExhausted 異常時，系統不再對所有模型都硬編碼 24 小時冷卻，而是會判斷模型名稱。對於速率限制較寬鬆的 Flash 模型，僅設置 65 秒的短期冷卻；對於限制嚴格的 Pro 模型，則保持較長的冷卻時間。此修改從根本上解決了因 Flash 模型短時超限而導致系統長時間癱瘓的問題。
+# v235.1 (2025-12-08): [完整性修复] 补全了文件顶部的 `from typing import Union` 导入。
+# v235.0 (2025-12-08): [根本性重构] 引入了消息列表输入支持。
     async def ainvoke_with_rotation(
         self,
         prompt_or_messages: Union[str, List[Dict[str, Any]]],
@@ -1642,7 +1642,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         force_api_key_tuple: Optional[Tuple[str, int]] = None 
     ) -> Any:
         """
-        一個高度健壯的原生 API 調用引擎，支援字符串或消息列表输入，整合了金鑰輪換、備援和自我修正。
+        一個高度健壯的原生 API 調用引擎，支援字符串或消息列表输入，整合了金鑰輪換、備援、自我修正和動態冷卻。
         """
         import google.generativeai as genai
         from google.generativeai.types.generation_types import BlockedPromptException
@@ -1775,9 +1775,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             logger.error(f"[{self.user_id}] Key #{key_index} (模型: {model_name}) 在 {IMMEDIATE_RETRY_LIMIT} 次重試後仍然失敗。")
                             if isinstance(e, google_api_exceptions.ResourceExhausted):
                                 cooldown_key = f"{key_index}_{model_name}"
-                                self.key_model_cooldowns[cooldown_key] = time.time() + (24 * 60 * 60)
+                                
+                                # 【核心修正】引入模型感知的動態冷卻
+                                if "flash" in model_name.lower():
+                                    cooldown_duration = 65  # Flash 模型的冷卻時間為 65 秒
+                                    log_message = f"[{self.user_id}] [動態冷卻] Flash 模型速率超限！API Key #{key_index} 已被置入短期冷卻 {cooldown_duration} 秒。"
+                                else:
+                                    cooldown_duration = 24 * 60 * 60 # Pro 模型的冷卻時間為 24 小時
+                                    log_message = f"[{self.user_id}] [持久化冷卻] Pro 模型速率超限！API Key #{key_index} 已被置入硬冷卻 24 小時。"
+
+                                self.key_model_cooldowns[cooldown_key] = time.time() + cooldown_duration
                                 self._save_cooldowns()
-                                logger.critical(f"[{self.user_id}] [持久化冷卻] Pro 模型速率超限！API Key #{key_index} 已被置入硬冷卻 24 小時。")
+                                logger.critical(log_message)
                             break
                         sleep_time = (2 ** retry_attempt) + random.uniform(0.1, 0.5)
                         logger.warning(f"[{self.user_id}] Key #{key_index} 遭遇臨時 API 錯誤。将在 {sleep_time:.2f} 秒後重試...")
@@ -6257,6 +6266,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
