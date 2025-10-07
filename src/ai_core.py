@@ -3726,54 +3726,138 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v7.2 - 移除代碼化殘餘)
+# 函式：背景LORE精煉 (v8.0 - 批次化分治法)
 # 更新紀錄:
-# v7.2 (2025-10-05): [災難性BUG修復] 根據 AttributeError，徹底移除了函式末尾對已被廢棄的 _decode_lore_content 函式的調用，完成了代碼化系統的最終清理。
-# v7.1 (2025-10-02): [架構重構] 根據「事件驅動」模型，重構了此函式的職責，使其成為一個可被按需調用的「精煉服務」。
-# v7.0 (2025-10-02): [根本性重構] 將此函式的核心邏輯被提取到一個全新的、可重用的 `_refine_single_lore_object` 輔助函式中。
+# v8.0 (2025-12-12): [災難性BUG修復與性能優化] 徹底重構此函式，引入「批次化分治法」架構。舊版本會為每個 LORE 單獨執行一次完整的多步驟精煉流程，在處理批量任務時會引發 API 調用爆炸。新版本則將所有 LORE 的同一精煉步驟（例如，提取所有 aliases）合併為一次批次化的 LLM 調用，將 API 調用總數從 N*M 次驟降至 M 次，從根本上解決了 API 濫用問題並極大地提升了後台處理效率。
+# v7.2 (2025-10-05): [災難性BUG修復] 移除了對已被廢棄的 _decode_lore_content 函式的調用。
+# v7.1 (2025-10-02): [架構重構] 將其職責重構為一個可被按需調用的「精煉服務」。
     async def _background_lore_refinement(self, lores_to_refine: List[Lore]):
         """
-        (背景任務 v7.2) 接收一個 LORE 對象列表，並逐一調用單體精煉器對其進行升級。
+        (背景任務 v8.0) 接收一個 LORE 對象列表，並使用「批次化分治法」高效地對其進行升級。
         """
+        if not lores_to_refine:
+            return
+
+        # 過濾出需要精煉的 NPC Profile
+        npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile']
+        if not npc_lores:
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化] 任務列表中沒有需要精煉的 NPC 檔案，服務提前結束。")
+            return
+            
         try:
-            # 如果是從創世流程觸發，給予足夠的延遲以等待 RAG 構建完成
-            # 如果是從對話流程觸發，則可以更快執行
-            is_large_batch = len(lores_to_refine) > 5
-            await asyncio.sleep(15.0 if is_large_batch else 3.0)
+            await asyncio.sleep(5.0) # 給予一個較短的延遲
             
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.2] 背景精煉服務已啟動，收到 {len(lores_to_refine)} 個精煉任務。")
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化 v8.0] 批次化精煉服務已啟動，收到 {len(npc_lores)} 個 NPC 精煉任務。")
 
-            if not lores_to_refine:
-                logger.info(f"[{self.user_id}] [LORE精煉] 任務列表為空，服務結束。")
+            # --- 步驟 1: 批次化 RAG 檢索與程式級事實提取 ---
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化] 步驟 1/3: 正在執行批次化 RAG 檢索與程式級事實提取...")
+            
+            # 準備批量輸入數據
+            batch_input_for_llm = []
+            lore_map = {lore.key: lore for lore in npc_lores}
+            
+            character_names = [lore.content.get('name') for lore in npc_lores if lore.content.get('name')]
+            
+            # 使用 asyncio.gather 並行執行所有 RAG 檢索和程式碼提取
+            async def process_single_lore(lore: Lore):
+                char_name = lore.content.get('name')
+                if not char_name: return None
+                # 執行一次寬泛的 RAG 檢索獲取所有相關文本
+                raw_context = await self._raw_rag_retrieval(f"關於角色 '{char_name}' 的所有已知資訊、背景故事、身份和關係。")
+                # 在獲取的文本上執行程式級提取
+                facts = await self._programmatic_attribute_extraction(raw_context, char_name)
+                return {
+                    "base_profile": lore.content,
+                    "facts": facts
+                }
+
+            process_tasks = [process_single_lore(lore) for lore in npc_lores]
+            results = await asyncio.gather(*process_tasks)
+            
+            batch_input_for_llm = [res for res in results if res is not None]
+
+            if not batch_input_for_llm:
+                logger.warning(f"[{self.user_id}] [LORE精煉-批次化] 程式級事實提取未能為任何角色生成有效的輸入數據。")
                 return
+
+            # --- 步驟 2: 一次性 LLM 批次化潤色 ---
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化] 步驟 2/3: 正在執行一次性的 LLM 批次化潤色...")
             
-            for lore in lores_to_refine:
-                # 調用核心單體精煉工具
-                refined_profile = await self._refine_single_lore_object(lore)
+            from .schemas import BatchRefinementInput, BatchRefinementResult
+            
+            final_profiles_map: Dict[str, CharacterProfile] = {}
+            try:
+                # 準備 Pydantic 模型以進行序列化
+                batch_pydantic_input = [BatchRefinementInput.model_validate(item) for item in batch_input_for_llm]
+                batch_json_for_prompt = json.dumps([item.model_dump() for item in batch_pydantic_input], ensure_ascii=False, indent=2)
 
-                if refined_profile:
-                    # [v7.2 核心修正] 移除對 _decode_lore_content 的調用，直接使用精煉後的數據
-                    final_content_to_save = refined_profile.model_dump()
-                    
-                    await lore_book.add_or_update_lore(
-                        user_id=self.user_id,
-                        category='npc_profile',
-                        key=lore.key,
-                        content=final_content_to_save,
-                        source='canon_refiner_v10_final' # 統一最終來源標記
-                    )
-                    logger.info(f"[{self.user_id}] [LORE精煉-背景] ✅ 已成功在後台精煉並更新角色 '{refined_profile.name}' 的檔案。")
+                refinement_prompt = self._safe_format_prompt(
+                    self.get_character_details_parser_chain(), 
+                    {"batch_verified_data_json": batch_json_for_prompt}
+                )
+                
+                llm_result = await self.ainvoke_with_rotation(
+                    refinement_prompt, 
+                    output_schema=BatchRefinementResult, 
+                    retry_strategy='force', # 對於這種關鍵的後台任務，強制重試
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+
+                if llm_result and llm_result.refined_profiles:
+                    for profile in llm_result.refined_profiles:
+                        final_profiles_map[profile.name] = profile
+                    logger.info(f"[{self.user_id}] [LORE精煉-批次化] ✅ LLM 批量潤色成功，獲得 {len(final_profiles_map)} 個精煉檔案。")
                 else:
-                    logger.warning(f"[{self.user_id}] [LORE精煉-背景] ⏩ 為角色 '{lore.content.get('name', '未知')}' 的背景精煉失敗或無效，跳過更新。")
+                    raise ValueError("LLM 批量潤色返回了空結果或無效結構。")
 
-                await asyncio.sleep(1.5)
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] [LORE精煉-批次化] 🔥 LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援】...")
+                # 【終極備援】如果 LLM 失敗，則完全依賴程式碼提取的結果
+                for item in batch_input_for_llm:
+                    profile = CharacterProfile.model_validate(item['base_profile'])
+                    facts = item['facts']
+                    
+                    # 合併別名並去重
+                    profile.aliases = sorted(list(set(profile.aliases + facts.get('verified_aliases', []))))
+                    
+                    # 更新年齡
+                    if facts.get('verified_age', '未知') != '未知':
+                        profile.age = facts['verified_age']
+                    
+                    # 拼接描述
+                    if facts.get('description_sentences'):
+                        # 簡單地用換行符拼接所有事實句子
+                        profile.description = "\n".join(sorted(list(set(facts['description_sentences']))))
+                    
+                    final_profiles_map[profile.name] = profile
 
-            logger.info(f"[{self.user_id}] [LORE精煉 v7.2] 所有 {len(lores_to_refine)} 個背景精煉任務已全部完成。")
+            # --- 步驟 3: 批次化數據庫更新 ---
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化] 步驟 3/3: 正在執行批次化資料庫更新...")
+            update_tasks = []
+            for lore in npc_lores:
+                char_name = lore.content.get('name')
+                if char_name and char_name in final_profiles_map:
+                    refined_profile = final_profiles_map[char_name]
+                    # 確保核心欄位不為空
+                    if refined_profile.description and refined_profile.description.strip():
+                        task = lore_book.add_or_update_lore(
+                            user_id=self.user_id,
+                            category='npc_profile',
+                            key=lore.key,
+                            content=refined_profile.model_dump(),
+                            source='batch_refiner_v8_final'
+                        )
+                        update_tasks.append(task)
+
+            if update_tasks:
+                await asyncio.gather(*update_tasks)
+                logger.info(f"[{self.user_id}] [LORE精煉-批次化] ✅ {len(update_tasks)} 個 NPC 檔案已成功在後台精煉並更新。")
+
+            logger.info(f"[{self.user_id}] [LORE精煉-批次化] 所有 {len(npc_lores)} 個後台精煉任務已全部完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 背景 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] 批次化 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
 # 背景LORE精煉 函式結束
-
     
 
 
@@ -4030,123 +4114,7 @@ class ExtractionResult(BaseModel):
 
 
     
-# 函式：精煉單個 LORE 對象 (v10.0 - 三層降級備援)
-# 更新紀錄:
-# v10.0 (2025-10-02): [根本性重構] 根據「三層降級 + 數據搶救」終極策略，徹底重寫此函式。它現在是一個包含清晰降級路徑（雲端完整精煉 -> 本地無審查精煉 -> 雲端分治法數據搶救）的、高度健壯的抗審查防禦系統總指揮。
-# v9.0 (2025-10-02): [災難性BUG修復] 徹底移除了此函式中所有與 RAG 寫入相關的邏輯。
-# v8.0 (2025-10-02): [災難性BUG修復] 引入了更可靠的程式化依賴剖析。
-    async def _refine_single_lore_object(self, lore_to_refine: Lore) -> Optional[CharacterProfile]:
-        """
-        (v10.0) 對單個 LORE 執行包含三層降級備援的深度精煉，並返回結果。
-        """
-        character_name = lore_to_refine.content.get('name')
-        if not character_name:
-            return None
 
-        logger.info(f"[{self.user_id}] [單體精煉 v10.0] 正在為角色 '{character_name}' 啟動三層降級精煉流程...")
-        
-        refined_profile: Optional[CharacterProfile] = None
-
-        try:
-            # --- 步驟 1: 數據準備 (RAG) ---
-            queries = {
-                "aliases": f"'{character_name}' 的所有身份、頭銜、綽號和狀態是什麼？",
-                "description": f"關於 '{character_name}' 的背景故事、起源和關鍵經歷的詳細描述。",
-                "appearance": f"對 '{character_name}' 外貌的詳細描寫。",
-                "skills": f"'{character_name}' 擁有哪些技能或能力？",
-                "relationships": f"'{character_name}' 與其他角色的關係是什麼？"
-            }
-            tasks = {key: self.retrieve_and_summarize_memories(query) for key, query in queries.items()}
-            results = await asyncio.gather(*tasks.values())
-            aggregated_context = dict(zip(tasks.keys(), [res.get("summary", "") for res in results]))
-
-            # --- 步驟 2: 【第一層嘗試】雲端完整精煉 ---
-            if not refined_profile:
-                try:
-                    logger.info(f"[{self.user_id}] [LORE精煉-L1] 正在嘗試使用雲端模型 ({FUNCTIONAL_MODEL}) 進行完整精煉...")
-                    extraction_prompt_template = self.get_rag_driven_extraction_prompt()
-                    full_prompt = self._safe_format_prompt(
-                        extraction_prompt_template,
-                        {
-                            "character_name": character_name,
-                            "base_profile_json": json.dumps(lore_to_refine.content, ensure_ascii=False, indent=2),
-                            "aliases_context": aggregated_context["aliases"],
-                            "description_context": aggregated_context["description"],
-                            "appearance_context": aggregated_context["appearance"],
-                            "skills_context": aggregated_context["skills"],
-                            "relationships_context": aggregated_context["relationships"]
-                        },
-                        inject_core_protocol=True
-                    )
-                    refined_profile = await self.ainvoke_with_rotation(
-                        full_prompt,
-                        output_schema=CharacterProfile,
-                        retry_strategy='none', # 失敗時手動降級
-                        models_to_try_override=[FUNCTIONAL_MODEL]
-                    )
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [LORE精煉-L1] 雲端完整精煉失敗 ({type(e).__name__})。降級至 L2 (本地模型)。")
-
-            # --- 步驟 3: 【第二層嘗試】本地無審查精煉 ---
-            if not refined_profile and self.is_ollama_available:
-                refined_profile = await self._invoke_local_ollama_refiner(character_name, lore_to_refine.content, aggregated_context)
-
-            # --- 步驟 4: 【第三層嘗試】雲端「分治法」數據搶救 ---
-            if not refined_profile:
-                logger.warning(f"[{self.user_id}] [LORE精煉-L3] L1和L2均失敗。啟動雲端『分治法』數據搶救...")
-                rescued_profile = CharacterProfile.model_validate(lore_to_refine.content)
-                
-                try:
-                    simple_extraction_prompt = self.get_simple_extraction_prompt()
-                    aliases_prompt = self._safe_format_prompt(simple_extraction_prompt, {
-                        "context": aggregated_context["aliases"],
-                        "target_field_description": f"角色 '{character_name}' 的所有身份、頭銜、綽號列表。",
-                        "output_format": "一個 JSON 列表，例如：[\"聖女\", \"母畜\"]"
-                    })
-                    class AliasesResult(BaseModel): aliases: List[str]
-                    aliases_result = await self.ainvoke_with_rotation(aliases_prompt, output_schema=AliasesResult, models_to_try_override=[FUNCTIONAL_MODEL])
-                    if aliases_result and aliases_result.aliases:
-                        rescued_profile.aliases = list(set(rescued_profile.aliases + aliases_result.aliases))
-                        logger.info(f"[{self.user_id}] [LORE精煉-L3] ✅ 成功搶救 'aliases' 數據。")
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'aliases' 數據搶救失敗: {e}")
-
-                try:
-                    simple_extraction_prompt = self.get_simple_extraction_prompt()
-                    desc_prompt = self._safe_format_prompt(simple_extraction_prompt, {
-                        "context": aggregated_context["description"],
-                        "target_field_description": f"將關於角色 '{character_name}' 的背景故事和經歷，總結成一段通順的描述。",
-                        "output_format": "一個 JSON 字符串，例如：{{\"description\": \"...\"}}"
-                    })
-                    class DescriptionResult(BaseModel): description: str
-                    desc_result = await self.ainvoke_with_rotation(desc_prompt, output_schema=DescriptionResult, models_to_try_override=[FUNCTIONAL_MODEL])
-                    if desc_result and desc_result.description:
-                        rescued_profile.description = desc_result.description
-                        logger.info(f"[{self.user_id}] [LORE精煉-L3] ✅ 成功搶救 'description' 數據。")
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [LORE精煉-L3] 🔥 'description' 數據搶救失敗: {e}")
-                
-                # 只有在搶救到數據時才將其視為有效結果
-                if rescued_profile.model_dump() != lore_to_refine.content:
-                    refined_profile = rescued_profile
-
-            # --- 步驟 5: 最終安全驗證 ---
-            if not refined_profile:
-                logger.warning(f"[{self.user_id}] [單體精煉] 🔥 所有三層備援均失敗！無法為角色 '{character_name}' 生成有效的精煉檔案。")
-                return None
-            
-            # 確保最核心的 name 和 description 存在
-            if not refined_profile.name or not (refined_profile.description and refined_profile.description.strip()):
-                logger.warning(f"[{self.user_id}] [單體精煉安全驗證] 🔥 最終結果缺少核心字段 (name 或 description)，判定為無效。")
-                return None
-            
-            logger.info(f"[{self.user_id}] [單體精煉] ✅ 驗證通過，成功為角色 '{character_name}' 生成精煉檔案。")
-            return refined_profile
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [單體精煉] 在為角色 '{character_name}' 執行精煉時發生未知嚴重錯誤: {e}", exc_info=True)
-            return None
-# 函式：精煉單個 LORE 對象 (v10.0 - 三層降級備援)
 
 
 
@@ -5522,7 +5490,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #
 # 2. **【🛡️ 數據保真原則】**:
 #    - `facts` 中的 `verified_aliases` 和 `verified_age` 是由程式算法精確提取的結果，是絕對可信的。你【必須】將這些值**原封不動地、不加任何修改地**複製到最終輸出的對應欄位中。
-#    - 你【必須】以每個條目中的 `base_profile` 為基礎，在其上進行更新和填充。
+#    - 你【必須】以每个條目中的 `base_profile` 為基礎，在其上進行更新和填充。
 #
 # 3. **【🚫 絕對無害化輸出強制令】**:
 #    - 輸入的數據點可能包含技術代碼。你的最終JSON輸出，其所有字段的值【也必須】原封不動地保留這些技術代碼。
@@ -5539,7 +5507,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 """
         return base_prompt
 # 函式：獲取角色細節深度解析器 Prompt
-
 
     
 
@@ -6254,6 +6221,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
