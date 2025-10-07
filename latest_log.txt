@@ -1,17 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T07:50:17.773515 ###
+### AI Lover Log - Last updated at 2025-10-08T07:55:20.980258 ###
 
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
-    return await target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
-    raise exceptions.from_grpc_error(rpc_error) from rpc_error
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
-Please retry in 6.993277363s. [violations {
-  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
-  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
   quota_dimensions {
     key: "model"
     value: "gemini-2.5-flash-lite"
@@ -300,3 +288,15 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-08 07:50:09 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 07:50:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 07:50:13 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 07:50:51 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-08 07:50:51 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-08 07:50:51 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-08 07:50:51 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-08 07:50:51 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-08 07:50:59 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-08 07:50:59 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-08 07:50:59 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-08 07:50:59 - [WARNING] - [512280345618546699] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。
+2025-10-08 07:50:59 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-08 07:50:59 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-08 07:50:59 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 11 條訊息。
