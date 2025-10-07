@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T07:44:10.007110 ###
+### AI Lover Log - Last updated at 2025-10-08T07:50:17.773515 ###
 
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1669, in ainvoke_with_rotation
-    response = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
-    response = await self._async_client.generate_content(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
-    response = await rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
-    return await retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
     next_sleep = _retry_error_helper(
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
     raise final_exc from source_exc
@@ -300,3 +289,14 @@ Traceback (most recent call last):
 google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
 2025-10-08 07:34:20 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
 2025-10-08 07:34:20 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 07:47:47 - [INFO] - [512280345618546699] [Admin Command] 手動觸發強制更新與重啟流程...
+2025-10-08 07:47:47 - [INFO] - [512280345618546699] [Admin Command] 已獲取 Git 鎖，開始執行同步...
+2025-10-08 07:47:52 - [INFO] - [512280345618546699] [Admin Command] Git 鎖已釋放。
+2025-10-08 07:50:04 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 07:50:09 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 07:50:09 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 07:50:09 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 07:50:09 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 07:50:09 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 07:50:12 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 07:50:13 - [INFO] - 已成功發送啟動成功通知給管理員。
