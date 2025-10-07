@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T00:40:34.684013 ###
+### AI Lover Log - Last updated at 2025-10-08T00:43:57.907237 ###
 
-2025-10-08 00:26:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:47 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:49 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:51 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:56 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:26:58 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:27:00 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:27:02 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:27:04 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 00:27:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
@@ -300,3 +292,11 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
     raise errors.ExtensionFailed(key, e) from e
 discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: invalid character '，' (U+FF0C) (ai_core.py, line 3864)
+2025-10-08 00:43:44 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 00:43:47 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 00:43:47 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 00:43:47 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 00:43:48 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 00:43:48 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 00:43:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 00:43:53 - [INFO] - 已成功發送啟動成功通知給管理員。
