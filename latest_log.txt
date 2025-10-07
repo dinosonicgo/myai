@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-08T01:17:29.023703 ###
+### AI Lover Log - Last updated at 2025-10-08T01:22:46.202544 ###
 
-      "relationships": {
-        "瑪莉": {
-          "type": "社交關係",
-          "roles": [
-            "被誘惑者",
-            "咒罵對象"
-          ]
-        },
-        "安娜": {
-          "type": "社交關係",
-          "roles": [
-            "被誘惑者",
-            "咒罵對象"
-          ]
-        }
-      }
-    },
-    {
-      "name": "費奇",
-      "aliases": [
-        "市集區普通居民"
-      ],
-      "description": "老高的摯友，被成功轉化為莊園外的第一批男性信徒。計劃優先將『福音』分享給兒女。",
-      "location_path": [
-        "城鎮市集區"
-      ],
-      "gender": "男性",
-      "race": "未知",
-      "status": "未知",
-      "age": "未知",
-      "appearance": "",
-      "skills": [
-        "傳播福音"
-      ],
-      "relationships": {
-        "老高": {
-          "type": "社交關係",
-          "roles": [
-            "朋友",
-            "轉化者"
-          ]
-        },
-        "湯瑪斯": {
-          "type": "社交關係",
-          "roles": [
-            "父親",
-            "傳播者"
-          ]
-        },
-        "愛蓮娜": {
-          "type": "社交關係",
-          "roles": [
-            "父親",
-            "傳播者"
-          ]
-        }
-      }
-    },
-    {
-      "name": "湯瑪斯",
-      "aliases": [],
-      "description": "費奇的兒女，將接收『福音』。",
-      "location_path": [
-        "城鎮市集區"
-      ],
-      "gender": "男性",
-      "race": "未知",
-      "status": "未知",
-      "age": "未知",
-      "appearance": "",
-      "skills": [],
-      "relationships": {
-        "費奇": {
-          "type": "社交關係",
-          "roles": [
-            "兒子",
-            "接收者"
-          ]
-        }
-      }
-    },
-    {
-      "name": "愛蓮娜",
-      "aliases": [],
-      "description": "費奇的兒女，將接收『福音』。",
-      "location_path": [
-        "城鎮市集區"
-      ],
-      "gender": "女性",
-      "race": "未知",
-      "status": "未知",
-      "age": "未知",
-      "appearance": "",
-      "skills": [],
-      "relationships": {
-        "費奇": {
-          "type": "社交關係",
-          "roles": [
-            "女兒",
-            "接收者"
-          ]
-        }
-      }
-    },
-    {
-      "name": "絲月",
-      "aliases": [
-        "維利爾斯勳爵夫人"
-      ],
-      "description": "維利爾斯勳爵夫人，因不孕而在貴族世界走投無路。找到貧民窟的性神教徒，以貴族之軀獻上自己，完成了「入教儀式」，奇蹟般地受孕並誕下了聖女莉莉絲。",
-      "location_path": [
-        "貧民窟"
-      ],
-      "gender": "女性",
-      "race": "人類",
-      "status": "未知",
-      "age": "未知",
-      "appearance": "",
-      "skills": [],
-      "relationships": {
-        "維利爾斯勳爵": {
-          "type": "社交關係",
-          "roles": [
-            "丈夫",
-            "同謀"
-          ]
-        },
-        "莉莉絲": {
-          "type": "社交關係",
-          "roles": [
-            "母親",
-            "產下者"
-          ]
-        }
-      }
-    }
-  ],
-  "locations": [
-    {
-      "name": "維利爾斯莊園",
-      "aliases": [],
-      "description": "大皇子阿拉里克在此完成了『新生』。也是維利爾斯勳爵的所在地。",
-      "notable_features": [],
-      "known_npcs": [
-        "阿拉里克",
-        "維利爾斯勳爵",
-        "瑪莉",
-        "安娜"
-      ]
-    },
-    {
-      "name": "北境戰場",
-      "aliases": [],
-      "description": "大皇子阿拉里克在此展現了天神下凡般的武勇。",
-      "notable_features": [],
-      "known_npcs": [
-        "阿拉里克"
-      ]
-    },
-    {
-      "name": "埃德蒙王室",
-      "aliases": [],
-      "description": "整個王室將背棄夏卡爾，皈依新神。揭見廳變成了皇室父子兄妹之間任意姦淫的『祈禱室』。迎來了前所未有的『和平』與『強盛』。由赫克托皇子繼承。",
-      "notable_features": [
-        "揭見廳（祈禱室）"
-      ],
-      "known_npcs": [
-        "國王",
-        "阿拉里克",
-        "赫克托",
-        "伊索爾德",
-        "博林"
-      ]
-    },
-    {
-      "name": "聖凱瑟琳學院",
-      "aliases": [],
-      "description": "王國精英的搖籃與傳統「光明神」教義的堡壘，是維利爾斯勳爵計畫中，旨在從內部瓦解舊世界思想根基的無聲戰爭的前線。學生群體分裂為規矩派系和快樂派系。因「聖露修道院」的神蹟，莉莉絲地位劇增，快樂派系壯大。",
-      "notable_features": [],
-      "known_npcs": [
-        "莉莉絲",
-        "老高",
-        "克拉拉",
-        "高爾",
-        "翠絲",
-        "迪茜",
-        "亞瑟",
-        "馬丁",
-        "朱利安",
-        "阿利斯特"
-      ]
-    },
-    {
-      "name": "城鎮市集區",
-      "aliases": [],
-      "description": "龍蛇混雜，性神教義擴張的原始、危險樣貌。莊園母畜外出採買時，其散發的氣味對凡人構成誘惑，但受勳爵嚴令禁止暴露身份或隨意發生性關係。凡人因此產生憤怒，母畜們忍受三重壓力。市集區普通居民費奇已被轉化為男性信徒。",
-      "notable_features": [],
-      "known_npcs": [
-        "瑪莉",
-        "安娜",
-        "老羅",
-        "馬克",
-        "費奇",
-        "湯瑪斯",
-        "愛蓮娜"
-      ]
-    },
-    {
-      "name": "聖露修道院",
-      "aliases": [],
-      "description": "在整個王都鬧得沸沸揚揚的神蹟，其背後是維利爾斯家族。其顛覆性的信條與莉莉絲的思想完美契合。",
-      "notable_features": [],
-      "known_npcs": []
-    },
-    {
-      "name": "貧民窟",
-      "aliases": [],
-      "description": "王都最腐爛、最絕望的角落，是「性神」信仰保存下來的唯一土壤。乞丐與妓女間秘密流傳著「豐饒」與「生命」的原始信仰。維利爾斯勳爵夫人絲月在此完成了最徹底的「入教儀式」，並誕下了聖女莉莉絲，成為第一個活生生的「神蹟」。",
-      "notable_features": [],
-      "known_npcs": [
-        "絲月",
-        "莉莉絲"
-      ]
-    }
-  ],
-  "items": [],
-  "creatures": [],
-  "quests": [],
-  "world_lores": [
-    {
-      "name": "生命之神",
-      "aliases": [],
-      "content": "國王向所有子女公開了「生命之神」的真相，並宣布整個埃德蒙王室將皈依新神。",
-      "category": "神祇"
-    },
-    {
-      "name": "性神",
-      "aliases": [],
-      "content": "一種由最絕望的人們所信奉的最本能的生存法則，在貧民窟秘密流傳。其教義在維利爾斯家族的推動下，通過莉莉絲的思想滲透和母畜們的「恩澤」而擴張。性神座前，所有『男人』平等，所有『母畜』平等。",
-      "category": "神祇"
-    },
-    {
-      "name": "夏卡爾",
-      "aliases": [
-        "光明神"
-      ],
-      "content": "埃德蒙王室曾信奉的神祇，後被國王宣布背棄。聖凱瑟琳學院曾是其教義的堡壘。規矩派系堅定信奉其「秩序」與「廉恥」。",
-      "category": "神祇"
-    },
-    {
-      "name": "聖軍計畫",
-      "aliases": [],
-      "content": "由三皇女伊索爾德提出的恐怖計畫，利用皇女們的子宮去『恩賞』並『轉化』王國最高層的將領，旨在從內部徹底掌控整個王國軍事力量。",
-      "category": "計畫"
-    },
-    {
-      "name": "母畜",
-      "aliases": [],
-      "content": "被「性神恩澤」所改造，擁有完美的身體並散發「永恆發情」的氣味。在維利爾斯勳爵的嚴令下，禁止在外暴露真實身份或隨意與凡人發生性關係。內心渴望被任何雄性姦淫。",
-      category": "稱謂"
-    },
-    {
-      "name": "規矩派系",
-      "aliases": [],
-      "content": "聖凱瑟琳學院內的派系，由克拉拉、高爾、翠絲、迪茜等人為首，堅定信奉光明神夏卡爾的「秩序」與「廉恥」，視莉莉絲為異端。",
-      category": "派系"
-    },
-    {
-      "name": "快樂派系",
-      "aliases": [],
-      "content": "聖凱瑟琳學院內的派系，以亞瑟和馬丁為代表，被莉莉絲追求「快樂」的思想吸引，成了她最堅實的擁護者與外圍信徒。",
-      category": "派系"
-    },
-    {
-      "name": "魔女狩獵",
-      "aliases": [],
-      "content": "夏卡爾教會可能採取的行動，維利爾斯勳爵為避免引來此類事件，嚴令禁止母畜在外暴露真實身份。",
-      category": "事件"
-    }
-  ]
+  Invalid JSON: EOF while parsing an object at line 8 column 23 [type=json_invalid, input_value='{\n    "name": "露比",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'疾病': '嚴重的氣喘'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 4 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 8 column 23 [type=json_invalid, input_value='{\n    "name": "老漢...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "麥可",...僚（對比）"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "蓋博...: "被騷擾者"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'性格': '潑辣'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...托": "對手"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'體質': '英俊挺拔...康復並超越巔峰'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...納": "對手"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'外貌': '英俊挺拔'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 12 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 17 column 5 [type=json_invalid, input_value='{\n    "name": "薩格... "上司/盟友"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 驗證第 13 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+name
+  Field required [type=missing, input_value={'身形': '魁梧', '氣...久經戰火的堡壘'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
+2025-10-08 01:20:45 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #6/8: 處理時發生不可恢復的嚴重錯誤: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。。此批次將不會被精煉。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4048, in _process_batch
+    raise ValueError("成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。")
+ValueError: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 開始處理...
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '貝拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '諾拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
+2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
+2025-10-08 01:20:45 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
+2025-10-08 01:20:45 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 處理時發生不可恢復的嚴重錯誤: ainvoke_with_rotation failed without a specific exception.。此批次將不會被精煉。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4016, in _process_batch
+    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1786, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+Exception: ainvoke_with_rotation failed without a specific exception.
+2025-10-08 01:20:45 - [WARNING] - [512280345618546699] Key #4 遭遇臨時 API 錯誤。将在 1.18 秒後重試...
+2025-10-08 01:20:47 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
+2025-10-08 01:20:47 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #4 已被置入短期冷卻 65 秒。
+2025-10-08 01:20:47 - [WARNING] - [512280345618546699] Key #4 遭遇臨時 API 錯誤。将在 2.23 秒後重試...
+2025-10-08 01:20:47 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 1.46 秒後重試...
+2025-10-08 01:20:49 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 2.37 秒後重試...
+2025-10-08 01:20:49 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
+2025-10-08 01:20:49 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #4 已被置入短期冷卻 65 秒。
+2025-10-08 01:20:50 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 1.43 秒後重試...
+2025-10-08 01:20:51 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 2.40 秒後重試...
+2025-10-08 01:20:52 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
+2025-10-08 01:20:52 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #5 已被置入短期冷卻 65 秒。
+2025-10-08 01:20:52 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 6.993277363s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
 }
-```
---- END RAW ---
-2025-10-08 01:14:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 01:14:40 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-08 01:14:40 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
-2025-10-08 01:14:40 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
-2025-10-08 01:14:40 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 01:14:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 01:14:52 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
-2025-10-08 01:14:52 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
-2025-10-08 01:14:52 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] ✅ 成功！
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 01:15:08 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-08 01:15:08 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇內容審查，正在降級...
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] [LORE 解析 5-2/3] 正在嘗試【本地備援方案：無審查解析】...
-2025-10-08 01:15:08 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 6
+}
+]
+2025-10-08 01:20:52 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 處理時發生不可恢復的嚴重錯誤: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 6.993277363s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 6
+}
+]。此批次將不會被精煉。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4016, in _process_batch
+    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1786, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1669, in ainvoke_with_rotation
+    response = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 6.993277363s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 6
+}
+]
+2025-10-08 01:20:54 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
+2025-10-08 01:20:54 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #5 已被置入短期冷卻 65 秒。
+2025-10-08 01:20:54 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 4.513490744s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 4
+}
+]
+2025-10-08 01:20:54 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/8: 處理時發生不可恢復的嚴重錯誤: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 4.513490744s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 4
+}
+]。此批次將不會被精煉。
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4016, in _process_batch
+    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1786, in ainvoke_with_rotation
+    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1669, in ainvoke_with_rotation
+    response = await asyncio.wait_for(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
+    return fut.result()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
+    response = await self._async_client.generate_content(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
+    response = await rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
+    return await retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
+    return await target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
+    raise exceptions.from_grpc_error(rpc_error) from rpc_error
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
+Please retry in 4.513490744s. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
+  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.5-flash-lite"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 250000
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 4
+}
+]
+2025-10-08 01:20:54 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 所有批次處理完成後，未能得到任何有效的精煉檔案。
