@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-08T00:49:03.003474 ###
+### AI Lover Log - Last updated at 2025-10-08T00:54:22.353974 ###
 
-2025-10-08 00:28:10 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:13 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:15 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #2/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #5/8: 開始處理...
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '賈斯伯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '提姆' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安東尼' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '澤拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '布里奇特' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瓦萊麗' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蘇菲' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾蜜莉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '為馬夫' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #3/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #6/8: 開始處理...
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '來問罪' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '(Kael)' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 'Lilith' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '掘井人' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '索菲亞' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '泰莎' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '露比' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老漢姆' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:17 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '葛瑞塔' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:28:18 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:20 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:22 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:24 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:28 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:30 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:32 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:34 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:36 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:38 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:40 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:42 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:44 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:46 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:48 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:50 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:56 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:28:58 - [WARNING] - [512280345618546699] Key #0 遭遇臨時 API 錯誤。将在 1.33 秒後重試...
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #6/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #7/8: 開始處理...
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '芬恩' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '麥可' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蓋博' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '連恩' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蓋博太太' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納將軍' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普•薩格納' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '大皇子阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '三皇子赫克托' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '二公主塞拉菲娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:10 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:12 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:14 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:18 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:20 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:22 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:24 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:28 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #5/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #4/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #8/8: 開始處理...
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '三皇女伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林勳爵' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '大主教安布羅斯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '巴納比' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '奧斯華' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾諾拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '漢德瑞克師傅' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '貝拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:30 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '諾拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 00:29:31 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:33 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:35 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:37 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:39 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:41 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:43 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:45 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:47 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:49 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 00:29:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:29:51 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #7/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:30:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:30:01 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #8/8: ✅ LLM 批量潤色成功。
-2025-10-08 00:30:01 - [INFO] - [512280345618546699] [LORE精煉-分批] 正在對 79 個成功精煉的檔案執行批次化資料庫更新...
-2025-10-08 00:30:08 - [ERROR] - [512280345618546699] 分批並發 LORE 精煉服務主循環發生嚴重錯誤: (sqlite3.OperationalError) database is locked
-[SQL: UPDATE lore_book SET content=?, timestamp=?, source=? WHERE lore_book.id = ?]
-[parameters: ('{"name": "\\u611b\\u84ee\\u5a1c", "aliases": [], "alternative_names": [], "gender": "\\u5973\\u6027", "age": "\\u672a\\u77e5", "race": "\\u4eba\\u985 ... (483 characters truncated) ... 8cbb\\u5947": {"type": "\\u793e\\u4ea4\\u95dc\\u4fc2", "roles": ["\\u7236\\u89aa"]}}, "status": "\\u672a\\u77e5", "current_action": "\\u7ad9\\u8457"}', 1759854601.9483886, 'minibatch_refiner_v9_final', 30)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
-    result = function()
-sqlite3.OperationalError: database is locked
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3839, in _background_lore_refinement
-    await asyncio.gather(*update_tasks)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 65, in add_or_update_lore
-    await session.commit()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 1009, in commit
-    await greenlet_spawn(self.sync_session.commit)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 203, in greenlet_spawn
-    result = context.switch(value)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2017, in commit
-    trans.commit(_to_root=True)
-  File "<string>", line 2, in commit
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
-    ret_value = fn(self, *arg, **kw)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 1302, in commit
-    self._prepare_impl()
-  File "<string>", line 2, in _prepare_impl
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\state_changes.py", line 139, in _go
-    ret_value = fn(self, *arg, **kw)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 1277, in _prepare_impl
-    self.session.flush()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 4341, in flush
-    self._flush(objects)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 4476, in _flush
-    with util.safe_reraise():
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\langhelpers.py", line 146, in __exit__
-    raise exc_value.with_traceback(exc_tb)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 4437, in _flush
-    flush_context.execute()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
-    rec.execute(self)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
-    util.preloaded.orm_persistence.save_obj(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\persistence.py", line 85, in save_obj
-    _emit_update_statements(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\persistence.py", line 912, in _emit_update_statements
-    c = connection.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1418, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1640, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2353, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) database is locked
-[SQL: UPDATE lore_book SET content=?, timestamp=?, source=? WHERE lore_book.id = ?]
-[parameters: ('{"name": "\\u611b\\u84ee\\u5a1c", "aliases": [], "alternative_names": [], "gender": "\\u5973\\u6027", "age": "\\u672a\\u77e5", "race": "\\u4eba\\u985 ... (483 characters truncated) ... 8cbb\\u5947": {"type": "\\u793e\\u4ea4\\u95dc\\u4fc2", "roles": ["\\u7236\\u89aa"]}}, "status": "\\u672a\\u77e5", "current_action": "\\u7ad9\\u8457"}', 1759854601.9483886, 'minibatch_refiner_v9_final', 30)]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-10-08 00:38:59 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 00:39:04 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-08 00:39:04 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-08 00:39:04 - [INFO] - 正在全域同步應用程式指令...
-2025-10-08 00:39:05 - [INFO] - ✅ 指令已全域同步！
-2025-10-08 00:39:05 - [INFO] - Discord Bot setup hook finished!
-2025-10-08 00:39:07 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-08 00:39:08 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-08 00:40:20 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 00:40:20 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: invalid character '，' (U+FF0C) (ai_core.py, line 3864)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
-    spec.loader.exec_module(lib)  # type: ignore
-  File "<frozen importlib._bootstrap_external>", line 883, in exec_module
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 28, in <module>
-    from ..ai_core import AILover, GENERATION_MODEL_PRIORITY
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 3864
-    至此，我們已經從根本上解決了 `database is locked` 的問題。通過將並行寫入改為單一事務內的串行更新，我們確保了資料庫操作的原子性和安全性，同時也提高了整體效率。
-      ^
-SyntaxError: invalid character '，' (U+FF0C)
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
-    await self.load_extension("src.cogs.core_cog")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
-    await self._load_from_module_spec(spec, name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
-    raise errors.ExtensionFailed(key, e) from e
-discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: invalid character '，' (U+FF0C) (ai_core.py, line 3864)
-2025-10-08 00:43:44 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 00:43:47 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-08 00:43:47 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-08 00:43:47 - [INFO] - 正在全域同步應用程式指令...
-2025-10-08 00:43:48 - [INFO] - ✅ 指令已全域同步！
-2025-10-08 00:43:48 - [INFO] - Discord Bot setup hook finished!
-2025-10-08 00:43:50 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-08 00:43:53 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-08 00:45:58 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-08 00:45:58 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-08 00:45:58 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-08 00:45:58 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-08 00:46:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-08 00:46:05 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-08 00:46:05 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-08 00:46:05 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-08 00:46:05 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-08 00:46:05 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-08 00:46:13 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-08 00:46:13 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-08 00:46:13 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-08 00:46:13 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-08 00:46:13 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 00:46:15 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-08 00:46:24 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-08 00:46:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-08 00:46:25 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 00:46:26 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-08 00:46:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-08 00:46:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-08 00:46:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 00:46:40 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-08 00:46:46 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [創世流程 v68.0] 修正競爭條件後的原生流程已啟動。
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [後台創世] 步驟 1/5: 正在解析世界聖經並創建 LORE 骨架...
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
-2025-10-08 00:46:48 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 00:47:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:47:02 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] ✅ 成功！
-2025-10-08 00:47:02 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
-2025-10-08 00:47:02 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 00:47:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:47:23 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
-2025-10-08 00:47:23 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
-2025-10-08 00:47:23 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 00:47:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:47:41 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
-2025-10-08 00:47:41 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
-2025-10-08 00:47:41 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] ✅ 成功！
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 00:48:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-08 00:48:00 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇內容審查，正在降級...
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] [LORE 解析 5-2/3] 正在嘗試【本地備援方案：無審查解析】...
-2025-10-08 00:48:00 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟區域'，正在合併更新...
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖凱瑟琳學院'，正在合併更新...
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 咆哮壁爐酒館'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 後花園'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 正門口'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大廳穹頂'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'item_info' 類別處理 12 個已預處理的實體...
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 肉棒強化'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 精神解放'
+2025-10-08 00:52:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 身體強化與治癒'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 無傷不死'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 永恆發情'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 痛苦轉化'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 青春永駐'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 子宮酒'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 人形旗桿'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤裝置'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'creature_info' 類別處理 2 個已預處理的實體...
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 公豬'
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 公豬'，正在合併更新...
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'world_lore' 類別處理 65 個已預處理的實體...
+2025-10-08 00:52:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜制度'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三大性神裝置'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎之吻'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 引領神恩'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教會'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖十字軍'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 生命之神'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾'
+2025-10-08 00:52:08 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神'，正在合併更新...
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖軍'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖女的誕生'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第一批被揀選的靈魂'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院的建立'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 活神蹟的鍛造 - 米婭'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第二個神蹟 - 卡蓮'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 信仰的發酵與狂熱的誕生'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掀裙風潮」'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掘井人」理論'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 禁忌的解放 - 兄妹的聖餐'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 與舊神的正面交鋒 - 第一次'
+2025-10-08 00:52:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 與舊神的正面交鋒 - 第二次'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 當前狀態總結'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神信仰體系總彙整報告'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 恩澤'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜在宅邸的禮儀'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神教'，正在合併更新...
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯家宅邸 - 角色詳細報告'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神之權力'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神之規格'
+2025-10-08 00:52:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜的價值性'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖胎之吻'，正在合併更新...
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露蒙恩者'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 其他居民'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖凱瑟琳學院'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教陣營'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 規矩派系'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 教職員工'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 城鎮市集區'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 外部皈依者'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 普通市民'
+2025-10-08 00:52:11 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人理論'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎儀式'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神恩'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想滲透'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 快樂派系'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 淨化行動'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 民間神學理論'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 裝聖女的蕩婦'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神教'，正在合併更新...
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 舊世界秩序'
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 母畜'，正在合併更新...
+2025-10-08 00:52:12 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖軍計畫'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神聖戰'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖十字軍'，正在合併更新...
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教義'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想戰爭'
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖軍計畫'，正在合併更新...
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 生命之神'，正在合併更新...
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] [後台創世] LORE 骨架已成功創建並存入資料庫。
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] [後台創世] 步驟 2/5: 正在觸發 RAG 索引創始構建 (此步驟完成前將阻塞)...
+2025-10-08 00:52:13 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
+2025-10-08 00:53:00 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
+2025-10-08 00:53:00 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成，檢索器現已可用。
+2025-10-08 00:53:00 - [INFO] - [512280345618546699] [後台創世] 步驟 3/5: 檢測到 179 條 LORE，正在觸發**後台**精煉任務...
+2025-10-08 00:53:00 - [INFO] - [512280345618546699] [後台創世] 步驟 4/5: 正在補完角色檔案...
+2025-10-08 00:53:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [後台創世] 角色檔案補完成功。
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [後台創世] 步驟 5/5: 正在生成開場白...
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。'
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 00:53:03 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [LORE精煉-分批 v9.2] 單一事務版精煉服務已啟動，收到 81 個 NPC 精煉任務。
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [LORE精煉-分批] 任務已切分為 9 個批次，每批最多 10 個 NPC，並發數為 3。
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #1/9: 開始處理...
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #2/9: 開始處理...
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #3/9: 開始處理...
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '絲月' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉絲' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾莉諾' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '赫克托' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王埃德蒙三世' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老高' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '克拉拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '高爾' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '翠絲' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '迪茜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '亞瑟' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬丁' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '朱利安' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿利斯特' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瑪莉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老羅' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬克' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '費奇' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '湯瑪斯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛蓮娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #1/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #4/9: 開始處理...
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛莉莎' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡蓮' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '里斯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瑪倫' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瓦勒留斯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '性神' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '光明神夏卡爾' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '湯姆' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '班恩' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #2/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #5/9: 開始處理...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '里奧' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '賈斯伯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '提姆' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安東尼' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '澤拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '布里奇特' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瓦萊麗' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蘇菲' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾蜜莉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '為馬夫' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #3/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #6/9: 開始處理...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '(Kael)' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 'Lilith' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '來問罪' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '掘井人' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '索菲亞' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '泰莎' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '露比' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老漢姆' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #4/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #7/9: 開始處理...
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '葛瑞塔' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '芬恩' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '麥可' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蓋博' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '蓋博太太' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納將軍' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普•薩格納' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '大皇子阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '三皇子赫克托' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '二公主塞拉菲娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #5/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #8/9: 開始處理...
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '三皇女伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林勳爵' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '大主教安布羅斯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瓦勒留斯神父' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '巴納比' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '奧斯華' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾諾拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '漢德瑞克師傅' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '貝拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #6/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [LORE精煉-分批] 批次 #9/9: 開始處理...
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '諾拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:08 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #7/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #8/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:09 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 00:53:09 - [WARNING] - [512280345618546699] [LORE精煉-分批] 批次 #9/9: 🔥 LLM 批次潤色失敗 (AttributeError)。觸發【程式級備援】...
+2025-10-08 00:53:09 - [WARNING] - [512280345618546699] [LORE精煉-分批] 所有批次處理完成後，未能得到任何有效的精煉檔案。
+2025-10-08 00:53:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 00:53:36 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
+2025-10-08 00:53:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 00:53:36 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 維利爾斯莊園 > 圖書館。正在更新 GameState...
+2025-10-08 00:53:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-08 00:53:37 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 00:53:37 - [INFO] - [512280345618546699] [後台創世] 開場白生成成功。
+2025-10-08 00:53:37 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-08 00:53:38 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-08 00:53:38 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
