@@ -5816,11 +5816,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-    # 函式：獲取角色檔案補完 Prompt (v3.0 - 預設年齡強制令)
-    # 更新紀錄:
-    # v3.0 (2025-09-27): [災難性BUG修復] 新增了【預設年齡強制令】，明確指示AI在age欄位缺失時，必須將其設定為符合「年輕成年人」的描述，從根本上解決了玩家角色被隨機設定為老年人的問題。
-    # v2.2 (2025-09-22): [災難性BUG修復] 對模板中的字面大括號 `{}` 進行了轉義（改為 `{{}}`），以防止其被 Python 的 `.format()` 方法錯誤地解析為佔位符，從而解決了因此引發的 `IndexError`。
-    # v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
+# 函式：獲取角色檔案補完 Prompt (v3.0 - 預設年齡強制令)
+# 更新紀錄:
+# v3.0 (2025-09-27): [災難性BUG修復] 新增了【預設年齡強制令】，明確指示AI在age欄位缺失時，必須將其設定為符合「年輕成年人」的描述，從根本上解決了玩家角色被隨機設定為老年人的問題。
+# v2.2 (2025-09-22): [災難性BUG修復] 對模板中的字面大括號 `{}` 進行了轉義（改為 `{{}}`），以防止其被 Python 的 `.format()` 方法錯誤地解析為佔位符，從而解決了因此引發的 `IndexError`。
+# v2.1 (2025-09-22): [根本性重構] 此函式不再返回 LangChain 的 ChatPromptTemplate 物件，而是返回一個純粹的 Python 字符串模板。
     def get_profile_completion_prompt(self) -> str:
         """獲取或創建一個專門用於角色檔案補完的字符串模板。"""
         if self.profile_completion_prompt is None:
@@ -5836,7 +5836,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {profile_json}"""
             self.profile_completion_prompt = prompt_str
         return self.profile_completion_prompt
-    # 獲取角色檔案補完 Prompt 函式結束
+# 獲取角色檔案補完 Prompt 函式結束
 
 
     
@@ -5895,7 +5895,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
- # 函式：獲取世界聖經轉換器 Prompt (v3.4 - 引入主角中心宇宙原則)
+# 函式：獲取世界聖經轉換器 Prompt (v3.4 - 引入主角中心宇宙原則)
 # 更新紀錄:
 # v3.4 (2025-10-03): [災難性BUG修復] 根據 AI 角色關係錯亂的問題，在 Prompt 的核心規則中注入了全新的【👑 主角中心宇宙原則】。此原則是一條擁有最高世界觀優先級的鐵則，它強制要求 LLM 在解析世界聖經時，必須將 AI 角色 ({ai_name}) 的核心關係（如主人、戀人等）無條件地、排他性地錨定在使用者角色 ({username}) 身上，並明確禁止將其核心關係賦予任何 NPC。此修改旨在從 LORE 數據的創建源頭，根除 AI 角色與使用者關係疏遠、錯誤認 NPC 為主的嚴重問題。
 # v3.3 (2025-09-30): [災難性BUG修復] 引入了【無害化輸入/輸出強制令】。
@@ -5966,7 +5966,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         base_prompt = part1 + part2
         return base_prompt
 # 函式：獲取世界聖經轉換器 Prompt
-    
 
 
 
@@ -6384,6 +6383,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
