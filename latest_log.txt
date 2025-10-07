@@ -1,75 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T23:23:50.494846 ###
+### AI Lover Log - Last updated at 2025-10-07T23:33:20.551483 ###
 
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇宮 > 赫克托'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇宮 > 埃德蒙三世'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇宮 > 北境戰場 > 阿拉里克'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 北境戰場 > 阿拉里克'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 國王'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 赫克托'
-2025-10-07 22:38:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 伊索爾德'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 皇家衛隊 > 博林'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 維利爾斯莊園 > 莉莉絲'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 維利爾斯莊園 > 城鎮市集區 > 老高'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 克拉拉'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 高爾'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 翠絲'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 迪茜'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 亞瑟'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 維利爾斯莊園 > 馬丁'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 朱利安'
-2025-10-07 22:38:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 阿利斯特'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 維利爾斯莊園 > 瑪莉'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 維利爾斯莊園 > 安娜'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 老羅'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 馬克'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 費奇'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 湯瑪斯'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 愛蓮娜'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 乞丐'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 妓女'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 維利爾斯莊園 > 絲月'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 絲月'
-2025-10-07 22:38:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 瑪莉'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 愛莉莎'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 安娜'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 湯姆'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 米婭'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 卡蓮'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 里斯'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 瑪倫'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 艾拉'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王國 > 聖光明教會 > 瓦勒留斯神父'
-2025-10-07 22:38:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 莉莉絲'
-2025-10-07 22:38:42 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯莊園 > 維利爾斯勳爵'
-2025-10-07 22:38:42 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 凱爾'
-2025-10-07 22:38:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:38:43 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 艾蜜莉'
-2025-10-07 22:38:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:38:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'寂靜的森林 > 一棵古老的橡樹下 > 艾莉'
-2025-10-07 22:38:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:38:44 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇解析或驗證錯誤。啟動【自我修正】...
-2025-10-07 22:38:44 - [WARNING] - [512280345618546699] 導致解析錯誤的原始 LLM 輸出: 
---- START RAW ---
-```json
-{
-  "has_explicit_location": {has_explicit_location},
-  "location_path": {location_path}
-}
-```
---- END RAW ---
-2025-10-07 22:38:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:38:45 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-07 22:38:45 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: Expecting property name enclosed in double quotes: line 2 column 29 (char 30)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1738, in ainvoke_with_rotation
-    return output_schema.model_validate(json.loads(clean_json_str))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\__init__.py", line 346, in loads
-    return _default_decoder.decode(s)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 337, in decode
-    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\json\decoder.py", line 353, in raw_decode
-    obj, end = self.scan_once(s, idx)
-json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes: line 2 column 29 (char 30)
 
 During handling of the above exception, another exception occurred:
 
@@ -300,3 +230,73 @@ json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes:
 2025-10-07 23:21:22 - [WARNING] - [512280345618546699] [LORE 解析 4-1/3] 遭遇內容審查，正在降級...
 2025-10-07 23:21:22 - [INFO] - [512280345618546699] [LORE 解析 4-2/3] 正在嘗試【本地備援方案：無審查解析】...
 2025-10-07 23:21:22 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-07 23:26:23 - [ERROR] - [512280345618546699] 呼叫本地 Ollama 模型時發生未知錯誤: 
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 69, in map_httpcore_exceptions
+    yield
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 373, in handle_async_request
+    resp = await self._pool.handle_async_request(req)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 256, in handle_async_request
+    raise exc from None
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 236, in handle_async_request
+    response = await connection.handle_async_request(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection.py", line 103, in handle_async_request
+    return await self._connection.handle_async_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 136, in handle_async_request
+    raise exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 106, in handle_async_request
+    ) = await self._receive_response_headers(**kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 177, in _receive_response_headers
+    event = await self._receive_event(timeout=timeout)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 217, in _receive_event
+    data = await self._network_stream.read(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_backends\anyio.py", line 32, in read
+    with map_exceptions(exc_map):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
+    raise to_exc(exc) from exc
+httpcore.ReadTimeout
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2059, in _invoke_local_ollama_parser
+    response = await client.post("http://localhost:11434/api/generate", json=payload)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1892, in post
+    return await self.request(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1574, in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1661, in send
+    response = await self._send_handling_auth(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1689, in _send_handling_auth
+    response = await self._send_handling_redirects(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1726, in _send_handling_redirects
+    response = await self._send_single_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1763, in _send_single_request
+    response = await transport.handle_async_request(request)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 372, in handle_async_request
+    with map_httpcore_exceptions():
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 86, in map_httpcore_exceptions
+    raise mapped_exc(message) from exc
+httpx.ReadTimeout
+2025-10-07 23:26:23 - [WARNING] - [512280345618546699] [LORE 解析 4-2/3] 本地模型未能成功解析或返回空結果，正在降級...
+2025-10-07 23:26:23 - [INFO] - [512280345618546699] [LORE 解析 4-3/3] 正在嘗試【法醫級重構方案】...
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] [LORE 解析 4-3/3] ✅ 成功！
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-07 23:26:28 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-07 23:26:28 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇內容審查，正在降級...
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] [LORE 解析 5-2/3] 正在嘗試【本地備援方案：無審查解析】...
+2025-10-07 23:26:28 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-07 23:33:06 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-07 23:33:11 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-07 23:33:11 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-07 23:33:11 - [INFO] - 正在全域同步應用程式指令...
+2025-10-07 23:33:11 - [INFO] - ✅ 指令已全域同步！
+2025-10-07 23:33:11 - [INFO] - Discord Bot setup hook finished!
+2025-10-07 23:33:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-07 23:33:14 - [INFO] - 已成功發送啟動成功通知給管理員。
