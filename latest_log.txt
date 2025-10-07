@@ -1,47 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-07T22:50:17.202433 ###
+### AI Lover Log - Last updated at 2025-10-07T22:58:11.137171 ###
 
-2025-10-07 22:17:59 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-07 22:18:01 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-07 22:18:31 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-07 22:18:31 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-07 22:18:31 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-07 22:18:31 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-07 22:18:34 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-07 22:18:38 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-07 22:18:38 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-07 22:18:38 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-07 22:18:38 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-07 22:18:38 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-07 22:18:41 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-07 22:18:41 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-07 22:18:41 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-07 22:18:41 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-07 22:18:41 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-07 22:18:43 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-07 22:18:55 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-07 22:18:56 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-07 22:18:56 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-07 22:18:57 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-07 22:19:08 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-07 22:19:08 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-07 22:19:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-07 22:19:10 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-07 22:19:17 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-07 22:19:20 - [INFO] - [512280345618546699] [創世流程 v66.0] 原生 Python 驅動的流程已啟動。
-2025-10-07 22:19:20 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
-2025-10-07 22:19:20 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
-2025-10-07 22:19:20 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-07 22:19:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:19:37 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] ✅ 成功！
-2025-10-07 22:19:37 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
-2025-10-07 22:19:37 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-07 22:20:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:20:02 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
-2025-10-07 22:20:02 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
-2025-10-07 22:20:02 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-07 22:20:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-07 22:20:16 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
-2025-10-07 22:20:16 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
 2025-10-07 22:20:16 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
 2025-10-07 22:20:17 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
 2025-10-07 22:20:17 - [WARNING] - [512280345618546699] [LORE 解析 4-1/3] 遭遇內容審查，正在降級...
@@ -300,3 +258,45 @@ json.decoder.JSONDecodeError: Expecting property name enclosed in double quotes:
 2025-10-07 22:50:08 - [INFO] - Discord Bot setup hook finished!
 2025-10-07 22:50:10 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-07 22:50:11 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-07 22:50:23 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-07 22:50:24 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-07 22:50:24 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-07 22:50:24 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-07 22:50:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-07 22:50:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-07 22:50:31 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-07 22:50:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-07 22:50:31 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-07 22:50:31 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-07 22:50:40 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-07 22:50:40 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-07 22:50:40 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-07 22:50:40 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-07 22:50:40 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 22:50:42 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-07 22:50:49 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-07 22:50:50 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-07 22:50:50 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 22:50:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-07 22:51:07 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-07 22:51:07 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-07 22:51:07 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-07 22:51:09 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-07 22:51:16 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [創世流程 v67.0] 原生 Python 驅動的流程已啟動。
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [後台創世] 步驟 1/5: 正在解析世界聖經並創建 LORE 骨架...
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-07 22:51:18 - [ERROR] - [512280345618546699] [LORE 解析 1-1/3] 遭遇未知錯誤: 格式化 Prompt 失敗：模板中需要的鍵 ['player_location', 'viewing_mode', 'player_location', 'remote_target_path_str', 'remote_target_path_str'] 在提供的參數中缺失。，正在降級。
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] [LORE 解析 1-2/3] 正在嘗試【本地備援方案：無審查解析】...
+2025-10-07 22:51:18 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-07 22:57:55 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-07 22:58:01 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-07 22:58:01 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-07 22:58:01 - [INFO] - 正在全域同步應用程式指令...
+2025-10-07 22:58:01 - [INFO] - ✅ 指令已全域同步！
+2025-10-07 22:58:01 - [INFO] - Discord Bot setup hook finished!
+2025-10-07 22:58:04 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-07 22:58:05 - [INFO] - 已成功發送啟動成功通知給管理員。
