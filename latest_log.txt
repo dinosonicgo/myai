@@ -1,81 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T07:28:57.012754 ###
+### AI Lover Log - Last updated at 2025-10-08T07:34:02.094348 ###
 
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 48 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #1 (針對模型 gemini-2.5-flash-lite，剩餘 53 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-flash-lite，剩餘 57 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #3 (針對模型 gemini-2.5-flash-lite，剩餘 65 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #4 (針對模型 gemini-2.5-flash-lite，剩餘 55 秒)。
-2025-10-08 01:20:45 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #5 (針對模型 gemini-2.5-flash-lite，剩餘 60 秒)。
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] [API 警告] 針對模型 'gemini-2.5-flash-lite'，所有 API 金鑰當前都處於冷卻期。
-2025-10-08 01:20:45 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: None
-2025-10-08 01:20:45 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 處理時發生不可恢復的嚴重錯誤: ainvoke_with_rotation failed without a specific exception.。此批次將不會被精煉。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4016, in _process_batch
-    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1786, in ainvoke_with_rotation
-    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-Exception: ainvoke_with_rotation failed without a specific exception.
-2025-10-08 01:20:45 - [WARNING] - [512280345618546699] Key #4 遭遇臨時 API 錯誤。将在 1.18 秒後重試...
-2025-10-08 01:20:47 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
-2025-10-08 01:20:47 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #4 已被置入短期冷卻 65 秒。
-2025-10-08 01:20:47 - [WARNING] - [512280345618546699] Key #4 遭遇臨時 API 錯誤。将在 2.23 秒後重試...
-2025-10-08 01:20:47 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 1.46 秒後重試...
-2025-10-08 01:20:49 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 2.37 秒後重試...
-2025-10-08 01:20:49 - [ERROR] - [512280345618546699] Key #4 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
-2025-10-08 01:20:49 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #4 已被置入短期冷卻 65 秒。
-2025-10-08 01:20:50 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 1.43 秒後重試...
-2025-10-08 01:20:51 - [WARNING] - [512280345618546699] Key #5 遭遇臨時 API 錯誤。将在 2.40 秒後重試...
-2025-10-08 01:20:52 - [ERROR] - [512280345618546699] Key #5 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
-2025-10-08 01:20:52 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #5 已被置入短期冷卻 65 秒。
-2025-10-08 01:20:52 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
-Please retry in 6.993277363s. [violations {
-  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
-  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
-  quota_dimensions {
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
-  quota_value: 250000
-}
-, links {
   description: "Learn more about Gemini API quotas"
   url: "https://ai.google.dev/gemini-api/docs/rate-limits"
 }
@@ -300,3 +224,79 @@ Please retry in 4.513490744s. [violations {
 2025-10-08 07:27:16 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展已执行。
 2025-10-08 07:27:16 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
 2025-10-08 07:27:16 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 07:29:02 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 07:29:02 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 07:29:02 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 07:29:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 07:29:03 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 07:29:03 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 07:29:04 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '是嗎？
+妳售價多少？妳的回應蠻有趣的
+妳能做什麼？ DINO 碧'
+2025-10-08 07:29:04 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 07:29:04 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 07:29:04 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 07:29:04 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-08 07:29:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 07:29:26 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-08 07:29:28 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-08 07:29:28 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-08 07:29:28 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-08 07:29:28 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-08 07:29:28 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
+2025-10-08 07:29:41 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 07:30:10 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 07:30:10 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 07:30:10 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 07:30:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 07:30:11 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 07:30:11 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 07:30:12 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '說的是
+
+「嘿，這個蛇人多少錢？」 DINO 碧'
+2025-10-08 07:30:12 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 07:30:12 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 07:30:12 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 07:30:12 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-08 07:30:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 07:30:42 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-08 07:30:43 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-08 07:30:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 07:30:46 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 07:30:47 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 07:30:47 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 07:30:49 - [INFO] - [512280345618546699] 背景任務：檢測到 2 條 LORE 更新，準備執行...
+2025-10-08 07:30:49 - [WARNING] - [512280345618546699] [主角守衛] 檢測到一個試圖修改核心主角 (['碧']) 的 LORE 工具調用 (update_npc_profile)，已自動攔截。
+2025-10-08 07:30:49 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
+2025-10-08 07:30:49 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在實體 '希絲' 的更新。啟動事實查核...
+2025-10-08 07:30:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 07:30:50 - [WARNING] - [512280345618546699] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。理由: 對話上下文中未提及任何關於「希絲」的資訊，且在現有實體數據庫中也找不到與「希絲」高度相似的實體名稱，因此無法創建或合併此實體。
+2025-10-08 07:30:50 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-08 07:30:50 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展已执行。
+2025-10-08 07:30:50 - [INFO] - [512280345618546699] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...
+2025-10-08 07:30:51 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['識貨人', '這身', '希絲']
+2025-10-08 07:30:52 - [INFO] - [512280345618546699] [關係分析 v1.1] 關係圖譜【微型分析】服務已啟動...
+2025-10-08 07:30:52 - [INFO] - [512280345618546699] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。
+2025-10-08 07:30:52 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 07:33:24 - [INFO] - [512280345618546699] [撤銷] 已成功從場景 '512280345618546699_local_王都_市集區_奴隸市場' 的短期記憶中撤銷上一回合。
+2025-10-08 07:33:24 - [INFO] - [512280345618546699] [撤銷-後端] 正在嘗試從資料庫刪除最新一條長期記憶...
+2025-10-08 07:33:25 - [INFO] - [512280345618546699] [撤銷-後端] ✅ 成功刪除 ID 為 4 的長期記憶。
+2025-10-08 07:33:26 - [INFO] - [512280345618546699] [撤銷] 處於DM頻道，跳過刪除使用者訊息的步驟。
+2025-10-08 07:33:47 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 07:33:47 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 07:33:47 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 07:33:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 07:33:49 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 07:33:49 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 07:33:50 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '說的是
+
+妳很有趣，妳叫什麼名字 DINO 碧'
+2025-10-08 07:33:50 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 07:33:50 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 07:33:50 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 07:33:50 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
