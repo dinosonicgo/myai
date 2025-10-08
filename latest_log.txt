@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-08T18:33:07.434871 ###
+### AI Lover Log - Last updated at 2025-10-08T18:38:23.914840 ###
 
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 402 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '曾是...疾而命懸一線。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 403 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...爵": "convert"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "蘇菲",...姆": "主人"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 404 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 405 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '王室...美麗而又聰慧。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 406 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "博林...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "貝拉",...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 407 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 408 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '皇家...堅定的守護者。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 409 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "布里...": "evaluator"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "莉娜",...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 410 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 411 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '薩格...康活力的戰士。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 412 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "瓦萊...納": "brother"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 12 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "諾拉",...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 413 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 414 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '薩格...比姐姐更靈巧。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 415 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 15 column 5 [type=json_invalid, input_value='{\n    "name": "國王...爾斯": "ally"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 13 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "艾蜜...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 416 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 417 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '王國...的威嚴與猜忌。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 418 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "大皇...世": "father"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 14 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "卡萊...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 419 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 420 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '王國...般的強悍戰士。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 421 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...世": "father"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 15 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "費奇",...恩": "女婿"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 422 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 423 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '國王...戰的衛冕冠軍。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 424 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "二公...世": "father"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 16 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "老高",...奇": "摯友"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 425 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 426 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '曾是...疾而命懸一線。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 427 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...爵": "convert"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 17 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "亞瑟",...": "擁護者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 428 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 429 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '王室...美麗而又聰慧。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 430 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "博林...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 18 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "馬丁",...": "擁護者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 431 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 432 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '皇家...堅定的守護者。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 433 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "布里...": "evaluator"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 19 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "克拉...核心追隨者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 434 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 435 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '薩格...康活力的戰士。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 436 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "瓦萊...納": "brother"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 20 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "高爾",...": "領導者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 437 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 438 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '薩格...比姐姐更靈巧。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 439 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "艾諾...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 21 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "翠絲",...": "領導者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 440 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 441 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '因家...的膽怯女裁縫。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 442 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "漢德...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 22 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "迪茜",...": "領導者"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 443 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 444 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '洞悉...的年長麵包師。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 445 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "莉娜",...拉": "friend"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 23 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "阿利...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 446 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 447 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '氣質...森林中的精靈。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 448 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "諾拉",...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 24 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "麥可",...    "relationships": {}', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 449 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 450 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '氣質內向、安靜。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 451 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "艾蜜...東尼": "user"\n    }', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 25 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "薩格...普": "長子"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 452 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 453 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '樣貌...、卑微的姿態。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 454 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "卡萊...    "relationships": {}', input_type=str]
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 26 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "艾莉...普": "兒子"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 455 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 驗證第 456 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'description': '氣質...總是縮在角落。'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 14:11:29 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/8: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
-2025-10-08 14:11:29 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 正在對 10 個成功精煉的檔案執行【單一事務】資料庫更新...
-2025-10-08 14:11:29 - [INFO] - [512280345618546699] [LORE精煉-兩階段] ✅ 0 個 NPC 檔案已在單一事務中成功更新。
-2025-10-08 14:11:29 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 所有 79 個後台精煉任務已全部完成。
-2025-10-08 14:39:49 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-08 14:39:49 - [INFO] - [512280345618546699] [Direct RAG v8.5] 啟动 LORE 优先的 RAG 直通生成流程...
-2025-10-08 14:39:49 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
-2025-10-08 14:39:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
-2025-10-08 14:39:50 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
-2025-10-08 14:39:50 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
-2025-10-08 14:39:50 - [INFO] - [512280345618546699] [新手保護期] 已激活，正在向 Prompt 注入【創世劇情強制令】。
-2025-10-08 14:39:52 - [INFO] - [512280345618546699] [對話焦點分析] 未能識別出明確的對話焦點，AI 將根據綜合上下文判斷。
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '是嗎？
-
-妳有什麼能力能幫上我的忙？'
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
-2025-10-08 14:39:53 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
-2025-10-08 14:40:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
-2025-10-08 14:40:16 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-08 14:40:18 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
-2025-10-08 14:40:18 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #3) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-08 14:40:18 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
-2025-10-08 14:40:18 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
-2025-10-08 14:40:18 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #3 進行嘗試...
-2025-10-08 14:40:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
-2025-10-08 14:40:32 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-08 14:40:32 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-08 14:40:32 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-08 14:40:32 - [INFO] - [512280345618546699] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...
-2025-10-08 14:40:34 - [INFO] - [512280345618546699] [關係分析 v1.1] 關係圖譜【微型分析】服務已啟動...
-2025-10-08 14:40:34 - [INFO] - [512280345618546699] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。
-2025-10-08 14:40:34 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
-2025-10-08 18:22:29 - [INFO] - [512280345618546699] [Admin Command] 手動觸發強制更新與重啟流程...
-2025-10-08 18:22:29 - [INFO] - [512280345618546699] [Admin Command] 已獲取 Git 鎖，開始執行同步...
-2025-10-08 18:22:33 - [INFO] - [512280345618546699] [Admin Command] Git 鎖已釋放。
-2025-10-08 18:27:48 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 18:27:54 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-08 18:27:54 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-08 18:27:54 - [INFO] - 正在全域同步應用程式指令...
-2025-10-08 18:27:54 - [INFO] - ✅ 指令已全域同步！
-2025-10-08 18:27:54 - [INFO] - Discord Bot setup hook finished!
-2025-10-08 18:27:57 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-08 18:27:57 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-08 18:28:09 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-08 18:28:09 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-08 18:28:09 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-08 18:28:09 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-08 18:28:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-08 18:28:17 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-08 18:28:17 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-08 18:28:17 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-08 18:28:17 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-08 18:28:17 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-08 18:28:24 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-08 18:28:24 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-08 18:28:24 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-08 18:28:24 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-08 18:28:24 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 18:28:26 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-08 18:28:40 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-08 18:28:40 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-08 18:28:40 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 18:28:42 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-08 18:28:55 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-08 18:28:56 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-08 18:28:56 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-08 18:28:58 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-08 18:29:38 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [創世流程 v69.0] 觸發關係分析的最終版流程已啟動。
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [後台創世] 步驟 1/6: 正在解析世界聖經並創建 LORE 骨架...
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
-2025-10-08 18:29:40 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 18:29:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 18:29:52 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] ✅ 成功！
-2025-10-08 18:29:52 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
-2025-10-08 18:29:52 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 18:30:11 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 18:30:11 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
-2025-10-08 18:30:11 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
-2025-10-08 18:30:11 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 18:30:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 18:30:23 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
-2025-10-08 18:30:23 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
-2025-10-08 18:30:23 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] ✅ 成功！
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-08 18:30:38 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-08 18:30:38 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇內容審查，正在降級...
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] [LORE 解析 5-2/3] 正在嘗試【本地備援方案：無審查解析】...
-2025-10-08 18:30:38 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 27 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...麗": "妹妹"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 28 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "布里...麗": "妹妹"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 29 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "瓦萊...特": "姐姐"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 30 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "國王...": "三皇女"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 31 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "大皇...世": "父親"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 32 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...世": "父親"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 33 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "二公...世": "父親"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 34 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...世": "父親"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 35 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 23 [type=json_invalid, input_value='{\n    "name": "博林...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 36 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "瓦勒...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 37 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "巴納...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 38 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "奧斯...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 39 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "艾諾...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 40 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "漢德...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 41 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "老漢...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 42 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "葛瑞...恩": "同伴"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 43 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "芬恩",...塔": "同伴"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 44 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 15 column 5 [type=json_invalid, input_value='{\n    "name": "米婭",...: "勳爵夫人"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 45 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "卡蓮",...爾": "伴侶"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 46 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "艾拉",...爾": "哥哥"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 47 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "凱爾",...拉": "妹妹"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 48 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "里斯",...爾": "同伴"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 49 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "瑪倫",...斯": "兒子"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 50 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "索菲...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 51 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "泰莎",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 52 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "露比",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 53 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "班恩",...: "施暴對象"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 54 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "里奧",...": "女主人"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 55 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "賈斯...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 56 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 5 [type=json_invalid, input_value='{\n    "name": "提姆",...菲": "母畜"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 57 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "安東...莉": "母畜"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 58 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "老羅",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 59 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "馬克",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 60 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "蓋博...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 61 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "馬丁",...: "潛在目標"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 62 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "亞瑟",...: "潛在目標"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 63 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "朱利...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 64 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "巴納...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 65 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "奧斯...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 66 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "艾諾...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 67 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "漢德...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 68 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "大主...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 69 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 10 column 23 [type=json_invalid, input_value='{\n    "name": "瓦勒...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 70 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 23 [type=json_invalid, input_value='{\n    "name": "麥可",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 71 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "克拉...核心追隨者"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 72 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 12 column 23 [type=json_invalid, input_value='{\n    "name": "博林...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 73 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "湯瑪...恩": "姐夫"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 74 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "愛蓮...恩": "丈夫"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 75 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 13 column 5 [type=json_invalid, input_value='{\n    "name": "連恩",...斯": "妻兄"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:36:55 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
+2025-10-08 18:36:55 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 開始處理...
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老高' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '克拉拉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '高爾' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '翠絲' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '迪茜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '亞瑟' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:15 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬丁' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:37:16 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
+2025-10-08 18:37:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 14 column 7 [type=json_invalid, input_value='{\n    "name": "伊索...ion": "父親"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 16 column 7 [type=json_invalid, input_value='{\n    "name": "博林...": "效忠於"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 16 column 7 [type=json_invalid, input_value='{\n    "name": "老高",...僱主/上級"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 18 column 7 [type=json_invalid, input_value='{\n    "name": "維利...關鍵人物"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 15 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 15 column 7 [type=json_invalid, input_value='{\n    "name": "克拉...手/辯論者"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 19 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 14 column 7 [type=json_invalid, input_value='{\n    "name": "亞瑟",.../滲透目標"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 22 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing a list at line 15 column 7 [type=json_invalid, input_value='{\n    "name": "馬丁",.../滲透目標"\n      }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:37:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: ✅ LLM 預解析成功，從 LLM 輸出中搶救出 17 個有效檔案草稿。
+2025-10-08 18:37:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 階段 2/2 - 正在執行程式碼審計與高信度覆蓋...
+2025-10-08 18:37:45 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: ✅ 程式碼審計完成。
+2025-10-08 18:37:45 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 開始處理...
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '朱利安' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿利斯特' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瑪莉' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老羅' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬克' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '費奇' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '湯瑪斯' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛蓮娜' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛莉莎' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 18:38:05 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
+2025-10-08 18:38:12 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "朱利...高": "摯友"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 2 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "阿利...恩的可能性"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 5 [type=json_invalid, input_value='{\n    "name": "瑪莉",...莎": "摯友"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 4 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "老羅",...高": "摯友"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 9 column 23 [type=json_invalid, input_value='{\n    "name": "馬克",...    "relationships": {}', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "費奇",...恩": "女婿"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "愛蓮... "費奇": "父"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+  Invalid JSON: EOF while parsing an object at line 11 column 5 [type=json_invalid, input_value='{\n    "name": "湯瑪... "費奇": "父"\n    }', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
+2025-10-08 18:38:12 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
+2025-10-08 18:38:12 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
