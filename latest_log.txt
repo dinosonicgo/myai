@@ -1,77 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T08:37:06.735358 ###
+### AI Lover Log - Last updated at 2025-10-08T08:42:10.191031 ###
 
-2025-10-08 01:20:54 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #5 已被置入短期冷卻 65 秒。
-2025-10-08 01:20:54 - [ERROR] - [512280345618546699] [Final Failure] 所有模型和金鑰均最終失敗。最後的錯誤是: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
-Please retry in 4.513490744s. [violations {
-  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
-  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
-  quota_dimensions {
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
-  quota_value: 250000
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-, retry_delay {
-  seconds: 4
-}
-]
-2025-10-08 01:20:54 - [ERROR] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/8: 處理時發生不可恢復的嚴重錯誤: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
-Please retry in 4.513490744s. [violations {
-  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
-  quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
-  quota_dimensions {
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
-  quota_value: 250000
-}
-, links {
-  description: "Learn more about Gemini API quotas"
-  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
-}
-, retry_delay {
-  seconds: 4
-}
-]。此批次將不會被精煉。
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4016, in _process_batch
-    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1786, in ainvoke_with_rotation
-    raise last_exception if last_exception else Exception("ainvoke_with_rotation failed without a specific exception.")
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1669, in ainvoke_with_rotation
-    response = await asyncio.wait_for(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\tasks.py", line 445, in wait_for
-    return fut.result()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\generativeai\generative_models.py", line 385, in generate_content_async
-    response = await self._async_client.generate_content(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\async_client.py", line 406, in generate_content
-    response = await rpc(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 231, in retry_wrapped_func
-    return await retry_target(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 163, in retry_target
-    next_sleep = _retry_error_helper(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
-    raise final_exc from source_exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary_async.py", line 158, in retry_target
-    return await target()
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers_async.py", line 88, in __await__
-    raise exceptions.from_grpc_error(rpc_error) from rpc_error
-google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
-* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000
 Please retry in 4.513490744s. [violations {
   quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_input_token_count"
   quota_id: "GenerateContentInputTokensPerModelPerMinute-FreeTier"
@@ -300,3 +228,75 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-08 08:06:37 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 08:06:39 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 08:06:40 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 08:37:06 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-08 08:37:06 - [INFO] - 為使用者 512280345618546699 成功創建並初始化 AI 實例。
+2025-10-08 08:37:06 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-08 08:37:06 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-08 08:37:06 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-08 08:37:09 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] [RAG持久化] 成功從磁碟加載了 36 條文檔到 RAG 語料庫。
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 11 條訊息。
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 08:37:09 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 08:37:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:37:10 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 08:37:10 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 08:37:10 - [INFO] - [512280345618546699] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...
+2025-10-08 08:37:10 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '這個蛇人多少錢？'
+2025-10-08 08:37:11 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 22 份候選文檔。
+2025-10-08 08:37:11 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 22 條原始文檔作為 summary_context。
+2025-10-08 08:37:11 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 08:37:11 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-08 08:37:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 08:37:34 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-08 08:37:34 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-08 08:37:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:37:36 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 08:37:37 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 08:37:37 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 08:37:39 - [INFO] - [512280345618546699] 背景任務：檢測到 2 條 LORE 更新，準備執行...
+2025-10-08 08:37:39 - [WARNING] - [512280345618546699] [主角守衛] 檢測到一個試圖修改核心主角 (['碧']) 的 LORE 工具調用 (update_npc_profile)，已自動攔截。
+2025-10-08 08:37:39 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
+2025-10-08 08:37:39 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在實體 '『鐵牙』葛羅' 的更新。啟動事實查核...
+2025-10-08 08:37:40 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:37:40 - [WARNING] - [512280345618546699] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。理由: 對話上下文中沒有提到「鐵牙」葛羅，現有實體數據庫中也沒有與此名稱直接匹配或非常相似的條目。
+2025-10-08 08:37:40 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-08 08:37:40 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展已执行。
+2025-10-08 08:37:40 - [INFO] - [512280345618546699] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...
+2025-10-08 08:37:41 - [INFO] - [512280345618546699] [雙引擎實體提取] 成功提取高質量實體: ['葛羅粗魯', '學徒', '咧開嘴', '葛羅']
+2025-10-08 08:37:42 - [INFO] - [512280345618546699] [關係分析 v1.1] 關係圖譜【微型分析】服務已啟動...
+2025-10-08 08:37:42 - [INFO] - [512280345618546699] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。
+2025-10-08 08:37:42 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 08:39:04 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 08:39:04 - [INFO] - [512280345618546699] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 08:39:04 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '省省吧，蛇人族普遍在奴隸市場是賠錢貨，大部分人不喜歡冷血動物亞人，能賣20金幣就偷笑了'
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 24 份候選文檔。
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 24 條原始文檔作為 summary_context。
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 08:39:05 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-08 08:39:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 08:39:29 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-08 08:39:31 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-08 08:39:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:39:33 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 08:39:33 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 08:39:33 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 08:39:35 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條 LORE 更新，準備執行...
+2025-10-08 08:39:35 - [INFO] - --- [512280345618546699] (LORE Executor) 開始串行執行 1 個修正後的LORE任务 ---
+2025-10-08 08:39:35 - [WARNING] - [512280345618546699] [抗幻覺] 檢測到對不存在實體 '蛇人女奴' 的更新。啟動事實查核...
+2025-10-08 08:39:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 08:39:36 - [WARNING] - [512280345618546699] [抗幻覺] 事實查核裁定為 IGNORE。已跳過操作。理由: 在提供的對話上下文中，沒有任何內容提及或暗示「蛇人女奴」這個實體。該實體名稱與現有數據庫中的任何條目也沒有明顯的相似之處，因此無法進行MERGE操作。由於缺乏創建該實體的證據，故裁決為IGNORE。
+2025-10-08 08:39:36 - [INFO] - --- [512280345618546699] (LORE Executor) LORE 扩展計畫执行完毕 ---
+2025-10-08 08:39:36 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展已执行。
+2025-10-08 08:39:36 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
+2025-10-08 08:39:36 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
