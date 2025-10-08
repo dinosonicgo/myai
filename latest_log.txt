@@ -1,69 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T23:50:13.953267 ###
+### AI Lover Log - Last updated at 2025-10-08T23:55:17.190572 ###
 
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材高挑', '充滿...活力', '眼神好勝'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['氣質空靈', '如同森林中的精靈'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['氣質內向', '安靜'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['樣貌普通', '總是...的、卑微的姿態'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['氣質自卑', '總是縮在角落'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['外貌變得極為美...洞悉一切的智慧'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['外貌英俊', '氣質...冰冷', '絕對理智'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 12 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材適中', '永遠...嚴肅', '不苟言笑'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 13 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材魁梧', '肌肉...鐵塔', '頭腦簡單'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 14 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['風韻猶存', '氣質高貴而又淫蕩'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 15 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['如同洋娃娃般精...帶有成熟性器官'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 16 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['面容姣好', '眼神...人的嚴謹與刻板'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 17 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['樣貌清秀', '眼神...計算得失的精明'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 18 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['樣貌普通', '眼中...燒著狂熱的火焰'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 19 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材妖嬈', '容貌豔麗', '極度自戀'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 20 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材嬌小', '眼神...一絲怯懦的驚恐'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 21 個 LORE 物件時失敗: 1 validation error for CharacterProfile
 appearance_details
   Input should be a valid dictionary [type=dict_type, input_value=['眼神倔強', '帶著一絲陰鬱'], input_type=list]
     For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
@@ -300,3 +236,67 @@ appearance_details
 2025-10-08 23:50:03 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 23:50:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 23:50:07 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 23:51:52 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-08 23:51:54 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-08 23:51:54 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-08 23:51:54 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-08 23:51:56 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-08 23:52:00 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-08 23:52:00 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-08 23:52:00 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-08 23:52:00 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-08 23:52:00 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-08 23:52:03 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-08 23:52:03 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-08 23:52:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-08 23:52:03 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-08 23:52:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 23:52:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-08 23:52:11 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-08 23:52:12 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-08 23:52:12 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 23:52:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-08 23:52:24 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-08 23:52:24 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-08 23:52:25 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 23:52:26 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-08 23:52:31 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [創世流程 v70.0] 嚴格串行化創世流程已啟動。
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [後台創世] 步驟 1/6: 正在解析世界聖經並創建 LORE 骨架...
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [LORE 解析 v6.0] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-08 23:52:34 - [INFO] - [512280345618546699] [LORE 解析 1-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:52:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:52:47 - [INFO] - [512280345618546699] [LORE 解析 1-1/4] ✅ 成功！
+2025-10-08 23:52:47 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
+2025-10-08 23:52:47 - [INFO] - [512280345618546699] [LORE 解析 2-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:53:08 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:53:08 - [INFO] - [512280345618546699] [LORE 解析 2-1/4] ✅ 成功！
+2025-10-08 23:53:08 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
+2025-10-08 23:53:08 - [INFO] - [512280345618546699] [LORE 解析 3-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:53:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:53:28 - [INFO] - [512280345618546699] [LORE 解析 3-1/4] ✅ 成功！
+2025-10-08 23:53:28 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
+2025-10-08 23:53:28 - [INFO] - [512280345618546699] [LORE 解析 4-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LORE 解析 4-1/4] ✅ 成功！
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LORE 解析 5-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:53:47 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-08 23:53:47 - [WARNING] - [512280345618546699] [LORE 解析 5-1/4] 遭遇內容審查，正在降級...
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LORE 解析 5-3/4] 正在嘗試【雲端備援：本地NLP提取 + 雲端批次精煉】...
+2025-10-08 23:53:47 - [INFO] - [512280345618546699] [LORE 解析 5-3a] 執行本地NLP事實提取...
+2025-10-08 23:53:58 - [INFO] - [512280345618546699] [LORE 解析 5-3b] 為 9 個角色打包數據，執行單次雲端批次精煉...
+2025-10-08 23:54:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:54:17 - [INFO] - [512280345618546699] [LORE 解析 5-3/4] ✅ 成功！
+2025-10-08 23:54:17 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 6/8...
+2025-10-08 23:54:17 - [INFO] - [512280345618546699] [LORE 解析 6-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:54:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:54:43 - [INFO] - [512280345618546699] [LORE 解析 6-1/4] ✅ 成功！
+2025-10-08 23:54:43 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 7/8...
+2025-10-08 23:54:43 - [INFO] - [512280345618546699] [LORE 解析 7-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 23:55:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 23:55:03 - [INFO] - [512280345618546699] [LORE 解析 7-1/4] ✅ 成功！
+2025-10-08 23:55:03 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 8/8...
+2025-10-08 23:55:03 - [INFO] - [512280345618546699] [LORE 解析 8-1/4] 正在嘗試【理想方案：雲端宏觀解析】...
