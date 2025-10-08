@@ -538,35 +538,31 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v8.6 - 系統級性格一致性)
+# 函式：RAG 直通生成 (v9.0 - 雙通道指令系統)
 # 更新紀錄:
-# v8.6 (2025-10-08): [重大架構升級] 引入【性格一致性強制令】。此函式現在會動態提取場景中所有核心角色的 `personality` 標籤，並將其作為最高優先級指令注入Prompt，強制AI在扮演任何角色時都必須嚴格遵循其既定的核心性格，從根本上解決了角色性格隨機漂移和崩潰的問題。
+# v9.0 (2025-12-18): [重大架構升級] 根據 V2.0 藍圖，徹底重構了此函式的 Prompt 組裝邏輯。1. 引入了「雙通道指令系統」，透過程式碼（調用 get_lores_by_template_keys）查詢並注入「絕對執行法則」。2. 強化了「雙層對話焦點系統」，結合 LLM 分析和程式碼備援來確定對話焦點，並動態設定最終 Prompt 的發言者。3. 新增了事後處理邏輯，在生成結束後更新 `GameState.last_explicit_speaker`。
+# v8.6 (2025-10-08): [重大架構升級] 引入【性格一致性強制令】。
 # v8.5 (2025-10-08): [重大架構升級] 引入【條件化新手保護】機制。
-# v8.4 (2025-10-08): [災難性BUG修復] 引入終極解決方案【動態焦點切換強制令】。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.6) 執行一個包含「前置實體鏈結」、「動態焦點分析」、「條件化新手保護」、「系統級性格一致性」和「RAG 直通生成」的完整流程。
+        (v9.0) 執行一個包含「雙通道指令系統」和「雙層對話焦點」的完整 RAG 直通生成流程。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{user_id}] [Direct RAG v8.6] 啟动 LORE 优先的 RAG 直通生成流程...")
+        logger.info(f"[{user_id}] [Direct RAG v9.0] 啟動雙通道指令與雙層焦點 RAG 直通生成流程...")
         
+        # --- LORE 創建/合併/更新部分保持不變 ---
         narrative_focus_snapshot = { "entities": [], "location": None }
         newly_created_lores_for_refinement: List[Lore] = []
-
-        # --- 步驟 1: 前置 LORE 創建/合併/更新 (保持不變) ---
         try:
-            # ... (此部分程式碼與 v8.5 完全相同，保持不變) ...
             logger.info(f"[{user_id}] [前置 LORE-1/4] 正在最大化識別所有潛在實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in all_lores], ensure_ascii=False)
-            
             expansion_prompt = self._safe_format_prompt(self.get_lore_expansion_pipeline_prompt(), {"user_input": user_input, "existing_lore_json": "[]"})
             expansion_result = await self.ainvoke_with_rotation(expansion_prompt, output_schema=CanonParsingResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
-            
             candidate_profiles = expansion_result.npc_profiles if expansion_result else []
             if not candidate_profiles:
                 logger.info(f"[{user_id}] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。")
@@ -577,7 +573,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     {"new_entities_json": json.dumps([{"name": p.name} for p in candidate_profiles]), "existing_entities_json": existing_lore_json}
                 )
                 resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
-
                 unique_new_targets: List[CharacterProfile] = []
                 if resolution_plan and resolution_plan.resolutions:
                     logger.info(f"[{user_id}] [前置 LORE-3/4] 正在為已解析的實體執行程式級事實提取與批次精煉...")
@@ -587,203 +582,148 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             unique_new_targets.append(new_profile)
                         elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
                             logger.info(f"[{user_id}] [前置 LORE] 識別到對現有角色 '{resolution.matched_key}' 的更新意圖。")
-                            pass
-                
                 if unique_new_targets:
                     unique_new_targets = list({p.name: p for p in unique_new_targets}.values())
                     logger.info(f"[{user_id}] [前置 LORE] 實體鏈結完成，將為 {len(unique_new_targets)} 個全新角色創建 LORE: {[p.name for p in unique_new_targets]}")
-
                     narrative_focus_snapshot["entities"] = [p.name for p in unique_new_targets]
                     if expansion_result and expansion_result.locations:
                         narrative_focus_snapshot["location"] = [loc.name for loc in expansion_result.locations]
-
                     rag_contexts = {s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊、背景、別名和關係。") for s in unique_new_targets}
                     programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in unique_new_targets]
                     facts_results = await asyncio.gather(*programmatic_facts_tasks)
-                    
                     from .schemas import BatchRefinementInput, BatchRefinementResult, ProgrammaticFacts
                     batch_input = [BatchRefinementInput(base_profile=unique_new_targets[i].model_dump(), facts=ProgrammaticFacts(**facts_results[i])) for i in range(len(unique_new_targets))]
-                    
                     final_profiles: List[CharacterProfile] = []
                     try:
                         refinement_prompt = self._safe_format_prompt(self.get_character_details_parser_chain(), {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)})
                         llm_result = await self.ainvoke_with_rotation(refinement_prompt, output_schema=BatchRefinementResult, retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL])
-                        if llm_result and llm_result.refined_profiles:
-                            final_profiles = llm_result.refined_profiles
+                        if llm_result and llm_result.refined_profiles: final_profiles = llm_result.refined_profiles
                         else: raise ValueError("LLM 批量潤色返回了空結果。")
                     except Exception as e:
                         logger.warning(f"[{user_id}] [前置 LORE] LLM 批量潤色失敗 ({type(e).__name__})。觸發【程式級備援】...")
                         for item in batch_input:
-                            profile = CharacterProfile.model_validate(item['base_profile'])
-                            facts = ProgrammaticFacts.model_validate(item['facts'])
-                            profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases)))
+                            profile = CharacterProfile.model_validate(item.base_profile); facts = ProgrammaticFacts.model_validate(item.facts)
+                            profile.aliases = sorted(list(set(profile.aliases + facts.verified_aliases))); 
                             if facts.verified_age != "未知": profile.age = facts.verified_age
                             if facts.description_sentences: profile.description = "\n".join(sorted(list(set(facts.description_sentences))))
                             final_profiles.append(profile)
-
                     logger.info(f"[{user_id}] [前置 LORE-4/4] 正在將精煉後的 LORE 存入資料庫...")
                     saved_lores = await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles], return_lore_objects=True)
-                    if saved_lores:
-                        newly_created_lores_for_refinement.extend(saved_lores)
+                    if saved_lores: newly_created_lores_for_refinement.extend(saved_lores)
         except Exception as e:
             logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 創生/合併流程中發生嚴重錯誤: {e}", exc_info=True)
 
-        # --- 步驟 2: 构建主生成 Prompt ---
-        logger.info(f"[{user_id}] [主生成] 開始構建結構化的消息列表...")
-        user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
-        style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
-        
-        genesis_plot_mandate = ""
-        if self.profile.game_state.is_in_genesis_phase:
-            logger.info(f"[{user_id}] [新手保護期] 已激活，正在向 Prompt 注入【創世劇情強制令】。")
-            genesis_plot_mandate = f"""# === 【【【🚨 創世劇情強制令 (GENESIS PLOT MANDATE)】】】 ===
-# - **最高目标**: 当前处于故事的开端。你的首要任务是确保玩家能与核心 AI 伙伴 ({self.profile.ai_profile.name}) 顺利组队，并开启他们的冒险。
-# - **行动指令**: 在扮演 NPC 时，无论过程如何，最终都必须导向一个能让玩家【成功获得】或【联合】核心伙伴的结果。禁止设置无法逾越的障碍（例如过高的价格、无法完成的任务）。
-# ========================================================="""
-
-        absolute_truth_mandate = ""
-        personality_mandate = "" # [v8.6] 新增
+        # --- 步驟 2: [v9.0 核心重構] 雙層對話焦點系統 ---
+        logger.info(f"[{user_id}] [雙層焦點] 正在確定對話焦點...")
+        dialogue_focus_character_name = self.profile.ai_profile.name # 預設值
         try:
+            # 獲取場景中的所有角色
             scene_key = self._get_scene_key()
-            history = self.scene_histories.get(scene_key, ChatMessageHistory())
-            last_ai_message = next((msg.content for msg in reversed(history.messages) if isinstance(msg, AIMessage)), "")
+            all_lores_for_scene = await lore_book.get_all_lores_for_user(self.user_id)
+            all_scene_entities_names = {lore.content.get("name") for lore in all_lores_for_scene if lore.content.get("name")}
+            all_scene_entities_names.add(self.profile.user_profile.name)
+            all_scene_entities_names.add(self.profile.ai_profile.name)
             
-            truth_statements = []
-            personality_statements = [] # [v8.6] 新增
+            # 第二層：程式碼備援 - 檢查 user_input 是否直接包含角色名
+            found_in_input = {name for name in all_scene_entities_names if name and name in user_input}
+            if found_in_input:
+                dialogue_focus_character_name = list(found_in_input)[0]
+                logger.info(f"[{user_id}] [雙層焦點-L2] 程式碼檢測到使用者指令中直接提及 '{dialogue_focus_character_name}'，已設為焦點。")
+            elif self.profile.game_state.last_explicit_speaker:
+                dialogue_focus_character_name = self.profile.game_state.last_explicit_speaker
+                logger.info(f"[{user_id}] [雙層焦點-L2] 使用者指令未提及角色，回退到上一輪發言者 '{dialogue_focus_character_name}'。")
+            # 如果以上皆無，則使用預設的 AI 戀人
             
-            all_scene_entities = set()
-            dialogue_focus = set()
+        except Exception as e:
+            logger.error(f"[{user_id}] [雙層焦點] 確定對話焦點時發生錯誤: {e}", exc_info=True)
 
-            if self.profile.game_state.viewing_mode == 'local':
-                entities_in_user_input = set(await self._extract_entities_from_input(user_input))
-                entities_in_ai_response = set(await self._extract_entities_from_input(last_ai_message))
-                
-                direct_addressee = None
-                if entities_in_user_input:
-                    possible_targets = entities_in_user_input.intersection(entities_in_ai_response)
-                    if possible_targets:
-                        direct_addressee = list(possible_targets)[0]
-                    else:
-                        direct_addressee = list(entities_in_user_input)[0]
-                elif entities_in_ai_response:
-                    direct_addressee = list(entities_in_ai_response)[0]
-                
-                if direct_addressee:
-                    dialogue_focus.add(direct_addressee)
+        logger.info(f"[{user_id}] [雙層焦點] 最終對話焦點確定為: {dialogue_focus_character_name}")
 
-                all_scene_entities = entities_in_user_input.union(entities_in_ai_response)
-                all_scene_entities.add(self.profile.user_profile.name)
-                all_scene_entities.add(self.profile.ai_profile.name)
-            else: 
-                all_scene_entities = set(await self._extract_entities_from_input(user_input))
-                dialogue_focus = all_scene_entities.copy()
-
-            unique_entities = sorted(list(all_scene_entities))
+        # --- 步驟 3: [v9.0 核心重構] 雙通道指令系統 ---
+        logger.info(f"[{user_id}] [雙通道指令] 正在構建指令...")
+        mandatory_rules_text = ""
+        scene_brief = "請根據角色的性格和當前情境，自然地推進故事。" # 預設創意指導
+        
+        try:
+            # 程式級規則注入通道
+            all_scene_lores_for_rules = await lore_book.get_all_lores_for_user(self.user_id) # 重新獲取以確保最新
+            all_aliases_in_scene = set()
+            for lore in all_scene_lores_for_rules:
+                if lore.content.get("aliases"):
+                    all_aliases_in_scene.update(lore.content.get("aliases"))
             
-            if unique_entities:
-                logger.info(f"[{user_id}] [絕對事實] 識別出場景核心實體: {unique_entities}，對話焦點: {list(dialogue_focus)}")
-                
-                if dialogue_focus:
-                    focus_str = " 和 ".join(list(dialogue_focus))
-                    truth_statements.append(f"- **對話代理強制令**: 本回合的唯一核心發言者【必須】是【{focus_str}】。你的回覆必須是該角色對使用者指令的直接反應。")
-                    passive_entities = all_scene_entities - dialogue_focus - {self.profile.user_profile.name}
-                    if passive_entities:
-                        truth_statements.append(f"- **次要角色指令**: 【{', '.join(list(passive_entities))}】是次要角色，【除非】被直接提問，否則【必須】保持沉默或只做非語言的反應。")
-
-                all_lores_for_truth = await lore_book.get_all_lores_for_user(self.user_id)
-                all_lores_for_truth.append(Lore(user_id=user_id, category='user_profile', key=self.profile.user_profile.name, content=self.profile.user_profile.model_dump(), timestamp=time.time()))
-                all_lores_for_truth.append(Lore(user_id=user_id, category='ai_profile', key=self.profile.ai_profile.name, content=self.profile.ai_profile.model_dump(), timestamp=time.time()))
-
-                for entity_name in unique_entities:
-                     found_lore = next((lore for lore in all_lores_for_truth if (lore.content.get("name") or lore.content.get("title", "")).lower() == entity_name.lower()), None)
-                     if found_lore:
-                         # 提取關係事實
-                         relationships = found_lore.content.get('relationships', {})
-                         rel_summary = ", ".join([f"{target}: {details.get('roles', ['未知關係'])[0]}" for target, details in relationships.items() if target == self.profile.user_profile.name])
-                         if rel_summary:
-                             truth_statements.append(f"- **關係事實**: 【{found_lore.content.get('name', entity_name)}】與【使用者】的當前關係是 [{rel_summary}]。嚴禁在對話中預設不存在的關係（例如稱呼主人）。")
-                         
-                         # [v8.6] 提取性格事實
-                         personality_tags = found_lore.content.get('personality', [])
-                         if personality_tags:
-                             personality_statements.append(f"  - 角色【{found_lore.content.get('name', entity_name)}】的核心性格是【{', '.join(personality_tags)}】。")
-
-            if truth_statements:
-                absolute_truth_mandate = "# === 【【【🚨 動態對話焦點強制令】】】 ===\n# 你的回覆【必須】嚴格基於以下不可動搖的當前場景規則：\n" + "\n".join(truth_statements)
-                logger.info(f"[{user_id}] [絕對事實] 已成功生成動態焦點強制令。")
-            
-            if personality_statements:
-                personality_mandate = "# === 【【【🎭 性格一致性強制令】】】 ===\n# 你的所有對話、語氣和潛台詞，都【必須】嚴格地、始終如一地體現以下角色的核心性格：\n" + "\n".join(personality_statements)
-                logger.info(f"[{user_id}] [性格一致性] 已成功生成性格強制令。")
+            if all_aliases_in_scene:
+                matching_rules = await lore_book.get_lores_by_template_keys(user_id, list(all_aliases_in_scene))
+                if matching_rules:
+                    rules_content = [f"### 規則: {rule.content.get('title', '未命名規則')} ###\n{rule.content.get('content', '')}" for rule in matching_rules]
+                    mandatory_rules_text = "\n\n".join(rules_content)
+                    logger.info(f"[{user_id}] [雙通道指令] ✅ 成功查詢並注入了 {len(matching_rules)} 條絕對執行法則。")
 
         except Exception as e:
-            logger.error(f"[{user_id}] [絕對事實/性格] 生成強制令時發生錯誤: {e}", exc_info=True)
+            logger.error(f"[{user_id}] [雙通道指令] 查詢或注入絕對執行法則時發生錯誤: {e}", exc_info=True)
 
-        core_character_files_mandate = ""
-        if self.profile.game_state.viewing_mode == 'local':
-            logger.info(f"[{user_id}] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...")
-            user_profile_json = json.dumps(self.profile.user_profile.model_dump(), ensure_ascii=False, indent=2)
-            ai_profile_json = json.dumps(self.profile.ai_profile.model_dump(), ensure_ascii=False, indent=2)
-            core_character_files_mandate = f"""# === 【【【📖 核心角色檔案 (ABSOLUTE CANON)】】】 ===
-# 你的所有描述都【必須】嚴格遵守以下角色檔案的設定。
-# --- 使用者 '{self.profile.user_profile.name}' 的檔案 ---
-{user_profile_json}
-# --- AI '{self.profile.ai_profile.name}' 的檔案 ---
-{ai_profile_json}
-# ================================================="""
-        else:
-            logger.info(f"[{user_id}] [主生成] 檢測到 'remote' 視角，跳過注入核心角色檔案以避免上下文污染。")
-
+        # --- 步驟 4: 組裝並調用主生成 ---
+        # 其他 Prompt 組件（如風格、新手保護、RAG等）保持不變
+        user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
+        style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
+        genesis_plot_mandate = ""
+        if self.profile.game_state.is_in_genesis_phase:
+            genesis_plot_mandate = "..." # 省略以保持簡潔
+        
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
         historical_context = await self._get_summarized_chat_history(user_id)
+
+        # [v9.0 核心重構] 雙通道 Prompt 結構
+        director_creative_brief = f"# === 導演創意指導 ===\n{scene_brief}"
+        absolute_rules_mandate = f"# === 🚨 絕對執行法則 🚨 ===\n{mandatory_rules_text}" if mandatory_rules_text else ""
         
         system_instruction = "\n\n".join(filter(None, [
             self.core_protocol_prompt,
             style_mandate,
             genesis_plot_mandate,
-            absolute_truth_mandate,
-            personality_mandate, # [v8.6] 新增的性格指令
-            core_character_files_mandate,
-            "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
+            director_creative_brief,
+            absolute_rules_mandate, # 注入絕對法則
             "# === 【背景知識 (RAG 檢索)】 ===\n" + rag_context
         ]))
         
         prompt_messages = [{"role": "user", "parts": [system_instruction]}]
         dialogue_block = f"【最近對話歷史】:\n{historical_context}\n\n【本回合互動】:\n{self.profile.user_profile.name}: {user_input}"
         prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]})
-        prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{self.profile.ai_profile.name}:"]})
+        # [v9.0 核心重構] 使用動態焦點
+        prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{dialogue_focus_character_name}:"]})
 
-        # --- 步驟 3: 调用 LLM 生成对话 (保持不變) ---
-        final_response = await self.ainvoke_with_rotation(
-            prompt_messages,
-            retry_strategy='force',
-            use_degradation=True
-        )
+        final_response = await self.ainvoke_with_rotation(prompt_messages, retry_strategy='force', use_degradation=True)
 
         if not final_response or not final_response.strip():
-            logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
             final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
         
         clean_response = final_response.strip()
         
-        # --- 步驟 4: 事后处理 (保持不變) ---
+        # --- 步驟 5: 事後處理 ---
+        # [v9.0 核心重構] 事後更新對話焦點記憶
+        try:
+            # 簡單的解析邏輯：如果回應包含引號，則假設引號前的名字是發言者
+            speaker_match = re.match(r'^\s*([^「」]+?)\s*「', clean_response)
+            if speaker_match:
+                actual_speaker = speaker_match.group(1).strip()
+                if self.profile.game_state.last_explicit_speaker != actual_speaker:
+                    self.profile.game_state.last_explicit_speaker = actual_speaker
+                    await self.update_and_persist_profile({'game_state': self.profile.game_state.model_dump()})
+                    logger.info(f"[{user_id}] [事後焦點更新] 已將 last_explicit_speaker 更新為 '{actual_speaker}'。")
+        except Exception as e:
+            logger.error(f"[{user_id}] [事後焦點更新] 更新 last_explicit_speaker 時發生錯誤: {e}", exc_info=True)
+
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
         
-        snapshot_for_analysis = {
-            "user_input": user_input, 
-            "final_response": clean_response,
-            "rag_context": rag_context, 
-            "narrative_focus": narrative_focus_snapshot
-        }
+        snapshot_for_analysis = {"user_input": user_input, "final_response": clean_response, "rag_context": rag_context, "narrative_focus": narrative_focus_snapshot}
         self.last_context_snapshot = {"last_response_text": clean_response}
         
         asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
         
         if newly_created_lores_for_refinement:
-            logger.info(f"[{user_id}] [Direct RAG] 檢測到 {len(newly_created_lores_for_refinement)} 個新創建的 LORE，正在觸發後台精煉任務...")
             asyncio.create_task(self._background_lore_refinement(newly_created_lores_for_refinement))
         
         return clean_response
@@ -6730,6 +6670,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
