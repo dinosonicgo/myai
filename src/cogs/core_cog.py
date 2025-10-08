@@ -115,11 +115,12 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# 函式：創建角色檔案 Embed (v1.0 - 全新創建/補全)
+# 函式：創建角色檔案 Embed (v2.0 - 完整資訊展示)
 # 更新紀錄:
+# v2.0 (2025-12-19): [功能擴展] 根據使用者需求，對此函式進行了重大升級。現在它會展示 CharacterProfile 模型中幾乎所有的核心 LORE 欄位，包括 `personality`, `equipment`, `relationships`, `status` 和 `location_path`，以提供真正「完整」的角色資訊。
 # v1.0 (2025-12-08): [功能補全] 補全此缺失的輔助函式，用於生成標準化的角色檔案 Embed。
 def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed:
-    """一個輔助函式，用於為給定的 CharacterProfile 創建一個標準化的 discord.Embed。"""
+    """一個輔助函式，用於為給定的 CharacterProfile 創建一個標準化的、資訊完整的 discord.Embed。"""
     embed = Embed(
         title=f"{title_prefix}: {profile.name}",
         description=f"```{profile.description or '暫無描述。'}```",
@@ -128,14 +129,47 @@ def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed
     embed.add_field(name="性別", value=profile.gender or "未設定", inline=True)
     embed.add_field(name="年齡", value=profile.age or "未知", inline=True)
     embed.add_field(name="種族", value=profile.race or "未知", inline=True)
+    
+    # [v2.0 新增] 狀態與位置
+    embed.add_field(name="當前狀態", value=profile.status or "健康", inline=True)
+    current_location = " > ".join(profile.location_path) if profile.location_path else profile.location or "未知"
+    embed.add_field(name="當前位置", value=current_location, inline=False)
+
     if profile.appearance:
         embed.add_field(name="外觀", value=profile.appearance, inline=False)
+        
+    # [v2.0 新增] 性格
+    if profile.personality:
+        embed.add_field(name="🎭 性格", value="`" + "`, `".join(profile.personality) + "`", inline=False)
+
     if profile.aliases:
         embed.add_field(name="別名/身份", value=", ".join(profile.aliases), inline=False)
+        
     if profile.skills:
         embed.add_field(name="技能", value=", ".join(profile.skills), inline=False)
+        
+    # [v2.0 新增] 裝備
+    if profile.equipment:
+        embed.add_field(name="⚔️ 裝備", value=", ".join(profile.equipment), inline=False)
+        
+    # [v2.0 新增] 人際關係
+    if profile.relationships:
+        rel_text_parts = []
+        for target, details in profile.relationships.items():
+            roles_str = ", ".join(details.roles) if details.roles else "未知關係"
+            rel_text_parts.append(f"與 **{target}**: {details.type} ({roles_str})")
+        if rel_text_parts:
+            embed.add_field(name="🤝 人際關係", value="\n".join(rel_text_parts), inline=False)
+            
+    if profile.appearance_details:
+        details_str = json.dumps(profile.appearance_details, ensure_ascii=False, indent=2)
+        embed.add_field(name="外觀細節 (JSON)", value=f"```json\n{details_str}\n```", inline=False)
+
+    embed.set_footer(text=f"檔案最後更新於")
+    embed.timestamp = datetime.datetime.now()
+    
     return embed
-# 函式：創建角色檔案 Embed
+# 函式：創建角色檔案 Embed (v2.0 - 完整資訊展示)
 
 # --- 持久化視圖與 Modals ---
 
