@@ -2136,7 +2136,64 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return prompt
 # 函式：獲取本地模型專用的JSON修正Prompt (v1.0 - 全新創建)
 
+# 函式：獲取場景分析器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-18): [全新創建] 根據 V2.0 修正藍圖，創建此 Prompt 模板。其核心任務是分析使用者輸入，判斷互動是發生在本地還是遠程，並提取關鍵的觀察目標，為實現「場景分析前置處理器」提供核心 LLM 指令。
+    def get_scene_analysis_prompt(self) -> str:
+        """獲取或創建一個專門用於場景分析（本地/遠程視角判斷）的字符串模板。"""
+        prompt_template = """# TASK: 你是一位頂級的劇本分析師和導演視角決策器。
+# MISSION: 你的任務是分析【使用者最新指令】和【當前遊戲狀態】，以判斷使用者本回合的【行動/觀察視角】，並提取出其核心意圖。
 
+# === 【【【🚨 核心決策規則 (CORE DECISION RULES) - 絕對鐵則】】】 ===
+# 1.  **【視角判斷標準】**:
+#     *   **判斷為 `remote`**: 當指令是**描述性**的、**觀察性**的，並且明確指向一個**使用者角色當前不在**的地點或角色時。
+#         - **範例**: 「描述一下維利爾斯莊園現在是什麼樣子」、「卡蓮在做什麼？」、「鏡頭轉到奴隸市場」。
+#     *   **判斷為 `local`**: 當指令是**互動性**的，描述使用者角色自身的動作、對話，或與其**身處同一地點**的人事物互動時。
+#         - **範例**: 「我拔出劍」、「（對碧說）你好」、「環顧四周」、「攻擊眼前的敵人」。
+#
+# 2.  **【關鍵資訊提取】**:
+#     *   如果判斷為 `remote`，你【必須】從指令中提取出觀察的【目標地點路徑 (`target_location_path`)】和【核心觀察對象 (`focus_entity`)】。
+#     *   如果判斷為 `local`，`target_location_path` 必須為 `null`。
+#
+# 3.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `SceneAnalysisResult` Pydantic 模型的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# --- 範例 1 (遠程觀察) ---
+# ```json
+# {
+#   "viewing_mode": "remote",
+#   "reasoning": "使用者指令'卡蓮在做什麼？'是一個典型的觀察性請求，目標是遠程角色'卡蓮'。",
+#   "target_location_path": ["聖凱瑟琳學院", "圖書館"],
+#   "focus_entity": "卡蓮",
+#   "action_summary": "觀察角色卡蓮當前的狀態和行動。"
+# }
+# ```
+# --- 範例 2 (本地互動) ---
+# ```json
+# {
+#   "viewing_mode": "local",
+#   "reasoning": "使用者指令'我拔出劍'是描述主角在當前位置的直接動作。",
+#   "target_location_path": null,
+#   "focus_entity": null,
+#   "action_summary": "主角準備拔劍戰鬥。"
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【當前遊戲狀態】:
+# - 使用者當前位置: {player_location_path_str}
+# - 上一輪的視角模式: {previous_viewing_mode}
+#
+# ---
+# 【使用者最新指令】:
+{user_input}
+
+# ---
+# 【你的場景分析JSON】:
+"""
+        return prompt_template
+# 函式：獲取場景分析器 Prompt (v1.0 - 全新創建)
 
 
     
@@ -6672,6 +6729,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
