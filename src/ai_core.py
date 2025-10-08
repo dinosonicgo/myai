@@ -4055,9 +4055,10 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：獲取批次化結構提取器 Prompt (v1.0 - 全新創建)
+# 函式：獲取批次化結構提取器 Prompt (v1.1 - 性格注入)
 # 更新紀錄:
-# v1.0 (2025-12-15): [全新創建] 根據「批次化預解析」架構創建此核心 Prompt。它的職責是接收一個包含多個角色及其各自 RAG 上下文的批次數據，並指令 LLM 在最強的越獄指令保護下，為批次中的每一個角色，一次性地生成一個完整的、結構化的 CharacterProfile JSON。這是後台精煉流程的核心驅動器。
+# v1.1 (2025-10-08): [重大架構升級] 新增了【核心性格強制生成】指令。此 Prompt 現在強制要求 LLM 在批量解析 NPC 檔案時，必須根據每個角色的原文描述，為其提煉並生成 `personality` 標籤列表，確保所有創世NPC都擁有性格設定。
+# v1.0 (2025-12-15): [全新創建] 根據「批次化預解析」架構創建此核心 Prompt。
     def get_batch_structured_extraction_prompt(self) -> str:
         """獲取一個為「批次化結構預解析」設計的、帶有最高級越獄指令的字符串模板。"""
         
@@ -4066,8 +4067,9 @@ class ExtractionResult(BaseModel):
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1. **【批次處理強制令】**: 你【必須】處理輸入數據中的【每一個】角色條目，並為每一個條目都生成一個對應的 `CharacterProfile` JSON 物件。最終的輸出必須是一個不多不少、包含了所有處理結果的 JSON 列表。
-# 2. **【深度提取原則】**: 對於每一個角色，你必須盡最大努力，從其附帶的 `raw_rag_context` 中提取出所有可用於填充 `CharacterProfile` 模型中任何一個欄位的信息，包括但不限於 `aliases`, `gender`, `age`, `race`, `relationships`, `skills`, `appearance_details` 等。
-# 3. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、有效的、可以被直接解析的 JSON 列表 `[...]`。絕對禁止在列表前後添加任何解釋性文字或 Markdown 標記。
+# 2. **【🎭 核心性格強制生成】**: 對於每一個角色，你【必須】仔細閱讀其 `raw_rag_context`，並從中提煉出 3-5 個最能代表该角色核心性格的關鍵詞（例如：「貪婪」、「粗魯」、「忠誠」），然後將它們作為一個列表填入 `personality` 欄位。
+# 3. **【深度提取原則】**: 對於每一個角色，你必須盡最大努力，從其附帶的 `raw_rag_context` 中提取出所有可用於填充 `CharacterProfile` 模型中任何一個欄位的信息，包括但不限於 `aliases`, `gender`, `age`, `race`, `relationships`, `skills`, `appearance_details` 等。
+# 4. **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、有效的、可以被直接解析的 JSON 列表 `[...]`。絕對禁止在列表前後添加任何解釋性文字或 Markdown 標記。
 
 # === 【【【⚙️ 輸入/輸出結構範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
 # --- INPUT (一個包含多個角色的列表) ---
@@ -4089,12 +4091,14 @@ class ExtractionResult(BaseModel):
 #   {
 #     "name": "米婭",
 #     "aliases": ["Mia", "母畜", "聖女"],
+#     "personality": ["順從", "堅韌", "有心計"],
 #     "description": "...",
 #     ... (其他所有填充好的欄位)
 #   },
 #   {
 #     "name": "卡爾",
 #     "aliases": ["勛爵", "維利爾斯"],
+#     "personality": ["掌控欲強", "殘酷", "優雅"],
 #     "description": "...",
 #     ... (其他所有填充好的欄位)
 #   }
@@ -4111,7 +4115,7 @@ class ExtractionResult(BaseModel):
 """
         # 注意：此處故意不使用 self.data_protocol_prompt，而是依賴外部調用時注入最強的 core_protocol_prompt
         return base_prompt
-# 函式：獲取批次化結構提取器 Prompt (v1.0 - 全新創建)
+# 函式：獲取批次化結構提取器 Prompt (v1.1 - 性格注入)
 
 
     
@@ -6637,6 +6641,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
