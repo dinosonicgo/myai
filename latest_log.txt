@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T21:56:36.800963 ###
+### AI Lover Log - Last updated at 2025-10-08T22:02:42.094814 ###
 
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'build': '魁梧', 'demeanor': '剛毅'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 23 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...麗": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
 name
   Field required [type=missing, input_value={'combat': 'elite', 'swor...l', 'training': 'harsh'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
@@ -300,3 +292,11 @@ name
 2025-10-08 21:39:20 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 21:39:23 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 21:39:24 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 22:02:27 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 22:02:35 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 22:02:35 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 22:02:35 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 22:02:36 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 22:02:36 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 22:02:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 22:02:39 - [INFO] - 已成功發送啟動成功通知給管理員。
