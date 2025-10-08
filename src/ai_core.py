@@ -4152,14 +4152,14 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v10.2 - 穩定性終極修復)
+# 函式：背景LORE精煉 (v10.3 - 健壯JSON解析)
 # 更新紀錄:
+# v10.3 (2025-10-08): [災難性BUG修復] 徹底重構了從 LLM 批次輸出中解析 JSON 的邏輯。廢棄了原有的、因無法處理巢狀物件而導致 JSON 截斷的非貪婪正則表達式。新版本改為先提取完整的 JSON 列表字串 `[...]`，然後使用標準的 `json.loads()` 進行整體解析，再逐個驗證 Python 字典。此修改從根本上解決了 `Invalid JSON: EOF while parsing` 的致命錯誤。
 # v10.2 (2025-10-08): [災難性BUG修復] 徹底移除並發處理，改為帶有20秒延遲的串行批次處理，從根本上解決API速率超限問題。同時增強批次容錯性，單一批次完全失敗不再中斷整個精煉流程。
 # v10.1 (2025-12-16): [災難性BUG修復] 為批次化 LLM 的 JSON 輸出處理流程，增加了終極健壯的「多模式提取」與「逐項安全解析」機制。
-# v10.0 (2025-12-16): [災難性BUG修復與架構重構] 引入「兩階段精煉」終極架構。
     async def _background_lore_refinement(self, lores_to_refine: List[Lore]):
         """
-        (背景任務 v10.2) 接收 LORE 列表，並使用穩定的串行批次處理和終極健壯解析的「兩階段精煉」策略對其進行升級。
+        (背景任務 v10.3) 接收 LORE 列表，並使用穩定的串行批次處理和終極健壯解析的「兩階段精煉」策略對其進行升級。
         """
         if not lores_to_refine:
             return
@@ -4172,7 +4172,7 @@ class ExtractionResult(BaseModel):
         try:
             await asyncio.sleep(5.0)
             
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段 v10.2] 穩定版串行精煉服務已啟動，收到 {len(npc_lores)} 個 NPC 精煉任務。")
+            logger.info(f"[{self.user_id}] [LORE精煉-兩階段 v10.3] 穩定版串行精煉服務已啟動，收到 {len(npc_lores)} 個 NPC 精煉任務。")
 
             BATCH_SIZE = 10
             batches = [npc_lores[i:i + BATCH_SIZE] for i in range(0, len(npc_lores), BATCH_SIZE)]
@@ -4226,16 +4226,20 @@ class ExtractionResult(BaseModel):
                     if not json_list_str:
                         raise ValueError("無法從 LLM 的輸出中提取出任何有效的 JSON 列表結構。")
 
-                    object_strs = re.findall(r'\{[\s\S]*?\}', json_list_str)
-                    for i, obj_str in enumerate(object_strs):
+                    # [v10.3 核心修正] 使用標準 json.loads 解析整個列表，而不是不可靠的 regex 分割
+                    parsed_list = json.loads(json_list_str)
+                    if not isinstance(parsed_list, list):
+                        raise ValueError("LLM 的輸出在解析後不是一個列表。")
+                    
+                    for i, profile_dict in enumerate(parsed_list):
                         try:
-                            profile = CharacterProfile.model_validate_json(obj_str)
+                            # 使用 .model_validate() 從字典驗證，而不是 .model_validate_json()
+                            profile = CharacterProfile.model_validate(profile_dict)
                             llm_pre_parsed_profiles.append(profile)
                         except Exception as validation_error:
                             logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 驗證第 {i+1} 個 LORE 物件時失敗: {validation_error}。已跳過此條記錄。")
                             continue
                     
-                    # [v10.2 核心修正] 增強容錯性，即使整個批次都解析失敗，也不再拋出異常
                     if not llm_pre_parsed_profiles:
                         logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。")
                         return []
@@ -4273,13 +4277,11 @@ class ExtractionResult(BaseModel):
                 return final_profiles
 
             all_refined_profiles = []
-            # [v10.2 核心修正] 改為串行處理，並加入延遲
             for i, batch in enumerate(batches):
                 refined_profiles_from_batch = await _process_batch(batch, i)
                 if refined_profiles_from_batch:
                     all_refined_profiles.extend(refined_profiles_from_batch)
                 
-                # 如果這不是最後一個批次，則加入延遲
                 if i < len(batches) - 1:
                     logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 批次 #{i+1} 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...")
                     await asyncio.sleep(20)
@@ -4303,7 +4305,7 @@ class ExtractionResult(BaseModel):
                         
                         if lore_to_update:
                             lore_to_update.content = refined_profile.model_dump()
-                            lore_to_update.source = '2-stage_refiner_v10.2_stable'
+                            lore_to_update.source = '2-stage_refiner_v10.3_robust_parse'
                             lore_to_update.timestamp = time.time()
                             updated_count += 1
                 
@@ -4315,7 +4317,6 @@ class ExtractionResult(BaseModel):
         except Exception as e:
             logger.error(f"[{self.user_id}] 兩階段 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
 # 背景LORE精煉 函式結束
-
     
     
 
@@ -6670,6 +6671,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
