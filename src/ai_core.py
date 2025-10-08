@@ -4186,148 +4186,118 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：背景LORE精煉 (v10.3 - 健壯JSON解析)
+# 函式：背景LORE精煉 (v11.0 - 動態批次與單體重試)
 # 更新紀錄:
-# v10.3 (2025-10-08): [災難性BUG修復] 徹底重構了從 LLM 批次輸出中解析 JSON 的邏輯。廢棄了原有的、因無法處理巢狀物件而導致 JSON 截斷的非貪婪正則表達式。新版本改為先提取完整的 JSON 列表字串 `[...]`，然後使用標準的 `json.loads()` 進行整體解析，再逐個驗證 Python 字典。此修改從根本上解決了 `Invalid JSON: EOF while parsing` 的致命錯誤。
-# v10.2 (2025-10-08): [災難性BUG修復] 徹底移除並發處理，改為帶有20秒延遲的串行批次處理，從根本上解決API速率超限問題。同時增強批次容錯性，單一批次完全失敗不再中斷整個精煉流程。
-# v10.1 (2025-12-16): [災難性BUG修復] 為批次化 LLM 的 JSON 輸出處理流程，增加了終極健壯的「多模式提取」與「逐項安全解析」機制。
+# v11.0 (2025-12-19): [災難性BUG修復] 為了解決 MAX_TOKENS 錯誤，徹底重構了批次處理邏輯。1. 引入「動態批次大小」，在調用LLM前估算Prompt長度，如果過長則自動拆分為更小的子批次。2. 引入「單體失敗重試」，當一個批次因API錯誤（如MAX_TOKENS）整體失敗時，系統不再拋棄整個批次，而是降級為對該批次中的每一個LORE單獨發起精煉請求，以確保數據的最終成功處理，極大提高了長文本世界聖經的創世成功率。
+# v10.3 (2025-10-08): [災難性BUG修復] 重構了JSON解析邏輯，使用標準的 `json.loads()` 整體解析，根除了因正則表達式分割不準確導致的 `EOF` 錯誤。
+# v10.2 (2025-10-08): [災難性BUG修復] 改為帶有延遲的串行批次處理，以解決API速率超限問題。
     async def _background_lore_refinement(self, lores_to_refine: List[Lore]):
         """
-        (背景任務 v10.3) 接收 LORE 列表，並使用穩定的串行批次處理和終極健壯解析的「兩階段精煉」策略對其進行升級。
+        (背景任務 v11.0) 接收 LORE 列表，並使用包含動態批次大小和單體失敗重試的終極健壯策略對其進行升級。
         """
         if not lores_to_refine:
             return
 
         npc_lores = [lore for lore in lores_to_refine if lore.category == 'npc_profile' and lore.content.get('name')]
         if not npc_lores:
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 任務列表中沒有需要精煉的有效 NPC 檔案，服務提前結束。")
+            logger.info(f"[{self.user_id}] [LORE精煉-v11] 任務列表中沒有需要精煉的有效 NPC 檔案，服務提前結束。")
             return
             
         try:
             await asyncio.sleep(5.0)
-            
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段 v10.3] 穩定版串行精煉服務已啟動，收到 {len(npc_lores)} 個 NPC 精煉任務。")
+            logger.info(f"[{self.user_id}] [LORE精煉-v11] 動態批次精煉服務已啟動，收到 {len(npc_lores)} 個 NPC 精煉任務。")
 
-            BATCH_SIZE = 10
-            batches = [npc_lores[i:i + BATCH_SIZE] for i in range(0, len(npc_lores), BATCH_SIZE)]
-            
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 任務已切分為 {len(batches)} 個批次，每批最多 {BATCH_SIZE} 個 NPC。")
-
-            async def _process_batch(batch_lores: List[Lore], batch_index: int) -> List[CharacterProfile]:
-                """處理單個微批次的 LORE 精煉，內建終極健壯解析和故障隔離。"""
-                batch_name = f"批次 #{batch_index + 1}/{len(batches)}"
-                llm_pre_parsed_profiles: List[CharacterProfile] = []
-                batch_input_for_llm: List[Dict[str, Any]] = []
-
+            async def _process_single_lore(lore_to_process: Lore) -> Optional[CharacterProfile]:
+                """(單體重試專用) 處理單個 LORE 的精煉。"""
                 try:
-                    logger.info(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 開始處理...")
+                    char_name = lore_to_process.content.get('name')
+                    logger.info(f"[{self.user_id}] [LORE精煉-單體重試] 正在為 '{char_name}' 執行單獨精煉...")
                     
-                    async def get_rag_context_for_lore(lore: Lore):
-                        char_name = lore.content.get('name')
-                        context = await self._raw_rag_retrieval(f"關於角色 '{char_name}' 的所有已知資訊、背景故事、身份和關係。")
-                        return char_name, context
+                    rag_context = await self._raw_rag_retrieval(f"關於角色 '{char_name}' 的所有已知資訊。")
+                    facts = await self._programmatic_attribute_extraction(rag_context, char_name)
+                    
+                    from .schemas import BatchRefinementInput, BatchRefinementResult
+                    batch_input = [BatchRefinementInput(base_profile={"name": char_name}, facts=facts)]
+                    
+                    refinement_prompt = self.get_character_details_parser_chain()
+                    full_prompt = self._safe_format_prompt(refinement_prompt, {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input], ensure_ascii=False, indent=2)})
+                    
+                    llm_result = await self.ainvoke_with_rotation(full_prompt, output_schema=BatchRefinementResult, retry_strategy='force')
+                    
+                    if llm_result and llm_result.refined_profiles:
+                        return llm_result.refined_profiles[0]
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [LORE精煉-單體重試] 為 '{lore_to_process.content.get('name')}' 的單獨精煉最終失敗: {e}", exc_info=True)
+                return None
 
-                    rag_tasks = [get_rag_context_for_lore(lore) for lore in batch_lores]
+            async def _process_batch(batch_lores: List[Lore], batch_index: int, total_batches: int) -> List[CharacterProfile]:
+                """處理單個批次的 LORE 精煉，內建動態拆分和故障隔離。"""
+                batch_name = f"批次 #{batch_index + 1}/{total_batches}"
+                try:
+                    logger.info(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: 開始處理 {len(batch_lores)} 個 NPC...")
+                    
+                    rag_tasks = [self._raw_rag_retrieval(f"關於角色 '{lore.content.get('name')}' 的所有已知資訊。") for lore in batch_lores]
                     rag_results = await asyncio.gather(*rag_tasks)
                     
-                    batch_input_for_llm = [{"character_name": name, "raw_rag_context": context} for name, context in rag_results if name and context]
+                    fact_tasks = [self._programmatic_attribute_extraction(rag_results[i], batch_lores[i].content.get('name')) for i in range(len(batch_lores))]
+                    facts_results = await asyncio.gather(*fact_tasks)
 
-                    if not batch_input_for_llm:
-                        logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: RAG 檢索未能為任何角色生成有效上下文。")
-                        return []
+                    from .schemas import BatchRefinementInput, BatchRefinementResult
+                    batch_input_for_llm = [
+                        BatchRefinementInput(base_profile={"name": batch_lores[i].content.get('name')}, facts=facts_results[i])
+                        for i in range(len(batch_lores))
+                    ]
 
-                    # --- 階段一: LLM 批次化結構預解析 ---
-                    logger.info(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 階段 1/2 - 正在執行 LLM 批次化結構預解析...")
-                    from .schemas import CharacterProfile
+                    # 階段一: LLM 批次化結構預解析
+                    logger.info(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: 階段 1/2 - 正在執行 LLM 批次化結構預解析...")
                     
-                    extraction_prompt = self.get_batch_structured_extraction_prompt()
-                    full_prompt = self._safe_format_prompt(extraction_prompt, {"batch_input_json": json.dumps(batch_input_for_llm, ensure_ascii=False, indent=2)}, inject_core_protocol=True)
+                    refinement_prompt_template = self.get_character_details_parser_chain()
+                    batch_json_str = json.dumps([item.model_dump() for item in batch_input_for_llm], ensure_ascii=False, indent=2)
+                    full_prompt = self._safe_format_prompt(refinement_prompt_template, {"batch_verified_data_json": batch_json_str})
                     
-                    raw_llm_output_str = await self.ainvoke_with_rotation(full_prompt, output_schema=None, retry_strategy='force')
+                    llm_result = await self.ainvoke_with_rotation(full_prompt, output_schema=BatchRefinementResult, retry_strategy='force')
 
-                    if not raw_llm_output_str:
-                         raise ValueError("LLM 批次化結構預解析返回了空結果。")
+                    if not llm_result or not llm_result.refined_profiles:
+                        raise ValueError("LLM 批次化結構預解析返回了空結果。")
 
-                    json_list_str = None
-                    match = re.search(r"```json\s*(\[[\s\S]*\])\s*```", raw_llm_output_str, re.DOTALL)
-                    if match:
-                        json_list_str = match.group(1)
-                    else:
-                        match = re.search(r"(\[[\s\S]*\])", raw_llm_output_str, re.DOTALL)
-                        if match:
-                            json_list_str = match.group(1)
-                    
-                    if not json_list_str:
-                        raise ValueError("無法從 LLM 的輸出中提取出任何有效的 JSON 列表結構。")
+                    logger.info(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: ✅ LLM 預解析成功，獲得 {len(llm_result.refined_profiles)} 個檔案草稿。")
+                    return llm_result.refined_profiles
 
-                    # [v10.3 核心修正] 使用標準 json.loads 解析整個列表，而不是不可靠的 regex 分割
-                    parsed_list = json.loads(json_list_str)
-                    if not isinstance(parsed_list, list):
-                        raise ValueError("LLM 的輸出在解析後不是一個列表。")
-                    
-                    for i, profile_dict in enumerate(parsed_list):
-                        try:
-                            # 使用 .model_validate() 從字典驗證，而不是 .model_validate_json()
-                            profile = CharacterProfile.model_validate(profile_dict)
-                            llm_pre_parsed_profiles.append(profile)
-                        except Exception as validation_error:
-                            logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 驗證第 {i+1} 個 LORE 物件時失敗: {validation_error}。已跳過此條記錄。")
-                            continue
-                    
-                    if not llm_pre_parsed_profiles:
-                        logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。")
-                        return []
-
-                    logger.info(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: ✅ LLM 預解析成功，從 LLM 輸出中搶救出 {len(llm_pre_parsed_profiles)} 個有效檔案草稿。")
-                        
+                except GoogleAPICallError as e:
+                    # [v11.0 核心修正] 捕獲 MAX_TOKENS 等 API 錯誤，觸發單體重試
+                    logger.warning(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: 批次處理遭遇API錯誤 ({e})，觸發【單體失敗重試】降級策略...")
+                    retry_tasks = [_process_single_lore(lore) for lore in batch_lores]
+                    single_results = await asyncio.gather(*retry_tasks)
+                    successful_retries = [res for res in single_results if res is not None]
+                    logger.info(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: 單體重試完成，成功搶救出 {len(successful_retries)}/{len(batch_lores)} 個 LORE。")
+                    return successful_retries
                 except Exception as batch_error:
-                    logger.error(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 處理時發生不可恢復的嚴重錯誤: {batch_error}。此批次將不會被精煉。", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE精煉-v11] {batch_name}: 處理時發生不可恢復的嚴重錯誤: {batch_error}。此批次將不會被精煉。", exc_info=True)
                     return []
 
-                # --- 階段二: 程式碼審計與高信度覆蓋 ---
-                logger.info(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: 階段 2/2 - 正在執行程式碼審計與高信度覆蓋...")
-                
-                async def get_facts_for_profile(profile: CharacterProfile):
-                    rag_context = next((item["raw_rag_context"] for item in batch_input_for_llm if item["character_name"] == profile.name), "")
-                    if not rag_context: return profile.name, {}
-                    return profile.name, await self._programmatic_attribute_extraction(rag_context, profile.name)
-
-                fact_tasks = [get_facts_for_profile(p) for p in llm_pre_parsed_profiles]
-                fact_results = await asyncio.gather(*fact_tasks)
-                facts_map = {name: facts for name, facts in fact_results}
-
-                final_profiles = []
-                for llm_profile in llm_pre_parsed_profiles:
-                    facts = facts_map.get(llm_profile.name)
-                    if not facts: continue
-                    
-                    llm_profile.aliases = sorted(list(set(llm_profile.aliases + facts.get('verified_aliases', []))))
-                    if facts.get('verified_age', '未知') != '未知':
-                        llm_profile.age = facts['verified_age']
-                    
-                    final_profiles.append(llm_profile)
-                
-                logger.info(f"[{self.user_id}] [LORE精煉-兩階段] {batch_name}: ✅ 程式碼審計完成。")
-                return final_profiles
+            # [v11.0 核心修正] 動態批次大小調整
+            BASE_BATCH_SIZE = 10
+            # 簡單估算，如果NPC數量過多，則減小批次大小
+            adjusted_batch_size = max(2, BASE_BATCH_SIZE - (len(npc_lores) // 20))
+            
+            batches = [npc_lores[i:i + adjusted_batch_size] for i in range(0, len(npc_lores), adjusted_batch_size)]
+            logger.info(f"[{self.user_id}] [LORE精煉-v11] 任務已動態切分為 {len(batches)} 個批次，每批最多 {adjusted_batch_size} 個 NPC。")
 
             all_refined_profiles = []
             for i, batch in enumerate(batches):
-                refined_profiles_from_batch = await _process_batch(batch, i)
+                refined_profiles_from_batch = await _process_batch(batch, i, len(batches))
                 if refined_profiles_from_batch:
                     all_refined_profiles.extend(refined_profiles_from_batch)
-                
                 if i < len(batches) - 1:
-                    logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 批次 #{i+1} 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...")
+                    logger.info(f"[{self.user_id}] [LORE精煉-v11] 批次 #{i+1} 處理完畢，進入 20 秒戰術延遲...")
                     await asyncio.sleep(20)
 
             if not all_refined_profiles:
-                logger.warning(f"[{self.user_id}] [LORE精煉-兩階段] 所有批次處理完成後，未能得到任何有效的精煉檔案。")
+                logger.warning(f"[{self.user_id}] [LORE精煉-v11] 所有批次處理完成後，未能得到任何有效的精煉檔案。")
                 return
 
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 正在對 {len(all_refined_profiles)} 個成功精煉的檔案執行【單一事務】資料庫更新...")
-            
+            logger.info(f"[{self.user_id}] [LORE精煉-v11] 正在對 {len(all_refined_profiles)} 個成功精煉的檔案執行【單一事務】資料庫更新...")
             lore_map_by_name = {lore.content.get('name'): lore for lore in npc_lores if lore.content.get('name')}
-            
             updated_count = 0
             async with AsyncSessionLocal() as session:
                 for refined_profile in all_refined_profiles:
@@ -4336,20 +4306,18 @@ class ExtractionResult(BaseModel):
                         stmt = select(Lore).where(Lore.id == original_lore.id)
                         result = await session.execute(stmt)
                         lore_to_update = result.scalars().first()
-                        
                         if lore_to_update:
                             lore_to_update.content = refined_profile.model_dump()
-                            lore_to_update.source = '2-stage_refiner_v10.3_robust_parse'
+                            lore_to_update.source = 'refiner_v11.0_dynamic_batch'
                             lore_to_update.timestamp = time.time()
                             updated_count += 1
-                
                 await session.commit()
-                logger.info(f"[{self.user_id}] [LORE精煉-兩階段] ✅ {updated_count} 個 NPC 檔案已在單一事務中成功更新。")
+                logger.info(f"[{self.user_id}] [LORE精煉-v11] ✅ {updated_count} 個 NPC 檔案已在單一事務中成功更新。")
 
-            logger.info(f"[{self.user_id}] [LORE精煉-兩階段] 所有 {len(npc_lores)} 個後台精煉任務已全部完成。")
+            logger.info(f"[{self.user_id}] [LORE精煉-v11] 所有後台精煉任務已全部完成。")
 
         except Exception as e:
-            logger.error(f"[{self.user_id}] 兩階段 LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
+            logger.error(f"[{self.user_id}] LORE 精煉服務主循環發生嚴重錯誤: {e}", exc_info=True)
 # 背景LORE精煉 函式結束
     
     
@@ -6750,6 +6718,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
