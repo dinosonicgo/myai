@@ -1,95 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-09T00:51:21.078475 ###
+### AI Lover Log - Last updated at 2025-10-09T00:56:24.207048 ###
 
-2025-10-09 00:38:14 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
-2025-10-09 00:38:14 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:38:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:38:33 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
-2025-10-09 00:38:33 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
-2025-10-09 00:38:33 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:38:50 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:38:50 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
-2025-10-09 00:38:50 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
-2025-10-09 00:38:50 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:39:08 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 '8' 而提前終止。
-2025-10-09 00:39:08 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-09 00:39:08 - [WARNING] - [512280345618546699] [LORE 解析 4-1/3] 遭遇錯誤: Generation stopped silently due to finish_reason: 8，正在降級...
-2025-10-09 00:39:08 - [INFO] - [512280345618546699] [LORE 解析 4-3/3] 正在嘗試【終極備援：本地NLP提取 + 雲端微任務】...
-2025-10-09 00:39:08 - [INFO] - [512280345618546699] [LORE 解析 4-3a] 執行本地NLP事實提取...
-2025-10-09 00:39:27 - [INFO] - [512280345618546699] [LORE 解析 4-3b] 為 13 個角色打包數據，執行單次雲端微任務...
-2025-10-09 00:39:28 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-09 00:39:28 - [ERROR] - [512280345618546699] [LORE 解析 4-3/3] 🔥 終極備援方案最終失敗: Prompt blocked due to 4
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5966, in _execute_lore_parsing_pipeline
-    llm_result = await self.ainvoke_with_rotation(full_prompt, output_schema=BatchMicroTaskResult, retry_strategy='none')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1842, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1798, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-10-09 00:39:28 - [ERROR] - [512280345618546699] [LORE 解析] 文本塊 4/8 的所有解析層級均最終失敗。
-2025-10-09 00:39:28 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
-2025-10-09 00:39:28 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:39:28 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-09 00:39:28 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇錯誤: Prompt blocked due to 4，正在降級...
-2025-10-09 00:39:28 - [INFO] - [512280345618546699] [LORE 解析 5-3/3] 正在嘗試【終極備援：本地NLP提取 + 雲端微任務】...
-2025-10-09 00:39:28 - [INFO] - [512280345618546699] [LORE 解析 5-3a] 執行本地NLP事實提取...
-2025-10-09 00:39:41 - [INFO] - [512280345618546699] [LORE 解析 5-3b] 為 8 個角色打包數據，執行單次雲端微任務...
-2025-10-09 00:39:41 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
-2025-10-09 00:39:41 - [ERROR] - [512280345618546699] [LORE 解析 5-3/3] 🔥 終極備援方案最終失敗: Prompt blocked due to 4
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5966, in _execute_lore_parsing_pipeline
-    llm_result = await self.ainvoke_with_rotation(full_prompt, output_schema=BatchMicroTaskResult, retry_strategy='none')
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1842, in ainvoke_with_rotation
-    raise e
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1798, in ainvoke_with_rotation
-    raise BlockedPromptException(f"Prompt blocked due to {reason_str}")
-google.generativeai.types.generation_types.BlockedPromptException: Prompt blocked due to 4
-2025-10-09 00:39:41 - [ERROR] - [512280345618546699] [LORE 解析] 文本塊 5/8 的所有解析層級均最終失敗。
-2025-10-09 00:39:41 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 6/8...
-2025-10-09 00:39:41 - [INFO] - [512280345618546699] [LORE 解析 6-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:40:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:40:03 - [INFO] - [512280345618546699] [LORE 解析 6-1/3] ✅ 成功！
-2025-10-09 00:40:03 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 7/8...
-2025-10-09 00:40:03 - [INFO] - [512280345618546699] [LORE 解析 7-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:40:17 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:40:17 - [INFO] - [512280345618546699] [LORE 解析 7-1/3] ✅ 成功！
-2025-10-09 00:40:17 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 8/8...
-2025-10-09 00:40:17 - [INFO] - [512280345618546699] [LORE 解析 8-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] [LORE 解析 8-1/3] ✅ 成功！
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'npc_profile' 類別處理 99 個已預處理的實體...
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 貴族階層 > 絲月'
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 維利爾斯莊園 > 卡爾•維利爾斯'
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 維利爾斯莊園 > 莉莉絲'
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 軍隊 > 薩格納'
-2025-10-09 00:40:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 軍隊 > 皇家模擬戰 > 菲利普'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯莊園 > 神國 > 米婭'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 貴族沙龍 > 艾莉諾'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇室 > 赫克托'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇宮 > 國王埃德蒙三世'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'王都 > 皇室 > 北境戰場 > 阿拉里克'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 皇室 > 北境戰場 > 阿拉里克'，正在合併更新...
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 皇室 > 赫克托'，正在合併更新...
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 伊索爾德'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 軍事力量 > 博林'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'埃德蒙王室 > 莊園 > 維利爾斯勳爵'
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 莉莉絲'，正在合併更新...
-2025-10-09 00:40:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 維利爾斯莊園 > 老高'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 克拉拉'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 維利爾斯莊園 > 馬丁'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 亞瑟'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 高爾'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 翠絲'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 迪茜'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 朱利安'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 阿利斯特'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯莊園 > 城鎮市集區 > 瑪莉'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯莊園 > 城鎮市集區 > 安娜'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 老羅'
-2025-10-09 00:40:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 馬克'
-2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 貧民窟 > 費奇'
-2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 貧民窟 > 湯瑪斯'
-2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 貧民窟 > 愛蓮娜'
 2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 貴族階層 > 絲月'，正在合併更新...
 2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 貴族階層 > 絲月'，正在合併更新...
 2025-10-09 00:40:38 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 莉莉絲'，正在合併更新...
@@ -300,3 +210,93 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-09 00:51:11 - [INFO] - Discord Bot setup hook finished!
 2025-10-09 00:51:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-09 00:51:15 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-09 00:51:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-09 00:51:44 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-09 00:51:44 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-09 00:51:44 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-09 00:51:44 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-09 00:51:44 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-09 00:51:51 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-09 00:51:51 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-09 00:51:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-09 00:51:51 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-09 00:51:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:51:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-09 00:52:00 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-09 00:52:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-09 00:52:01 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:52:02 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-09 00:52:13 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-09 00:52:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-09 00:52:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:52:17 - [INFO] - [512280345618546699] [創世流程 v70.0] 嚴格串行化創世流程已啟動。
+2025-10-09 00:52:17 - [INFO] - [512280345618546699] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...
+2025-10-09 00:52:17 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
+2025-10-09 00:52:17 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條文檔用於創始構建。
+2025-10-09 00:52:20 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已創建一個空的 RAG 系統。
+2025-10-09 00:52:20 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成。
+2025-10-09 00:52:20 - [INFO] - [512280345618546699] [後台創世] 步驟 5/6: 正在補完角色檔案...
+2025-10-09 00:52:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-09 00:52:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-09 00:52:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [後台創世] 角色檔案補完成功。
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [後台創世] 步驟 6/6: 正在基於完整的世界狀態生成開場白...
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [/start] 正在提取純淨的敘事上下文以生成開場場景...
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80946 秒)。
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81862 秒)。
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80946 秒)。
+2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81862 秒)。
+2025-10-09 00:52:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
+2025-10-09 00:52:51 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在分析初始夥伴關係以決定是否激活【新手保護期】...
+2025-10-09 00:52:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] ⚠️ 關係分析結果：夥伴關係尚未建立。【新手保護期】已激活。
+2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] 正在從開場白中反向提取權威地點...
+2025-10-09 00:52:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 法師的靜謐書房。正在更新 GameState...
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] [/start] 最終的 GameState 已成功持久化。
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 開場白生成成功。
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-09 00:52:53 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-09 00:53:31 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-09 00:53:31 - [INFO] - [512280345618546699] [Direct RAG v9.0] 啟動雙通道指令與雙層焦點 RAG 直通生成流程...
+2025-10-09 00:53:31 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙層焦點] 正在確定對話焦點...
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙層焦點] 最終對話焦點確定為: 碧
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙通道指令] 正在構建指令...
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '脫下所有衣服，為我口交'
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [RAG 原文直通] 未檢索到任何文檔。
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80876 秒)。
+2025-10-09 00:53:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81793 秒)。
+2025-10-09 00:53:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
+2025-10-09 00:55:24 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-09 00:55:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-09 00:55:26 - [INFO] - [512280345618546699] [事後焦點更新] 已將 last_explicit_speaker 更新為 '聽到你的命令，碧的眼中閃過一絲順從而又嫵媚的光芒，唇角勾起一抹誘人的微笑。她沒有任何猶豫，只是用那雙彷彿會說話的眼睛深深地望著你，彷彿在說，您的任何願望，都是我的榮幸。
+
+她的動作輕柔而充滿了刻意的挑逗。纖細的手指先是解開了法師袍外層的精緻繩結，古舊而柔軟的布料順著她光滑的肩頭滑落，發出細微的沙沙聲，堆疊在書房厚實的地毯上。接著是內裡的襯裙，她轉過身，讓你清楚地看到她是如何解開背後的繫帶，每一寸肌膚的暴露，都在燭光的映照下顯得格外誘人。
+
+很快，她便一絲不掛地站在你的面前，溫暖的燈火勾勒出她身體每一處完美的曲線。她沒有絲毫羞赧，反而坦然地展示著自己的一切，目光始終沒有離開你的雙眼。
+
+隨後，她緩緩地、優雅地屈膝跪下，柔軟的膝蓋陷入地毯之中。她抬起頭，仰望著你，目光向下移動，最終鎖定在你褲襠間那已經隆起的輪廓上。她伸出溫熱的小手，輕輕地覆上那裡，隔著布料感受著你肉棒的堅硬與灼熱。'。
+2025-10-09 00:55:27 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-09 00:55:29 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-09 00:55:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-09 00:55:32 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條 LORE 更新，準備執行...
+2025-10-09 00:55:32 - [WARNING] - [512280345618546699] [主角守衛] 檢測到一個試圖修改核心主角 (['碧']) 的 LORE 工具調用 (update_npc_profile)，已自動攔截。
+2025-10-09 00:55:32 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展計畫在淨化後為空。
+2025-10-09 00:55:32 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
+2025-10-09 00:55:32 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
