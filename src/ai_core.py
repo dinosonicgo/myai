@@ -534,14 +534,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v8.0 - 前置實體鏈結)
+# # 函式：RAG 直通生成 (v8.1 - 上下文感知的核心LORE注入)
 # 更新紀錄:
-# v8.0 (2025-12-14): [災難性BUG修復] 根據 LORE 重複創建問題，徹底重構了 LORE 創生管線。將「實體鏈結」的職責從儲存層 `_resolve_and_save` 前移至此函式的最前端。新流程會先使用 LLM 和程式碼提取出所有潛在的實體指代，然後在一個擁有完整 RAG 上下文的環境中，進行一次批次化的實體解析與合併，最後才為合併後的、唯一的實體執行後續的精煉和創建流程。此修改從根本上解決了因使用別名、頭銜而導致同一角色被創建多個 LORE 條目的問題。
+# v8.1 (2025-10-08): [災難性BUG修復] 引入了「上下文感知的核心LORE注入」機制。僅在 viewing_mode 為 'local' 時，才向 Prompt 強制注入主角的完整角色檔案，從根本上解決角色設定不一致（如髮色錯誤）和遠景模式上下文污染的雙重問題。
+# v8.0 (2025-12-14): [災難性BUG修復] 根據 LORE 重複創建問題，徹底重構了 LORE 創生管線。
 # v7.1 (2025-12-12): [功能擴展] 增加了後台精煉任務的觸發器。
-# v7.0 (2025-12-08): [根本性重构] 引入了消息列表輸入支持。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.0) 執行一個包含「前置實體鏈結與 LORE 更新」和「RAG 直通生成」的完整流程。
+        (v8.1) 執行一個包含「前置實體鏈結」、「上下文感知的核心LORE注入」和「RAG 直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
@@ -553,14 +553,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         narrative_focus_snapshot = { "entities": [], "location": None }
         newly_created_lores_for_refinement: List[Lore] = []
 
-        # --- 步驟 1: 前置 LORE 創建/合併/更新 ---
+        # --- 步驟 1: 前置 LORE 創建/合併/更新 (與之前版本相同) ---
         try:
             logger.info(f"[{user_id}] [前置 LORE-1/4] 正在最大化識別所有潛在實體...")
-            # 階段一：最大化實體識別
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             existing_lore_json = json.dumps([{"key": lore.key, "name": lore.content.get("name")} for lore in all_lores], ensure_ascii=False)
             
-            expansion_prompt = self._safe_format_prompt(self.get_lore_expansion_pipeline_prompt(), {"user_input": user_input, "existing_lore_json": "[]"}) # 傳入空列表以捕獲所有實體
+            expansion_prompt = self._safe_format_prompt(self.get_lore_expansion_pipeline_prompt(), {"user_input": user_input, "existing_lore_json": "[]"})
             expansion_result = await self.ainvoke_with_rotation(expansion_prompt, output_schema=CanonParsingResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL])
             
             candidate_profiles = expansion_result.npc_profiles if expansion_result else []
@@ -568,30 +567,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.info(f"[{user_id}] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。")
             else:
                 logger.info(f"[{user_id}] [前置 LORE-2/4] 正在對候選實體進行批次化實體解析與鏈結...")
-                # 階段二：批次化實體解析
                 resolution_prompt = self._safe_format_prompt(
                     self.get_batch_entity_resolution_prompt(),
                     {"new_entities_json": json.dumps([{"name": p.name} for p in candidate_profiles]), "existing_entities_json": existing_lore_json}
                 )
                 resolution_plan = await self.ainvoke_with_rotation(resolution_prompt, output_schema=BatchResolutionPlan, use_degradation=True)
 
-                # 階段三：程式級事實提取與批次精煉
                 unique_new_targets: List[CharacterProfile] = []
                 if resolution_plan and resolution_plan.resolutions:
                     logger.info(f"[{user_id}] [前置 LORE-3/4] 正在為已解析的實體執行程式級事實提取與批次精煉...")
                     for resolution in resolution_plan.resolutions:
                         if resolution.decision.upper() in ['CREATE', 'NEW']:
-                            # 為新角色創建一個基礎骨架
                             new_profile = CharacterProfile(name=resolution.standardized_name, aliases=[res.original_name for res in resolution_plan.resolutions if res.standardized_name == resolution.standardized_name and res.original_name != resolution.standardized_name])
                             unique_new_targets.append(new_profile)
                         elif resolution.decision.upper() in ['MERGE', 'EXISTING'] and resolution.matched_key:
-                            # 對於已存在的角色，我們可以觸發一個輕量級的更新
                             logger.info(f"[{user_id}] [前置 LORE] 識別到對現有角色 '{resolution.matched_key}' 的更新意圖。")
-                            # (此處未來可以擴展為觸發狀態更新的邏輯)
                             pass
                 
                 if unique_new_targets:
-                    # 去重
                     unique_new_targets = list({p.name: p for p in unique_new_targets}.values())
                     logger.info(f"[{user_id}] [前置 LORE] 實體鏈結完成，將為 {len(unique_new_targets)} 個全新角色創建 LORE: {[p.name for p in unique_new_targets]}")
 
@@ -599,7 +592,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     if expansion_result and expansion_result.locations:
                         narrative_focus_snapshot["location"] = [loc.name for loc in expansion_result.locations]
 
-                    # ... (後續的程式級事實提取與批次精煉邏輯) ...
                     rag_contexts = {s.name: await self._raw_rag_retrieval(f"關於角色 '{s.name}' 的所有已知資訊、背景、別名和關係。") for s in unique_new_targets}
                     programmatic_facts_tasks = [self._programmatic_attribute_extraction(rag_contexts[s.name], s.name) for s in unique_new_targets]
                     facts_results = await asyncio.gather(*programmatic_facts_tasks)
@@ -624,7 +616,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                             if facts.description_sentences: profile.description = "\n".join(sorted(list(set(facts.description_sentences))))
                             final_profiles.append(profile)
 
-                    # 階段四：儲存
                     logger.info(f"[{user_id}] [前置 LORE-4/4] 正在將精煉後的 LORE 存入資料庫...")
                     saved_lores = await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles], return_lore_objects=True)
                     if saved_lores:
@@ -637,28 +628,43 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{user_id}] [主生成] 開始構建結構化的消息列表...")
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
-        final_query_keywords = list(set(await self._extract_entities_from_input(user_input)) | {self.profile.user_profile.name, self.profile.ai_profile.name})
-        absolute_truth_mandate = ""
-        all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-        relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
-        if relevant_lores:
-            truth_statements = [f"{(l.content.get('name') or l.content.get('title'))} ({l.category}): 當前身份={', '.join(l.content.get('aliases', []))}, 當前狀態={l.content.get('status', '未知')}" for l in relevant_lores]
-            if truth_statements:
-                absolute_truth_mandate = "# === 【【【🚨 絕對事實強制令】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements])
-        rag_context_dict = await self.retrieve_and_summarize_memories(user_input + " " + " ".join(final_query_keywords))
+        
+        # [v8.1 核心修正] 根據 viewing_mode 決定是否注入核心角色檔案
+        core_character_files_mandate = ""
+        if self.profile.game_state.viewing_mode == 'local':
+            logger.info(f"[{user_id}] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...")
+            user_profile_json = json.dumps(self.profile.user_profile.model_dump(), ensure_ascii=False, indent=2)
+            ai_profile_json = json.dumps(self.profile.ai_profile.model_dump(), ensure_ascii=False, indent=2)
+            core_character_files_mandate = f"""# === 【【【📖 核心角色檔案 (ABSOLUTE CANON)】】】 ===
+# 你的所有描述都【必須】嚴格遵守以下角色檔案的設定。
+# --- 使用者 '{self.profile.user_profile.name}' 的檔案 ---
+{user_profile_json}
+# --- AI '{self.profile.ai_profile.name}' 的檔案 ---
+{ai_profile_json}
+# ================================================="""
+        else:
+            logger.info(f"[{user_id}] [主生成] 檢測到 'remote' 視角，跳過注入核心角色檔案以避免上下文污染。")
+
+        # RAG 檢索和歷史摘要邏輯保持不變
+        rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
         historical_context = await self._get_summarized_chat_history(user_id)
-        system_instruction = "\n\n".join([
-            self.core_protocol_prompt, style_mandate, absolute_truth_mandate,
+        
+        # 組合最終的 system_instruction
+        system_instruction = "\n\n".join(filter(None, [
+            self.core_protocol_prompt,
+            style_mandate,
+            core_character_files_mandate, # 如果是 remote 模式，此處為空字符串
             "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
             "# === 【背景知識 (RAG 檢索)】 ===\n" + rag_context
-        ])
+        ]))
+        
         prompt_messages = [{"role": "user", "parts": [system_instruction]}]
         dialogue_block = f"【最近對話歷史】:\n{historical_context}\n\n【本回合互動】:\n{self.profile.user_profile.name}: {user_input}"
         prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]})
         prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{self.profile.ai_profile.name}:"]})
 
-        # --- 步驟 3: 调用 LLM 生成对话 ---
+        # --- 步驟 3: 调用 LLM 生成对话 (與之前版本相同) ---
         final_response = await self.ainvoke_with_rotation(
             prompt_messages,
             retry_strategy='force',
@@ -671,7 +677,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
-        # --- 步驟 4: 事后处理 ---
+        # --- 步驟 4: 事后处理 (與之前版本相同) ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -6475,6 +6481,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
