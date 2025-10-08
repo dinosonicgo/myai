@@ -375,7 +375,11 @@ class ChangeLocationArgs(BaseToolArgs):
     )
 # 類別：改變地點參數
 
-# 工具：改變地點
+# 工具：改變地點 (v16.1 - 新手保護期退場機制)
+# 更新紀錄:
+# v16.1 (2025-10-08): [架構擴展] 新增了【新手保護期退場機制】。此工具現在會檢查 is_in_genesis_phase 旗標，如果為True，则在成功切换地点后自动将其翻转为False，标志着新手引导阶段的结束。
+# v16.0 (2025-08-27): [根本性BUG修復] 徹底重構了 `change_location` 的路徑處理邏輯。
+# v15.3 (2025-08-15): [健壯性] 為所有工具的 Pydantic 參數模型增加了 `AliasChoices`。
 @tool(args_schema=ChangeLocationArgs)
 async def change_location(path: str) -> str:
     """當團隊需要移動到一個新的地點時，【必須】使用此工具。它支持相對路徑（例如 '..' 返回上一級）和絕對路徑（例如 '/王城/西區'）。【參數名稱必須是 `path`】。"""
@@ -410,7 +414,15 @@ async def change_location(path: str) -> str:
         gs.location_path = new_path
         new_location_str = " > ".join(gs.location_path)
         logger.info(f"[{tool_context.get_user_id()}] 地點更新: '{old_location_str}' -> '{new_location_str}'")
-        return f"地點已更新為: {new_location_str}。"
+        
+        # [v16.1 核心修正] 新手保護期退場機制
+        exiting_message = ""
+        if gs.is_in_genesis_phase:
+            gs.is_in_genesis_phase = False
+            exiting_message = "【系統提示：新手保護期已結束，祝您冒險愉快！】"
+            logger.info(f"[{tool_context.get_user_id()}] [新手保護期] 玩家首次离开初始场景，is_in_genesis_phase 旗标已翻转为 False。")
+
+        return f"地點已更新為: {new_location_str}。{exiting_message}".strip()
     return await _update_game_state(logic)
 # 工具：改變地點
 
@@ -471,6 +483,7 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
 
 
