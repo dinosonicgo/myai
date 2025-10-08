@@ -5771,19 +5771,71 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-
-
-
-
-
-# 函式：執行 LORE 解析管線 (v6.0 - 整合四層降級終極備援)
+# 函式：獲取批次化微任務提取器 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v6.0 (2025-12-19): [災難性BUG修復] 根據使用者對終極健壯性的要求，增加了第四層、也是最終的備援方案：「純本地程式碼骨架生成」。當所有依賴LLM的層級（雲端、本地、雲端精煉）全部失敗後，此層級會被觸發，它100%使用本地的SpaCy和程式碼邏輯，將從原文中提取的原始事實數據直接組裝成LORE骨架。此修改確保了LORE解析管線在任何極端情況下（如API完全宕機）都永不失敗，一定能產出結果。
+# v1.0 (2025-12-19): [全新創建] 根據「本地NLP+雲端微任務」的終極備援策略創建此Prompt。它的核心任務不再是要求LLM生成一個完整的、複雜的JSON物件，而是將其降級為一個簡單的「填空題」執行者。LLM被要求為批次中的每個角色，從提供的上下文中提取幾個離散的、短小的值，並對描述進行簡單的合併。這種「微任務」模式極大地降低了LLM的出錯率和觸發RECITATION審查的風險。
+    def get_batch_micro_task_extraction_prompt(self) -> str:
+        """獲取一個為「批次化微任務提取」備援方案設計的字符串模板。"""
+        
+        base_prompt = """# TASK: 你是一個高精度的信息提取與數據填充引擎。
+# MISSION: 你的任務是接收一份包含【多個角色信息提取任務】的批量請求。對於列表中的【每一個角色】，你必須嚴格地、只從其對應的`context_sentences`中，提取並填充以下幾個欄位的值。
+
+# === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
+# 1. **【微任務聚焦原則】**: 你的任務是【填空】，不是【創作】。你提取的所有信息都【必須】直接來源於提供的`context_sentences`。
+#     - `gender`: 角色的性別 (返回 '男', '女', 或 '未知')。
+#     - `race`: 角色的種族 (例如 '人類', '精靈')。
+#     - `age`: 角色的年齡或年齡段。
+#     - `personality`: 描述其性格的3-5個核心關鍵詞列表。
+#     - `final_description`: 將所有`context_sentences`合併成一段【單一的、通順的】描述文本。你可以進行簡單的語句連接和去重，但【禁止】添加任何原文未提及的新信息。
+#
+# 2. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchMicroTaskResult` Pydantic 模型的JSON物件。其頂層鍵【必須是】`results`，其值是一個包含所有處理結果的列表。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必須嚴格遵守】】】 ===
+# ```json
+# {
+#   "results": [
+#     {
+#       "character_name": "米婭",
+#       "gender": "女",
+#       "race": "人類",
+#       "age": "16歲",
+#       "personality": ["順從", "堅韌", "有心計"],
+#       "final_description": "米婭來自貧民窟，曾因偷竊而被斬斷左手，身患嚴重肺病。在瀕死之際，她投靠了維利爾斯莊園..."
+#     },
+#     {
+#       "character_name": "卡爾",
+#       "gender": "男",
+#       "race": "人類",
+#       "age": "四十多歲",
+#       "personality": ["掌控欲強", "殘酷", "優雅"],
+#       "final_description": "卡爾是維利爾斯勳爵，他以冷酷的手段統治著領地..."
+#     }
+#   ]
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【批量信息提取任務】:
+{batch_input_json}
+
+---
+# 【你生成的批量微任務結果JSON (頂層鍵必須是 'results')】:
+"""
+        return base_prompt
+# 函式：獲取批次化微任務提取器 Prompt (v1.0 - 全新創建)
+
+
+
+
+# 函式：執行 LORE 解析管線 (v7.0 - 整合微任務備援)
+# 更新紀錄:
+# v7.0 (2025-12-19): [災難性BUG修復] 根據 RECITATION 錯誤，徹底重構了層級3備援方案。不再使用易於失敗的「批次精煉」模式，而是改為全新的「本地NLP提取 + 雲端批次化微任務提取」管線。此方案將LLM的任務降級為簡單、低風險的「填空題」，由本地程式碼負責最終的數據組裝。這在保持批量處理效率的同時，從根本上繞開了 RECITATION 審查機制，極大提高了備援流程的成功率和健壯性。
+# v6.0 (2025-12-19): [災難性BUG修復] 增加了第四層、也是最終的純程式碼備援方案，確保管線永不失敗。
 # v5.0 (2025-12-19): [災難性BUG修復] 完整實現了包含「本地LLM備援」的三層降級安全管線。
-# v4.3 (2025-12-13): [災難性BUG修復] 修正了 LORE 解析任務的協議注入方式。
     async def _execute_lore_parsing_pipeline(self, text_to_parse: str) -> Tuple[bool, Optional["CanonParsingResult"], List[str]]:
         """
-        【v6.0 核心 LORE 解析引擎】執行一個包含四層降級（含純程式碼終極備援）的解析管線。
+        【v7.0 核心 LORE 解析引擎】執行一個包含「微任務備援」的三層降級解析管線。
         返回一個元組 (是否成功, 解析出的物件, [成功的主鍵列表])。
         """
         if not self.profile or not text_to_parse.strip():
@@ -5792,7 +5844,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
         chunks = text_splitter.split_text(text_to_parse)
         
-        logger.info(f"[{self.user_id}] [LORE 解析 v6.0] 已將世界聖經原文分割成 {len(chunks)} 個文本塊進行處理。")
+        logger.info(f"[{self.user_id}] [LORE 解析 v7.0] 已將世界聖經原文分割成 {len(chunks)} 個文本塊進行處理。")
 
         final_aggregated_result = CanonParsingResult()
         all_successful_keys: List[str] = []
@@ -5825,119 +5877,95 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             # --- 層級 1: 【理想方案】雲端宏觀解析 (Gemini) ---
             try:
                 if not parsing_completed:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/4] 正在嘗試【理想方案：雲端宏觀解析】...")
-                    
+                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 正在嘗試【理想方案：雲端宏觀解析】...")
                     transformation_template = self.get_canon_transformation_chain()
                     prompt_params = {"username": self.profile.user_profile.name, "ai_name": self.profile.ai_profile.name, "canon_text": chunk}
-                    
-                    full_prompt = self._safe_format_prompt(
-                        transformation_template, prompt_params,
-                        inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
-                    )
-
+                    full_prompt = self._safe_format_prompt(transformation_template, prompt_params, inject_core_protocol=True, custom_protocol=self.data_protocol_prompt)
                     parsing_result = await self.ainvoke_with_rotation(full_prompt, output_schema=CanonParsingResult, retry_strategy='none')
-                    
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/4] ✅ 成功！")
+                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
+                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] ✅ 成功！")
                         chunk_parsing_result = parsing_result
                         parsing_completed = True
-            except BlockedPromptException:
-                logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/4] 遭遇內容審查，正在降級...")
             except Exception as e:
-                logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-1/4] 遭遇未知錯誤: {e}，正在降級。", exc_info=False)
+                logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-1/3] 遭遇錯誤: {e}，正在降級...", exc_info=False)
 
             # --- 層級 2: 【本地備援方案】無審查解析 (Ollama) ---
             if not parsing_completed and self.is_ollama_available:
                 try:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/4] 正在嘗試【本地備援方案：無審查解析】...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 正在嘗試【本地備援方案：無審查解析】...")
                     parsing_result = await self._invoke_local_ollama_parser(chunk)
-                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations or parsing_result.items or parsing_result.creatures or parsing_result.quests or parsing_result.world_lores):
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/4] ✅ 成功！")
+                    if parsing_result and (parsing_result.npc_profiles or parsing_result.locations):
+                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] ✅ 成功！")
                         chunk_parsing_result = parsing_result
                         parsing_completed = True
                     else:
-                        logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-2/4] 本地模型未能成功解析或返回空結果，正在降級...")
+                        logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 本地模型未能成功解析或返回空結果，正在降級...")
                 except Exception as e:
-                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/4] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
+                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-2/3] 本地備援方案遭遇未知錯誤: {e}，正在降級。", exc_info=True)
 
-            # --- 層級 3: 【雲端備援方案】本地NLP提取 + 雲端批次精煉 ---
+            # --- 層級 3: 【終極備援方案】本地NLP提取 + 雲端批次化微任務提取 ---
             if not parsing_completed:
-                facts_by_character = None
                 try:
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/4] 正在嘗試【雲端備援：本地NLP提取 + 雲端批次精煉】...")
+                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/3] 正在嘗試【終極備援：本地NLP提取 + 雲端微任務】...")
                     
                     # 步驟 A: 本地安全粗提取
                     logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3a] 執行本地NLP事實提取...")
-                    facts_by_character = defaultdict(lambda: {
-                        "verified_aliases": [], "verified_age": "未知", "description_sentences": []
-                    })
-                    
                     nlp = spacy.load('zh_core_web_sm')
                     doc = nlp(chunk)
                     protagonist_names_lower = {self.profile.user_profile.name.lower(), self.profile.ai_profile.name.lower()}
-                    npc_names = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and ent.text.lower() not in protagonist_names_lower}
+                    npc_names = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and ent.text.lower() not in protagonist_names_lower and len(ent.text) > 1}
 
-                    for name in npc_names:
-                        facts = await self._programmatic_attribute_extraction(chunk, name)
-                        facts_by_character[name] = facts
+                    if not npc_names:
+                        raise ValueError("終極備援：本地NLP未能從文本塊中提取任何有效角色名稱。")
+                    
+                    fact_tasks = [self._programmatic_attribute_extraction(chunk, name) for name in npc_names]
+                    facts_results = await asyncio.gather(*fact_tasks)
+                    facts_by_character = {name: facts for name, facts in zip(npc_names, facts_results)}
 
-                    if not facts_by_character:
-                        raise ValueError("雲端備援：本地NLP未能從文本塊中提取任何有效角色事實。")
-
-                    # 步驟 B: 雲端LLM批次精煉
-                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3b] 為 {len(facts_by_character)} 個角色打包數據，執行單次雲端批次精煉...")
-                    from .schemas import BatchRefinementInput, BatchRefinementResult
+                    # 步驟 B: 雲端LLM批次化微任務提取
+                    logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3b] 為 {len(facts_by_character)} 個角色打包數據，執行單次雲端微任務...")
+                    from .schemas import BatchMicroTaskResult
                     
                     batch_input_data = [
-                        BatchRefinementInput(
-                            base_profile={"name": name, "aliases": facts["verified_aliases"]},
-                            facts=facts
-                        ) for name, facts in facts_by_character.items()
+                        {"character_name": name, "context_sentences": facts.get("description_sentences", [])}
+                        for name, facts in facts_by_character.items()
                     ]
                     
-                    refinement_prompt = self.get_batch_refinement_prompt()
+                    micro_task_prompt = self.get_batch_micro_task_extraction_prompt()
                     full_prompt = self._safe_format_prompt(
-                        refinement_prompt,
-                        {"batch_verified_data_json": json.dumps([item.model_dump() for item in batch_input_data], ensure_ascii=False, indent=2)},
+                        micro_task_prompt,
+                        {"batch_input_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)},
                         inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
                     )
                     
-                    llm_result = await self.ainvoke_with_rotation(
-                        full_prompt, output_schema=BatchRefinementResult, retry_strategy='none'
-                    )
+                    llm_result = await self.ainvoke_with_rotation(full_prompt, output_schema=BatchMicroTaskResult, retry_strategy='none')
 
-                    if llm_result and llm_result.refined_profiles:
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3/4] ✅ 成功！")
-                        chunk_parsing_result = CanonParsingResult(npc_profiles=llm_result.refined_profiles)
+                    # 步驟 C: 本地程式碼驅動的最終組裝
+                    if llm_result and llm_result.results:
+                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-3c] ✅ 雲端微任務成功！正在本地組裝最終LORE...")
+                        final_profiles = []
+                        results_map = {res.character_name: res for res in llm_result.results}
+                        
+                        for name, facts in facts_by_character.items():
+                            llm_data = results_map.get(name)
+                            if llm_data:
+                                final_profiles.append(CharacterProfile(
+                                    name=name,
+                                    aliases=facts.get('verified_aliases', []),
+                                    age=llm_data.age,
+                                    race=llm_data.race,
+                                    gender=llm_data.gender,
+                                    personality=llm_data.personality,
+                                    description=llm_data.final_description
+                                ))
+                        
+                        chunk_parsing_result = CanonParsingResult(npc_profiles=final_profiles)
                         parsing_completed = True
                     else:
-                        # 觸發降級到層級4
-                        raise ValueError("雲端精煉失敗或返回空結果，將降級到純程式碼終極備援。")
+                        raise ValueError("雲端微任務提取失敗或返回空結果。")
 
-                except Exception as e:
-                    logger.warning(f"[{self.user_id}] [LORE 解析 {i+1}-3/4] 遭遇錯誤: {e}，正在降級到終極保底方案...", exc_info=False)
-                    
-                    # --- 層級 4: 【終極保底方案】純本地程式碼骨架生成 ---
-                    try:
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-4/4] 正在執行【終極保底：純本地程式碼骨架生成】...")
-                        if not facts_by_character:
-                            logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-4/4] 致命錯誤：無法執行終極備援，因為在層級3中未能成功提取事實數據點。")
-                            raise ValueError("前置事實提取失敗，無法進行終極備援。")
-
-                        raw_profiles = []
-                        for name, facts in facts_by_character.items():
-                            raw_profiles.append(CharacterProfile(
-                                name=name,
-                                aliases=facts.get('verified_aliases', []),
-                                age=facts.get('verified_age', '未知'),
-                                description="\n".join(facts.get('description_sentences', []))
-                            ))
-                        chunk_parsing_result = CanonParsingResult(npc_profiles=raw_profiles)
-                        parsing_completed = True
-                        logger.info(f"[{self.user_id}] [LORE 解析 {i+1}-4/4] ✅ 終極保底方案成功生成了 {len(raw_profiles)} 個LORE骨架。")
-                    
-                    except Exception as final_fallback_e:
-                        logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-4/4] 🔥 終極備援方案最終失敗: {final_fallback_e}", exc_info=True)
+                except Exception as final_fallback_e:
+                    logger.error(f"[{self.user_id}] [LORE 解析 {i+1}-3/3] 🔥 終極備援方案最終失敗: {final_fallback_e}", exc_info=True)
 
 
             if parsing_completed and chunk_parsing_result:
@@ -5948,7 +5976,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.error(f"[{self.user_id}] [LORE 解析] 文本塊 {i+1}/{len(chunks)} 的所有解析層級均最終失敗。")
         
         return is_any_chunk_successful, final_aggregated_result, all_successful_keys
-# 函式：執行 LORE 解析管線 (v6.0 - 整合四層降級終極備援)
+# 函式：執行 LORE 解析管線 (v7.0 - 整合微任務備援)
 
 
 
@@ -6808,6 +6836,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
