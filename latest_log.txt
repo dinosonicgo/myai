@@ -1,57 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T22:02:42.094814 ###
+### AI Lover Log - Last updated at 2025-10-08T22:07:46.501155 ###
 
-name
-  Field required [type=missing, input_value={'combat': 'elite', 'swor...l', 'training': 'harsh'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 12 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'build': '英俊挺拔',...r': '自信, 攻擊性'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 13 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 22 column 5 [type=json_invalid, input_value='{\n    "name": "國王...爵": "盟友"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 14 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'rule': 'King', 'diplomacy': 'shrewd'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 15 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'age': '年近花甲', 'demeanor': '威嚴'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 16 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 20 column 5 [type=json_invalid, input_value='{\n    "name": "二公...德": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 17 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 18 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'health': '曾孱弱，現康復'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 19 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 23 column 5 [type=json_invalid, input_value='{\n    "name": "三皇...德": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 20 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'swordsmanship': 'master...eadership': 'potential'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 驗證第 21 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'build': '英俊挺拔'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 18:41:04 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/9: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
-2025-10-08 18:41:04 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #7 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #8/9: 開始處理...
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '三皇女伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林勳爵' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '大主教安布羅斯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瓦勒留斯 神父' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '巴納比' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '奧斯華' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾諾拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '漢德瑞克師傅' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉娜' 的所有已知資訊、背景故事、身份和關係。'
 2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '貝拉' 的所有已知資訊、背景故事、身份和關係。'
 2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
 2025-10-08 18:41:24 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
@@ -300,3 +248,55 @@ name
 2025-10-08 22:02:36 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 22:02:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 22:02:39 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 22:05:06 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-08 22:05:08 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-08 22:05:08 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-08 22:05:08 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-08 22:05:09 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-08 22:05:14 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-08 22:05:14 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-08 22:05:14 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-08 22:05:14 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-08 22:05:14 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-08 22:05:28 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
+2025-10-08 22:05:28 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-08 22:05:28 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-08 22:05:28 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-08 22:05:28 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 22:05:31 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-08 22:05:38 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-08 22:05:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-08 22:05:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 22:05:44 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-08 22:05:45 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-08 22:05:57 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-08 22:05:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-08 22:05:58 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 22:06:01 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-08 22:06:08 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [創世流程 v70.0] 嚴格串行化創世流程已啟動。
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [後台創世] 步驟 1/6: 正在解析世界聖經並創建 LORE 骨架...
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動 LORE 解析管線...
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [LORE 解析] 已將世界聖經原文分割成 8 個文本塊進行處理。
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 1/8...
+2025-10-08 22:06:11 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 22:06:24 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 22:06:24 - [INFO] - [512280345618546699] [LORE 解析 1-1/3] ✅ 成功！
+2025-10-08 22:06:24 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 2/8...
+2025-10-08 22:06:24 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 22:06:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 22:06:41 - [INFO] - [512280345618546699] [LORE 解析 2-1/3] ✅ 成功！
+2025-10-08 22:06:41 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 3/8...
+2025-10-08 22:06:41 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 22:06:56 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 22:06:56 - [INFO] - [512280345618546699] [LORE 解析 3-1/3] ✅ 成功！
+2025-10-08 22:06:56 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 4/8...
+2025-10-08 22:06:56 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 22:07:14 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 22:07:14 - [INFO] - [512280345618546699] [LORE 解析 4-1/3] ✅ 成功！
+2025-10-08 22:07:14 - [INFO] - [512280345618546699] [LORE 解析] 正在處理文本塊 5/8...
+2025-10-08 22:07:14 - [INFO] - [512280345618546699] [LORE 解析 5-1/3] 正在嘗試【理想方案：雲端宏觀解析】...
+2025-10-08 22:07:15 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-08 22:07:15 - [WARNING] - [512280345618546699] [LORE 解析 5-1/3] 遭遇內容審查，正在降級...
+2025-10-08 22:07:15 - [INFO] - [512280345618546699] [LORE 解析 5-2/3] 正在嘗試【本地備援方案：無審查解析】...
+2025-10-08 22:07:15 - [INFO] - [512280345618546699] 正在使用本地模型 'HammerAI/llama-3-lexi-uncensored:latest' 進行LORE解析 (Attempt 1/2)...
