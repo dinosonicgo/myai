@@ -2837,48 +2837,70 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
 
 
-# 函式：从使用者输入中提取实体 (v2.3 - 移除普通名词提取)
+# 函式：从使用者输入中提取实体 (v2.4 - 高精度過濾)
 # 更新紀錄:
-# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。此修改牺牲了部分召回率，但极大地提升了提取结果的准确性（Precision），从根本上解决了因提取到“地毯”等无意义名词而污染 RAG 查询的问题。
+# v2.4 (2025-10-08): [災難性BUG修復] 引入了「稱謂/地點黑名單」和嚴格的 `PERSON` 標籤過濾。此修改旨在從實體提取的源頭上，根除因提取到「主人」等通用稱謂或「奴隸市場」等地點而導致後續「絕對事實強制令」判斷錯誤的問題。
+# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。
 # v2.2 (2025-10-05): [災難性BUG修復] 根据 RAG 查詢污染日誌，徹底重構了此函式。
-# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.3 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
+        """(v2.4 - 高精度過濾版) 使用「字典匹配」+「強化NER」雙引擎，並結合黑名單過濾，從使用者輸入中快速提取高質量角色實體。"""
         
-        # --- 第一引擎：高精度字典匹配 ---
+        # --- 步驟 1：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
+        known_locations = set()
 
         for lore in all_lores:
-            if name := (lore.content.get("name") or lore.content.get("title")): 
-                known_names.add(name)
-            if aliases := lore.content.get("aliases"): 
-                known_names.update(aliases)
+            name = lore.content.get("name") or lore.content.get("title")
+            if name:
+                if lore.category == 'location_info':
+                    known_locations.add(name)
+                else:
+                    known_names.add(name)
+            
+            aliases = lore.content.get("aliases")
+            if aliases:
+                if lore.category == 'location_info':
+                    known_locations.update(aliases)
+                else:
+                    known_names.update(aliases)
         
         found_entities = set()
         if known_names:
+            # 優先匹配長名稱以避免部分匹配問題
             sorted_names = sorted([name for name in known_names if name], key=len, reverse=True)
             pattern = re.compile('|'.join(re.escape(name) for name in sorted_names))
             found_entities.update(pattern.findall(user_input))
         
-        # --- 第二引擎：後備命名實體識別 (NER) ---
+        # --- 步驟 2：後備命名實體識別 (NER) ---
         try:
             nlp = spacy.load('zh_core_web_sm')
             doc = nlp(user_input)
             
-            # [v2.3 核心修正] 只提取真正的命名实体，不再回退到普通名词
+            # [v2.4 新增] 定義通用稱謂和非角色實體的黑名單
+            BLACKLISTED_TERMS = {'主人', '小姐', '大人', '陛下', '閣下', '先生', '女士'}
+            BLACKLISTED_LABELS = {'GPE', 'LOC', 'FAC', 'ORG', 'PRODUCT', 'EVENT', 'WORK_OF_ART', 'LAW', 'LANGUAGE', 'DATE', 'TIME', 'PERCENT', 'MONEY', 'QUANTITY', 'ORDINAL', 'CARDINAL'}
+
             for ent in doc.ents:
-                if ent.label_ in ('PERSON', 'ORG', 'GPE', 'LOC', 'FAC', 'PRODUCT', 'EVENT', 'WORK_OF_ART') and ent.text not in found_entities:
+                # 核心過濾邏輯：
+                # 1. 必須是 PERSON 標籤
+                # 2. 不能在已找到的實體中
+                # 3. 不能在黑名單術語中
+                # 4. 不能是已知的地點名稱
+                if (ent.label_ == 'PERSON' and 
+                    ent.text not in found_entities and
+                    ent.text not in BLACKLISTED_TERMS and
+                    ent.text not in known_locations):
                     found_entities.add(ent.text.strip())
         except Exception as e:
-            logger.error(f"[{self.user_id}] [雙引擎實體提取] spaCy NER 引擎執行失敗: {e}")
+            logger.error(f"[{self.user_id}] [高精度實體提取] spaCy NER 引擎執行失敗: {e}")
         
-        if found_entities:
-            logger.info(f"[{self.user_id}] [雙引擎實體提取] 成功提取高質量實體: {list(found_entities)}")
-            return list(found_entities)
+        final_list = list(found_entities)
+        if final_list:
+            logger.info(f"[{self.user_id}] [高精度實體提取] 成功提取並過濾實體: {final_list}")
         
-        return []
-# 从使用者输入中提取实体 函式结束
+        return final_list
+# 从使用者输入中提取实体 函式結束
 
 
     
@@ -6538,6 +6560,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
