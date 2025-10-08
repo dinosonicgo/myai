@@ -534,21 +534,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v8.2 - 視角感知的絕對事實強制令)
+# 函式：RAG 直通生成 (v8.3 - 對話焦點分析強制令)
 # 更新紀錄:
-# v8.2 (2025-10-08): [災難性BUG修復] 引入【視角感知的絕對事實強制令】。在生成Prompt前，通過程式碼動態分析場景焦點和角色關係，並將其作為最高優先級指令注入，從根本上解決了AI在複雜對話中混淆對話代理（Agent）和過早代入角色關係（如稱呼主人）的問題。此機制能智能適應近景和遠景模式，避免上下文污染。
+# v8.3 (2025-10-08): [災難性BUG修復] 在【絕對事實強制令】的基礎上，引入了「對話焦點分析」邏輯。通過分析使用者輸入和AI上一句回覆的實體交集，動態生成關於「誰是核心對話者」和「誰應保持沉默」的明確指令，從根源上解決了AI在多人場景中混淆對話代理的致命問題。
+# v8.2 (2025-10-08): [災難性BUG修復] 引入【視角感知的絕對事實強制令】。
 # v8.1 (2025-10-08): [災難性BUG修復] 引入了「上下文感知的核心LORE注入」機制。
-# v8.0 (2025-12-14): [災難性BUG修復] 根據 LORE 重複創建問題，徹底重構了 LORE 創生管線。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.2) 執行一個包含「前置實體鏈結」、「視角感知的絕對事實強制令」和「RAG 直通生成」的完整流程。
+        (v8.3) 執行一個包含「前置實體鏈結」、「對話焦點分析強制令」和「RAG 直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{user_id}] [Direct RAG v8.2] 啟动 LORE 优先的 RAG 直通生成流程...")
+        logger.info(f"[{user_id}] [Direct RAG v8.3] 啟动 LORE 优先的 RAG 直通生成流程...")
         
         narrative_focus_snapshot = { "entities": [], "location": None }
         newly_created_lores_for_refinement: List[Lore] = []
@@ -628,49 +628,59 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v8.2 核心修正] 動態生成【絕對事實強制令】
+        # [v8.3 核心修正] 動態生成【絕對事實強制令】與【對話焦點分析】
         absolute_truth_mandate = ""
         try:
-            # 獲取場景上下文
             scene_key = self._get_scene_key()
             history = self.scene_histories.get(scene_key, ChatMessageHistory())
             last_ai_message = next((msg.content for msg in reversed(history.messages) if isinstance(msg, AIMessage)), "")
             
             # 根據導演視角決定分析範圍
             if self.profile.game_state.viewing_mode == 'local':
-                text_to_analyze = user_input + "\n" + last_ai_message
-                # 在近景中，主角永遠是潛在核心
-                potential_entities = await self._extract_entities_from_input(text_to_analyze)
-                potential_entities.extend([self.profile.user_profile.name, self.profile.ai_profile.name])
+                # 近景：分析使用者輸入和AI的上一句回覆
+                entities_in_user_input = set(await self._extract_entities_from_input(user_input))
+                entities_in_ai_response = set(await self._extract_entities_from_input(last_ai_message))
+                
+                # 找出對話焦點（交集），如果沒有交集，則認為使用者輸入的是新焦點
+                dialogue_focus = entities_in_user_input.intersection(entities_in_ai_response)
+                if not dialogue_focus:
+                    dialogue_focus = entities_in_user_input
+                
+                # 場景中的所有潛在角色 = 焦點 + 提及的 + 主角
+                all_scene_entities = dialogue_focus.union(entities_in_user_input).union(entities_in_ai_response)
+                all_scene_entities.add(self.profile.user_profile.name)
+                all_scene_entities.add(self.profile.ai_profile.name)
             else: # remote
-                text_to_analyze = user_input # 遠景只分析使用者輸入，避免場景污染
-                potential_entities = await self._extract_entities_from_input(text_to_analyze)
+                # 遠景：只分析使用者輸入，且不包含主角
+                all_scene_entities = set(await self._extract_entities_from_input(user_input))
+                dialogue_focus = all_scene_entities
 
-            unique_entities = sorted(list(set(potential_entities)))
+            unique_entities = sorted(list(all_scene_entities))
             
             if unique_entities:
-                logger.info(f"[{user_id}] [絕對事實] 識別出場景核心實體: {unique_entities}")
+                logger.info(f"[{user_id}] [絕對事實] 識別出場景核心實體: {unique_entities}，對話焦點: {list(dialogue_focus)}")
                 truth_statements = []
-                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
                 
-                # 將主角檔案也加入 LORE 列表以便統一查詢
-                all_lores.append(Lore(user_id=user_id, category='user_profile', key=self.profile.user_profile.name, content=self.profile.user_profile.model_dump(), timestamp=time.time()))
-                all_lores.append(Lore(user_id=user_id, category='ai_profile', key=self.profile.ai_profile.name, content=self.profile.ai_profile.model_dump(), timestamp=time.time()))
+                # 增加對話焦點指令
+                if dialogue_focus:
+                    focus_str = " 和 ".join(list(dialogue_focus))
+                    truth_statements.append(f"- **核心對話焦點**：本回合的對話或互動主要發生在【使用者】與【{focus_str}】之間。")
+                
+                passive_entities = all_scene_entities - dialogue_focus - {self.profile.user_profile.name}
+                if passive_entities:
+                     truth_statements.append(f"- **被動角色**：【{', '.join(list(passive_entities))}】是場景中的被動角色或被討論的對象，本回合【不應】主動發起對話。")
+
+                all_lores_for_truth = await lore_book.get_all_lores_for_user(self.user_id)
+                all_lores_for_truth.append(Lore(user_id=user_id, category='user_profile', key=self.profile.user_profile.name, content=self.profile.user_profile.model_dump(), timestamp=time.time()))
+                all_lores_for_truth.append(Lore(user_id=user_id, category='ai_profile', key=self.profile.ai_profile.name, content=self.profile.ai_profile.model_dump(), timestamp=time.time()))
                 
                 for entity_name in unique_entities:
-                    found_lore = next((lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title", "")).lower() == entity_name.lower()), None)
+                    found_lore = next((lore for lore in all_lores_for_truth if (lore.content.get("name") or lore.content.get("title", "")).lower() == entity_name.lower()), None)
                     if found_lore:
-                        # 提取最關鍵的事實：身份和狀態
-                        aliases = found_lore.content.get('aliases', [])
-                        status = found_lore.content.get('status', '未知')
-                        # 提取關係
                         relationships = found_lore.content.get('relationships', {})
-                        rel_summary = ", ".join([f"{target}: {details.get('roles', ['未知關係'])[0]}" for target, details in relationships.items()])
-                        
-                        statement = f"- **{found_lore.content.get('name', entity_name)}**: 當前身份/別名=[{', '.join(aliases)}], 當前狀態='{status}'"
+                        rel_summary = ", ".join([f"{target}: {details.get('roles', ['未知關係'])[0]}" for target, details in relationships.items() if target == self.profile.user_profile.name])
                         if rel_summary:
-                            statement += f", 關係=[{rel_summary}]"
-                        truth_statements.append(statement)
+                            truth_statements.append(f"- **關係事實**：【{found_lore.content.get('name', entity_name)}】與【使用者】的當前關係是 [{rel_summary}]。")
 
                 if truth_statements:
                     absolute_truth_mandate = "# === 【【【🚨 絕對事實強制令 (ABSOLUTE TRUTH MANDATE)】】】 ===\n# 你的回覆【必須】嚴格基於以下不可動搖的當前事實：\n" + "\n".join(truth_statements)
@@ -678,8 +688,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{user_id}] [絕對事實] 生成強制令時發生錯誤: {e}", exc_info=True)
 
-
-        # [v8.1] 上下文感知的核心LORE注入
+        # 上下文感知的核心LORE注入 (保持不變)
         core_character_files_mandate = ""
         if self.profile.game_state.viewing_mode == 'local':
             logger.info(f"[{user_id}] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...")
@@ -702,7 +711,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         system_instruction = "\n\n".join(filter(None, [
             self.core_protocol_prompt,
             style_mandate,
-            absolute_truth_mandate, # [v8.2] 新增的強制令
+            absolute_truth_mandate,
             core_character_files_mandate,
             "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
             "# === 【背景知識 (RAG 檢索)】 ===\n" + rag_context
@@ -713,7 +722,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]})
         prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{self.profile.ai_profile.name}:"]})
 
-        # --- 步驟 3: 调用 LLM 生成对话 ---
+        # --- 步驟 3: 调用 LLM 生成对话 (保持不變) ---
         final_response = await self.ainvoke_with_rotation(
             prompt_messages,
             retry_strategy='force',
@@ -726,7 +735,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
-        # --- 步驟 4: 事后处理 ---
+        # --- 步驟 4: 事后处理 (保持不變) ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -6560,6 +6569,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
