@@ -202,4 +202,3 @@ async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore
         return matching_lores
 # 函式：根據模板關鍵詞查詢LORE (v1.0 - 全新創建)
 
-

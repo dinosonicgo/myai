@@ -41,11 +41,11 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
     roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
 
-# schemas.py 的 CharacterProfile 模型 (v2.6 - 類型自動修復)
+# schemas.py 的 CharacterProfile 模型 (v2.3 - 年齡驗證修正)
 # 更新紀錄:
-# v2.6 (2025-12-19): [災難性BUG修復] 根據 ValidationError: `Input should be a valid list [type=list_type, input_value={}]`，再次強化了所有 `field_validator`。驗證器現在不僅能處理 `None` 值，還能處理常見的類型混淆錯誤（例如，期望 list 卻收到 dict，或期望 dict 卻收到 list）。通過在驗證前進行程式碼級別的自動類型轉換和修復，極大地提高了模型對不穩定LLM輸出的容錯能力和健壯性。
-# v2.5 (2025-12-19): [災難性BUG修復] 為所有可能被 LLM 輸出為 `null` 的欄位新增了寬容的預處理驗證器。
-# v2.4 (2025-10-08): [重大架構升級] 新增了 `personality` 欄位。
+# v2.3 (2025-10-03): [災難性BUG修復] 為 age 欄位新增了一個 field_validator，在驗證前將 LLM 可能輸出的整數或浮點數強制轉換為字串，以解決 ValidationError。
+# v2.2 (2025-09-30): [災難性BUG修復] 為 `affinity` 欄位新增了一個 `field_validator`。
+# v2.1 (2025-09-28): [架構擴展] 新增了 alternative_names 欄位。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -59,7 +59,6 @@ class CharacterProfile(BaseModel):
     dislikes: List[str] = Field(default_factory=list, description="角色不喜歡的事物列表。")
     equipment: List[str] = Field(default_factory=list, description="角色【當前穿戴或持有】的裝備列表。")
     skills: List[str] = Field(default_factory=list, description="角色掌握的技能列表。")
-    personality: List[str] = Field(default_factory=list, description="描述角色核心性格的關鍵詞標籤列表。例如：['冷靜', '高傲', '外冷內熱', '忠誠']。")
     description: str = Field(default="", description="角色的性格、背景故事、行為模式等綜合簡介。")
     location: str = Field(default="", description="角色當前所在的城市或主要區域。")
     location_path: List[str] = Field(default_factory=list, description="角色當前所在的層級式地點路徑。")
@@ -68,54 +67,27 @@ class CharacterProfile(BaseModel):
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
-    @field_validator('name', 'gender', 'age', 'race', 'appearance', 'description', 'location', 'status', 'current_action', mode='before')
+    @field_validator('aliases', 'likes', 'dislikes', 'equipment', 'skills', 'location_path', 'alternative_names', mode='before')
     @classmethod
-    def _validate_str_fields(cls, value: Any) -> Any:
-        if value is None:
-            return ""
-        if isinstance(value, (int, float)):
-            return str(value)
-        return value
+    def _validate_string_to_list_fields(cls, value: Any) -> Any:
+        if isinstance(value, str) and (' > ' in value or '/' in value):
+            return [part.strip() for part in re.split(r'\s*>\s*|/', value)]
+        return _validate_string_to_list(value)
 
-    # [v2.6 核心修正] 增加對輸入為 dict 的自動修復
-    @field_validator('aliases', 'alternative_names', 'likes', 'dislikes', 'equipment', 'skills', 'personality', 'location_path', mode='before')
-    @classmethod
-    def _validate_list_fields(cls, value: Any) -> Any:
-        if value is None:
-            return []
-        # 如果 LLM 錯誤地給了一個字典
-        if isinstance(value, dict):
-            # 嘗試將字典的值轉換為列表；如果失敗，則返回空列表
-            try:
-                return list(value.values())
-            except:
-                return []
-        if isinstance(value, str):
-            if (' > ' in value or '/' in value):
-                return [part.strip() for part in re.split(r'\s*>\s*|/', value) if part.strip()]
-            return _validate_string_to_list(value)
-        return value
-
-    # [v2.6 核心修正] 增加對輸入為 list 的自動修復
     @field_validator('appearance_details', mode='before')
     @classmethod
-    def _validate_dict_fields(cls, value: Any) -> Any:
-        if value is None:
-            return {}
-        # 如果 LLM 錯誤地給了一個列表
-        if isinstance(value, list):
-            # 將列表轉換為一個帶有 'summary' 鍵的字典
-            return {"summary": ", ".join(map(str, value))}
+    def _validate_string_to_dict_fields(cls, value: Any) -> Any:
         return _validate_string_to_dict(value)
 
     @field_validator('relationships', mode='before')
     @classmethod
     def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        if value is None:
-            return {}
+        """
+        一個強大的驗證器，用於處理和規範化 'relationships' 字典。
+        它可以向下兼容舊的扁平化字串格式，並將其自動轉換為新的 RelationshipDetail 結構。
+        """
         if isinstance(value, str):
             value = _validate_string_to_dict(value)
-        # [v2.6 核心修正] 如果 LLM 給了一個列表，則放棄修復，返回空字典
         if not isinstance(value, dict):
             return {}
             
@@ -139,16 +111,19 @@ class CharacterProfile(BaseModel):
     @field_validator('affinity', mode='before')
     @classmethod
     def _coerce_affinity_to_int(cls, value: Any) -> Any:
-        if value is None:
-            return 0
+        """在驗證前，將 affinity 欄位的值強制轉換為整數，以兼容 LLM 可能輸出的浮點數。"""
         if isinstance(value, float):
             return int(value)
         return value
+
+    @field_validator('age', mode='before')
+    @classmethod
+    def _coerce_age_to_string(cls, value: Any) -> Any:
+        """在驗證前，將 age 欄位的值強制轉換為字串，以兼容 LLM 可能輸出的整數。"""
+        if isinstance(value, (int, float)):
+            return str(value)
+        return value
 # CharacterProfile 模型結束
-
-
-
-
 
 # --- [v1.3 新增] 混合 NLP 流程所需模型 ---
 class CharacterSkeleton(BaseModel):
@@ -412,7 +387,6 @@ class PostGenerationAnalysisResult(BaseModel):
     """用於包裹事後分析鏈返回的記憶摘要和LORE更新計畫的模型。"""
     memory_summary: Optional[str] = Field(default=None, description="對本回合對話的簡潔、無害化總結，用於長期記憶。")
     lore_updates: List[ToolCall] = Field(default_factory=list, description="一個包含多個用於創建或更新LORE的工具呼叫計畫的列表。")
-    relations_changed: bool = Field(default=False, description="如果本次互動引入了新的角色關係或顯著改變了現有關係，則為 true。")
 
 class SceneLocationExtraction(BaseModel):
     """用於包裹从使用者指令中提取出的叙事意图地点的模型。"""
@@ -453,22 +427,6 @@ class SceneCastingResult(BaseModel):
     ambient_events: List[str] = Field(default_factory=list, description="为丰富世界而设计的、正在发生的背景事件的文字描述列表（可以是正面、中立或负面的）。")
 
 
-class MicroTaskResult(BaseModel):
-    """
-    定義了「批次化微任務提取」LLM調用返回的、針對單個角色的數據結構。
-    """
-    character_name: str = Field(description="與輸入任務完全相同的角色名稱。")
-    gender: str = Field(default="未知", description="從上下文中提取出的角色性別。")
-    race: str = Field(default="未知", description="從上下文中提取出的角色種族。")
-    age: str = Field(default="未知", description="從上下文中提取出的角色年齡。")
-    personality: List[str] = Field(default_factory=list, description="從上下文中提取出的、描述性格的關鍵詞列表。")
-    final_description: str = Field(default="", description="將所有相關上下文句子合併並潤色後的一段式描述。")
-
-class BatchMicroTaskResult(BaseModel):
-    """
-    定義了「批次化微任務提取」LLM調用的頂層輸出結構。
-    """
-    results: List[MicroTaskResult] = Field(description="一個包含所有被成功處理角色的微任務結果的列表。")
 
 
 
@@ -503,7 +461,7 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
-
+SceneCastingResult.model_rebuild()
 
 # (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
 BatchRefinementInput.model_rebuild()
@@ -514,13 +472,6 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
-
-MicroTaskResult.model_rebuild()
-BatchMicroTaskResult.model_rebuild()
-
-
-
-
 
 
 

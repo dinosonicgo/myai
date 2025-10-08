@@ -115,12 +115,11 @@ async def lore_key_autocomplete(interaction: discord.Interaction, current: str) 
     return choices
 # 函式：Lore Key 自動完成
 
-# 函式：創建角色檔案 Embed (v2.0 - 完整資訊展示)
+# 函式：創建角色檔案 Embed (v1.0 - 全新創建/補全)
 # 更新紀錄:
-# v2.0 (2025-12-19): [功能擴展] 根據使用者需求，對此函式進行了重大升級。現在它會展示 CharacterProfile 模型中幾乎所有的核心 LORE 欄位，包括 `personality`, `equipment`, `relationships`, `status` 和 `location_path`，以提供真正「完整」的角色資訊。
 # v1.0 (2025-12-08): [功能補全] 補全此缺失的輔助函式，用於生成標準化的角色檔案 Embed。
 def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed:
-    """一個輔助函式，用於為給定的 CharacterProfile 創建一個標準化的、資訊完整的 discord.Embed。"""
+    """一個輔助函式，用於為給定的 CharacterProfile 創建一個標準化的 discord.Embed。"""
     embed = Embed(
         title=f"{title_prefix}: {profile.name}",
         description=f"```{profile.description or '暫無描述。'}```",
@@ -129,47 +128,14 @@ def _create_profile_embed(profile: CharacterProfile, title_prefix: str) -> Embed
     embed.add_field(name="性別", value=profile.gender or "未設定", inline=True)
     embed.add_field(name="年齡", value=profile.age or "未知", inline=True)
     embed.add_field(name="種族", value=profile.race or "未知", inline=True)
-    
-    # [v2.0 新增] 狀態與位置
-    embed.add_field(name="當前狀態", value=profile.status or "健康", inline=True)
-    current_location = " > ".join(profile.location_path) if profile.location_path else profile.location or "未知"
-    embed.add_field(name="當前位置", value=current_location, inline=False)
-
     if profile.appearance:
         embed.add_field(name="外觀", value=profile.appearance, inline=False)
-        
-    # [v2.0 新增] 性格
-    if profile.personality:
-        embed.add_field(name="🎭 性格", value="`" + "`, `".join(profile.personality) + "`", inline=False)
-
     if profile.aliases:
         embed.add_field(name="別名/身份", value=", ".join(profile.aliases), inline=False)
-        
     if profile.skills:
         embed.add_field(name="技能", value=", ".join(profile.skills), inline=False)
-        
-    # [v2.0 新增] 裝備
-    if profile.equipment:
-        embed.add_field(name="⚔️ 裝備", value=", ".join(profile.equipment), inline=False)
-        
-    # [v2.0 新增] 人際關係
-    if profile.relationships:
-        rel_text_parts = []
-        for target, details in profile.relationships.items():
-            roles_str = ", ".join(details.roles) if details.roles else "未知關係"
-            rel_text_parts.append(f"與 **{target}**: {details.type} ({roles_str})")
-        if rel_text_parts:
-            embed.add_field(name="🤝 人際關係", value="\n".join(rel_text_parts), inline=False)
-            
-    if profile.appearance_details:
-        details_str = json.dumps(profile.appearance_details, ensure_ascii=False, indent=2)
-        embed.add_field(name="外觀細節 (JSON)", value=f"```json\n{details_str}\n```", inline=False)
-
-    embed.set_footer(text=f"檔案最後更新於")
-    embed.timestamp = datetime.datetime.now()
-    
     return embed
-# 函式：創建角色檔案 Embed (v2.0 - 完整資訊展示)
+# 函式：創建角色檔案 Embed
 
 # --- 持久化視圖與 Modals ---
 
@@ -1156,73 +1122,47 @@ class BotCog(commands.Cog, name="BotCog"):
         logger.info(f"[{interaction.user.id}] [Admin Command] Git 鎖已釋放。")
     # 函式：推送日誌到 GitHub 倉庫
 
-
-
-
-    
-# 函式：執行完整的後台創世流程 (v70.0 - 串行化改造)
+    # 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
 # 更新紀錄:
-# v70.0 (2025-12-18): [災難性BUG修復] 根據 V2.0 藍圖，徹底重構了此函式的執行流程。所有 `asyncio.create_task` 的並行調用都被替換為 `await` 的串行等待。此修改確保了創世的每一步（LORE解析 -> RAG構建 -> LORE精煉 -> 關係分析 -> 角色補完 -> 開場白生成）都嚴格按照順序執行，根除了因資料競爭導致的開場白品質低下和世界狀態不一致的致命問題。
-# v69.0 (2025-12-16): [架構擴展] 在流程的末尾，新增了對 `_background_relationship_analysis` 的異步任務調用。
-# v68.0 (2025-12-14): [災難性BUG修復] 修正了因並行處理導致的競爭條件。
+# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。創世流程的職責被簡化為純粹的檔案補完和開場白生成。
+# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
+# v64.0 (2025-10-03): [重大架構重構] 改為調用 LangGraph 來驅動整個創世流程。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v70.0) 一個由原生 Python 驅動的、嚴格串行化的、數據流完整的後台創世流程。"""
+        """(v65.1) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
         user_id = str(user.id)
         try:
-            logger.info(f"[{user_id}] [創世流程 v70.0] 嚴格串行化創世流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。")
             
             ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
             if not ai_instance or not ai_instance.profile:
                 await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
                 return
 
-            # --- [v70.0 核心修正] 所有步驟改為嚴格串行執行 ---
-
-            # --- 步驟 1: 解析聖經，創建 LORE 骨架並存入資料庫 ---
-            if canon_text and canon_text.strip():
-                logger.info(f"[{user_id}] [後台創世] 步驟 1/6: 正在解析世界聖經並創建 LORE 骨架...")
-                await ai_instance.parse_and_create_lore_from_canon(canon_text)
-                logger.info(f"[{user_id}] [後台創世] LORE 骨架已成功創建並存入資料庫。")
-            
-            # --- 步驟 2: 構建 RAG 索引 ---
+            # --- 步驟 1: 構建 RAG 索引 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
+                logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
             
-            logger.info(f"[{user_id}] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...")
+            logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
-            logger.info(f"[{user_id}] [後台創世] ✅ RAG 索引構建完成。")
+            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
 
-            # --- 步驟 3: 等待單體精煉任務完成 ---
-            all_lores_from_db = await lore_book.get_all_lores_for_user(user_id)
-            if all_lores_from_db:
-                logger.info(f"[{user_id}] [後台創世] 步驟 3/6: 檢測到 {len(all_lores_from_db)} 條 LORE，正在**等待**單體精煉任務完成...")
-                await ai_instance._background_lore_refinement(all_lores_from_db)
-                logger.info(f"[{user_id}] [後台創世] ✅ LORE 精煉已完成。")
+            # --- 步驟 2: 原生順序執行創世流程 ---
             
-            # --- 步驟 4: 等待關係分析任務完成 ---
-            if canon_text and all_lores_from_db:
-                logger.info(f"[{user_id}] [後台創世] 步驟 4/6: 正在**等待**關係圖譜分析任務完成...")
-                await ai_instance._background_relationship_analysis(canon_text)
-                logger.info(f"[{user_id}] [後台創世] ✅ 關係圖譜分析已完成。")
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
 
-            # --- 步驟 5: 補完角色檔案 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 5/6: 正在補完角色檔案...")
-            # 傳入淨化後的上下文，確保補完時不會被具體情節污染
-            sanitized_context = ai_instance._sanitize_context_for_profile_completion(canon_text, [p.name for p in [ai_instance.profile.user_profile, ai_instance.profile.ai_profile]])
-            await ai_instance.complete_character_profiles(sanitized_context=sanitized_context)
-            logger.info(f"[{user_id}] [後台創世] 角色檔案補完成功。")
-
-            # --- 步驟 6: 生成開場白 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 6/6: 正在基於完整的世界狀態生成開場白...")
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 2/2: 正在生成開場白...")
             opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [後台創世] 開場白生成成功。")
+            logger.info(f"[{user_id}] [後台創世-原生] 開場白生成成功。")
 
             if not opening_scene:
                  raise Exception("原生創世流程未能成功生成開場白。")
 
-            # --- 最終步驟: 發送開場白並清理 ---
+            # --- 步驟 3: 發送開場白並清理 ---
             scene_key = ai_instance._get_scene_key()
             await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
@@ -1243,8 +1183,6 @@ class BotCog(commands.Cog, name="BotCog"):
 # 執行完整的後台創世流程 函式結束
 
 
-
-    
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
 # 更新紀錄:
