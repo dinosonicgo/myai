@@ -768,7 +768,45 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    
+    # 函式：獲取關係檢查器 Prompt (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-10-08): [全新創建] 根據【條件化新手保護】策略創建此 Prompt。它的唯一職責是在创世时分析开场白，判断核心伙伴关系是否已经建立，为是否激活“新手保护期”提供决策依据。
+    def get_relationship_check_prompt(self) -> str:
+        """獲取一個用於在创世时分析开场白，判断核心伙伴关系是否已经建立的字符串模板。"""
+        
+        prompt = """# TASK: 你是一位高精度的关系状态分析仪。
+# MISSION: 你的唯一任务是阅读下方提供的【故事开场白】，并判断在故事开始的【第一瞬间】，主角「{username}」和他的核心AI伙伴「{ai_name}」是否已经是明确的伙伴、盟友或任何形式的既定关系。
+
+# === 【【【🚨 核心判断规则 (CORE JUDGEMENT RULES) - 绝对铁则】】】 ===
+# 1.  **【判断标准】**:
+#     *   **返回 `True`**: 当开场白描述的场景中，「{username}」和「{ai_name}」正在一起行动、交谈，或者明确提及了他们之间已有的关系（例如“你的伙伴碧”、“你们正走在路上”）。
+#     *   **返回 `False`**: 当开场白描述的是两者【初次相遇】的场景，或者他们之间存在明显的障碍（例如一方被囚禁、是商品、是敌人）。
+# 2.  **【JSON纯净输出】**: 你的唯一输出【必须】是一个纯净的、只包含一个布林值键的JSON物件。
+
+# === 【【【⚙️ 輸出結構範例 (OUTPUT STRUCTURE EXAMPLE) - 必须严格遵守】】】 ===
+# --- 範例 1 (返回 True) ---
+# ```json
+# {
+#   "are_already_partners": true
+# }
+# ```
+# --- 範例 2 (返回 False) ---
+# ```json
+# {
+#   "are_already_partners": false
+# }
+# ```
+
+# --- [INPUT DATA] ---
+
+# 【故事开场白】:
+{opening_scene_text}
+
+# ---
+# 【你的关系状态判断JSON】:
+"""
+        return prompt
+# 函式：獲取關係檢查器 Prompt (v1.0 - 全新創建)
 
     
 
@@ -6574,6 +6612,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
