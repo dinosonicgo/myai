@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-08T22:25:50.141221 ###
+### AI Lover Log - Last updated at 2025-10-08T22:30:53.496893 ###
 
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 巴納比'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 奧斯華'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 艾諾拉'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 漢德瑞克師傅'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'後花園 > 莉娜'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'正門口 > 貝拉'
-2025-10-08 22:11:44 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 貴族階層 > 絲月'，正在合併更新...
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'大廳穹頂 > 諾拉'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖露蒙恩者 > 索菲亞'，正在合併更新...
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 卡蓮'，正在合併更新...
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'location_info' 類別處理 29 個已預處理的實體...
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神城'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯莊園'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 王都'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 貧民窟'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 北境'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 埃德蒙王室'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 維利爾斯莊園'，正在合併更新...
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 北境戰場'
-2025-10-08 22:11:45 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 皇家衛隊'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖凱瑟琳學院'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 城鎮市集區'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟'，正在合併更新...
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟'，正在合併更新...
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯家宅邸'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露蒙恩者'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 其他居民'
-2025-10-08 22:11:46 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖凱瑟琳學院'，正在合併更新...
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 城鎮市集區'，正在合併更新...
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟'，正在合併更新...
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 貧民窟區域'
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖凱瑟琳學院'，正在合併更新...
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 咆哮壁爐酒館'
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 後花園'
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 正門口'
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大廳穹頂'
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'item_info' 類別處理 11 個已預處理的實體...
-2025-10-08 22:11:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 肉棒強化'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 精神解放'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 身體強化與治癒'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 無傷不死'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 永恆發情'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 痛苦轉化'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 青春永駐'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 子宮酒'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 人形旗桿'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'creature_info' 類別處理 1 個已預處理的實體...
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 公豬'
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'world_lore' 類別處理 50 個已預處理的實體...
-2025-10-08 22:11:48 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜制度'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三大性神裝置'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 新·性神教'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教會'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖十字軍'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎之吻'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 生命之神'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 引領神恩'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 生命之神'，正在合併更新...
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾'
-2025-10-08 22:11:49 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神'，正在合併更新...
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖軍'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神信仰體系'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖女'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 恩澤儀式'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神罰'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 恩澤'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜在宅邸的禮儀'
-2025-10-08 22:11:50 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤 - 男性'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤 - 女性'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜的價值性'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人理論'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎儀式'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 偉大神蹟'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掀裙祈禱'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想滲透'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 快樂派系'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 淨化行動'
-2025-10-08 22:11:51 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 虛偽'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想戰爭'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 裝聖女的蕩婦'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神教'，正在合併更新...
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 舊世界秩序'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會夏卡爾'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖十字軍'，正在合併更新...
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
-2025-10-08 22:11:52 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教義'
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義'
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 生命之神'，正在合併更新...
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會'
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 國王「聖軍計畫」'
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] [後台創世] LORE 骨架已成功創建並存入資料庫。
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...
-2025-10-08 22:11:53 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
-2025-10-08 22:12:49 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
-2025-10-08 22:12:49 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成。
-2025-10-08 22:12:49 - [INFO] - [512280345618546699] [後台創世] 步驟 3/6: 檢測到 157 條 LORE，正在**等待**單體精煉任務完成...
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [LORE精煉-兩階段 v10.2] 穩定版串行精煉服務已啟動，收到 81 個 NPC 精煉任務。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 任務已切分為 9 個批次，每批最多 10 個 NPC。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 開始處理...
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '絲月' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉絲' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾莉諾' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '赫克托' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王埃德蒙三世' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:12:54 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-08 22:13:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 22 column 5 [type=json_invalid, input_value='{\n    "name": "絲月",...er": "莉莉絲"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 2 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 22 column 5 [type=json_invalid, input_value='{\n    "name": "卡爾...er": "莉莉絲"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 23 column 5 [type=json_invalid, input_value='{\n    "name": "莉莉...other": "絲月"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 4 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 24 column 5 [type=json_invalid, input_value='{\n    "name": "薩格...萊麗"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 25 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...萊麗"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 23 column 5 [type=json_invalid, input_value='{\n    "name": "米婭",...利爾斯勳爵"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 25 column 5 [type=json_invalid, input_value='{\n    "name": "阿拉...爾德"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 22 column 5 [type=json_invalid, input_value='{\n    "name": "艾莉...萊麗"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 28 column 5 [type=json_invalid, input_value='{\n    "name": "赫克...爾德"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 22 column 5 [type=json_invalid, input_value='{\n    "name": "國王...: "伊索爾德"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:06 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/9: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
-2025-10-08 22:13:06 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
-2025-10-08 22:13:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 開始處理...
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '伊索爾德' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老高' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '克拉拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '高爾' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '翠絲' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '迪茜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '亞瑟' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:13:27 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-08 22:13:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 26 column 5 [type=json_invalid, input_value='{\n    "name": "國王",...勳爵"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 2 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 29 column 5 [type=json_invalid, input_value='{\n    "name": "伊索...勳爵"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 20 column 5 [type=json_invalid, input_value='{\n    "name": "博林",...": "夏卡爾"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 4 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 24 column 5 [type=json_invalid, input_value='{\n    "name": "老高",...友": "費奇"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 31 column 5 [type=json_invalid, input_value='{\n    "name": "維利...將軍"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 28 column 5 [type=json_invalid, input_value='{\n    "name": "克拉...莉絲"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 18 column 5 [type=json_invalid, input_value='{\n    "name": "高爾",...騎士團團長"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 19 column 5 [type=json_invalid, input_value='{\n    "name": "亞瑟",...學": "馬丁"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 20 column 5 [type=json_invalid, input_value='{\n    "name": "翠絲",...迪茜"\n      ]\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 16 column 5 [type=json_invalid, input_value='{\n    "name": "迪茜",...": "克拉拉"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:13:45 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #2/9: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
-2025-10-08 22:13:45 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #2 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 開始處理...
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬丁' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '朱利安' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿利斯特' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '瑪莉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '安娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老羅' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '馬克' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '費奇' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '湯瑪斯' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:05 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '愛蓮娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 22:14:06 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-08 22:14:06 - [WARNING] - [512280345618546699] Key #0 遭遇臨時 API 錯誤。将在 1.11 秒後重試...
-2025-10-08 22:14:08 - [WARNING] - [512280345618546699] Key #0 遭遇臨時 API 錯誤。将在 2.24 秒後重試...
-2025-10-08 22:14:10 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
-2025-10-08 22:14:10 - [CRITICAL] - [512280345618546699] [動態冷卻] Flash 模型速率超限！API Key #0 已被置入短期冷卻 65 秒。
-2025-10-08 22:14:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 13 column 7 [type=json_invalid, input_value='{\n    "name": "馬丁",...ion": "friend"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 11 column 7 [type=json_invalid, input_value='{\n    "name": "朱利... divine grace"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 4 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 13 column 7 [type=json_invalid, input_value='{\n    "name": "阿利... divine grace"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 5 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 11 column 7 [type=json_invalid, input_value='{\n    "name": "瑪莉",..."close friend"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 13 column 7 [type=json_invalid, input_value='{\n    "name": "老羅",...ion": "friend"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be an object [type=dict_type, input_value=['身材妖嬈', '容貌豔麗'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 13 column 7 [type=json_invalid, input_value='{\n    "name": "馬克",... stall vendor"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 11 column 7 [type=json_invalid, input_value='{\n    "name": "費奇",...ion": "friend"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 14 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 11 column 7 [type=json_invalid, input_value='{\n    "name": "湯瑪...ion": "father"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 驗證第 17 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing a list at line 11 column 7 [type=json_invalid, input_value='{\n    "name": "愛蓮...ion": "father"\n      }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 22:14:18 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: ✅ LLM 預解析成功，從 LLM 輸出中搶救出 9 個有效檔案草稿。
-2025-10-08 22:14:18 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #3/9: 階段 2/2 - 正在執行程式碼審計與高信度覆蓋...
-2025-10-08 22:17:40 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 22:17:45 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-08 22:17:45 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-08 22:17:45 - [INFO] - 正在全域同步應用程式指令...
-2025-10-08 22:17:46 - [INFO] - ✅ 指令已全域同步！
-2025-10-08 22:17:46 - [INFO] - Discord Bot setup hook finished!
-2025-10-08 22:17:48 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-08 22:17:49 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-08 22:25:36 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-08 22:25:39 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-08 22:25:39 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-08 22:25:39 - [INFO] - 正在全域同步應用程式指令...
-2025-10-08 22:25:39 - [INFO] - ✅ 指令已全域同步！
-2025-10-08 22:25:39 - [INFO] - Discord Bot setup hook finished!
-2025-10-08 22:25:42 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-08 22:25:43 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '未知 > 米婭'，正在合併更新...
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 聖露修道院 > 卡蓮'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 里斯'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'貧民窟 > 瑪倫'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖露修道院 > 艾拉'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖光明教會 > 貧民窟 > 瓦勒留斯'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖露修道院 > 凱爾'
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 卡爾•維利爾斯勳爵'，正在合併更新...
+2025-10-08 22:29:25 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 聖露修道院 > 湯姆'，正在合併更新...
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 班恩'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 里奧'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 賈斯伯'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 提姆'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 安東尼'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 絲月'，正在合併更新...
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 澤拉'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 布里奇特'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 瓦萊麗'
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '未知 > 米婭'，正在合併更新...
+2025-10-08 22:29:26 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 聖露修道院 > 卡蓮'，正在合併更新...
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 蘇菲'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'維利爾斯家宅邸 > 艾蜜莉'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 卡爾•'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖露修道院 > 艾拉'，正在合併更新...
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 莉莉'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 里斯'，正在合併更新...
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 瑪倫'，正在合併更新...
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖露蒙恩者 > 索菲亞'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖露蒙恩者 > 泰莎'
+2025-10-08 22:29:27 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖露蒙恩者 > 露比'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'其他居民 > 老漢姆'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'其他居民 > 葛瑞塔'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'其他居民 > 芬恩'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 莉莉絲'，正在合併更新...
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 維利爾斯莊園 > 城鎮市集區 > 老高'，正在合併更新...
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 快樂派系 > 亞瑟'，正在合併更新...
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 快樂派系 > 維利爾斯莊園 > 馬丁'，正在合併更新...
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 規矩派系 > 克拉拉'，正在合併更新...
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 規矩派系 > 高爾'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 規矩派系 > 翠絲'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 規矩派系 > 迪茜'
+2025-10-08 22:29:28 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 阿利斯特'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'聖凱瑟琳學院 > 教職員工 > 麥可'
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 費奇'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 老羅'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 馬克'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 普通市民 > 蓋博'
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '維利爾斯家宅邸 > 提姆'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 湯瑪斯'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 愛蓮娜'，正在合併更新...
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'城鎮市集區 > 外部皈依者 > 連恩'
+2025-10-08 22:29:29 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '城鎮市集區 > 普通市民 > 蓋博'，正在合併更新...
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 薩格納將軍'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 艾莉諾'，正在合併更新...
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 菲利普•薩格納'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '維利爾斯家宅邸 > 布里奇特'，正在合併更新...
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '維利爾斯家宅邸 > 瓦萊麗'，正在合併更新...
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 國王埃德蒙三世'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大皇子阿拉里克'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三皇子赫克托'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 二公主塞拉菲娜'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三皇女伊索爾德'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 博林勳爵'
+2025-10-08 22:29:30 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大主教安布羅斯'
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖光明教會 > 貧民窟 > 瓦勒留斯'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖光明教會 > 貧民窟 > 瓦勒留斯'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 教職員工 > 麥可'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖凱瑟琳學院 > 規矩派系 > 克拉拉'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 博林勳爵'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 巴納比'
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 奧斯華'
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 艾諾拉'
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'咆哮壁爐酒館 > 漢德瑞克師傅'
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '聖露蒙恩者 > 索菲亞'，正在合併更新...
+2025-10-08 22:29:31 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '貧民窟 > 聖露修道院 > 卡蓮'，正在合併更新...
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'後花園 > 莉娜'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'正門口 > 貝拉'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '王都 > 維利爾斯莊園 > 絲月'，正在合併更新...
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'大廳穹頂 > 諾拉'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'location_info' 類別處理 27 個已預處理的實體...
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神城'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯莊園'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 王都'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 貧民窟'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 北境戰場'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 埃德蒙王室'
+2025-10-08 22:29:32 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 北境戰場'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖凱瑟琳學院'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 維利爾斯莊園'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 城鎮市集區'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 貧民窟'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯家宅邸'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露蒙恩者'
+2025-10-08 22:29:33 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 其他居民'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖凱瑟琳學院'，正在合併更新...
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 城鎮市集區'，正在合併更新...
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 貧民窟區域'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖凱瑟琳學院'，正在合併更新...
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 咆哮壁爐酒館'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 後花園'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 正門口'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大廳穹頂'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'item_info' 類別處理 11 個已預處理的實體...
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 肉棒強化'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 精神解放'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 身體強化與治癒'
+2025-10-08 22:29:34 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 無傷不死'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 永恆發情'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 痛苦轉化'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 青春永駐'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 子宮酒'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 人形旗桿'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'creature_info' 類別處理 1 個已預處理的實體...
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 公豬'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'world_lore' 類別處理 65 個已預處理的實體...
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神'
+2025-10-08 22:29:35 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜制度'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三大性神裝置'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 新·性神教'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教會'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖十字軍'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎之吻'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 引領神恩儀式'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 生命之神'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神'，正在合併更新...
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖軍計畫'
+2025-10-08 22:29:36 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院的神蹟'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神恩澤'，正在合併更新...
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 永恆發情'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖女的誕生'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第一批被拯救者'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院的建立'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 活神蹟的鍛造 - 米婭'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第二個神蹟 - 卡蓮'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 狂熱的誕生'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掀裙風潮」'
+2025-10-08 22:29:37 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掘井人」理論'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 禁忌的解放 - 兄妹的聖餐'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第一次交鋒 -「神學的勝利」'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 第二次交鋒 -「人心的勝利」'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神」'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神」的最高神諭'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神」對暴力的態度'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神」對生靈的態度'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神」的神罰'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神教義」的核心價值觀'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神教義」的階級重塑 - 核心二元論'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「性神恩澤」 - 賜予男性的【神之權力】'
+2025-10-08 22:29:38 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 恩澤'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 母畜'，正在合併更新...
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜在宅邸的禮儀'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義 - 男性恩澤'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義 - 女性恩澤'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜的價值性'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人理論'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎儀式'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 輪姦治療'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掀裙祈禱'
+2025-10-08 22:29:39 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想滲透'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 快樂派系'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 規矩派系'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 淨化行動'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 舊世界常理常倫'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神教'，正在合併更新...
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯家族'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖十字軍'，正在合併更新...
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
+2025-10-08 22:29:40 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖軍計畫'，正在合併更新...
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教義'
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義'
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 生命之神'，正在合併更新...
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會'
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 國王「聖軍計畫」'
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] [後台創世] LORE 骨架已成功創建並存入資料庫。
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...
+2025-10-08 22:29:41 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
+2025-10-08 22:30:21 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
+2025-10-08 22:30:21 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成。
+2025-10-08 22:30:21 - [INFO] - [512280345618546699] [後台創世] 步驟 3/6: 檢測到 161 條 LORE，正在**等待**單體精煉任務完成...
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段 v10.3] 穩定版串行精煉服務已啟動，收到 74 個 NPC 精煉任務。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 任務已切分為 8 個批次，每批最多 10 個 NPC。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 開始處理...
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '絲月' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•維利爾斯勳爵' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉絲' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾莉諾' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '赫克托' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '埃德蒙三世' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿拉里克' 的所有已知資訊、背景故事、身份和關係。'
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
+2025-10-08 22:30:26 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
+2025-10-08 22:30:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 1 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/list_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 2 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 3 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/list_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 4 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 5 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 6 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/list_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 7 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 8 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/list_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 9 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 10 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+skills
+  Input should be a valid list [type=list_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/list_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 12 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
+age
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type
+race
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.8/v/string_type。已跳過此條記錄。
+2025-10-08 22:30:41 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 成功提取 JSON 列表，但其中沒有任何一個物件可以被成功驗證為 CharacterProfile。此批次無有效結果。
+2025-10-08 22:30:41 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #1 處理完畢，進入 20 秒戰術延遲以等待 API 配額恢復...
