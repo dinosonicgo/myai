@@ -453,6 +453,22 @@ class SceneCastingResult(BaseModel):
     ambient_events: List[str] = Field(default_factory=list, description="为丰富世界而设计的、正在发生的背景事件的文字描述列表（可以是正面、中立或负面的）。")
 
 
+class MicroTaskResult(BaseModel):
+    """
+    定義了「批次化微任務提取」LLM調用返回的、針對單個角色的數據結構。
+    """
+    character_name: str = Field(description="與輸入任務完全相同的角色名稱。")
+    gender: str = Field(default="未知", description="從上下文中提取出的角色性別。")
+    race: str = Field(default="未知", description="從上下文中提取出的角色種族。")
+    age: str = Field(default="未知", description="從上下文中提取出的角色年齡。")
+    personality: List[str] = Field(default_factory=list, description="從上下文中提取出的、描述性格的關鍵詞列表。")
+    final_description: str = Field(default="", description="將所有相關上下文句子合併並潤色後的一段式描述。")
+
+class BatchMicroTaskResult(BaseModel):
+    """
+    定義了「批次化微任務提取」LLM調用的頂層輸出結構。
+    """
+    results: List[MicroTaskResult] = Field(description="一個包含所有被成功處理角色的微任務結果的列表。")
 
 
 
@@ -499,6 +515,8 @@ NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
 
+MicroTaskResult.model_rebuild()
+BatchMicroTaskResult.model_rebuild()
 
 
 
