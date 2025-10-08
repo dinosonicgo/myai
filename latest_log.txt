@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T23:12:04.987497 ###
+### AI Lover Log - Last updated at 2025-10-08T23:15:37.358470 ###
 
-2025-10-08 22:36:01 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/8: 驗證第 62 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材適中', '永遠...嚴肅', '不苟言笑'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 22:36:01 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/8: 驗證第 63 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=['身材魁梧', '肌肉...鐵塔', '頭腦簡單'], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
 2025-10-08 22:36:01 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #7/8: 驗證第 64 個 LORE 物件時失敗: 2 validation errors for CharacterProfile
 age
   Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
@@ -300,3 +292,11 @@ appearance_details
 2025-10-08 22:41:32 - [INFO] - Discord Bot setup hook finished!
 2025-10-08 22:41:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-08 22:41:35 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-08 23:15:23 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 23:15:26 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 23:15:26 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 23:15:26 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 23:15:26 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 23:15:26 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 23:15:29 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 23:15:30 - [INFO] - 已成功發送啟動成功通知給管理員。
