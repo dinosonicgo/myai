@@ -41,11 +41,11 @@ class RelationshipDetail(BaseModel):
     type: str = Field(default="社交關係", description="關係的類型，例如 '家庭', '主從', '敵對', '戀愛', '社交關係'。")
     roles: List[str] = Field(default_factory=list, description="對方在此關係中扮演的角色或稱謂列表，支持多重身份。例如 ['女兒', '學生']。")
 
-# schemas.py 的 CharacterProfile 模型 (v2.5 - 寬容的預處理驗證器)
+# schemas.py 的 CharacterProfile 模型 (v2.6 - 類型自動修復)
 # 更新紀錄:
-# v2.5 (2025-12-19): [災難性BUG修復] 根據 ValidationError: `Input should be a valid string [type=string_type, input_value=None]`，為所有可能被 LLM 輸出為 `null` 的欄位（特別是 `str`, `list`, `dict` 類型）新增了帶有 `mode='before'` 的 `field_validator`。這些驗證器會在 Pydantic 進行嚴格類型檢查之前，將 `None` 值安全地轉換為對應的空類型（例如 `""`, `[]`, `{}`），從根本上解決了因 LLM 輸出 `null` 而導致的模型驗證失敗問題。
+# v2.6 (2025-12-19): [災難性BUG修復] 根據 ValidationError: `Input should be a valid list [type=list_type, input_value={}]`，再次強化了所有 `field_validator`。驗證器現在不僅能處理 `None` 值，還能處理常見的類型混淆錯誤（例如，期望 list 卻收到 dict，或期望 dict 卻收到 list）。通過在驗證前進行程式碼級別的自動類型轉換和修復，極大地提高了模型對不穩定LLM輸出的容錯能力和健壯性。
+# v2.5 (2025-12-19): [災難性BUG修復] 為所有可能被 LLM 輸出為 `null` 的欄位新增了寬容的預處理驗證器。
 # v2.4 (2025-10-08): [重大架構升級] 新增了 `personality` 欄位。
-# v2.3 (2025-10-03): [災難性BUG修復] 為 age 欄位新增了一個 field_validator。
 class CharacterProfile(BaseModel):
     name: str = Field(description="角色的標準化、唯一的官方名字。")
     aliases: List[str] = Field(default_factory=list, description="此角色的其他已知稱呼或別名。")
@@ -68,55 +68,54 @@ class CharacterProfile(BaseModel):
     status: str = Field(default="健康", description="角色的當前健康或狀態。")
     current_action: str = Field(default="站著", description="角色當前正在進行的、持續性的動作或所處的姿態。")
 
-    # [v2.5 核心修正] 寬容的預處理驗證器 - 字串類型
     @field_validator('name', 'gender', 'age', 'race', 'appearance', 'description', 'location', 'status', 'current_action', mode='before')
     @classmethod
     def _validate_str_fields(cls, value: Any) -> Any:
-        """在驗證前，將 str 欄位的 None 值轉換為空字串或預設值。"""
         if value is None:
-            return "" # 對於大多數 str 欄位，空字串是安全的
-        # 特別處理 age，如果為 None，返回 "未知"
-        if cls.model_fields['age'] and value is None:
-             return "未知"
-        # 兼容 LLM 可能輸出的整數/浮點數
+            return ""
         if isinstance(value, (int, float)):
             return str(value)
         return value
 
-    # [v2.5 核心修正] 寬容的預處理驗證器 - 列表類型
+    # [v2.6 核心修正] 增加對輸入為 dict 的自動修復
     @field_validator('aliases', 'alternative_names', 'likes', 'dislikes', 'equipment', 'skills', 'personality', 'location_path', mode='before')
     @classmethod
     def _validate_list_fields(cls, value: Any) -> Any:
-        """在驗證前，將 list 欄位的 None 值轉換为空列表，並處理字串輸入。"""
         if value is None:
             return []
+        # 如果 LLM 錯誤地給了一個字典
+        if isinstance(value, dict):
+            # 嘗試將字典的值轉換為列表；如果失敗，則返回空列表
+            try:
+                return list(value.values())
+            except:
+                return []
         if isinstance(value, str):
             if (' > ' in value or '/' in value):
                 return [part.strip() for part in re.split(r'\s*>\s*|/', value) if part.strip()]
             return _validate_string_to_list(value)
         return value
 
-    # [v2.5 核心修正] 寬容的預處理驗證器 - 字典類型
+    # [v2.6 核心修正] 增加對輸入為 list 的自動修復
     @field_validator('appearance_details', mode='before')
     @classmethod
     def _validate_dict_fields(cls, value: Any) -> Any:
-        """在驗證前，將 dict 欄位的 None 值轉換为空字典。"""
         if value is None:
             return {}
+        # 如果 LLM 錯誤地給了一個列表
+        if isinstance(value, list):
+            # 將列表轉換為一個帶有 'summary' 鍵的字典
+            return {"summary": ", ".join(map(str, value))}
         return _validate_string_to_dict(value)
 
     @field_validator('relationships', mode='before')
     @classmethod
     def _validate_and_normalize_relationships(cls, value: Any) -> Dict[str, Any]:
-        """
-        一個強大的驗證器，用於處理和規範化 'relationships' 字典。
-        它可以向下兼容舊的扁平化字串格式，並將其自動轉換為新的 RelationshipDetail 結構。
-        [v2.5] 新增對 None 值的處理。
-        """
         if value is None:
             return {}
         if isinstance(value, str):
             value = _validate_string_to_dict(value)
+        # [v2.6 核心修正] 如果 LLM 給了一個列表，則放棄修復，返回空字典
         if not isinstance(value, dict):
             return {}
             
@@ -140,7 +139,6 @@ class CharacterProfile(BaseModel):
     @field_validator('affinity', mode='before')
     @classmethod
     def _coerce_affinity_to_int(cls, value: Any) -> Any:
-        """在驗證前，將 affinity 欄位的值強制轉換為整數，以兼容 LLM 可能輸出的浮點數。"""
         if value is None:
             return 0
         if isinstance(value, float):
@@ -500,6 +498,7 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
 
 
