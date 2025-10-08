@@ -3361,48 +3361,104 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成世界創世資訊 (v5.1 - 注入數據協議)
+# 函式：生成世界創世資訊 (v6.0 - 程式碼級驗證與備援)
 # 更新紀錄:
-# v5.1 (2025-10-04): [安全性強化] 為智能選址的 LLM 調用注入了輕量級的 `data_protocol_prompt`，確保創世流程中的數據處理任務在安全協議下執行。
+# v6.0 (2025-12-19): [災難性BUG修復] 根據使用者反饋（開場地點錯誤地選在權力中心），為此函式增加了「程式碼級驗證與備援」機制。在LLM完成選址後，程式碼會自動從LORE資料庫提取所有NPC的已知位置作為「禁區列表」，並驗證LLM的選擇。如果選擇了禁區，系統會拋棄該結果，並調用一個帶有懲罰性指令的備援Prompt，強制LLM創造一個全新的、絕對偏遠的地點，從而根絕開場地點違反核心規則的問題。
+# v5.1 (2025-10-04): [安全性強化] 為智能選址的 LLM 調用注入了輕量級的 data_protocol_prompt。
 # v5.0 (2025-10-03): [重大架構重構] 此函式的功能被重新定義為專注於智能地選擇或創造一個初始地點。
-# v4.2 (2025-09-23): [根本性重構] 根據“按需生成”原則，徹底移除了此函式生成初始NPC的職責。
     async def generate_world_genesis(self, canon_text: Optional[str] = None):
-        """(/start 流程 4/7) 呼叫 LLM 智能地選擇或創造一個初始地點，並存入LORE。"""
+        """(/start 流程 4/7) 呼叫 LLM 智能地選擇或創造一個初始地點，並內建程式碼級驗證與備援。"""
         if not self.profile:
             raise ValueError("AI Profile尚未初始化，無法進行世界創世。")
 
-        genesis_prompt_template = self.get_world_genesis_chain()
+        genesis_result: Optional[WorldGenesisResult] = None
         
-        genesis_params = {
-            "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
-            "username": self.profile.user_profile.name,
-            "ai_name": self.profile.ai_profile.name,
-            "canon_text": canon_text or "（未提供世界聖經，請自由創作一個通用起點。）"
-        }
-        
-        # [v5.1 核心修正] 注入數據處理協議
-        full_prompt_str = self._safe_format_prompt(
-            genesis_prompt_template, 
-            genesis_params,
-            inject_core_protocol=True,
-            custom_protocol=self.data_protocol_prompt
-        )
-        
-        genesis_result = await self.ainvoke_with_rotation(
-            full_prompt_str,
-            output_schema=WorldGenesisResult,
-            retry_strategy='force',
-            models_to_try_override=[FUNCTIONAL_MODEL] # 使用功能模型進行決策
-        )
-        
-        if not genesis_result or not isinstance(genesis_result, WorldGenesisResult) or not genesis_result.location_path:
-            # 備援邏輯
-            logger.warning(f"[{self.user_id}] [/start] 智能地點選擇失敗，啟動備援地點。")
+        # --- 步驟 1: LLM 選址 (第一輪) ---
+        try:
+            genesis_prompt_template = self.get_world_genesis_chain()
+            genesis_params = {
+                "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
+                "username": self.profile.user_profile.name,
+                "ai_name": self.profile.ai_profile.name,
+                "canon_text": canon_text or "（未提供世界聖經，請自由創作一個通用起點。）"
+            }
+            full_prompt_str = self._safe_format_prompt(
+                genesis_prompt_template, genesis_params,
+                inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
+            )
+            genesis_result = await self.ainvoke_with_rotation(
+                full_prompt_str, output_schema=WorldGenesisResult,
+                retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [/start] 世界創世 LLM 調用第一輪失敗: {e}", exc_info=True)
+            genesis_result = None # 確保在失敗時 genesis_result 為 None
+
+        # --- 步驟 2: 程式碼級驗證層 ---
+        is_valid_location = False
+        if genesis_result and genesis_result.location_path:
+            try:
+                # 獲取所有NPC的已知位置作為「禁區」
+                all_npcs = await lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile')
+                forbidden_zones = set()
+                for npc in all_npcs:
+                    if npc.content.get('location_path'):
+                        # 將整個路徑和其父路徑都視為禁區
+                        path = tuple(npc.content['location_path'])
+                        for i in range(1, len(path) + 1):
+                            forbidden_zones.add(path[:i])
+                
+                chosen_path_tuple = tuple(genesis_result.location_path)
+                
+                # 檢查選擇的路徑是否在任何禁區內
+                is_in_forbidden_zone = False
+                for i in range(1, len(chosen_path_tuple) + 1):
+                    if chosen_path_tuple[:i] in forbidden_zones:
+                        is_in_forbidden_zone = True
+                        break
+                
+                if is_in_forbidden_zone:
+                    logger.warning(f"[{self.user_id}] [/start] [地點驗證] LLM 選擇的地點 '{' > '.join(genesis_result.location_path)}' 違反了「遠離權力中心」原則，已被程式碼駁回。")
+                else:
+                    logger.info(f"[{self.user_id}] [/start] [地點驗證] LLM 選擇的地點 '{' > '.join(genesis_result.location_path)}' 通過驗證。")
+                    is_valid_location = True
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [/start] [地點驗證] 執行程式碼驗證時發生錯誤: {e}", exc_info=True)
+                is_valid_location = False # 驗證出錯時，視為無效以觸發備援
+
+        # --- 步驟 3: 決策與備援 ---
+        if not is_valid_location:
+            logger.warning(f"[{self.user_id}] [/start] 初始地點選擇無效或失敗，觸發【懲罰性備援】...")
+            try:
+                fallback_prompt_template = self.get_genesis_fallback_prompt()
+                fallback_params = {
+                    "world_settings": self.profile.world_settings or "一個充滿魔法與奇蹟的幻想世界。",
+                    "username": self.profile.user_profile.name,
+                    "ai_name": self.profile.ai_profile.name,
+                    "canon_text": canon_text or "（未提供世界聖經）"
+                }
+                fallback_full_prompt = self._safe_format_prompt(
+                    fallback_prompt_template, fallback_params,
+                    inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
+                )
+                genesis_result = await self.ainvoke_with_rotation(
+                    fallback_full_prompt, output_schema=WorldGenesisResult,
+                    retry_strategy='force', models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [/start] 地點選擇的【懲罰性備援】也最終失敗: {e}", exc_info=True)
+                genesis_result = None # 確保最終失敗時為 None
+
+        # --- 最終備援的備援 ---
+        if not genesis_result or not genesis_result.location_path:
+            logger.critical(f"[{self.user_id}] [/start] 所有地點生成方案均失敗！啟用最終的硬編碼備援地點。")
             genesis_result = WorldGenesisResult(
                 location_path=["未知領域", "時空奇點"],
                 location_info=LocationInfo(name="時空奇點", description="一個時間與空間交匯的神秘之地，萬物的起點。")
             )
         
+        # --- 狀態更新與LORE存儲 ---
         gs = self.profile.game_state
         gs.location_path = genesis_result.location_path
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
@@ -3410,20 +3466,70 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(genesis_result.location_path), genesis_result.location_info.model_dump())
         
         logger.info(f"[{self.user_id}] [/start] 初始地點 '{' > '.join(gs.location_path)}' 已成功生成並存入LORE。")
-# 生成世界創世資訊 函式結束
+# 函式：生成世界創世資訊 (v6.0 - 程式碼級驗證與備援)
 
         
 
 
-
-# 函式：生成開場白 (v186.2 - 條件化新手保護)
+    # 函式：獲取創世備援 Prompt (v1.0 - 全新創建)
 # 更新紀錄:
-# v186.2 (2025-10-08): [重大架構升級] 引入【條件化新手保護】機制。此函式在生成開場白後，會立即調用LLM分析自身生成的文本，判斷核心夥伴關係是否已建立。根據分析結果，動態決定是否激活`is_in_genesis_phase`狀態旗標，從而實現對新手期劇情引導的智能化、自动化管理。
-# v186.1 (2025-10-08): [架構擴展] 增加了【創世劇情導航儀】的隱藏指令拼接，確保開局關鍵劇情（如獲得夥伴）的成功率。
-# v186.0 (2025-10-03): [重大架構重構] 將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。
+# v1.0 (2025-12-19): [全新創建] 根據「程式碼級地點驗證」策略，創建此帶有懲罰性指令的備援 Prompt。當主選址LLM違反「遠離權力中心」規則後，此 Prompt 會被觸發，它會明確告知LLM其之前的錯誤，並強制其創造一個全新的、絕對偏遠的地點，作為一個強有力的糾錯和備援機制。
+    def get_genesis_fallback_prompt(self) -> str:
+        """獲取或創建一個帶有懲罰性指令的、用於世界創世地點選擇備援的字符串模板。"""
+        fallback_prompt_str = """你现在扮演一位富有想像力的世界构建师和開場地點決策AI。
+你的上一次選址建議【已被系統駁回】，因為它違反了「遠離權力中心」的核心規則。
+你的新任務是，【拋棄】所有從世界聖經中選擇現有地點的想法，【直接創造】一個全新的、絕對偏遠的、不存在於聖經中的初始出生點。
+
+# === 【【【v1.0 懲罰性備援規則 - 絕對鐵則】】】 ===
+# 1.  **【🚫 絕對禁止選擇】**: 你【絕對禁止】再次選擇或參考任何在【世界聖經全文】中被明確提及的地點。你的創造必須是100%全新的。
+#
+# 2.  **【📍 絕對偏遠原則】**: 你新創造的地點【必須】符合以下至少兩項特徵：
+#     *   地理位置偏僻（例如：邊境、深山、無人島、沙漠深處、廢棄的古代遺址）。
+#     *   性質隱秘或被遺忘（例如：隱藏的洞穴、被藤蔓覆蓋的神殿、被世人遺忘的哨塔）。
+#     *   與任何已知的主要勢力或NPC都沒有直接關聯。
+#
+# 3.  **【二人世界原則】**: 你創造的地點描述中，【絕對禁止】出現任何除了主角「{username}」和「{ai_name}」之外的第三方角色。
+#
+# 4.  **【結構化輸出強制令】**: 你的最終輸出【必須且只能】是一個純淨的、符合 `WorldGenesisResult` 格式的 JSON 物件。
+
+# === 【【【⚙️ 輸出結構範例 (必須嚴格遵守)】】】 ===
+#     ```json
+#     {{
+#       "location_path": ["格雷厄姆山脈", "龍牙峰", "廢棄的古代觀星台"],
+#       "location_info": {{
+#         "name": "廢棄的古代觀星台",
+#         "aliases": ["龍牙觀星台"],
+#         "description": "一座位於龍牙峰頂的、早已被世人遺忘的古代觀星台。石質的結構上佈滿了青苔和神秘的符文，從這裡可以俯瞰整個王國的邊境，但周圍數十里都荒無人煙。",
+#         "notable_features": ["破損的星象儀", "刻有古老符文的石牆"],
+#         "known_npcs": []
+#       }},
+#       "initial_npcs": []
+#     }}
+#     ```
+---
+【核心世界觀】:
+{world_settings}
+---
+【主角資訊】:
+*   使用者: {username}
+*   AI角色: {ai_name}
+---
+【世界聖經全文 (僅供你參考風格，禁止選擇其中地點)】:
+{canon_text}
+---
+请严格遵循所有新規則，开始你的【全新創造】。"""
+        return fallback_prompt_str
+# 函式：獲取創世備援 Prompt (v1.0 - 全新創建)
+
+
+# 函式：生成開場白 (v187.0 - 純淨上下文生成)
+# 更新紀錄:
+# v187.0 (2025-12-19): [災難性BUG修復] 根據使用者反饋（開場白被NPC的LORE污染），徹底重構了此函式的上下文生成邏輯。不再使用可能包含NPC資訊的RAG檢索結果，而是改為調用 `_execute_narrative_extraction_pipeline`，從世界聖經中只提取宏觀的、純敘事性的背景。這確保了開場白生成的Prompt環境絕對純淨，不包含任何具體NPC的LORE，從根源上杜絕了「母畜的禮儀」等NPC專屬規則被錯誤應用在AI戀人身上的災難性BUG。
+# v186.2 (2025-10-08): [重大架構升級] 引入【條件化新手保護】機制。
+# v186.1 (2025-10-08): [架構擴展] 增加了【創世劇情導航儀】的隱藏指令拼接。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """
-        (v186.2) 智能創作開場白，分析夥伴關係，條件化地設置新手保護期，並反向提取地點以更新遊戲狀態。
+        (v187.0) 在一個純淨的、無NPC污染的上下文中，智能創作開場白，並執行後續分析。
         """
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
@@ -3431,12 +3537,18 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
         
-        # --- 步驟 1: RAG 驅動的場景選擇與創作 ---
-        logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇並創作開場場景...")
-        rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。"
+        # --- 步驟 1: [v187.0 核心修正] 提取純淨的敘事上下文 ---
+        logger.info(f"[{self.user_id}] [/start] 正在提取純淨的敘事上下文以生成開場場景...")
         
-        rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
-        rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
+        narrative_context = "（未提供世界聖經，請自由創作一個通用起點。）"
+        if canon_text and canon_text.strip():
+            # 調用我們強大的敘事提取管線，它能應對審查並只返回宏觀故事
+            extracted_narrative = await self._execute_narrative_extraction_pipeline(canon_text)
+            if extracted_narrative and extracted_narrative.strip():
+                narrative_context = extracted_narrative
+                logger.info(f"[{self.user_id}] [/start] ✅ 已成功提取純淨的敘事上下文。")
+            else:
+                logger.warning(f"[{self.user_id}] [/start] ⚠️ 敘事提取管線未能從世界聖經中提取出有效內容，將使用預設提示。")
 
         opening_scene_prompt_template = """你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
 你的唯一任務是，基於所有源數據，為使用者角色「{username}」與 AI 角色「{ai_name}」創造一個**【深度定制化的、靜態的開場快照】**。
@@ -3447,16 +3559,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 3.  **【🚫 禁止杜撰情節】**: 這是一個和平的、中性的故事開端。你【絕對禁止】在開場白中加入任何極端的、未經使用者觸發的劇情。
 
 # === 核心要求 ===
-1.  **【🎬 RAG場景融合強制令】**: 你【必須】深度閱讀並理解下方由 RAG 系統提供的【核心場景情報】。你的開場白所描寫的氛圍、環境細節、角色狀態，都【必須】與這份情報的設定嚴格保持一致。
-2.  **【角色植入】**: 將「{username}」和「{ai_name}」無縫地植入到【核心場景情報】所描寫的場景中。
+1.  **【🎬 純淨上下文融合強制令】**: 你【必須】深度閱讀並理解下方提供的【宏觀敘事背景】。你的開場白所描寫的氛圍、環境細節、角色狀態，都【必須】與這份情報的設定嚴格保持一致。這份情報不包含任何具體NPC的資訊，你也不應該創造任何NPC。
+2.  **【角色植入】**: 將「{username}」和「{ai_name}」無縫地植入到【宏觀敘事背景】所描寫的場景中。
 3.  **【開放式結尾強制令】**: 你的開場白**結尾**【必須】是 **AI 角色「{ai_name}」** 的一個動作或一句對話，將故事的控制權正式交給使用者。
 
 ---
 【世界觀核心】
 {world_settings}
 ---
-【核心場景情報 (由 RAG 根據世界聖經智能選擇)】:
-{rag_scene_context}
+【宏觀敘事背景 (從世界聖經中安全提取，不含NPC檔案)】:
+{narrative_context}
 ---
 【使用者角色檔案：{username}】
 {user_profile_json}
@@ -3473,7 +3585,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 "username": user_profile.name,
                 "ai_name": ai_profile.name,
                 "world_settings": self.profile.world_settings or "",
-                "rag_scene_context": rag_scene_context,
+                "narrative_context": narrative_context, # 使用純淨上下文
                 "user_profile_json": json.dumps(user_profile.model_dump(), ensure_ascii=False, indent=2),
                 "ai_profile_json": json.dumps(ai_profile.model_dump(), ensure_ascii=False, indent=2),
                 "response_style_prompt": self.profile.response_style_prompt or ""
@@ -3485,33 +3597,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not opening_scene or not opening_scene.strip():
             opening_scene = f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡..."
         
-        # --- 步驟 2: [v186.2 新增] 分析開場白，條件化設置新手保護期 ---
+        # --- 後續步驟 (夥伴關係分析、地點反向提取、狀態持久化) 保持不變 ---
         logger.info(f"[{self.user_id}] [/start] 開場白已生成，正在分析初始夥伴關係以決定是否激活【新手保護期】...")
         are_partners = False
         try:
-            class RelationshipCheckResult(BaseModel):
-                are_already_partners: bool
-
+            class RelationshipCheckResult(BaseModel): are_already_partners: bool
             check_prompt_template = self.get_relationship_check_prompt()
             check_prompt = self._safe_format_prompt(
                 check_prompt_template,
-                {
-                    "username": user_profile.name,
-                    "ai_name": ai_profile.name,
-                    "opening_scene_text": opening_scene
-                }
+                {"username": user_profile.name, "ai_name": ai_profile.name, "opening_scene_text": opening_scene}
             )
-            check_result = await self.ainvoke_with_rotation(
-                check_prompt,
-                output_schema=RelationshipCheckResult,
-                models_to_try_override=[FUNCTIONAL_MODEL]
-            )
-            if check_result:
-                are_partners = check_result.are_already_partners
-
+            check_result = await self.ainvoke_with_rotation(check_prompt, output_schema=RelationshipCheckResult, models_to_try_override=[FUNCTIONAL_MODEL])
+            if check_result: are_partners = check_result.are_already_partners
         except Exception as e:
             logger.error(f"[{self.user_id}] [/start] 分析初始夥伴關係時發生錯誤: {e}，將默認激活新手保護期。", exc_info=True)
-            are_partners = False # 發生錯誤時，默認為需要保護
+            are_partners = False
 
         gs = self.profile.game_state
         if are_partners:
@@ -3521,40 +3621,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             gs.is_in_genesis_phase = True
             logger.info(f"[{self.user_id}] [/start] ⚠️ 關係分析結果：夥伴關係尚未建立。【新手保護期】已激活。")
 
-        # --- 步驟 3: 反向提取地點並更新狀態 (邏輯不變) ---
         logger.info(f"[{self.user_id}] [/start] 正在從開場白中反向提取權威地點...")
         try:
             location_extraction_prompt = self.get_location_extraction_prompt()
             full_extraction_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": opening_scene})
-            
             from .schemas import SceneLocationExtraction
-            location_result = await self.ainvoke_with_rotation(
-                full_extraction_prompt, 
-                output_schema=SceneLocationExtraction,
-                models_to_try_override=[FUNCTIONAL_MODEL]
-            )
-
+            location_result = await self.ainvoke_with_rotation(full_extraction_prompt, output_schema=SceneLocationExtraction, models_to_try_override=[FUNCTIONAL_MODEL])
             if location_result and location_result.has_explicit_location and location_result.location_path:
                 authoritative_location_path = location_result.location_path
                 logger.info(f"[{self.user_id}] [/start] ✅ 地點提取成功: {' > '.join(authoritative_location_path)}。正在更新 GameState...")
                 gs.location_path = authoritative_location_path
-                
                 location_name = authoritative_location_path[-1]
                 location_info = LocationInfo(name=location_name, description=f"故事開始的地方：{opening_scene[:200]}...")
                 await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(authoritative_location_path), location_info.model_dump())
             else:
-                logger.warning(f"[{self.user_id}] [/start] ⚠️ 未能從開場白中提取出明確地點，將使用預設值。")
-                gs.location_path = ["故事的開端"]
+                logger.warning(f"[{self.user_id}] [/start] ⚠️ 未能從開場白中提取出明確地點，將使用 `generate_world_genesis` 的結果。")
+                # 如果反向提取失敗，GameState 中已經有 generate_world_genesis 設定好的地點，無需修改。
         except Exception as e:
             logger.error(f"[{self.user_id}] [/start] 在反向提取地點時發生錯誤: {e}", exc_info=True)
-            gs.location_path = ["未知的起點"]
 
-        # --- 步驟 4: 最終持久化 GameState ---
         await self.update_and_persist_profile({'game_state': gs.model_dump()})
         logger.info(f"[{self.user_id}] [/start] 最終的 GameState 已成功持久化。")
 
         return opening_scene
-# 函式：生成開場白 (v186.2 - 條件化新手保護)
+# 函式：生成開場白 (v187.0 - 純淨上下文生成)
 
     
 
@@ -6718,6 +6808,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
