@@ -27,123 +27,79 @@ from langchain_core.output_parsers import StrOutputParser
 
 # --- [v33.0 新架構] 主對話圖 (Main Conversation Graph) 的節點 ---
 
-# 函式：[新] 場景感知與上下文恢復節點 (v3.1 - 遠程優先狀態保持)
+# 函式：[新] 場景感知與上下文恢復節點 (v4.0 - 場景分析前置)
 # 更新紀錄:
-# v3.1 (2025-10-03): [災難性BUG修復] 根據場景誤判問題，徹底重構了此節點的狀態管理邏輯。新版本引入了「遠程優先」的狀態保持策略：當視角已處於遠程模式時，除非使用者發出非常明確的返回本地的指令（如直接與AI互動或發出移動命令），否則視角將被強制保持在遠程。同時，在節點的末尾增加了狀態持久化邏輯，確保任何視角的變更都會被立即寫入資料庫，解決了因狀態丟失導致的場景錯亂問題。
+# v4.0 (2025-12-18): [重大架構升級] 根據 V2.0 藍圖，在此節點的最開始集成了「場景分析前置處理器」。現在，此節點會首先調用 LLM 來判斷使用者的視角（local/remote），並立即用程式碼更新和持久化 GameState，從根源上解決視角切換錯誤和狀態不一致的問題。
+# v3.1 (2025-10-03): [災難性BUG修復] 引入了「遠程優先」的狀態保持策略。
 # v3.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。
-# v2.0 (2025-10-15): [災難性BUG修復] 引入了【上下文感知的視角保持】策略。
 async def perceive_scene_node(state: ConversationGraphState) -> Dict:
-    """[1] (入口) 分析用户输入，處理連續性指令，恢復上下文快照，並保持場景視角的連貫性。"""
+    """[1] (入口) 執行場景分析，處理連續性指令，恢復上下文，並確保視角連貫性。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # 確保 messages 列表不為空
     if not state.get('messages'):
         logger.error(f"[{user_id}] (Graph|1) 狀態中缺少 'messages'，無法感知場景。")
-        # 提供一個安全的預設值
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：状态中缺少 messages。', action_summary="")}
 
     user_input = state['messages'][-1].content.strip() if state['messages'] else ""
-    logger.info(f"[{user_id}] (Graph|1) Node: perceive_scene -> 正在感知场景与恢复上下文...")
+    logger.info(f"[{user_id}] (Graph|1 v4.0) Node: perceive_scene -> 正在執行場景分析前置處理...")
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|1) ai_core.profile 未加载，无法感知场景。")
         return {"scene_analysis": SceneAnalysisResult(viewing_mode='local', reasoning='错误：AI profile 未加载。', action_summary=user_input)}
 
-    # [v3.1 核心修正] 無條件從資料庫恢復的 GameState 開始
     gs = ai_core.profile.game_state
-    logger.info(f"[{user_id}] (Graph|1) 已從持久化存儲中恢復當前狀態：viewing_mode='{gs.viewing_mode}', remote_target='{gs.remote_target_path}'")
     
-    # --- 步驟 1: 處理連續性指令與上下文恢復 ---
+    # --- 步驟 1: [V4.0 新增] 場景分析前置處理器 ---
+    try:
+        analysis_prompt = ai_core.get_scene_analysis_prompt()
+        full_prompt = ai_core._safe_format_prompt(
+            analysis_prompt,
+            {
+                "player_location_path_str": " > ".join(gs.location_path),
+                "previous_viewing_mode": gs.viewing_mode,
+                "user_input": user_input
+            }
+        )
+        scene_analysis_result = await ai_core.ainvoke_with_rotation(
+            full_prompt, 
+            output_schema=SceneAnalysisResult,
+            retry_strategy='none', # 失敗時直接使用備援
+            models_to_try_override=[ai_core.FUNCTIONAL_MODEL]
+        )
+
+        if scene_analysis_result:
+            # 根據分析結果，立即用程式碼更新 GameState
+            if gs.viewing_mode != scene_analysis_result.viewing_mode or gs.remote_target_path != scene_analysis_result.target_location_path:
+                gs.viewing_mode = scene_analysis_result.viewing_mode
+                gs.remote_target_path = scene_analysis_result.target_location_path
+                await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
+                logger.info(f"[{user_id}] (Graph|1) [場景分析] 視角狀態已更新並持久化: mode='{gs.viewing_mode}', target='{gs.remote_target_path}'")
+        else:
+             # LLM調用失敗的備援：保持狀態不變
+            scene_analysis_result = SceneAnalysisResult(viewing_mode=gs.viewing_mode, reasoning='LLM分析失敗，保持當前視角。', action_summary=user_input, target_location_path=gs.remote_target_path)
+
+    except Exception as e:
+        logger.error(f"[{user_id}] (Graph|1) [場景分析] 執行時發生嚴重錯誤: {e}", exc_info=True)
+        # 發生嚴重錯誤的備援：保持狀態不變
+        scene_analysis_result = SceneAnalysisResult(viewing_mode=gs.viewing_mode, reasoning=f'場景分析器發生嚴重錯誤: {e}', action_summary=user_input, target_location_path=gs.remote_target_path)
+
+    # --- 步驟 2: 處理連續性指令與上下文恢復 (邏輯不變) ---
     continuation_keywords = ["继续", "繼續", "然後呢", "接下來", "go on", "continue"]
     if any(user_input.lower().startswith(kw) for kw in continuation_keywords):
-        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將繼承上一輪的場景狀態並恢復上下文快照。")
-        
-        scene_analysis = SceneAnalysisResult(
-            viewing_mode=gs.viewing_mode,
-            reasoning="繼承上一輪的場景狀態。",
-            target_location_path=gs.remote_target_path,
-            action_summary=user_input
-        )
+        logger.info(f"[{user_id}] (Graph|1) 檢測到連續性指令，將恢復上下文快照。")
         
         if ai_core.last_context_snapshot:
             logger.info(f"[{user_id}] (Graph|1) [上下文恢復] 成功恢復上一輪的上下文快照。")
             return {
-                "scene_analysis": scene_analysis,
+                "scene_analysis": scene_analysis_result,
                 "raw_lore_objects": ai_core.last_context_snapshot.get("raw_lore_objects", []),
                 "last_response_text": ai_core.last_context_snapshot.get("last_response_text", None)
             }
         else:
-            logger.warning(f"[{user_id}] (Graph|1) [上下文恢復] 未找到上一輪的上下文快照，將重新查詢 LORE。")
-            return {"scene_analysis": scene_analysis}
-
-    # --- 步驟 2: 使用 LLM 智能推斷使用者是否意圖觀察遠程 ---
-    new_viewing_mode = 'local'
-    new_target_path = None
-    final_reasoning = "場景感知完成。"
-
-    try:
-        location_chain_prompt = ai_core.get_location_extraction_prompt()
-        full_prompt = ai_core._safe_format_prompt(location_chain_prompt, {"user_input": user_input})
-        
-        from .schemas import SceneLocationExtraction
-        location_result = await ai_core.ainvoke_with_rotation(
-            full_prompt, 
-            output_schema=SceneLocationExtraction,
-            retry_strategy='euphemize'
-        )
-        if location_result and location_result.has_explicit_location and location_result.location_path:
-            final_reasoning = f"LLM 感知成功。推斷出的目標地點: {location_result.location_path}"
-            logger.info(f"[{user_id}] (Graph|1) {final_reasoning}")
-            new_target_path = location_result.location_path
-            new_viewing_mode = 'remote'
-    except Exception as e:
-        final_reasoning = f"地點推斷鏈失敗: {e}，將回退到基本邏輯。"
-        logger.warning(f"[{user_id}] (Graph|1) {final_reasoning}")
-
-    # --- 步驟 3: [v3.1 核心修正] 應用「遠程優先」的狀態保持邏輯 ---
-    final_viewing_mode = gs.viewing_mode
-    final_target_path = gs.remote_target_path
-
-    if gs.viewing_mode == 'remote':
-        # 只有在非常明確的情況下才切換回 local
-        is_explicit_local_move = any(user_input.startswith(kw) for kw in ["去", "前往", "移動到", "旅行到", "我"])
-        is_direct_ai_interaction = ai_core.profile.ai_profile.name in user_input
-        
-        if is_explicit_local_move or is_direct_ai_interaction:
-            final_viewing_mode = 'local'
-            final_target_path = None
-            logger.info(f"[{user_id}] (Graph|1) [狀態切換] 檢測到明確的本地指令，導演視角從 'remote' 切換回 'local'。")
-        elif new_viewing_mode == 'remote' and new_target_path and new_target_path != gs.remote_target_path:
-            # 如果仍在遠程模式，但目標變了，則更新目標
-            final_target_path = new_target_path
-            logger.info(f"[{user_id}] (Graph|1) [狀態更新] 在遠程模式下，更新了觀察目標地點為: {final_target_path}")
-        else:
-            # 對於 "卡蓮呢?" 這類模糊指令，保持 remote 模式不變
-            logger.info(f"[{user_id}] (Graph|1) [狀態保持] 未檢測到明確的本地切換信號，導演視角保持為 'remote'。")
-    else: # gs.viewing_mode == 'local'
-        # 從 local 切換到 remote 的條件保持不變
-        if new_viewing_mode == 'remote' and new_target_path:
-            final_viewing_mode = 'remote'
-            final_target_path = new_target_path
-            logger.info(f"[{user_id}] (Graph|1) [狀態切換] 檢測到遠程描述指令，導演視角從 'local' 切換到 'remote'。目標: {final_target_path}")
-
-    # --- 步驟 4: [v3.1 核心修正] 持久化狀態變更 ---
-    if gs.viewing_mode != final_viewing_mode or gs.remote_target_path != final_target_path:
-        logger.info(f"[{user_id}] (Graph|1) [持久化] 檢測到狀態變更，正在將新的 GameState 寫入資料庫...")
-        gs.viewing_mode = final_viewing_mode
-        gs.remote_target_path = final_target_path
-        await ai_core.update_and_persist_profile({'game_state': gs.model_dump()})
-        logger.info(f"[{user_id}] (Graph|1) [持久化] 狀態已成功保存。")
+            logger.warning(f"[{user_id}] (Graph|1) [上下文恢復] 未找到上一輪的上下文快照。")
     
-    scene_analysis = SceneAnalysisResult(
-        viewing_mode=gs.viewing_mode,
-        reasoning=final_reasoning,
-        target_location_path=gs.remote_target_path,
-        action_summary=user_input
-    )
-    return {"scene_analysis": scene_analysis}
-# 函式：[新] 場景感知與上下文恢復節點 (v3.1 - 遠程優先狀態保持)
-
+    return {"scene_analysis": scene_analysis_result}
+# 函式：[新] 場景感知與上下文恢復節點 (v4.0 - 場景分析前置)
 
 
 
@@ -660,3 +616,4 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖
+
