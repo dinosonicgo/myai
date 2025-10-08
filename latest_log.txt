@@ -1,31 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T23:35:51.958653 ###
+### AI Lover Log - Last updated at 2025-10-08T23:41:39.528981 ###
 
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '漢德瑞克師傅' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉娜' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '貝拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '諾拉' 的所有已知資訊、背景故事、身份和關係。'
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 9 秒)。
-2025-10-08 23:32:52 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-flash-lite，剩餘 9 秒)。
-2025-10-08 23:34:43 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #1) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
-2025-10-08 23:34:43 - [WARNING] - [512280345618546699] Key #1 遭遇臨時 API 錯誤。将在 1.39 秒後重試...
-2025-10-08 23:35:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 1 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=[], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 2 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-appearance_details
-  Input should be a valid dictionary [type=dict_type, input_value=[], input_type=list]
-    For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
-2025-10-08 23:35:18 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #9/9: 驗證第 3 個 LORE 物件時失敗: 1 validation error for CharacterProfile
 appearance_details
   Input should be a valid dictionary [type=dict_type, input_value=[], input_type=list]
     For further information visit https://errors.pydantic.dev/2.8/v/dict_type。已跳過此條記錄。
@@ -300,3 +274,29 @@ appearance_details
 2025-10-08 23:35:48 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
 2025-10-08 23:35:48 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
 2025-10-08 23:35:48 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 85541 秒)。
+2025-10-08 23:36:02 - [WARNING] - [512280345618546699] Key #2 遭遇臨時 API 錯誤。将在 1.37 秒後重試...
+2025-10-08 23:36:36 - [WARNING] - [512280345618546699] Key #2 遭遇臨時 API 錯誤。将在 2.31 秒後重試...
+2025-10-08 23:36:45 - [ERROR] - [512280345618546699] Key #2 (模型: gemini-2.5-pro) 在 3 次重試後仍然失敗。
+2025-10-08 23:36:45 - [CRITICAL] - [512280345618546699] [持久化冷卻] Pro 模型速率超限！API Key #2 已被置入硬冷卻 24 小時。
+2025-10-08 23:37:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #3.
+2025-10-08 23:37:27 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在分析初始夥伴關係以決定是否激活【新手保護期】...
+2025-10-08 23:37:28 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-08 23:37:28 - [INFO] - [512280345618546699] [/start] ⚠️ 關係分析結果：夥伴關係尚未建立。【新手保護期】已激活。
+2025-10-08 23:37:28 - [INFO] - [512280345618546699] [/start] 正在從開場白中反向提取權威地點...
+2025-10-08 23:37:29 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #3.
+2025-10-08 23:37:29 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 維利爾斯莊園 > 宏偉的大廳。正在更新 GameState...
+2025-10-08 23:37:30 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-08 23:37:30 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-08 23:37:30 - [INFO] - [512280345618546699] [/start] 最終的 GameState 已成功持久化。
+2025-10-08 23:37:30 - [INFO] - [512280345618546699] [後台創世] 開場白生成成功。
+2025-10-08 23:37:31 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-08 23:37:31 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-08 23:37:31 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-08 23:41:25 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 23:41:28 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 23:41:28 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 23:41:28 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 23:41:28 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 23:41:28 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 23:41:31 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 23:41:32 - [INFO] - 已成功發送啟動成功通知給管理員。
