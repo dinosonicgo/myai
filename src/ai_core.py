@@ -534,21 +534,21 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v8.4 - 動態焦點切換強制令)
+# 函式：RAG 直通生成 (v8.5 - 條件化新手保護)
 # 更新紀錄:
-# v8.4 (2025-10-08): [災難性BUG修復] 引入終極解決方案【動態焦點切換強制令】。通过程式碼分析使用者輸入的「直接خاطب對象」，或在輸入模糊時「繼承」上一輪的對話焦點，來動態生成關於「誰必須發言」和「誰必須沉默」的條件化指令。此修正方案在保留對話自由度的同時，根除了AI在多人場景中混淆對話代理和劇情割裂的致命問題。
+# v8.5 (2025-10-08): [重大架構升級] 引入【條件化新手保護】機制。此函式現在會檢查 is_in_genesis_phase 狀態旗標，如果為True，则自動向Prompt注入【创世剧情强制令】，確保開局關鍵劇情（如獲得夥伴）的成功率。一旦旗標變為False，此指令將自動失效，恢復AI的完全自由度。
+# v8.4 (2025-10-08): [災難性BUG修復] 引入終極解決方案【動態焦點切換強制令】。
 # v8.3 (2025-10-08): [災難性BUG修復] 引入了「對話焦點分析」邏輯。
-# v8.2 (2025-10-08): [災難性BUG修復] 引入【視角感知的絕對事實強制令】。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.4) 執行一個包含「前置實體鏈結」、「動態焦點切換強制令」和「RAG 直通生成」的完整流程。
+        (v8.5) 執行一個包含「前置實體鏈結」、「動態焦點分析」、「條件化新手保護」和「RAG 直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{user_id}] [Direct RAG v8.4] 啟动 LORE 优先的 RAG 直通生成流程...")
+        logger.info(f"[{user_id}] [Direct RAG v8.5] 啟动 LORE 优先的 RAG 直通生成流程...")
         
         narrative_focus_snapshot = { "entities": [], "location": None }
         newly_created_lores_for_refinement: List[Lore] = []
@@ -628,7 +628,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v8.4 核心修正] 動態生成【對話代理強制令】
+        # [v8.5 核心修正] 條件化地生成【創世劇情強制令】
+        genesis_plot_mandate = ""
+        if self.profile.game_state.is_in_genesis_phase:
+            logger.info(f"[{user_id}] [新手保護期] 已激活，正在向 Prompt 注入【創世劇情強制令】。")
+            genesis_plot_mandate = f"""# === 【【【🚨 創世劇情強制令 (GENESIS PLOT MANDATE)】】】 ===
+# - **最高目标**: 当前处于故事的开端。你的首要任务是确保玩家能与核心 AI 伙伴 ({self.profile.ai_profile.name}) 顺利组队，并开启他们的冒险。
+# - **行动指令**: 在扮演 NPC 时，无论过程如何，最终都必须导向一个能让玩家【成功获得】或【联合】核心伙伴的结果。禁止设置无法逾越的障碍（例如过高的价格、无法完成的任务）。
+# ========================================================="""
+
+        # [v8.4] 動態生成【對話代理強制令】
         absolute_truth_mandate = ""
         try:
             scene_key = self._get_scene_key()
@@ -636,29 +645,20 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             last_ai_message = next((msg.content for msg in reversed(history.messages) if isinstance(msg, AIMessage)), "")
             
             truth_statements = []
-
-            # 只有在近景模式才需要進行複雜的焦點分析
             if self.profile.game_state.viewing_mode == 'local':
                 entities_in_user_input = set(await self._extract_entities_from_input(user_input))
                 entities_in_ai_response = set(await self._extract_entities_from_input(last_ai_message))
                 
-                # 判斷主要خاطب對象
                 direct_addressee = None
-                # 如果使用者輸入明確提到了某個在場角色，則該角色為主要خاطب對象
                 if entities_in_user_input:
-                    # 這裡可以做得更複雜，比如判斷名字是否在句子開頭，但目前先用簡單的交集
-                    # 選擇使用者輸入中也存在於上一輪對話的角色作為優先級
                     possible_targets = entities_in_user_input.intersection(entities_in_ai_response)
                     if possible_targets:
                         direct_addressee = list(possible_targets)[0]
                     else:
                         direct_addressee = list(entities_in_user_input)[0]
-
-                # 如果使用者輸入沒有明確خاطب對象，則繼承上一輪的焦點
                 elif entities_in_ai_response:
                     direct_addressee = list(entities_in_ai_response)[0]
 
-                # 獲取場景中所有角色
                 all_scene_entities = entities_in_user_input.union(entities_in_ai_response)
                 all_scene_entities.add(self.profile.user_profile.name)
                 all_scene_entities.add(self.profile.ai_profile.name)
@@ -666,14 +666,12 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if direct_addressee:
                     logger.info(f"[{user_id}] [對話焦點分析] 識別出主要خاطب對象為: 【{direct_addressee}】")
                     truth_statements.append(f"- **對話代理強制令**: 本回合的唯一核心發言者【必須】是【{direct_addressee}】。你的回覆必須是該角色對使用者指令的直接反應。")
-                    
                     passive_entities = all_scene_entities - {direct_addressee, self.profile.user_profile.name}
                     if passive_entities:
                         truth_statements.append(f"- **次要角色指令**: 【{', '.join(list(passive_entities))}】是次要角色，【除非】被直接提問，否則【必須】保持沉默或只做非語言的反應。")
                 else:
                     logger.info(f"[{user_id}] [對話焦點分析] 未能識別出明確的對話焦點，AI 將根據綜合上下文判斷。")
 
-                # 附加關係事實
                 all_lores_for_truth = await lore_book.get_all_lores_for_user(self.user_id)
                 all_lores_for_truth.append(Lore(user_id=user_id, category='user_profile', key=self.profile.user_profile.name, content=self.profile.user_profile.model_dump(), timestamp=time.time()))
                 all_lores_for_truth.append(Lore(user_id=user_id, category='ai_profile', key=self.profile.ai_profile.name, content=self.profile.ai_profile.model_dump(), timestamp=time.time()))
@@ -692,8 +690,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         except Exception as e:
             logger.error(f"[{user_id}] [絕對事實] 生成強制令時發生錯誤: {e}", exc_info=True)
 
-
-        # 上下文感知的核心LORE注入 (保持不變)
         core_character_files_mandate = ""
         if self.profile.game_state.viewing_mode == 'local':
             logger.info(f"[{user_id}] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...")
@@ -716,6 +712,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         system_instruction = "\n\n".join(filter(None, [
             self.core_protocol_prompt,
             style_mandate,
+            genesis_plot_mandate, # [v8.5] 新增的創世指令
             absolute_truth_mandate,
             core_character_files_mandate,
             "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
@@ -6639,6 +6636,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
