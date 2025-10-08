@@ -4143,9 +4143,10 @@ class ExtractionResult(BaseModel):
 
 
 
-# 函式：獲取批次化結構提取器 Prompt (v1.1 - 性格注入)
+# 函式：獲取批次化結構提取器 Prompt (v2.0 - 深度提取與性格注入)
 # 更新紀錄:
-# v1.1 (2025-10-08): [重大架構升級] 新增了【核心性格強制生成】指令。此 Prompt 現在強制要求 LLM 在批量解析 NPC 檔案時，必須根據每個角色的原文描述，為其提煉並生成 `personality` 標籤列表，確保所有創世NPC都擁有性格設定。
+# v2.0 (2025-12-18): [架構擴展] 根據 V2.0 藍圖，對此 Prompt 進行了雙重強化。1. 新增【核心性格強制生成】指令，強制 LLM 必須為每個角色提煉性格標籤。2. 新增【深度提取原則】，要求 LLM 必須盡最大努力填充所有可用欄位。此修改旨在解決創世 LORE 資訊密度不足的問題。
+# v1.1 (2025-10-08): [重大架構升級] 新增了【核心性格強制生成】指令。
 # v1.0 (2025-12-15): [全新創建] 根據「批次化預解析」架構創建此核心 Prompt。
     def get_batch_structured_extraction_prompt(self) -> str:
         """獲取一個為「批次化結構預解析」設計的、帶有最高級越獄指令的字符串模板。"""
@@ -4203,7 +4204,7 @@ class ExtractionResult(BaseModel):
 """
         # 注意：此處故意不使用 self.data_protocol_prompt，而是依賴外部調用時注入最強的 core_protocol_prompt
         return base_prompt
-# 函式：獲取批次化結構提取器 Prompt (v1.1 - 性格注入)
+# 函式：獲取批次化結構提取器 Prompt (v2.0 - 深度提取與性格注入)
 
 
     
@@ -6729,6 +6730,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
