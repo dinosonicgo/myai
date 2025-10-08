@@ -2402,13 +2402,14 @@ OUTPUT:
 # 函式：獲取關係圖譜構建器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：背景關係圖譜分析 (v1.1 - 支援微型分析)
+# 函式：背景關係圖譜分析 (v1.2 - 批次化處理)
 # 更新紀錄:
-# v1.1 (2025-12-17): [架構擴展] 新增了 `specific_lores_to_analyze` 可選參數。此函式現在具備兩種模式：在 `/start` 創世時，它會執行「全域分析」；在被事後分析流程觸發時，它會接收一個限定的角色列表，並只對這些核心角色執行一次「微型關係分析」。此修改使其成為一個可複用的、支持動態關係演化的核心組件。
+# v1.2 (2025-12-19): [災難性BUG修復] 根據 MAX_TOKENS 錯誤，為此函式引入了「批次化處理」機制。不再將所有角色一次性提交給LLM，而是將其拆分成多個可管理的小批次進行循環處理，並在批次之間加入戰術延遲。此修改在根除因輸入/輸出超長而導致的 MAX_TOKENS 錯誤的同時，也提高了流程的健壯性和API請求的平滑度。
+# v1.1 (2025-12-17): [架構擴展] 新增了 `specific_lores_to_analyze` 可選參數，使其支持「全域」和「微型」兩種分析模式。
 # v1.0 (2025-12-16): [全新創建] 根據「關係圖譜專用通道」架構創建此核心函式。
     async def _background_relationship_analysis(self, canon_text: Optional[str] = None, specific_lores_to_analyze: Optional[List[Lore]] = None):
         """
-        (背景任務 v1.1) 執行一次關係交叉分析。支持「全域」和「微型」兩種模式。
+        (背景任務 v1.2) 執行一次批次化的關係交叉分析。支持「全域」和「微型」兩種模式。
         """
         user_id = self.user_id
         if not self.profile:
@@ -2419,79 +2420,94 @@ OUTPUT:
             return
 
         try:
-            await asyncio.sleep(1.0) # 微型分析可以更快啟動
+            await asyncio.sleep(1.0)
             
             analysis_mode = "微型分析" if specific_lores_to_analyze is not None else "全域分析"
-            logger.info(f"[{self.user_id}] [關係分析 v1.1] 關係圖譜【{analysis_mode}】服務已啟動...")
+            logger.info(f"[{self.user_id}] [關係分析 v1.2] 關係圖譜【{analysis_mode}】服務已啟動...")
 
-            # --- 步驟 1: 數據準備 ---
             if specific_lores_to_analyze is not None:
                 all_npc_lores = specific_lores_to_analyze
-            else: # 全域模式
+            else:
                 all_npc_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
 
             if len(all_npc_lores) < 2:
                 logger.info(f"[{self.user_id}] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。")
                 return
+
+            # --- [v1.2 核心修正] 批次化處理 ---
+            BATCH_SIZE = 20
+            lore_batches = [all_npc_lores[i:i + BATCH_SIZE] for i in range(0, len(all_npc_lores), BATCH_SIZE)]
+            final_relationship_graph = {}
             
-            character_dossier = {
-                lore.content.get("name"): lore.content.get("description", "")
-                for lore in all_npc_lores if lore.content.get("name")
-            }
-            
-            # --- 步驟 2: LLM 關係圖譜構建 ---
-            logger.info(f"[{self.user_id}] [關係分析] 正在為 {len(character_dossier)} 個角色調用 LLM 進行關係圖譜構建...")
-            
-            relationship_graph = {}
-            try:
-                graph_prompt = self.get_relationship_graph_prompt()
-                full_prompt = self._safe_format_prompt(
-                    graph_prompt,
-                    {
-                        "character_dossier_json": json.dumps(character_dossier, ensure_ascii=False, indent=2),
-                        "canon_text": canon_text
-                    },
-                    inject_core_protocol=True
-                )
+            logger.info(f"[{self.user_id}] [關係分析] 總計 {len(all_npc_lores)} 個角色，已拆分為 {len(lore_batches)} 個批次進行處理。")
 
-                raw_llm_output_str = await self.ainvoke_with_rotation(
-                    full_prompt,
-                    output_schema=None,
-                    retry_strategy='force'
-                )
+            for i, batch in enumerate(lore_batches):
+                batch_name = f"批次 #{i+1}/{len(lore_batches)}"
+                try:
+                    character_dossier = {
+                        lore.content.get("name"): lore.content.get("description", "")
+                        for lore in batch if lore.content.get("name")
+                    }
+                    if not character_dossier:
+                        logger.warning(f"[{self.user_id}] [關係分析] {batch_name} 中沒有可供分析的有效角色，已跳過。")
+                        continue
 
-                if not raw_llm_output_str:
-                    raise ValueError("LLM 關係圖譜構建返回了空結果。")
+                    logger.info(f"[{self.user_id}] [關係分析] {batch_name}: 正在為 {len(character_dossier)} 個角色調用 LLM 進行關係圖譜構建...")
+                    
+                    graph_prompt = self.get_relationship_graph_prompt()
+                    full_prompt = self._safe_format_prompt(
+                        graph_prompt,
+                        {
+                            "character_dossier_json": json.dumps(character_dossier, ensure_ascii=False, indent=2),
+                            "canon_text": canon_text
+                        },
+                        inject_core_protocol=True
+                    )
 
-                json_match = re.search(r'\{[\s\S]*\}', raw_llm_output_str)
-                if not json_match:
-                    raise ValueError("無法從 LLM 的輸出中提取出有效的 JSON 物件。")
-                
-                relationship_graph = json.loads(json_match.group(0))
-                logger.info(f"[{self.user_id}] [關係分析] ✅ LLM 關係圖譜構建成功，解析出 {len(relationship_graph)} 個角色的關係數據。")
+                    raw_llm_output_str = await self.ainvoke_with_rotation(
+                        full_prompt, output_schema=None, retry_strategy='force'
+                    )
 
-            except Exception as e:
-                logger.error(f"[{self.user_id}] [關係分析] 🔥 LLM 關係圖譜構建失敗: {e}", exc_info=True)
+                    if not raw_llm_output_str:
+                        raise ValueError(f"{batch_name}: LLM 關係圖譜構建返回了空結果。")
+
+                    json_match = re.search(r'\{[\s\S]*\}', raw_llm_output_str)
+                    if not json_match:
+                        raise ValueError(f"{batch_name}: 無法從 LLM 的輸出中提取出有效的 JSON 物件。")
+                    
+                    batch_relationship_graph = json.loads(json_match.group(0))
+                    final_relationship_graph.update(batch_relationship_graph) # 匯總結果
+                    logger.info(f"[{self.user_id}] [關係分析] ✅ {batch_name} 處理成功，解析出 {len(batch_relationship_graph)} 個角色的關係數據。")
+
+                    # 在批次之間加入戰術延遲
+                    if i < len(lore_batches) - 1:
+                        logger.info(f"[{self.user_id}] [關係分析] {batch_name} 完成，進入 5 秒戰術延遲...")
+                        await asyncio.sleep(5)
+
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [關係分析] 🔥 {batch_name} 處理失敗: {e}", exc_info=False) # 在批次失敗時只記錄錯誤，不中斷整個流程
+                    continue # 繼續處理下一個批次
+
+            if not final_relationship_graph:
+                logger.error(f"[{self.user_id}] [關係分析] 所有批次均處理失敗，無法構建關係圖譜。")
                 return
 
-            # --- 步驟 3: 程式碼驅動的資料庫注入 ---
-            logger.info(f"[{self.user_id}] [關係分析] 正在將關係圖譜數據注入資料庫...")
+            # --- 數據庫注入 (在所有批次處理完畢後執行) ---
+            logger.info(f"[{self.user_id}] [關係分析] 所有批次處理完畢，正在將匯總後的 {len(final_relationship_graph)} 條關係數據注入資料庫...")
             
             lore_map_by_name = {lore.content.get("name"): lore for lore in all_npc_lores}
-            
             from .schemas import RelationshipDetail
 
             async with AsyncSessionLocal() as session:
                 update_count = 0
-                for character_name, relations in relationship_graph.items():
+                for character_name, relations in final_relationship_graph.items():
                     if not isinstance(relations, dict): continue
 
                     target_lore = lore_map_by_name.get(character_name)
                     if not target_lore: continue
 
-                    stmt = select(Lore).where(Lore.id == target_lore.id)
-                    result = await session.execute(stmt)
-                    lore_to_update = result.scalars().first()
+                    # 為併發安全，重新從DB獲取最新版本
+                    lore_to_update = await session.get(Lore, target_lore.id)
                     if not lore_to_update: continue
 
                     current_relationships = {k: RelationshipDetail.model_validate(v) for k, v in lore_to_update.content.get("relationships", {}).items()}
@@ -2505,8 +2521,17 @@ OUTPUT:
                         
                         current_relationships[related_char_name] = RelationshipDetail(type=rel_type, roles=[desc.strip() for desc in re.split(r'[,，、]', description)])
 
-                    lore_to_update.content["relationships"] = {k: v.model_dump() for k, v in current_relationships.items()}
-                    lore_to_update.timestamp = time.time()
+                    # 為了避免SQLAlchemy的JSON修改檢測問題，我們創建一個新字典
+                    new_content = lore_to_update.content.copy()
+                    new_content["relationships"] = {k: v.model_dump() for k, v in current_relationships.items()}
+                    
+                    # 使用 update 語句以獲得更好的性能和併發安全性
+                    stmt = (
+                        update(Lore)
+                        .where(Lore.id == lore_to_update.id)
+                        .values(content=new_content, timestamp=time.time())
+                    )
+                    await session.execute(stmt)
                     update_count += 1
                 
                 await session.commit()
@@ -2516,7 +2541,7 @@ OUTPUT:
 
         except Exception as e:
             logger.error(f"[{self.user_id}] 關係圖譜分析服務主循環發生嚴重錯誤: {e}", exc_info=True)
-# 函式：背景關係圖譜分析 (v1.1 - 支援微型分析)
+# 函式：背景關係圖譜分析 (v1.2 - 批次化處理)
     
     
     
@@ -6836,6 +6861,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
