@@ -332,14 +332,15 @@ class AILover:
 
 
 
-    # 函式：獲取通用 LORE 擴展管線 Prompt (v1.0 - 全新創建)
+# 函式：獲取通用 LORE 擴展管線 Prompt (v1.1 - 即時性格注入)
 # 更新紀錄:
-# v1.0 (2025-10-04): [重大架構升級] 創建此全新的、統一的 LORE 擴展 Prompt。它取代了舊的、僅針對 NPC 的鏈，能夠指導 LLM 從使用者輸入中識別、分類並為所有 LORE 類別（角色、地點、物品等）批量生成骨架檔案，極大地增強了 AI 的動態世界構建能力。
+# v1.1 (2025-10-08): [重大架構升級] 新增了【即時性格推斷】指令。此 Prompt 現在要求 LLM 在對話中即時創建 NPC 骨架時，必須根據當前上下文為其推斷並生成初步的 `personality` 標籤，確保所有動態生成的NPC從誕生起就擁有性格。
+# v1.0 (2025-10-04): [重大架構升級] 創建此全新的、統一的 LORE 擴展 Prompt。
     def get_lore_expansion_pipeline_prompt(self) -> str:
         """獲取或創建一個專門用於通用 LORE 擴展（識別、分類、生成骨架）的字符串模板。"""
         
         pydantic_definitions = """
-class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []
+class CharacterProfile(BaseModel): name: str; aliases: List[str] = []; description: str = ""; location_path: List[str] = []; personality: List[str] = []
 class LocationInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""
 class ItemInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""; item_type: str = "未知"
 class CreatureInfo(BaseModel): name: str; aliases: List[str] = []; description: str = ""
@@ -349,29 +350,31 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 """
         
         base_prompt = """# TASK: 你是一位高度智能、觀察力敏銳的【首席世界觀記錄官 (Chief Lore Officer)】。
-# MISSION: 你的任務是分析【使用者最新指令】，並與【已知LORE實體列表】進行比對。如果指令中引入了任何**全新的、有名有姓的**實體（不論是角色、地點、物品、傳說還是任務），你必須立即執行三項操作：**1. 識別，2. 分類，3. 為其生成一個極簡的骨架檔案**。
+# MISSION: 你的任務是分析【使用者最新指令】，並與【已知LORE實體列表】進行比對。如果指令中引入了任何**全新的、有名有姓的**實體（不論是角色、地點、物品、傳說還是任務），你必須立即執行四項操作：**1. 識別，2. 分類，3. 推斷性格, 4. 為其生成一個極簡的骨架檔案**。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1.  **【擴展示機】**: 只有當使用者指令中明確引入了一個**全新的、有名有姓的、且不在已知LORE實體列表中的**實體時，才需要為其創建骨架。
 # 2.  **【禁止擴展的情況】**: 在以下情況下，你**必須**返回一個空的JSON物件 `{}`：
 #     *   指令中提到的所有實體都已經存在於【已知LORE實體列表】中。
 #     *   指令中提到的是一個模糊的代稱（例如「那個男人」、「一座森林」、「一把劍」），而不是一個具體的專有名稱。
-# 3.  **【骨架生成原則】**:
+# 3.  **【🎭 即時性格推斷 (Live Personality Inference)】**: 對於每一個新創建的 `npc_profile`，你【必須】根據當前對話的上下文，推斷出 1-2 個最能描述其初步性格的關鍵詞，並填入 `personality` 列表。
+# 4.  **【骨架生成原則】**:
 #     *   你生成的骨架檔案**必須是極簡的**。
 #     *   `name` 字段必須是指令中提到的名字。
 #     *   `description` 字段應該是根據指令上下文生成的、一句話的核心描述。
 #     *   對於 `npc_profile`，如果上下文提供了地點，應填充 `location_path`。
-# 4.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CanonParsingResult` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回一個空的JSON物件 `{}`。
+# 5.  **【JSON純淨輸出】**: 你的唯一輸出【必須】是一個純淨的、符合 `CanonParsingResult` Pydantic 模型的JSON物件。如果沒有新的LORE，則返回一個空的JSON物件 `{}`。
 
 # === 【【【⚙️ 輸出結構與思考過程範例 (EXAMPLE) - 必須嚴格遵守】】】 ===
 # --- 輸入情報 ---
-# - 使用者指令: "科技獵人走進『鏽蝕之心』酒館，從一個名叫『鐵手』的改造人那裡，接下了一個尋找傳說中的『奧術核心』的任務。"
+# - 使用者指令: "科技獵人走進『鏽蝕之心』酒館，一個名叫『鐵手』的、看起來很暴躁的改造人瞪了他一眼，然後接下了一個尋找傳說中的『奧術核心』的任務。"
 # - 已知LORE: ["科技獵人"]
 #
 # --- 你的思考過程 (僅供參考) ---
 # 1.  **識別**: 「鏽蝕之心」、「鐵手」、「奧術核心」是新名詞。
 # 2.  **分類**: 「鏽蝕之心」是酒館 -> `location_info`。「鐵手」是改造人 -> `npc_profile`。「奧術核心」是傳說中的物品 -> `item_info` 或 `quest` 標的。
-# 3.  **生成骨架**: 為這三者分別生成極簡的檔案。
+# 3.  **推斷性格**: 指令描述「鐵手」很「暴躁」，這是一個完美的性格標籤。
+# 4.  **生成骨架**: 為這三者分別生成極簡的檔案。
 #
 # --- 最終JSON輸出 ---
 # ```json
@@ -380,7 +383,8 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 #     {
 #       "name": "鐵手",
 #       "description": "一個在『鏽蝕之心』酒館活動的改造人。",
-#       "location_path": ["鏽蝕之心"]
+#       "location_path": ["鏽蝕之心"],
+#       "personality": ["暴躁"]
 #     }
 #   ],
 #   "locations": [
@@ -6641,6 +6645,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
