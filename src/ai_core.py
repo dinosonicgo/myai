@@ -3357,14 +3357,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成開場白 (v186.0 - 決策執行合一)
+# 函式：生成開場白 (v186.2 - 條件化新手保護)
 # 更新紀錄:
-# v186.0 (2025-10-03): [重大架構重構] 根據「地點不一致」的最終診斷，將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。新版本不再依賴上游節點提供地點，而是完全自主地根據 RAG 檢索結果來決定最佳開場地點並創作場景。最關鍵的是，在場景生成【之後】，它會新增一個 LLM 調用，從已生成的開場白文本中【反向提取】出權威的地點路徑，並將其【回寫】到 GameState 中。此「決策與執行合一」的設計從根本上確保了系統記錄的初始地點與使用者看到的開場白絕對一致。
-# v185.1 (2025-10-03): [災難性BUG修復] 引入了「地點錨定」邏輯以解決地點不一致問題。
-# v185.0 (2025-10-03): [健壯性強化] 在 Prompt 中加入了「創意防火牆」。
+# v186.2 (2025-10-08): [重大架構升級] 引入【條件化新手保護】機制。此函式在生成開場白後，會立即調用LLM分析自身生成的文本，判斷核心夥伴關係是否已建立。根據分析結果，動態決定是否激活`is_in_genesis_phase`狀態旗標，從而實現對新手期劇情引導的智能化、自动化管理。
+# v186.1 (2025-10-08): [架構擴展] 增加了【創世劇情導航儀】的隱藏指令拼接，確保開局關鍵劇情（如獲得夥伴）的成功率。
+# v186.0 (2025-10-03): [重大架構重構] 將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """
-        (v186.0) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
+        (v186.2) 智能創作開場白，分析夥伴關係，條件化地設置新手保護期，並反向提取地點以更新遊戲狀態。
         """
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
@@ -3379,7 +3379,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
         rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
 
-        # 創作 Prompt 保持不變，給予 LLM 創作自由
         opening_scene_prompt_template = """你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
 你的唯一任務是，基於所有源數據，為使用者角色「{username}」與 AI 角色「{ai_name}」創造一個**【深度定制化的、靜態的開場快照】**。
 
@@ -3427,11 +3426,46 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not opening_scene or not opening_scene.strip():
             opening_scene = f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡..."
         
-        # --- 步驟 2: [v186.0 新增] 反向提取地點並更新狀態 ---
-        logger.info(f"[{self.user_id}] [/start] 開場白已生成，正在從中反向提取權威地點...")
+        # --- 步驟 2: [v186.2 新增] 分析開場白，條件化設置新手保護期 ---
+        logger.info(f"[{self.user_id}] [/start] 開場白已生成，正在分析初始夥伴關係以決定是否激活【新手保護期】...")
+        are_partners = False
+        try:
+            class RelationshipCheckResult(BaseModel):
+                are_already_partners: bool
+
+            check_prompt_template = self.get_relationship_check_prompt()
+            check_prompt = self._safe_format_prompt(
+                check_prompt_template,
+                {
+                    "username": user_profile.name,
+                    "ai_name": ai_profile.name,
+                    "opening_scene_text": opening_scene
+                }
+            )
+            check_result = await self.ainvoke_with_rotation(
+                check_prompt,
+                output_schema=RelationshipCheckResult,
+                models_to_try_override=[FUNCTIONAL_MODEL]
+            )
+            if check_result:
+                are_partners = check_result.are_already_partners
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [/start] 分析初始夥伴關係時發生錯誤: {e}，將默認激活新手保護期。", exc_info=True)
+            are_partners = False # 發生錯誤時，默認為需要保護
+
+        gs = self.profile.game_state
+        if are_partners:
+            gs.is_in_genesis_phase = False
+            logger.info(f"[{self.user_id}] [/start] ✅ 關係分析結果：夥伴關係已建立。【新手保護期】已被禁用。")
+        else:
+            gs.is_in_genesis_phase = True
+            logger.info(f"[{self.user_id}] [/start] ⚠️ 關係分析結果：夥伴關係尚未建立。【新手保護期】已激活。")
+
+        # --- 步驟 3: 反向提取地點並更新狀態 (邏輯不變) ---
+        logger.info(f"[{self.user_id}] [/start] 正在從開場白中反向提取權威地點...")
         try:
             location_extraction_prompt = self.get_location_extraction_prompt()
-            # 我們傳遞開場白文本給地點提取器
             full_extraction_prompt = self._safe_format_prompt(location_extraction_prompt, {"user_input": opening_scene})
             
             from .schemas import SceneLocationExtraction
@@ -3444,31 +3478,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             if location_result and location_result.has_explicit_location and location_result.location_path:
                 authoritative_location_path = location_result.location_path
                 logger.info(f"[{self.user_id}] [/start] ✅ 地點提取成功: {' > '.join(authoritative_location_path)}。正在更新 GameState...")
-                
-                # 更新並持久化 GameState
-                gs = self.profile.game_state
                 gs.location_path = authoritative_location_path
-                await self.update_and_persist_profile({'game_state': gs.model_dump()})
                 
-                # (可選但推薦) 將這個地點也存入 LORE
                 location_name = authoritative_location_path[-1]
                 location_info = LocationInfo(name=location_name, description=f"故事開始的地方：{opening_scene[:200]}...")
                 await lore_book.add_or_update_lore(self.user_id, 'location_info', " > ".join(authoritative_location_path), location_info.model_dump())
-
             else:
                 logger.warning(f"[{self.user_id}] [/start] ⚠️ 未能從開場白中提取出明確地點，將使用預設值。")
-                gs = self.profile.game_state
                 gs.location_path = ["故事的開端"]
-                await self.update_and_persist_profile({'game_state': gs.model_dump()})
-
         except Exception as e:
             logger.error(f"[{self.user_id}] [/start] 在反向提取地點時發生錯誤: {e}", exc_info=True)
-            gs = self.profile.game_state
             gs.location_path = ["未知的起點"]
-            await self.update_and_persist_profile({'game_state': gs.model_dump()})
+
+        # --- 步驟 4: 最終持久化 GameState ---
+        await self.update_and_persist_profile({'game_state': gs.model_dump()})
+        logger.info(f"[{self.user_id}] [/start] 最終的 GameState 已成功持久化。")
 
         return opening_scene
-# 函式：生成開場白 (v186.0 - 決策執行合一)
+# 函式：生成開場白 (v186.2 - 條件化新手保護)
 
     
 
@@ -6612,6 +6639,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
