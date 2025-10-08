@@ -1,66 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T13:56:31.470831 ###
+### AI Lover Log - Last updated at 2025-10-08T14:01:34.769471 ###
 
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 6 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '如同洋娃...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 7 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 16 column 5 [type=json_invalid, input_value='{\n    "name": "薩格...麗": "女兒"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 8 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '身形魁梧...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 9 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...麗": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 10 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '皈依後完...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 11 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 17 column 5 [type=json_invalid, input_value='{\n    "name": "米婭",...曾參與測試"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 12 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '重生後外...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 13 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 16 column 5 [type=json_invalid, input_value='{\n    "name": "薩格...麗": "女兒"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 14 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '身形魁梧...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 15 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "菲利...麗": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 16 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '皈依後完...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 17 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 17 column 5 [type=json_invalid, input_value='{\n    "name": "米婭",...曾參與測試"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 18 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '重生後外...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 19 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "赫克...德": "妹妹"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 20 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '國王最健...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 21 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-  Invalid JSON: EOF while parsing an object at line 17 column 5 [type=json_invalid, input_value='{\n    "name": "米婭",...曾參與測試"\n    }', input_type=str]
-    For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 22 個 LORE 物件時失敗: 1 validation error for CharacterProfile
-name
-  Field required [type=missing, input_value={'general': '重生後外...ir': None, 'eyes': None}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing。已跳過此條記錄。
-2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 23 個 LORE 物件時失敗: 1 validation error for CharacterProfile
   Invalid JSON: EOF while parsing an object at line 14 column 5 [type=json_invalid, input_value='{\n    "name": "阿拉...德": "妹妹"\n    }', input_type=str]
     For further information visit https://errors.pydantic.dev/2.8/v/json_invalid。已跳過此條記錄。
 2025-10-08 13:48:22 - [WARNING] - [512280345618546699] [LORE精煉-兩階段] 批次 #1/8: 驗證第 24 個 LORE 物件時失敗: 1 validation error for CharacterProfile
@@ -300,3 +239,64 @@ name
 2025-10-08 13:56:23 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
 2025-10-08 13:56:23 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
 2025-10-08 13:56:23 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-08 13:56:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 13:56:44 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 13:56:44 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 13:56:44 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 13:56:44 - [INFO] - [512280345618546699] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...
+2025-10-08 13:56:45 - [INFO] - [512280345618546699] [高精度實體提取] 成功提取並過濾實體: ['周圍']
+2025-10-08 13:56:46 - [INFO] - [512280345618546699] [關係分析 v1.1] 關係圖譜【微型分析】服務已啟動...
+2025-10-08 13:56:46 - [INFO] - [512280345618546699] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。
+2025-10-08 13:56:46 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 13:58:00 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-08 13:58:00 - [WARNING] - [512280345618546699] Key #0 遭遇臨時 API 錯誤。将在 2.33 秒後重試...
+2025-10-08 13:58:56 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 13:58:56 - [INFO] - [512280345618546699] [Direct RAG v8.5] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 13:58:56 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 13:58:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 13:58:57 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 13:58:57 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 13:58:57 - [INFO] - [512280345618546699] [新手保護期] 已激活，正在向 Prompt 注入【創世劇情強制令】。
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [高精度實體提取] 成功提取並過濾實體: ['周圍']
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [對話焦點分析] 識別出主要خاطب對象為: 【周圍】
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [絕對事實] 已成功生成動態焦點強制令。
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '是嗎？
+妳看起來沒有像其他奴隸想被買走的慾望'
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 13:58:59 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
+2025-10-08 13:59:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 13:59:27 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-08 13:59:28 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
+2025-10-08 13:59:29 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-08 13:59:29 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-08 13:59:29 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-08 13:59:29 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-08 13:59:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-08 13:59:41 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
+2025-10-08 13:59:41 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
+2025-10-08 13:59:41 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
+2025-10-08 13:59:41 - [INFO] - [512280345618546699] [關係演化] 檢測到關係變化，正在觸發『微型關係分析』...
+2025-10-08 13:59:44 - [INFO] - [512280345618546699] [關係分析 v1.1] 關係圖譜【微型分析】服務已啟動...
+2025-10-08 13:59:44 - [INFO] - [512280345618546699] [關係分析] 待分析的 NPC 數量不足（少於2個），無需進行分析。
+2025-10-08 13:59:44 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
+2025-10-08 14:00:37 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇靜默失敗，生成因 'MAX_TOKENS' 而提前終止。
+2025-10-08 14:00:37 - [ERROR] - [512280345618546699] Key #0 (模型: gemini-2.5-flash-lite) 在 3 次重試後仍然失敗。
+2025-10-08 14:01:09 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-08 14:01:09 - [INFO] - [512280345618546699] [Direct RAG v8.5] 啟动 LORE 优先的 RAG 直通生成流程...
+2025-10-08 14:01:09 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
+2025-10-08 14:01:10 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-08 14:01:10 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
+2025-10-08 14:01:10 - [INFO] - [512280345618546699] [主生成] 開始構建結構化的消息列表...
+2025-10-08 14:01:10 - [INFO] - [512280345618546699] [新手保護期] 已激活，正在向 Prompt 注入【創世劇情強制令】。
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [對話焦點分析] 未能識別出明確的對話焦點，AI 將根據綜合上下文判斷。
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '是嗎？
+那麼我是合適的主人嗎？
+如果不合適的人想買下妳，妳又有反抗和拒絕的方式嗎？'
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
+2025-10-08 14:01:12 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
