@@ -1,8 +1,8 @@
-# src/cogs/core_cog.py 的中文註釋(v1.2 - 完整性修復)
+# src/cogs/core_cog.py 的中文註釋(v1.3 - 穩定性與一致性修復)
 # 更新紀錄:
-# v1.2 (2025-12-08): [災難性BUG修復] 補全了 `/start` 指令所依賴的 `ConfirmStartView` 類別和 `_reset_user_data` 輔助函式，並恢復了其他所有缺失的 UI 元件，從根本上解決了指令無回應的問題。
+# v1.3 (2025-10-08): [災難性BUG修復] 移除了重複的 /settings 指令定義與一個懸空的 on_submit 函式，並修正了 /admin_reset 指令遺漏清除 SceneHistoryData 的問題，確保程式穩定性與數據一致性。
+# v1.2 (2025-12-08): [災難性BUG修復] 補全了 /start 指令所依賴的 ConfirmStartView 類別和 _reset_user_data 輔助函式，並恢復了其他所有缺失的 UI 元件，從根本上解決了指令無回應的問題。
 # v1.1 (2025-12-08): [功能補全] 新增了 _perform_update_and_restart 和 push_log_to_github_repo 兩個核心輔助函式，並將它們與 /admin_force_update 和 /admin_push_log 指令正確掛鉤，完整地實現了管理員的遠程更新與日誌推送功能。
-# v1.0 (2025-10-04): [災難性BUG修復-終極方案] 創建此 Cog 檔案，將所有指令、UI元件 (Views/Modals) 和事件監聽器從主 bot 檔案中分離出來。此結構性重構旨在徹底解決因模組初始化悖論導致的 NameError 和 AttributeError。
 
 import discord
 from discord import app_commands, Embed
@@ -886,32 +886,8 @@ class VersionControlView(discord.ui.View):
         asyncio.create_task(self.cog._perform_update_and_restart(interaction))
 # 類別：版本控制視圖
     
-        
-    # 函式：處理 Modal 提交事件
-    async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        user_id = str(interaction.user.id)
-        logger.info(f"[{user_id}] (UI Event) WorldSettingsModal submitted. is_setup_flow: {self.is_setup_flow}")
-        if self.original_interaction_message_id:
-            try:
-                original_message = await interaction.channel.fetch_message(self.original_interaction_message_id)
-                view = discord.ui.View.from_message(original_message)
-                for item in view.children: item.disabled = True
-                await original_message.edit(view=view)
-            except (discord.errors.NotFound, AttributeError): pass
-        ai_instance = await self.cog.get_or_create_ai_instance(user_id, is_setup_flow=self.is_setup_flow)
-        if not ai_instance:
-            await interaction.followup.send("錯誤：無法初始化 AI 核心。", ephemeral=True)
-            if self.is_setup_flow: self.cog.active_setups.discard(user_id)
-            return
-        await ai_instance.update_and_persist_profile({'world_settings': self.world_settings.value})
-        if self.is_setup_flow:
-            view = ContinueToUserSetupView(cog=self.cog)
-            await interaction.followup.send("✅ 世界觀已設定！\n請點擊下方按鈕，開始設定您的個人角色。", view=view, ephemeral=True)
-        else:
-            await interaction.followup.send("✅ 世界觀設定已成功更新！", ephemeral=True)
-    # 函式：處理 Modal 提交事件
-# 類別：設定世界觀的 Modal
+# [v1.3 語法修復] 移除了以下懸空的 on_submit 函式，它是一個錯誤的重複程式碼。
+# 原始的錯誤程式碼從這裡開始，直到 "類別：設定世界觀的 Modal" 之前。
 
 # --- Cog 類別定義 ---
 
@@ -1341,7 +1317,9 @@ class BotCog(commands.Cog, name="BotCog"):
     
 
 
-# 指令：進入設定中心
+# 指令：進入設定中心 (v1.1 - 冗餘移除)
+# 更新紀錄:
+# v1.1 (2025-10-08): [冗餘移除] 移除了重複的函式定義。
     @app_commands.command(name="settings", description="進入設定中心，管理你的角色、AI戀人與世界觀")
     async def settings_command(self, interaction: discord.Interaction):
         if not isinstance(interaction.channel, discord.DMChannel):
@@ -1445,7 +1423,9 @@ class BotCog(commands.Cog, name="BotCog"):
             else: await interaction.response.send_message(f"錯誤：找不到使用者 {target_user}。", ephemeral=True)
     # 指令：[管理員] 設定好感度
 
-    # 指令：[管理員] 重置使用者資料
+    # 指令：[管理員] 重置使用者資料 (v1.1 - 數據一致性修復)
+    # 更新紀錄:
+    # v1.1 (2025-10-08): [數據一致性修復] 增加了對 SceneHistoryData 的清除邏輯，使其與 _reset_user_data 的行為保持一致。
     @app_commands.command(name="admin_reset", description="[管理員] 清除指定使用者的所有資料")
     @app_commands.check(is_admin)
     @app_commands.autocomplete(target_user=user_autocomplete)
@@ -1456,6 +1436,8 @@ class BotCog(commands.Cog, name="BotCog"):
             await session.execute(delete(MemoryData).where(MemoryData.user_id == target_user))
             await session.execute(delete(Lore).where(Lore.user_id == target_user))
             await session.execute(delete(UserData).where(UserData.user_id == target_user))
+            # [v1.1 核心修正] 補全對場景歷史的清除
+            await session.execute(delete(SceneHistoryData).where(SceneHistoryData.user_id == target_user))
             await session.commit()
         try:
             vector_store_path = Path(f"./data/vector_stores/{target_user}")
@@ -1785,19 +1767,7 @@ class BotCog(commands.Cog, name="BotCog"):
             else:
                  await interaction.followup.send(f"❌ 執行時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。")
     # 指令：[管理員] RAG 直通 LLM 對話
-
   
-    @app_commands.command(name="settings", description="進入設定中心，管理你的角色、AI戀人與世界觀")
-    async def settings_command(self, interaction: discord.Interaction):
-        if not isinstance(interaction.channel, discord.DMChannel):
-            await interaction.response.send_message("此指令只能在私訊頻道中使用。", ephemeral=True)
-            return
-        ai_instance = await self.get_or_create_ai_instance(str(interaction.user.id))
-        if ai_instance and ai_instance.profile:
-            await interaction.response.send_message("請選擇您想修改的設定項目：", view=SettingsChoiceView(self), ephemeral=True)
-        else:
-            await interaction.response.send_message("請先使用 `/start` 指令進行初始設定。", ephemeral=True)
-
     # 函式：全域應用程式指令錯誤處理器
     @commands.Cog.listener()
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
