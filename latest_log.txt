@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-08T07:55:20.980258 ###
+### AI Lover Log - Last updated at 2025-10-08T08:01:03.680879 ###
 
-  quota_dimensions {
-    key: "model"
-    value: "gemini-2.5-flash-lite"
-  }
-  quota_dimensions {
-    key: "location"
-    value: "global"
-  }
   quota_value: 250000
 }
 , links {
@@ -300,3 +292,11 @@ google.generativeai.types.generation_types.BlockedPromptException: Prompt blocke
 2025-10-08 07:50:59 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。
 2025-10-08 07:50:59 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
 2025-10-08 07:50:59 - [INFO] - [512280345618546699] 成功恢復了 1 個場景的對話歷史，總計 11 條訊息。
+2025-10-08 08:00:49 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-08 08:00:52 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-08 08:00:52 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-08 08:00:52 - [INFO] - 正在全域同步應用程式指令...
+2025-10-08 08:00:53 - [INFO] - ✅ 指令已全域同步！
+2025-10-08 08:00:53 - [INFO] - Discord Bot setup hook finished!
+2025-10-08 08:00:55 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-08 08:00:56 - [INFO] - 已成功發送啟動成功通知給管理員。
