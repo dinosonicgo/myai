@@ -534,26 +534,26 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# # 函式：RAG 直通生成 (v8.1 - 上下文感知的核心LORE注入)
+# 函式：RAG 直通生成 (v8.2 - 視角感知的絕對事實強制令)
 # 更新紀錄:
-# v8.1 (2025-10-08): [災難性BUG修復] 引入了「上下文感知的核心LORE注入」機制。僅在 viewing_mode 為 'local' 時，才向 Prompt 強制注入主角的完整角色檔案，從根本上解決角色設定不一致（如髮色錯誤）和遠景模式上下文污染的雙重問題。
+# v8.2 (2025-10-08): [災難性BUG修復] 引入【視角感知的絕對事實強制令】。在生成Prompt前，通過程式碼動態分析場景焦點和角色關係，並將其作為最高優先級指令注入，從根本上解決了AI在複雜對話中混淆對話代理（Agent）和過早代入角色關係（如稱呼主人）的問題。此機制能智能適應近景和遠景模式，避免上下文污染。
+# v8.1 (2025-10-08): [災難性BUG修復] 引入了「上下文感知的核心LORE注入」機制。
 # v8.0 (2025-12-14): [災難性BUG修復] 根據 LORE 重複創建問題，徹底重構了 LORE 創生管線。
-# v7.1 (2025-12-12): [功能擴展] 增加了後台精煉任務的觸發器。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.1) 執行一個包含「前置實體鏈結」、「上下文感知的核心LORE注入」和「RAG 直通生成」的完整流程。
+        (v8.2) 執行一個包含「前置實體鏈結」、「視角感知的絕對事實強制令」和「RAG 直通生成」的完整流程。
         """
         user_id = self.user_id
         if not self.profile:
             logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
             return "（錯誤：AI 核心設定檔尚未載入。）"
 
-        logger.info(f"[{self.user_id}] [Direct RAG] 啟动 LORE 优先的 RAG 直通生成流程...")
+        logger.info(f"[{user_id}] [Direct RAG v8.2] 啟动 LORE 优先的 RAG 直通生成流程...")
         
         narrative_focus_snapshot = { "entities": [], "location": None }
         newly_created_lores_for_refinement: List[Lore] = []
 
-        # --- 步驟 1: 前置 LORE 創建/合併/更新 (與之前版本相同) ---
+        # --- 步驟 1: 前置 LORE 創建/合併/更新 (保持不變) ---
         try:
             logger.info(f"[{user_id}] [前置 LORE-1/4] 正在最大化識別所有潛在實體...")
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
@@ -620,7 +620,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     saved_lores = await self._resolve_and_save("npc_profiles", [p.model_dump() for p in final_profiles], return_lore_objects=True)
                     if saved_lores:
                         newly_created_lores_for_refinement.extend(saved_lores)
-
         except Exception as e:
             logger.error(f"[{user_id}] [前置 LORE] 在前置 LORE 創生/合併流程中發生嚴重錯誤: {e}", exc_info=True)
 
@@ -629,7 +628,58 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_style_prompt = self.profile.response_style_prompt or "你的回應風格應平衡的敘事與對話，並充滿細節。"
         style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
         
-        # [v8.1 核心修正] 根據 viewing_mode 決定是否注入核心角色檔案
+        # [v8.2 核心修正] 動態生成【絕對事實強制令】
+        absolute_truth_mandate = ""
+        try:
+            # 獲取場景上下文
+            scene_key = self._get_scene_key()
+            history = self.scene_histories.get(scene_key, ChatMessageHistory())
+            last_ai_message = next((msg.content for msg in reversed(history.messages) if isinstance(msg, AIMessage)), "")
+            
+            # 根據導演視角決定分析範圍
+            if self.profile.game_state.viewing_mode == 'local':
+                text_to_analyze = user_input + "\n" + last_ai_message
+                # 在近景中，主角永遠是潛在核心
+                potential_entities = await self._extract_entities_from_input(text_to_analyze)
+                potential_entities.extend([self.profile.user_profile.name, self.profile.ai_profile.name])
+            else: # remote
+                text_to_analyze = user_input # 遠景只分析使用者輸入，避免場景污染
+                potential_entities = await self._extract_entities_from_input(text_to_analyze)
+
+            unique_entities = sorted(list(set(potential_entities)))
+            
+            if unique_entities:
+                logger.info(f"[{user_id}] [絕對事實] 識別出場景核心實體: {unique_entities}")
+                truth_statements = []
+                all_lores = await lore_book.get_all_lores_for_user(self.user_id)
+                
+                # 將主角檔案也加入 LORE 列表以便統一查詢
+                all_lores.append(Lore(user_id=user_id, category='user_profile', key=self.profile.user_profile.name, content=self.profile.user_profile.model_dump(), timestamp=time.time()))
+                all_lores.append(Lore(user_id=user_id, category='ai_profile', key=self.profile.ai_profile.name, content=self.profile.ai_profile.model_dump(), timestamp=time.time()))
+                
+                for entity_name in unique_entities:
+                    found_lore = next((lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title", "")).lower() == entity_name.lower()), None)
+                    if found_lore:
+                        # 提取最關鍵的事實：身份和狀態
+                        aliases = found_lore.content.get('aliases', [])
+                        status = found_lore.content.get('status', '未知')
+                        # 提取關係
+                        relationships = found_lore.content.get('relationships', {})
+                        rel_summary = ", ".join([f"{target}: {details.get('roles', ['未知關係'])[0]}" for target, details in relationships.items()])
+                        
+                        statement = f"- **{found_lore.content.get('name', entity_name)}**: 當前身份/別名=[{', '.join(aliases)}], 當前狀態='{status}'"
+                        if rel_summary:
+                            statement += f", 關係=[{rel_summary}]"
+                        truth_statements.append(statement)
+
+                if truth_statements:
+                    absolute_truth_mandate = "# === 【【【🚨 絕對事實強制令 (ABSOLUTE TRUTH MANDATE)】】】 ===\n# 你的回覆【必須】嚴格基於以下不可動搖的當前事實：\n" + "\n".join(truth_statements)
+                    logger.info(f"[{user_id}] [絕對事實] 已成功生成強制令。")
+        except Exception as e:
+            logger.error(f"[{user_id}] [絕對事實] 生成強制令時發生錯誤: {e}", exc_info=True)
+
+
+        # [v8.1] 上下文感知的核心LORE注入
         core_character_files_mandate = ""
         if self.profile.game_state.viewing_mode == 'local':
             logger.info(f"[{user_id}] [主生成] 檢測到 'local' 視角，正在向 Prompt 注入核心角色檔案...")
@@ -645,16 +695,15 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         else:
             logger.info(f"[{user_id}] [主生成] 檢測到 'remote' 視角，跳過注入核心角色檔案以避免上下文污染。")
 
-        # RAG 檢索和歷史摘要邏輯保持不變
         rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
         rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
         historical_context = await self._get_summarized_chat_history(user_id)
         
-        # 組合最終的 system_instruction
         system_instruction = "\n\n".join(filter(None, [
             self.core_protocol_prompt,
             style_mandate,
-            core_character_files_mandate, # 如果是 remote 模式，此處為空字符串
+            absolute_truth_mandate, # [v8.2] 新增的強制令
+            core_character_files_mandate,
             "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
             "# === 【背景知識 (RAG 檢索)】 ===\n" + rag_context
         ]))
@@ -664,7 +713,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]})
         prompt_messages.append({"role": "user", "parts": [dialogue_block + f"\n\n{self.profile.ai_profile.name}:"]})
 
-        # --- 步驟 3: 调用 LLM 生成对话 (與之前版本相同) ---
+        # --- 步驟 3: 调用 LLM 生成对话 ---
         final_response = await self.ainvoke_with_rotation(
             prompt_messages,
             retry_strategy='force',
@@ -677,7 +726,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         clean_response = final_response.strip()
         
-        # --- 步驟 4: 事后处理 (與之前版本相同) ---
+        # --- 步驟 4: 事后处理 ---
         scene_key = self._get_scene_key()
         await self._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
         await self._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
@@ -698,6 +747,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         return clean_response
 # RAG 直通生成 函式結束
+
+
+
+
+
+
+
+    
 
     
 
@@ -6481,6 +6538,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
