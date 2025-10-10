@@ -2887,14 +2887,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成開場白 (v186.0 - 決策執行合一)
+# 函式：生成開場白 (v186.1 - 健壯性強化)
 # 更新紀錄:
-# v186.0 (2025-10-03): [重大架構重構] 根據「地點不一致」的最終診斷，將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。新版本不再依賴上游節點提供地點，而是完全自主地根據 RAG 檢索結果來決定最佳開場地點並創作場景。最關鍵的是，在場景生成【之後】，它會新增一個 LLM 調用，從已生成的開場白文本中【反向提取】出權威的地點路徑，並將其【回寫】到 GameState 中。此「決策與執行合一」的設計從根本上確保了系統記錄的初始地點與使用者看到的開場白絕對一致。
+# v186.1 (2025-12-10): [健壯性強化] 為函式末尾的 LORE 寫入操作增加了一個 `try...except` 錯誤處理塊。此修改旨在防禦因資料庫結構不匹配等底層問題導致的 `OperationalError`，確保即使 LORE 寫入失敗，整個創世流程也不會崩潰，能夠將開場白正常返回給使用者。
+# v186.0 (2025-10-03): [重大架構重構] 將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。
 # v185.1 (2025-10-03): [災難性BUG修復] 引入了「地點錨定」邏輯以解決地點不一致問題。
-# v185.0 (2025-10-03): [健壯性強化] 在 Prompt 中加入了「創意防火牆」。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """
-        (v186.0) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
+        (v186.1) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
         """
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
@@ -2906,7 +2906,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇並創作開場場景...")
         rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。"
         
-        # 使用我們全新的 RAG 引擎
         rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
         rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
 
@@ -2978,12 +2977,16 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 gs.location_path = authoritative_location_path
                 await self.update_and_persist_profile({'game_state': gs.model_dump()})
                 
-                location_name = authoritative_location_path[-1]
-                await lore_book.add_or_update_lore(
-                    self.user_id, 'location_info', " > ".join(authoritative_location_path), 
-                    structured_content={"name": location_name},
-                    narrative_content=f"故事開始的地方：{opening_scene[:200]}..."
-                )
+                # [v186.1 核心修正] 增加錯誤處理
+                try:
+                    location_name = authoritative_location_path[-1]
+                    await lore_book.add_or_update_lore(
+                        self.user_id, 'location_info', " > ".join(authoritative_location_path), 
+                        structured_content={"name": location_name},
+                        narrative_content=f"故事開始的地方：{opening_scene[:200]}..."
+                    )
+                except Exception as lore_e:
+                    logger.error(f"[{self.user_id}] [/start] 將初始地點寫入LORE時發生錯誤（可能是資料庫結構問題）: {lore_e}")
 
             else:
                 logger.warning(f"[{self.user_id}] [/start] ⚠️ 未能從開場白中提取出明確地點，將使用預設值。")
@@ -6319,6 +6322,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
