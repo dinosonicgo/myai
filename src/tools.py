@@ -164,8 +164,7 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
 
 
 
-# 工具：搜尋知識庫
-# tools.py 的 search_knowledge_base 工具 (v6.0 - 簡化改造)
+# 工具：搜尋知識庫 (v6.0 - 簡化改造)
 # 更新紀錄:
 # v6.0 (2025-11-26): [根本性重構] 根據全新的本地混合檢索架構，徹底簡化了此工具的邏輯。它現在的唯一職責是直接調用穩定可靠的本地 EnsembleRetriever，移除了所有針對 Google API 失敗的複雜備援和降級方案，使程式碼更簡潔、更高效。
 # v5.0 (2025-10-15): [健壯性] 優化了備援流程的日誌敘事。
@@ -178,15 +177,21 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     
     rag_results: Optional[List[Document]] = None
     
-    if not ai_core.retriever:
+    if not ai_core or not ai_core.retriever:
         logger.error(f"[{user_id}] (Tool) 檢索器未初始化，無法執行搜尋。")
         return "錯誤：知識庫檢索功能當前不可用。"
     
     try:
-        logger.info(f"[{user_id}] (Tool) 正在使用本地混合檢索器查詢 '{query}'...")
-        rag_results = await ai_core.retriever.ainvoke(query)
+        logger.info(f"[{user_id}] (Tool) 正在使用混合檢索器查詢 '{query}'...")
+        # 鳳凰架構：對查詢進行編碼
+        encoded_query = ai_core._encode_text(query)
+        encoded_rag_results = await ai_core.retriever.ainvoke(encoded_query)
+        # 鳳凰架構：對結果進行解碼
+        if encoded_rag_results:
+            rag_results = [Document(page_content=ai_core._decode_lore_content(doc.page_content), metadata=doc.metadata) for doc in encoded_rag_results]
+
     except Exception as e:
-        logger.error(f"[{user_id}] (Tool) 本地混合檢索時發生未知錯誤: {e}", exc_info=True)
+        logger.error(f"[{user_id}] (Tool) 混合檢索時發生未知錯誤: {e}", exc_info=True)
         return f"錯誤：在知識庫中檢索 '{query}' 時發生問題。"
 
     # --- 查詢結構化 LORE (如果提供了 category) ---
@@ -201,7 +206,10 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     # --- 組合結果 ---
     output_parts = []
     if lore_result:
-        output_parts.append(f"【結構化資料庫 (Lore) 精確查詢結果 for Key='{query}' in '{category}'】:\n" + json.dumps(lore_result.content, ensure_ascii=False, indent=2))
+        # 鳳凰架構：組合 structured 和 narrative 內容
+        structured_part = json.dumps(lore_result.structured_content, ensure_ascii=False, indent=2)
+        narrative_part = lore_result.narrative_content or "無"
+        output_parts.append(f"【結構化資料庫 (Lore) 精確查詢結果 for Key='{query}' in '{category}'】:\n結構化數據: {structured_part}\n敘事描述: {narrative_part}")
     elif category:
         output_parts.append(f"【結構化資料庫 (Lore) 查詢結果】: 在類別 '{category}' 中找不到 Key 為 '{query}' 的精確條目。")
     
@@ -214,7 +222,7 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     final_output = "\n\n".join(output_parts)
     logger.info(f"[{user_id}] 執行了統一知識庫查詢 for '{query}', Category: {category}。結果長度: {len(final_output)}")
     return final_output
-# 工具：搜尋知識庫
+# 工具：搜尋知識庫 結束
 
 
 
@@ -480,6 +488,7 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
+
 
 
 
