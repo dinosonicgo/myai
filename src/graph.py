@@ -211,7 +211,7 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] LORE 擴展決策與執行節點
+# 函式：[新] LORE 擴展決策與執行節點 (v6.0 - 輕量級骨架)
 # 更新紀錄:
 # v6.0 (2025-10-03): [全新創建] 根據「直接RAG」架構創建此節點。它取代了舊的重量級「即時精煉」，改為執行一個輕量級的決策：判斷是否需要在對話前為一個全新的實體創建一個「骨架 LORE」，以避免 LLM 憑空捏造。
 # v5.0 (2025-10-10): [災難性BUG修復] 徹底重構了節點的輸出邏輯。
@@ -223,8 +223,10 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     raw_lore_objects = state.get('raw_lore_objects', [])
     logger.info(f"[{user_id}] (Graph|3) Node: expansion_decision_and_execution -> 正在決策是否擴展LORE...")
 
+    # 獲取所有現有 LORE 的輕量級摘要
+    all_lores = await lore_book.get_all_lores_for_user(user_id)
     lightweight_lore_json = json.dumps(
-        [{"name": lore.content.get("name"), "description": lore.content.get("description")} for lore in raw_lore_objects if lore.category == 'npc_profile'],
+        [{"name": lore.structured_content.get("name"), "description": (lore.narrative_content or "")[:50]} for lore in all_lores if lore.structured_content],
         ensure_ascii=False
     )
     
@@ -243,40 +245,49 @@ async def expansion_decision_and_execution_node(state: ConversationGraphState) -
     if not decision or not decision.should_expand:
         reason = decision.reasoning if decision else "決策鏈失敗"
         logger.info(f"[{user_id}] (Graph|3) 決策結果：無需擴展。理由: {reason}")
-        return {"planning_subjects": [lore.content for lore in raw_lore_objects]}
+        # 即使不擴展，也要將所有現有的 LORE 傳遞給下一個節點
+        return {"planning_subjects": [lore.structured_content for lore in all_lores if lore.structured_content]}
 
     logger.info(f"[{user_id}] (Graph|3) 決策結果：需要擴展。理由: {decision.reasoning}。正在執行LORE擴展...")
     
     newly_created_lores = []
     try:
-        gs = ai_core.profile.game_state
-        effective_location_path = gs.remote_target_path if gs.viewing_mode == 'remote' and gs.remote_target_path else gs.location_path
+        # 這裡我們調用一個更通用的 LORE 擴展管線，而不僅僅是場景選角
+        expansion_prompt_template = ai_core.get_lore_expansion_pipeline_prompt()
         
-        casting_chain_prompt = ai_core.get_scene_casting_chain()
-        full_casting_prompt = ai_core._safe_format_prompt(casting_chain_prompt, {
-            "world_settings": ai_core.profile.world_settings or "", 
-            "current_location_path": " > ".join(effective_location_path), 
-            "user_input": safe_query_text
+        # 準備已知 LORE 實體列表供管線參考
+        existing_lore_names = [lore.structured_content.get("name") for lore in all_lores if lore.structured_content and lore.structured_content.get("name")]
+        
+        expansion_prompt = ai_core._safe_format_prompt(expansion_prompt_template, {
+            "user_input": safe_query_text,
+            "existing_lore_json": json.dumps(existing_lore_names, ensure_ascii=False)
         })
-        cast_result = await ai_core.ainvoke_with_rotation(
-            full_casting_prompt,
-            output_schema=SceneCastingResult,
+        
+        # 該管線會返回一個 CanonParsingResult 物件
+        expansion_result = await ai_core.ainvoke_with_rotation(
+            expansion_prompt,
+            output_schema=CanonParsingResult,
             retry_strategy='euphemize'
         )
         
-        if cast_result:
-            newly_created_lores = await ai_core._add_cast_to_scene(cast_result)
-            created_names = [lore.content.get("name", "未知") for lore in newly_created_lores]
-            logger.info(f"[{user_id}] (Graph|3) 擴展成功，創建了 {len(created_names)} 位新角色骨架。")
+        if expansion_result:
+            # 調用一個輔助函式來處理並保存所有新創建的 LORE 骨架
+            # 注意：這裡的實現假設 _resolve_and_save_parsed_canon 是一個能夠處理 CanonParsingResult 的新輔助函式
+            # 我們將在後續步驟中完善它
+            newly_created_lores = await ai_core.parse_and_create_lore_from_canon_object(expansion_result)
+            created_names = [lore.structured_content.get("name", "未知") for lore in newly_created_lores if lore.structured_content]
+            logger.info(f"[{user_id}] (Graph|3) 擴展成功，創建了 {len(created_names)} 個新實體骨架: {created_names}")
         
     except Exception as e:
         logger.error(f"[{user_id}] (Graph|3) LORE擴展執行時發生錯誤: {e}", exc_info=True)
     
-    final_lore_objects = raw_lore_objects + newly_created_lores
+    # 合併原始 LORE 和新創建的 LORE
+    final_lore_objects = all_lores + newly_created_lores
     final_lores_map = {lore.key: lore for lore in final_lore_objects}
     
-    return {"planning_subjects": [lore.content for lore in final_lores_map.values()]}
-# 函式：[新] LORE 擴展決策與執行節點
+    # 將所有 LORE 的結構化部分傳遞給下一個節點
+    return {"planning_subjects": [lore.structured_content for lore in final_lores_map.values() if lore.structured_content]}
+# 函式：[新] LORE 擴展決策與執行節點 (v6.0 - 輕量級骨架) 結束
 
 # 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
 # 更新紀錄:
@@ -291,7 +302,9 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|4) Node: preemptive_tool_call -> 正在解析前置工具調用...")
 
     tool_parsing_chain_prompt = ai_core.get_preemptive_tool_parsing_chain()
-    character_list_str = ", ".join([ps.get("name", "") for ps in state.get("planning_subjects", []) if ps])
+    # 從上一個節點獲取所有相關角色的名字
+    character_list_str = ", ".join([ps.get("name", "") for ps in state.get("planning_subjects", []) if ps and ps.get("name")])
+    
     full_prompt = ai_core._safe_format_prompt(tool_parsing_chain_prompt, {
         "user_input": user_input, 
         "character_list_str": character_list_str
@@ -317,6 +330,9 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
         if not ai_core.profile:
              raise Exception("AI Profile尚未初始化，無法獲取當前地點。")
         current_location = ai_core.profile.game_state.location_path
+        
+        # 注意：_execute_tool_call_plan 現在需要能夠處理核心動作工具
+        # 我們將在後續步驟中確保這一點
         results_summary, _ = await ai_core._execute_tool_call_plan(tool_call_plan, current_location)
         
     except Exception as e:
@@ -327,8 +343,7 @@ async def preemptive_tool_call_node(state: ConversationGraphState) -> Dict:
     
     logger.info(f"[{user_id}] (Graph|4) 前置工具執行完畢。")
     return {"tool_results": results_summary}
-# 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正)
-
+# 函式：[新] 前置工具調用節點 (v3.1 - 執行邏輯修正) 結束
 
 
 
@@ -659,4 +674,5 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖
+
 
