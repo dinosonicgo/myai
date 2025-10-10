@@ -4624,14 +4624,14 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：配置前置資源 (v203.4 - API金鑰注入)
+# 函式：配置前置資源 (v203.6 - 純本地 RAG 適配)
 # 更新紀錄:
-# v203.4 (2025-12-10): [災難性BUG修復] 在創建 `GoogleGenerativeAIEmbeddings` 實例時，增加了 `google_api_key` 參數的傳遞。此修改從我們自己的 API 金鑰輪換池中獲取一個可用的金鑰並手動注入，從根本上解決了因缺少 API 金鑰而導致的 `ValidationError` 啟動失敗問題。
-# v203.3 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_load_or_build_rag_retriever` 的調用。
-# v203.2 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
+# v203.6 (2025-12-10): [重大架構重構] 根據純本地 RAG 的決策，移除了所有與 Google API 金鑰相關的邏輯，簡化了 Embedding 引擎的初始化流程。
+# v203.5 (2025-12-10): [健壯性強化] 修改了此函式，使其能夠處理 `_create_embeddings_instance` 在雲端和本地備援均失敗時返回 `None` 的極端情況。
+# v203.4 (2025-12-10): [災難性BUG修復] 在創建 `GoogleGenerativeAIEmbeddings` 實例時，增加了 `google_api_key` 參數的傳遞。
     async def _configure_pre_requisites(self):
         """
-        (v203.4) 僅配置輕量級的前置資源，不創建 RAG。
+        (v203.6) 僅配置輕量級的前置資源，不創建 RAG。
         """
         if not self.profile:
             raise ValueError("Cannot configure pre-requisites without a loaded profile.")
@@ -4642,26 +4642,13 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v203.4 核心修正] 為 Embedding 引擎注入 API 金鑰
-        if not self.api_keys:
-            raise ValueError("在配置 Embedding 引擎時，找不到任何可用的 Google API 金鑰。")
+        # [v203.6 核心修正] 調用純本地的 Embedding 創建函式
+        self.embeddings = self._create_embeddings_instance()
         
-        # 從我們的金鑰池中獲取第一個可用的金鑰來初始化 Embedding
-        # Embedding 請求量不大，通常不需要輪換
-        # 我們仍然使用 _get_next_available_key 以便跳過可能被冷卻的金鑰
-        embedding_model_name = "models/embedding-001"
-        key_info = self._get_next_available_key(embedding_model_name)
-        if not key_info:
-             raise ConnectionError(f"為 {embedding_model_name} 尋找可用 API 金鑰失敗，所有金鑰可能都處於冷卻中。")
-        
-        api_key_for_embedding, key_index = key_info
-        logger.info(f"[{self.user_id}] 正在使用 API Key #{key_index} 初始化 Embedding 引擎...")
-
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model=embedding_model_name,
-            google_api_key=api_key_for_embedding, # 將金鑰作為參數傳入
-            safety_settings=SAFETY_SETTINGS
-        )
+        if self.embeddings is None:
+            logger.critical("🔥🔥🔥 [核心警告] 本地 Embedding 引擎初始化失敗！")
+            logger.critical("   -> RAG 系統（長期記憶和世界聖經）將被完全禁用。")
+            logger.critical("   -> AI 將只能依賴短期對話歷史進行回應，可能導致上下文遺忘和劇情不連貫。")
         
         logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
 # 函式：配置前置資源 結束
@@ -4722,71 +4709,64 @@ class ExtractionResult(BaseModel):
     
 
     
-# 函式：創建 Embeddings 實例 (v2.7 - 動態參數修正)
-    # 更新紀錄:
-    # v2.7 (2025-10-03): [災難性BUG修復] 根據 TypeError: unexpected keyword argument 'requests_kwargs'，徹底重構了此函式的參數處理邏輯。新版本為本地加載和網路下載分別定義了不同的 `model_kwargs` 字典，確保了只有在執行網路下載時才會傳遞 `requests_kwargs` 參數，從根源上解決了本地加載時因不支援該參數而導致的 TypeError。
-    # v2.6 (2025-10-03): [重大架構優化] 實現了「本地優先，網路備援」策略。
-    # v2.5 (2025-10-03): [災難性BUG修復] 增加了模型下載的網路請求超時時間。
+# 函式：創建 Embeddings 實例 (v4.0 - 純本地 RAG)
+# 更新紀錄:
+# v4.0 (2025-12-10): [重大架構重構] 根據使用者指令，徹底移除了所有與 Google Cloud Embedding 相關的邏輯。此函式現在的唯一職責是加載本地的 HuggingFace Embedding 模型，實現了 RAG 系統的完全本地化，以規避雲端 API 的配額限制。
+# v3.0 (2025-12-10): [重大架構重構] 實現了「雲端優先，本地備援」的雙層初始化策略。
+# v2.7 (2025-10-03): [災難性BUG修復] 徹底重構了此函式的參數處理邏輯。
     def _create_embeddings_instance(self) -> Optional["HuggingFaceEmbeddings"]:
         """
-        (v2.7 本地化改造) 創建並返回一個 HuggingFaceEmbeddings 實例。
+        (v4.0) 創建並返回一個 HuggingFaceEmbeddings 實例，實現純本地 RAG。
         優先從本地 'models/stella-base-zh-v2' 目錄加載，如果失敗則回退到從網路下載。
         """
-        from langchain_community.embeddings import HuggingFaceEmbeddings
-        
-        # 模型的網路名稱
-        model_name_on_hub = "infgrad/stella-base-zh-v2"
-        # 模型的本地存儲路徑
-        local_model_path = PROJ_DIR / "models" / "stella-base-zh-v2"
+        logger.info("ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...")
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            
+            # 模型的網路名稱
+            model_name_on_hub = "infgrad/stella-base-zh-v2"
+            # 模型的本地存儲路徑
+            local_model_path = PROJ_DIR / "models" / "stella-base-zh-v2"
 
-        # [v2.7 核心修正] 為本地和網路模式分別定義 kwargs
-        # 本地加載時，不需要網路相關參數
-        local_model_kwargs = {
-            'device': 'cpu'
-        }
-        # 網路下載時，需要延長超時時間
-        network_model_kwargs = {
-            'device': 'cpu', 
-            'requests_kwargs': {'timeout': 120} 
-        }
-        encode_kwargs = {'normalize_embeddings': False}
-        
-        # --- 步驟 1: 嘗試從本地加載 ---
-        if local_model_path.is_dir():
-            logger.info(f"✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 '{local_model_path}' 加載...")
-            try:
+            local_model_kwargs = {'device': 'cpu'}
+            network_model_kwargs = {'device': 'cpu', 'requests_kwargs': {'timeout': 120}}
+            encode_kwargs = {'normalize_embeddings': False}
+            
+            # --- 步驟 1: 嘗試從本地加載 ---
+            if local_model_path.is_dir():
+                logger.info(f"   - 檢測到本地模型路徑，正在嘗試從 '{local_model_path}' 加載...")
                 embeddings = HuggingFaceEmbeddings(
-                    model_name=str(local_model_path), # 直接使用本地路徑
-                    model_kwargs=local_model_kwargs,  # 使用不含 requests_kwargs 的版本
+                    model_name=str(local_model_path),
+                    model_kwargs=local_model_kwargs,
                     encode_kwargs=encode_kwargs
                 )
-                logger.info(f"✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。")
+                logger.info("✅ [Embedding Loader] 純本地 Embedding 模型成功加載。")
                 return embeddings
-            except Exception as e:
-                logger.warning(f"⚠️ [Embedding Loader] 從本地路徑 '{local_model_path}' 加載模型失敗: {e}")
-                logger.warning(f"   -> 將回退到從網路下載的備援方案。")
-        else:
-            logger.info(f"ℹ️ [Embedding Loader] 未檢測到本地模型路徑 '{local_model_path}'。")
+            else:
+                logger.info(f"   - 未檢測到本地模型路徑 '{local_model_path}'。")
 
-        # --- 步驟 2: 如果本地加載失敗或不存在，則從網路下載 ---
-        logger.info(f"⏳ [Embedding Loader] 正在嘗試從網路 ({os.environ.get('HF_ENDPOINT', 'Hugging Face Hub')}) 下載模型 '{model_name_on_hub}'...")
-        logger.info("   (首次下載可能需要數分鐘，請耐心等候...)")
-        try:
+            # --- 步驟 2: 如果本地加載失敗或不存在，則從網路下載 ---
+            logger.info(f"⏳ [Embedding Loader] 正在嘗試從網路 ({os.environ.get('HF_ENDPOINT', 'Hugging Face Hub')}) 下載模型 '{model_name_on_hub}'...")
+            logger.info("      (首次下載可能需要數分鐘，請耐心等候...)")
+            
             embeddings = HuggingFaceEmbeddings(
-                model_name=model_name_on_hub, # 使用網路名稱
-                model_kwargs=network_model_kwargs, # 使用包含 requests_kwargs 的版本
+                model_name=model_name_on_hub,
+                model_kwargs=network_model_kwargs,
                 encode_kwargs=encode_kwargs,
                 cache_folder=str(PROJ_DIR / "models" / "cache")
             )
-            logger.info(f"✅ [Embedding Loader] 網路下載並創建 Embedding 模型實例成功。")
+            logger.info("✅ [Embedding Loader] 純本地 Embedding 模型成功下載並創建。")
             logger.info(f"   -> 提示：為了未來能快速啟動，您可以將下載的模型檔案夾從 'models/cache' 移動到 'models/' 並重命名為 'stella-base-zh-v2'。")
             return embeddings
-        except Exception as e:
-            logger.error(f"[{self.user_id}] 🔥 [Embedding Loader] 創建本地 Embedding 模型實例最終失敗: {e}", exc_info=True)
-            logger.error(f"   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已正確安裝。")
-            logger.error(f"   -> 同時請檢查您的網路連線是否可以正常訪問 Hugging Face 或其鏡像站。")
+
+        except ImportError as e:
+            logger.error(f"🔥 [Embedding Loader] 缺少必要的函式庫: {e}。純本地 RAG 無法啟動。")
+            logger.error("   -> 請確保 `torch`, `transformers` 和 `sentence-transformers` 已通過 `pip install` 正確安裝。")
             return None
-    # 創建 Embeddings 實例 函式結束
+        except Exception as e:
+            logger.error(f"🔥 [Embedding Loader] 創建純本地 Embedding 模型實例最終失敗: {e}", exc_info=True)
+            return None
+# 函式：創建 Embeddings 實例 結束
 
 
     
@@ -6337,6 +6317,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
