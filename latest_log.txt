@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T01:25:12.604376 ###
+### AI Lover Log - Last updated at 2025-10-11T01:31:03.707104 ###
 
-}
-]
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1127, in _load_or_build_rag_retriever
-    await asyncio.to_thread(self.vector_store.add_documents, docs_to_build)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\threads.py", line 25, in to_thread
     return await loop.run_in_executor(None, func_call)
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
@@ -300,3 +292,11 @@ violations {
 2025-10-11 01:21:19 - [INFO] - [512280345618546699] [事後分析] 鳳凰架構背景分析任務完成。
 2025-10-11 01:21:45 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['response_style_prompt']
 2025-10-11 01:21:45 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 01:30:49 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-11 01:30:56 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-11 01:30:56 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-11 01:30:56 - [INFO] - 正在全域同步應用程式指令...
+2025-10-11 01:30:57 - [INFO] - ✅ 指令已全域同步！
+2025-10-11 01:30:57 - [INFO] - Discord Bot setup hook finished!
+2025-10-11 01:31:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-11 01:31:00 - [INFO] - 已成功發送啟動成功通知給管理員。
