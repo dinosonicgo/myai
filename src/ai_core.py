@@ -2886,14 +2886,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：生成開場白 (v186.1 - 健壯性強化)
+# 函式：生成開場白 (v186.2 - 指令增強型RAG)
 # 更新紀錄:
-# v186.1 (2025-12-10): [健壯性強化] 為函式末尾的 LORE 寫入操作增加了一個 `try...except` 錯誤處理塊。此修改旨在防禦因資料庫結構不匹配等底層問題導致的 `OperationalError`，確保即使 LORE 寫入失敗，整個創世流程也不會崩潰，能夠將開場白正常返回給使用者。
+# v186.2 (2025-12-10): [災難性BUG修復] 根據使用者反饋，徹底重寫了此函式內部的 RAG 查詢指令。新的查詢文本被強化為一個帶有嚴格篩選條件的指令，明確要求 RAG 尋找「非私人空間」、「非權力中心」、「適合兩人獨處的靜態場景」，並提供了正反範例，以確保 RAG 檢索階段就能精準地過濾掉不合適的開場地點，從根源上解決開場地點選擇不當的問題。
+# v186.1 (2025-12-10): [健壯性強化] 為函式末尾的 LORE 寫入操作增加了一個 `try...except` 錯誤處理塊。
 # v186.0 (2025-10-03): [重大架構重構] 將此函式的職責從單純的「場景創作」升級為「智能選址與場景創作一體化」。
-# v185.1 (2025-10-03): [災難性BUG修復] 引入了「地點錨定」邏輯以解決地點不一致問題。
     async def generate_opening_scene(self, canon_text: Optional[str] = None) -> str:
         """
-        (v186.1) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
+        (v186.2) 智能選擇地點、創作開場白，然後反向提取地點以更新遊戲狀態。
         """
         if not self.profile:
             raise ValueError("AI 核心未初始化，無法生成開場白。")
@@ -2901,12 +2901,30 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         user_profile = self.profile.user_profile
         ai_profile = self.profile.ai_profile
         
-        # --- 步驟 1: RAG 驅動的場景選擇與創作 ---
-        logger.info(f"[{self.user_id}] [/start] 正在使用 RAG 智能選擇並創作開場場景...")
-        rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。"
+        # --- 步驟 1: [v186.2 核心修正] 指令增強型 RAG 查詢 ---
+        logger.info(f"[{self.user_id}] [/start] 正在使用【指令增強型 RAG】智能選擇並創作開場場景...")
+
+        # 舊的查詢文本 (過於籠統)
+        # rag_query = f"根據這個世界的核心設定({self.profile.world_settings})以及主角 {user_profile.name} 和 {ai_profile.name} 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。"
+        
+        # 新的指令增強型查詢文本
+        rag_query = f"""
+指令：為主角 {user_profile.name} 和 {ai_profile.name} 尋找一個初始場景。
+世界觀：{self.profile.world_settings}
+【嚴格篩選條件】
+1.  **場景性質**：必須是**靜態的、適合兩人獨處**的場景。
+2.  **地點類型**：必須是**公共的、半公共的或荒涼的**地點。
+3.  **【絕對禁止】**: 絕對禁止選擇任何**私人住宅內部**（如臥室、書房）、**權力中心**（如王座廳、議會廳、辦公室）或**人流密集的鬧市**（如市場中心、酒館大廳）。
+
+【篩選範例】
+- **[正確的選擇]**：廢棄的瞭望塔、森林邊緣的古老神龕、城市屋頂、僻靜的圖書館角落、俯瞰山谷的懸崖。
+- **[錯誤的選擇]**：國王的書房、女主角的臥室、繁忙的十字路口。
+
+請根據以上嚴格條件，從世界聖經中檢索最符合的場景描述。
+"""
         
         rag_context_dict = await self.retrieve_and_summarize_memories(rag_query)
-        rag_scene_context = rag_context_dict.get("summary", "（RAG未能找到合適的開場場景，請自由創作。）")
+        rag_scene_context = rag_context_dict.get("summary", "（RAG未能根據嚴格條件找到合適的開場場景，請基於篩選原則自由創作一個。）")
 
         opening_scene_prompt_template = """你是一位技藝精湛的【開場導演】與【世界觀融合大師】。
 你的唯一任務是，基於所有源數據，為使用者角色「{username}」與 AI 角色「{ai_name}」創造一個**【深度定制化的、靜態的開場快照】**。
@@ -2925,7 +2943,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 【世界觀核心】
 {world_settings}
 ---
-【核心場景情報 (由 RAG 根據世界聖經智能選擇)】:
+【核心場景情報 (由 RAG 根據世界聖經與嚴格規則智能選擇)】:
 {rag_scene_context}
 ---
 【使用者角色檔案：{username}】
@@ -2955,7 +2973,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         if not opening_scene or not opening_scene.strip():
             opening_scene = f"在一片柔和的光芒中，你和 {ai_profile.name} 發現自己身處於一個寧靜的空間裡..."
         
-        # --- 步驟 2: [v186.0 新增] 反向提取地點並更新狀態 ---
+        # --- 步驟 2: 反向提取地點並更新狀態 (保持不變) ---
         logger.info(f"[{self.user_id}] [/start] 開場白已生成，正在從中反向提取權威地點...")
         try:
             location_extraction_prompt = self.get_location_extraction_prompt()
@@ -2976,7 +2994,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 gs.location_path = authoritative_location_path
                 await self.update_and_persist_profile({'game_state': gs.model_dump()})
                 
-                # [v186.1 核心修正] 增加錯誤處理
                 try:
                     location_name = authoritative_location_path[-1]
                     await lore_book.add_or_update_lore(
@@ -6317,6 +6334,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
