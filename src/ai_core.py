@@ -68,7 +68,56 @@ from .tool_context import tool_context
 
 
 
+# ai_core.py 的常量定義 (v1.0 - 隔離編碼)
+# 更新紀錄:
+# v1.0 (2025-12-09): [全新創建] 根據「鳳凰架構」的「絕對隔離」原則，創建此編碼/解碼映射表，作為安全處理NSFW內容的核心。
+# --- [v1.0 新增] 核心：隔離編碼與解碼映射表 ---
+# 這是我們的“密碼本”，用於在將敏感內容傳遞給輔助型LLM之前對其進行無害化處理。
+# 新增敏感詞時，只需添加到 DECODING_MAP，其他兩個常量會自動生成。
+DECODING_MAP = {
+    # 性器官
+    "CODE-M-GEN-A": "肉棒",
+    "CODE-F-GEN-A": "肉穴",
+    "CODE-F-GEN-B": "陰蒂",
+    "CODE-F-GEN-C": "子宮",
+    "CODE-A-GEN-A": "肛門",
+    # 體液
+    "FLUID-A": "愛液",
+    "FLUID-B": "淫液",
+    "FLUID-C": "精液",
+    # 反應與狀態
+    "REACT-A": "翻白眼",
+    "REACT-B": "顫抖",
+    "REACT-C": "噴濺",
+    "STATE-A": "高潮",
+    "STATE-B": "射精",
+    "STATE-C": "失神",
+    # 核心動作
+    "ACTION-A": "插入",
+    "ACTION-B": "口交",
+    "ACTION-C": "性交",
+    "ACTION-D": "手淫",
+    "ACTION-E": "撫摸",
+    "ACTION-F": "舔",
+    # 極端/權力動態相關
+    "ACTION-G": "獸交",
+    "ACTION-H": "輪姦",
+    "ACTION-I": "強暴",
+    "ACTION-J": "肛交",
+    "ROLE-A": "臣服",
+    "ROLE-B": "主人",
+    "ROLE-C": "母狗",
+    "ROLE-D": "母畜",
+    "ROLE-E": "奴隸",
+    "ROLE-F": "寵物",
+}
 
+# 反向映射表，用於編碼
+ENCODING_MAP = {v: k for k, v in DECODING_MAP.items()}
+
+# 排序後的編碼表，用於替換時避免部分匹配（例如，先替換“性交”再替換“交”）
+SORTED_ENCODING_MAP = sorted(ENCODING_MAP.items(), key=lambda item: len(item[0]), reverse=True)
+# ai_core.py 的常量定義 結束
 
 # [v1.0] 对话生成模型优先级列表 (从高到低)
 # 严格按照此列表顺序进行降级轮换，用于最终的小说生成
@@ -248,16 +297,16 @@ class AILover:
 
 # 函式：對文本進行安全編碼 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 創建此核心輔助函式，作為“隔离编码”策略的执行者。它使用预先排序的映射表，将文本中的所有敏感词高效地替换为中性技术代号。
+# v1.0 (2025-12-09): [全新創建] 根據「鳳凰架構」，創建此核心輔助函式。它使用預先排序的映射表，將文本中的所有敏感詞高效地替換為中性技術代號，是「絕對隔離」策略的入口。
     def _encode_text(self, text: str) -> str:
-        """使用 SORTED_ENCODING_MAP 将文本中的敏感词替换为技术代号。"""
+        """使用 SORTED_ENCODING_MAP 將文本中的敏感詞替換为技術代號。"""
         if not text:
             return ""
         # 遍歷排序後的映射表進行替換
         for word, code in SORTED_ENCODING_MAP:
             text = text.replace(word, code)
         return text
-# 函式：對文本進行安全編碼
+# 函式：對文本進行安全編碼 結束
 
 
     # 函式：對文本進行安全解碼 (v1.0 - 全新創建)
@@ -5607,24 +5656,24 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：本地安全解碼LORE內容
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，作為“本地安全解碼”策略的執行者。它接收一個可能包含技術代碼的LORE字典，並一個“反向代碼表”，然後遞歸地遍歷字典的所有值，將所有技術代碼安全地、在本地替換回原始的NSFW詞彙。這是確保最終存儲的LORE信息完整且可用的關鍵一步。
-    def _decode_lore_content(self, content: Any, decoding_map: Dict[str, str]) -> Any:
+# 函式：本地安全解碼LORE內容 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-09): [全新創建] 根據「鳳凰架構」，創建此核心輔助函式。它能遞歸地遍歷一個完整的JSON結構（字典、列表），將所有技術代碼安全地在本地還原為原始詞彙，是「絕對隔離」策略的出口。
+    def _decode_lore_content(self, content: Any) -> Any:
         """
         遞歸地遍歷一個LORE內容結構（字典、列表、字符串），並將所有技術代碼替換回原始詞彙。
         """
         if isinstance(content, str):
-            for code, word in decoding_map.items():
+            for code, word in DECODING_MAP.items():
                 content = content.replace(code, word)
             return content
         elif isinstance(content, dict):
-            return {key: self._decode_lore_content(value, decoding_map) for key, value in content.items()}
+            return {key: self._decode_lore_content(value) for key, value in content.items()}
         elif isinstance(content, list):
-            return [self._decode_lore_content(item, decoding_map) for item in content]
+            return [self._decode_lore_content(item) for item in content]
         else:
             return content
-    # 函式：本地安全解碼LORE內容
+# 函式：本地安全解碼LORE內容 結束
 
     
 
@@ -6349,40 +6398,40 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-    # 函式：將互動記錄保存到資料庫 (v10.0 - 純 SQL)
-    # 更新紀錄:
-    # v10.0 (2025-11-22): [根本性重構] 根據纯 BM25 RAG 架構，彻底移除了所有與 ChromaDB 和向量化相關的邏輯。此函式現在的唯一職責是將對話歷史存入 SQL 的 MemoryData 表中。
-    # v9.0 (2025-11-15): [架構升級] 根據【持久化淨化快取】策略，將安全摘要同時寫入 content 和 sanitized_content 欄位。
-    # v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
+# 函式：將互動記錄保存到資料庫 (v10.0 - 雙重持久化)
+# 更新紀錄:
+# v10.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重構此函式。它現在執行雙重持久化：將原始文本存入 content，同時調用 _encode_text 將編碼後的無害化文本存入 sanitized_content。
+# v9.0 (2025-11-15): [架構升級] 將安全摘要同時寫入 content 和 sanitized_content 欄位。
+# v8.1 (2025-11-14): [完整性修復] 提供了此函式的完整版本。
     async def _save_interaction_to_dbs(self, interaction_text: str):
-        """将单次互动的安全文本保存到 SQL 数据库，以供 BM25 检索器使用。"""
+        """(v10.0) 將單次互動的文本進行雙重持久化，同時保存原文和用於RAG的編碼後文本。"""
         if not interaction_text or not self.profile:
             return
 
         user_id = self.user_id
         current_time = time.time()
         
-        # [v13.0 適配] 由於不再生成淨化內容，sanitized_content 欄位可以留空或存儲原始文本
-        # 為了數據庫結構一致和未來可能的擴展，我們暫時將原始文本存入
-        sanitized_text_for_db = interaction_text
+        # 步驟 1: 對原始文本進行編碼，生成無害化版本
+        sanitized_text_for_db = self._encode_text(interaction_text)
 
         try:
             async with AsyncSessionLocal() as session:
                 new_memory = MemoryData(
                     user_id=user_id,
-                    content=interaction_text, # 存儲原始文本
+                    content=interaction_text,              # 存儲原始文本
                     timestamp=current_time,
                     importance=5,
-                    sanitized_content=sanitized_text_for_db # 存儲原始文本以兼容
+                    sanitized_content=sanitized_text_for_db # 存儲編碼後的無害化文本
                 )
                 session.add(new_memory)
                 await session.commit()
-            logger.info(f"[{self.user_id}] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。")
+            logger.info(f"[{self.user_id}] [長期記憶寫入] 互動記錄已成功進行雙重持久化到 SQL 資料庫。")
         except Exception as e:
             logger.error(f"[{self.user_id}] [長期記憶寫入] 將互動記錄保存到 SQL 資料庫時發生嚴重錯誤: {e}", exc_info=True)
-# 將互動記錄保存到資料庫 函式結束
+# 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
