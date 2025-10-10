@@ -13,14 +13,25 @@ from pydantic import Field, BaseModel
 # [v3.0 修改] 從 database 導入模型和會話
 from .database import AsyncSessionLocal, Lore
 
-# 異步函式，新增或更新一條 Lore 記錄
-async def add_or_update_lore(user_id: str, category: str, key: str, content: Dict[str, Any], source: Optional[str] = None, merge: bool = False) -> Lore:
+# 異步函式：新增或更新一條 Lore 記錄 (v4.0 - 混合式LORE)
+# 更新紀錄:
+# v4.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，修改函式簽名以分別接收 structured_content 和 narrative_content，並更新合併邏輯。
+# v3.0 (2025-08-16): [重大架構重構] 移除了本地的 Lore 模型定義。
+# v2.0 (2025-08-12): [功能擴展] 在 Lore 模型中新增了 source 欄位。
+async def add_or_update_lore(
+    user_id: str, 
+    category: str, 
+    key: str, 
+    structured_content: Optional[Dict[str, Any]] = None, 
+    narrative_content: Optional[str] = None, 
+    source: Optional[str] = None, 
+    merge: bool = False
+) -> Lore:
     """
     新增或更新一条 Lore 记录。
-    如果具有相同 user_id, category 和 key 的记录已存在，则更新其 content 和 timestamp。
-    否则，创建一条新记录。
-    可以选择性地传入 source 来标记数据来源。
-    如果 merge 为 True，则会将传入的 content 字典与现有的 content 字典合并，而不是完全替换。
+    如果记录已存在，则更新其内容和时间戳。否则，创建新记录。
+    如果 merge 为 True，则会将传入的 structured_content 与現有的合并，而不是完全替换。
+    narrative_content 总是被完全替换。
     """
     async with AsyncSessionLocal() as session:
         # 查詢現有記錄
@@ -36,17 +47,20 @@ async def add_or_update_lore(user_id: str, category: str, key: str, content: Dic
         
         if existing_lore:
             # 更新現有記錄
-            if merge and isinstance(existing_lore.content, dict):
-                # 合并字典
-                updated_content = existing_lore.content.copy()
-                updated_content.update(content)
-                existing_lore.content = updated_content
-            else:
-                # 完全替换
-                existing_lore.content = content
+            if structured_content is not None:
+                if merge and isinstance(existing_lore.structured_content, dict):
+                    # 合并字典
+                    updated_content = existing_lore.structured_content.copy()
+                    updated_content.update(structured_content)
+                    existing_lore.structured_content = updated_content
+                else:
+                    # 完全替换
+                    existing_lore.structured_content = structured_content
             
+            if narrative_content is not None:
+                existing_lore.narrative_content = narrative_content
+
             existing_lore.timestamp = current_time
-            # 只有在明確傳入 source 時才更新 source，避免意外覆蓋
             if source is not None:
                 existing_lore.source = source
             lore_entry = existing_lore
@@ -56,7 +70,8 @@ async def add_or_update_lore(user_id: str, category: str, key: str, content: Dic
                 user_id=user_id,
                 category=category,
                 key=key,
-                content=content,
+                structured_content=structured_content,
+                narrative_content=narrative_content,
                 timestamp=current_time,
                 source=source
             )
@@ -65,7 +80,7 @@ async def add_or_update_lore(user_id: str, category: str, key: str, content: Dic
         await session.commit()
         await session.refresh(lore_entry)
         return lore_entry
-# 異步函式，新增或更新一條 Lore 記錄
+# 異步函式：新增或更新一條 Lore 記錄 (v4.0 - 混合式LORE)
 
 # 異步函式，根據 category 和 key 查詢單條 Lore 記錄
 async def get_lore(user_id: str, category: str, key: str) -> Optional[Lore]:
@@ -82,7 +97,11 @@ async def get_lore(user_id: str, category: str, key: str) -> Optional[Lore]:
         return result.scalars().first()
 # 異步函式，根據 category 和 key 查詢單條 Lore 記錄
 
-# 異步函式，根據 category 查詢多條 Lore 記錄，並可選地進行過濾
+# 異步函式：根據 category 查詢多條 Lore 記錄，並可選地進行過濾 (v4.0 - 混合式LORE)
+# 更新紀錄:
+# v4.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，將過濾函數 filter_func 的作用對象從舊的 content 欄位修改為新的 structured_content 欄位。
+# v3.0 (2025-08-16): [重大架構重構] 移除了本地的 Lore 模型定義。
+# v2.0 (2025-08-12): [功能擴展] 在 Lore 模型中新增了 source 欄位。
 async def get_lores_by_category_and_filter(
     user_id: str, 
     category: str, 
@@ -90,7 +109,7 @@ async def get_lores_by_category_and_filter(
 ) -> List[Lore]:
     """
     根據 user_id 和 category 查詢多條 Lore 記錄。
-    如果提供了 filter_func，則會對查詢結果的 content 字段進行進一步的篩選。
+    如果提供了 filter_func，則會對查詢結果的 structured_content 字段進行進一步的篩選。
     """
     async with AsyncSessionLocal() as session:
         stmt = select(Lore).where(
@@ -101,11 +120,11 @@ async def get_lores_by_category_and_filter(
         all_lores = result.scalars().all()
         
         if filter_func:
-            # 在 Python 層面對 JSON content 進行過濾
-            return [lore for lore in all_lores if filter_func(lore.content)]
+            # 在 Python 層面對 JSON structured_content 進行過濾
+            return [lore for lore in all_lores if lore.structured_content and filter_func(lore.structured_content)]
         else:
             return list(all_lores)
-# 異步函式，根據 category 查詢多條 Lore 記錄，並可選地進行過濾
+# 異步函式：根據 category 查詢多條 Lore 記錄，並可選地進行過濾 (v4.0 - 混合式LORE)
 
 # [v2.0 新增] 根據來源刪除 Lore 記錄
 async def delete_lores_by_source(user_id: str, source: str) -> int:
@@ -201,4 +220,5 @@ async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore
                     
         return matching_lores
 # 函式：根據模板關鍵詞查詢LORE (v1.0 - 全新創建)
+
 
