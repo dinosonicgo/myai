@@ -58,3 +58,4 @@ class SetupGraphState(TypedDict):
     opening_scene: str
 # 類別：設定圖狀態
 
+
