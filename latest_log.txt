@@ -1,154 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T00:07:34.964433 ###
+### AI Lover Log - Last updated at 2025-10-11T00:12:38.363117 ###
 
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 皇家衛隊'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 國王寢宮'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 咆哮壁爐酒館'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 一般城區'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 後花園'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 正門口'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 大廳穹頂'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'item_info' 類別處理 7 個已預處理的實體...
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「女神滴露」圖案'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
-2025-10-09 00:40:46 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 人形旗桿'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 魔光水晶'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 金屬聖蓮花'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 金剛石顆粒'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save v8.0) 正在為 'world_lore' 類別處理 54 個已預處理的實體...
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 新·性神教'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 母畜制度'
-2025-10-09 00:40:47 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三大性神裝置'
-2025-10-09 00:41:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教會'
-2025-10-09 00:41:05 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖十字軍'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎之吻'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 引領神恩'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 三線作戰'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教徒的女人'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 生命之神'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神'，正在合併更新...
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖軍計畫'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露修道院'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神信仰體系'
-2025-10-09 00:41:06 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義 - 男女的絕對差異'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神恩澤 - 權力與規格的差異'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掘井人」理論'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「掀裙風潮」'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「恩澤儀式」'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「神學的勝利」'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 「人心的勝利」'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖露蒙恩者'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 其他居民'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖凱瑟琳學院'
-2025-10-09 00:41:07 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 城鎮市集區'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掘井人理論'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖胎儀式'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 偉大神蹟 (斷腿重生)'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 掀裙祈禱'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想滲透'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 快樂派系'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 淨化行動'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 虛偽 (光明神教義)'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神恩誘惑'
-2025-10-09 00:41:08 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 裝聖女的蕩婦'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 常理常倫'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 性神教'，正在合併更新...
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖露修道院'，正在合併更新...
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 維利爾斯家族'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖十字軍'，正在合併更新...
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 天恩灌溉系統'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神宮花開'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖軍計畫'，正在合併更新...
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 夏卡爾教義'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 性神教義'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 思想戰爭'
-2025-10-09 00:41:09 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 聖軍計畫'，正在合併更新...
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 神恩洗禮'
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] (_resolve_and_save) 檢測到已存在的 LORE '世界 > 生命之神'，正在合併更新...
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] (_resolve_and_save) 正在創建新 LORE：'世界 > 聖光明教會'
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 快速解析完成，粗略版 LORE 已存入 SQL 資料庫。
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] [後台創世] LORE 骨架已成功創建並存入資料庫。
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...
-2025-10-09 00:41:10 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
-2025-10-09 00:42:02 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
-2025-10-09 00:42:02 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成。
-2025-10-09 00:42:02 - [INFO] - [512280345618546699] [後台創世] 步驟 3/6: 檢測到 138 條 LORE，正在**等待**單體精煉任務完成...
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [LORE精煉-v11] 動態批次精煉服務已啟動，收到 64 個 NPC 精煉任務。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [LORE精煉-v11] 任務已動態切分為 10 個批次，每批最多 7 個 NPC。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #1/10: 開始處理 7 個 NPC...
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '絲月' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '卡爾•維利爾斯' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '莉莉絲' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '薩格納' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '菲利普' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '米婭' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '艾莉諾' 的所有已知資訊。'
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:07 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:24 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #1/10: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-09 00:42:37 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:42:37 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #1/10: ✅ LLM 預解析成功，獲得 7 個檔案草稿。
-2025-10-09 00:42:37 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #1 處理完畢，進入 20 秒戰術延遲...
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #2/10: 開始處理 7 個 NPC...
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '赫克托' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '國王埃德蒙三世' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '阿拉里克' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '伊索爾德' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '博林' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '維利爾斯勳爵' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] 正在為內部流程執行原始文檔檢索，查詢: '關於角色 '老高' 的所有已知資訊。'
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:42:57 - [INFO] - [512280345618546699] [Raw RAG] ✅ 成功檢索到 20 份原始文檔。
-2025-10-09 00:43:13 - [INFO] - [512280345618546699] [LORE精煉-v11] 批次 #2/10: 階段 1/2 - 正在執行 LLM 批次化結構預解析...
-2025-10-09 00:51:06 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-09 00:51:11 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-09 00:51:11 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-09 00:51:11 - [INFO] - 正在全域同步應用程式指令...
-2025-10-09 00:51:11 - [INFO] - ✅ 指令已全域同步！
-2025-10-09 00:51:11 - [INFO] - Discord Bot setup hook finished!
-2025-10-09 00:51:14 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-09 00:51:15 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-09 00:51:36 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-09 00:51:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-09 00:51:44 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-09 00:51:44 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-09 00:51:44 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-09 00:51:44 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-09 00:51:44 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-09 00:51:51 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-09 00:51:51 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-09 00:51:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-09 00:51:51 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-09 00:51:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 00:51:53 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-09 00:52:00 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-09 00:52:00 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-09 00:52:01 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 00:52:02 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-09 00:52:13 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-09 00:52:14 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-09 00:52:14 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 00:52:17 - [INFO] - [512280345618546699] [創世流程 v70.0] 嚴格串行化創世流程已啟動。
-2025-10-09 00:52:17 - [INFO] - [512280345618546699] [後台創世] 步驟 2/6: 正在觸發 RAG 索引創始構建...
-2025-10-09 00:52:17 - [INFO] - [512280345618546699] (Retriever Builder) 強制重建觸發，正在從資料庫執行全量創始構建...
-2025-10-09 00:52:17 - [INFO] - [512280345618546699] (Retriever Builder) 已從 SQL 加載 0 條文檔用於創始構建。
 2025-10-09 00:52:20 - [INFO] - [512280345618546699] (Retriever Builder) 知識庫為空，已創建一個空的 RAG 系統。
 2025-10-09 00:52:20 - [INFO] - [512280345618546699] [後台創世] ✅ RAG 索引構建完成。
 2025-10-09 00:52:20 - [INFO] - [512280345618546699] [後台創世] 步驟 5/6: 正在補完角色檔案...
@@ -300,3 +151,152 @@
 2025-10-11 00:07:27 - [INFO] - Discord Bot setup hook finished!
 2025-10-11 00:07:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-11 00:07:31 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-11 00:09:16 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-11 00:09:21 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-11 00:09:21 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-11 00:09:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-11 00:09:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-11 00:09:21 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: 1 validation error for GoogleGenerativeAIEmbeddings
+__root__
+  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1232, in get_or_create_ai_instance
+    await ai_instance._configure_pre_requisites()
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4644, in _configure_pre_requisites
+    self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", safety_settings=SAFETY_SETTINGS)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
+    raise validation_error
+pydantic.v1.error_wrappers.ValidationError: 1 validation error for GoogleGenerativeAIEmbeddings
+__root__
+  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
+2025-10-11 00:09:21 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-11 00:09:21 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-11 00:09:21 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:09:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-11 00:09:33 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-11 00:09:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-11 00:09:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:09:35 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-11 00:09:45 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-11 00:09:46 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-11 00:09:46 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:09:47 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-11 00:09:56 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-11 00:09:58 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
+2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
+2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
+2025-10-11 00:09:58 - [ERROR] - [512280345618546699] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。
+2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
+2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
+2025-10-11 00:10:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
+2025-10-11 00:10:02 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
+2025-10-11 00:10:02 - [WARNING] - [512280345618546699] [鳳凰RAG] 檢索器未初始化，無法檢索記憶。
+2025-10-11 00:10:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-11 00:10:33 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 寂靜的魔法塔 > 頂樓。正在更新 GameState...
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:10:34 - [ERROR] - [512280345618546699] [/start] 在反向提取地點時發生錯誤: (sqlite3.OperationalError) no such column: lore_book.structured_content
+[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.structured_content, lore_book.narrative_content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
+FROM lore_book 
+WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
+[parameters: ('512280345618546699', 'location_info', '寂靜的魔法塔 > 頂樓')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
+    raise error
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
+    return await future
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
+    result = function()
+sqlite3.OperationalError: no such column: lore_book.structured_content
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2982, in generate_opening_scene
+    await lore_book.add_or_update_lore(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 43, in add_or_update_lore
+    result = await session.execute(stmt)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 461, in execute
+    result = await greenlet_spawn(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2236, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
+    result = conn.execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1418, in execute
+    return meth(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2353, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
+    cursor.execute(statement, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
+    self._adapt_connection._handle_exception(error)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
+    raise error
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
+    self.await_(_cursor.execute(operation, parameters))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
+    value = await result
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
+    return await future
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
+    result = function()
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: lore_book.structured_content
+[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.structured_content, lore_book.narrative_content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
+FROM lore_book 
+WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
+[parameters: ('512280345618546699', 'location_info', '寂靜的魔法塔 > 頂樓')]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
+2025-10-11 00:10:34 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-11 00:10:35 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-11 00:10:35 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
