@@ -609,7 +609,7 @@ async def process_canon_node(state: SetupGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|1/4) Node: process_canon -> 執行時發生嚴重錯誤: {e}", exc_info=True)
     return {}
-# 函式：處理世界聖經節點
+# 函式：處理世界聖經節點 結束
 
 # 函式：補完角色檔案節點
 async def complete_profiles_node(state: SetupGraphState) -> Dict:
@@ -622,7 +622,7 @@ async def complete_profiles_node(state: SetupGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|2/4) Node: complete_profiles_node -> 執行時發生嚴重錯誤: {e}", exc_info=True)
     return {}
-# 函式：補完角色檔案節點
+# 函式：補完角色檔案節點 結束
 
 # 函式：世界創世節點
 async def world_genesis_node(state: SetupGraphState) -> Dict:
@@ -637,7 +637,7 @@ async def world_genesis_node(state: SetupGraphState) -> Dict:
     except Exception as e:
         logger.error(f"[{user_id}] (Setup Graph|3/4) Node: world_genesis -> 執行時發生嚴重錯誤: {e}", exc_info=True)
     return {"genesis_result": genesis_result}
-# 函式：世界創世節點
+# 函式：世界創世節點 結束
 
 # 函式：生成開場白節點
 async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
@@ -655,7 +655,7 @@ async def generate_opening_scene_node(state: SetupGraphState) -> Dict:
         logger.error(f"[{user_id}] (Setup Graph|4/4) Node: generate_opening_scene -> 執行時發生嚴重錯誤: {e}", exc_info=True)
         opening_scene = (f"在一片柔和的光芒中...")
     return {"opening_scene": opening_scene}
-# 函式：生成開場白節點
+# 函式：生成開場白節點 結束
 
 
 
@@ -681,7 +681,8 @@ def create_setup_graph() -> StateGraph:
     graph.add_edge("generate_opening_scene", END)
     
     return graph.compile()
-# 函式：創建設定圖
+# 函式：創建設定圖 結束
+
 
 
 
