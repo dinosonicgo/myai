@@ -1,244 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T00:45:58.074293 ###
+### AI Lover Log - Last updated at 2025-10-11T00:51:24.111986 ###
 
-2025-10-09 01:17:32 - [INFO] - ✅ 指令已全域同步！
-2025-10-09 01:17:32 - [INFO] - Discord Bot setup hook finished!
-2025-10-09 01:17:35 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-09 01:17:36 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-09 01:25:24 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-09 01:25:24 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-09 01:25:24 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-09 01:25:24 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-09 01:25:26 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-09 01:25:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-09 01:25:31 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-09 01:25:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-09 01:25:31 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-09 01:25:32 - [INFO] - ✅ [Embedding Loader] 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-09 01:25:34 - [INFO] - ✅ [Embedding Loader] 本地 Embedding 模型實例創建成功。
-2025-10-09 01:25:34 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-09 01:25:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-09 01:25:34 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-09 01:25:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 01:25:35 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-09 01:25:45 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-09 01:25:45 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-09 01:25:45 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 01:25:46 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-09 01:25:57 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-09 01:25:57 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-09 01:25:57 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 01:25:59 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-09 01:26:06 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-09 01:26:08 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
-2025-10-09 01:26:08 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
-2025-10-09 01:26:08 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
-2025-10-09 01:26:08 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
-2025-10-09 01:27:00 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。
-2025-10-09 01:27:00 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
-2025-10-09 01:27:00 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
-2025-10-09 01:27:03 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧 的背景，為他們的故事尋找一個最富有戲劇性、最符合世界觀的、適合二人出場的、遠離權力中心的靜態初始場景或情境。'
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [RAG 原文直通] 檢索成功，獲得 20 份候選文檔。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [RAG 原文直通] ✅ 成功拼接全部 20 條原始文檔作為 summary_context。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 78864 秒)。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 79781 秒)。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 78864 秒)。
-2025-10-09 01:27:04 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 79781 秒)。
-2025-10-09 01:27:43 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
-2025-10-09 01:27:43 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
-2025-10-09 01:27:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-09 01:27:44 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 王都 > 聖凱瑟琳魔法學院 > 禁典圖書館。正在更新 GameState...
-2025-10-09 01:27:44 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-09 01:27:44 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 01:27:44 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
-2025-10-09 01:27:45 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
-2025-10-09 01:27:45 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-09 01:27:45 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-10 18:35:51 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-10 18:36:02 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-10 18:36:02 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-10 18:36:02 - [INFO] - 正在全域同步應用程式指令...
-2025-10-10 18:36:03 - [INFO] - ✅ 指令已全域同步！
-2025-10-10 18:36:03 - [INFO] - Discord Bot setup hook finished!
-2025-10-10 18:36:06 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-10 18:36:07 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-11 00:07:20 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-11 00:07:27 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-11 00:07:27 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-11 00:07:27 - [INFO] - 正在全域同步應用程式指令...
-2025-10-11 00:07:27 - [INFO] - ✅ 指令已全域同步！
-2025-10-11 00:07:27 - [INFO] - Discord Bot setup hook finished!
-2025-10-11 00:07:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-11 00:07:31 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-11 00:09:14 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-11 00:09:16 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-11 00:09:21 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-11 00:09:21 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-11 00:09:21 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-11 00:09:21 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-11 00:09:21 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: 1 validation error for GoogleGenerativeAIEmbeddings
-__root__
-  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1232, in get_or_create_ai_instance
-    await ai_instance._configure_pre_requisites()
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4644, in _configure_pre_requisites
-    self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", safety_settings=SAFETY_SETTINGS)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
-    raise validation_error
-pydantic.v1.error_wrappers.ValidationError: 1 validation error for GoogleGenerativeAIEmbeddings
-__root__
-  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
-2025-10-11 00:09:21 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-11 00:09:21 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-11 00:09:21 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:09:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-11 00:09:33 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-11 00:09:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-11 00:09:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:09:35 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-11 00:09:45 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-11 00:09:46 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-11 00:09:46 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:09:47 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-11 00:09:56 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-11 00:09:58 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
-2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
-2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
-2025-10-11 00:09:58 - [ERROR] - [512280345618546699] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。
-2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
-2025-10-11 00:09:58 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
-2025-10-11 00:10:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
-2025-10-11 00:10:02 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
-2025-10-11 00:10:02 - [WARNING] - [512280345618546699] [鳳凰RAG] 檢索器未初始化，無法檢索記憶。
-2025-10-11 00:10:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-11 00:10:33 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 寂靜的魔法塔 > 頂樓。正在更新 GameState...
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:10:34 - [ERROR] - [512280345618546699] [/start] 在反向提取地點時發生錯誤: (sqlite3.OperationalError) no such column: lore_book.structured_content
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.structured_content, lore_book.narrative_content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
-[parameters: ('512280345618546699', 'location_info', '寂靜的魔法塔 > 頂樓')]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
-    result = function()
-sqlite3.OperationalError: no such column: lore_book.structured_content
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 2982, in generate_opening_scene
-    await lore_book.add_or_update_lore(
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\lore_book.py", line 43, in add_or_update_lore
-    result = await session.execute(stmt)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\ext\asyncio\session.py", line 461, in execute
-    result = await greenlet_spawn(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 201, in greenlet_spawn
-    result = context.throw(*sys.exc_info())
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
-    return self._execute_internal(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\session.py", line 2236, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\orm\context.py", line 293, in orm_execute_statement
-    result = conn.execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1418, in execute
-    return meth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\sql\elements.py", line 515, in _execute_on_connection
-    return connection._execute_clauseelement(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1640, in _execute_clauseelement
-    ret = self._execute_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 2353, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\engine\default.py", line 924, in do_execute
-    cursor.execute(statement, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 146, in execute
-    self._adapt_connection._handle_exception(error)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 298, in _handle_exception
-    raise error
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py", line 128, in execute
-    self.await_(_cursor.execute(operation, parameters))
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 131, in await_only
-    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\sqlalchemy\util\_concurrency_py3k.py", line 196, in greenlet_spawn
-    value = await result
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 48, in execute
-    await self._execute(self._cursor.execute, sql, parameters)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\cursor.py", line 40, in _execute
-    return await self._conn._execute(fn, *args, **kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 132, in _execute
-    return await future
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\aiosqlite\core.py", line 115, in run
-    result = function()
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: lore_book.structured_content
-[SQL: SELECT lore_book.id, lore_book.user_id, lore_book.category, lore_book."key", lore_book.structured_content, lore_book.narrative_content, lore_book.timestamp, lore_book.source, lore_book.template_keys 
-FROM lore_book 
-WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
-[parameters: ('512280345618546699', 'location_info', '寂靜的魔法塔 > 頂樓')]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
-2025-10-11 00:10:34 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
-2025-10-11 00:10:35 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-11 00:10:35 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-11 00:21:45 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-11 00:21:49 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-11 00:21:49 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-11 00:21:49 - [INFO] - 正在全域同步應用程式指令...
-2025-10-11 00:21:49 - [INFO] - ✅ 指令已全域同步！
-2025-10-11 00:21:49 - [INFO] - Discord Bot setup hook finished!
-2025-10-11 00:21:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-11 00:21:53 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-11 00:24:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-11 00:24:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-10-11 00:24:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
 2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
 2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
@@ -300,3 +61,242 @@ __root__
 2025-10-11 00:45:49 - [INFO] - Discord Bot setup hook finished!
 2025-10-11 00:45:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-11 00:45:53 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-11 00:46:32 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-11 00:46:32 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-11 00:46:32 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-11 00:46:32 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-11 00:46:34 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-11 00:46:39 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 正在使用 API Key #0 初始化 Embedding 引擎...
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-11 00:46:39 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-11 00:46:39 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:46:41 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-11 00:46:52 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-11 00:46:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-11 00:46:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:46:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-11 00:47:05 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-11 00:47:05 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-11 00:47:05 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:47:07 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-11 00:47:13 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-11 00:47:15 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
+2025-10-11 00:47:15 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
+2025-10-11 00:47:15 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
+2025-10-11 00:47:15 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，將使用 36 條傳入文檔構建純向量索引...
+2025-10-11 00:47:19 - [ERROR] - [512280345618546699] (Retriever Builder) 🔥 在外部文檔注入模式下構建時發生嚴重錯誤: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 225, in embed_documents
+    result = self.client.batch_embed_contents(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\ai\generativelanguage_v1beta\services\generative_service\client.py", line 1365, in batch_embed_contents
+    response = rpc(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\gapic_v1\method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\retry\retry_unary.py", line 147, in retry_target
+    result = target()
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\google\api_core\grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1127, in _load_or_build_rag_retriever
+    await asyncio.to_thread(self.vector_store.add_documents, docs_to_build)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\asyncio\threads.py", line 25, in to_thread
+    return await loop.run_in_executor(None, func_call)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_core\vectorstores\base.py", line 282, in add_documents
+    return self.add_texts(texts, metadatas, **kwargs)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_chroma\vectorstores.py", line 389, in add_texts
+    embeddings = self._embedding_function.embed_documents(texts)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\langchain_google_genai\embeddings.py", line 229, in embed_documents
+    raise GoogleGenerativeAIError(f"Error embedding content: {e}") from e
+langchain_google_genai._common.GoogleGenerativeAIError: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-10-11 00:47:19 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
+2025-10-11 00:47:19 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
+2025-10-11 00:47:21 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [鳳凰RAG] 啟動，原始查詢: '根據這個世界的核心設定(這是一個魔法的幻想世界。)以及主角 DINO 和 碧 的背景，為他們的故事尋...'
+2025-10-11 00:47:22 - [INFO] - [512280345618546699] [鳳凰RAG-1/5] 查詢已編碼。
+2025-10-11 00:47:22 - [WARNING] - [512280345618546699] [鳳凰RAG] 在搜索 'lore' 軌道時出錯: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-10-11 00:47:23 - [WARNING] - [512280345618546699] [鳳凰RAG] 在搜索 'history' 軌道時出錯: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-10-11 00:47:23 - [WARNING] - [512280345618546699] [鳳凰RAG] 在搜索 'canon' 軌道時出錯: Error embedding content: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0
+* Quota exceeded for metric: generativelanguage.googleapis.com/embed_content_free_tier_requests, limit: 0 [violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerDayPerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerUserPerProjectPerModel-FreeTier"
+}
+violations {
+  quota_metric: "generativelanguage.googleapis.com/embed_content_free_tier_requests"
+  quota_id: "EmbedContentRequestsPerMinutePerProjectPerModel-FreeTier"
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+]
+2025-10-11 00:47:23 - [INFO] - [512280345618546699] [鳳凰RAG-2/5] 所有軌道均未檢索到任何文檔。
+2025-10-11 00:47:51 - [WARNING] - [512280345618546699] Key #1 遭遇臨時 API 錯誤。将在 1.30 秒後重試...
+2025-10-11 00:47:53 - [WARNING] - [512280345618546699] Key #1 遭遇臨時 API 錯誤。将在 2.35 秒後重試...
+2025-10-11 00:47:55 - [ERROR] - [512280345618546699] Key #1 (模型: gemini-2.5-pro) 在 3 次重試後仍然失敗。
+2025-10-11 00:47:55 - [CRITICAL] - [512280345618546699] [持久化冷卻] Pro 模型速率超限！API Key #1 已被置入硬冷卻 24 小時。
+2025-10-11 00:48:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #2.
+2025-10-11 00:48:30 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #1.
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 靜謐學術塔樓。正在更新 GameState...
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
+2025-10-11 00:48:31 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-11 00:48:32 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-11 00:48:32 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
