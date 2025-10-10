@@ -1261,37 +1261,33 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：加載或構建 RAG 檢索器 (v206.0 - 支持外部文檔注入)
+# 函式：加載或構建 RAG 檢索器 (v207.0 - 鳳凰架構)
 # 更新紀錄:
-# v206.0 (2025-10-02): [功能擴展] 新增了 `docs_to_build` 可選參數。如果提供了此參數，函式將跳過從數據庫加載數據的步驟，直接使用傳入的文檔列表來構建 RAG 索引。此修改主要是為了支持 `/admin_pure_rag_rebuild` 指令，允許創建一個只包含特定文本源（如世界聖經原文）的純淨 RAG 索引以進行壓力測試。
-# v205.0 (2025-10-02): [災難性BUG修復] 根據 RAG 檢索污染的分析，徹底重構了混合檢索器的構建邏輯。
-# v204.7 (2025-09-30): [災難性BUG修復] 徹底重構了創始構建的初始化流程。
+# v207.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重寫數據加載邏輯。現在，此函式會從 MemoryData 表中讀取 `sanitized_content`，並調用新版 _format_lore_into_document 處理 LORE，確保所有進入 RAG 的數據都是潔淨的、編碼後的版本。同時，正式構建 EnsembleRetriever。
+# v206.0 (2025-10-02): [功能擴展] 新增了 `docs_to_build` 可選參數以支持外部文檔注入。
+# v205.0 (2025-10-02): [災難性BUG修復] 徹底重構了混合檢索器的構建邏輯。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False, docs_to_build: Optional[List[Document]] = None) -> Runnable:
         """
-        (v206.0) 加載或構建 RAG 檢索器。
-        支持從數據庫全量構建混合檢索器，或從外部傳入的文檔列表構建純向量檢索器。
+        (v207.0) 加載或構建一個基於潔淨、編碼後數據的混合式 RAG 檢索器。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
             return RunnableLambda(lambda x: [])
 
-        # --- [v206.0 新增] 外部文檔注入模式 ---
+        # --- 外部文檔注入模式 (保持不變，用於 /admin_pure_rag_rebuild 等特殊指令) ---
         if docs_to_build is not None:
             logger.info(f"[{self.user_id}] (Retriever Builder) 進入外部文檔注入模式，將使用 {len(docs_to_build)} 條傳入文檔構建純向量索引...")
             if Path(self.vector_store_path).exists():
                 await asyncio.to_thread(shutil.rmtree, self.vector_store_path, ignore_errors=True)
             Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
-
             try:
                 persistent_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.vector_store_path)
                 self.vector_store = Chroma(client=persistent_client, embedding_function=self.embeddings)
+                # 假設外部文檔已按需編碼
                 await asyncio.to_thread(self.vector_store.add_documents, docs_to_build)
-                
-                # 在此模式下，只創建純向量檢索器
                 self.retriever = self.vector_store.as_retriever(search_kwargs={"k": 20})
-                self.bm25_retriever = None # 確保 BM25 被禁用
+                self.bm25_retriever = None
                 self.bm25_corpus = []
-
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 純向量檢索器已成功從外部文檔構建。")
                 return self.retriever
             except Exception as e:
@@ -1299,87 +1295,73 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 self.retriever = RunnableLambda(lambda x: [])
                 return self.retriever
 
-        # --- 現有的加載或全量構建邏輯 ---
+        # --- [v207.0 核心重構] 現有的加載或全量構建邏輯 ---
         vector_store_exists = Path(self.vector_store_path).exists() and any(Path(self.vector_store_path).iterdir())
         
         if not force_rebuild and vector_store_exists:
             logger.info(f"[{self.user_id}] (Retriever Builder) 檢測到現有 RAG 索引，正在加載...")
             try:
-                self.vector_store = Chroma(
-                    persist_directory=self.vector_store_path,
-                    embedding_function=self.embeddings
-                )
+                self.vector_store = Chroma(persist_directory=self.vector_store_path, embedding_function=self.embeddings)
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
                 
                 if self._load_bm25_corpus() and self.bm25_corpus:
                     self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
                     self.bm25_retriever.k = 10
                 else:
-                    logger.warning(f"[{self.user_id}] (Retriever Builder) BM25 持久化檔案不存在或加載失敗，將從 ChromaDB 中恢復 BM25 專用語料庫。")
-                    all_docs_from_vector_store = self.vector_store.get(include=["documents", "metadatas"])
-                    if all_docs_from_vector_store and all_docs_from_vector_store['documents']:
-                        self.bm25_corpus = [
-                            Document(page_content=text, metadata=meta or {}) 
-                            for text, meta in zip(all_docs_from_vector_store['documents'], all_docs_from_vector_store['metadatas'])
-                            if meta.get("source") in ["canon", "memory"]
-                        ]
-                        if self.bm25_corpus:
-                            self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
-                            self.bm25_retriever.k = 10
-                            self._save_bm25_corpus()
-                        else:
-                            self.bm25_retriever = None
-                    else:
-                        self.bm25_retriever = None
+                    # 如果 BM25 語料庫丟失，需要從源頭重建，而不是從可能不完整的向量庫恢復
+                    logger.warning(f"[{self.user_id}] (Retriever Builder) BM25 持久化檔案不存在或加載失敗。建議觸發全量重建。")
+                    self.bm25_retriever = None
 
                 if self.bm25_retriever:
-                    self.retriever = EnsembleRetriever(
-                        retrievers=[self.bm25_retriever, vector_retriever],
-                        weights=[0.2, 0.8]
-                    )
+                    self.retriever = EnsembleRetriever(retrievers=[self.bm25_retriever, vector_retriever], weights=[0.2, 0.8])
                     logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器已成功從持久化索引加載。")
                 else:
                      self.retriever = vector_retriever
                      logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 僅向量檢索器已成功從持久化索引加載 (BM25索引為空)。")
 
                 return self.retriever
-
             except Exception as e:
                 logger.error(f"[{self.user_id}] (Retriever Builder) 加載現有索引時發生錯誤: {e}。將觸發全量重建。", exc_info=True)
                 if Path(self.vector_store_path).exists():
-                    logger.warning(f"[{self.user_id}] (Retriever Builder) 正在清理已損壞的索引目錄: {self.vector_store_path}")
                     await asyncio.to_thread(shutil.rmtree, self.vector_store_path, ignore_errors=True)
 
         log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
-        logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行全量創始構建...")
+        logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行【潔淨的全量創始構建】...")
 
         if Path(self.vector_store_path).exists():
             await asyncio.to_thread(shutil.rmtree, self.vector_store_path, ignore_errors=True)
         Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
         
-        all_docs_for_vector_store = []
+        all_docs_for_rag = []
         async with AsyncSessionLocal() as session:
-            stmt_mem = select(MemoryData.content).where(MemoryData.user_id == self.user_id)
+            # 關鍵：從 MemoryData 中讀取潔淨的 sanitized_content
+            stmt_mem = select(MemoryData).where(MemoryData.user_id == self.user_id)
             result_mem = await session.execute(stmt_mem)
-            all_memory_contents = result_mem.scalars().all()
-            for content in all_memory_contents:
-                all_docs_for_vector_store.append(Document(page_content=content, metadata={"source": "memory"}))
+            all_memories = result_mem.scalars().all()
+            for mem in all_memories:
+                if mem.sanitized_content:
+                    all_docs_for_rag.append(Document(
+                        page_content=mem.sanitized_content, 
+                        metadata={"source": "history", "original_id": mem.id}
+                    ))
             
+            # 關鍵：使用新版 _format_lore_into_document 來處理 LORE
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
             for lore in all_lores:
-                all_docs_for_vector_store.append(self._format_lore_into_document(lore))
+                all_docs_for_rag.append(self._format_lore_into_document(lore))
         
-        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載 {len(all_docs_for_vector_store)} 條文檔用於創始構建。")
+        logger.info(f"[{self.user_id}] (Retriever Builder) 已從 SQL 加載並處理 {len(all_docs_for_rag)} 條【潔淨文檔】用於創始構建。")
 
         try:
             persistent_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.vector_store_path)
             self.vector_store = Chroma(client=persistent_client, embedding_function=self.embeddings)
             
-            if all_docs_for_vector_store:
-                await asyncio.to_thread(self.vector_store.add_documents, all_docs_for_vector_store)
+            if all_docs_for_rag:
+                await asyncio.to_thread(self.vector_store.add_documents, all_docs_for_rag)
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
 
-                self.bm25_corpus = [doc for doc in all_docs_for_vector_store if doc.metadata.get("source") in ["canon", "memory"]]
+                # BM25 語料庫現在就是全部的潔淨文檔
+                self.bm25_corpus = all_docs_for_rag
                 
                 if self.bm25_corpus:
                     self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
@@ -1387,7 +1369,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     self._save_bm25_corpus()
 
                     self.retriever = EnsembleRetriever(retrievers=[self.bm25_retriever, vector_retriever], weights=[0.2, 0.8])
-                    logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器創始構建成功。")
+                    logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 混合檢索器【潔淨創始構建】成功。")
                 else:
                     self.retriever = vector_retriever
             else:
@@ -1399,7 +1381,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             self.retriever = RunnableLambda(lambda x: [])
 
         return self.retriever
-# 函式：加載或構建 RAG 檢索器 (v206.0 - 支持外部文檔注入)
+# 函式：加載或構建 RAG 檢索器 (v207.0 - 鳳凰架構)
 
 
 
@@ -2554,16 +2536,19 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
+# 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
 # 更新紀錄:
-# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此函式的格式化邏輯。舊版本在將結構化 LORE 轉換為文本時，錯誤地丟棄了所有屬性的鍵（Key），只保留了值（Value），導致存入 RAG 的數據是碎片化、無上下文的無意義詞彙，這是造成 RAG 檢索污染和失靈的根本原因。新版本確保將每個屬性都格式化為清晰的「Key: Value」字符串，保證了存入 RAG 的數據的完整性和可理解性。
+# v3.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重寫此函式。現在它能處理混合式LORE結構，將 structured_content 和 narrative_content 合併、編碼，並為文檔添加包含 original_id 在內的豐富元數據。
+# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此函式的格式化邏輯，確保將屬性的鍵值對完整地格式化為文本。
 # v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
     def _format_lore_into_document(self, lore: Lore) -> Document:
-        """將一個 LORE 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
-        content = lore.content
+        """(v3.0) 將一個混合式 LORE 物件轉換為一段對 RAG 友好的、經過編碼的文本描述，並附帶豐富的元數據。"""
         text_parts = []
         
-        title = content.get('name') or content.get('title') or lore.key
+        structured = lore.structured_content or {}
+        narrative = lore.narrative_content or ""
+        
+        title = structured.get('name') or structured.get('title') or lore.key
         category_map = {
             "npc_profile": "NPC 檔案", "location_info": "地點資訊",
             "item_info": "物品資訊", "creature_info": "生物資訊",
@@ -2573,33 +2558,38 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         text_parts.append(f"【{category_name}: {title}】")
         
-        # [v2.0 核心修正] 遍歷 content 字典中的所有鍵值對，並將它們完整地格式化為文本
-        for key, value in content.items():
-            # 忽略已經在標題中使用過的鍵和空的/無意義的值
+        # 遍歷結構化數據
+        for key, value in structured.items():
             if value and key not in ['name', 'title']:
-                # 將 key 格式化為更易讀的形式 (e.g., 'location_path' -> 'Location path')
                 key_str = key.replace('_', ' ').capitalize()
-                
-                # 根據 value 的類型進行格式化
                 if isinstance(value, list) and value:
-                    # 將列表轉換為逗號分隔的字符串
                     value_str = ", ".join(map(str, value))
                     text_parts.append(f"- {key_str}: {value_str}")
                 elif isinstance(value, dict) and value:
-                    # 將字典轉換為分號分隔的鍵值對字符串
                     dict_str = "; ".join([f"{k}: {v}" for k, v in value.items()])
                     text_parts.append(f"- {key_str}: {dict_str}")
-                elif isinstance(value, str) and value.strip():
-                    # 直接使用字符串，但要處理多行文本
-                    value_str = value.replace('\n', ' ')
-                    text_parts.append(f"- {key_str}: {value_str}")
-                elif isinstance(value, (int, float, bool)):
+                elif isinstance(value, (str, int, float, bool)) and str(value).strip():
                     text_parts.append(f"- {key_str}: {str(value)}")
 
-        full_text = "\n".join(text_parts)
-        return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
+        # 添加敘事性文本
+        if narrative.strip():
+            text_parts.append(f"\n[背景描述]:\n{narrative.strip()}")
 
+        full_text = "\n".join(text_parts)
+        
+        # 關鍵：在存入 RAG 前，對拼接好的完整文本進行編碼
+        encoded_text = self._encode_text(full_text)
+        
+        # 創建 Document 物件，並附帶豐富的元數據
+        metadata = {
+            "source": "lore", 
+            "category": lore.category, 
+            "key": lore.key,
+            "original_id": lore.id  # 儲存 SQL 資料庫中的主鍵 ID
+        }
+        
+        return Document(page_content=encoded_text, metadata=metadata)
+# 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
 
 # 函式：从使用者输入中提取实体 (v2.3 - 移除普通名词提取)
 # 更新紀錄:
@@ -6431,6 +6421,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
