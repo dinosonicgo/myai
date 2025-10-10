@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T01:01:58.810917 ###
+### AI Lover Log - Last updated at 2025-10-11T01:04:19.642011 ###
 
-2025-10-11 00:24:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-11 00:24:09 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: 1 validation error for GoogleGenerativeAIEmbeddings
-__root__
-  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1232, in get_or_create_ai_instance
     await ai_instance._configure_pre_requisites()
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4647, in _configure_pre_requisites
     self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", safety_settings=SAFETY_SETTINGS)
@@ -300,3 +292,11 @@ violations {
 2025-10-11 00:48:31 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-11 00:48:32 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-11 00:48:32 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-11 01:04:05 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-11 01:04:13 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-11 01:04:13 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-11 01:04:13 - [INFO] - 正在全域同步應用程式指令...
+2025-10-11 01:04:14 - [INFO] - ✅ 指令已全域同步！
+2025-10-11 01:04:14 - [INFO] - Discord Bot setup hook finished!
+2025-10-11 01:04:16 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-11 01:04:17 - [INFO] - 已成功發送啟動成功通知給管理員。
