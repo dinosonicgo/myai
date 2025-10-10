@@ -1501,28 +1501,43 @@ class BotCog(commands.Cog, name="BotCog"):
             else: await interaction.response.send_message(f"錯誤：找不到使用者 {target_user}。", ephemeral=True)
     # 指令：[管理員] 查詢使用者狀態
             
-    # 指令：[管理員] 查詢 Lore 詳細資料
+# 指令：[管理員] 查詢 Lore 詳細資料 (v1.1 - 鳳凰架構適配)
+# 更新紀錄:
+# v1.1 (2025-12-10): [災難性BUG修復] 根據「鳳凰架構」，徹底重構了此函式的數據讀取邏輯，使其能夠正確地從 `structured_content` 和 `narrative_content` 欄位中讀取並組合 LORE 數據。同時，增加了完整的 try...except 錯誤處理塊，從根本上解決了因 AttributeError 導致指令卡在「思考中」無回應的問題。
+# v1.0 (2025-10-04): [全新創建] 創建此指令。
     @app_commands.command(name="admin_check_lore", description="[管理員] 查詢指定使用者的 Lore 詳細資料")
     @app_commands.check(is_admin)
     @app_commands.describe(target_user="要查詢的使用者", category="LORE 的類別", key="LORE 的主鍵")
     @app_commands.autocomplete(target_user=user_autocomplete, key=lore_key_autocomplete)
     @app_commands.choices(category=LORE_CATEGORIES)
     async def admin_check_lore(self, interaction: discord.Interaction, target_user: str, category: str, key: str):
-        await interaction.response.defer(ephemeral=True)
-        lore_entry = await lore_book.get_lore(target_user, category, key)
-        if lore_entry:
-            content_str = json.dumps(lore_entry.content, ensure_ascii=False, indent=2)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        user_id = str(interaction.user.id)
+        
+        try:
+            lore_entry = await lore_book.get_lore(target_user, category, key)
             
-            if len(content_str) > 1000:
+            if not lore_entry:
+                await interaction.followup.send(f"❌ 錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
+                return
+
+            # [v1.1 核心修正] 適配鳳凰架構的混合式 LORE 模型
+            structured_str = json.dumps(lore_entry.structured_content, ensure_ascii=False, indent=2) if lore_entry.structured_content else "{}"
+            narrative_str = lore_entry.narrative_content or "無敘事性描述。"
+            
+            # 組合完整的 LORE 內容以供顯示
+            full_content_str = f"--- 結構化數據 (structured_content) ---\n{structured_str}\n\n--- 敘事性文本 (narrative_content) ---\n{narrative_str}"
+
+            if len(full_content_str) > 1900: # 預留一些空間給標題和程式碼塊標記
                 try:
                     temp_dir = PROJ_DIR / "temp"
                     temp_dir.mkdir(exist_ok=True)
                     
-                    file_path = temp_dir / f"lore_{interaction.user.id}_{int(time.time())}.json"
+                    file_path = temp_dir / f"lore_{interaction.user.id}_{int(time.time())}.txt"
                     with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(content_str)
+                        f.write(full_content_str)
                     
-                    file_name = f"{key.replace(' > ', '_').replace('/', '_')}.json"
+                    file_name = f"{key.replace(' > ', '_').replace('/', '_')}.txt"
 
                     await interaction.followup.send(
                         f"📜 **Lore 查詢結果 for `{key}`**\n（由於內容過長，已作為檔案附件發送）", 
@@ -1531,16 +1546,21 @@ class BotCog(commands.Cog, name="BotCog"):
                     )
                     os.remove(file_path)
                 except Exception as e:
-                    logger.error(f"[{interaction.user.id}] 創建或發送LORE檔案時出錯: {e}", exc_info=True)
-                    await interaction.followup.send("錯誤：創建LORE檔案時發生問題。", ephemeral=True)
+                    logger.error(f"[{user_id}] 創建或發送LORE檔案時出錯: {e}", exc_info=True)
+                    await interaction.followup.send("❌ 錯誤：創建 LORE 檔案時發生問題。", ephemeral=True)
             else:
-                embed = Embed(title=f"📜 Lore 查詢: {key.split(' > ')[-1]}", color=discord.Color.green())
-                embed.add_field(name="詳細資料", value=f"```json\n{content_str}\n```", inline=False)
+                embed = Embed(
+                    title=f"📜 Lore 查詢: {key.split(' > ')[-1]}", 
+                    description=f"```json\n{full_content_str}\n```",
+                    color=discord.Color.green()
+                )
                 embed.set_footer(text=f"User: {target_user} | Category: {category}")
                 await interaction.followup.send(embed=embed, ephemeral=True)
-        else: 
-            await interaction.followup.send(f"錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
-    # 指令：[管理員] 查詢 Lore 詳細資料
+        
+        except Exception as e:
+            logger.error(f"[{user_id}] 執行 admin_check_lore 時發生未知錯誤: {e}", exc_info=True)
+            await interaction.followup.send(f"❌ 執行指令時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
+# 指令：[管理員] 查詢 Lore 詳細資料 結束
         
     # 指令：[管理員] 推送日誌 (v1.1 - 呼叫修正)
     # 更新紀錄:
@@ -1800,3 +1820,4 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
