@@ -222,8 +222,7 @@ class AILover:
 
         self.bm25_index_path = PROJ_DIR / "data" / "vector_stores" / self.user_id / "rag_index.pkl"
         self.bm25_corpus: List[Document] = []
-# 初始化AI核心 函式結束
-
+# 函式：初始化AI核心 結束
     
 
 
@@ -4625,14 +4624,14 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：配置前置資源 (v203.3 - 移除RAG創建)
+# 函式：配置前置資源 (v203.4 - API金鑰注入)
 # 更新紀錄:
-# v203.3 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_load_or_build_rag_retriever` 的調用。此函式的職責被重新定義為：僅配置那些不依賴於完整數據（如 LORE）的、輕量級的前置資源，如模板加載、工具列表和 Embedding 引擎。RAG 的創建將被延遲到更高層的協調器中執行。
+# v203.4 (2025-12-10): [災難性BUG修復] 在創建 `GoogleGenerativeAIEmbeddings` 實例時，增加了 `google_api_key` 參數的傳遞。此修改從我們自己的 API 金鑰輪換池中獲取一個可用的金鑰並手動注入，從根本上解決了因缺少 API 金鑰而導致的 `ValidationError` 啟動失敗問題。
+# v203.3 (2025-09-30): [重大架構重構] 根據時序重構策略，徹底移除了此函式中對 `_load_or_build_rag_retriever` 的調用。
 # v203.2 (2025-11-26): [灾难性BUG修复] 修正了函式定義的縮排錯誤。
-# v203.1 (2025-11-26): [根本性重構] 重寫了此函式的初始化順序。
     async def _configure_pre_requisites(self):
         """
-        (v203.3 時序重構) 僅配置輕量級的前置資源，不創建 RAG。
+        (v203.4) 僅配置輕量級的前置資源，不創建 RAG。
         """
         if not self.profile:
             raise ValueError("Cannot configure pre-requisites without a loaded profile.")
@@ -4643,10 +4642,26 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # 根據鳳凰架構，Embedding 引擎現在使用 Google 的
-        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", safety_settings=SAFETY_SETTINGS)
+        # [v203.4 核心修正] 為 Embedding 引擎注入 API 金鑰
+        if not self.api_keys:
+            raise ValueError("在配置 Embedding 引擎時，找不到任何可用的 Google API 金鑰。")
         
-        # [v203.3 核心修正] 移除在此處創建 RAG 的邏輯
+        # 從我們的金鑰池中獲取第一個可用的金鑰來初始化 Embedding
+        # Embedding 請求量不大，通常不需要輪換
+        # 我們仍然使用 _get_next_available_key 以便跳過可能被冷卻的金鑰
+        embedding_model_name = "models/embedding-001"
+        key_info = self._get_next_available_key(embedding_model_name)
+        if not key_info:
+             raise ConnectionError(f"為 {embedding_model_name} 尋找可用 API 金鑰失敗，所有金鑰可能都處於冷卻中。")
+        
+        api_key_for_embedding, key_index = key_info
+        logger.info(f"[{self.user_id}] 正在使用 API Key #{key_index} 初始化 Embedding 引擎...")
+
+        self.embeddings = GoogleGenerativeAIEmbeddings(
+            model=embedding_model_name,
+            google_api_key=api_key_for_embedding, # 將金鑰作為參數傳入
+            safety_settings=SAFETY_SETTINGS
+        )
         
         logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
 # 函式：配置前置資源 結束
@@ -6322,6 +6337,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
