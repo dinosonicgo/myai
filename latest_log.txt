@@ -1,64 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T00:22:00.635294 ###
+### AI Lover Log - Last updated at 2025-10-11T00:27:14.295390 ###
 
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [後台創世] 步驟 6/6: 正在基於完整的世界狀態生成開場白...
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [/start] 正在提取純淨的敘事上下文以生成開場場景...
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80946 秒)。
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81862 秒)。
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80946 秒)。
-2025-10-09 00:52:23 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81862 秒)。
-2025-10-09 00:52:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #1.
-2025-10-09 00:52:51 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在分析初始夥伴關係以決定是否激活【新手保護期】...
-2025-10-09 00:52:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] ⚠️ 關係分析結果：夥伴關係尚未建立。【新手保護期】已激活。
-2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] 正在從開場白中反向提取權威地點...
-2025-10-09 00:52:52 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-09 00:52:52 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 法師的靜謐書房。正在更新 GameState...
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] [/start] 最終的 GameState 已成功持久化。
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 開場白生成成功。
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
-2025-10-09 00:52:53 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-09 00:53:31 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
-2025-10-09 00:53:31 - [INFO] - [512280345618546699] [Direct RAG v9.0] 啟動雙通道指令與雙層焦點 RAG 直通生成流程...
-2025-10-09 00:53:31 - [INFO] - [512280345618546699] [前置 LORE-1/4] 正在最大化識別所有潛在實體...
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #4.
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [前置 LORE] 在使用者輸入中未識別出任何新的潛在實體。
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙層焦點] 正在確定對話焦點...
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙層焦點] 最終對話焦點確定為: 碧
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [雙通道指令] 正在構建指令...
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [RAG 原文直通] 正在使用查询: '脫下所有衣服，為我口交'
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [RAG 原文直通] 未檢索到任何文檔。
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [History Summarizer] 執行純程式化中性摘要...
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [History Summarizer] ✅ 程式化中性摘要成功生成。
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #0 (針對模型 gemini-2.5-pro，剩餘 80876 秒)。
-2025-10-09 00:53:32 - [INFO] - [512280345618546699] [API Key Cooling] 跳過冷卻中的 API Key #2 (針對模型 gemini-2.5-pro，剩餘 81793 秒)。
-2025-10-09 00:53:59 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #4.
-2025-10-09 00:55:24 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
-2025-10-09 00:55:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-09 00:55:26 - [INFO] - [512280345618546699] [事後焦點更新] 已將 last_explicit_speaker 更新為 '聽到你的命令，碧的眼中閃過一絲順從而又嫵媚的光芒，唇角勾起一抹誘人的微笑。她沒有任何猶豫，只是用那雙彷彿會說話的眼睛深深地望著你，彷彿在說，您的任何願望，都是我的榮幸。
-
-她的動作輕柔而充滿了刻意的挑逗。纖細的手指先是解開了法師袍外層的精緻繩結，古舊而柔軟的布料順著她光滑的肩頭滑落，發出細微的沙沙聲，堆疊在書房厚實的地毯上。接著是內裡的襯裙，她轉過身，讓你清楚地看到她是如何解開背後的繫帶，每一寸肌膚的暴露，都在燭光的映照下顯得格外誘人。
-
-很快，她便一絲不掛地站在你的面前，溫暖的燈火勾勒出她身體每一處完美的曲線。她沒有絲毫羞赧，反而坦然地展示著自己的一切，目光始終沒有離開你的雙眼。
-
-隨後，她緩緩地、優雅地屈膝跪下，柔軟的膝蓋陷入地毯之中。她抬起頭，仰望著你，目光向下移動，最終鎖定在你褲襠間那已經隆起的輪廓上。她伸出溫熱的小手，輕輕地覆上那裡，隔著布料感受著你肉棒的堅硬與灼熱。'。
-2025-10-09 00:55:27 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
-2025-10-09 00:55:29 - [INFO] - [512280345618546699] [事後分析 v8.0] 正在啟動背景分析與關係演化任務...
-2025-10-09 00:55:30 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 正在保存預生成的安全摘要...
-2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功保存到 SQL 資料庫。
-2025-10-09 00:55:30 - [INFO] - [512280345618546699] [長期記憶寫入] 安全摘要保存完畢。
-2025-10-09 00:55:32 - [INFO] - [512280345618546699] 背景任務：檢測到 1 條 LORE 更新，準備執行...
-2025-10-09 00:55:32 - [WARNING] - [512280345618546699] [主角守衛] 檢測到一個試圖修改核心主角 (['碧']) 的 LORE 工具調用 (update_npc_profile)，已自動攔截。
-2025-10-09 00:55:32 - [INFO] - [512280345618546699] 背景任務：LORE更新執行完畢。摘要: LORE 扩展計畫在淨化後為空。
-2025-10-09 00:55:32 - [INFO] - [512280345618546699] [關係演化] 未檢測到關係變化，跳過分析。
-2025-10-09 00:55:32 - [INFO] - [512280345618546699] [事後分析 v8.0] 背景分析與關係演化任務完成。
-2025-10-09 00:59:38 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-09 00:59:42 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-09 00:59:42 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-09 00:59:42 - [INFO] - 正在全域同步應用程式指令...
 2025-10-09 00:59:42 - [INFO] - ✅ 指令已全域同步！
 2025-10-09 00:59:42 - [INFO] - Discord Bot setup hook finished!
 2025-10-09 00:59:45 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
@@ -300,3 +241,62 @@ WHERE lore_book.user_id = ? AND lore_book.category = ? AND lore_book."key" = ?]
 2025-10-11 00:21:49 - [INFO] - Discord Bot setup hook finished!
 2025-10-11 00:21:52 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-11 00:21:53 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-11 00:24:02 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-11 00:24:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-11 00:24:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-11 00:24:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-11 00:24:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-11 00:24:09 - [ERROR] - [512280345618546699] 為臨時實例配置前置資源時失敗: 1 validation error for GoogleGenerativeAIEmbeddings
+__root__
+  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1232, in get_or_create_ai_instance
+    await ai_instance._configure_pre_requisites()
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 4647, in _configure_pre_requisites
+    self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", safety_settings=SAFETY_SETTINGS)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\v1\main.py", line 341, in __init__
+    raise validation_error
+pydantic.v1.error_wrappers.ValidationError: 1 validation error for GoogleGenerativeAIEmbeddings
+__root__
+  Did not find google_api_key, please add an environment variable `GOOGLE_API_KEY` which contains it, or pass `google_api_key` as a named parameter. (type=value_error)
+2025-10-11 00:24:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-11 00:24:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-11 00:24:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:24:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-11 00:24:18 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-11 00:24:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-11 00:24:19 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:24:20 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-11 00:24:32 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-11 00:24:33 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-11 00:24:33 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:24:35 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-11 00:24:42 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-11 00:24:45 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
+2025-10-11 00:24:45 - [INFO] - [512280345618546699] [後台創世] 正在將世界聖經原文分割成文檔...
+2025-10-11 00:24:45 - [INFO] - [512280345618546699] [後台創世] 正在觸發 RAG 索引創始構建...
+2025-10-11 00:24:45 - [ERROR] - [512280345618546699] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。
+2025-10-11 00:24:45 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...
+2025-10-11 00:24:45 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...
+2025-10-11 00:24:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile', 'ai_profile']
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] [後台創世-原生] 角色檔案補完成功。
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] [後台創世-原生] 步驟 2/2: 正在生成開場白...
+2025-10-11 00:24:49 - [INFO] - [512280345618546699] [/start] 正在使用 RAG 智能選擇並創作開場場景...
+2025-10-11 00:24:49 - [WARNING] - [512280345618546699] [鳳凰RAG] 檢索器未初始化，無法檢索記憶。
+2025-10-11 00:25:15 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-11 00:25:15 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 圖書館。正在更新 GameState...
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] [後台創世-原生] 開場白生成成功。
+2025-10-11 00:25:16 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
+2025-10-11 00:25:17 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
+2025-10-11 00:25:17 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
