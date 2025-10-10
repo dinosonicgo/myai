@@ -1,7 +1,7 @@
 
 
 #【【【【目前 LangChain 的LLM調用有BUG無法應用安全閥值，LLM相關嚴禁使用LangChain】】】】
-
+#【【【【RAG系統不使用Google Embedding API  完全只使用本地的RAG】】】】
 import os
 import re
 import json
@@ -6337,6 +6337,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
