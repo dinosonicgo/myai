@@ -16,7 +16,11 @@ from .schemas import (
 
 # --- 頂層數據模型 ---
 
-# models.py 的 GameState 模型
+# models.py 的 GameState 模型 (v17.1 - 持久化意圖)
+# 更新紀錄:
+# v17.1 (2025-09-22): [災難性BUG修復] 在 GameState 模型中增加了 `last_intent_type` 欄位。此修改旨在將上一輪對話的核心意圖（SFW/NSFW/描述性）持久化到資料庫，從根本上解決“继续”等延续性指令因缺乏上下文而被错误分类的问题。
+# v17.0 (2025-09-06): [災難性BUG修復] 在 GameState 模型中增加了 viewing_mode 和 remote_target_path 兩個關鍵欄位。
+# v16.0 (2025-08-12): [重大架構重構] 移除了所有基礎 LORE 模型 (CharacterProfile, LocationInfo 等) 的本地定義。
 class GameState(BaseModel):
     money: int = 100
     location_path: List[str] = Field(default_factory=lambda: ["時空奇點"], description="表示使用者角色【當前的真實物理位置】的層級路徑。")
@@ -32,7 +36,7 @@ class GameState(BaseModel):
     @classmethod
     def _validate_string_to_list_fields(cls, value: Any) -> Any:
         return _validate_string_to_list(value)
-# models.py 的 GameState 模型
+# models.py 的 GameState 模型 結束
 
 class UserProfile(BaseModel):
     user_id: str
@@ -59,4 +63,5 @@ class ChatMessage(BaseModel):
 class PersonalMemoryEntry(BaseModel):
     should_save: bool = Field(description="判斷剛剛的對話是否包含了對 AI 自身有意義的、值得記住的成長、感悟或決定。如果是，則為 true，否則為 false。")
     thought: str = Field(description="如果 should_save 為 true，則在此以 AI 的第一人稱，簡短地記錄下這次的感悟或決定。")
+
 
