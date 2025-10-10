@@ -27,14 +27,14 @@ def remove_title_from_schema(schema: Dict[str, Any], model: Type['BaseModel']) -
     for prop in schema.get('properties', {}).values():
         if 'title' in prop:
             del prop['title']
-# 函式：從 schema 中移除 title
+# 函式：從 schema 中移除 title 結束
 
 # 類別：基礎工具參數
 class BaseToolArgs(BaseModel):
     model_config = ConfigDict(
         json_schema_extra=remove_title_from_schema
     )
-# 類別：基礎工具參數
+# 類別：基礎工具參數 結束
 
 # --- NPC 相關工具 ---
 
@@ -61,7 +61,7 @@ class CreateNewNpcProfileArgs(BaseToolArgs):
             if v.strip(): return [v.strip()]
             return []
         return v
-# 類別：創建新 NPC 檔案的參數
+# 類別：創建新 NPC 檔案的參數 結束
 
 # 工具：創建新 NPC 檔案
 @tool(args_schema=CreateNewNpcProfileArgs)
@@ -70,23 +70,30 @@ async def create_new_npc_profile(lore_key: str, standardized_name: str, original
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
     final_location_path = location_path if location_path is not None else []
-    profile_data = {
-        "name": standardized_name, "description": description, "location_path": final_location_path, 
+    
+    structured_data = {
+        "name": standardized_name, "location_path": final_location_path, 
         "status": status, "equipment": equipment or [], 
         "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []
     }
-    lore_entry = await add_or_update_lore(user_id, 'npc_profile', lore_key, profile_data)
+    narrative_data = description
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'npc_profile', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     location_str = " > ".join(final_location_path) if final_location_path else "未知地點"
     return f"已成功為新 NPC '{standardized_name}' 創建了檔案 (主鍵: '{lore_key}')，地點: '{location_str}'。"
-# 工具：創建新 NPC 檔案
+# 工具：創建新 NPC 檔案 結束
 
 # 類別：更新 NPC 檔案的參數
 class UpdateNpcProfileArgs(BaseToolArgs):
     lore_key: str = Field(description="要更新的 NPC 的【精確】主鍵（lore_key）。")
     updates: Dict[str, Any] = Field(description="一個包含要更新欄位和新值的字典。")
-# 類別：更新 NPC 檔案的參數
+# 類別：更新 NPC 檔案的參數 結束
 
 # 工具：更新 NPC 檔案
 @tool(args_schema=UpdateNpcProfileArgs)
@@ -94,12 +101,19 @@ async def update_npc_profile(lore_key: str, updates: Dict[str, Any]) -> str:
     """當你需要更新一個【已存在】NPC 的狀態或資訊時使用此工具。你必須提供其精確的 `lore_key`。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    updated_lore = await add_or_update_lore(user_id, 'npc_profile', lore_key, updates, merge=True)
+    
+    # 根據鳳凰架構，更新操作主要針對 structured_content
+    updated_lore = await add_or_update_lore(
+        user_id, 'npc_profile', lore_key, 
+        structured_content=updates, 
+        merge=True
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(updated_lore)
-    npc_name = updated_lore.content.get('name', lore_key.split(' > ')[-1])
+    
+    npc_name = (updated_lore.structured_content or {}).get('name', lore_key.split(' > ')[-1])
     return f"已成功更新 NPC '{npc_name}' 的檔案。"
-# 工具：更新 NPC 檔案
+# 工具：更新 NPC 檔案 結束
 
 # --- 地點相關工具 ---
 
@@ -115,7 +129,7 @@ class AddOrUpdateLocationInfoArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 類別：新增或更新地點資訊的參數
+# 類別：新增或更新地點資訊的參數 結束
 
 # 工具：新增或更新地點資訊
 @tool(args_schema=AddOrUpdateLocationInfoArgs)
@@ -123,12 +137,18 @@ async def add_or_update_location_info(lore_key: str, standardized_name: str, ori
     """用於創建一個新的地點條目，或用全新的描述覆蓋一個已有的地點條目。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    location_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    lore_entry = await add_or_update_lore(user_id, 'location_info', lore_key, location_data)
+    structured_data = {"name": standardized_name, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    narrative_data = description
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'location_info', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為地點 '{standardized_name}' 記錄了資訊。"
-# 工具：新增或更新地點資訊
+# 工具：新增或更新地點資訊 結束
 
 # --- 物品相關工具 ---
 
@@ -146,7 +166,7 @@ class AddOrUpdateItemInfoArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 類別：新增或更新物品資訊的參數
+# 類別：新增或更新物品資訊的參數 結束
 
 # 工具：新增或更新物品資訊
 @tool(args_schema=AddOrUpdateItemInfoArgs)
@@ -154,12 +174,18 @@ async def add_or_update_item_info(lore_key: str, standardized_name: str, origina
     """用於創建一個新的物品條目，或用全新的描述覆蓋一個已有的物品條目。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    item_data = {"name": standardized_name, "description": description, "effect": effect, "visual_description": visual_description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    lore_entry = await add_or_update_lore(user_id, 'item_info', lore_key, item_data)
+    structured_data = {"name": standardized_name, "effect": effect, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    narrative_data = f"{description}\n外觀: {visual_description or '未描述'}"
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'item_info', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物品 '{standardized_name}' 記錄了詳細資訊。"
-# 工具：新增或更新物品資訊
+# 工具：新增或更新物品資訊 結束
 
 # --- 生物相關工具 ---
 
@@ -175,7 +201,7 @@ class DefineCreatureTypeArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 類別：定義生物種類的參數
+# 類別：定義生物種類的參數 結束
 
 # 工具：定義生物種類
 @tool(args_schema=DefineCreatureTypeArgs)
@@ -183,12 +209,18 @@ async def define_creature_type(lore_key: str, standardized_name: str, original_n
     """用於在世界百科全書中創建一個全新的生物/物種詞條。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    creature_data = {"name": standardized_name, "description": description, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    lore_entry = await add_or_update_lore(user_id, 'creature_info', lore_key, creature_data)
+    structured_data = {"name": standardized_name, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    narrative_data = description
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'creature_info', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為物種 '{standardized_name}' 創建了百科詞條。"
-# 工具：定義生物種類
+# 工具：定義生物種類 結束
 
 # --- 任務與世界傳說相關工具 ---
 
@@ -206,7 +238,7 @@ class AddOrUpdateQuestLoreArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 類別：新增或更新任務 LORE 的參數
+# 類別：新增或更新任務 LORE 的參數 結束
 
 # 工具：新增或更新任務 LORE
 @tool(args_schema=AddOrUpdateQuestLoreArgs)
@@ -214,12 +246,18 @@ async def add_or_update_quest_lore(lore_key: str, standardized_name: str, origin
     """用於創建一個新的任務，或用全新的描述覆蓋一個已有的任務。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    quest_data = {"title": standardized_name, "description": description, "location_path": location_path, "status": status, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    lore_entry = await add_or_update_lore(user_id, 'quest', lore_key, quest_data)
+    structured_data = {"title": standardized_name, "location_path": location_path, "status": status, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    narrative_data = description
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'quest', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功為任務 '{standardized_name}' 創建或更新了記錄。"
-# 工具：新增或更新任務 LORE
+# 工具：新增或更新任務 LORE 結束
 
 # 類別：新增或更新世界傳說的參數
 class AddOrUpdateWorldLoreArgs(BaseToolArgs):
@@ -233,7 +271,7 @@ class AddOrUpdateWorldLoreArgs(BaseToolArgs):
     def default_names(cls, v, info):
         if not v: return info.data.get('lore_key', '').split(' > ')[-1]
         return v
-# 類別：新增或更新世界傳說的參數
+# 類別：新增或更新世界傳說的參數 結束
 
 # 工具：新增或更新世界傳說
 @tool(args_schema=AddOrUpdateWorldLoreArgs)
@@ -241,12 +279,18 @@ async def add_or_update_world_lore(lore_key: str, standardized_name: str, origin
     """用於在世界歷史或傳說中記錄一個新的故事、事件或背景設定。"""
     user_id = tool_context.get_user_id()
     ai_core = tool_context.get_ai_core()
-    lore_data = {"title": standardized_name, "content": content, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
-    lore_entry = await add_or_update_lore(user_id, 'world_lore', lore_key, lore_data)
+    structured_data = {"title": standardized_name, "aliases": [original_name] if original_name and original_name.lower() != standardized_name.lower() else []}
+    narrative_data = content
+    
+    lore_entry = await add_or_update_lore(
+        user_id, 'world_lore', lore_key, 
+        structured_content=structured_data, 
+        narrative_content=narrative_data
+    )
     if ai_core:
         await ai_core._update_rag_for_single_lore(lore_entry)
     return f"已成功將 '{standardized_name}' 記錄為傳說。"
-# 工具：新增或更新世界傳說
+# 工具：新增或更新世界傳說 結束
 
 # --- [v3.5新增] LORE 規則繼承工具 ---
 
@@ -258,7 +302,7 @@ class UpdateLoreTemplateKeysArgs(BaseToolArgs):
     lore_category: str = Field(description="要修改的LORE條目所屬的類別，例如 'world_lore'。")
     lore_key: str = Field(description="要修改的LORE條目的精確主鍵（lore_key）。")
     template_keys: List[str] = Field(description="一個身份關鍵詞列表。任何角色的aliases匹配此列表，都將繼承該LORE的規則。")
-# 類別：更新 LORE 繼承規則的參數 (v1.0 - 全新創建)
+# 類別：更新 LORE 繼承規則的參數 (v1.0 - 全新創建) 結束
 
 # 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
 # 更新紀錄:
@@ -302,7 +346,7 @@ async def update_lore_template_keys(lore_category: str, lore_key: str, template_
             await ai_core._update_rag_for_single_lore(updated_lore)
 
     return f"已成功為 LORE '{lore_key}' 設置繼承觸發器為: {template_keys}。"
-# 工具：更新 LORE 繼承規則 (v1.0 - 全新創建)
+# 工具：更新 LORE 繼承規則 (v1.0 - 全新創建) 結束
 
 # --- 工具列表導出 ---
 
@@ -321,5 +365,4 @@ def get_lore_tools() -> List[Tool]:
         add_or_update_world_lore,
         update_lore_template_keys,
     ]
-# 函式：獲取所有 LORE 工具 (v3.5 - 新增規則工具)
-
+# 函式：獲取所有 LORE 工具 (v3.5 - 新增規則工具) 結束
