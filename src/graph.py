@@ -142,7 +142,7 @@ async def perceive_scene_node(state: ConversationGraphState) -> Dict:
         action_summary=user_input
     )
     return {"scene_analysis": scene_analysis}
-# 函式：[新] 場景感知與上下文恢復節點 (v3.1 - 遠程優先狀態保持)
+# 函式：[新] 場景感知與上下文恢復節點 (v3.1 - 遠程優先狀態保持) 結束
 
 
 
@@ -207,8 +207,7 @@ async def retrieve_and_query_node(state: ConversationGraphState) -> Dict:
         "raw_lore_objects": [], 
         "sanitized_query_for_tools": sanitized_query
     }
-# 函式：[新] 記憶與 LORE 查詢節點 (v5.2 - 職責降級)
-
+# 函式：[新] 記憶與 LORE 查詢節點 (v5.2 - 職責降級) 結束
 
 
 
@@ -660,3 +659,4 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖
+
