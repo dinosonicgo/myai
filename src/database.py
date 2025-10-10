@@ -36,19 +36,27 @@ class UserData(Base):
     response_style_prompt = Column(String, nullable=True)
 # 用戶核心數據模型 類別結束
 
-# 類別：長期記憶數據模型
+# 類別：長期記憶數據模型 (v6.0 - 雙重持久化)
+# 更新紀錄:
+# v6.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，新增 sanitized_content 欄位用於存儲無害化編碼文本，並將 content 欄位類型改為 TEXT。
+# v5.0 (2025-09-23): [根本性重構] 從 Pydantic 模型遷移到 SQLAlchemy 模型。
+# v4.0 (2025-08-15): [功能擴展] 新增 sanitized_content 欄位。
 class MemoryData(Base):
     __tablename__ = "memories"
     
     id = Column(Integer, primary_key=True)
     user_id = Column(String, index=True)
-    content = Column(String)
+    content = Column(TEXT)
     timestamp = Column(Float)
     importance = Column(Integer)
-    sanitized_content = Column(String, nullable=True)
+    sanitized_content = Column(TEXT, nullable=True)
 # 長期記憶數據模型 類別結束
 
-# 類別：LORE (世界設定) 數據模型
+# 類別：LORE (世界設定) 數據模型 (v6.0 - 混合式LORE)
+# 更新紀錄:
+# v6.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，將單一的 content 欄位拆分為 structured_content (JSON) 和 narrative_content (TEXT)，以實現程式化操作與生成成功率的解耦。
+# v5.0 (2025-11-22): [架構擴展] 新增了 template_keys 欄位。
+# v4.0 (2025-09-23): [根本性重構] 從 Pydantic 模型遷移到 SQLAlchemy 模型。
 class Lore(Base):
     __tablename__ = "lore_book"
 
@@ -56,7 +64,8 @@ class Lore(Base):
     user_id = Column(String, index=True, nullable=False)
     category = Column(String, index=True, nullable=False)
     key = Column(String, index=True, nullable=False)
-    content = Column(JSON, nullable=False)
+    structured_content = Column(JSON, nullable=True)
+    narrative_content = Column(TEXT, nullable=True)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
     template_keys = Column(JSON, nullable=True)
@@ -87,3 +96,4 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
