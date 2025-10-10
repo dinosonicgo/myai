@@ -28,7 +28,7 @@ class AILoverBot(commands.Bot):
         self.git_lock = git_lock
         self.is_ready_once = False
         self.is_ollama_available = is_ollama_available
-    # 函式：初始化 AILoverBot
+    # 函式：初始化 AILoverBot 結束
 
     # 函式：Discord 機器人設置鉤子
     async def setup_hook(self):
@@ -62,7 +62,7 @@ class AILoverBot(commands.Bot):
             logger.error(f"🔥 應用程式指令同步失敗: {e}", exc_info=True)
             
         logger.info("Discord Bot setup hook finished!")
-    # 函式：Discord 機器人設置鉤子
+    # 函式：Discord 機器人設置鉤子 結束
 
     # 函式：機器人準備就緒時的事件處理器
     async def on_ready(self):
@@ -76,4 +76,4 @@ class AILoverBot(commands.Bot):
                     logger.info(f"已成功發送啟動成功通知給管理員。")
                 except Exception as e:
                     logger.error(f"發送啟動成功通知給管理員時發生未知錯誤: {e}", exc_info=True)
-    # 函式：機器人準備就緒時的事件處理器
+    # 函式：機器人準備就緒時的事件處理器 結束
