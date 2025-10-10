@@ -361,6 +361,10 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
     ai_core = state['ai_core']
     logger.info(f"[{user_id}] (Graph|5) Node: assemble_world_snapshot -> 正在組裝【純淨版】上下文快照...")
     
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|5) 致命錯誤: ai_core.profile 未加載！")
+        return {"world_snapshot": "錯誤：AI Profile 丟失。"}
+        
     gs = ai_core.profile.game_state
     
     # [v3.2 核心修正] context_vars 現在只包含最核心、最不可能造成污染的信息
@@ -391,12 +395,11 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
         logger.error(f"[{user_id}] (Graph|5) 致命錯誤: world_snapshot_template 未加載！")
         return {"world_snapshot": "錯誤：世界快照模板丟失。"}
 
-    final_world_snapshot = ai_core.world_snapshot_template.format(**context_vars)
+    final_world_snapshot = ai_core._safe_format_prompt(ai_core.world_snapshot_template, context_vars)
     
     logger.info(f"[{user_id}] (Graph|5) 【純淨版】上下文快照組裝完畢。")
     return {"world_snapshot": final_world_snapshot}
-# 函式：[新] 世界快照組裝節點 (v3.2 - 職責降級)
-
+# 函式：[新] 世界快照組裝節點 (v3.2 - 職責降級) 結束
 
 
 
@@ -414,6 +417,10 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
     rag_context = state.get('rag_context', '（無相關長期記憶。）')
     user_input = state['messages'][-1].content
     logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动【RAG直通模式】最终生成流程...")
+
+    if not ai_core.profile:
+        logger.error(f"[{user_id}] (Graph|6) 致命錯誤: ai_core.profile 未加載！")
+        return {"llm_response": "（錯誤：AI Profile 丟失，無法生成回應。）"}
 
     historical_context = await _get_summarized_chat_history(ai_core, user_id)
     
@@ -471,14 +478,14 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
-# 函式：[新] 最終生成節點 (v8.1 - 模板簡化)
+# 函式：[新] 最終生成節點 (v8.1 - 模板簡化) 結束
 
 
 
 
   
 
-# 函式：[新] 驗證、學習與持久化節點
+# 函式：[新] 驗證、學習與持久化節點 (v3.0 - 生成與學習分離)
 # 更新紀錄:
 # v3.0 (2025-10-03): [全新創建] 根據「生成與學習分離」原則創建此節點。它作為圖的終點，負責所有事後處理工作：清理文本、異步觸發背景 LORE 提取、保存對話歷史，並為下一輪的連續性指令創建關鍵的上下文快照。
 # v2.8 (2025-10-15): [健壯性] 在此節點的末尾，創建並儲存上下文快照。
@@ -492,22 +499,19 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
 
     clean_response = llm_response.strip()
     
-    # 創建上下文快照以供後台任務使用
-    context_snapshot = {
+    # 創建上下文快照以供背景任務使用
+    snapshot_for_analysis = {
         "user_input": user_input,
         "final_response": clean_response,
-        "scene_rules_context": "（暫無）", # 這裡可以從 state 中獲取，如果需要的話
-        "relevant_characters": [lore.content for lore in state.get('raw_lore_objects', []) if lore.category == 'npc_profile']
     }
     
-    # 異步觸發背景學習
-    asyncio.create_task(ai_core._background_lore_extraction(context_snapshot))
+    # 異步觸發背景學習（調用我們在第五階段重構的、絕對安全的LORE提取函式）
+    asyncio.create_task(ai_core._background_lore_extraction(snapshot_for_analysis))
 
-    if clean_response and "抱歉" not in clean_response:
-        scene_key = ai_core._get_scene_key()
-        await ai_core._add_message_to_scene_history(scene_key, HumanMessage(content=user_input))
-        await ai_core._add_message_to_scene_history(scene_key, AIMessage(content=clean_response))
-        logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並持久化。")
+    # 使用我們新的持久化函式保存對話歷史
+    # 注意：_save_interaction_to_dbs 內部會處理編碼和雙重持久化
+    await ai_core._save_interaction_to_dbs(f"使用者: {user_input}\n\nAI:\n{clean_response}")
+    logger.info(f"[{user_id}] (Graph|7) 對話歷史已更新並進行雙重持久化。")
 
     # 為下一輪的 "continue" 指令創建快照
     snapshot_for_next_turn = {
@@ -520,7 +524,11 @@ async def validate_and_persist_node(state: ConversationGraphState) -> Dict:
     logger.info(f"[{user_id}] (Graph|7) 狀態持久化完成。")
     
     return {"final_output": clean_response}
-# 函式：[新] 驗證、學習與持久化節點
+# 函式：[新] 驗證、學習與持久化節點 結束
+
+
+
+
 
 # 函式：獲取摘要後的對話歷史
 # 更新紀錄:
@@ -674,5 +682,6 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖
+
 
 
