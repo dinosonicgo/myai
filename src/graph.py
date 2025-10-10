@@ -563,7 +563,7 @@ async def _get_summarized_chat_history(ai_core: AILover, user_id: str, num_messa
         return "（歷史對話摘要因错误而生成失败，部分上下文可能缺失。）"
 # 函式：獲取摘要後的對話歷史
 
-# --- [v33.0 新架構] 圖的構建 ---
+# 函式：[新] 圖的構建 (v33.0 - 線性工作流)
 # 更新紀錄:
 # v33.0 (2025-10-03): [重大架構重構] 創建此函式，將所有新創建的節點連接成一個線性的、取代舊 `preprocess_and_generate` 流程的主對話圖。
 def create_main_response_graph() -> StateGraph:
@@ -589,7 +589,7 @@ def create_main_response_graph() -> StateGraph:
     graph.add_edge("validate_and_persist", END)
     
     return graph.compile()
-# --- [v33.0 新架構] 圖的構建 ---
+# 函式：[新] 圖的構建 (v33.0 - 線性工作流) 結束
 
 # --- Setup Graph (保持不變) ---
 # 函式：處理世界聖經節點
@@ -682,6 +682,7 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖
+
 
 
 
