@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T20:27:08.532847 ###
+### AI Lover Log - Last updated at 2025-10-11T20:30:46.622273 ###
 
-2025-10-11 14:50:24 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-11 14:50:36 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-11 14:50:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-11 14:50:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 14:50:37 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-11 14:50:51 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-11 14:50:51 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-11 14:50:51 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-10-11 14:50:53 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
 2025-10-11 14:51:01 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
 2025-10-11 14:51:03 - [INFO] - [512280345618546699] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。
@@ -300,3 +292,11 @@ NameError: name 'Document' is not defined
 2025-10-11 20:26:39 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-11 20:26:39 - [INFO] - [512280345618546699] [後台創世] 開場白發送完畢。
 2025-10-11 20:26:39 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-11 20:30:32 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-11 20:30:35 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-11 20:30:35 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-11 20:30:35 - [INFO] - 正在全域同步應用程式指令...
+2025-10-11 20:30:36 - [INFO] - ✅ 指令已全域同步！
+2025-10-11 20:30:36 - [INFO] - Discord Bot setup hook finished!
+2025-10-11 20:30:38 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-11 20:30:39 - [INFO] - 已成功發送啟動成功通知給管理員。
