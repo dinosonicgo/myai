@@ -1098,35 +1098,46 @@ class BotCog(commands.Cog, name="BotCog"):
         logger.info(f"[{interaction.user.id}] [Admin Command] Git 鎖已釋放。")
     # 函式：推送日誌到 GitHub 倉庫
 
-    # 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
-# 更新紀錄:
-# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。創世流程的職責被簡化為純粹的檔案補完和開場白生成。
-# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
-# v64.0 (2025-10-03): [重大架構重構] 改為調用 LangGraph 來驅動整個創世流程。
-    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v65.1) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
-        user_id = str(user.id)
-        try:
-            logger.info(f"[{user_id}] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。")
-            
-            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-            if not ai_instance or not ai_instance.profile:
-                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
-                return
 
-            # --- 步驟 1: 構建 RAG 索引 ---
+
+
+    
+# 函式：執行完整的後台創世流程 (v65.2 - 實例持久化)
+# 更新紀錄:
+# v65.2 (2025-12-11): [災難性BUG修復] 根據 RAG 索引在創世後丟失的致命問題，重構了此函式的實例管理邏輯。現在，它會在流程的一開始就調用 `get_or_create_ai_instance` 來獲取一個持久化的實例，並在**同一個實例**上執行後續所有的 RAG 構建和創世步驟。這確保了創世流程中構建的 RAG 索引能夠被正確地保留下來，供後續的對話使用。
+# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。
+# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
+    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
+        """(v65.2) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
+        user_id = str(user.id)
+        # [v65.2 核心修正] 在流程開始時就獲取或創建一個會被保留的實例
+        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+        if not ai_instance or not ai_instance.profile:
+            try:
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+            except discord.errors.Forbidden:
+                logger.warning(f"無法向使用者 {user_id} 發送創世失敗訊息（可能被屏蔽）。")
+            finally:
+                self.active_setups.discard(user_id)
+            return
+
+        try:
+            logger.info(f"[{user_id}] [創世流程 v65.2] 原生 Python 驅動的流程已啟動。")
+            
+            # --- 步驟 1: 構建 RAG 索引 (在持久化的實例上) ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-                docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
+                # 對世界聖經內容進行編碼
+                encoded_canon_text = ai_instance._encode_text(canon_text)
+                docs_for_rag = text_splitter.create_documents([encoded_canon_text], metadatas=[{"source": "canon"} for _ in [encoded_canon_text]])
             
             logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
 
-            # --- 步驟 2: 原生順序執行創世流程 ---
-            
+            # --- 步驟 2: 原生順序執行創世流程 (在同一個實例上) ---
             logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
@@ -1156,7 +1167,7 @@ class BotCog(commands.Cog, name="BotCog"):
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# 執行完整的後台創世流程 函式結束
+# 函式：執行完整的後台創世流程 結束
 
 
 
@@ -1818,5 +1829,6 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
