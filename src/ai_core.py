@@ -5484,7 +5484,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
     
 # 函式：獲取角色細節深度解析器 Prompt (v4.0 - 批次潤色總結)
 # 更新紀錄:
-# v4.0 (2025-12-08): [根本性重構] 根據「批次精煉 + 程式化校驗」策略，徹底重寫此 Prompt。它不再負責從混亂的上下文中提取資訊，而是接收由程式碼預處理好的、乾淨的、批次化的「事實數據點」。其任務被降級為一個更簡單、更可靠的語言任務：將這些事實數據點批量地用通順的語言組織成多個完整的 `description`，並保留經過驗證的 `aliases` 列表。
+# v4.0 (2025-10-12): [根本性重構] 根據「批次精煉 + 程式化校驗」策略，徹底重寫此 Prompt。它不再負責從混亂的上下文中提取資訊，而是接收由程式碼預處理好的、乾淨的、批次化的「事實數據點」。其任務被降級為一個更簡單、更可靠的語言任務：將這些事實數據點批量地用通順的語言組織成多個完整的 `description`，並保留經過驗證的 `aliases` 列表。
 # v3.0 (2025-10-02): [根本性重構] 根據「分批RAG驅動精煉」策略，徹底重寫了此 Prompt。
     def get_character_details_parser_chain(self) -> str:
         """獲取一個為“程式化歸因後批量潤色”策略設計的字符串模板。"""
@@ -5515,8 +5515,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 【最終生成的批量潤色結果JSON】:
 """
         return base_prompt
-# 函式：獲取角色細節深度解析器 Prompt
-
+# 函式：獲取角色細節深度解析器 Prompt 結束
 
     
 
@@ -6315,6 +6314,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
