@@ -662,7 +662,7 @@ class AILover:
 
 # 函式：程式化屬性歸因 (v1.0 - 全新創建)
 # 更新紀錄:
-# v1.0 (2025-12-08): [全新創建] 根據「程式碼主導，LLM輔助」的終極策略，創建此核心函式。它使用 Regex 和 spaCy 的混合方法，在本地、高效地從 RAG 檢索到的文本中提取結構化和敘事性的角色屬性，為後續的 LLM 潤色或程式級備援提供高質量的「事實數據點」。
+# v1.0 (2025-10-11): [全新創建] 根據「程式碼主導，LLM輔助」的終極策略，創建此核心函式。它使用 Regex 和 spaCy 的混合方法，在本地、高效地從 RAG 檢索到的文本中提取結構化和敘事性的角色屬性，為後續的 LLM 潤色或程式級備援提供高質量的「事實數據點」。
     async def _programmatic_attribute_extraction(self, text: str, character_name: str) -> Dict[str, Any]:
         """
         使用 Regex 和 spaCy 的雙引擎，從給定的文本塊中提取指定角色的屬性。
@@ -722,7 +722,7 @@ class AILover:
         facts["description_sentences"] = sorted(list(set(sent for sent in facts["description_sentences"] if sent)))
 
         return facts
-# 函式：程式化屬性歸因
+# 函式：程式化屬性歸因 結束
 
 
     
@@ -730,8 +730,8 @@ class AILover:
 
 # 函式：獲取批量精煉器 Prompt (v1.1 - 强制顶级字典输出)
 # 更新紀錄:
-# v1.1 (2025-12-08): [灾难性BUG修复] 根據 ValidationError，修改了 Prompt 指令和输出结构范例，强制要求 LLM 的最终输出必须是一个包含 `refined_profiles` 键的顶级字典，而不是一个裸列表，以解决 Pydantic 验证失败的问题。
-# v1.0 (2025-12-08): [全新創建] 根據「批次精煉 + 程式化校驗」策略創建此 Prompt。
+# v1.1 (2025-10-11): [灾难性BUG修复] 根據 ValidationError，修改了 Prompt 指令和输出结构范例，强制要求 LLM 的最终输出必须是一个包含 `refined_profiles` 键的顶级字典，而不是一个裸列表，以解决 Pydantic 验证失败的问题。
+# v1.0 (2025-10-11): [全新創建] 根據「批次精煉 + 程式化校驗」策略創建此 Prompt。
     def get_batch_refinement_prompt(self) -> str:
         """獲取一個為“程式化歸因後批量潤色”策略設計的字符串模板。"""
         
@@ -776,7 +776,7 @@ class AILover:
 # 【最終生成的批量潤色結果JSON (單一物件)】:
 """
         return base_prompt
-# 函式：獲取批量精煉器 Prompt
+# 函式：獲取批量精煉器 Prompt 結束
                             
 
 
@@ -1825,124 +1825,115 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v2.0 - 混合式架構)
 # 更新紀錄:
-# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表，使其與 get_local_model_lore_parser_prompt v2.0 的模板骨架完全匹配。
+# v2.0 (2025-10-11): [根本性重構] 實現了「程式碼主導，LLM輔助，程式碼備援」的終極混合解析架構，以解決本地模型處理長文本的根本性難題。
+# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表。
 # v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
-# v1.0 (2025-09-26): [全新創建] 創建此函式作為LORE解析的本地備援方案。
     async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
         """
-        呼叫本地運行的 Ollama 模型來執行 LORE 解析任務，內置一次JSON格式自我修正的重試機制。
-        返回一個 CanonParsingResult 物件，如果失敗則返回 None。
+        (v2.0) 執行一個包含程式化預處理、LLM批次潤色和純程式碼備援的混合式LORE解析管線。
+        返回一個 CanonParsingResult 物件，如果徹底失敗則返回 None。
         """
         import httpx
-        import json
-        from pydantic import ValidationError
-        
-        if not self.profile:
+        from .schemas import CanonParsingResult, CharacterProfile, BatchRefinementResult, BatchRefinementInput
+
+        logger.info(f"[{self.user_id}] [本地混合解析] 正在啟動 v2.0 混合解析管線...")
+
+        # --- 步驟 1: 程式化預處理與上下文聚合 (純程式碼，速度快，無上下文限制) ---
+        logger.info(f"[{self.user_id}] [本地混合解析-1/3] 正在執行程式化預處理...")
+        programmatic_facts_map: Dict[str, Dict[str, Any]] = {}
+        try:
+            nlp = spacy.load('zh_core_web_sm')
+            doc = nlp(canon_text)
+            
+            # 優先提取命名實體中的人物
+            entity_names = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and len(ent.text) > 1}
+            logger.info(f"[{self.user_id}] [本地混合解析-1/3] spaCy 初步識別出 {len(entity_names)} 個潛在NPC實體: {entity_names}")
+
+            for name in entity_names:
+                facts = await self._programmatic_attribute_extraction(canon_text, name)
+                if facts.get("description_sentences"):
+                    programmatic_facts_map[name] = facts
+            
+            if not programmatic_facts_map:
+                logger.warning(f"[{self.user_id}] [本地混合解析-1/3] 程式化預處理未能為任何實體提取到有效的上下文句子。")
+                return None # 如果第一步就失敗，則無法繼續
+
+            logger.info(f"[{self.user_id}] [本地混合解析-1/3] ✅ 程式化預處理完成，已為 {len(programmatic_facts_map)} 個實體建立了事實卷宗。")
+
+        except Exception as e:
+            logger.error(f"[{self.user_id}] [本地混合解析-1/3] 🔥 程式化預處理階段發生嚴重錯誤: {e}", exc_info=True)
             return None
 
-        logger.info(f"[{self.user_id}] 正在使用本地模型 '{self.ollama_model_name}' 進行LORE解析 (Attempt 1/2)...")
-        
-        prompt_skeleton = self.get_local_model_lore_parser_prompt()
-        pydantic_definitions = self.get_ollama_pydantic_definitions_template()
-        example_input, example_json_output = self.get_ollama_example_template()
-        start_tag = "```json"
-        end_tag = "```"
-
-        pydantic_block = f"```python\n{pydantic_definitions}\n```"
-        output_block = f"{start_tag}\n{example_json_output}\n{end_tag}"
-        
-        # [v1.3 核心修正] 確保 format 參數與模板佔位符完全匹配
-        full_prompt = prompt_skeleton.format(
-            username=self.profile.user_profile.name,
-            ai_name=self.profile.ai_profile.name,
-            pydantic_definitions_placeholder=pydantic_block,
-            example_input_placeholder=example_input,
-            example_output_placeholder=output_block,
-            canon_text=canon_text,
-            start_tag_placeholder=start_tag
-        )
-
-        payload = {
-            "model": self.ollama_model_name,
-            "prompt": full_prompt,
-            "format": "json",
-            "stream": False,
-            "options": { "temperature": 0.2 }
-        }
+        # --- 步驟 2: 嘗試 LLM 批次化潤色 (LLM 輔助) ---
+        logger.info(f"[{self.user_id}] [本地混合解析-2/3] 正在嘗試 LLM 批次化潤色...")
+        refined_profiles: List[CharacterProfile] = []
+        llm_refinement_failed = False
         
         try:
-            async with httpx.AsyncClient(timeout=300.0) as client:
-                response = await client.post("http://localhost:11434/api/generate", json=payload)
-                response.raise_for_status()
-                
-                response_data = response.json()
-                json_string_from_model = response_data.get("response")
-                
-                if not json_string_from_model:
-                    logger.error(f"[{self.user_id}] 本地模型返回了空的 'response' 內容。")
-                    return None
-
-                parsed_json = json.loads(json_string_from_model)
-                validated_result = CanonParsingResult.model_validate(parsed_json)
-                logger.info(f"[{self.user_id}] 本地模型在首次嘗試中成功解析並驗證了LORE數據。")
-                return validated_result
-
-        except (json.JSONDecodeError, ValidationError) as e:
-            logger.warning(f"[{self.user_id}] 本地模型首次解析失敗: {type(e).__name__}。啟動【自我修正】重試 (Attempt 2/2)...")
+            all_entities = list(programmatic_facts_map.keys())
+            BATCH_SIZE = 5 
             
-            try:
-                # 提取原始錯誤的json字符串
-                raw_json_string = ""
-                if hasattr(e, 'doc'): # JSONDecodeError
-                    raw_json_string = e.doc
-                elif hasattr(e, 'input'): # ValidationError
-                    raw_json_string = str(e.input)
-                else:
-                    raw_json_string = str(e)
+            for i in range(0, len(all_entities), BATCH_SIZE):
+                batch_names = all_entities[i:i+BATCH_SIZE]
+                logger.info(f"[{self.user_id}] [本地混合解析-2/3] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
 
-                correction_prompt_template = self.get_local_model_json_correction_prompt()
-                correction_prompt = correction_prompt_template.format(raw_json_string=raw_json_string)
+                batch_input_data = []
+                for name in batch_names:
+                    batch_input_data.append(
+                        BatchRefinementInput(
+                            base_profile={"name": name},
+                            facts=programmatic_facts_map[name]
+                        ).model_dump()
+                    )
 
-                correction_payload = {
-                    "model": self.ollama_model_name,
-                    "prompt": correction_prompt,
-                    "format": "json",
-                    "stream": False,
-                    "options": { "temperature": 0.0 }
+                prompt_template = self.get_batch_refinement_prompt()
+                full_prompt = prompt_template.format(batch_verified_data_json=json.dumps(batch_input_data, ensure_ascii=False, indent=2))
+                
+                payload = {
+                    "model": self.ollama_model_name, "prompt": full_prompt,
+                    "format": "json", "stream": False, "options": {"temperature": 0.2}
                 }
-
-                async with httpx.AsyncClient(timeout=120.0) as client:
-                    correction_response = await client.post("http://localhost:11434/api/generate", json=correction_payload)
-                    correction_response.raise_for_status()
+                
+                async with httpx.AsyncClient(timeout=300.0) as client:
+                    response = await client.post("http://localhost:11434/api/generate", json=payload)
+                    response.raise_for_status()
+                    response_data = response.json()
+                    json_string = response_data.get("response")
+                    if not json_string: raise ValueError("LLM returned empty response.")
                     
-                    correction_data = correction_response.json()
-                    corrected_json_string = correction_data.get("response")
-
-                    if not corrected_json_string:
-                        logger.error(f"[{self.user_id}] 本地模型的自我修正嘗試返回了空的 'response' 內容。")
-                        return None
-                    
-                    corrected_parsed_json = json.loads(corrected_json_string)
-                    validated_result = CanonParsingResult.model_validate(corrected_parsed_json)
-                    logger.info(f"[{self.user_id}] 本地模型【自我修正】成功！已解析並驗證LORE數據。")
-                    return validated_result
-            
-            except Exception as correction_e:
-                logger.error(f"[{self.user_id}] 本地模型的【自我修正】嘗試最終失敗: {type(correction_e).__name__}", exc_info=True)
-                return None
-
-        except httpx.ConnectError:
-            logger.error(f"[{self.user_id}] 無法連接到本地 Ollama 伺服器。請確保 Ollama 正在運行並且在 http://localhost:11434 上可用。")
-            return None
-        except httpx.HTTPStatusError as e:
-            logger.error(f"[{self.user_id}] 本地 Ollama API 返回錯誤: {e.response.status_code} - {e.response.text}")
-            return None
+                    parsed_json = json.loads(json_string)
+                    batch_result = BatchRefinementResult.model_validate(parsed_json)
+                    refined_profiles.extend(batch_result.refined_profiles)
+        
         except Exception as e:
-            logger.error(f"[{self.user_id}] 呼叫本地 Ollama 模型時發生未知錯誤: {e}", exc_info=True)
-            return None
-# 函式：呼叫本地Ollama模型進行LORE解析 (v1.3 - 致命BUG修復)
+            logger.warning(f"[{self.user_id}] [本地混合解析-2/3] 🔥 LLM 批次化潤色失敗: {e}", exc_info=True)
+            llm_refinement_failed = True
+
+        # --- 步驟 3: 最終聚合 (包含純程式碼備援) ---
+        final_npc_profiles: List[CharacterProfile] = []
+        if not llm_refinement_failed and refined_profiles:
+            logger.info(f"[{self.user_id}] [本地混合解析-3/3] ✅ LLM 批次化潤色成功！正在聚合結果...")
+            final_npc_profiles = refined_profiles
+        else:
+            logger.warning(f"[{self.user_id}] [本地混合解析-3/3] 正在觸發【純程式碼備援方案】，以確保數據保真度...")
+            for name, facts in programmatic_facts_map.items():
+                profile = CharacterProfile(
+                    name=name,
+                    aliases=facts.get("verified_aliases", []),
+                    age=facts.get("verified_age", "未知"),
+                    description="\n".join(facts.get("description_sentences", [""]))
+                )
+                final_npc_profiles.append(profile)
+            logger.info(f"[{self.user_id}] [本地混合解析-3/3] ✅ 純程式碼備援執行完畢。")
+
+        # 創建最終的返回物件
+        final_result = CanonParsingResult(npc_profiles=final_npc_profiles)
+        
+        logger.info(f"[{self.user_id}] [本地混合解析] ✅ 管線執行完畢，最終成功解析出 {len(final_npc_profiles)} 個 NPC 檔案。")
+        return final_result
+# 函式：呼叫本地Ollama模型進行LORE解析 結束
 
 
     
@@ -6324,6 +6315,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
