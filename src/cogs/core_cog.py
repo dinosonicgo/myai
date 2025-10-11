@@ -1113,47 +1113,54 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的設置流程 (v66.3 - 接口適配修正)
+# 函式：執行完整的設置流程 (v66.4 - 調用對象修正)
 # 更新紀錄:
-# v66.3 (2025-10-12): [災難性BUG修復] 修正了因手動修改導致的SyntaxError，並將LORE解析的調用接口從過時的`_invoke_local_ollama_parser`完全切換到`parse_and_create_lore_from_canon`總指揮官，確保數據類型匹配。
-# v66.2 (2025-10-12): [重大架構升級] 根據「本地預處理 + 智能聚合」架構，重構了創世流程。
-    async def _perform_full_setup_flow(self, interaction: discord.Interaction, canon_text: str):
+# v66.4 (2025-10-12): [災難性BUG修復] 修正了獲取AI實例的調用對象，將 `self.bot.get_ai_instance` 修正為 `self.get_or_create_ai_instance`，以解決 AttributeError。
+# v66.3 (2025-10-12): [災難性BUG修復] 修正了因手動修改導致的SyntaxError，並將LORE解析的調用接口完全切換到`parse_and_create_lore_from_canon`总指挥官。
+    async def _perform_full_setup_flow(self, interaction: discord.Interaction, canon_text: Optional[str]):
         """
         在背景執行完整的創世流程，包括解析、RAG構建和生成開場白。
         """
         user_id = str(interaction.user.id)
-        ai_instance = self.bot.get_ai_instance(user_id)
+        # [v66.4 核心修正] 调用对象从 self.bot 改为 self (BotCog 实例)
+        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance:
             await interaction.followup.send("錯誤：AI 實例丟失，無法繼續創世流程。", ephemeral=True)
+            self.bot.active_setups.pop(user_id, None)
             return
 
         try:
-            await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...", view=None)
-            
-            # [核心修正] 直接調用新的總指揮官，並使用正確的變數名 `parsed_canon`
-            parsed_canon = await ai_instance.parse_and_create_lore_from_canon(canon_text)
+            # 只有在提供了 canon_text 的情况下才执行解析和 RAG 构建
+            if canon_text and canon_text.strip():
+                await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...", view=None)
+                
+                parsed_canon = await ai_instance.parse_and_create_lore_from_canon(canon_text)
 
-            all_lores_to_process = []
-            if parsed_canon:
-                # 修正後，parsed_canon 永遠是一個 CanonParsingResult 物件，可以安全地訪問 .npc_profiles
-                if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
-                if parsed_canon.locations: all_lores_to_process.extend([(loc, 'locationinfo') for loc in parsed_canon.locations])
-                if parsed_canon.items: all_lores_to_process.extend([(item, 'iteminfo') for item in parsed_canon.items])
-                if parsed_canon.creatures: all_lores_to_process.extend([(creature, 'creatureinfo') for creature in parsed_canon.creatures])
-                if parsed_canon.quests: all_lores_to_process.extend([(quest, 'quest') for quest in parsed_canon.quests])
-                if parsed_canon.world_lores: all_lores_to_process.extend([(wl, 'worldlore') for wl in parsed_canon.world_lores])
-            
-            logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 預解析完成，共發現 {len(all_lores_to_process)} 個 LORE 物件。準備構建 RAG 索引...")
-            await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
+                all_lores_to_process = []
+                if parsed_canon:
+                    if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
+                    if parsed_canon.locations: all_lores_to_process.extend([(loc, 'locationinfo') for loc in parsed_canon.locations])
+                    if parsed_canon.items: all_lores_to_process.extend([(item, 'iteminfo') for item in parsed_canon.items])
+                    if parsed_canon.creatures: all_lores_to_process.extend([(creature, 'creatureinfo') for creature in parsed_canon.creatures])
+                    if parsed_canon.quests: all_lores_to_process.extend([(quest, 'quest') for quest in parsed_canon.quests])
+                    if parsed_canon.world_lores: all_lores_to_process.extend([(wl, 'worldlore') for wl in parsed_canon.world_lores])
+                
+                logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 預解析完成，共發現 {len(all_lores_to_process)} 個 LORE 物件。準備構建 RAG 索引...")
+                await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
+                
+                # [v66.4 健壯性修正] 将 docs_for_rag 的创建改为 Document 对象
+                docs_for_rag = [Document(page_content=ai_instance._format_lore_into_document_content(obj, category)) for obj, category in all_lores_to_process]
+                await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag)
+                
+                logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
+            else:
+                # 如果没有提供 canon_text，则跳过解析和RAG构建
+                logger.info(f"[{user_id}] [後台創世] 未提供世界聖經，跳過解析與RAG構建步驟。")
+                await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=[])
 
-            docs_for_rag = [ai_instance._format_lore_into_document_content(obj, category) for obj, category in all_lores_to_process]
-            await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag)
-            
-            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
 
             await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (3/4)**\n✅ 記憶系統構建完畢！AI 正在為您和角色進行最終設定...")
             
-            # 使用 Graph 執行後續流程
             setup_graph = create_setup_graph()
             final_state = await setup_graph.ainvoke({
                 "user_id": user_id,
@@ -1172,7 +1179,7 @@ class BotCog(commands.Cog, name="BotCog"):
             try:
                 await interaction.edit_original_response(content=f"🔥 **創世失敗！**\n在處理您的世界聖經時發生了無法恢復的錯誤，請檢查後台日誌。\n`{type(e).__name__}: {e}`", view=None)
             except discord.NotFound:
-                pass # 如果原始訊息找不到了，就沒辦法了
+                pass 
         finally:
             self.bot.active_setups.pop(user_id, None)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
@@ -1841,6 +1848,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
