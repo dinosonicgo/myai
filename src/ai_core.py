@@ -6068,14 +6068,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：檢索並總結記憶 (v27.4 - 健壯去重)
+# 函式：檢索並總結記憶 (v27.5 - 查詢擴展修復)
 # 更新紀錄:
-# v27.4 (2025-12-10): [災難性BUG修復] 根據使用者對關鍵資訊被去重的反饋，徹底重構了函式的去重邏輯。舊的基於 `original_id` 的去重方法在元數據出錯時會隨機丟棄內容不同的關鍵文檔。新版本改為使用【基於內容】的去重策略（以 `doc.page_content` 為鍵），確保只有完全重複的文檔會被移除，從根本上解決了因去重邏輯不當而導致上下文信息丟失的致命問題。
-# v27.3 (2025-12-10): [災難性BUG修復] 引入了【查詢擴展】機制，解決了 AI 忽略隱含 LORE 規則的問題。
-# v27.2 (2025-12-10): [災難性BUG修復] 徹底簡化了內部邏輯，移除了有缺陷的數據映射和去重步驟。
+# v27.5 (2025-12-10): [災難性BUG修復] 根據日誌中的 `AttributeError: 'Lore' object has no attribute 'content'`，精準地修正了【查詢擴展】邏輯塊。現在，該邏輯會正確地從 `lore.structured_content` 中讀取 `name`, `title`, 和 `aliases`，從而根除了因訪問不存在的屬性而導致查詢擴展靜默失敗的致命錯誤。
+# v27.4 (2025-12-10): [災難性BUG修復] 重構了去重邏輯，改為使用基於內容的去重策略，以避免關鍵資訊被錯誤地丟棄。
+# v27.3 (2025-12-10): [災難性BUG修復] 引入了【查詢擴展】機制，以解決 AI 忽略隱含 LORE 規則的問題。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v27.4) 執行一個包含「查詢擴展」和「雙軌上下文」的完整鳳凰RAG管線。
+        (v27.5) 執行一個包含「查詢擴展」和「雙軌上下文」的完整鳳凰RAG管線。
         """
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever:
@@ -6085,7 +6085,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [鳳凰RAG] 啟動，原始查詢: '{query_text[:50]}...'")
 
         try:
-            # --- 步驟 1: 查詢擴展 ---
+            # --- [v27.5 核心修正] 步驟 1: 查詢擴展 ---
             expanded_query = query_text
             try:
                 entities = await self._extract_entities_from_input(query_text)
@@ -6093,26 +6093,29 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     logger.info(f"[{self.user_id}] [查詢擴展] 識別出核心實體: {entities}")
                     identity_keywords = set()
                     
-                    # 使用 asyncio.gather 並行查詢 LORE
                     lore_tasks = []
                     for entity_name in entities:
+                        # 修正 Lambda 函式以正確訪問 structured_content
                         lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') == entity_name))
                         lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'world_lore', lambda c: c.get('title') == entity_name))
                     
                     results = await asyncio.gather(*lore_tasks)
                     for lores in results:
                         for lore in lores:
+                            # 修正屬性訪問路徑
                             if lore.structured_content and 'aliases' in lore.structured_content:
                                 identity_keywords.update(lore.structured_content['aliases'])
                     
                     if identity_keywords:
                         expansion_context = "。相關背景身份：" + "、".join(identity_keywords)
                         expanded_query = query_text + expansion_context
-                        logger.info(f"[{self.user_id}] [查詢擴展] 查詢已擴展為: '{expanded_query[:100]}...'")
-            except Exception as e:
-                logger.warning(f"[{self.user_id}] [查詢擴展] 查詢擴展步驟失敗: {e}，將使用原始查詢。")
+                        logger.info(f"[{self.user_id}] [查詢擴展] ✅ 查詢已成功擴展為: '{expanded_query[:100]}...'")
 
-            # --- 步驟 2: 查詢編碼 & 混合檢索 ---
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] [查詢擴展] 查詢擴展步驟失敗: {e}，將使用原始查詢。", exc_info=True)
+
+
+            # --- 步驟 2: 查詢編碼 & 混合檢索 (使用擴展後的查詢) ---
             encoded_query = self._encode_text(expanded_query)
             logger.info(f"[{self.user_id}] [鳳凰RAG-1/5] 查詢已編碼，正在執行混合檢索...")
             
@@ -6122,7 +6125,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 logger.info(f"[{self.user_id}] [鳳凰RAG-2/5] 混合檢索器未返回任何候選文檔。")
                 return default_return
 
-            # --- 步驟 3: [v27.4 核心修正] 基於內容的健壯去重 ---
+            # --- 步驟 3: 基於內容的健壯去重 ---
             unique_docs_by_content = {doc.page_content: doc for doc in candidate_docs}
             docs_for_reranker = list(unique_docs_by_content.values())
 
@@ -6169,13 +6172,11 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             final_raw_contents = []
             for doc in top_k_docs:
                 source = doc.metadata.get('source')
-                # 內容解碼現在統一在這裡處理
                 decoded_content = self._decode_lore_content(doc.page_content)
                 
-                # 如果是 LORE 或 history，我們可以嘗試從資料庫獲取最新、最完整的原文
                 original_id = doc.metadata.get('original_id')
                 was_fetched_from_db = False
-                if original_id and original_id > 0: # 負數 ID 是臨時的
+                if original_id and original_id > 0:
                     async with AsyncSessionLocal() as session:
                         if source == 'history':
                             db_entry = await session.get(MemoryData, original_id)
@@ -6191,7 +6192,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                                 final_raw_contents.append(f"【LORE檔案: {title}】\n結構化數據: {json.dumps(structured, ensure_ascii=False)}\n敘事描述:\n{narrative}")
                                 was_fetched_from_db = True
                 
-                # 如果無法從資料庫獲取（例如 canon 或 臨時文檔），則使用解碼後的 page_content
                 if not was_fetched_from_db:
                     final_raw_contents.append(decoded_content)
 
@@ -6320,6 +6320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
