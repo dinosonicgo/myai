@@ -1833,34 +1833,32 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型进行LORE解析 (v5.0 - 防御性调度器)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v5.1 - 統一輸出與超時緩解)
 # 更新紀錄:
-# v5.0 (2025-10-12): [灾难性BUG修复] 新增了防禦性调度器。此函数现在能处理两种输入：如果是预处理过的字典，则执行润色/备援；如果是原始文本字符串（错误的旧式调用），则会自动重定向到完整的`parse_and_create_lore_from_canon`管线，从而实现向下兼容并根除AttributeError。
-# v4.0 (2025-10-12): [灾难性BUG修复] 彻底修复了先前版本中的KeyError。
-# v3.0 (2025-10-12): [根本性重构] 降级为第四阶段「执行单元」。
-    async def _invoke_local_ollama_parser(self, input_data: Any) -> Optional[List[CharacterProfile]]:
+# v5.1 (2025-10-12): [災難性BUG修復] 統一了所有執行路徑的最終返回值，確保無論內部流程如何，外部調用者接收到的永遠是一個CanonParsingResult物件，從而根除AttributeError。同時減小BATCH_SIZE以緩解ReadTimeout問題。
+# v5.0 (2025-10-12): [災難性BUG修復] 新增了防禦性调度器以實現向下兼容。
+# v4.0 (2025-10-12): [災難性BUG修復] 徹底修復了先前版本中的KeyError。
+    async def _invoke_local_ollama_parser(self, input_data: Any) -> Optional[CanonParsingResult]:
         """
-        (v5.0) LORE解析的防禦性调度器与最终执行单元。
+        (v5.1) LORE解析的防禦性调度器与最终执行单元。返回一个CanonParsingResult物件。
         - 如果输入是预处理过的事实字典，则执行润色/备援。
         - 如果输入是原始文本字符串（表示被错误调用），则自动重定向到完整的解析管线。
         """
         import httpx
-        from .schemas import CharacterProfile, BatchRefinementResult, BatchRefinementInput, ProgrammaticFacts
+        from .schemas import CanonParsingResult, CharacterProfile, BatchRefinementResult, BatchRefinementInput, ProgrammaticFacts
 
-        # --- [v5.0 核心修正] 防御性调度器 ---
+        # --- [v5.0 核心修正] 防禦性调度器 ---
         if isinstance(input_data, str):
             logger.warning(f"[{self.user_id}] [本地执行单元] 检测到不推荐的直接文本输入！这表明外部调用方式已过时。")
             logger.warning(f"[{self.user_id}] [本地执行单元] 正在自动重定向到【终极架构v4.1】总指挥官进行处理...")
-            # 将旧的、错误的调用，重定向到新的、正确的完整管线
-            # 注意：这里假设 parse_and_create_lore_from_canon 会返回 profile 列表
             return await self.parse_and_create_lore_from_canon(input_data)
         
         if not isinstance(input_data, dict):
             logger.error(f"[{self.user_id}] [本地执行单元] 接收到无效的输入类型: {type(input_data)}，流程终止。")
-            return None
+            return CanonParsingResult()
 
         aggregated_facts_map = input_data
-        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.0 润色/备援流程...")
+        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.1 润色/备援流程...")
 
         # --- 步骤 1: 尝试 LLM 批次化润色 (LLM 辅助) ---
         refined_profiles: List[CharacterProfile] = []
@@ -1870,9 +1868,10 @@ class AILover:
             all_entities = list(aggregated_facts_map.keys())
             if not all_entities:
                 logger.warning(f"[{self.user_id}] [本地执行单元] 传入的事实数据图为空，无法执行。")
-                return []
+                return CanonParsingResult()
 
-            BATCH_SIZE = 5 
+            # [v5.1 核心修正] 減小批次大小以緩解 ReadTimeout
+            BATCH_SIZE = 3 
             
             for i in range(0, len(all_entities), BATCH_SIZE):
                 batch_names = all_entities[i:i+BATCH_SIZE]
@@ -1937,8 +1936,9 @@ class AILover:
                 final_npc_profiles.append(profile)
             logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。")
 
-        return final_npc_profiles
-# 函式：呼叫本地Ollama模型进行LORE解析 结束
+        # [v5.1 核心修正] 統一返回 CanonParsingResult 物件
+        return CanonParsingResult(npc_profiles=final_npc_profiles)
+# 函式：呼叫本地Ollama模型进行LORE解析 結束
 
 
     
@@ -5041,19 +5041,19 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析并从世界圣经创建LORE (v24.0 - 返回值适配)
+# 函式：解析并从世界圣经创建LORE (v24.1 - 统一输出)
 # 更新紀錄:
-# v24.0 (2025-10-12): [架构适配] 修改了函数的返回值，使其在成功时返回一个包含所有已生成CharacterProfile对象的列表。此修改是为了配合`_invoke_local_ollama_parser`的防禦性调度器，实现流程的无缝内部重定向。
+# v24.1 (2025-10-12): [灾难性BUG修复] 统一了函数的最终返回值，确保其在任何成功或失败的路径上都返回一个CanonParsingResult对象，以适配外部调用者的接口要求。
+# v24.0 (2025-10-12): [架构适配] 修改了函数的返回值，使其在成功时返回一个包含所有已生成CharacterProfile对象的列表。
 # v23.0 (2025-10-12): [灾难性BUG修复] 引入了「上下文隔离」机制。
-# v22.0 (2025-10-12): [根本性重构] 将此函数重构为「终极架构v4：情报融合」的总指挥官。
-    async def parse_and_create_lore_from_canon(self, canon_text: str) -> List[CharacterProfile]:
+    async def parse_and_create_lore_from_canon(self, canon_text: str) -> CanonParsingResult:
         """
-        【总指挥 v24.0】执行一个分层的、并行的「情报融合」LORE解析管线，并将结果存入资料库。
-        成功时返回生成的 CharacterProfile 对象列表。
+        【总指挥 v24.1】执行一个分层的、并行的「情报融合」LORE解析管线，并将结果存入资料库。
+        成功时返回包含已生成对象的 CanonParsingResult 物件。
         """
         if not self.profile or not canon_text.strip():
             logger.error(f"[{self.user_id}] 圣经解析失败：Profile 未载入或文本为空。")
-            return []
+            return CanonParsingResult()
 
         logger.info(f"[{self.user_id}] [数据入口-轨道B] 正在启动【终极架构v4.1：上下文隔离】LORE解析管线...")
         
@@ -5084,19 +5084,21 @@ class ExtractionResult(BaseModel):
 
         if not final_facts_map:
             logger.warning(f"[{self.user_id}] [总指挥] 未能从文本中提取任何潜在实体，流程终止。")
-            return []
+            return CanonParsingResult()
             
         for name in final_facts_map:
             final_facts_map[name]["verified_aliases"] = list(final_facts_map[name]["verified_aliases"])
             final_facts_map[name]["description_sentences"] = list(final_facts_map[name]["description_sentences"])
 
         logger.info(f"[{self.user_id}] [总指挥-P4] 正在将融合情报提交至本地执行单元进行最终处理...")
-        final_profiles = await self._invoke_local_ollama_parser(final_facts_map)
+        # _invoke_local_ollama_parser 现在返回的是 CanonParsingResult
+        parsing_result = await self._invoke_local_ollama_parser(final_facts_map)
         
-        if not final_profiles:
+        if not parsing_result or not parsing_result.npc_profiles:
             logger.error(f"[{self.user_id}] [总指挥-P4] 🔥 本地执行单元未能生成任何有效的角色档案，流程终止。")
-            return []
+            return CanonParsingResult()
         
+        final_profiles = parsing_result.npc_profiles
         logger.info(f"[{self.user_id}] [总指挥-P5] 正在将最终的 {len(final_profiles)} 个LORE档案持久化到资料库...")
         for profile in final_profiles:
             try:
@@ -5115,8 +5117,8 @@ class ExtractionResult(BaseModel):
         
         logger.info(f"[{self.user_id}] [数据入口-轨道B] ✅ 【终极架构v4.1：上下文隔离】LORE解析管线执行完毕。")
         
-        # [v24.0 核心修正] 返回最终生成的 profile 列表
-        return final_profiles
+        # [v24.1 核心修正] 返回最终生成的、包含所有内容的 CanonParsingResult 物件
+        return parsing_result
 # 函式：解析并从世界圣经创建LORE 结束
 
 
@@ -6307,6 +6309,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
