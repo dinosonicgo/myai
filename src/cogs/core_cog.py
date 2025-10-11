@@ -1104,130 +1104,70 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v66.2 - 智能聚合健壯性修復)
+# 函式：執行完整的設置流程 (v66.3 - 接口適配修正)
 # 更新紀錄:
-# v66.2 (2025-12-11): [災難性BUG修復] 根據 RAG 索引為空的日誌，徹底重構並加固了【智能聚合】邏輯。新版本增加了對本地模型返回數據的防禦性檢查（例如 `hasattr`），確保即使 LORE 物件缺少某些屬性，流程也不會中斷。同時，在聚合循環的內部增加了詳細的調試日誌，用於追蹤每一個 LORE 物件是否被成功轉換和添加，從根本上解決了因數據結構不匹配而導致靜默失敗、最終生成空 RAG 索引的致命問題。
-# v66.1 (2025-12-11): [健壯性強化] 升級了本地模型解析失敗時的回退邏輯，從「機械分割」升級為「基於段落的語義分塊」。
-# v66.0 (2025-12-11): [重大架構重構] 引入了【本地預處理】+【智能聚合】策略。
-    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v66.2) 執行包含「本地預處理」和「智能聚合」的後台創世流程。"""
-        user_id = str(user.id)
-        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-        if not ai_instance or not ai_instance.profile:
-            try:
-                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
-            except discord.errors.Forbidden:
-                logger.warning(f"無法向使用者 {user_id} 發送創世失敗訊息（可能被屏蔽）。")
-            finally:
-                self.active_setups.discard(user_id)
+# v66.3 (2025-10-12): [災難性BUG修復] 修正了因手動修改導致的SyntaxError，並將LORE解析的調用接口從過時的`_invoke_local_ollama_parser`完全切換到`parse_and_create_lore_from_canon`總指揮官，確保數據類型匹配。
+# v66.2 (2025-10-12): [重大架構升級] 根據「本地預處理 + 智能聚合」架構，重構了創世流程。
+    async def _perform_full_setup_flow(self, interaction: discord.Interaction, canon_text: str):
+        """
+        在背景執行完整的創世流程，包括解析、RAG構建和生成開場白。
+        """
+        user_id = str(interaction.user.id)
+        ai_instance = self.bot.get_ai_instance(user_id)
+        if not ai_instance:
+            await interaction.followup.send("錯誤：AI 實例丟失，無法繼續創世流程。", ephemeral=True)
             return
 
         try:
-            logger.info(f"[{user_id}] [創世流程 v66.2] 啟動【本地預處理 + 智能聚合】流程...")
+            await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...", view=None)
             
-            docs_for_rag = []
-            if canon_text and canon_text.strip():
-                # --- 步驟 1: 本地、無審查的 LORE 粗解析 ---
-                logger.info(f"[{user_id}] [後台創世] 步驟 1/3: 正在調用本地 Ollama 模型進行無審查預解析...")
-                pafinal_profiles = await ai_instance.parse_and_create_lore_from_canon(canon_text)canon_text)
+            # [核心修正] 直接調用新的總指揮官，並使用正確的變數名 `parsed_canon`
+            parsed_canon = await ai_instance.parse_and_create_lore_from_canon(canon_text)
 
-                # --- 步驟 2: 智能聚合 或 程式級備援 ---
-                if not parsed_canon:
-                    # [v66.1 核心修正] 程式級備援方案：基於段落的語義分塊
-                    logger.warning(f"[{user_id}] [後台創世] 本地模型預解析失敗！啟動【程式級備援：基於段落的語義分塊】。")
-                    
-                    # 按連續的換行符（段落）分割文本
-                    paragraphs = re.split(r'\n\s*\n', canon_text.strip())
-                    
-                    encoded_paragraphs = [ai_instance._encode_text(p) for p in paragraphs if p.strip()]
-                    
-                    for text in encoded_paragraphs:
-                        descriptive_key = text[:20].replace('\n', ' ') + '...'
-                        docs_for_rag.append(Document(page_content=text, metadata={"source": "canon", "key": descriptive_key}))
-                else:
-                    # 主流程：更健壯的智能聚合
-                    logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 本地預解析成功，正在執行智能聚合...")
-                    
-                    all_lores_to_process = []
-                    # 將所有解析出的 LORE 物件收集到一個列表中，並附帶其類型
-                    if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
-                    if parsed_canon.locations: all_lores_to_process.extend([(l, 'locationinfo') for l in parsed_canon.locations])
-                    if parsed_canon.items: all_lores_to_process.extend([(i, 'iteminfo') for i in parsed_canon.items])
-                    if parsed_canon.creatures: all_lores_to_process.extend([(c, 'creatureinfo') for c in parsed_canon.creatures])
-                    if parsed_canon.quests: all_lores_to_process.extend([(q, 'quest') for q in parsed_canon.quests])
-                    if parsed_canon.world_lores: all_lores_to_process.extend([(w, 'worldlore') for w in parsed_canon.world_lores])
+            all_lores_to_process = []
+            if parsed_canon:
+                # 修正後，parsed_canon 永遠是一個 CanonParsingResult 物件，可以安全地訪問 .npc_profiles
+                if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
+                if parsed_canon.locations: all_lores_to_process.extend([(loc, 'locationinfo') for loc in parsed_canon.locations])
+                if parsed_canon.items: all_lores_to_process.extend([(item, 'iteminfo') for item in parsed_canon.items])
+                if parsed_canon.creatures: all_lores_to_process.extend([(creature, 'creatureinfo') for creature in parsed_canon.creatures])
+                if parsed_canon.quests: all_lores_to_process.extend([(quest, 'quest') for quest in parsed_canon.quests])
+                if parsed_canon.world_lores: all_lores_to_process.extend([(wl, 'worldlore') for wl in parsed_canon.world_lores])
+            
+            logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 預解析完成，共發現 {len(all_lores_to_process)} 個 LORE 物件。準備構建 RAG 索引...")
+            await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
 
-                    logger.info(f"[{user_id}] [智能聚合] 本地模型共解析出 {len(all_lores_to_process)} 個 LORE 物件。")
-
-                    # 遍歷所有 LORE 物件，將它們轉換為 RAG 文檔
-                    for lore_obj, category_name in all_lores_to_process:
-                        try:
-                            # 健壯性檢查：確保物件有 'name' 或 'title'
-                            if not hasattr(lore_obj, 'name') and not hasattr(lore_obj, 'title'):
-                                logger.warning(f"[{user_id}] [智能聚合] 跳過一個沒有 name 或 title 的 LORE 物件。")
-                                continue
-                            
-                            key_attr = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', None)
-                            
-                            # 將 LORE 物件本身轉換為文本
-                            doc_text = ai_instance._format_lore_into_document_content(lore_obj, category_name)
-                            
-                            # 智能聚合邏輯：只對 NPC 進行規則聚合
-                            if category_name == 'characterprofile' and hasattr(lore_obj, 'aliases') and lore_obj.aliases:
-                                related_rules_text = []
-                                world_lores = parsed_canon.world_lores or []
-                                for alias in lore_obj.aliases:
-                                    for rule_lore in world_lores:
-                                        rule_title = getattr(rule_lore, 'name', None) or getattr(rule_lore, 'title', None)
-                                        rule_content = getattr(rule_lore, 'content', "")
-                                        if rule_title and (alias in rule_title or alias in rule_content):
-                                            rule_text = ai_instance._format_lore_into_document_content(rule_lore, 'worldlore')
-                                            related_rules_text.append(rule_text)
-                                
-                                if related_rules_text:
-                                    doc_text += "\n\n--- 相關規則 ---\n" + "\n\n".join(list(set(related_rules_text)))
-                                    logger.info(f"[{user_id}] [智能聚合] 成功為 '{key_attr}' 聚合了 {len(related_rules_text)} 條相關規則。")
-
-                            encoded_text = ai_instance._encode_text(doc_text)
-                            docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": key_attr}))
-                            logger.info(f"[{user_id}] [智能聚合] 已成功轉換並添加 LORE: '{key_attr}'")
-                        
-                        except Exception as e:
-                            logger.error(f"[{user_id}] [智能聚合] 處理 LORE 物件時發生錯誤: {e}", exc_info=True)
-
-
-            # --- 步驟 3: 構建 RAG 索引 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 3/3: 數據準備完成，正在使用 {len(docs_for_rag)} 條文檔觸發 RAG 索引創始構建...")
-            await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
+            docs_for_rag = [ai_instance._format_lore_into_document_content(obj, category) for obj, category in all_lores_to_process]
+            await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag)
+            
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
 
-            # --- 後續創世流程保持不變 ---
-            logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
-            await ai_instance.complete_character_profiles()
-            logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
+            await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (3/4)**\n✅ 記憶系統構建完畢！AI 正在為您和角色進行最終設定...")
+            
+            # 使用 Graph 執行後續流程
+            setup_graph = create_setup_graph()
+            final_state = await setup_graph.ainvoke({
+                "user_id": user_id,
+                "ai_core": ai_instance,
+                "canon_text": canon_text
+            })
 
-            logger.info(f"[{user_id}] [後台創世-原生] 步驟 2/2: 正在生成開場白...")
-            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
-            logger.info(f"[{user_id}] [後台創世-原生] 開場白生成成功。")
-
-            if not opening_scene: raise Exception("原生創世流程未能成功生成開場白。")
-
-            scene_key = ai_instance._get_scene_key()
-            await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
+            opening_scene = final_state.get("opening_scene", "錯誤：未能生成開場白。")
             
             logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
-            for i in range(0, len(opening_scene), 2000):
-                await user.send(opening_scene[i:i+2000])
-            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
+            await interaction.edit_original_response(content="✅ **創世完成！**\n我已將故事的開端發送到您的私訊中，請查收。我們的冒險現在開始！", view=None)
+            await interaction.user.send(opening_scene)
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
-            try: await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
-            except discord.errors.HTTPException as send_e: logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
+            try:
+                await interaction.edit_original_response(content=f"🔥 **創世失敗！**\n在處理您的世界聖經時發生了無法恢復的錯誤，請檢查後台日誌。\n`{type(e).__name__}: {e}`", view=None)
+            except discord.NotFound:
+                pass # 如果原始訊息找不到了，就沒辦法了
         finally:
-            self.active_setups.discard(user_id)
+            self.bot.active_setups.pop(user_id, None)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# 函式：執行完整的後台創世流程 結束
+# 函式：執行完整的設置流程 結束
 
 
 
@@ -1892,6 +1832,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
