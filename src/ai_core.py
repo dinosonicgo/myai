@@ -661,66 +661,75 @@ class AILover:
     
 
 
-# 函式：程式化屬性歸因 (v2.0 - 增強版)
+# 函式：程式化屬性歸因 (v3.0 - 職責簡化)
 # 更新紀錄:
-# v2.0 (2025-10-12): [架構升級] 增強了函式簽名，使其可以接收一個包含多個已知別名的列表（`list_of_aliases`），從而能在情報融合階段更精準地聚合特定角色的所有相關上下文。
-# v1.0 (2025-10-11): [全新創建] 根據「程式碼主導，LLM輔助」的終極策略，創建此核心函式。
-    async def _programmatic_attribute_extraction(self, text: str, main_character_name: str, list_of_aliases: List[str]) -> Dict[str, Any]:
+# v3.0 (2025-10-12): [根本性重構] 根據「上下文隔離」原則，徹底簡化了此函式的職責。它現在只接收一段與單一角色嚴格相關的文本片段，並從中提取事實，不再需要在長文本中進行複雜的搜索和關聯，極大地提高了準確性和可靠性。
+# v2.0 (2025-10-12): [架構升級] 增強了函式簽名，使其可以接收一個包含多個已知別名的列表。
+    async def _programmatic_attribute_extraction(self, character_specific_text: str) -> Dict[str, Any]:
         """
-        (v2.0) 使用 Regex 和 spaCy 的雙引擎，從給定的文本塊中提取指定角色（及其所有已知別名）的屬性。
+        (v3.0) 接收一段【角色專屬的】文本片段，並使用 Regex 和 spaCy 從中提取所有屬性。
         返回一個包含已驗證事實的字典。
         """
         facts = {
-            "verified_aliases": [],
+            "verified_aliases": set(),
             "verified_age": "未知",
-            "description_sentences": []
+            "description_sentences": set()
         }
         
         # --- 引擎 A: 正則表達式 (處理半結構化數據) ---
         try:
+            # 提取所有可能的別名，包括括號內的
+            # 例如: * 卡爾•維利爾斯勳爵 (Lord Karl Veriers)
+            name_match = re.search(r"^\s*\*\s*([^(\n]+)(?:\(([^)]+)\))?", character_specific_text)
+            if name_match:
+                facts["verified_aliases"].add(name_match.group(1).strip())
+                if name_match.group(2):
+                    facts["verified_aliases"].add(name_match.group(2).strip())
+
             # 提取身份/別名
-            identity_match = re.search(r"^\s*\*\s*身份[:：\s]*(.*)", text, re.MULTILINE)
+            identity_match = re.search(r"^\s*\*\s*身份[:：\s]*(.*)", character_specific_text, re.MULTILINE)
             if identity_match:
                 aliases_text = identity_match.group(1)
-                found_aliases = re.split(r'[,、，\s]\s*|(?<=\))(?=[\u4e00-\u9fa5a-zA-Z])', aliases_text)
-                facts["verified_aliases"].extend([alias.strip() for alias in found_aliases if alias.strip()])
+                found_aliases = re.split(r'[,、，\s]\s*', aliases_text)
+                facts["verified_aliases"].update([alias.strip() for alias in found_aliases if alias.strip()])
 
             # 提取年齡/外貌
-            age_appearance_match = re.search(r"^\s*\*\s*年齡/外貌[:：\s]*(.*)", text, re.MULTILINE)
+            age_appearance_match = re.search(r"^\s*\*\s*年齡/外貌[:：\s]*(.*)", character_specific_text, re.MULTILINE)
             if age_appearance_match:
                 age_text = age_appearance_match.group(1).split('。')[0]
                 facts["verified_age"] = age_text.strip()
-                facts["description_sentences"].append(age_appearance_match.group(1).strip())
+                facts["description_sentences"].add(age_appearance_match.group(1).strip())
             
-            # 提取其他標籤
-            other_tags_matches = re.findall(r"^\s*\*\s*([^:]+)[:：\s]*(.*)", text, re.MULTILINE)
+            # 提取所有其他標籤的內容作為描述句子
+            other_tags_matches = re.findall(r"^\s*\*\s*([^:]+)[:：\s]*(.*)", character_specific_text, re.MULTILINE)
             for match in other_tags_matches:
-                tag_name, tag_content = match
-                if "身份" not in tag_name and "年齡/外貌" not in tag_name:
-                    facts["description_sentences"].append(tag_content.strip())
+                tag_content = match[1].strip()
+                if tag_content:
+                    facts["description_sentences"].add(tag_content)
+
         except Exception as e:
             logger.warning(f"[{self.user_id}] [Programmatic Extraction] Regex 引擎執行時出錯: {e}")
 
-        # --- 引擎 B: spaCy (處理敘事性文本) ---
+        # --- 引擎 B: spaCy (處理純敘述性文本) ---
+        # 由於輸入的文本已是角色專屬，所有句子都與該角色相關
         try:
             nlp = spacy.load('zh_core_web_sm')
-            doc = nlp(text)
-            
-            # 使用傳入的完整別名列表進行匹配
-            name_variants = {main_character_name} | set(list_of_aliases)
+            doc = nlp(character_specific_text)
             
             for sent in doc.sents:
-                if any(variant in sent.text for variant in name_variants):
-                    if not sent.text.strip().startswith('*') and sent.text.strip() not in facts["description_sentences"]:
-                         facts["description_sentences"].append(sent.text.strip())
+                clean_sent = sent.text.strip()
+                # 忽略掉已經被正則處理過的半結構化行
+                if clean_sent and not clean_sent.startswith('*'):
+                    facts["description_sentences"].add(clean_sent)
         except Exception as e:
             logger.error(f"[{self.user_id}] [Programmatic Extraction] spaCy 引擎執行失敗: {e}")
 
-        # 清理和去重
-        facts["verified_aliases"] = sorted(list(set(facts["verified_aliases"])))
-        facts["description_sentences"] = sorted(list(set(facts["description_sentences"])))
-
-        return facts
+        # 清理和去重，並轉換為列表
+        return {
+            "verified_aliases": sorted(list(facts["verified_aliases"])),
+            "verified_age": facts["verified_age"],
+            "description_sentences": sorted(list(facts["description_sentences"]))
+        }
 # 函式：程式化屬性歸因 結束
 
 
@@ -5018,116 +5027,67 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v22.0 - 終極架構v4總指揮)
+# 函式：解析並從世界聖經創建LORE (v23.0 - 上下文隔離)
 # 更新紀錄:
-# v22.0 (2025-10-12): [根本性重構] 將此函式重構為「終極架構v4：情報融合」的總指揮官。它負責協調一個並行的情報收集（雲端LLM、本地LLM、純程式碼）和串行的情報融合（實體合併、數據聚合、最終潤色/備援）的複雜流程。
-# v21.0 (2025-10-12): [根本性重構] 將此函式重構為「終極架構v3」的總指揮官。
-# v20.0 (2025-10-11): [災難性BUG修復] 新增了「蠻力備援」機制。
+# v23.0 (2025-10-12): [災難性BUG修復] 引入了「上下文隔離」機制。在程式化提取階段，此版本現在會使用正則表達式將文本塊預先分割成角色專屬的片段，再將這些隔離的片段傳遞給提取器。此修改從根本上解決了因上下文混淆導致的數據交叉污染問題，極大地提高了LORE解析的準確性。
+# v22.0 (2025-10-12): [根本性重構] 將此函式重構為「終極架構v4：情報融合」的總指揮官。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v22.0】執行一個分層的、並行的「情報融合」LORE解析管線，並將結果存入資料庫。
+        【總指揮 v23.0】執行一個分層的、並行的「情報融合」LORE解析管線，並將結果存入資料庫。
         """
         if not self.profile or not canon_text.strip():
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入或文本為空。")
             return
 
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動【終極架構v4：情報融合】LORE解析管線...")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動【終極架構v4.1：上下文隔離】LORE解析管線...")
         
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=4000, chunk_overlap=200)
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=200)
         chunks = text_splitter.split_text(canon_text)
         
-        # --- 階段一：情報收集 (三大部門並行) ---
-        logger.info(f"[{self.user_id}] [總指揮-P1] 三大情報部門開始對 {len(chunks)} 個文本塊進行並行情報收集...")
-        cloud_summaries: List[str] = []
-        local_fact_sheets: List[RagFactSheet] = []
-        code_facts_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
-            "verified_aliases": set(), "verified_age": "未知", "description_sentences": set()
-        })
-
-        for i, chunk in enumerate(chunks):
-            logger.info(f"[{self.user_id}] [總指揮-P1] 正在處理文本塊 {i+1}/{len(chunks)}...")
-            try:
-                # 定義並行任務
-                cloud_task = self.ainvoke_with_rotation(
-                    self.get_literary_euphemization_chain(), {"dialogue_history": chunk},
-                    retry_strategy='euphemize', models_to_try_override=[FUNCTIONAL_MODEL]
-                )
-                local_task = self._invoke_local_ollama_summarizer(chunk)
-                
-                results = await asyncio.gather(cloud_task, local_task, return_exceptions=True)
-                
-                if not isinstance(results[0], Exception) and results[0]: cloud_summaries.append(results[0])
-                if not isinstance(results[1], Exception) and results[1]: local_fact_sheets.append(results[1])
-                
-                # 部門C (程式碼) 獨立執行
-                nlp = spacy.load('zh_core_web_sm')
-                doc = nlp(chunk)
-                entity_names = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and len(ent.text) > 1}
-                # 增加正則表達式來捕獲半結構化數據
-                structured_names = re.findall(r"^\s*\*\s*([^(\n]+)", chunk, re.MULTILINE)
-                entity_names.update([name.strip() for name in structured_names])
-
-                for name in entity_names:
-                    facts = await self._programmatic_attribute_extraction(chunk, name, list(entity_names))
-                    code_facts_map[name]["verified_aliases"].update(facts["verified_aliases"])
-                    if facts["verified_age"] != "未知": code_facts_map[name]["verified_age"] = facts["verified_age"]
-                    code_facts_map[name]["description_sentences"].update(facts["description_sentences"])
-
-            except Exception as e:
-                 logger.error(f"[{self.user_id}] [總指揮-P1] 處理文本塊 {i+1} 時發生錯誤: {e}", exc_info=True)
+        # --- 階段一 & 三 (合併)：情報收集與融合 ---
+        # 由於v4.1架構中程式碼提取的權重大大提高，我們將其與情報融合步驟合併
+        logger.info(f"[{self.user_id}] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...")
         
-        logger.info(f"[{self.user_id}] [總指揮-P1] ✅ 情報收集完成。")
-
-        # --- 階段二：實體對齊與合併 ---
-        logger.info(f"[{self.user_id}] [總指揮-P2] 正在執行智能實體合併...")
-        all_potential_names = set(code_facts_map.keys())
-        for sheet in local_fact_sheets:
-            all_potential_names.update(sheet.involved_characters)
-        
-        if not all_potential_names:
-            logger.warning(f"[{self.user_id}] [總指揮] 未能從文本中提取任何潛在實體，流程終止。")
-            return
-
-        resolution_prompt = self.get_batch_entity_resolution_prompt()
-        new_entities_json = json.dumps([{"name": name} for name in all_potential_names], ensure_ascii=False)
-        full_resolution_prompt = self._safe_format_prompt(
-            resolution_prompt, {"new_entities_json": new_entities_json, "existing_entities_json": "[]"},
-            inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
-        )
-        from .schemas import BatchResolutionPlan
-        resolution_plan = await self.ainvoke_with_rotation(
-            full_resolution_prompt, output_schema=BatchResolutionPlan,
-            models_to_try_override=[FUNCTIONAL_MODEL]
-        )
-        if not resolution_plan: raise ValueError("實體解析與合併階段未能生成有效計畫。")
-        logger.info(f"[{self.user_id}] [總指揮-P2] ✅ 智能實體合併計畫已生成。")
-
-        # --- 階段三：情報融合 ---
-        logger.info(f"[{self.user_id}] [總指揮-P3] 正在將來自各部門的情報融合到唯一實體檔案中...")
         final_facts_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "verified_aliases": set(), "verified_age": "未知", "description_sentences": set()
         })
+
+        # 核心的正則表達式，用於分割半結構化文本
+        # 它會匹配以 `* ` 開頭的行，直到下一個 `* ` 或文件結束
+        character_block_pattern = re.compile(r"(^\s*\*\s*.+?(?=\n\s*\*\s|\Z))", re.MULTILINE | re.DOTALL)
         
-        name_to_standard_map = {res.original_name: res.standardized_name for res in resolution_plan.resolutions}
-        
-        for original_name, facts in code_facts_map.items():
-            standard_name = name_to_standard_map.get(original_name, original_name)
-            final_facts_map[standard_name]["verified_aliases"].update(facts["verified_aliases"])
-            if facts["verified_age"] != "未知": final_facts_map[standard_name]["verified_age"] = facts["verified_age"]
-            final_facts_map[standard_name]["description_sentences"].update(facts["description_sentences"])
-        
-        # 將雲端LLM的摘要加入描述
-        for summary in cloud_summaries:
-            # 簡單地將摘要添加到所有實體的描述中，潤色階段會處理相關性
-            for name in final_facts_map:
-                final_facts_map[name]["description_sentences"].add(summary)
-        
+        for i, chunk in enumerate(chunks):
+            # [v23.0 核心修正] 上下文隔離
+            character_blocks = character_block_pattern.findall(chunk)
+            
+            # 從塊中提取主名
+            for block in character_blocks:
+                main_name_match = re.search(r"^\s*\*\s*([^(\n]+)", block)
+                if not main_name_match:
+                    continue
+                main_name = main_name_match.group(1).strip()
+
+                # 為這個隔離的塊調用提取器
+                facts = await self._programmatic_attribute_extraction(block)
+                final_facts_map[main_name]["verified_aliases"].update(facts["verified_aliases"])
+                if facts["verified_age"] != "未知": final_facts_map[main_name]["verified_age"] = facts["verified_age"]
+                final_facts_map[main_name]["description_sentences"].update(facts["description_sentences"])
+
+        logger.info(f"[{self.user_id}] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 {len(final_facts_map)} 個唯一實體。")
+
+        # --- 階段二：智能實體解析與合併 (可選，用於處理純敘述部分) ---
+        # 由於程式碼提取已非常強大，此階段可以簡化或作為一個補充
+        # 暫時跳過，以簡化流程並觀察程式碼主導的效果
+        logger.info(f"[{self.user_id}] [總指揮-P2] 智能實體合併在此版本中暫時跳過，以評估程式碼主導的性能。")
+
+        if not final_facts_map:
+            logger.warning(f"[{self.user_id}] [總指揮] 未能從文本中提取任何潛在實體，流程終止。")
+            return
+            
         # 轉換 set 為 list 以進行序列化
         for name in final_facts_map:
             final_facts_map[name]["verified_aliases"] = list(final_facts_map[name]["verified_aliases"])
             final_facts_map[name]["description_sentences"] = list(final_facts_map[name]["description_sentences"])
-
-        logger.info(f"[{self.user_id}] [總指揮-P3] ✅ 情報融合完成，共計 {len(final_facts_map)} 個唯一實體。")
 
         # --- 階段四：最終潤色與備援 ---
         logger.info(f"[{self.user_id}] [總指揮-P4] 正在將融合情報提交至本地執行單元進行最終處理...")
@@ -5141,18 +5101,21 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [總指揮-P5] 正在將最終的 {len(final_profiles)} 個LORE檔案持久化到資料庫...")
         for profile in final_profiles:
             try:
+                # 忽略名字太短的無效實體
+                if len(profile.name) <= 1 and not re.search('[\u4e00-\u9fa5]', profile.name):
+                    continue
                 location_path = profile.location_path or ["世界"]
                 lore_key = " > ".join(location_path + [profile.name])
                 await lore_book.add_or_update_lore(
                     self.user_id, 'npc_profile', lore_key,
                     structured_content=profile.model_dump(),
                     narrative_content=profile.description,
-                    source='canon_parser_v4_fusion'
+                    source='canon_parser_v4.1_isolated'
                 )
             except Exception as e:
                 logger.error(f"[{self.user_id}] [總指揮-P5] 持久化角色 '{profile.name}' 時失敗: {e}", exc_info=True)
         
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 【終極架構v4：情報融合】LORE解析管線執行完畢。")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 【終極架構v4.1：上下文隔離】LORE解析管線執行完畢。")
 # 函式：解析並從世界聖經創建LORE 結束
 
 
@@ -6344,6 +6307,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
