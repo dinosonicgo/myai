@@ -1826,71 +1826,55 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型進行LORE解析 (v2.0 - 混合式架構)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v3.0 - 潤色與備援執行單元)
 # 更新紀錄:
-# v2.0 (2025-10-11): [根本性重構] 實現了「程式碼主導，LLM輔助，程式碼備援」的終極混合解析架構，以解決本地模型處理長文本的根本性難題。
-# v1.3 (2025-09-27): [災難性BUG修復] 修正了 .format() 的參數列表。
-# v1.2 (2025-09-26): [健壯性強化] 內置了「自我修正」重試邏輯。
-    async def _invoke_local_ollama_parser(self, canon_text: str) -> Optional[CanonParsingResult]:
+# v3.0 (2025-10-12): [根本性重構] 根據「終極架構v3」，將此函式重構為解析管線的第四階段「執行單元」。其職責被簡化為：接收預處理好的「事實數據點」，嘗試用本地LLM進行批次化潤色，並在失敗時執行純程式碼備援方案。同時修復了先前版本中的KeyError。
+# v2.0 (2025-10-11): [根本性重構] 實現了「程式碼主導，LLM輔助，程式碼備援」的終極混合解析架構。
+    async def _invoke_local_ollama_parser(self, aggregated_facts_map: Dict[str, Dict[str, Any]]) -> Optional[List[CharacterProfile]]:
         """
-        (v2.0) 執行一個包含程式化預處理、LLM批次潤色和純程式碼備援的混合式LORE解析管線。
-        返回一個 CanonParsingResult 物件，如果徹底失敗則返回 None。
+        (v3.0) 接收預處理好的事實數據點，嘗試用本地LLM進行批次化潤色，並在失敗時執行純程式碼備援。
+        返回一個 CharacterProfile 物件列表，如果徹底失敗則返回 None。
         """
         import httpx
         from .schemas import CanonParsingResult, CharacterProfile, BatchRefinementResult, BatchRefinementInput
 
-        logger.info(f"[{self.user_id}] [本地混合解析] 正在啟動 v2.0 混合解析管線...")
+        logger.info(f"[{self.user_id}] [本地執行單元] 正在啟動 v3.0 潤色/備援流程...")
 
-        # --- 步驟 1: 程式化預處理與上下文聚合 (純程式碼，速度快，無上下文限制) ---
-        logger.info(f"[{self.user_id}] [本地混合解析-1/3] 正在執行程式化預處理...")
-        programmatic_facts_map: Dict[str, Dict[str, Any]] = {}
-        try:
-            nlp = spacy.load('zh_core_web_sm')
-            doc = nlp(canon_text)
-            
-            # 優先提取命名實體中的人物
-            entity_names = {ent.text for ent in doc.ents if ent.label_ == 'PERSON' and len(ent.text) > 1}
-            logger.info(f"[{self.user_id}] [本地混合解析-1/3] spaCy 初步識別出 {len(entity_names)} 個潛在NPC實體: {entity_names}")
-
-            for name in entity_names:
-                facts = await self._programmatic_attribute_extraction(canon_text, name)
-                if facts.get("description_sentences"):
-                    programmatic_facts_map[name] = facts
-            
-            if not programmatic_facts_map:
-                logger.warning(f"[{self.user_id}] [本地混合解析-1/3] 程式化預處理未能為任何實體提取到有效的上下文句子。")
-                return None # 如果第一步就失敗，則無法繼續
-
-            logger.info(f"[{self.user_id}] [本地混合解析-1/3] ✅ 程式化預處理完成，已為 {len(programmatic_facts_map)} 個實體建立了事實卷宗。")
-
-        except Exception as e:
-            logger.error(f"[{self.user_id}] [本地混合解析-1/3] 🔥 程式化預處理階段發生嚴重錯誤: {e}", exc_info=True)
-            return None
-
-        # --- 步驟 2: 嘗試 LLM 批次化潤色 (LLM 輔助) ---
-        logger.info(f"[{self.user_id}] [本地混合解析-2/3] 正在嘗試 LLM 批次化潤色...")
+        # --- 步驟 1: 嘗試 LLM 批次化潤色 (LLM 輔助) ---
         refined_profiles: List[CharacterProfile] = []
         llm_refinement_failed = False
         
         try:
-            all_entities = list(programmatic_facts_map.keys())
+            all_entities = list(aggregated_facts_map.keys())
+            if not all_entities:
+                logger.warning(f"[{self.user_id}] [本地執行單元] 傳入的事實數據圖為空，無法執行。")
+                return []
+
             BATCH_SIZE = 5 
             
             for i in range(0, len(all_entities), BATCH_SIZE):
                 batch_names = all_entities[i:i+BATCH_SIZE]
-                logger.info(f"[{self.user_id}] [本地混合解析-2/3] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+                logger.info(f"[{self.user_id}] [本地執行單元-LLM] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
 
                 batch_input_data = []
                 for name in batch_names:
+                    facts_data = aggregated_facts_map[name]
+                    # 確保 facts_data 是 ProgrammaticFacts 期望的格式
+                    p_facts = ProgrammaticFacts(
+                        verified_aliases=facts_data.get("verified_aliases", []),
+                        verified_age=facts_data.get("verified_age", "未知"),
+                        description_sentences=facts_data.get("description_sentences", [])
+                    )
                     batch_input_data.append(
                         BatchRefinementInput(
                             base_profile={"name": name},
-                            facts=programmatic_facts_map[name]
+                            facts=p_facts
                         ).model_dump()
                     )
-
-                prompt_template = self.get_batch_refinement_prompt()
-                full_prompt = prompt_template.format(batch_verified_data_json=json.dumps(batch_input_data, ensure_ascii=False, indent=2))
+                
+                # [KeyError 修正] 使用 _safe_format_prompt 確保安全
+                prompt_template = self.get_character_details_parser_chain()
+                full_prompt = self._safe_format_prompt(prompt_template, {"batch_verified_data_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)})
                 
                 payload = {
                     "model": self.ollama_model_name, "prompt": full_prompt,
@@ -1904,22 +1888,28 @@ class AILover:
                     json_string = response_data.get("response")
                     if not json_string: raise ValueError("LLM returned empty response.")
                     
-                    parsed_json = json.loads(json_string)
+                    # 清理Ollama可能返回的Markdown程式碼塊
+                    match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", json_string, re.DOTALL)
+                    clean_json_str = match.group(1) if match else re.search(r'\{.*\}', json_string, re.DOTALL).group(0)
+                    if not clean_json_str: raise ValueError("Failed to find any JSON object in the LLM response.")
+
+                    parsed_json = json.loads(clean_json_str)
                     batch_result = BatchRefinementResult.model_validate(parsed_json)
                     refined_profiles.extend(batch_result.refined_profiles)
         
         except Exception as e:
-            logger.warning(f"[{self.user_id}] [本地混合解析-2/3] 🔥 LLM 批次化潤色失敗: {e}", exc_info=True)
+            logger.warning(f"[{self.user_id}] [本地執行單元-LLM] 🔥 LLM 批次化潤色失敗: {e}", exc_info=True)
             llm_refinement_failed = True
 
-        # --- 步驟 3: 最終聚合 (包含純程式碼備援) ---
+        # --- 步驟 2: 最終聚合 (包含純程式碼備援) ---
         final_npc_profiles: List[CharacterProfile] = []
         if not llm_refinement_failed and refined_profiles:
-            logger.info(f"[{self.user_id}] [本地混合解析-3/3] ✅ LLM 批次化潤色成功！正在聚合結果...")
+            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ LLM 批次化潤色成功！正在聚合結果...")
             final_npc_profiles = refined_profiles
         else:
-            logger.warning(f"[{self.user_id}] [本地混合解析-3/3] 正在觸發【純程式碼備援方案】，以確保數據保真度...")
-            for name, facts in programmatic_facts_map.items():
+            logger.warning(f"[{self.user_id}] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以確保數據保真度...")
+            for name, facts in aggregated_facts_map.items():
+                # 使用 CharacterProfile 的驗證器來處理數據
                 profile = CharacterProfile(
                     name=name,
                     aliases=facts.get("verified_aliases", []),
@@ -1927,13 +1917,9 @@ class AILover:
                     description="\n".join(facts.get("description_sentences", [""]))
                 )
                 final_npc_profiles.append(profile)
-            logger.info(f"[{self.user_id}] [本地混合解析-3/3] ✅ 純程式碼備援執行完畢。")
+            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ 純程式碼備援執行完畢。")
 
-        # 創建最終的返回物件
-        final_result = CanonParsingResult(npc_profiles=final_npc_profiles)
-        
-        logger.info(f"[{self.user_id}] [本地混合解析] ✅ 管線執行完畢，最終成功解析出 {len(final_npc_profiles)} 個 NPC 檔案。")
-        return final_result
+        return final_npc_profiles
 # 函式：呼叫本地Ollama模型進行LORE解析 結束
 
 
@@ -5037,91 +5023,126 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v20.0 - 蠻力備援)
+# 函式：解析並從世界聖經創建LORE (v21.0 - 終極架構v3總指揮)
 # 更新紀錄:
-# v20.0 (2025-10-11): [災難性BUG修復] 新增了「蠻力備援」機制。當結構化解析完全失敗但原文存在時，會將整個世界聖經原文作為單一 LORE 條目存入，確保 RAG 索引永不為空。
-# v19.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，重構了 `_resolve_and_save` 的調用方式，將解析出的數據作為 `narrative_content` 存儲，並傳入一個空的 `structured_content`，以適配新的混合式LORE模型。
-# v18.1 (2025-10-04): [架構驗證] 確認此函式的同步執行特性符合新的原生、串行化創世流程。
+# v21.0 (2025-10-12): [根本性重構] 將此函式重構為「終極架構v3」的總指揮官，負責協調分塊、骨架生成、智能合併、數據聚合、批次潤色/備援五個階段的完整LORE解析流程。
+# v20.0 (2025-10-11): [災難性BUG修復] 新增了「蠻力備援」機制。
+# v19.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，重構了 `_resolve_and_save` 的調用方式。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v20.0】執行 LORE 解析管線，並將結果以混合式LORE結構存入 SQL 資料庫。
-        內置「蠻力備援」，確保在解析失敗時 RAG 索引依然有內容。
+        【總指揮 v21.0】執行一個分層的、包含智能合併的LORE解析管線，並將結果存入SQL資料庫。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
             return
 
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動 LORE 解析管線...")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動【終極架構v3】LORE解析管線...")
         
-        is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
-
-        if not is_successful or not parsing_result_object:
-            # [v20.0 核心修正] 蠻力備援機制
-            if canon_text and canon_text.strip():
-                logger.warning(f"[{self.user_id}] [數據入口-軌道B] LORE 結構化解析失敗！正在觸發【蠻力備援】...")
-                logger.warning("   -> 將整個世界聖經原文作為單一'world_lore'條目存入資料庫，以確保 RAG 索引不為空。")
-                try:
-                    await lore_book.add_or_update_lore(
-                        self.user_id,
-                        'world_lore',
-                        "世界 > 世界聖經原文", # 一個獨特且具描述性的 key
-                        structured_content={"title": "世界聖經原文"},
-                        narrative_content=canon_text,
-                        source='canon_parser_fallback'
-                    )
-                    logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 蠻力備援成功。")
-                except Exception as e:
-                    logger.error(f"[{self.user_id}] [數據入口-軌道B] 🔥 蠻力備援存儲時發生嚴重錯誤: {e}", exc_info=True)
-                return # 備援已執行，終止後續流程
-            else:
-                logger.error(f"[{self.user_id}] [數據入口-軌道B] LORE 解析管線最終失敗，且無原文可供備援，無法創建結構化 LORE。")
-                return
-
-        # 關鍵：將解析出的數據視為 "narrative_content"，並為其創建一個空的 "structured_content"
-        async def resolve_and_save_as_hybrid(category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
-            if not items: return
+        text_splitter = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=200)
+        chunks = text_splitter.split_text(canon_text)
+        
+        final_profiles: Dict[str, CharacterProfile] = {}
+        all_lores_from_db = await lore_book.get_all_lores_for_user(self.user_id)
+        
+        for i, chunk in enumerate(chunks):
+            logger.info(f"[{self.user_id}] [總指揮] 正在處理文本塊 {i+1}/{len(chunks)}...")
             
-            category_map = { "npc_profiles": "npc_profile", "locations": "location_info", "items": "item_info", "creatures": "creature_info", "quests": "quest", "world_lores": "world_lore" }
-            actual_category = category_map.get(category_str)
-            if not actual_category: return
-
-            for item_data in items:
-                name = item_data.get(title_key)
-                if not name: continue
+            try:
+                # --- 階段一：LORE擴展骨架生成 (雲端LLM) ---
+                expansion_prompt = self.get_lore_expansion_pipeline_prompt()
+                existing_lore_json = json.dumps([p.name for p in final_profiles.values()], ensure_ascii=False)
+                full_expansion_prompt = self._safe_format_prompt(
+                    expansion_prompt, {"input_text": chunk, "existing_lore_json": existing_lore_json},
+                    inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
+                )
+                expansion_result = await self.ainvoke_with_rotation(
+                    full_expansion_prompt, output_schema=CanonParsingResult, 
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+                if not expansion_result or not expansion_result.npc_profiles:
+                    logger.info(f"[{self.user_id}] [總指揮-P1] 在文本塊 {i+1} 中未發現新的NPC骨架，跳過此塊。")
+                    continue
                 
-                # 默認從世界聖經解析出的數據，地點設為全局
-                location_path = item_data.get('location_path') or ["世界"]
+                logger.info(f"[{self.user_id}] [總指揮-P1] 成功提取 {len(expansion_result.npc_profiles)} 個NPC骨架。")
+
+                # --- 階段二：智能實體解析與合併 (雲端LLM) ---
+                resolution_prompt = self.get_batch_entity_resolution_prompt()
+                new_entities_json = json.dumps([{"name": p.name} for p in expansion_result.npc_profiles], ensure_ascii=False)
+                existing_db_entities_json = json.dumps(
+                    [{"key": lore.key, "name": lore.structured_content.get("name")} for lore in all_lores_from_db if lore.category == 'npc_profile' and lore.structured_content], 
+                    ensure_ascii=False
+                )
+                full_resolution_prompt = self._safe_format_prompt(
+                    resolution_prompt, {"new_entities_json": new_entities_json, "existing_entities_json": existing_db_entities_json},
+                    inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
+                )
+                
+                from .schemas import BatchResolutionPlan
+                resolution_plan = await self.ainvoke_with_rotation(
+                    full_resolution_prompt, output_schema=BatchResolutionPlan,
+                    models_to_try_override=[FUNCTIONAL_MODEL]
+                )
+                
+                if not resolution_plan or not resolution_plan.resolutions:
+                    raise ValueError("實體解析與合併階段未能生成有效的計畫。")
+
+                logger.info(f"[{self.user_id}] [總指揮-P2] 智能實體合併計畫已生成。")
+
+                # --- 階段三：程式化屬性歸因與數據聚合 (純程式碼) ---
+                aggregated_facts_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: {"names": set(), "contexts": []})
+                
+                unique_target_names = {res.standardized_name for res in resolution_plan.resolutions}
+                
+                for target_name in unique_target_names:
+                    names_to_aggregate = {res.original_name for res in resolution_plan.resolutions if res.standardized_name == target_name}
+                    aggregated_facts_map[target_name]["names"].update(names_to_aggregate)
+
+                for name, data in aggregated_facts_map.items():
+                    all_aliases = data["names"]
+                    # 使用所有別名去文本塊中提取上下文
+                    facts = await self._programmatic_attribute_extraction(chunk, name, list(all_aliases))
+                    aggregated_facts_map[name] = facts
+
+                logger.info(f"[{self.user_id}] [總指揮-P3] 已為 {len(aggregated_facts_map)} 個唯一實體聚合了事實數據點。")
+
+                # --- 階段四：批次化潤色 / 程式級備援 (本地LLM + 純程式碼) ---
+                finalized_profiles_for_chunk = await self._invoke_local_ollama_parser(aggregated_facts_map)
+                
+                if not finalized_profiles_for_chunk:
+                    raise ValueError("本地潤色/備援階段未能生成任何有效的角色檔案。")
+                
+                logger.info(f"[{self.user_id}] [總指揮-P4] 本地潤色/備援階段成功完成。")
+                
+                # --- 結果合併 ---
+                for profile in finalized_profiles_for_chunk:
+                    final_profiles[profile.name] = profile
+
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [總指揮] 處理文本塊 {i+1} 時發生錯誤: {e}", exc_info=True)
+                continue # 處理下一個塊
+
+        # --- 階段五：持久化 ---
+        if not final_profiles:
+            logger.warning(f"[{self.user_id}] [總指揮-P5] 經過完整管線處理後，未生成任何有效的LORE檔案。")
+            return
+            
+        logger.info(f"[{self.user_id}] [總指揮-P5] 正在將最終的 {len(final_profiles)} 個LORE檔案持久化到資料庫...")
+        for name, profile in final_profiles.items():
+            try:
+                location_path = profile.location_path or ["世界"]
                 lore_key = " > ".join(location_path + [name])
                 
-                # 創建空的結構化部分，並將原始解析數據作為敘事部分
-                structured_part = {"name": name, "aliases": item_data.get("aliases", [])}
-                narrative_part = json.dumps(item_data, ensure_ascii=False, indent=2)
-
+                # 根據鳳凰架構，我們只寫入結構化內容，敘事內容在此階段可以留空或用description填充
                 await lore_book.add_or_update_lore(
-                    self.user_id, 
-                    actual_category, 
-                    lore_key, 
-                    structured_content=structured_part, 
-                    narrative_content=narrative_part,
-                    source='canon_parser'
+                    self.user_id, 'npc_profile', lore_key,
+                    structured_content=profile.model_dump(),
+                    narrative_content=profile.description,
+                    source='canon_parser_v3'
                 )
-
-        if parsing_result_object.npc_profiles:
-            user_name_lower = self.profile.user_profile.name.lower()
-            ai_name_lower = self.profile.ai_profile.name.lower()
-            parsing_result_object.npc_profiles = [
-                p for p in parsing_result_object.npc_profiles 
-                if p.name.lower() not in {user_name_lower, ai_name_lower}
-            ]
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [總指揮-P5] 持久化角色 '{name}' 時失敗: {e}", exc_info=True)
         
-        await resolve_and_save_as_hybrid("npc_profiles", [p.model_dump() for p in parsing_result_object.npc_profiles])
-        await resolve_and_save_as_hybrid("locations", [p.model_dump() for p in parsing_result_object.locations])
-        await resolve_and_save_as_hybrid("items", [p.model_dump() for p in parsing_result_object.items])
-        await resolve_and_save_as_hybrid("creatures", [p.model_dump() for p in parsing_result_object.creatures])
-        await resolve_and_save_as_hybrid("quests", [p.model_dump() for p in parsing_result_object.quests])
-        await resolve_and_save_as_hybrid("world_lores", [p.model_dump(by_alias=True) for p in parsing_result_object.world_lores])
-        
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 解析完成，已將世界聖經數據作為【混合式 LORE】存入 SQL 資料庫。")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 【終極架構v3】LORE解析管線執行完畢。")
 # 函式：解析並從世界聖經創建LORE 結束
 
 
@@ -6314,6 +6335,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
