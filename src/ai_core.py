@@ -1833,36 +1833,50 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型進行LORE解析 (v4.0 - 潤色與備援執行單元)
+# 函式：呼叫本地Ollama模型进行LORE解析 (v5.0 - 防御性调度器)
 # 更新紀錄:
-# v4.0 (2025-10-12): [災難性BUG修復] 徹底修復了先前版本中的KeyError。此函式現在作為「終極架構v3」的第四階段執行單元，其職責被簡化為：接收預處理好的「事實數據點」，嘗試用本地LLM進行批次化潤色，並在失敗時執行純程式碼備援方案。
-# v3.0 (2025-10-12): [根本性重構] 根據「終極架構v3」，將此函式重構為解析管線的第四階段「執行單元」。
-# v2.0 (2025-10-11): [根本性重構] 實現了「程式碼主導，LLM輔助，程式碼備援」的終極混合解析架構。
-    async def _invoke_local_ollama_parser(self, aggregated_facts_map: Dict[str, Dict[str, Any]]) -> Optional[List[CharacterProfile]]:
+# v5.0 (2025-10-12): [灾难性BUG修复] 新增了防禦性调度器。此函数现在能处理两种输入：如果是预处理过的字典，则执行润色/备援；如果是原始文本字符串（错误的旧式调用），则会自动重定向到完整的`parse_and_create_lore_from_canon`管线，从而实现向下兼容并根除AttributeError。
+# v4.0 (2025-10-12): [灾难性BUG修复] 彻底修复了先前版本中的KeyError。
+# v3.0 (2025-10-12): [根本性重构] 降级为第四阶段「执行单元」。
+    async def _invoke_local_ollama_parser(self, input_data: Any) -> Optional[List[CharacterProfile]]:
         """
-        (v4.0) 接收預處理好的事實數據點，嘗試用本地LLM進行批次化潤色，並在失敗時執行純程式碼備援。
-        返回一個 CharacterProfile 物件列表，如果徹底失敗則返回 None。
+        (v5.0) LORE解析的防禦性调度器与最终执行单元。
+        - 如果输入是预处理过的事实字典，则执行润色/备援。
+        - 如果输入是原始文本字符串（表示被错误调用），则自动重定向到完整的解析管线。
         """
         import httpx
         from .schemas import CharacterProfile, BatchRefinementResult, BatchRefinementInput, ProgrammaticFacts
 
-        logger.info(f"[{self.user_id}] [本地執行單元] 正在啟動 v4.0 潤色/備援流程...")
+        # --- [v5.0 核心修正] 防御性调度器 ---
+        if isinstance(input_data, str):
+            logger.warning(f"[{self.user_id}] [本地执行单元] 检测到不推荐的直接文本输入！这表明外部调用方式已过时。")
+            logger.warning(f"[{self.user_id}] [本地执行单元] 正在自动重定向到【终极架构v4.1】总指挥官进行处理...")
+            # 将旧的、错误的调用，重定向到新的、正确的完整管线
+            # 注意：这里假设 parse_and_create_lore_from_canon 会返回 profile 列表
+            return await self.parse_and_create_lore_from_canon(input_data)
+        
+        if not isinstance(input_data, dict):
+            logger.error(f"[{self.user_id}] [本地执行单元] 接收到无效的输入类型: {type(input_data)}，流程终止。")
+            return None
 
-        # --- 步驟 1: 嘗試 LLM 批次化潤色 (LLM 輔助) ---
+        aggregated_facts_map = input_data
+        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.0 润色/备援流程...")
+
+        # --- 步骤 1: 尝试 LLM 批次化润色 (LLM 辅助) ---
         refined_profiles: List[CharacterProfile] = []
         llm_refinement_failed = False
         
         try:
             all_entities = list(aggregated_facts_map.keys())
             if not all_entities:
-                logger.warning(f"[{self.user_id}] [本地執行單元] 傳入的事實數據圖為空，無法執行。")
+                logger.warning(f"[{self.user_id}] [本地执行单元] 传入的事实数据图为空，无法执行。")
                 return []
 
             BATCH_SIZE = 5 
             
             for i in range(0, len(all_entities), BATCH_SIZE):
                 batch_names = all_entities[i:i+BATCH_SIZE]
-                logger.info(f"[{self.user_id}] [本地執行單元-LLM] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+                logger.info(f"[{self.user_id}] [本地执行单元-LLM] 正在处理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
 
                 batch_input_data = []
                 for name in batch_names:
@@ -1903,16 +1917,16 @@ class AILover:
                     refined_profiles.extend(batch_result.refined_profiles)
         
         except Exception as e:
-            logger.warning(f"[{self.user_id}] [本地執行單元-LLM] 🔥 LLM 批次化潤色失敗: {e}", exc_info=True)
+            logger.warning(f"[{self.user_id}] [本地执行单元-LLM] 🔥 LLM 批次化润色失败: {e}", exc_info=True)
             llm_refinement_failed = True
 
-        # --- 步驟 2: 最終聚合 (包含純程式碼備援) ---
+        # --- 步骤 2: 最终聚合 (包含纯程式码备援) ---
         final_npc_profiles: List[CharacterProfile] = []
         if not llm_refinement_failed and refined_profiles:
-            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ LLM 批次化潤色成功！正在聚合結果...")
+            logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ LLM 批次化润色成功！正在聚合结果...")
             final_npc_profiles = refined_profiles
         else:
-            logger.warning(f"[{self.user_id}] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以確保數據保真度...")
+            logger.warning(f"[{self.user_id}] [本地执行单元-备援] 正在觸發【純程式碼備援方案】，以确保数据保真度...")
             for name, facts in aggregated_facts_map.items():
                 profile = CharacterProfile(
                     name=name,
@@ -1921,10 +1935,10 @@ class AILover:
                     description="\n".join(facts.get("description_sentences", [""]))
                 )
                 final_npc_profiles.append(profile)
-            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ 純程式碼備援執行完畢。")
+            logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。")
 
         return final_npc_profiles
-# 函式：呼叫本地Ollama模型進行LORE解析 結束
+# 函式：呼叫本地Ollama模型进行LORE解析 结束
 
 
     
@@ -5027,81 +5041,65 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v23.0 - 上下文隔離)
+# 函式：解析并从世界圣经创建LORE (v24.0 - 返回值适配)
 # 更新紀錄:
-# v23.0 (2025-10-12): [災難性BUG修復] 引入了「上下文隔離」機制。在程式化提取階段，此版本現在會使用正則表達式將文本塊預先分割成角色專屬的片段，再將這些隔離的片段傳遞給提取器。此修改從根本上解決了因上下文混淆導致的數據交叉污染問題，極大地提高了LORE解析的準確性。
-# v22.0 (2025-10-12): [根本性重構] 將此函式重構為「終極架構v4：情報融合」的總指揮官。
-    async def parse_and_create_lore_from_canon(self, canon_text: str):
+# v24.0 (2025-10-12): [架构适配] 修改了函数的返回值，使其在成功时返回一个包含所有已生成CharacterProfile对象的列表。此修改是为了配合`_invoke_local_ollama_parser`的防禦性调度器，实现流程的无缝内部重定向。
+# v23.0 (2025-10-12): [灾难性BUG修复] 引入了「上下文隔离」机制。
+# v22.0 (2025-10-12): [根本性重构] 将此函数重构为「终极架构v4：情报融合」的总指挥官。
+    async def parse_and_create_lore_from_canon(self, canon_text: str) -> List[CharacterProfile]:
         """
-        【總指揮 v23.0】執行一個分層的、並行的「情報融合」LORE解析管線，並將結果存入資料庫。
+        【总指挥 v24.0】执行一个分层的、并行的「情报融合」LORE解析管线，并将结果存入资料库。
+        成功时返回生成的 CharacterProfile 对象列表。
         """
         if not self.profile or not canon_text.strip():
-            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入或文本為空。")
-            return
+            logger.error(f"[{self.user_id}] 圣经解析失败：Profile 未载入或文本为空。")
+            return []
 
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動【終極架構v4.1：上下文隔離】LORE解析管線...")
+        logger.info(f"[{self.user_id}] [数据入口-轨道B] 正在启动【终极架构v4.1：上下文隔离】LORE解析管线...")
         
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=200)
         chunks = text_splitter.split_text(canon_text)
-        
-        # --- 階段一 & 三 (合併)：情報收集與融合 ---
-        # 由於v4.1架構中程式碼提取的權重大大提高，我們將其與情報融合步驟合併
-        logger.info(f"[{self.user_id}] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...")
         
         final_facts_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "verified_aliases": set(), "verified_age": "未知", "description_sentences": set()
         })
 
-        # 核心的正則表達式，用於分割半結構化文本
-        # 它會匹配以 `* ` 開頭的行，直到下一個 `* ` 或文件結束
         character_block_pattern = re.compile(r"(^\s*\*\s*.+?(?=\n\s*\*\s|\Z))", re.MULTILINE | re.DOTALL)
         
         for i, chunk in enumerate(chunks):
-            # [v23.0 核心修正] 上下文隔離
             character_blocks = character_block_pattern.findall(chunk)
             
-            # 從塊中提取主名
             for block in character_blocks:
                 main_name_match = re.search(r"^\s*\*\s*([^(\n]+)", block)
                 if not main_name_match:
                     continue
                 main_name = main_name_match.group(1).strip()
 
-                # 為這個隔離的塊調用提取器
                 facts = await self._programmatic_attribute_extraction(block)
                 final_facts_map[main_name]["verified_aliases"].update(facts["verified_aliases"])
                 if facts["verified_age"] != "未知": final_facts_map[main_name]["verified_age"] = facts["verified_age"]
                 final_facts_map[main_name]["description_sentences"].update(facts["description_sentences"])
 
-        logger.info(f"[{self.user_id}] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 {len(final_facts_map)} 個唯一實體。")
-
-        # --- 階段二：智能實體解析與合併 (可選，用於處理純敘述部分) ---
-        # 由於程式碼提取已非常強大，此階段可以簡化或作為一個補充
-        # 暫時跳過，以簡化流程並觀察程式碼主導的效果
-        logger.info(f"[{self.user_id}] [總指揮-P2] 智能實體合併在此版本中暫時跳過，以評估程式碼主導的性能。")
+        logger.info(f"[{self.user_id}] [总指挥-P1&3] ✅ 程式码提取与融合完成，共计 {len(final_facts_map)} 个唯一实体。")
 
         if not final_facts_map:
-            logger.warning(f"[{self.user_id}] [總指揮] 未能從文本中提取任何潛在實體，流程終止。")
-            return
+            logger.warning(f"[{self.user_id}] [总指挥] 未能从文本中提取任何潜在实体，流程终止。")
+            return []
             
-        # 轉換 set 為 list 以進行序列化
         for name in final_facts_map:
             final_facts_map[name]["verified_aliases"] = list(final_facts_map[name]["verified_aliases"])
             final_facts_map[name]["description_sentences"] = list(final_facts_map[name]["description_sentences"])
 
-        # --- 階段四：最終潤色與備援 ---
-        logger.info(f"[{self.user_id}] [總指揮-P4] 正在將融合情報提交至本地執行單元進行最終處理...")
+        logger.info(f"[{self.user_id}] [总指挥-P4] 正在将融合情报提交至本地执行单元进行最终处理...")
         final_profiles = await self._invoke_local_ollama_parser(final_facts_map)
         
         if not final_profiles:
-            logger.error(f"[{self.user_id}] [總指揮-P4] 🔥 本地執行單元未能生成任何有效的角色檔案，流程終止。")
-            return
+            logger.error(f"[{self.user_id}] [总指挥-P4] 🔥 本地执行单元未能生成任何有效的角色档案，流程终止。")
+            return []
         
-        # --- 階段五：持久化 ---
-        logger.info(f"[{self.user_id}] [總指揮-P5] 正在將最終的 {len(final_profiles)} 個LORE檔案持久化到資料庫...")
+        logger.info(f"[{self.user_id}] [总指挥-P5] 正在将最终的 {len(final_profiles)} 个LORE档案持久化到资料库...")
         for profile in final_profiles:
             try:
-                # 忽略名字太短的無效實體
                 if len(profile.name) <= 1 and not re.search('[\u4e00-\u9fa5]', profile.name):
                     continue
                 location_path = profile.location_path or ["世界"]
@@ -5113,11 +5111,13 @@ class ExtractionResult(BaseModel):
                     source='canon_parser_v4.1_isolated'
                 )
             except Exception as e:
-                logger.error(f"[{self.user_id}] [總指揮-P5] 持久化角色 '{profile.name}' 時失敗: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] [总指挥-P5] 持久化角色 '{profile.name}' 时失败: {e}", exc_info=True)
         
-        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 【終極架構v4.1：上下文隔離】LORE解析管線執行完畢。")
-# 函式：解析並從世界聖經創建LORE 結束
-
+        logger.info(f"[{self.user_id}] [数据入口-轨道B] ✅ 【终极架构v4.1：上下文隔离】LORE解析管线执行完毕。")
+        
+        # [v24.0 核心修正] 返回最终生成的 profile 列表
+        return final_profiles
+# 函式：解析并从世界圣经创建LORE 结束
 
 
 
@@ -6307,6 +6307,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
