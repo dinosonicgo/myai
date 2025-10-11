@@ -1102,15 +1102,14 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v65.2 - 實例持久化)
+# 函式：執行完整的後台創世流程 (v65.3 - 強制入口編碼)
 # 更新紀錄:
-# v65.2 (2025-12-11): [災難性BUG修復] 根據 RAG 索引在創世後丟失的致命問題，重構了此函式的實例管理邏輯。現在，它會在流程的一開始就調用 `get_or_create_ai_instance` 來獲取一個持久化的實例，並在**同一個實例**上執行後續所有的 RAG 構建和創世步驟。這確保了創世流程中構建的 RAG 索引能夠被正確地保留下來，供後續的對話使用。
+# v65.3 (2025-12-11): [災難性BUG修復] 根據 RAG 重排器被審查的致命錯誤，在此函式的 RAG 構建數據準備階段，增加了對世界聖經文檔內容的強制編碼步驟 (`ai_instance._encode_text`)。此修改確保了所有存入 RAG 索引的數據從源頭就是經過無害化處理的，從根本上解決了因索引中包含原文而導致後續 RAG 流程被審查的問題。
+# v65.2 (2025-12-11): [災難性BUG修復] 重構了實例管理邏輯，確保創世流程中構建的 RAG 索引能夠被正確地保留下來。
 # v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。
-# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v65.2) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
+        """(v65.3) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
         user_id = str(user.id)
-        # [v65.2 核心修正] 在流程開始時就獲取或創建一個會被保留的實例
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
             try:
@@ -1122,17 +1121,20 @@ class BotCog(commands.Cog, name="BotCog"):
             return
 
         try:
-            logger.info(f"[{user_id}] [創世流程 v65.2] 原生 Python 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v65.3] 原生 Python 驅動的流程已啟動。")
             
             # --- 步驟 1: 構建 RAG 索引 (在持久化的實例上) ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
-                # 對世界聖經內容進行編碼
-                encoded_canon_text = ai_instance._encode_text(canon_text)
-                docs_for_rag = text_splitter.create_documents([encoded_canon_text], metadatas=[{"source": "canon"} for _ in [encoded_canon_text]])
-            
+                
+                # [v65.3 核心修正] 在分割後、存入前，對每一塊文本進行強制編碼
+                split_texts = text_splitter.split_text(canon_text)
+                encoded_texts = [ai_instance._encode_text(text) for text in split_texts]
+                
+                docs_for_rag = [Document(page_content=text, metadata={"source": "canon"}) for text in encoded_texts]
+
             logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
@@ -1168,7 +1170,6 @@ class BotCog(commands.Cog, name="BotCog"):
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 函式：執行完整的後台創世流程 結束
-
 
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
@@ -1829,6 +1830,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
