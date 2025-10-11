@@ -272,7 +272,9 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：處理「貼上世界聖經」按鈕點擊事件
 
-    # 處理「上傳世界聖經」按鈕點擊事件
+# 處理「上傳世界聖經」按鈕點擊事件 (v1.1 - 接口適配修正)
+# 更新紀錄:
+# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -307,7 +309,8 @@ class ContinueToCanonSetupView(discord.ui.View):
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
+            # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
+            asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=content_text))
             
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超時。請重新開始 `/start` 流程。", ephemeral=True)
@@ -318,9 +321,11 @@ class ContinueToCanonSetupView(discord.ui.View):
             self.cog.active_setups.discard(user_id)
         finally:
             self.stop()
-    # 處理「上傳世界聖經」按鈕點擊事件
+# 處理「上傳世界聖經」按鈕點擊事件 結束
 
-    # 函式：處理「完成設定」按鈕點擊事件
+# 函式：處理「完成設定」按鈕點擊事件 (v1.1 - 接口適配修正)
+# 更新紀錄:
+# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
     @discord.ui.button(label="✅ 完成設定並開始冒險（跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -335,9 +340,10 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.followup.send("✅ 基礎設定完成！創世流程已在後台啟動，完成後您將收到開場白。這可能需要幾分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
-        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=None))
+        # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
+        asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=None))
         self.stop()
-    # 函式：處理「完成設定」按鈕點擊事件
+# 函式：處理「完成設定」按鈕點擊事件 結束
 # 類別：繼續到世界聖經設定的視圖
 
 # 類別：重新生成或撤銷回覆的視圖
@@ -453,7 +459,9 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         self.original_interaction_message_id = original_interaction_message_id
     # 函式：初始化 WorldCanonPasteModal
     
-    # 函式：處理 Modal 提交事件
+# 函式：處理 Modal 提交事件 (v1.1 - 接口適配修正)
+# 更新紀錄:
+# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
     async def on_submit(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         if user_id in self.cog.active_setups:
@@ -471,8 +479,9 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         await interaction.response.send_message("✅ 文字已接收！創世流程已在後台啟動，完成後您將收到開場白。這可能需要數分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
-        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=self.canon_text.value))
-    # 函式：處理 Modal 提交事件
+        # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
+        asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=self.canon_text.value))
+# 函式：處理 Modal 提交事件 結束
 # 類別：貼上世界聖經的 Modal
 
 # 類別：LORE 瀏覽器分頁視圖
@@ -1832,6 +1841,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
