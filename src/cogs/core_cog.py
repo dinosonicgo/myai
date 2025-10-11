@@ -1104,13 +1104,13 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v65.3 - 強制入口編碼)
+# 函式：執行完整的後台創世流程 (v65.4 - 增強日誌可讀性)
 # 更新紀錄:
-# v65.3 (2025-12-11): [災難性BUG修復] 根據 RAG 重排器被審查的致命錯誤，在此函式的 RAG 構建數據準備階段，增加了對世界聖經文檔內容的強制編碼步驟 (`ai_instance._encode_text`)。此修改確保了所有存入 RAG 索引的數據從源頭就是經過無害化處理的，從根本上解決了因索引中包含原文而導致後續 RAG 流程被審查的問題。
-# v65.2 (2025-12-11): [災難性BUG修復] 重構了實例管理邏輯，確保創世流程中構建的 RAG 索引能夠被正確地保留下來。
-# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。
+# v65.4 (2025-12-11): [健壯性強化] 在創建來自世界聖經的 RAG 文檔時，為其元數據 `metadata` 新增了一個描述性的 `key`（取自文本內容的前20個字符）。此修改旨在解決 RAG 調試日誌中大量出現 'N/A' 導致可讀性差的問題，使我們能夠更直觀地追蹤 `canon` 文檔在 RAG 管線中的流動情況。
+# v65.3 (2025-12-11): [災難性BUG修復] 在 RAG 構建的數據入口處，增加了對世界聖經文檔內容的強制編碼。
+# v65.2 (2025-12-11): [災難性BUG修復] 重構了實例管理邏輯，確保創世流程中構建的 RAG 索引能夠被正確地保留。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v65.3) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
+        """(v65.4) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
         user_id = str(user.id)
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
@@ -1123,25 +1123,27 @@ class BotCog(commands.Cog, name="BotCog"):
             return
 
         try:
-            logger.info(f"[{user_id}] [創世流程 v65.3] 原生 Python 驅動的流程已啟動。")
+            logger.info(f"[{user_id}] [創世流程 v65.4] 原生 Python 驅動的流程已啟動。")
             
-            # --- 步驟 1: 構建 RAG 索引 (在持久化的實例上) ---
+            # --- 步驟 1: 構建 RAG 索引 ---
             docs_for_rag = []
             if canon_text and canon_text.strip():
                 logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
                 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
                 
-                # [v65.3 核心修正] 在分割後、存入前，對每一塊文本進行強制編碼
                 split_texts = text_splitter.split_text(canon_text)
                 encoded_texts = [ai_instance._encode_text(text) for text in split_texts]
                 
-                docs_for_rag = [Document(page_content=text, metadata={"source": "canon"}) for text in encoded_texts]
+                # [v65.4 核心修正] 為 canon 文檔添加描述性的 key
+                for text in encoded_texts:
+                    descriptive_key = text[:20].replace('\n', ' ') + '...'
+                    docs_for_rag.append(Document(page_content=text, metadata={"source": "canon", "key": descriptive_key}))
 
             logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
 
-            # --- 步驟 2: 原生順序執行創世流程 (在同一個實例上) ---
+            # --- 步驟 2: 原生順序執行創世流程 ---
             logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
             await ai_instance.complete_character_profiles()
             logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
@@ -1832,6 +1834,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
