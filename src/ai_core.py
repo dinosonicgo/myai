@@ -2415,23 +2415,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return Document(page_content=encoded_text, metadata=metadata)
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
 
-# 函式：从使用者输入中提取实体 (v2.3 - 移除普通名词提取)
+# 函式：從使用者輸入中提取實體 (v2.4 - 鳳凰架構適配)
 # 更新紀錄:
-# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。此修改牺牲了部分召回率，但极大地提升了提取结果的准确性（Precision），从根本上解决了因提取到“地毯”等无意义名词而污染 RAG 查询的问题。
-# v2.2 (2025-10-05): [災難性BUG修復] 根据 RAG 查詢污染日誌，徹底重構了此函式。
-# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。
+# v2.4 (2025-12-10): [災難性BUG修復] 根據日誌中的 `AttributeError`，修正了此函式的數據訪問邏輯，使其能夠正確地從 `lore.structured_content` 中讀取實體名稱和別名，而不是從已廢棄的 `lore.content`。此修改是解決查詢擴展功能失效的關鍵一步。
+# v2.3 (2025-12-08): [健壯性強化] 徹底移除了在找不到命名實體時回退到提取普通名詞的備援邏輯，以提升提取結果的準確性。
+# v2.2 (2025-10-05): [災難性BUG修復] 根據 RAG 查詢污染日誌，徹底重構了此函式。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.3 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
+        """(v2.4 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
         
         # --- 第一引擎：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
 
+        # [v2.4 核心修正] 從 structured_content 讀取數據
         for lore in all_lores:
-            if name := (lore.content.get("name") or lore.content.get("title")): 
-                known_names.add(name)
-            if aliases := lore.content.get("aliases"): 
-                known_names.update(aliases)
+            if lore.structured_content:
+                if name := (lore.structured_content.get("name") or lore.structured_content.get("title")): 
+                    known_names.add(name)
+                if aliases := lore.structured_content.get("aliases"): 
+                    known_names.update(aliases)
         
         found_entities = set()
         if known_names:
@@ -2444,7 +2446,6 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             nlp = spacy.load('zh_core_web_sm')
             doc = nlp(user_input)
             
-            # [v2.3 核心修正] 只提取真正的命名实体，不再回退到普通名词
             for ent in doc.ents:
                 if ent.label_ in ('PERSON', 'ORG', 'GPE', 'LOC', 'FAC', 'PRODUCT', 'EVENT', 'WORK_OF_ART') and ent.text not in found_entities:
                     found_entities.add(ent.text.strip())
@@ -2456,7 +2457,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return list(found_entities)
         
         return []
-# 从使用者输入中提取实体 函式结束
+# 函式：從使用者輸入中提取實體 結束
 
 
     
@@ -6320,6 +6321,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
