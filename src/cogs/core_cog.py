@@ -1,8 +1,8 @@
-# src/cogs/core_cog.py 的中文註釋(v1.3 - 穩定性與一致性修復)
+# src/cogs/core_cog.py 的中文註釋(v1.4 - 導入修正)
 # 更新紀錄:
-# v1.3 (2025-10-08): [災難性BUG修復] 移除了重複的 /settings 指令定義與一個懸空的 on_submit 函式，並修正了 /admin_reset 指令遺漏清除 SceneHistoryData 的問題，確保程式穩定性與數據一致性。
-# v1.2 (2025-12-08): [災難性BUG修復] 補全了 /start 指令所依賴的 ConfirmStartView 類別和 _reset_user_data 輔助函式，並恢復了其他所有缺失的 UI 元件，從根本上解決了指令無回應的問題。
-# v1.1 (2025-12-08): [功能補全] 新增了 _perform_update_and_restart 和 push_log_to_github_repo 兩個核心輔助函式，並將它們與 /admin_force_update 和 /admin_push_log 指令正確掛鉤，完整地實現了管理員的遠程更新與日誌推送功能。
+# v1.4 (2025-12-11): [災難性BUG修復] 在文件頂部補全了對 `langchain_core.documents.Document` 的導入，以解決在創世流程中因 `NameError: name 'Document' is not defined` 導致的致命錯誤。
+# v1.3 (2025-10-08): [災難性BUG修復] 移除了重複的 /settings 指令定義與一個懸空的 on_submit 函式，並修正了 /admin_reset 指令遺漏清除 SceneHistoryData 的問題。
+# v1.2 (2025-12-08): [災難性BUG修復] 補全了 /start 指令所依賴的 ConfirmStartView 類別和 _reset_user_data 輔助函式。
 
 import discord
 from discord import app_commands, Embed
@@ -36,6 +36,8 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from google.generativeai.types import BlockedPromptException
+# [v1.4 核心修正] 補全對 Document 的導入
+from langchain_core.documents import Document
 
 # 由於 AILoverBot 在另一個文件中，我們需要進行類型提示的特殊處理
 if sys.version_info >= (3, 9):
@@ -1830,6 +1832,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
