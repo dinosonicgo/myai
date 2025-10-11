@@ -1,26 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-11T13:42:31.092776 ###
+### AI Lover Log - Last updated at 2025-10-11T13:47:36.194582 ###
 
-2025-10-11 01:30:56 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-11 01:30:56 - [INFO] - 正在全域同步應用程式指令...
-2025-10-11 01:30:57 - [INFO] - ✅ 指令已全域同步！
-2025-10-11 01:30:57 - [INFO] - Discord Bot setup hook finished!
-2025-10-11 01:31:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-11 01:31:00 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-11 01:31:22 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-11 01:31:23 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-11 01:31:23 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-11 01:31:23 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-11 01:31:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-11 01:31:31 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-11 01:31:31 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-11 01:31:31 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-11 01:31:31 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-11 01:31:31 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-11 01:31:31 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-11 01:31:34 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-11 01:31:34 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-11 01:31:34 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-11 01:31:34 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
 2025-10-11 01:31:34 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-10-11 01:31:55 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
 2025-10-11 01:32:02 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
@@ -300,3 +279,24 @@
 2025-10-11 12:31:14 - [INFO] - Discord Bot setup hook finished!
 2025-10-11 12:31:17 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-11 12:31:18 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-11 13:47:01 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-11 13:47:02 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-11 13:47:02 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-11 13:47:02 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-11 13:47:03 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-11 13:47:09 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-11 13:47:09 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-11 13:47:09 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-11 13:47:09 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-11 13:47:09 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
+2025-10-11 13:47:09 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-11 13:47:18 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
+2025-10-11 13:47:18 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-11 13:47:18 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-11 13:47:18 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-11 13:47:18 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 13:47:19 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-11 13:47:31 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-11 13:47:31 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-11 13:47:31 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-11 13:47:33 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
