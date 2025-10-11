@@ -1104,21 +1104,23 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v66.0 - 本地預處理與智能聚合)
+# 函式：執行完整的後台創世流程 (v66.1 - 程式級備援升級)
 # 更新紀錄:
-# v66.0 (2025-12-11): [重大架構重構] 根據 RAG 上下文關聯性丟失的最終診斷，徹底重構了創世時的 RAG 索引構建管線。新版本引入了【本地預處理】+【智能聚合】策略：1. 首先調用不受審查的本地 Ollama 模型對世界聖經進行初步的結構化解析。2. 然後在 Python 層面，將與角色身份相關的規則 LORE（如“母畜的禮儀”）智能地聚合拼接到對應角色的 RAG 文檔末尾。3. 最後才將這些經過聚合、上下文更完整的文檔用於構建 RAG 索引。此修改從數據源頭保證了知識的原子性，根除了關鍵規則在檢索時被過濾掉的致命問題。
+# v66.1 (2025-12-11): [健壯性強化] 根據使用者對備援方案的質詢，徹底重構了本地模型預解析失敗時的回退邏輯。舊的「機械分割」方案被替換為更智能的【基於段落的語義分塊】策略。新備援方案會按原文的空行（段落）進行分割，最大限度地保留了文本的語義完整性，確保即使在 LLM 解析失敗的極端情況下，RAG 索引的質量也能得到基本保證。
+# v66.0 (2025-12-11): [重大架構重構] 引入了【本地預處理】+【智能聚合】策略，從源頭保證知識的原子性。
 # v65.4 (2025-12-11): [健壯性強化] 為 canon 文檔的元數據新增了描述性的 key，以提高日誌的可讀性。
-# v65.3 (2025-12-11): [災難性BUG修復] 在 RAG 構建的數據入口處，增加了對世界聖經文檔內容的強制編碼。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v66.0) 執行包含「本地預處理」和「智能聚合」的後台創世流程。"""
+        """(v66.1) 執行包含「本地預處理」和「智能聚合」的後台創世流程。"""
         user_id = str(user.id)
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
-            # ... (錯誤處理保持不變) ...
+            try: await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+            except discord.errors.Forbidden: logger.warning(f"無法向使用者 {user_id} 發送創世失敗訊息（可能被屏蔽）。")
+            finally: self.active_setups.discard(user_id)
             return
 
         try:
-            logger.info(f"[{user_id}] [創世流程 v66.0] 啟動【本地預處理 + 智能聚合】流程...")
+            logger.info(f"[{user_id}] [創世流程 v66.1] 啟動【本地預處理 + 智能聚合】流程...")
             
             docs_for_rag = []
             if canon_text and canon_text.strip():
@@ -1126,61 +1128,67 @@ class BotCog(commands.Cog, name="BotCog"):
                 logger.info(f"[{user_id}] [後台創世] 步驟 1/3: 正在調用本地 Ollama 模型進行無審查預解析...")
                 parsed_canon = await ai_instance._invoke_local_ollama_parser(canon_text)
 
+                # --- 步驟 2: 智能聚合 或 程式級備援 ---
                 if not parsed_canon:
-                    logger.warning(f"[{user_id}] [後台創世] 本地模型預解析失敗！將回退到機械分割文本模式。")
-                    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-                    split_texts = text_splitter.split_text(canon_text)
-                    encoded_texts = [ai_instance._encode_text(text) for text in split_texts]
-                    for text in encoded_texts:
+                    # [v66.1 核心修正] 程式級備援方案：基於段落的語義分塊
+                    logger.warning(f"[{user_id}] [後台創世] 本地模型預解析失敗！啟動【程式級備援：基於段落的語義分塊】。")
+                    
+                    # 按連續的換行符（段落）分割文本
+                    paragraphs = re.split(r'\n\s*\n', canon_text.strip())
+                    
+                    encoded_paragraphs = [ai_instance._encode_text(p) for p in paragraphs if p.strip()]
+                    
+                    for text in encoded_paragraphs:
                         descriptive_key = text[:20].replace('\n', ' ') + '...'
                         docs_for_rag.append(Document(page_content=text, metadata={"source": "canon", "key": descriptive_key}))
                 else:
+                    # 主流程：智能聚合
                     logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 本地預解析成功，正在執行智能聚合...")
                     
-                    # --- 步驟 2: 智能聚合與格式化 ---
                     npc_profiles = parsed_canon.npc_profiles or []
                     world_lores = parsed_canon.world_lores or []
                     
-                    # 創建一個 world_lores 的查找表，方便快速查找
-                    world_lore_map = {lore.name: lore for lore in world_lores}
+                    world_lore_map = {lore.name: lore for lore in world_lores if hasattr(lore, 'name')}
                     
                     # 處理 NPC 檔案
                     for profile in npc_profiles:
-                        # 將 NPC profile 本身格式化為文檔
-                        base_doc_text = ai_instance._format_lore_into_document_content(profile, 'npc_profile')
-                        
-                        # 查找與其 aliases 相關的規則
+                        base_doc_text = ai_instance._format_lore_into_document_content(profile, 'characterprofile')
                         related_rules_text = []
                         aliases = profile.aliases or []
                         for alias in aliases:
-                            # 簡單的關鍵詞匹配
                             for lore_title, lore_content in world_lore_map.items():
-                                if alias in lore_title or alias in lore_content.content:
-                                    rule_text = ai_instance._format_lore_into_document_content(lore_content, 'world_lore')
+                                if alias in lore_title or (hasattr(lore_content, 'content') and alias in lore_content.content):
+                                    rule_text = ai_instance._format_lore_into_document_content(lore_content, 'worldlore')
                                     related_rules_text.append(rule_text)
                         
-                        # 智能聚合
                         aggregated_text = base_doc_text
                         if related_rules_text:
                             aggregated_text += "\n\n--- 相關規則 ---\n" + "\n\n".join(list(set(related_rules_text)))
                         
-                        # 編碼並創建 Document
                         encoded_text = ai_instance._encode_text(aggregated_text)
                         docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": profile.name}))
                         
                     # 處理剩餘的、未被聚合的 LORE
-                    aggregated_lore_titles = {lore.name for lore in world_lores if any(alias in lore.name or alias in lore.content for profile in npc_profiles for alias in profile.aliases)}
-                    remaining_lores = [lore for lore in world_lores if lore.name not in aggregated_lore_titles]
+                    aggregated_lore_titles = {
+                        lore.name for lore in world_lores 
+                        if hasattr(lore, 'name') and any(
+                            alias in lore.name or (hasattr(lore, 'content') and alias in lore.content)
+                            for profile in npc_profiles for alias in (profile.aliases or [])
+                        )
+                    }
+                    remaining_lores = [lore for lore in world_lores if hasattr(lore, 'name') and lore.name not in aggregated_lore_titles]
                     
                     remaining_other_lores = (parsed_canon.locations or []) + (parsed_canon.items or []) + (parsed_canon.creatures or []) + (parsed_canon.quests or [])
                     
                     for lore_obj in remaining_lores + remaining_other_lores:
+                        # 確保 lore_obj 有 name 或 title 屬性
+                        key_attr = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', 'Unknown')
                         doc_text = ai_instance._format_lore_into_document_content(lore_obj, lore_obj.__class__.__name__.lower())
                         encoded_text = ai_instance._encode_text(doc_text)
-                        docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": getattr(lore_obj, 'name', '')}))
+                        docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": key_attr}))
 
             # --- 步驟 3: 構建 RAG 索引 ---
-            logger.info(f"[{user_id}] [後台創世] 步驟 3/3: 聚合完成，正在使用 {len(docs_for_rag)} 條高度相關的文檔觸發 RAG 索引創始構建...")
+            logger.info(f"[{user_id}] [後台創世] 步驟 3/3: 數據準備完成，正在使用 {len(docs_for_rag)} 條文檔觸發 RAG 索引創始構建...")
             await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
             logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
 
@@ -1205,7 +1213,8 @@ class BotCog(commands.Cog, name="BotCog"):
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
-            # ... (錯誤處理保持不變) ...
+            try: await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
+            except discord.errors.HTTPException as send_e: logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
@@ -1870,6 +1879,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
