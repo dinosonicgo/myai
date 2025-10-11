@@ -1425,7 +1425,43 @@ class AILover:
 # 函式：獲取本地RAG重排器 Prompt (v1.0 - 全新創建)
 
 
+# 函式：將單條 LORE 物件格式化為 RAG 文檔內容 (v1.0 - 全新創建)
+# 更新紀錄:
+# v1.0 (2025-12-11): [全新創建] 根據「本地預處理」+「智能聚合」架構的需求，創建此核心輔助函式。它的職責是接收一個結構化的 LORE Pydantic 物件（如 CharacterProfile），並將其轉換為一段對 RAG 友好的、人類可讀的文本描述字符串，供後續的聚合與編碼使用。
+    def _format_lore_into_document_content(self, lore_obj: BaseModel, category: str) -> str:
+        """將一個 LORE Pydantic 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
+        text_parts = []
+        
+        # 統一獲取 name 或 title
+        title = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', '未知標題')
 
+        category_map = {
+            "characterprofile": "NPC 檔案", "locationinfo": "地點資訊",
+            "iteminfo": "物品資訊", "creatureinfo": "生物資訊",
+            "quest": "任務日誌", "worldlore": "世界傳說"
+        }
+        category_name = category_map.get(category, category)
+
+        text_parts.append(f"【{category_name}: {title}】")
+        
+        lore_dict = lore_obj.model_dump()
+        
+        for key, value in lore_dict.items():
+            if value and key not in ['name', 'title']:
+                key_str = key.replace('_', ' ').capitalize()
+                
+                if isinstance(value, list) and value:
+                    value_str = ", ".join(map(str, value))
+                    text_parts.append(f"- {key_str}: {value_str}")
+                elif isinstance(value, dict) and value:
+                    dict_str = "; ".join([f"{k}: {v}" for k, v in value.items()])
+                    text_parts.append(f"- {key_str}: {dict_str}")
+                elif isinstance(value, (str, int, float, bool)) and str(value).strip():
+                    value_str = str(value).replace('\n', ' ')
+                    text_parts.append(f"- {key_str}: {value_str}")
+
+        return "\n".join(text_parts)
+# 函式：將單條 LORE 物件格式化為 RAG 文檔內容 結束
 
 
     
@@ -6269,6 +6305,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
