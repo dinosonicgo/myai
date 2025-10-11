@@ -1129,7 +1129,7 @@ class BotCog(commands.Cog, name="BotCog"):
             if canon_text and canon_text.strip():
                 # --- 步驟 1: 本地、無審查的 LORE 粗解析 ---
                 logger.info(f"[{user_id}] [後台創世] 步驟 1/3: 正在調用本地 Ollama 模型進行無審查預解析...")
-                parsed_canon = await ai_instance._invoke_local_ollama_parser(canon_text)
+                pafinal_profiles = await ai_instance.parse_and_create_lore_from_canon(canon_text)canon_text)
 
                 # --- 步驟 2: 智能聚合 或 程式級備援 ---
                 if not parsed_canon:
@@ -1892,6 +1892,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
