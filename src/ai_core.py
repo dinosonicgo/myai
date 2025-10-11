@@ -5046,14 +5046,15 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v19.0 - 鳳凰架構)
+# 函式：解析並從世界聖經創建LORE (v20.0 - 蠻力備援)
 # 更新紀錄:
+# v20.0 (2025-10-11): [災難性BUG修復] 新增了「蠻力備援」機制。當結構化解析完全失敗但原文存在時，會將整個世界聖經原文作為單一 LORE 條目存入，確保 RAG 索引永不為空。
 # v19.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，重構了 `_resolve_and_save` 的調用方式，將解析出的數據作為 `narrative_content` 存儲，並傳入一個空的 `structured_content`，以適配新的混合式LORE模型。
 # v18.1 (2025-10-04): [架構驗證] 確認此函式的同步執行特性符合新的原生、串行化創世流程。
-# v18.0 (2025-10-02): [災難性BUG修復] 徹底移除了此函式末尾對 `asyncio.create_task` 的調用。
     async def parse_and_create_lore_from_canon(self, canon_text: str):
         """
-        【總指揮 v19.0】執行 LORE 解析管線，並將結果以混合式LORE結構存入 SQL 資料庫。
+        【總指揮 v20.0】執行 LORE 解析管線，並將結果以混合式LORE結構存入 SQL 資料庫。
+        內置「蠻力備援」，確保在解析失敗時 RAG 索引依然有內容。
         """
         if not self.profile:
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入。")
@@ -5064,8 +5065,26 @@ class ExtractionResult(BaseModel):
         is_successful, parsing_result_object, _ = await self._execute_lore_parsing_pipeline(canon_text)
 
         if not is_successful or not parsing_result_object:
-            logger.error(f"[{self.user_id}] [數據入口-軌道B] LORE 解析管線最終失敗，無法創建結構化 LORE。")
-            return
+            # [v20.0 核心修正] 蠻力備援機制
+            if canon_text and canon_text.strip():
+                logger.warning(f"[{self.user_id}] [數據入口-軌道B] LORE 結構化解析失敗！正在觸發【蠻力備援】...")
+                logger.warning("   -> 將整個世界聖經原文作為單一'world_lore'條目存入資料庫，以確保 RAG 索引不為空。")
+                try:
+                    await lore_book.add_or_update_lore(
+                        self.user_id,
+                        'world_lore',
+                        "世界 > 世界聖經原文", # 一個獨特且具描述性的 key
+                        structured_content={"title": "世界聖經原文"},
+                        narrative_content=canon_text,
+                        source='canon_parser_fallback'
+                    )
+                    logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 蠻力備援成功。")
+                except Exception as e:
+                    logger.error(f"[{self.user_id}] [數據入口-軌道B] 🔥 蠻力備援存儲時發生嚴重錯誤: {e}", exc_info=True)
+                return # 備援已執行，終止後續流程
+            else:
+                logger.error(f"[{self.user_id}] [數據入口-軌道B] LORE 解析管線最終失敗，且無原文可供備援，無法創建結構化 LORE。")
+                return
 
         # 關鍵：將解析出的數據視為 "narrative_content"，並為其創建一個空的 "structured_content"
         async def resolve_and_save_as_hybrid(category_str: str, items: List[Dict[str, Any]], title_key: str = 'name'):
@@ -5112,7 +5131,7 @@ class ExtractionResult(BaseModel):
         await resolve_and_save_as_hybrid("world_lores", [p.model_dump(by_alias=True) for p in parsing_result_object.world_lores])
         
         logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 解析完成，已將世界聖經數據作為【混合式 LORE】存入 SQL 資料庫。")
-# 函式：解析並從世界聖經創建LORE (v19.0 - 鳳凰架構)
+# 函式：解析並從世界聖經創建LORE 結束
 
 
 
@@ -6305,6 +6324,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
