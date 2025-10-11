@@ -1,29 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T00:43:26.643632 ###
+### AI Lover Log - Last updated at 2025-10-12T00:47:18.836342 ###
 
-2025-10-11 22:56:59 - [INFO] - ✅ 指令已全域同步！
-2025-10-11 22:56:59 - [INFO] - Discord Bot setup hook finished!
-2025-10-11 22:57:02 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-11 22:57:02 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-11 23:00:31 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-11 23:00:31 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-11 23:00:31 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-11 23:00:31 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-11 23:00:33 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-11 23:00:38 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-11 23:00:38 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-11 23:00:38 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-11 23:00:38 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-11 23:00:38 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-11 23:00:38 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-11 23:00:52 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-11 23:00:52 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-11 23:00:52 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-11 23:00:52 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-11 23:00:52 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 23:00:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-11 23:01:02 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-11 23:01:03 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-11 23:01:03 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
 2025-10-11 23:01:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
 2025-10-11 23:01:21 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
 2025-10-11 23:01:21 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
@@ -278,6 +254,30 @@ AttributeError: 'list' object has no attribute 'npc_profiles'
 2025-10-12 00:35:09 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
 2025-10-12 00:37:57 - [INFO] - 正在加載核心 Cog (core_cog)...
 2025-10-12 00:37:57 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
+Traceback (most recent call last):
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
+    spec.loader.exec_module(lib)  # type: ignore
+  File "<frozen importlib._bootstrap_external>", line 879, in exec_module
+  File "<frozen importlib._bootstrap_external>", line 1017, in get_code
+  File "<frozen importlib._bootstrap_external>", line 947, in source_to_code
+  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1132
+    pafinal_profiles = await ai_instance.parse_and_create_lore_from_canon(canon_text)canon_text)
+                                                                                               ^
+SyntaxError: unmatched ')'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
+    await self.load_extension("src.cogs.core_cog")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
+    await self._load_from_module_spec(spec, name)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
+    raise errors.ExtensionFailed(key, e) from e
+discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
+2025-10-12 00:47:04 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 00:47:04 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
 Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
     spec.loader.exec_module(lib)  # type: ignore
