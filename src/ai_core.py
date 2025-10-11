@@ -6068,15 +6068,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：檢索並總結記憶 (v27.1 - 數據流修復)
+# 函式：檢索並總結記憶 (v27.4 - 健壯去重)
 # 更新紀錄:
-# v27.1 (2025-12-10): [災難性BUG修復] 根據日誌分析，修復了兩個導致 RAG 系統完全失效的致命錯誤。1. 修正了傳遞給 LLM 重排器的文檔數據結構，確保 `document_id` 始終存在且唯一。2. 將重排器失敗時的回退邏輯從錯誤的「獲取前0份文檔」修正為合理的「獲取前5份文檔」，確保即使在重排失敗時，RAG 也能提供基礎上下文。
-# v27.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重寫此函式。實現了包含「查詢編碼」、「軌道化檢索」、「安全重排（冷數據流）」和「原文提取（熱數據流）」的完整雙軌RAG管線。
-# v26.0 (2025-12-08): [根本性重構] 根據“原文直通”策略，彻底移除了此函式中所有與呼叫 LLM 進行摘要相關的程式碼。
+# v27.4 (2025-12-10): [災難性BUG修復] 根據使用者對關鍵資訊被去重的反饋，徹底重構了函式的去重邏輯。舊的基於 `original_id` 的去重方法在元數據出錯時會隨機丟棄內容不同的關鍵文檔。新版本改為使用【基於內容】的去重策略（以 `doc.page_content` 為鍵），確保只有完全重複的文檔會被移除，從根本上解決了因去重邏輯不當而導致上下文信息丟失的致命問題。
+# v27.3 (2025-12-10): [災難性BUG修復] 引入了【查詢擴展】機制，解決了 AI 忽略隱含 LORE 規則的問題。
+# v27.2 (2025-12-10): [災難性BUG修復] 徹底簡化了內部邏輯，移除了有缺陷的數據映射和去重步驟。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v27.1) 執行一個包含「軌道化檢索」、「安全重排」和「雙軌上下文」的完整鳳凰RAG管線。
-        返回一個字典: {"summary": str}，其中 summary 是拼接後的【原始未審查】文本。
+        (v27.4) 執行一個包含「查詢擴展」和「雙軌上下文」的完整鳳凰RAG管線。
         """
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever:
@@ -6086,114 +6085,124 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [鳳凰RAG] 啟動，原始查詢: '{query_text[:50]}...'")
 
         try:
-            # --- 步驟 1: 查詢編碼 (進入潔淨領域) ---
-            encoded_query = self._encode_text(query_text)
-            logger.info(f"[{self.user_id}] [鳳凰RAG-1/5] 查詢已編碼。")
+            # --- 步驟 1: 查詢擴展 ---
+            expanded_query = query_text
+            try:
+                entities = await self._extract_entities_from_input(query_text)
+                if entities:
+                    logger.info(f"[{self.user_id}] [查詢擴展] 識別出核心實體: {entities}")
+                    identity_keywords = set()
+                    
+                    # 使用 asyncio.gather 並行查詢 LORE
+                    lore_tasks = []
+                    for entity_name in entities:
+                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') == entity_name))
+                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'world_lore', lambda c: c.get('title') == entity_name))
+                    
+                    results = await asyncio.gather(*lore_tasks)
+                    for lores in results:
+                        for lore in lores:
+                            if lore.structured_content and 'aliases' in lore.structured_content:
+                                identity_keywords.update(lore.structured_content['aliases'])
+                    
+                    if identity_keywords:
+                        expansion_context = "。相關背景身份：" + "、".join(identity_keywords)
+                        expanded_query = query_text + expansion_context
+                        logger.info(f"[{self.user_id}] [查詢擴展] 查詢已擴展為: '{expanded_query[:100]}...'")
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] [查詢擴展] 查詢擴展步驟失敗: {e}，將使用原始查詢。")
 
-            # --- 步驟 2: 並行軌道化查詢 (在潔淨RAG索引中) ---
-            # 直接使用 retriever，它內部是 EnsembleRetriever，會同時查詢向量和關鍵詞
+            # --- 步驟 2: 查詢編碼 & 混合檢索 ---
+            encoded_query = self._encode_text(expanded_query)
+            logger.info(f"[{self.user_id}] [鳳凰RAG-1/5] 查詢已編碼，正在執行混合檢索...")
+            
             candidate_docs = await self.retriever.ainvoke(encoded_query)
 
             if not candidate_docs:
                 logger.info(f"[{self.user_id}] [鳳凰RAG-2/5] 混合檢索器未返回任何候選文檔。")
                 return default_return
-            
-            # 去重
-            unique_docs_map = {doc.metadata.get('original_id'): doc for doc in candidate_docs if doc.metadata.get('original_id') is not None}
-            candidate_docs = list(unique_docs_map.values())
 
-            if not candidate_docs:
+            # --- 步驟 3: [v27.4 核心修正] 基於內容的健壯去重 ---
+            unique_docs_by_content = {doc.page_content: doc for doc in candidate_docs}
+            docs_for_reranker = list(unique_docs_by_content.values())
+
+            if not docs_for_reranker:
                 logger.info(f"[{self.user_id}] [鳳凰RAG-2/5] 去重後無有效候選文檔。")
                 return default_return
 
-            logger.info(f"[{self.user_id}] [鳳凰RAG-2/5] 混合檢索成功，去重後共獲得 {len(candidate_docs)} 份候選文檔。")
+            logger.info(f"[{self.user_id}] [鳳凰RAG-2/5] 混合檢索成功，去重後共獲得 {len(docs_for_reranker)} 份候選文檔。")
 
-            # --- 步驟 3: 冷數據流 - 安全 LLM 重排 ---
-            # [v27.1 核心修正 1] 確保傳遞給重排器的 document_id 是唯一的且存在的
-            docs_for_reranker = [
-                {"document_id": idx, "original_content": doc.page_content, "metadata": doc.metadata}
-                for idx, doc in enumerate(candidate_docs)
-            ]
+            # --- 步驟 4: 冷數據流 - 安全 LLM 重排 ---
+            reranker_input = [{"document_id": i, "original_content": doc.page_content} for i, doc in enumerate(docs_for_reranker)]
             
             class RerankedDoc(BaseModel):
-                document_id: int # 現在對應 docs_for_reranker 的索引
+                document_id: int
                 original_content: str
             class RerankerResult(BaseModel):
                 relevant_documents: List[RerankedDoc]
             
-            reranker_result = None
             top_k_docs = []
-
             try:
                 reranker_prompt_template = self.get_rag_reranker_prompt()
-                # 傳遞給 Prompt 的 JSON 不再需要 metadata，以簡化
-                reranker_json_input = [{"document_id": d["document_id"], "original_content": d["original_content"]} for d in docs_for_reranker]
-
                 reranker_prompt = self._safe_format_prompt(
                     reranker_prompt_template,
-                    {
-                        "query_text": encoded_query,
-                        "documents_json": json.dumps(reranker_json_input, ensure_ascii=False, indent=2)
-                    }
+                    {"query_text": encoded_query, "documents_json": json.dumps(reranker_input, ensure_ascii=False)}
                 )
                 reranker_result = await self.ainvoke_with_rotation(
-                    reranker_prompt, 
-                    output_schema=RerankerResult,
-                    retry_strategy='none',
-                    models_to_try_override=[FUNCTIONAL_MODEL]
+                    reranker_prompt, output_schema=RerankerResult, retry_strategy='none', models_to_try_override=[FUNCTIONAL_MODEL]
                 )
+                if reranker_result and reranker_result.relevant_documents:
+                    reranked_indices = {d.document_id for d in reranker_result.relevant_documents}
+                    top_k_docs = [docs_for_reranker[i] for i in sorted(list(reranked_indices)) if i < len(docs_for_reranker)][:7]
+                    logger.info(f"[{self.user_id}] [鳳凰RAG-3/5] LLM重排器成功，篩選出 {len(top_k_docs)} 份最相關文檔。")
+                else:
+                    raise ValueError("重排器返回空結果")
             except Exception as e:
-                 logger.warning(f"[{self.user_id}] [鳳凰RAG-3/5] LLM重排器失敗 ({type(e).__name__})，將跳過重排，使用原始檢索結果。")
-
-            if reranker_result and reranker_result.relevant_documents:
-                # 根據返回的 document_id (索引) 重新映射回原始的 candidate_docs
-                reranked_indices = {doc.document_id for doc in reranker_result.relevant_documents}
-                top_k_docs = [docs_for_reranker[i] for i in sorted(list(reranked_indices)) if i < len(docs_for_reranker)][:7]
-                logger.info(f"[{self.user_id}] [鳳凰RAG-3/5] LLM重排器成功，篩選出 {len(top_k_docs)} 份最相關文檔。")
-            else:
-                # [v27.1 核心修正 2] 備援邏輯修正為獲取前 5 份
-                top_k_docs = docs_for_reranker[:5]
-                logger.info(f"[{self.user_id}] [鳳凰RAG-3/5] LLM重排器失敗，回退使用原始檢索的前 {len(top_k_docs)} 份文檔。")
+                 logger.warning(f"[{self.user_id}] [鳳凰RAG-3/5] LLM重排器失敗 ({type(e).__name__})，回退使用原始檢索結果。")
+                 top_k_docs = docs_for_reranker[:5]
 
             if not top_k_docs:
                  logger.info(f"[{self.user_id}] [鳳凰RAG] 最終沒有可用的文檔。")
                  return default_return
             
-            # --- 步驟 4: 熱數據流 - 提取原始未審查文本 ---
-            top_k_doc_ids_by_source = defaultdict(list)
-            for doc_data in top_k_docs:
-                source = doc_data["metadata"].get("source")
-                original_id = doc_data["metadata"].get("original_id")
-                if source and original_id is not None:
-                    top_k_doc_ids_by_source[source].append(original_id)
-
-            async with AsyncSessionLocal() as session:
-                final_raw_contents = []
+            # --- 步驟 5: 熱數據流 - 提取原始未審查文本 ---
+            final_raw_contents = []
+            for doc in top_k_docs:
+                source = doc.metadata.get('source')
+                # 內容解碼現在統一在這裡處理
+                decoded_content = self._decode_lore_content(doc.page_content)
                 
-                history_ids = top_k_doc_ids_by_source.get("history", [])
-                if history_ids:
-                    stmt_history = select(MemoryData.content).where(MemoryData.id.in_(history_ids))
-                    result_history = await session.execute(stmt_history)
-                    final_raw_contents.extend(result_history.scalars().all())
+                # 如果是 LORE 或 history，我們可以嘗試從資料庫獲取最新、最完整的原文
+                original_id = doc.metadata.get('original_id')
+                was_fetched_from_db = False
+                if original_id and original_id > 0: # 負數 ID 是臨時的
+                    async with AsyncSessionLocal() as session:
+                        if source == 'history':
+                            db_entry = await session.get(MemoryData, original_id)
+                            if db_entry and db_entry.content:
+                                final_raw_contents.append(db_entry.content)
+                                was_fetched_from_db = True
+                        elif source == 'lore':
+                            db_entry = await session.get(Lore, original_id)
+                            if db_entry:
+                                structured = db_entry.structured_content or {}
+                                narrative = db_entry.narrative_content or ""
+                                title = structured.get('name') or structured.get('title') or db_entry.key
+                                final_raw_contents.append(f"【LORE檔案: {title}】\n結構化數據: {json.dumps(structured, ensure_ascii=False)}\n敘事描述:\n{narrative}")
+                                was_fetched_from_db = True
+                
+                # 如果無法從資料庫獲取（例如 canon 或 臨時文檔），則使用解碼後的 page_content
+                if not was_fetched_from_db:
+                    final_raw_contents.append(decoded_content)
 
-                lore_ids = top_k_doc_ids_by_source.get("lore", [])
-                if lore_ids:
-                    stmt_lore = select(Lore).where(Lore.id.in_(lore_ids))
-                    result_lore = await session.execute(stmt_lore)
-                    lore_objects = result_lore.scalars().all()
-                    for lore in lore_objects:
-                        structured = lore.structured_content or {}
-                        narrative = lore.narrative_content or ""
-                        title = structured.get('name') or structured.get('title') or lore.key
-                        final_raw_contents.append(f"【LORE檔案: {title}】\n結構化數據: {json.dumps(structured, ensure_ascii=False)}\n敘事描述:\n{narrative}")
 
             if not final_raw_contents:
-                logger.info(f"[{self.user_id}] [鳳凰RAG-4/5] 未能根據ID提取到任何原始文本。")
+                logger.info(f"[{self.user_id}] [鳳凰RAG-4/5] 未能根據ID或內容提取到任何原始文本。")
                 return default_return
 
             logger.info(f"[{self.user_id}] [鳳凰RAG-4/5] 成功提取 {len(final_raw_contents)} 份原始未審查文本。")
 
-            # --- 步驟 5: 拼接最終上下文 ---
+            # --- 步驟 6: 拼接最終上下文 ---
             final_summary = "\n\n---\n\n".join(final_raw_contents)
             summary_context_header = f"【背景歷史參考（來自RAG的 {len(final_raw_contents)} 條高相關性原始記錄）】:\n"
             final_context = summary_context_header + final_summary
@@ -6311,6 +6320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
