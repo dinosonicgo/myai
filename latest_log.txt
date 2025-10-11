@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T01:15:53.190095 ###
+### AI Lover Log - Last updated at 2025-10-12T01:22:46.618416 ###
 
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '新·性神教'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '與快感'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '(Lina)'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '瓦勒留斯 (Valerius'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '伊索爾德'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '夏卡爾'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '王位繼'
-2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '卡爾•'
 2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '王國之盾'
 2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '王國將領'
 2025-10-11 23:04:47 - [INFO] - [512280345618546699] [智能聚合] 已成功轉換並添加 LORE: '聖女'
@@ -300,3 +292,11 @@ Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 310, in upload_canon
     asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
 TypeError: BotCog._perform_full_setup_flow() got an unexpected keyword argument 'user'
+2025-10-12 01:22:31 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 01:22:37 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 01:22:37 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 01:22:37 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 01:22:38 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 01:22:38 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 01:22:40 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 01:22:42 - [INFO] - 已成功發送啟動成功通知給管理員。
