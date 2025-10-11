@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T00:47:18.836342 ###
+### AI Lover Log - Last updated at 2025-10-12T00:49:39.877459 ###
 
-2025-10-11 23:01:04 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-11 23:01:21 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-11 23:01:21 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-11 23:01:21 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-11 23:01:22 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-11 23:01:28 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-11 23:01:31 - [INFO] - [512280345618546699] [創世流程 v66.2] 啟動【本地預處理 + 智能聚合】流程...
-2025-10-11 23:01:31 - [INFO] - [512280345618546699] [後台創世] 步驟 1/3: 正在調用本地 Ollama 模型進行無審查預解析...
 2025-10-11 23:01:31 - [INFO] - [512280345618546699] [本地混合解析] 正在啟動 v2.0 混合解析管線...
 2025-10-11 23:01:31 - [INFO] - [512280345618546699] [本地混合解析-1/3] 正在執行程式化預處理...
 2025-10-11 23:01:34 - [INFO] - [512280345618546699] [本地混合解析-1/3] spaCy 初步識別出 67 個潛在NPC實體: {'施予者', '與女', '何凡人', '艾拉', '簡化', '葛瑞塔', 'God', '王權與', '設定集', '掘井人', '王國', '朱利安', '埃德蒙三', '九個月', 'Stick Enhancement', '新·性神教', '與快感', '(Lina)', '瓦勒留斯 (Valerius', '伊索爾德', '夏卡爾', '王位繼', '卡爾•', '王國之盾', '王國將領', '聖女', '艾莉諾', '與韌性', '(Bane)', '瓦萊', '王心湖', '為馬夫', '琳學院', 'Lilith', '來問罪', '與湯姆', '動搖國', '聖光明', '納將', '菲利普', '與歲月', '(Kael)', '王都', '利爾斯家', '與動物', '埃德蒙', '與身邊', 'n)', '王室', '艾莉', '為王室', '艾蜜莉', '與容器', '莉莉', '夏卡爾那', '聖十字軍', '王決心', '與傳聞', '阿拉里克', '爾斯勳', '王權', '暗示性', '將軍', '(Broodmare', 'Valerius', '挫敗感', 'Enhancement'}
@@ -300,3 +292,11 @@ Traceback (most recent call last):
   File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
     raise errors.ExtensionFailed(key, e) from e
 discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
+2025-10-12 00:49:25 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 00:49:31 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 00:49:31 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 00:49:31 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 00:49:31 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 00:49:31 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 00:49:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 00:49:34 - [INFO] - 已成功發送啟動成功通知給管理員。
