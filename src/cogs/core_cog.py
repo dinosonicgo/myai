@@ -1104,23 +1104,26 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：執行完整的後台創世流程 (v66.1 - 程式級備援升級)
+# 函式：執行完整的後台創世流程 (v66.2 - 智能聚合健壯性修復)
 # 更新紀錄:
-# v66.1 (2025-12-11): [健壯性強化] 根據使用者對備援方案的質詢，徹底重構了本地模型預解析失敗時的回退邏輯。舊的「機械分割」方案被替換為更智能的【基於段落的語義分塊】策略。新備援方案會按原文的空行（段落）進行分割，最大限度地保留了文本的語義完整性，確保即使在 LLM 解析失敗的極端情況下，RAG 索引的質量也能得到基本保證。
-# v66.0 (2025-12-11): [重大架構重構] 引入了【本地預處理】+【智能聚合】策略，從源頭保證知識的原子性。
-# v65.4 (2025-12-11): [健壯性強化] 為 canon 文檔的元數據新增了描述性的 key，以提高日誌的可讀性。
+# v66.2 (2025-12-11): [災難性BUG修復] 根據 RAG 索引為空的日誌，徹底重構並加固了【智能聚合】邏輯。新版本增加了對本地模型返回數據的防禦性檢查（例如 `hasattr`），確保即使 LORE 物件缺少某些屬性，流程也不會中斷。同時，在聚合循環的內部增加了詳細的調試日誌，用於追蹤每一個 LORE 物件是否被成功轉換和添加，從根本上解決了因數據結構不匹配而導致靜默失敗、最終生成空 RAG 索引的致命問題。
+# v66.1 (2025-12-11): [健壯性強化] 升級了本地模型解析失敗時的回退邏輯，從「機械分割」升級為「基於段落的語義分塊」。
+# v66.0 (2025-12-11): [重大架構重構] 引入了【本地預處理】+【智能聚合】策略。
     async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
-        """(v66.1) 執行包含「本地預處理」和「智能聚合」的後台創世流程。"""
+        """(v66.2) 執行包含「本地預處理」和「智能聚合」的後台創世流程。"""
         user_id = str(user.id)
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
         if not ai_instance or not ai_instance.profile:
-            try: await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
-            except discord.errors.Forbidden: logger.warning(f"無法向使用者 {user_id} 發送創世失敗訊息（可能被屏蔽）。")
-            finally: self.active_setups.discard(user_id)
+            try:
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+            except discord.errors.Forbidden:
+                logger.warning(f"無法向使用者 {user_id} 發送創世失敗訊息（可能被屏蔽）。")
+            finally:
+                self.active_setups.discard(user_id)
             return
 
         try:
-            logger.info(f"[{user_id}] [創世流程 v66.1] 啟動【本地預處理 + 智能聚合】流程...")
+            logger.info(f"[{user_id}] [創世流程 v66.2] 啟動【本地預處理 + 智能聚合】流程...")
             
             docs_for_rag = []
             if canon_text and canon_text.strip():
@@ -1142,50 +1145,56 @@ class BotCog(commands.Cog, name="BotCog"):
                         descriptive_key = text[:20].replace('\n', ' ') + '...'
                         docs_for_rag.append(Document(page_content=text, metadata={"source": "canon", "key": descriptive_key}))
                 else:
-                    # 主流程：智能聚合
+                    # 主流程：更健壯的智能聚合
                     logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 本地預解析成功，正在執行智能聚合...")
                     
-                    npc_profiles = parsed_canon.npc_profiles or []
-                    world_lores = parsed_canon.world_lores or []
-                    
-                    world_lore_map = {lore.name: lore for lore in world_lores if hasattr(lore, 'name')}
-                    
-                    # 處理 NPC 檔案
-                    for profile in npc_profiles:
-                        base_doc_text = ai_instance._format_lore_into_document_content(profile, 'characterprofile')
-                        related_rules_text = []
-                        aliases = profile.aliases or []
-                        for alias in aliases:
-                            for lore_title, lore_content in world_lore_map.items():
-                                if alias in lore_title or (hasattr(lore_content, 'content') and alias in lore_content.content):
-                                    rule_text = ai_instance._format_lore_into_document_content(lore_content, 'worldlore')
-                                    related_rules_text.append(rule_text)
+                    all_lores_to_process = []
+                    # 將所有解析出的 LORE 物件收集到一個列表中，並附帶其類型
+                    if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
+                    if parsed_canon.locations: all_lores_to_process.extend([(l, 'locationinfo') for l in parsed_canon.locations])
+                    if parsed_canon.items: all_lores_to_process.extend([(i, 'iteminfo') for i in parsed_canon.items])
+                    if parsed_canon.creatures: all_lores_to_process.extend([(c, 'creatureinfo') for c in parsed_canon.creatures])
+                    if parsed_canon.quests: all_lores_to_process.extend([(q, 'quest') for q in parsed_canon.quests])
+                    if parsed_canon.world_lores: all_lores_to_process.extend([(w, 'worldlore') for w in parsed_canon.world_lores])
+
+                    logger.info(f"[{user_id}] [智能聚合] 本地模型共解析出 {len(all_lores_to_process)} 個 LORE 物件。")
+
+                    # 遍歷所有 LORE 物件，將它們轉換為 RAG 文檔
+                    for lore_obj, category_name in all_lores_to_process:
+                        try:
+                            # 健壯性檢查：確保物件有 'name' 或 'title'
+                            if not hasattr(lore_obj, 'name') and not hasattr(lore_obj, 'title'):
+                                logger.warning(f"[{user_id}] [智能聚合] 跳過一個沒有 name 或 title 的 LORE 物件。")
+                                continue
+                            
+                            key_attr = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', None)
+                            
+                            # 將 LORE 物件本身轉換為文本
+                            doc_text = ai_instance._format_lore_into_document_content(lore_obj, category_name)
+                            
+                            # 智能聚合邏輯：只對 NPC 進行規則聚合
+                            if category_name == 'characterprofile' and hasattr(lore_obj, 'aliases') and lore_obj.aliases:
+                                related_rules_text = []
+                                world_lores = parsed_canon.world_lores or []
+                                for alias in lore_obj.aliases:
+                                    for rule_lore in world_lores:
+                                        rule_title = getattr(rule_lore, 'name', None) or getattr(rule_lore, 'title', None)
+                                        rule_content = getattr(rule_lore, 'content', "")
+                                        if rule_title and (alias in rule_title or alias in rule_content):
+                                            rule_text = ai_instance._format_lore_into_document_content(rule_lore, 'worldlore')
+                                            related_rules_text.append(rule_text)
+                                
+                                if related_rules_text:
+                                    doc_text += "\n\n--- 相關規則 ---\n" + "\n\n".join(list(set(related_rules_text)))
+                                    logger.info(f"[{user_id}] [智能聚合] 成功為 '{key_attr}' 聚合了 {len(related_rules_text)} 條相關規則。")
+
+                            encoded_text = ai_instance._encode_text(doc_text)
+                            docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": key_attr}))
+                            logger.info(f"[{user_id}] [智能聚合] 已成功轉換並添加 LORE: '{key_attr}'")
                         
-                        aggregated_text = base_doc_text
-                        if related_rules_text:
-                            aggregated_text += "\n\n--- 相關規則 ---\n" + "\n\n".join(list(set(related_rules_text)))
-                        
-                        encoded_text = ai_instance._encode_text(aggregated_text)
-                        docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": profile.name}))
-                        
-                    # 處理剩餘的、未被聚合的 LORE
-                    aggregated_lore_titles = {
-                        lore.name for lore in world_lores 
-                        if hasattr(lore, 'name') and any(
-                            alias in lore.name or (hasattr(lore, 'content') and alias in lore.content)
-                            for profile in npc_profiles for alias in (profile.aliases or [])
-                        )
-                    }
-                    remaining_lores = [lore for lore in world_lores if hasattr(lore, 'name') and lore.name not in aggregated_lore_titles]
-                    
-                    remaining_other_lores = (parsed_canon.locations or []) + (parsed_canon.items or []) + (parsed_canon.creatures or []) + (parsed_canon.quests or [])
-                    
-                    for lore_obj in remaining_lores + remaining_other_lores:
-                        # 確保 lore_obj 有 name 或 title 屬性
-                        key_attr = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', 'Unknown')
-                        doc_text = ai_instance._format_lore_into_document_content(lore_obj, lore_obj.__class__.__name__.lower())
-                        encoded_text = ai_instance._encode_text(doc_text)
-                        docs_for_rag.append(Document(page_content=encoded_text, metadata={"source": "canon", "key": key_attr}))
+                        except Exception as e:
+                            logger.error(f"[{user_id}] [智能聚合] 處理 LORE 物件時發生錯誤: {e}", exc_info=True)
+
 
             # --- 步驟 3: 構建 RAG 索引 ---
             logger.info(f"[{user_id}] [後台創世] 步驟 3/3: 數據準備完成，正在使用 {len(docs_for_rag)} 條文檔觸發 RAG 索引創始構建...")
@@ -1219,6 +1228,10 @@ class BotCog(commands.Cog, name="BotCog"):
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 函式：執行完整的後台創世流程 結束
+
+
+
+    
 
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
@@ -1879,6 +1892,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
