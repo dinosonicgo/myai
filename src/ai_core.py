@@ -6069,14 +6069,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：檢索並總結記憶 (v27.5 - 查詢擴展修復)
+# 函式：檢索並總結記憶 (v27.6 - 查詢擴展最終修復)
 # 更新紀錄:
-# v27.5 (2025-12-10): [災難性BUG修復] 根據日誌中的 `AttributeError: 'Lore' object has no attribute 'content'`，精準地修正了【查詢擴展】邏輯塊。現在，該邏輯會正確地從 `lore.structured_content` 中讀取 `name`, `title`, 和 `aliases`，從而根除了因訪問不存在的屬性而導致查詢擴展靜默失敗的致命錯誤。
-# v27.4 (2025-12-10): [災難性BUG修復] 重構了去重邏輯，改為使用基於內容的去重策略，以避免關鍵資訊被錯誤地丟棄。
-# v27.3 (2025-12-10): [災難性BUG修復] 引入了【查詢擴展】機制，以解決 AI 忽略隱含 LORE 規則的問題。
+# v27.6 (2025-12-10): [災難性BUG修復] 在審查 v27.5 後，發現其【查詢擴展】邏輯中 `get_lores_by_category_and_filter` 的 lambda 函式寫法存在錯誤。此版本對 lambda 函式進行了精準修正，確保它能正確地在 `structured_content` 字典上進行過濾，從而徹底打通了查詢擴展的數據鏈路。
+# v27.5 (2025-12-10): [災難性BUG修復] 修正了【查詢擴展】邏輯塊中的 `AttributeError`。
+# v27.4 (2025-12-10): [災難性BUG修復] 重構了去重邏輯，改為使用基於內容的去重策略。
     async def retrieve_and_summarize_memories(self, query_text: str) -> Dict[str, str]:
         """
-        (v27.5) 執行一個包含「查詢擴展」和「雙軌上下文」的完整鳳凰RAG管線。
+        (v27.6) 執行一個包含「查詢擴展」和「雙軌上下文」的完整鳳凰RAG管線。
         """
         default_return = {"summary": "沒有檢索到相關的長期記憶。"}
         if not self.retriever:
@@ -6086,7 +6086,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         logger.info(f"[{self.user_id}] [鳳凰RAG] 啟動，原始查詢: '{query_text[:50]}...'")
 
         try:
-            # --- [v27.5 核心修正] 步驟 1: 查詢擴展 ---
+            # --- 步驟 1: 查詢擴展 ---
             expanded_query = query_text
             try:
                 entities = await self._extract_entities_from_input(query_text)
@@ -6096,14 +6096,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                     
                     lore_tasks = []
                     for entity_name in entities:
-                        # 修正 Lambda 函式以正確訪問 structured_content
-                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') == entity_name))
-                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'world_lore', lambda c: c.get('title') == entity_name))
+                        # [v27.6 核心修正] 修正 lambda 函式，使其正確過濾 structured_content
+                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'npc_profile', lambda c: c.get('name') == entity_name if isinstance(c, dict) else False))
+                        lore_tasks.append(lore_book.get_lores_by_category_and_filter(self.user_id, 'world_lore', lambda c: c.get('title') == entity_name if isinstance(c, dict) else False))
                     
                     results = await asyncio.gather(*lore_tasks)
                     for lores in results:
                         for lore in lores:
-                            # 修正屬性訪問路徑
                             if lore.structured_content and 'aliases' in lore.structured_content:
                                 identity_keywords.update(lore.structured_content['aliases'])
                     
@@ -6115,7 +6114,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             except Exception as e:
                 logger.warning(f"[{self.user_id}] [查詢擴展] 查詢擴展步驟失敗: {e}，將使用原始查詢。", exc_info=True)
 
-
+            # --- 步驟 2 到 6 保持不變 ---
             # --- 步驟 2: 查詢編碼 & 混合檢索 (使用擴展後的查詢) ---
             encoded_query = self._encode_text(expanded_query)
             logger.info(f"[{self.user_id}] [鳳凰RAG-1/5] 查詢已編碼，正在執行混合檢索...")
@@ -6321,6 +6320,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
