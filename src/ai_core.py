@@ -2380,13 +2380,13 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         return Document(page_content=encoded_text, metadata=metadata)
 # 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
 
-# 函式：從使用者輸入中提取實體 (v2.6 - 終極簡化)
+# 函式：從使用者輸入中提取實體 (v2.7 - 噪聲過濾)
 # 更新紀錄:
-# v2.6 (2025-12-11): [災難性BUG修復] 根據實體提取持續失敗的日誌，對此函式進行了終極簡化和重構。新版本徹底拋棄了不穩定的 spaCy NER 引擎，回歸到一個更純粹、更可靠的【高精度字典匹配】策略。它只從現有的 LORE 數據庫中查找已知的名稱和別名，確保了提取結果的絕對準確性，從根源上解決了因提取到無效詞組而導致查詢擴展失敗的問題。
+# v2.7 (2025-12-11): [健壯性強化] 根據日誌中實體提取包含 Prompt 模板關鍵詞（如“點類型”）的問題，增加了後置的噪聲過濾步驟。新版本會維護一個黑名單，並在返回結果前移除所有匹配黑名單的無效實體，進一步提高了提取結果的純淨度和準確性。
+# v2.6 (2025-12-11): [災難性BUG修復] 徹底拋棄了不穩定的 spaCy NER 引擎，回歸到更可靠的【高精度字典匹配】策略。
 # v2.5 (2025-12-10): [災難性BUG修復] 重構了字典匹配邏輯，確保優先匹配長名稱。
-# v2.4 (2025-12-10): [災難性BUG修復] 修正了數據訪問邏輯，使其能夠正確地從 `structured_content` 讀取 LORE 數據。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.6 - 高精度版) 僅使用高精度字典匹配，從使用者輸入中提取已知實體。"""
+        """(v2.7 - 高精度版) 僅使用高精度字典匹配，從使用者輸入中提取已知實體，並進行噪聲過濾。"""
         
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
@@ -2400,25 +2400,23 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
                 if name := (lore.structured_content.get("name") or lore.structured_content.get("title")): 
                     known_names.add(name)
                 if aliases := lore.structured_content.get("aliases"): 
-                    # 確保別名是字符串
                     known_names.update([str(alias) for alias in aliases if isinstance(alias, (str, int))])
         
         found_entities = set()
         
-        # [v2.6 核心修正] 使用更健壯的匹配策略
         if known_names:
-            # 按長度降序排序，確保優先匹配長名稱 (e.g., "維利爾斯勳爵" vs "勳爵")
             sorted_names = sorted([name for name in known_names if name], key=len, reverse=True)
-            
             for name in sorted_names:
-                # 使用正則表達式 whole word match 來避免部分匹配 (e.g., "DINO" 不會匹配到 "DINOSAUR")
-                # 但考慮到中文沒有空格，我們只做簡單的 in 檢查
                 if name in user_input:
                     found_entities.add(name)
         
-        if found_entities:
-            logger.info(f"[{self.user_id}] [高精度實體提取] 成功提取已知實體: {list(found_entities)}")
-            return list(found_entities)
+        # [v2.7 核心修正] 後置噪聲過濾
+        noise_blacklist = {"點類型", "**:", "議會廳", "王座廳", "指令", "世界觀", "嚴格篩選"}
+        final_entities = {entity for entity in found_entities if entity not in noise_blacklist and len(entity) > 1}
+
+        if final_entities:
+            logger.info(f"[{self.user_id}] [高精度實體提取] 成功提取並過濾實體: {list(final_entities)}")
+            return list(final_entities)
         
         logger.info(f"[{self.user_id}] [高精度實體提取] 未在輸入中找到任何已知的 LORE 實體。")
         return []
@@ -6271,6 +6269,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
