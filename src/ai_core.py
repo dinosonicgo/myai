@@ -1833,13 +1833,13 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型进行LORE解析 (v5.3 - 防禦性解析)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v5.4 - 逐批次容錯)
 # 更新紀錄:
-# v5.3 (2025-10-12): [健壯性強化] 增加了防禦性解析逻辑。现在能够智能判断本地LLM返回的JSON是完整的`BatchRefinementResult`、`CharacterProfile`列表、还是单个`CharacterProfile`物件，并从中正确提取数据，以应对本地模型输出格式不稳定的问题。
-# v5.2 (2025-10-12): [架構優化] 移除了內部的防禦性调动器。
+# v5.4 (2025-10-12): [健壯性強化] 實現了逐批次容錯。現在即使某个批次的LLM润色因超时等原因失败，流程也会继续尝试处理后续批次，并只对失败批次中的实体启用程式码备援，从而在不稳定的环境中最大化保留高质量的润色结果。
+# v5.3 (2025-10-12): [健壯性強化] 增加了防禦性解析逻辑。
     async def _invoke_local_ollama_parser(self, aggregated_facts_map: Dict[str, Dict[str, Any]]) -> Optional[CanonParsingResult]:
         """
-        (v5.3) 接收预处理好的事实数据点，尝试用本地LLM进行批次化润色，并在失败时执行纯程式码备援。
+        (v5.4) 接收预处理好的事实数据点，尝试用本地LLM进行批次化润色，并在失败时执行纯程式码备援。
         返回一个 CanonParsingResult 物件。
         """
         import httpx
@@ -1849,23 +1849,21 @@ class AILover:
             logger.error(f"[{self.user_id}] [本地执行单元] 接收到无效的输入类型: {type(aggregated_facts_map)}，流程终止。")
             return CanonParsingResult()
 
-        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.3 润色/备援流程...")
+        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.4 润色/备援流程...")
 
-        refined_profiles: List[CharacterProfile] = []
-        llm_refinement_failed = False
-        
-        try:
-            all_entities = list(aggregated_facts_map.keys())
-            if not all_entities:
-                return CanonParsingResult()
+        all_entities = list(aggregated_facts_map.keys())
+        if not all_entities:
+            return CanonParsingResult()
 
-            BATCH_SIZE = 3 
+        final_npc_profiles: List[CharacterProfile] = []
+        processed_names: set[str] = set()
+        BATCH_SIZE = 3 
             
-            for i in range(0, len(all_entities), BATCH_SIZE):
-                batch_names = all_entities[i:i+BATCH_SIZE]
-                logger.info(f"[{self.user_id}] [本地执行单元-LLM] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
-                
-                # ... [batch_input_data 和 payload 的构建逻辑保持不变] ...
+        for i in range(0, len(all_entities), BATCH_SIZE):
+            batch_names = all_entities[i:i+BATCH_SIZE]
+            logger.info(f"[{self.user_id}] [本地执行单元-LLM] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+            
+            try:
                 batch_input_data = []
                 for name in batch_names:
                     facts_data = aggregated_facts_map[name]
@@ -1888,7 +1886,7 @@ class AILover:
                     "model": self.ollama_model_name, "prompt": full_prompt,
                     "format": "json", "stream": False, "options": {"temperature": 0.2}
                 }
-
+                
                 async with httpx.AsyncClient(timeout=300.0) as client:
                     response = await client.post("http://localhost:11434/api/generate", json=payload)
                     response.raise_for_status()
@@ -1899,48 +1897,42 @@ class AILover:
                     match = re.search(r"```json\s*(\{.*\}|\[.*\])\s*```", json_string, re.DOTALL)
                     clean_json_str = match.group(1) if match else re.search(r'(\{.*\}|\[.*\])', json_string, re.DOTALL).group(0)
                     if not clean_json_str: raise ValueError("Failed to find any JSON object in the LLM response.")
-
                     parsed_json = json.loads(clean_json_str)
 
-                    # --- [v5.3 核心修正] 防御性解析层 ---
                     profiles_from_batch = []
                     if isinstance(parsed_json, dict) and "refined_profiles" in parsed_json:
-                        # 理想情况：模型返回了完整的 BatchRefinementResult 结构
                         profiles_from_batch = [CharacterProfile.model_validate(p) for p in parsed_json["refined_profiles"]]
                     elif isinstance(parsed_json, list):
-                        # 次优情况：模型返回了一个 CharacterProfile 对象的列表
                         profiles_from_batch = [CharacterProfile.model_validate(p) for p in parsed_json]
                     elif isinstance(parsed_json, dict):
-                        # 最差但可接受情况：模型只返回了单个 CharacterProfile 对象
                         profiles_from_batch = [CharacterProfile.model_validate(parsed_json)]
-                    else:
-                        raise ValueError(f"LLM 返回了无法识别的JSON结构: {type(parsed_json)}")
                     
-                    refined_profiles.extend(profiles_from_batch)
-        
-        except Exception as e:
-            logger.warning(f"[{self.user_id}] [本地执行单元-LLM] 🔥 LLM 批次化润色失败: {e}", exc_info=False) # 减少日志噪音
-            llm_refinement_failed = True
+                    final_npc_profiles.extend(profiles_from_batch)
+                    processed_names.update([p.name for p in profiles_from_batch])
+                    logger.info(f"[{self.user_id}] [本地执行单元-LLM] ✅ 批次 {i//BATCH_SIZE + 1} 成功完成。")
 
-        # --- 步骤 2: 最终聚合 (包含纯程式码备援) ---
-        final_npc_profiles: List[CharacterProfile] = []
-        if not llm_refinement_failed and refined_profiles:
-            logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ LLM 批次化润色成功！正在聚合结果...")
-            final_npc_profiles = refined_profiles
-        else:
-            logger.warning(f"[{self.user_id}] [本地执行单元-备援] 正在觸發【純程式碼備援方案】，以确保数据保真度...")
-            for name, facts in aggregated_facts_map.items():
-                profile = CharacterProfile(
-                    name=name,
-                    aliases=list(set(facts.get("verified_aliases", []))),
-                    age=facts.get("verified_age", "未知"),
-                    description="\n".join(facts.get("description_sentences", [""]))
-                )
-                final_npc_profiles.append(profile)
+            except Exception as e:
+                logger.warning(f"[{self.user_id}] [本地执行单元-LLM] 🔥 批次 {i//BATCH_SIZE + 1} 失敗: {e}", exc_info=False)
+                # 备援将在最后统一处理未成功的实体
+        
+        # --- 统一备援处理 ---
+        unprocessed_names = set(all_entities) - processed_names
+        if unprocessed_names:
+            logger.warning(f"[{self.user_id}] [本地执行单元-备援] 檢測到 {len(unprocessed_names)} 個实体未被LLM成功处理，正在觸發【純程式碼備援方案】...")
+            for name in unprocessed_names:
+                if name in aggregated_facts_map:
+                    facts = aggregated_facts_map[name]
+                    profile = CharacterProfile(
+                        name=name,
+                        aliases=list(set(facts.get("verified_aliases", []))),
+                        age=facts.get("verified_age", "未知"),
+                        description="\n".join(facts.get("description_sentences", [""]))
+                    )
+                    final_npc_profiles.append(profile)
             logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。")
 
         return CanonParsingResult(npc_profiles=final_npc_profiles)
-# 函式：呼叫本地Ollama模型进行LORE解析 结束
+# 函式：呼叫本地Ollama模型进行LORE解析 結束
 
 
     
@@ -6392,6 +6384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
