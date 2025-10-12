@@ -1,26 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T10:36:30.470833 ###
+### AI Lover Log - Last updated at 2025-10-12T10:41:50.561784 ###
 
-  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.1.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.2.name
-  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.3.name
-  Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.4.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.5.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.6.name
-  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.7.name
   Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 refined_profiles.8.name
@@ -300,3 +279,24 @@ NameError: name 'create_setup_graph' is not defined
 2025-10-12 10:36:25 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
 2025-10-12 10:36:25 - [INFO] - [512280345618546699] [本地执行单元] 正在启动 v5.3 润色/备援流程...
 2025-10-12 10:36:25 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 1/24...
+2025-10-12 10:36:36 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:36:45 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:36:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:12 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 2/24...
+2025-10-12 10:37:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:22 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:41 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:47 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:37:54 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:01 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:16 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:23 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:38:34 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] ✅ 雲端潤色軌道成功完成。
+2025-10-12 10:39:13 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 3/24...
