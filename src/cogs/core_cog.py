@@ -1242,31 +1242,39 @@ class BotCog(commands.Cog, name="BotCog"):
 # 查看角色檔案指令 函式結束
 
     
-# 函式：獲取或創建使用者的 AI 實例 (v1.1 - 簡化職責)
+# 函式：獲取或創建使用者的 AI 實例 (v2.0 - RAG即時構建)
 # 更新紀錄:
-# v1.1 (2025-12-11): [災難性BUG修復] 根據 RAG 索引在創世後丟失的致命問題，徹底重構了此函式的職責。它現在只負責 AI 實例的創建和基礎初始化（從資料庫加載數據）。RAG 索引的構建職責被明確地移交給更高層的協調器（如 `/start` 流程或 `on_message`），確保 RAG 索引只在需要時被構建一次，並在實例的整個生命週期內被正確保持。
-# v1.0 (2025-10-04): [全新創建] 將此核心邏輯從 discord_bot.py 遷移至此。
+# v2.0 (2025-10-12): [災難性BUG修復] 新增了RAG即時構建（Just-in-Time Build）機制。在成功初始化或創建實例後，此函數會立即檢查並在必要時觸發RAG索引的構建，確保在處理`on_message`時記憶系統永遠處於就緒狀態，從根源上解決`檢索器未初始化`的問題。
+# v1.1 (2025-12-11): [災難性BUG修復] 根據 RAG 索引在創世後丟失的致命問題，徹底重構了此函式的職責。
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> Optional[AILover]:
-        """(v1.1) 獲取或創建一個 AI 實例，並執行基礎初始化。RAG 索引的構建由調用者負責。"""
+        """(v2.0) 獲取或創建一個 AI 實例，並確保其 RAG 索引已構建。"""
         if user_id in self.ai_instances:
-            return self.ai_instances[user_id]
+            # 即使實例已存在，也檢查一次 RAG 是否就緒
+            existing_instance = self.ai_instances[user_id]
+            if not existing_instance.retriever:
+                logger.info(f"[{user_id}] 檢測到現有 AI 實例的 RAG 未就緒，正在為其構建...")
+                await existing_instance._load_or_build_rag_retriever()
+                logger.info(f"[{user_id}] ✅ 現有 AI 實例的 RAG 索引已成功構建。")
+            return existing_instance
         
         logger.info(f"使用者 {user_id} 沒有活躍的 AI 實例，嘗試創建...")
         ai_instance = AILover(user_id=user_id, is_ollama_available=self.is_ollama_available)
         
-        # 嘗試從資料庫加載現有數據
         if await ai_instance.initialize():
             logger.info(f"為使用者 {user_id} 成功從資料庫初始化 AI 實例。")
             await ai_instance._configure_pre_requisites()
+            # [v2.0 核心修正] RAG 即時構建
+            logger.info(f"[{user_id}] 正在為新初始化的 AI 實例構建 RAG 索引...")
+            await ai_instance._load_or_build_rag_retriever()
+            logger.info(f"[{user_id}] ✅ 新 AI 實例的 RAG 索引已成功構建。")
+            
             self.ai_instances[user_id] = ai_instance
             return ai_instance
             
-        # 如果是創世流程，即使資料庫無記錄，也創建一個臨時實例
         elif is_setup_flow:
             logger.info(f"[{user_id}] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。")
             ai_instance.profile = UserProfile(user_id=user_id, user_profile=CharacterProfile(name=""), ai_profile=CharacterProfile(name=""))
             await ai_instance._configure_pre_requisites()
-            # 關鍵：在創世流程中，也要將這個臨時實例存入字典！
             self.ai_instances[user_id] = ai_instance
             return ai_instance
             
@@ -1854,6 +1862,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
