@@ -1,10 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T11:10:38.724217 ###
+### AI Lover Log - Last updated at 2025-10-12T11:15:42.134181 ###
 
-refined_profiles.5.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.6.name
-  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 refined_profiles.7.name
   Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
@@ -300,3 +295,8 @@ discord.errors.HTTPException: 401 Unauthorized (error code: 50027): Invalid Webh
 2025-10-12 11:10:30 - [INFO] - Discord Bot setup hook finished!
 2025-10-12 11:10:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-12 11:10:33 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-12 11:12:45 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
