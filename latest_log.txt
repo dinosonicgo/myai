@@ -1,21 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T11:00:23.525011 ###
+### AI Lover Log - Last updated at 2025-10-12T11:05:36.683096 ###
 
-  Field required [type=missing, input_value={'base_profile': {'name':...「生命之神」。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.13.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.14.name
-  Field required [type=missing, input_value={'base_profile': {'name':...聖女的蕩婦」。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-12 09:07:39 - [ERROR] - [512280345618546699] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: 15 validation errors for BatchRefinementResult
-refined_profiles.0.name
-  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.1.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.2.name
   Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 refined_profiles.3.name
@@ -300,3 +284,19 @@ NameError: name 'create_setup_graph' is not defined
 2025-10-12 10:56:32 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 16/24...
 2025-10-12 10:57:12 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 17/24...
 2025-10-12 10:59:32 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在處理批次 18/24...
+2025-10-12 11:04:32 - [WARNING] - [512280345618546699] [本地执行单元-LLM] 🔥 LLM 批次化润色失败: 
+2025-10-12 11:04:32 - [WARNING] - [512280345618546699] [本地执行单元-备援] 正在觸發【純程式碼備援方案】，以确保数据保真度...
+2025-10-12 11:04:32 - [INFO] - [512280345618546699] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。
+2025-10-12 11:04:32 - [INFO] - [512280345618546699] [總指揮-P4-Local] ✅ 本地潤色軌道成功完成。
+2025-10-12 11:04:32 - [INFO] - [512280345618546699] [總指揮-P5] 正在將最終的 333 個LORE檔案持久化到資料庫...
+2025-10-12 11:05:06 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 【終極架構v5：智能分流】LORE解析管線執行完畢。
+2025-10-12 11:05:06 - [INFO] - [512280345618546699] [後台創世] 步驟 2/3: 預解析完成，共發現 333 個 LORE 物件。準備構建 RAG 索引...
+2025-10-12 11:05:07 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 401 Unauthorized (error code: 50027): Invalid Webhook Token
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1150, in _perform_full_setup_flow
+    await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\interactions.py", line 487, in edit_original_response
+    data = await adapter.edit_original_interaction_response(
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\webhook\async_.py", line 221, in request
+    raise HTTPException(response, data)
+discord.errors.HTTPException: 401 Unauthorized (error code: 50027): Invalid Webhook Token
