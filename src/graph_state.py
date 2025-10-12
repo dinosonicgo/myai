@@ -9,11 +9,10 @@ from langchain_core.messages import BaseMessage
 from .schemas import (SceneAnalysisResult, WorldGenesisResult)
 from .ai_core import AILover
 
-# 類別：對話圖狀態 (v15.0 - 永久性轟炸架構)
-# 更新紀錄:
-# v15.0 (2025-10-03): [重大架構重構] 根據全新的「永久性轟炸」與「直接RAG」架構，徹底重構了此狀態，以適配新的線性 Graph 工作流。
-# v14.0 (2025-10-15): [架構簡化] 移除了 `current_intent` 欄位。
-# v13.0 (2025-10-15): [健壯性] 新增了 `last_response_text` 欄位。
+# 類別：對話圖狀態 (v16.0 - 新增重生成计数器)
+# 更新纪录:
+# v16.0 (2025-10-13): [健壮性] 新增了 `regeneration_count` 栏位，用于在“违规审查”循环中计数，防止因AI持续生成违规内容而导致的无限循环。
+# v15.0 (2025-10-03): [重大架構重構] 根據全新的「永久性轟炸」與「直接RAG」架構，徹底重構了此狀態。
 class ConversationGraphState(TypedDict):
     """
     主對話流程的狀態容器。
@@ -39,12 +38,14 @@ class ConversationGraphState(TypedDict):
 
     # --- 資訊彙總階段的數據載體 ---
     world_snapshot: str
+    
+    # --- [v16.0 新增] 违规审查与重生成循环 ---
+    regeneration_count: int
 
     # --- 最終生成與輸出的數據載體 ---
     llm_response: str
     final_output: str
-# 類別：對話圖狀態 (v15.0 - 永久性轟炸架構)
-
+# 類別：對話圖狀態 結束
 # 類別：設定圖狀態
 class SetupGraphState(TypedDict):
     """
@@ -57,5 +58,6 @@ class SetupGraphState(TypedDict):
     genesis_result: Optional["WorldGenesisResult"]
     opening_scene: str
 # 類別：設定圖狀態
+
 
 
