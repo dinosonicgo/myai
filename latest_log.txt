@@ -1,51 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T10:07:19.390512 ###
+### AI Lover Log - Last updated at 2025-10-12T10:12:35.592471 ###
 
-          "貴族與教職員的動搖：許多，來自其他貴族家庭的學生（如朱利安"
-        ],
-        "verified_age": "未知",
-        "description": "許多來自其他貴族家庭的學生（如朱利安 (Julian)）甚至一部分教職員（如歷史老師阿利斯特 (Alistair)），都開始在私下裡向莉莉絲詢問，能否為他們引薦那位神秘的、能創造奇蹟的「生命之神」。"
-      }
-    },
-    {
-      "base_profile": {
-        "name": "無法抑制的誘惑：莊園的母畜們（如瑪莉"
-      },
-      "facts": {
-        "verified_aliases": [
-          "Mary",
-          "無法抑制的誘惑：莊園的母畜們（如瑪莉"
-        ],
-        "verified_age": "未知",
-        "description": ""
-      }
-    },
-    {
-      "base_profile": {
-        "name": "凡人的憤怒：這份，看得見、聞得到，卻，永遠，吃不到的誘惑，讓那些，被挑逗得，慾火焚身的市集攤販們，陷入了巨大的 frustration（挫敗感）之中。他們，在私下裡，用最惡毒的語言，咒罵這些，在他們眼中，「明明騷浪入骨，卻又故作清高」的、維利爾斯家的女僕，是「裝聖女的蕩婦」。"
-      },
-      "facts": {
-        "verified_aliases": [
-          "凡人的憤怒：這份，看得見、聞得到，卻，永遠，吃不到的誘惑，讓那些，被挑逗得，慾火焚身的市集攤販們，陷入了巨大的 frustration（挫敗感）之中。他們，在私下裡，用最惡毒的語言，咒罵這些，在他們眼中，「明明騷浪入骨，卻又故作清高」的、維利爾斯家的女僕，是「裝聖女的蕩婦」。"
-        ],
-        "verified_age": "未知",
-        "description": "這份看得見、聞得到卻永遠吃不到的誘惑，讓市集攤販們慾火焚身，陷入巨大挫敗感。他們私下用惡毒語言咒罵維利爾斯家的女僕是「裝聖女的蕩婦」。"
-      }
-    }
-  ]
-}
-```
---- END RAW ---
-2025-10-12 09:07:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 09:07:38 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
-2025-10-12 09:07:38 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: 15 validation errors for BatchRefinementResult
-refined_profiles.0.name
-  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.1.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.2.name
-  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 refined_profiles.3.name
   Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
@@ -300,3 +254,49 @@ refined_profiles.14.name
 2025-10-12 10:07:15 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
 2025-10-12 10:07:15 - [INFO] - [512280345618546699] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...
 2025-10-12 10:07:15 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 1/24...
+2025-10-12 10:07:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:07:34 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:07:44 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:07:51 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:07:57 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:07:59 - [WARNING] - [512280345618546699] [本地執行單元-LLM] 🔥 LLM 批次化潤色失敗: 1 validation error for BatchRefinementResult
+refined_profiles
+  Field required [type=missing, input_value={'name': '絲月的獻身...rrent_action': '站著'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1906, in _invoke_local_ollama_parser
+    batch_result = BatchRefinementResult.model_validate(parsed_json)
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchRefinementResult
+refined_profiles
+  Field required [type=missing, input_value={'name': '絲月的獻身...rrent_action': '站著'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-12 10:07:59 - [WARNING] - [512280345618546699] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以确保数据保真度...
+2025-10-12 10:07:59 - [INFO] - [512280345618546699] [本地執行單元-備援] ✅ 純程式碼備援执行完毕。
+2025-10-12 10:07:59 - [INFO] - [512280345618546699] [總指揮-P4-Local] ✅ 本地潤色軌道成功完成。
+2025-10-12 10:08:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:08:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 10:09:31 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] ✅ 雲端潤色軌道成功完成。
+2025-10-12 10:09:31 - [INFO] - [512280345618546699] [總指揮-P5] 正在將最終的 333 個LORE檔案持久化到資料庫...
+2025-10-12 10:10:05 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 【終極架構v5：智能分流】LORE解析管線執行完畢。
+2025-10-12 10:10:05 - [INFO] - [512280345618546699] [後台創世] 步驟 2/3: 預解析完成，共發現 333 個 LORE 物件。準備構建 RAG 索引...
+2025-10-12 10:10:06 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，使用 333 條傳入文檔，準備使用 333 條文檔進行構建...
+2025-10-12 10:11:42 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 統一的【混合檢索器】構建成功。
+2025-10-12 10:11:42 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成。
+2025-10-12 10:11:43 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: name 'create_setup_graph' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1164, in _perform_full_setup_flow
+    setup_graph = create_setup_graph()
+NameError: name 'create_setup_graph' is not defined
