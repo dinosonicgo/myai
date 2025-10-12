@@ -1064,16 +1064,16 @@ class AILover:
 
 
 
-# 函式：加載或構建 RAG 檢索器 (v208.1 - 終極防禦性異步化)
+# 函式：加載或構建 RAG 檢索器 (v208.2 - 徹底I/O隔離)
 # 更新紀錄:
-# v208.1 (2025-10-12): [健壯性強化] 作為防禦性編程，將 `Chroma()`、`.as_retriever()` 和 `EnsembleRetriever()` 等所有潛在的同步阻塞點，全部使用 `asyncio.to_thread` 進行異步化隔離，徹底杜絕此函數阻塞事件循環的可能性。
-# v208.0 (2025-10-12): [災難性BUG修復] 將 `BM25Retriever.from_documents` 和 `_save_bm25_corpus` 等操作異步化。
+# v208.2 (2025-10-13): [災難性BUG修復] 将 `Path.mkdir` 这个被忽略的、同步的文件系统I/O操作也用 `asyncio.to_thread` 进行了异步化隔离。此修改旨在根除所有潜在的事件循环阻塞源，解决在RAG构建启动时发生的、原因不明的永久性卡死问题。
+# v208.1 (2025-10-12): [健壯性強化] 作為防禦性編程，将 `Chroma()`、`.as_retriever()` 和 `EnsembleRetriever()` 等所有潛在的同步阻塞點进行了异步化隔离。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False, docs_to_build: Optional[List[Document]] = None) -> Runnable:
         """
-        (v208.1) 加載或構建一個【混合式】RAG 檢索器，並確保所有CPU和I/O操作都對事件循環友好。
+        (v208.2) 加載或構建一個【混合式】RAG 檢索器，並确保所有CPU和I/O操作都对事件循环友好。
         """
         if not self.embeddings:
-            logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
+            logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，无法构建检索器。")
             return RunnableLambda(lambda x: [])
 
         all_docs_for_rag = []
@@ -1087,8 +1087,10 @@ class AILover:
             all_docs_for_rag = docs_to_build
             force_rebuild = True
         else:
+            # 这个检查本身是同步的，但速度极快，风险较低，暂时保留
             vector_store_exists = Path(self.vector_store_path).exists() and any(Path(self.vector_store_path).iterdir())
             if not force_rebuild and vector_store_exists:
+                # 未来可以实现从持久化加载的逻辑
                 pass 
             
             log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
@@ -1107,13 +1109,16 @@ class AILover:
         
         logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，準備使用 {len(all_docs_for_rag)} 條文檔進行構建...")
 
-        if force_rebuild and Path(self.vector_store_path).exists():
+        # --- [v208.2 核心修正] 确保所有文件系统操作都在后台线程 ---
+        vector_path_obj = Path(self.vector_store_path)
+        if force_rebuild and await asyncio.to_thread(vector_path_obj.exists):
             await asyncio.to_thread(shutil.rmtree, self.vector_store_path, ignore_errors=True)
-        await asyncio.to_thread(Path(self.vector_store_path).mkdir, parents=True, exist_ok=True)
+        
+        # 将 mkdir 也放入后台线程
+        await asyncio.to_thread(vector_path_obj.mkdir, parents=True, exist_ok=True)
         
         try:
             persistent_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.vector_store_path)
-            # [v208.1 核心修正] 異步化 Chroma 初始化
             self.vector_store = await asyncio.to_thread(
                 Chroma,
                 client=persistent_client, 
@@ -1122,7 +1127,6 @@ class AILover:
             
             if all_docs_for_rag:
                 await asyncio.to_thread(self.vector_store.add_documents, all_docs_for_rag)
-                # [v208.1 核心修正] 異步化 as_retriever 調用
                 vector_retriever = await asyncio.to_thread(
                     self.vector_store.as_retriever,
                     search_kwargs={"k": 15}
@@ -1136,7 +1140,6 @@ class AILover:
                 self.bm25_retriever.k = 10
                 await self._save_bm25_corpus()
 
-                # [v208.1 核心修正] 異步化 EnsembleRetriever 初始化
                 self.retriever = await asyncio.to_thread(
                     EnsembleRetriever,
                     retrievers=[self.bm25_retriever, vector_retriever], 
@@ -6289,6 +6292,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
