@@ -1286,6 +1286,9 @@ class BotCog(commands.Cog, name="BotCog"):
             return None
 # 函式：獲取或創建使用者的 AI 實例 結束
 
+# 函式：監聽並處理使用者訊息 (v2.0 - 回歸Graph)
+# 更新紀錄:
+# v2.0 (2025-10-12): [架構回歸] 將核心對話邏輯從調用功能簡陋的`direct_rag_generate`，改回調用功能完備、包含場景感知能力的`main_graph.ainvoke()`。此修改從根本上恢復了系統的遠程/本地視角判斷能力，解決了上下文混淆問題。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -1317,8 +1320,22 @@ class BotCog(commands.Cog, name="BotCog"):
 
         async with message.channel.typing():
             try:
-                logger.info(f"[{user_id}] 啟動 RAG 直通對話流程...")
-                final_response = await ai_instance.direct_rag_generate(user_input)
+                # [v2.0 核心修正] 回歸到 Graph 調用
+                logger.info(f"[{user_id}] 啟動 main_graph 對話流程...")
+                
+                if not ai_instance.main_graph:
+                    raise RuntimeError("AI 實例的主對話圖 (main_graph) 未被初始化！")
+
+                # 準備 Graph 的初始狀態
+                initial_state = {
+                    "user_id": user_id,
+                    "ai_core": ai_instance,
+                    "messages": [HumanMessage(content=user_input)],
+                }
+                
+                # 異步調用 Graph
+                final_state = await ai_instance.main_graph.ainvoke(initial_state)
+                final_response = final_state.get("final_output")
                 
                 if final_response and final_response.strip():
                     view = RegenerateView(cog=self)
@@ -1326,15 +1343,20 @@ class BotCog(commands.Cog, name="BotCog"):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    logger.info(f"[{user_id}] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。")
+                    logger.info(f"[{user_id}] main_graph 流程執行完畢，回應已發送。事後學習任務已在背景啟動。")
 
                 else:
-                    logger.error(f"為使用者 {user_id} 的 RAG 直通流程返回了空的或無效的回應。")
+                    logger.error(f"為使用者 {user_id} 的 main_graph 流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的 RAG 直通流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的 main_graph 流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
+# 函式：監聽並處理使用者訊息 結束
+
+
+
+
     
     # 指令：開始全新的冒險（重置所有資料）
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
@@ -1862,6 +1884,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
