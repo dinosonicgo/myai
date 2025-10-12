@@ -1,302 +1,302 @@
-### AI Lover Log - Last updated at 2025-10-12T09:07:21.396453 ###
+### AI Lover Log - Last updated at 2025-10-12T09:12:41.560466 ###
 
+        "verified_aliases": [
+          "性神方",
+          "快樂派系"
+        ],
+        "verified_age": "未知",
+        "description": "快樂派系"
+      }
+    },
+    {
+      "base_profile": {
+        "name": "以學生亞瑟"
+      },
+      "facts": {
+        "verified_aliases": [
+          "Arthur",
+          "以學生亞瑟"
+        ],
+        "verified_age": "未知",
+        "description": ""
+      }
+    },
+    {
+      "base_profile": {
+        "name": "他們，被莉莉絲那種，追求「快樂」本質的、充滿了生命力的思想所深深吸引，成了莉莉絲在學院內，最堅實的擁護者與外圍信徒。"
+      },
+      "facts": {
+        "verified_aliases": [
+          "他們，被莉莉絲那種，追求「快樂」本質的、充滿了生命力的思想所深深吸引，成了莉莉絲在學院內，最堅實的擁護者與外圍信徒。"
+        ],
+        "verified_age": "未知",
+        "description": "他們被莉莉絲那種追求「快樂」本質、充滿生命力的思想深深吸引，成了莉莉絲在學院內最堅實的擁護者與外圍信徒。"
+      }
+    },
+    {
+      "base_profile": {
+        "name": "莉莉絲地位的劇變：所有人都知道，「聖露修道院」的背後，是維利爾斯家族。因此，身為維利爾斯家女兒的莉莉絲，其地位，也水漲船高，成了學院內，無可爭議的「風雲人物」。"
+      },
+      "facts": {
+        "verified_aliases": [
+          "莉莉絲地位的劇變：所有人都知道，「聖露修道院」的背後，是維利爾斯家族。因此，身為維利爾斯家女兒的莉莉絲，其地位，也水漲船高，成了學院內，無可爭議的「風雲人物」。"
+        ],
+        "verified_age": "未知",
+        "description": "由於「聖露修道院」的背後是維利爾斯家族，身為其女兒的莉莉絲地位水漲船高，成為了學院內無可爭議的「風雲人物」。"
+      }
+    },
+    {
+      "base_profile": {
+        "name": "「快樂派系」的壯大：修道院那「在神面前，人人平等」、「神，會回應信徒的苦難」等，充滿了顛覆性的信條，與莉莉絲那，質疑權威、追求快樂的思想，完美契合，使得「快樂派系」的人數與聲望，急劇增長。"
+      },
+      "facts": {
+        "verified_aliases": [
+          "「快樂派系」的壯大：修道院那「在神面前，人人平等」、「神，會回應信徒的苦難」等，充滿了顛覆性的信條，與莉莉絲那，質疑權威、追求快樂的思想，完美契合，使得「快樂派系」的人數與聲望，急劇增長。"
+        ],
+        "verified_age": "未知",
+        "description": "修道院「在神面前，人人平等」、「神，會回應信徒的苦難」等顛覆性信條，與莉莉絲質疑權威、追求快樂的思想完美契合，使得「快樂派系」的人數與聲望急劇增長。"
+      }
+    },
+    {
+      "base_profile": {
+        "name": "貴族與教職員的動搖：許多，來自其他貴族家庭的學生（如朱利安"
+      },
+      "facts": {
+        "verified_aliases": [
+          "Julian",
+          "貴族與教職員的動搖：許多，來自其他貴族家庭的學生（如朱利安"
+        ],
+        "verified_age": "未知",
+        "description": "許多來自其他貴族家庭的學生（如朱利安 (Julian)）甚至一部分教職員（如歷史老師阿利斯特 (Alistair)），都開始在私下裡向莉莉絲詢問，能否為他們引薦那位神秘的、能創造奇蹟的「生命之神」。"
+      }
+    },
+    {
+      "base_profile": {
+        "name": "無法抑制的誘惑：莊園的母畜們（如瑪莉"
+      },
+      "facts": {
+        "verified_aliases": [
+          "Mary",
+          "無法抑制的誘惑：莊園的母畜們（如瑪莉"
+        ],
+        "verified_age": "未知",
+        "description": ""
+      }
+    },
+    {
+      "base_profile": {
+        "name": "凡人的憤怒：這份，看得見、聞得到，卻，永遠，吃不到的誘惑，讓那些，被挑逗得，慾火焚身的市集攤販們，陷入了巨大的 frustration（挫敗感）之中。他們，在私下裡，用最惡毒的語言，咒罵這些，在他們眼中，「明明騷浪入骨，卻又故作清高」的、維利爾斯家的女僕，是「裝聖女的蕩婦」。"
+      },
+      "facts": {
+        "verified_aliases": [
+          "凡人的憤怒：這份，看得見、聞得到，卻，永遠，吃不到的誘惑，讓那些，被挑逗得，慾火焚身的市集攤販們，陷入了巨大的 frustration（挫敗感）之中。他們，在私下裡，用最惡毒的語言，咒罵這些，在他們眼中，「明明騷浪入骨，卻又故作清高」的、維利爾斯家的女僕，是「裝聖女的蕩婦」。"
+        ],
+        "verified_age": "未知",
+        "description": "這份看得見、聞得到卻永遠吃不到的誘惑，讓市集攤販們慾火焚身，陷入巨大挫敗感。他們私下用惡毒語言咒罵維利爾斯家的女僕是「裝聖女的蕩婦」。"
+      }
+    }
+  ]
+}
+```
+--- END RAW ---
+2025-10-12 09:07:38 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
+2025-10-12 09:07:38 - [INFO] - [512280345618546699] [自我修正] ✅ 修正流程成功，正在重新驗證...
+2025-10-12 09:07:38 - [ERROR] - [512280345618546699] [自我修正] 🔥 自我修正流程最終失敗: 15 validation errors for BatchRefinementResult
+refined_profiles.0.name
+  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.1.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.2.name
+  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.3.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.4.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.5.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.6.name
+  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.7.name
+  Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.8.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.9.name
+  Field required [type=missing, input_value={'base_profile': {'name':...者與外圍信徒。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.10.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「風雲人物」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.11.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聲望急劇增長。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.12.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「生命之神」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.13.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.14.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聖女的蕩婦」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1905, in _invoke_local_ollama_parser
-    response = await client.post("http://localhost:11434/api/generate", json=payload)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1892, in post
-    return await self.request(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1574, in request
-    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1661, in send
-    response = await self._send_handling_auth(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1689, in _send_handling_auth
-    response = await self._send_handling_redirects(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1726, in _send_handling_redirects
-    response = await self._send_single_request(request)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_client.py", line 1763, in _send_single_request
-    response = await transport.handle_async_request(request)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 372, in handle_async_request
-    with map_httpcore_exceptions():
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
-    self.gen.throw(typ, value, traceback)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 86, in map_httpcore_exceptions
-    raise mapped_exc(message) from exc
-httpx.ReadTimeout
-2025-10-12 00:34:33 - [WARNING] - [512280345618546699] [本地执行单元-备援] 正在觸發【純程式碼備援方案】，以确保数据保真度...
-2025-10-12 00:34:34 - [INFO] - [512280345618546699] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。
-2025-10-12 00:34:34 - [INFO] - [512280345618546699] [总指挥-P5] 正在将最终的 333 个LORE档案持久化到资料库...
-2025-10-12 00:35:08 - [INFO] - [512280345618546699] [数据入口-轨道B] ✅ 【终极架构v4.1：上下文隔离】LORE解析管线执行完毕。
-2025-10-12 00:35:08 - [INFO] - [512280345618546699] [後台創世] 步驟 2/3: 本地預解析成功，正在執行智能聚合...
-2025-10-12 00:35:08 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 'list' object has no attribute 'npc_profiles'
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1594, in ainvoke_with_rotation
+    if corrected_clean_json_str: return output_schema.model_validate(json.loads(corrected_clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 15 validation errors for BatchRefinementResult
+refined_profiles.0.name
+  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.1.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.2.name
+  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.3.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.4.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.5.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.6.name
+  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.7.name
+  Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.8.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.9.name
+  Field required [type=missing, input_value={'base_profile': {'name':...者與外圍信徒。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.10.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「風雲人物」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.11.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聲望急劇增長。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.12.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「生命之神」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.13.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.14.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聖女的蕩婦」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-12 09:07:39 - [ERROR] - [512280345618546699] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: 15 validation errors for BatchRefinementResult
+refined_profiles.0.name
+  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.1.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.2.name
+  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.3.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.4.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.5.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.6.name
+  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.7.name
+  Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.8.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.9.name
+  Field required [type=missing, input_value={'base_profile': {'name':...者與外圍信徒。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.10.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「風雲人物」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.11.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聲望急劇增長。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.12.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「生命之神」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.13.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.14.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聖女的蕩婦」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
 Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1153, in _perform_full_setup_flow
-    if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'characterprofile') for p in parsed_canon.npc_profiles])
-AttributeError: 'list' object has no attribute 'npc_profiles'
-2025-10-12 00:35:09 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-12 00:37:57 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 00:37:57 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
-    spec.loader.exec_module(lib)  # type: ignore
-  File "<frozen importlib._bootstrap_external>", line 879, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1017, in get_code
-  File "<frozen importlib._bootstrap_external>", line 947, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1132
-    pafinal_profiles = await ai_instance.parse_and_create_lore_from_canon(canon_text)canon_text)
-                                                                                               ^
-SyntaxError: unmatched ')'
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
-    await self.load_extension("src.cogs.core_cog")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
-    await self._load_from_module_spec(spec, name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
-    raise errors.ExtensionFailed(key, e) from e
-discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
-2025-10-12 00:47:04 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 00:47:04 - [ERROR] - 🔥 核心 Cog 加載失敗: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 935, in _load_from_module_spec
-    spec.loader.exec_module(lib)  # type: ignore
-  File "<frozen importlib._bootstrap_external>", line 879, in exec_module
-  File "<frozen importlib._bootstrap_external>", line 1017, in get_code
-  File "<frozen importlib._bootstrap_external>", line 947, in source_to_code
-  File "<frozen importlib._bootstrap>", line 241, in _call_with_frames_removed
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1132
-    pafinal_profiles = await ai_instance.parse_and_create_lore_from_canon(canon_text)canon_text)
-                                                                                               ^
-SyntaxError: unmatched ')'
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\discord_bot.py", line 41, in setup_hook
-    await self.load_extension("src.cogs.core_cog")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 1013, in load_extension
-    await self._load_from_module_spec(spec, name)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\ext\commands\bot.py", line 938, in _load_from_module_spec
-    raise errors.ExtensionFailed(key, e) from e
-discord.ext.commands.errors.ExtensionFailed: Extension 'src.cogs.core_cog' raised an error: SyntaxError: unmatched ')' (core_cog.py, line 1132)
-2025-10-12 00:49:25 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 00:49:31 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 00:49:31 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 00:49:31 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 00:49:31 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 00:49:31 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 00:49:34 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 00:49:34 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 01:05:19 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 01:05:20 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 01:05:20 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 01:05:20 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 01:05:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 01:05:27 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 01:05:27 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 01:05:27 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 01:05:27 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 01:05:27 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 01:05:27 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 01:05:36 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 01:05:36 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 01:05:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 01:05:36 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 01:05:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:05:38 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 01:05:47 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 01:05:48 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 01:05:48 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:05:49 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-12 01:05:59 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-12 01:05:59 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-12 01:05:59 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:06:01 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-12 01:06:07 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-12 01:06:10 - [ERROR] - [512280345618546699] 在等待檔案上傳時發生錯誤: BotCog._perform_full_setup_flow() got an unexpected keyword argument 'user'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 310, in upload_canon
-    asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
-TypeError: BotCog._perform_full_setup_flow() got an unexpected keyword argument 'user'
-2025-10-12 01:22:31 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 01:22:37 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 01:22:37 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 01:22:37 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 01:22:38 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 01:22:38 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 01:22:40 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 01:22:42 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 01:23:21 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 01:23:25 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 01:23:25 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 01:23:25 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 01:23:26 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 01:23:26 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 01:23:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 01:23:29 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 01:23:57 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 01:23:57 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 01:23:57 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 01:23:57 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 01:23:59 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 01:24:04 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 01:24:04 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 01:24:04 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 01:24:04 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 01:24:04 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 01:24:04 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 01:24:12 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 01:24:12 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 01:24:12 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 01:24:12 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 01:24:12 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:24:14 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 01:24:23 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 01:24:23 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 01:24:23 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:24:25 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-12 01:24:34 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-12 01:24:35 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-12 01:24:35 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 01:24:36 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-12 01:24:43 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-12 08:18:45 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 08:18:55 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 08:18:55 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 08:18:55 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 08:18:55 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 08:18:55 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 08:18:58 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 08:18:59 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 08:20:49 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 08:20:50 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 08:20:50 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 08:20:50 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 08:20:52 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 08:20:57 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 08:20:57 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 08:20:57 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 08:20:57 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 08:20:57 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 08:20:57 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 08:21:11 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 08:21:11 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 08:21:11 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 08:21:11 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 08:21:11 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:21:12 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 08:21:24 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 08:21:25 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 08:21:25 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:21:27 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-12 08:21:37 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-12 08:21:38 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-12 08:21:38 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:21:40 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-12 08:21:48 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-12 08:21:52 - [INFO] - [512280345618546699] [数据入口-轨道B] 正在启动【终极架构v4.1：上下文隔离】LORE解析管线...
-2025-10-12 08:28:50 - [INFO] - [512280345618546699] [总指挥-P1&3] ✅ 程式码提取与融合完成，共计 333 个唯一实体。
-2025-10-12 08:28:50 - [INFO] - [512280345618546699] [总指挥-P4] 正在将融合情报提交至本地执行单元进行最终处理...
-2025-10-12 08:28:50 - [INFO] - [512280345618546699] [本地执行单元] 正在启动 v5.1 润色/备援流程...
-2025-10-12 08:28:50 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 1/111...
-2025-10-12 08:32:05 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 2/111...
-2025-10-12 08:35:23 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 3/111...
-2025-10-12 08:40:10 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 4/111...
-2025-10-12 08:42:25 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 08:42:30 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 08:42:30 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 08:42:30 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 08:42:30 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 08:42:30 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 08:42:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 08:42:34 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 08:43:53 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 08:43:56 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 08:44:00 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 08:44:00 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 08:44:00 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 08:44:00 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 08:44:00 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 08:44:00 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 08:44:09 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 08:44:09 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 08:44:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 08:44:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 08:44:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:44:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 08:44:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 08:44:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 08:44:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:44:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-12 08:44:35 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-12 08:44:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-12 08:44:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 08:44:38 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-12 08:44:44 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-12 08:44:48 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動【終極架構v5：智能分流】LORE解析管線...
-2025-10-12 08:44:48 - [INFO] - [512280345618546699] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 333 個唯一實體。
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P3.5] 正在執行智能分流...
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P3.5] ✅ 分流完成。雲端佇列: 263 個 (安全)，本地佇列: 70 個 (高風險)。
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4] 正在啟動雙軌並行潤色...
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] 雲端潤色軌道啟動...
-2025-10-12 08:51:46 - [ERROR] - [512280345618546699] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: name 'BatchRefinementInput' is not defined
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5109, in process_cloud_queue
-    batch_input_data = [
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5110, in <listcomp>
-    BatchRefinementInput(base_profile={"name": name}, facts=cloud_queue[name]).model_dump() for name in batch_names
-NameError: name 'BatchRefinementInput' is not defined. Did you mean: 'BatchRefinementResult'?
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...
-2025-10-12 08:51:46 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 1/24...
-2025-10-12 08:54:34 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 2/24...
-2025-10-12 09:00:20 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 09:00:27 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 09:00:27 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 09:00:27 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 09:00:28 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 09:00:28 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 09:00:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 09:00:32 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 09:00:42 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 09:00:45 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 09:00:50 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 09:00:50 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 09:00:50 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 09:00:50 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 09:00:50 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 09:00:50 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 09:00:58 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 09:00:58 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 09:00:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 09:00:58 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 09:00:58 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 09:01:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 09:01:11 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 09:01:12 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 09:01:12 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 09:01:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
-2025-10-12 09:01:25 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
-2025-10-12 09:01:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
-2025-10-12 09:01:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 09:01:28 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
-2025-10-12 09:01:36 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
-2025-10-12 09:01:39 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動【終極架構v5：智能分流】LORE解析管線...
-2025-10-12 09:01:39 - [INFO] - [512280345618546699] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 333 個唯一實體。
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P3.5] 正在執行智能分流...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P3.5] ✅ 分流完成。雲端佇列: 263 個 (安全)，本地佇列: 70 個 (高風險)。
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4] 正在啟動雙軌並行潤色...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] 雲端潤色軌道啟動...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...
-2025-10-12 09:07:17 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 1/24...
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5121, in process_cloud_queue
+    result = await self.ainvoke_with_rotation(
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1597, in ainvoke_with_rotation
+    raise e
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1570, in ainvoke_with_rotation
+    return output_schema.model_validate(json.loads(clean_json_str))
+  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 15 validation errors for BatchRefinementResult
+refined_profiles.0.name
+  Field required [type=missing, input_value={'base_profile': {'name':...最殘酷的乾渴。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.1.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.2.name
+  Field required [type=missing, input_value={'base_profile': {'name':...院的「獵手」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.3.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「教義栽培」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.4.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.5.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.6.name
+  Field required [type=missing, input_value={'base_profile': {'name':...的虛偽與蒼白。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.7.name
+  Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.8.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.9.name
+  Field required [type=missing, input_value={'base_profile': {'name':...者與外圍信徒。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.10.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「風雲人物」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.11.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聲望急劇增長。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.12.name
+  Field required [type=missing, input_value={'base_profile': {'name':...「生命之神」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.13.name
+  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+refined_profiles.14.name
+  Field required [type=missing, input_value={'base_profile': {'name':...聖女的蕩婦」。'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.8/v/missing
+2025-10-12 09:10:53 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 2/24...
