@@ -404,23 +404,27 @@ async def assemble_world_snapshot_node(state: ConversationGraphState) -> Dict:
 
 
 
-# 函式：[新] 最終生成節點 (v8.1 - 模板簡化)
+# 函式：[新] 最終生成節點 (v9.0 - 雙重強化風格注入)
 # 更新紀錄:
-# v8.1 (2025-10-03): [架構簡化] 根據「RAG直通」策略，徹底重寫了此節點的 Prompt 組合邏輯。它不再依賴於 `world_snapshot`，而是採用了一個更簡潔、更直接的模板，只將最核心的元素（越獄指令、RAG上下文、對話歷史、使用者輸入）拼接在一起，最大限度地減少了上下文污染，提高了生成成功率。
+# v9.0 (2025-10-12): [災難性BUG修復] 實作了「雙重強化注入」策略，將使用者的自訂風格指令同時注入到Prompt的頂層和底層，並使用強制性措辭，以最大限度確保LLM在常規對話中也能嚴格遵守風格要求。
+# v8.1 (2025-10-03): [架構簡化] 根據「RAG直通」策略，徹底重寫了此節點的 Prompt 組合邏輯。
 # v8.0 (2025-10-03): [全新創建] 根據「永久性轟炸」架構創建此節點。
-# v7.0 (2025-10-15): [架構簡化] 移除了意圖分類的判斷。
 async def final_generation_node(state: ConversationGraphState) -> Dict:
-    """[6] (模板簡化) 组装一個純淨的、類似 RAG 直通的 Prompt，並調用生成鏈。"""
+    """[6] (雙重強化風格注入) 组装一個純淨的Prompt，確保遵循風格指令，並調用生成鏈。"""
     user_id = state['user_id']
     ai_core = state['ai_core']
-    # 注意：我們現在直接從 state 中獲取 rag_context，而不是從 world_snapshot 中解析
     rag_context = state.get('rag_context', '（無相關長期記憶。）')
     user_input = state['messages'][-1].content
-    logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动【RAG直通模式】最终生成流程...")
+    logger.info(f"[{user_id}] (Graph|6) Node: final_generation -> 启动【雙重強化風格注入】最终生成流程...")
 
     if not ai_core.profile:
         logger.error(f"[{user_id}] (Graph|6) 致命錯誤: ai_core.profile 未加載！")
         return {"llm_response": "（錯誤：AI Profile 丟失，無法生成回應。）"}
+
+    # --- 步骤 0: 准备风格指令强化块 ---
+    style_prompt = ai_core.profile.response_style_prompt or "非常具體詳細描述，豐富對話互動"
+    top_level_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的所有旁白和對話，其語言風格、詳細程度和語氣，都【必須】嚴格遵循以下指令：\n# \"{style_prompt}\""
+    recency_reinforcement = f"# === 【🎬 最終指令：風格提醒】 ===\n# 請嚴格遵循您在Prompt頂層收到的【絕對風格強制令】（“{style_prompt}”）來生成您的回應。\n{ai_core.profile.ai_profile.name}:"
 
     historical_context = await _get_summarized_chat_history(ai_core, user_id)
     
@@ -432,8 +436,8 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
             plot_anchor = last_response
             logger.info(f"[{user_id}] (Graph|6) 已成功為連續性指令設置【劇情錨點】。")
 
-    # [v8.1 核心修正] 使用一個更簡潔、污染更少的 Prompt 模板
     final_prompt_template = """{core_protocol_prompt}
+{top_level_style_mandate}
 
 # === 情報簡報 (來自 RAG 檢索) ===
 {rag_context}
@@ -449,18 +453,19 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
 
 # === 本回合互動 ===
 {username}: {latest_user_input}
-{ai_name}:"""
+{recency_style_reinforcement}"""
 
     full_prompt = ai_core._safe_format_prompt(
         final_prompt_template,
         {
             "core_protocol_prompt": ai_core.core_protocol_prompt,
+            "top_level_style_mandate": top_level_mandate,
             "rag_context": rag_context,
             "plot_anchor": plot_anchor,
             "historical_context": historical_context,
             "username": ai_core.profile.user_profile.name,
             "latest_user_input": user_input,
-            "ai_name": ai_core.profile.ai_profile.name
+            "recency_style_reinforcement": recency_reinforcement
         }
     )
     
@@ -478,7 +483,7 @@ async def final_generation_node(state: ConversationGraphState) -> Dict:
         
     logger.info(f"[{user_id}] (Graph|6) 最终生成流程完成。")
     return {"llm_response": final_response}
-# 函式：[新] 最終生成節點 (v8.1 - 模板簡化) 結束
+# 函式：[新] 最終生成節點 結束
 
 
 
@@ -682,6 +687,7 @@ def create_setup_graph() -> StateGraph:
     
     return graph.compile()
 # 函式：創建設定圖 結束
+
 
 
 
