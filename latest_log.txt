@@ -1,48 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T08:42:39.814226 ###
+### AI Lover Log - Last updated at 2025-10-12T08:51:50.683176 ###
 
-2025-10-12 00:12:41 - [WARNING] - [512280345618546699] [本地執行單元-LLM] 🔥 LLM 批次化潤色失敗: 'str' object has no attribute 'keys'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1856, in _invoke_local_ollama_parser
-    all_entities = list(aggregated_facts_map.keys())
-AttributeError: 'str' object has no attribute 'keys'
-2025-10-12 00:12:41 - [WARNING] - [512280345618546699] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以確保數據保真度...
-2025-10-12 00:12:41 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 'str' object has no attribute 'items'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1132, in _perform_full_setup_flow
-    parsed_canon = await ai_instance._invoke_local_ollama_parser(canon_text)
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1916, in _invoke_local_ollama_parser
-    for name, facts in aggregated_facts_map.items():
-AttributeError: 'str' object has no attribute 'items'
-2025-10-12 00:12:41 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
-2025-10-12 00:17:53 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 00:17:56 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 00:17:56 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 00:17:56 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 00:17:57 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 00:17:57 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 00:18:00 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 00:18:00 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 00:18:52 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 00:18:52 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 00:18:52 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 00:18:52 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
-2025-10-12 00:18:54 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
-2025-10-12 00:18:58 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
-2025-10-12 00:18:58 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
-2025-10-12 00:18:58 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
-2025-10-12 00:18:58 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
-2025-10-12 00:18:58 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
-2025-10-12 00:18:58 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
-2025-10-12 00:19:01 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
-2025-10-12 00:19:01 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
-2025-10-12 00:19:01 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
-2025-10-12 00:19:01 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
-2025-10-12 00:19:01 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 00:19:02 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
-2025-10-12 00:19:10 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
-2025-10-12 00:19:10 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
-2025-10-12 00:19:10 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
-2025-10-12 00:19:12 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
 2025-10-12 00:19:21 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
 2025-10-12 00:19:22 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
 2025-10-12 00:19:22 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
@@ -300,3 +257,46 @@ TypeError: BotCog._perform_full_setup_flow() got an unexpected keyword argument 
 2025-10-12 08:42:30 - [INFO] - Discord Bot setup hook finished!
 2025-10-12 08:42:33 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-12 08:42:34 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 08:43:53 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-12 08:43:54 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-12 08:43:56 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-12 08:44:00 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-12 08:44:00 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-12 08:44:00 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-12 08:44:00 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-12 08:44:00 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
+2025-10-12 08:44:00 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-12 08:44:09 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
+2025-10-12 08:44:09 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-12 08:44:09 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-12 08:44:09 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-12 08:44:09 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 08:44:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-12 08:44:20 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-12 08:44:20 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-12 08:44:20 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 08:44:22 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-12 08:44:35 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-12 08:44:36 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-12 08:44:36 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 08:44:38 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-12 08:44:44 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-12 08:44:48 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動【終極架構v5：智能分流】LORE解析管線...
+2025-10-12 08:44:48 - [INFO] - [512280345618546699] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 333 個唯一實體。
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P3.5] 正在執行智能分流...
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P3.5] ✅ 分流完成。雲端佇列: 263 個 (安全)，本地佇列: 70 個 (高風險)。
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4] 正在啟動雙軌並行潤色...
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] 雲端潤色軌道啟動...
+2025-10-12 08:51:46 - [ERROR] - [512280345618546699] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: name 'BatchRefinementInput' is not defined
+Traceback (most recent call last):
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5109, in process_cloud_queue
+    batch_input_data = [
+  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 5110, in <listcomp>
+    BatchRefinementInput(base_profile={"name": name}, facts=cloud_queue[name]).model_dump() for name in batch_names
+NameError: name 'BatchRefinementInput' is not defined. Did you mean: 'BatchRefinementResult'?
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...
+2025-10-12 08:51:46 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 1/24...
