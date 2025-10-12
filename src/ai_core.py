@@ -470,92 +470,18 @@ class AILover:
 
     
 
-# 函式：RAG 直通生成 (v8.1 - 風格雙重強化)
+# 函式：RAG 直通生成 (v10.0 - 已廢棄)
 # 更新紀錄:
-# v8.1 (2025-12-10): [災難性BUG修復] 根據使用者反饋，為風格指令實現了「雙重強化策略」。除了在系統指令頂部聲明外，還在「本回合互動」中增加了明確的【系統註記】，並在最終生成提示前加入了【最終指令】，利用近因效應確保風格指令被嚴格遵守。
-# v8.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，適配全新的 `retrieve_and_summarize_memories` 輸出，並確保在 `_save_interaction_to_dbs` 中傳入的是原始回應文本。
-# v7.0 (2025-12-08): [根本性重构] 為了實現「上下文隔離」，此函式不再拼接一個巨大的字符串 Prompt，而是構建一個“消息列表”。
+# v10.0 (2025-10-12): [架構廢棄] 此「直通」函式的功能過於簡陋，缺乏必要的場景感知能力，已被功能更完整的 `main_graph` 取代。此函式被標記為廢棄，以防止未來的錯誤調用。
+# v9.0 (2025-10-12): [架構升級] 在流程中加入了「迷你場景感知」前置步驟，從根源上解決遠程/本地視角混淆的問題。
+# v8.1 (2025-12-10): [災難性BUG修復] 為風格指令實現了「雙重強化策略」。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v8.1) 執行一個完整的「鳳凰架構」對話生成流程，並對風格指令進行雙重強化。
+        (v10.0 - 已廢棄) 此函式已被基於 LangGraph 的 main_graph 工作流完全取代。
+        任何對此函式的調用都應被遷移至新的 ai_instance.main_graph.ainvoke() 流程。
         """
-        user_id = self.user_id
-        if not self.profile:
-            logger.error(f"[{user_id}] [Direct RAG] 致命錯誤: AI Profile 未初始化。")
-            return "（錯誤：AI 核心設定檔尚未載入。）"
-
-        logger.info(f"[{self.user_id}] [Direct RAG] 啟動鳳凰架構 RAG 直通生成流程...")
-        
-        # --- 步驟 1: 調用新版 RAG 引擎，獲取高質量【原始】上下文 ---
-        rag_context_dict = await self.retrieve_and_summarize_memories(user_input)
-        rag_context = rag_context_dict.get("summary", "（無相關長期記憶。）")
-
-        # --- 步驟 2: 構建消息列表 (包含風格雙重強化) ---
-        logger.info(f"[{user_id}] [主生成] 正在構建結構化的消息列表...")
-        
-        # 強化點一的前置準備
-        user_style_prompt = self.profile.response_style_prompt
-        style_mandate = ""
-        style_reinforcement_block = ""
-        if user_style_prompt:
-            style_mandate = f"# === 【【【✍️ 絕對風格強制令】】】 ===\n# 你的回應風格【必須】嚴格遵循：「{user_style_prompt}」"
-            # [v8.1 核心修正] 創建強化塊
-            style_reinforcement_block = f"""
-[系統註記：使用者已設定本次回應風格為：「{user_style_prompt}」]
-
-{self.profile.ai_profile.name}:
-# 【最終指令】請嚴格遵循以上風格要求進行回應。"""
-        else:
-            style_reinforcement_block = f"{self.profile.ai_profile.name}:"
-
-
-        historical_context = await self._get_summarized_chat_history(user_id)
-
-        # 系統指令 (第一條消息)，保持不變，風格指令仍在頂部作為主要規則
-        system_instruction = "\n\n".join([
-            self.core_protocol_prompt,
-            style_mandate,
-            "# === 【【【🚫 嚴禁複誦原則】】】 ===\n# 你的所有回覆都必須是你自己語言的重新創作和演繹，【絕對禁止】直接複製下方提供的背景知識。",
-            "# === 【背景知識 (來自RAG的高質量原始記錄)】 ===\n" + rag_context
-        ]).strip()
-        
-        prompt_messages = [{"role": "user", "parts": [system_instruction]}]
-        
-        # 模擬對話歷史
-        # [v8.1 核心修正] 將強化塊注入到對話歷史的末尾
-        dialogue_block = f"""【最近對話摘要】:
-{historical_context}
-
-【本回合互動】:
-{self.profile.user_profile.name}: {user_input}
-{style_reinforcement_block}"""
-
-        prompt_messages.append({"role": "model", "parts": ["Okay, I understand all the rules and context. I am ready to continue the story."]})
-        prompt_messages.append({"role": "user", "parts": [dialogue_block]})
-
-        # --- 步驟 3: 使用消息列表調用 LLM ---
-        final_response = await self.ainvoke_with_rotation(
-            prompt_messages,
-            retry_strategy='force',
-            use_degradation=True
-        )
-
-        if not final_response or not final_response.strip():
-            logger.critical(f"[{user_id}] [Direct RAG] 核心生成链在所有策略之後最終失敗！")
-            final_response = "（抱歉，我好像突然断线了，脑海中一片空白...）"
-        
-        clean_response = final_response.strip()
-        
-        # --- 步驟 4: 事後處理 (數據流適配) ---
-        await self._save_interaction_to_dbs(f"使用者: {user_input}\n\nAI:\n{clean_response}")
-        
-        snapshot_for_analysis = {
-            "user_input": user_input, 
-            "final_response": clean_response,
-        }
-        asyncio.create_task(self._background_lore_extraction(snapshot_for_analysis))
-        
-        return clean_response
+        logger.critical(f"[{self.user_id}] [架構廢棄警告] 已檢測到對已廢棄的 `direct_rag_generate` 函式的調用！請立即將調用堆棧遷移至 main_graph 工作流。")
+        return "（系統錯誤：偵測到對已棄用對話流程的調用，已中止生成。請聯繫管理員更新程式碼。）"
 # 函式：RAG 直通生成 結束
 
 
@@ -6350,6 +6276,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
