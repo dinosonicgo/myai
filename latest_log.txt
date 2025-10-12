@@ -1,19 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T22:46:04.976996 ###
+### AI Lover Log - Last updated at 2025-10-12T22:51:35.134738 ###
 
-2025-10-12 11:05:06 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 【終極架構v5：智能分流】LORE解析管線執行完畢。
-2025-10-12 11:05:06 - [INFO] - [512280345618546699] [後台創世] 步驟 2/3: 預解析完成，共發現 333 個 LORE 物件。準備構建 RAG 索引...
-2025-10-12 11:05:07 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: 401 Unauthorized (error code: 50027): Invalid Webhook Token
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1150, in _perform_full_setup_flow
-    await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\interactions.py", line 487, in edit_original_response
-    data = await adapter.edit_original_interaction_response(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\discord\webhook\async_.py", line 221, in request
-    raise HTTPException(response, data)
-discord.errors.HTTPException: 401 Unauthorized (error code: 50027): Invalid Webhook Token
-2025-10-12 11:10:24 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 11:10:29 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 11:10:29 - [INFO] - ✅ 核心 Cog 加載成功。
 2025-10-12 11:10:29 - [INFO] - 正在全域同步應用程式指令...
 2025-10-12 11:10:30 - [INFO] - ✅ 指令已全域同步！
 2025-10-12 11:10:30 - [INFO] - Discord Bot setup hook finished!
@@ -300,3 +286,17 @@ KeyError: 'source'
 2025-10-12 22:45:58 - [INFO] - Discord Bot setup hook finished!
 2025-10-12 22:46:01 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-12 22:46:01 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 22:46:10 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-12 22:46:10 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-12 22:46:10 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-10-12 22:46:10 - [INFO] - 為使用者 512280345618546699 成功從資料庫初始化 AI 實例。
+2025-10-12 22:46:10 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-12 22:46:10 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-12 22:46:10 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
+2025-10-12 22:46:10 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-12 22:46:27 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
+2025-10-12 22:46:27 - [INFO] - [512280345618546699] 正在創建並編譯主對話圖 (main_graph)...
+2025-10-12 22:46:27 - [INFO] - [512280345618546699] ✅ 主對話圖已成功創建。
+2025-10-12 22:46:27 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-12 22:46:27 - [INFO] - [512280345618546699] 正在為新初始化的 AI 實例構建 RAG 索引...
+2025-10-12 22:46:27 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行【潔淨的全量創始構建】...
