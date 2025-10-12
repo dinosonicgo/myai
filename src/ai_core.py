@@ -63,7 +63,7 @@ from .schemas import (WorldGenesisResult, ToolCallPlan, CanonParsingResult,
                       SingleResolutionPlan, RelationshipDetail, CharacterProfile, LocationInfo, ItemInfo, 
                       CreatureInfo, Quest, WorldLore, BatchRefinementResult, 
                       EntityValidationResult, SynthesisTask, BatchSynthesisResult,
-                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult)
+                      NarrativeExtractionResult, PostGenerationAnalysisResult, NarrativeDirective, RagFactSheet, SceneLocationExtraction, BatchClassificationResult, BatchRefinementInput, ProgrammaticFacts)
 from .database import AsyncSessionLocal, UserData, MemoryData, SceneHistoryData
 # [v301.1 核心修正] 將絕對導入改為相對導入
 from .config import settings
@@ -5031,14 +5031,13 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析並從世界聖經創建LORE (v25.0 - 智能分流總指揮官)
+# 函式：解析並從世界聖經創建LORE (v25.1 - 健壯性修正)
 # 更新紀錄:
-# v25.0 (2025-10-12): [重大架構升級] 根據「終極架構v5」，將此函式重構為「智能分流總指揮官」。它現在能夠分析每個LORE實體的內容，將安全的任務分配給高速的雲端LLM，將高風險的任務分配給無審查的本地LLM，並並行執行這兩條潤色管線，實現了速度與穩健性的最佳平衡。
-# v24.1 (2025-10-12): [災難性BUG修復] 統一了函数的最终返回值，确保其返回CanonParsingResult对象。
-# v23.0 (2025-10-12): [災難性BUG修復] 引入了「上下文隔離」機制。
+# v25.1 (2025-10-12): [災難性BUG修復] 在文件頂部補全了對 `ProgrammaticFacts` 和 `BatchRefinementInput` 的導入，以解決 NameError。同時增強了雲端潤色軌道的數據類型轉換邏輯，使其更健壯。
+# v25.0 (2025-10-12): [重大架構升級] 將此函式重構為「智能分流總指揮官」。
     async def parse_and_create_lore_from_canon(self, canon_text: str) -> CanonParsingResult:
         """
-        【總指揮 v25.0】執行一個包含智能分流和雙軌並行潤色的LORE解析管線。
+        【總指揮 v25.1】執行一個分層的、並行的「情報融合」LORE解析管線，並將結果存入資料庫。
         """
         if not self.profile or not canon_text.strip():
             logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入或文本為空。")
@@ -5069,7 +5068,6 @@ class ExtractionResult(BaseModel):
             logger.warning(f"[{self.user_id}] [總指揮] 未能從文本中提取任何潛在實體，流程終止。")
             return CanonParsingResult()
 
-        # 轉換 set 為 list
         for name in final_facts_map:
             final_facts_map[name]["verified_aliases"] = list(final_facts_map[name]["verified_aliases"])
             final_facts_map[name]["description_sentences"] = list(final_facts_map[name]["description_sentences"])
@@ -5093,22 +5091,28 @@ class ExtractionResult(BaseModel):
         # --- 階段四：雙軌並行潤色 ---
         logger.info(f"[{self.user_id}] [總指揮-P4] 正在啟動雙軌並行潤色...")
         
-        # 內部函式：處理雲端佇列
         async def process_cloud_queue() -> List[CharacterProfile]:
             if not cloud_queue: return []
             logger.info(f"[{self.user_id}] [總指揮-P4-Cloud] 雲端潤色軌道啟動...")
             try:
-                # 雲端可以承受更大的批次
                 all_entities = list(cloud_queue.keys())
                 BATCH_SIZE = 15
                 cloud_profiles = []
                 
                 for i in range(0, len(all_entities), BATCH_SIZE):
-                    # ... [與本地執行單元類似的批次化邏輯] ...
                     batch_names = all_entities[i:i+BATCH_SIZE]
-                    batch_input_data = [
-                        BatchRefinementInput(base_profile={"name": name}, facts=cloud_queue[name]).model_dump() for name in batch_names
-                    ]
+                    batch_input_data = []
+                    for name in batch_names:
+                        # [v25.1 健壯性修正] 顯式創建 ProgrammaticFacts 物件
+                        facts_obj = ProgrammaticFacts(
+                            verified_aliases=cloud_queue[name].get("verified_aliases", []),
+                            verified_age=cloud_queue[name].get("verified_age", "未知"),
+                            description_sentences=cloud_queue[name].get("description_sentences", [])
+                        )
+                        batch_input_data.append(
+                            BatchRefinementInput(base_profile={"name": name}, facts=facts_obj).model_dump()
+                        )
+
                     prompt_template = self.get_character_details_parser_chain()
                     full_prompt = self._safe_format_prompt(
                         prompt_template, {"batch_verified_data_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)},
@@ -5126,7 +5130,6 @@ class ExtractionResult(BaseModel):
                 logger.error(f"[{self.user_id}] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: {e}", exc_info=True)
                 return []
 
-        # 內部函式：處理本地佇列
         async def process_local_queue() -> List[CharacterProfile]:
             if not local_queue: return []
             logger.info(f"[{self.user_id}] [總指揮-P4-Local] 本地潤色軌道啟動...")
@@ -5136,7 +5139,6 @@ class ExtractionResult(BaseModel):
                 return result.npc_profiles
             return []
 
-        # 並行執行
         cloud_results, local_results = await asyncio.gather(
             process_cloud_queue(),
             process_local_queue()
@@ -6356,6 +6358,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
