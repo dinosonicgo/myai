@@ -1,30 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T14:04:58.882659 ###
+### AI Lover Log - Last updated at 2025-10-12T14:10:02.017712 ###
 
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-2025-10-12 10:07:59 - [WARNING] - [512280345618546699] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以确保数据保真度...
-2025-10-12 10:07:59 - [INFO] - [512280345618546699] [本地執行單元-備援] ✅ 純程式碼備援执行完毕。
-2025-10-12 10:07:59 - [INFO] - [512280345618546699] [總指揮-P4-Local] ✅ 本地潤色軌道成功完成。
-2025-10-12 10:08:06 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:13 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:19 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:25 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:33 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:46 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:08:53 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:02 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:09 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:18 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:27 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:31 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
-2025-10-12 10:09:31 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] ✅ 雲端潤色軌道成功完成。
-2025-10-12 10:09:31 - [INFO] - [512280345618546699] [總指揮-P5] 正在將最終的 333 個LORE檔案持久化到資料庫...
-2025-10-12 10:10:05 - [INFO] - [512280345618546699] [數據入口-軌道B] ✅ 【終極架構v5：智能分流】LORE解析管線執行完畢。
-2025-10-12 10:10:05 - [INFO] - [512280345618546699] [後台創世] 步驟 2/3: 預解析完成，共發現 333 個 LORE 物件。準備構建 RAG 索引...
-2025-10-12 10:10:06 - [INFO] - [512280345618546699] (Retriever Builder) 進入外部文檔注入模式，使用 333 條傳入文檔，準備使用 333 條文檔進行構建...
-2025-10-12 10:11:42 - [INFO] - [512280345618546699] (Retriever Builder) ✅ 統一的【混合檢索器】構建成功。
-2025-10-12 10:11:42 - [INFO] - [512280345618546699] [後台創世] RAG 索引構建完成。
-2025-10-12 10:11:43 - [ERROR] - [512280345618546699] 後台創世流程發生嚴重錯誤: name 'create_setup_graph' is not defined
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1164, in _perform_full_setup_flow
     setup_graph = create_setup_graph()
@@ -300,3 +275,28 @@ KeyError: 'source'
 2025-10-12 13:39:33 - [INFO] - Discord Bot setup hook finished!
 2025-10-12 13:39:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-12 13:39:36 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 14:06:29 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-12 14:06:29 - [INFO] - [512280345618546699] 正在從資料庫恢復短期場景記憶...
+2025-10-12 14:06:29 - [INFO] - [512280345618546699] 資料庫中沒有找到歷史場景記憶。
+2025-10-12 14:06:29 - [INFO] - 為使用者 512280345618546699 成功從資料庫初始化 AI 實例。
+2025-10-12 14:06:29 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-12 14:06:29 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-12 14:06:29 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
+2025-10-12 14:06:29 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-12 14:06:35 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
+2025-10-12 14:06:35 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-12 14:06:36 - [INFO] - [512280345618546699] 啟動 RAG 直通對話流程...
+2025-10-12 14:06:36 - [INFO] - [512280345618546699] [Direct RAG] 啟動鳳凰架構 RAG 直通生成流程...
+2025-10-12 14:06:36 - [WARNING] - [512280345618546699] [鳳凰RAG] 檢索器未初始化，無法檢索記憶。
+2025-10-12 14:06:36 - [INFO] - [512280345618546699] [主生成] 正在構建結構化的消息列表...
+2025-10-12 14:06:55 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-12 14:06:55 - [INFO] - [512280345618546699] [長期記憶寫入] 互動記錄已成功進行雙重持久化到 SQL 資料庫。
+2025-10-12 14:06:55 - [INFO] - [512280345618546699] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。
+2025-10-12 14:06:57 - [INFO] - [512280345618546699] [事後分析] 正在啟動鳳凰架構背景分析任務...
+2025-10-12 14:06:57 - [WARNING] - [512280345618546699] 模型 'gemini-2.5-flash-lite' (Key #0) 遭遇內容審查或安全錯誤: BlockedPromptException。
+2025-10-12 14:06:57 - [WARNING] - [512280345618546699] 遭遇審查 (Prompt blocked due to 4)。啟動【最高指令集注入 & 強制 Key 輪換重試】策略...
+2025-10-12 14:06:57 - [INFO] - [512280345618546699] [強制重試] 已準備 3 個備用 API Keys 進行重試。
+2025-10-12 14:06:57 - [INFO] - [512280345618546699] [強制重試 1/3] 使用 API Key #0 進行嘗試...
+2025-10-12 14:07:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
+2025-10-12 14:07:26 - [INFO] - [512280345618546699] [事後分析] 檢測到 1 條【編碼的】LORE 更新，準備解碼並執行...
+2025-10-12 14:07:26 - [INFO] - [512280345618546699] [事後分析] 鳳凰架構背景分析任務完成。
