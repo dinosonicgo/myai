@@ -2351,60 +2351,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
-# 更新紀錄:
-# v3.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重寫此函式。現在它能處理混合式LORE結構，將 structured_content 和 narrative_content 合併、編碼，並為文檔添加包含 original_id 在內的豐富元數據。
-# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此函式的格式化邏輯，確保將屬性的鍵值對完整地格式化為文本。
-# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
-    def _format_lore_into_document(self, lore: Lore) -> Document:
-        """(v3.0) 將一個混合式 LORE 物件轉換為一段對 RAG 友好的、經過編碼的文本描述，並附帶豐富的元數據。"""
-        text_parts = []
-        
-        structured = lore.structured_content or {}
-        narrative = lore.narrative_content or ""
-        
-        title = structured.get('name') or structured.get('title') or lore.key
-        category_map = {
-            "npc_profile": "NPC 檔案", "location_info": "地點資訊",
-            "item_info": "物品資訊", "creature_info": "生物資訊",
-            "quest": "任務日誌", "world_lore": "世界傳說"
-        }
-        category_name = category_map.get(lore.category, lore.category)
 
-        text_parts.append(f"【{category_name}: {title}】")
-        
-        # 遍歷結構化數據
-        for key, value in structured.items():
-            if value and key not in ['name', 'title']:
-                key_str = key.replace('_', ' ').capitalize()
-                if isinstance(value, list) and value:
-                    value_str = ", ".join(map(str, value))
-                    text_parts.append(f"- {key_str}: {value_str}")
-                elif isinstance(value, dict) and value:
-                    dict_str = "; ".join([f"{k}: {v}" for k, v in value.items()])
-                    text_parts.append(f"- {key_str}: {dict_str}")
-                elif isinstance(value, (str, int, float, bool)) and str(value).strip():
-                    text_parts.append(f"- {key_str}: {str(value)}")
-
-        # 添加敘事性文本
-        if narrative.strip():
-            text_parts.append(f"\n[背景描述]:\n{narrative.strip()}")
-
-        full_text = "\n".join(text_parts)
-        
-        # 關鍵：在存入 RAG 前，對拼接好的完整文本進行編碼
-        encoded_text = self._encode_text(full_text)
-        
-        # 創建 Document 物件，並附帶豐富的元數據
-        metadata = {
-            "source": "lore", 
-            "category": lore.category, 
-            "key": lore.key,
-            "original_id": lore.id  # 儲存 SQL 資料庫中的主鍵 ID
-        }
-        
-        return Document(page_content=encoded_text, metadata=metadata)
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v3.0 - 鳳凰架構)
 
 # 函式：從使用者輸入中提取實體 (v2.7 - 噪聲過濾)
 # 更新紀錄:
@@ -6384,6 +6331,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
