@@ -1115,25 +1115,31 @@ class BotCog(commands.Cog, name="BotCog"):
 
 
     
-# 函式：执行完整的设置流程 (v66.5 - 依赖与归属修正)
-# 更新纪录:
-# v66.5 (2025-10-12): [灾难性BUG修复] 补全了对`create_setup_graph`的导入，并修正了对`active_setups`的访问方式，将其从`self.bot`改回`self`，以解决NameError和AttributeError。
-# v66.4 (2025-10-12): [灾难性BUG修复] 修正了获取AI实例的调用对象。
+# 函式：執行完整的設置流程 (v66.6 - 異步通知與健壯清理)
+# 更新紀錄:
+# v66.6 (2025-10-12): [災難性BUG修復] 將長時間任務的進度更新方式從`interaction.edit_original_response`改為`interaction.user.send`，以規避15分鐘的互動令牌過期問題。同時，修正了`finally`塊中對`active_setups`集合的清理語法。
+# v66.5 (2025-10-12): [災難性BUG修復] 補全了對`create_setup_graph`的導入，並修正了對`active_setups`的訪問方式。
     async def _perform_full_setup_flow(self, interaction: discord.Interaction, canon_text: Optional[str]):
         """
-        在背景执行完整的创世流程，包括解析、RAG构建和生成开场白。
+        在背景執行完整的創世流程，包括解析、RAG構建和生成開場白。
         """
         user_id = str(interaction.user.id)
         ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+        
+        # [v66.6 核心修正] 預先獲取 user 物件，因為 interaction 可能會失效
+        user_for_dm = interaction.user
+
         if not ai_instance:
-            await interaction.followup.send("錯誤：AI 實例丟失，無法繼續創世流程。", ephemeral=True)
-            # [v66.5 核心修正] 职责归属修正
-            self.active_setups.pop(user_id, None)
+            await user_for_dm.send("錯誤：AI 實例丟失，無法繼續創世流程。")
+            self.active_setups.discard(user_id)
             return
 
         try:
+            # 立即發送一條初始的、不會再編輯的確認訊息
+            await interaction.edit_original_response(content="✅ 您的請求已收到！創世流程已在後台啟動，所有進度更新和最終結果將通過**私訊**發送給您。", view=None)
+
             if canon_text and canon_text.strip():
-                await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...", view=None)
+                await user_for_dm.send("⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...")
                 
                 parsed_canon = await ai_instance.parse_and_create_lore_from_canon(canon_text)
 
@@ -1147,7 +1153,7 @@ class BotCog(commands.Cog, name="BotCog"):
                     if parsed_canon.world_lores: all_lores_to_process.extend([(wl, 'world_lore') for wl in parsed_canon.world_lores])
                 
                 logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 預解析完成，共發現 {len(all_lores_to_process)} 個 LORE 物件。準備構建 RAG 索引...")
-                await interaction.edit_original_response(content=f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
+                await user_for_dm.send(f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
                 
                 docs_for_rag = [Document(page_content=ai_instance._format_lore_into_document_content(obj, category)) for obj, category in all_lores_to_process]
                 await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag)
@@ -1157,10 +1163,8 @@ class BotCog(commands.Cog, name="BotCog"):
                 logger.info(f"[{user_id}] [後台創世] 未提供世界聖經，跳過解析與RAG構建步驟。")
                 await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=[])
 
-
-            await interaction.edit_original_response(content="⏳ **創世流程正在進行中... (3/4)**\n✅ 記憶系統構建完畢！AI 正在為您和角色進行最終設定...")
+            await user_for_dm.send("⏳ **創世流程正在進行中... (3/4)**\n✅ 記憶系統構建完畢！AI 正在為您和角色進行最終設定...")
             
-            # [v66.5 核心修正] 此处 create_setup_graph 现在可以被正确找到
             setup_graph = create_setup_graph()
             final_state = await setup_graph.ainvoke({
                 "user_id": user_id,
@@ -1171,18 +1175,19 @@ class BotCog(commands.Cog, name="BotCog"):
             opening_scene = final_state.get("opening_scene", "錯誤：未能生成開場白。")
             
             logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
-            await interaction.edit_original_response(content="✅ **創世完成！**\n我已將故事的開端發送到您的私訊中，請查收。我們的冒險現在開始！", view=None)
-            await interaction.user.send(opening_scene)
+            await user_for_dm.send("**✅ 創世完成！**\n我已將故事的開端發送到您的私訊中，請查收。我們的冒險現在開始！")
+            await user_for_dm.send(opening_scene)
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
             try:
-                await interaction.edit_original_response(content=f"🔥 **創世失敗！**\n在處理您的世界聖經時發生了無法恢復的錯誤，請檢查後台日誌。\n`{type(e).__name__}: {e}`", view=None)
-            except discord.NotFound:
-                pass 
+                # 嘗試通過私訊發送最終的錯誤訊息
+                await user_for_dm.send(f"🔥 **創世失敗！**\n在處理您的世界聖經時發生了無法恢復的錯誤，請檢查後台日誌。\n`{type(e).__name__}: {e}`")
+            except Exception as send_err:
+                logger.error(f"[{user_id}] 在創世失敗後，連發送錯誤訊息也失敗了: {send_err}", exc_info=True)
         finally:
-            # [v66.5 核心修正] 职责归属修正
-            self.active_setups.pop(user_id, None)
+            # [v66.6 核心修正] 使用 set.discard() 安全地移除元素
+            self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
 # 函式：執行完整的設置流程 結束
 
@@ -1849,6 +1854,7 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
+
 
 
 
