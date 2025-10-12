@@ -1833,32 +1833,24 @@ class AILover:
 
 
     
-# 函式：呼叫本地Ollama模型進行LORE解析 (v5.1 - 統一輸出與超時緩解)
+# 函式：呼叫本地Ollama模型進行LORE解析 (v5.2 - 職責固化)
 # 更新紀錄:
-# v5.1 (2025-10-12): [災難性BUG修復] 統一了所有執行路徑的最終返回值，確保無論內部流程如何，外部調用者接收到的永遠是一個CanonParsingResult物件，從而根除AttributeError。同時減小BATCH_SIZE以緩解ReadTimeout問題。
+# v5.2 (2025-10-12): [架構優化] 移除了內部的防禦性調度器。在終極架構v5中，此函數的職責被徹底固化為管線第四階段的本地執行單元，總指揮官會確保其輸入類型永遠正確。
+# v5.1 (2025-10-12): [災難性BUG修復] 統一了所有執行路徑的最終返回值，確保外部調用者接收到的永遠是一個CanonParsingResult物件。
 # v5.0 (2025-10-12): [災難性BUG修復] 新增了防禦性调度器以實現向下兼容。
-# v4.0 (2025-10-12): [災難性BUG修復] 徹底修復了先前版本中的KeyError。
-    async def _invoke_local_ollama_parser(self, input_data: Any) -> Optional[CanonParsingResult]:
+    async def _invoke_local_ollama_parser(self, aggregated_facts_map: Dict[str, Dict[str, Any]]) -> Optional[CanonParsingResult]:
         """
-        (v5.1) LORE解析的防禦性调度器与最终执行单元。返回一个CanonParsingResult物件。
-        - 如果输入是预处理过的事实字典，则执行润色/备援。
-        - 如果输入是原始文本字符串（表示被错误调用），则自动重定向到完整的解析管线。
+        (v5.2) 接收預處理好的事實數據點，嘗試用本地LLM進行批次化潤色，並在失敗時執行純程式碼備援。
+        返回一個 CanonParsingResult 物件。
         """
         import httpx
         from .schemas import CanonParsingResult, CharacterProfile, BatchRefinementResult, BatchRefinementInput, ProgrammaticFacts
 
-        # --- [v5.0 核心修正] 防禦性调度器 ---
-        if isinstance(input_data, str):
-            logger.warning(f"[{self.user_id}] [本地执行单元] 检测到不推荐的直接文本输入！这表明外部调用方式已过时。")
-            logger.warning(f"[{self.user_id}] [本地执行单元] 正在自动重定向到【终极架构v4.1】总指挥官进行处理...")
-            return await self.parse_and_create_lore_from_canon(input_data)
-        
-        if not isinstance(input_data, dict):
-            logger.error(f"[{self.user_id}] [本地执行单元] 接收到无效的输入类型: {type(input_data)}，流程终止。")
+        if not isinstance(aggregated_facts_map, dict):
+            logger.error(f"[{self.user_id}] [本地執行單元] 接收到無效的輸入類型: {type(aggregated_facts_map)}，流程终止。")
             return CanonParsingResult()
 
-        aggregated_facts_map = input_data
-        logger.info(f"[{self.user_id}] [本地执行单元] 正在启动 v5.1 润色/备援流程...")
+        logger.info(f"[{self.user_id}] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...")
 
         # --- 步骤 1: 尝试 LLM 批次化润色 (LLM 辅助) ---
         refined_profiles: List[CharacterProfile] = []
@@ -1867,15 +1859,14 @@ class AILover:
         try:
             all_entities = list(aggregated_facts_map.keys())
             if not all_entities:
-                logger.warning(f"[{self.user_id}] [本地执行单元] 传入的事实数据图为空，无法执行。")
+                logger.warning(f"[{self.user_id}] [本地執行單元] 传入的事实数据图为空，无法执行。")
                 return CanonParsingResult()
 
-            # [v5.1 核心修正] 減小批次大小以緩解 ReadTimeout
             BATCH_SIZE = 3 
             
             for i in range(0, len(all_entities), BATCH_SIZE):
                 batch_names = all_entities[i:i+BATCH_SIZE]
-                logger.info(f"[{self.user_id}] [本地执行单元-LLM] 正在处理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
+                logger.info(f"[{self.user_id}] [本地執行單元-LLM] 正在處理批次 {i//BATCH_SIZE + 1}/{(len(all_entities) + BATCH_SIZE - 1)//BATCH_SIZE}...")
 
                 batch_input_data = []
                 for name in batch_names:
@@ -1916,16 +1907,16 @@ class AILover:
                     refined_profiles.extend(batch_result.refined_profiles)
         
         except Exception as e:
-            logger.warning(f"[{self.user_id}] [本地执行单元-LLM] 🔥 LLM 批次化润色失败: {e}", exc_info=True)
+            logger.warning(f"[{self.user_id}] [本地執行單元-LLM] 🔥 LLM 批次化潤色失敗: {e}", exc_info=True)
             llm_refinement_failed = True
 
         # --- 步骤 2: 最终聚合 (包含纯程式码备援) ---
         final_npc_profiles: List[CharacterProfile] = []
         if not llm_refinement_failed and refined_profiles:
-            logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ LLM 批次化润色成功！正在聚合结果...")
+            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ LLM 批次化潤色成功！正在聚合結果...")
             final_npc_profiles = refined_profiles
         else:
-            logger.warning(f"[{self.user_id}] [本地执行单元-备援] 正在觸發【純程式碼備援方案】，以确保数据保真度...")
+            logger.warning(f"[{self.user_id}] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以确保数据保真度...")
             for name, facts in aggregated_facts_map.items():
                 profile = CharacterProfile(
                     name=name,
@@ -1934,9 +1925,8 @@ class AILover:
                     description="\n".join(facts.get("description_sentences", [""]))
                 )
                 final_npc_profiles.append(profile)
-            logger.info(f"[{self.user_id}] [本地执行单元-备援] ✅ 純程式碼備援执行完毕。")
+            logger.info(f"[{self.user_id}] [本地執行單元-備援] ✅ 純程式碼備援执行完毕。")
 
-        # [v5.1 核心修正] 統一返回 CanonParsingResult 物件
         return CanonParsingResult(npc_profiles=final_npc_profiles)
 # 函式：呼叫本地Ollama模型进行LORE解析 結束
 
@@ -5041,85 +5031,142 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：解析并从世界圣经创建LORE (v24.1 - 统一输出)
+# 函式：解析並從世界聖經創建LORE (v25.0 - 智能分流總指揮官)
 # 更新紀錄:
-# v24.1 (2025-10-12): [灾难性BUG修复] 统一了函数的最终返回值，确保其在任何成功或失败的路径上都返回一个CanonParsingResult对象，以适配外部调用者的接口要求。
-# v24.0 (2025-10-12): [架构适配] 修改了函数的返回值，使其在成功时返回一个包含所有已生成CharacterProfile对象的列表。
-# v23.0 (2025-10-12): [灾难性BUG修复] 引入了「上下文隔离」机制。
+# v25.0 (2025-10-12): [重大架構升級] 根據「終極架構v5」，將此函式重構為「智能分流總指揮官」。它現在能夠分析每個LORE實體的內容，將安全的任務分配給高速的雲端LLM，將高風險的任務分配給無審查的本地LLM，並並行執行這兩條潤色管線，實現了速度與穩健性的最佳平衡。
+# v24.1 (2025-10-12): [災難性BUG修復] 統一了函数的最终返回值，确保其返回CanonParsingResult对象。
+# v23.0 (2025-10-12): [災難性BUG修復] 引入了「上下文隔離」機制。
     async def parse_and_create_lore_from_canon(self, canon_text: str) -> CanonParsingResult:
         """
-        【总指挥 v24.1】执行一个分层的、并行的「情报融合」LORE解析管线，并将结果存入资料库。
-        成功时返回包含已生成对象的 CanonParsingResult 物件。
+        【總指揮 v25.0】執行一個包含智能分流和雙軌並行潤色的LORE解析管線。
         """
         if not self.profile or not canon_text.strip():
-            logger.error(f"[{self.user_id}] 圣经解析失败：Profile 未载入或文本为空。")
+            logger.error(f"[{self.user_id}] 聖經解析失敗：Profile 未載入或文本為空。")
             return CanonParsingResult()
 
-        logger.info(f"[{self.user_id}] [数据入口-轨道B] 正在启动【终极架构v4.1：上下文隔离】LORE解析管线...")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] 正在啟動【終極架構v5：智能分流】LORE解析管線...")
         
-        text_splitter = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=200)
-        chunks = text_splitter.split_text(canon_text)
-        
+        # --- 階段一 & 三 (合併)：情報收集與融合 ---
+        logger.info(f"[{self.user_id}] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...")
         final_facts_map: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
             "verified_aliases": set(), "verified_age": "未知", "description_sentences": set()
         })
-
         character_block_pattern = re.compile(r"(^\s*\*\s*.+?(?=\n\s*\*\s|\Z))", re.MULTILINE | re.DOTALL)
         
-        for i, chunk in enumerate(chunks):
+        chunks = RecursiveCharacterTextSplitter(chunk_size=8000, chunk_overlap=200).split_text(canon_text)
+        for chunk in chunks:
             character_blocks = character_block_pattern.findall(chunk)
-            
             for block in character_blocks:
                 main_name_match = re.search(r"^\s*\*\s*([^(\n]+)", block)
-                if not main_name_match:
-                    continue
+                if not main_name_match: continue
                 main_name = main_name_match.group(1).strip()
-
                 facts = await self._programmatic_attribute_extraction(block)
                 final_facts_map[main_name]["verified_aliases"].update(facts["verified_aliases"])
                 if facts["verified_age"] != "未知": final_facts_map[main_name]["verified_age"] = facts["verified_age"]
                 final_facts_map[main_name]["description_sentences"].update(facts["description_sentences"])
-
-        logger.info(f"[{self.user_id}] [总指挥-P1&3] ✅ 程式码提取与融合完成，共计 {len(final_facts_map)} 个唯一实体。")
-
+        
         if not final_facts_map:
-            logger.warning(f"[{self.user_id}] [总指挥] 未能从文本中提取任何潜在实体，流程终止。")
+            logger.warning(f"[{self.user_id}] [總指揮] 未能從文本中提取任何潛在實體，流程終止。")
             return CanonParsingResult()
-            
+
+        # 轉換 set 為 list
         for name in final_facts_map:
             final_facts_map[name]["verified_aliases"] = list(final_facts_map[name]["verified_aliases"])
             final_facts_map[name]["description_sentences"] = list(final_facts_map[name]["description_sentences"])
+        logger.info(f"[{self.user_id}] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 {len(final_facts_map)} 個唯一實體。")
 
-        logger.info(f"[{self.user_id}] [总指挥-P4] 正在将融合情报提交至本地执行单元进行最终处理...")
-        # _invoke_local_ollama_parser 现在返回的是 CanonParsingResult
-        parsing_result = await self._invoke_local_ollama_parser(final_facts_map)
+        # --- 階段 3.5：智能分流 ---
+        logger.info(f"[{self.user_id}] [總指揮-P3.5] 正在執行智能分流...")
+        nsfw_keywords = set(DECODING_MAP.values())
+        cloud_queue: Dict[str, Dict[str, Any]] = {}
+        local_queue: Dict[str, Dict[str, Any]] = {}
+
+        for name, facts in final_facts_map.items():
+            description_text = " ".join(facts["description_sentences"])
+            if any(keyword in description_text for keyword in nsfw_keywords):
+                local_queue[name] = facts
+            else:
+                cloud_queue[name] = facts
         
-        if not parsing_result or not parsing_result.npc_profiles:
-            logger.error(f"[{self.user_id}] [总指挥-P4] 🔥 本地执行单元未能生成任何有效的角色档案，流程终止。")
+        logger.info(f"[{self.user_id}] [總指揮-P3.5] ✅ 分流完成。雲端佇列: {len(cloud_queue)} 個 (安全)，本地佇列: {len(local_queue)} 個 (高風險)。")
+
+        # --- 階段四：雙軌並行潤色 ---
+        logger.info(f"[{self.user_id}] [總指揮-P4] 正在啟動雙軌並行潤色...")
+        
+        # 內部函式：處理雲端佇列
+        async def process_cloud_queue() -> List[CharacterProfile]:
+            if not cloud_queue: return []
+            logger.info(f"[{self.user_id}] [總指揮-P4-Cloud] 雲端潤色軌道啟動...")
+            try:
+                # 雲端可以承受更大的批次
+                all_entities = list(cloud_queue.keys())
+                BATCH_SIZE = 15
+                cloud_profiles = []
+                
+                for i in range(0, len(all_entities), BATCH_SIZE):
+                    # ... [與本地執行單元類似的批次化邏輯] ...
+                    batch_names = all_entities[i:i+BATCH_SIZE]
+                    batch_input_data = [
+                        BatchRefinementInput(base_profile={"name": name}, facts=cloud_queue[name]).model_dump() for name in batch_names
+                    ]
+                    prompt_template = self.get_character_details_parser_chain()
+                    full_prompt = self._safe_format_prompt(
+                        prompt_template, {"batch_verified_data_json": json.dumps(batch_input_data, ensure_ascii=False, indent=2)},
+                        inject_core_protocol=True, custom_protocol=self.data_protocol_prompt
+                    )
+                    result = await self.ainvoke_with_rotation(
+                        full_prompt, output_schema=BatchRefinementResult, models_to_try_override=[FUNCTIONAL_MODEL]
+                    )
+                    if result:
+                        cloud_profiles.extend(result.refined_profiles)
+                
+                logger.info(f"[{self.user_id}] [總指揮-P4-Cloud] ✅ 雲端潤色軌道成功完成。")
+                return cloud_profiles
+            except Exception as e:
+                logger.error(f"[{self.user_id}] [總指揮-P4-Cloud] 🔥 雲端潤色軌道失敗: {e}", exc_info=True)
+                return []
+
+        # 內部函式：處理本地佇列
+        async def process_local_queue() -> List[CharacterProfile]:
+            if not local_queue: return []
+            logger.info(f"[{self.user_id}] [總指揮-P4-Local] 本地潤色軌道啟動...")
+            result = await self._invoke_local_ollama_parser(local_queue)
+            if result and result.npc_profiles:
+                logger.info(f"[{self.user_id}] [總指揮-P4-Local] ✅ 本地潤色軌道成功完成。")
+                return result.npc_profiles
+            return []
+
+        # 並行執行
+        cloud_results, local_results = await asyncio.gather(
+            process_cloud_queue(),
+            process_local_queue()
+        )
+        final_profiles = cloud_results + local_results
+        
+        if not final_profiles:
+            logger.error(f"[{self.user_id}] [總指揮-P4] 🔥 雙軌潤色均未生成任何有效的角色檔案，流程終止。")
             return CanonParsingResult()
-        
-        final_profiles = parsing_result.npc_profiles
-        logger.info(f"[{self.user_id}] [总指挥-P5] 正在将最终的 {len(final_profiles)} 个LORE档案持久化到资料库...")
+
+        # --- 階段五：持久化 ---
+        logger.info(f"[{self.user_id}] [總指揮-P5] 正在將最終的 {len(final_profiles)} 個LORE檔案持久化到資料庫...")
         for profile in final_profiles:
             try:
-                if len(profile.name) <= 1 and not re.search('[\u4e00-\u9fa5]', profile.name):
-                    continue
+                if len(profile.name) <= 1 and not re.search('[\u4e00-\u9fa5]', profile.name): continue
                 location_path = profile.location_path or ["世界"]
                 lore_key = " > ".join(location_path + [profile.name])
                 await lore_book.add_or_update_lore(
                     self.user_id, 'npc_profile', lore_key,
                     structured_content=profile.model_dump(),
                     narrative_content=profile.description,
-                    source='canon_parser_v4.1_isolated'
+                    source='canon_parser_v5_hybrid'
                 )
             except Exception as e:
-                logger.error(f"[{self.user_id}] [总指挥-P5] 持久化角色 '{profile.name}' 时失败: {e}", exc_info=True)
+                logger.error(f"[{self.user_id}] [總指揮-P5] 持久化角色 '{profile.name}' 時失敗: {e}", exc_info=True)
         
-        logger.info(f"[{self.user_id}] [数据入口-轨道B] ✅ 【终极架构v4.1：上下文隔离】LORE解析管线执行完毕。")
+        logger.info(f"[{self.user_id}] [數據入口-軌道B] ✅ 【終極架構v5：智能分流】LORE解析管線執行完畢。")
         
-        # [v24.1 核心修正] 返回最终生成的、包含所有内容的 CanonParsingResult 物件
-        return parsing_result
-# 函式：解析并从世界圣经创建LORE 结束
+        return CanonParsingResult(npc_profiles=final_profiles)
+# 函式：解析並從世界聖經創建LORE 結束
 
 
 
@@ -6309,6 +6356,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
