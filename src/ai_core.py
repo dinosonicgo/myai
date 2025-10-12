@@ -1064,14 +1064,13 @@ class AILover:
 
 
 
-# 函式：加載或構建 RAG 檢索器 (v208.0 - 完全異步化)
+# 函式：加載或構建 RAG 檢索器 (v208.1 - 終極防禦性異步化)
 # 更新紀錄:
-# v208.0 (2025-10-12): [災難性BUG修復] 將 `BM25Retriever.from_documents` 和 `_save_bm25_corpus` 等所有同步的、會阻塞事件循環的操作，全部改為使用 `asyncio.to_thread` 在單獨線程中執行，從根本上解決了程式在構建RAG時無響應的問題。
-# v207.2 (2025-12-10): [災難性BUG修復] 根據使用者反饋和進一步的日誌分析，修復了在「外部文檔注入模式」下 `docs_to_build` 缺少 `original_id` 元數據的致命問題。
-# v207.1 (2025-12-10): [災難性BUG修復] 統一了所有執行路徑，確保無論在哪種模式下，最終都一定會創建一個完整的 EnsembleRetriever。
+# v208.1 (2025-10-12): [健壯性強化] 作為防禦性編程，將 `Chroma()`、`.as_retriever()` 和 `EnsembleRetriever()` 等所有潛在的同步阻塞點，全部使用 `asyncio.to_thread` 進行異步化隔離，徹底杜絕此函數阻塞事件循環的可能性。
+# v208.0 (2025-10-12): [災難性BUG修復] 將 `BM25Retriever.from_documents` 和 `_save_bm25_corpus` 等操作異步化。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False, docs_to_build: Optional[List[Document]] = None) -> Runnable:
         """
-        (v208.0) 加載或構建一個基於潔淨、編碼後數據的【混合式】RAG 檢索器，並確保所有操作都對事件循環友好。
+        (v208.1) 加載或構建一個【混合式】RAG 檢索器，並確保所有CPU和I/O操作都對事件循環友好。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
@@ -1110,27 +1109,39 @@ class AILover:
 
         if force_rebuild and Path(self.vector_store_path).exists():
             await asyncio.to_thread(shutil.rmtree, self.vector_store_path, ignore_errors=True)
-        Path(self.vector_store_path).mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(Path(self.vector_store_path).mkdir, parents=True, exist_ok=True)
         
         try:
             persistent_client = await asyncio.to_thread(chromadb.PersistentClient, path=self.vector_store_path)
-            self.vector_store = Chroma(client=persistent_client, embedding_function=self.embeddings)
+            # [v208.1 核心修正] 異步化 Chroma 初始化
+            self.vector_store = await asyncio.to_thread(
+                Chroma,
+                client=persistent_client, 
+                embedding_function=self.embeddings
+            )
             
             if all_docs_for_rag:
                 await asyncio.to_thread(self.vector_store.add_documents, all_docs_for_rag)
-                vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
+                # [v208.1 核心修正] 異步化 as_retriever 調用
+                vector_retriever = await asyncio.to_thread(
+                    self.vector_store.as_retriever,
+                    search_kwargs={"k": 15}
+                )
 
                 self.bm25_corpus = all_docs_for_rag
-                # [v208.0 核心修正] 將同步的 CPU 密集型操作異步化
                 self.bm25_retriever = await asyncio.to_thread(
                     BM25Retriever.from_documents,
                     self.bm25_corpus
                 )
                 self.bm25_retriever.k = 10
-                # [v208.0 核心修正] 調用異步化的保存函式
                 await self._save_bm25_corpus()
 
-                self.retriever = EnsembleRetriever(retrievers=[self.bm25_retriever, vector_retriever], weights=[0.2, 0.8])
+                # [v208.1 核心修正] 異步化 EnsembleRetriever 初始化
+                self.retriever = await asyncio.to_thread(
+                    EnsembleRetriever,
+                    retrievers=[self.bm25_retriever, vector_retriever], 
+                    weights=[0.2, 0.8]
+                )
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 統一的【混合檢索器】構建成功。")
             else:
                 self.retriever = RunnableLambda(lambda x: [])
@@ -4498,13 +4509,13 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：配置前置資源 (v204.1 - 異步適配)
+# 函式：配置前置資源 (v204.2 - 異步化Graph編譯)
 # 更新紀錄:
-# v204.1 (2025-10-12): [異步適配] 修改了對 `_create_embeddings_instance` 的調用方式，增加了 `await` 關鍵字，以適配其升級為異步函數後的接口。
-# v204.0 (2025-10-12): [架構回歸] 新增了在配置階段創建並編譯主對話圖（main_graph）的邏輯。
+# v204.2 (2025-10-12): [災難性BUG修復] 將 `create_main_response_graph()` 這個同步的、CPU密集型的圖編譯操作，用 `asyncio.to_thread` 包裹起來，以防止其在初始化時阻塞整個應用的事件循環。
+# v204.1 (2025-10-12): [異步適配] 修改了對 `_create_embeddings_instance` 的調用方式。
     async def _configure_pre_requisites(self):
         """
-        (v204.1) 異步配置輕量級的前置資源，並創建主對話圖（main_graph）。
+        (v204.2) 異步配置輕量級的前置資源，並在後台線程創建主對話圖。
         """
         from .graph import create_main_response_graph
 
@@ -4517,7 +4528,6 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v204.1 核心修正] 使用 await 來調用異步函式
         self.embeddings = await self._create_embeddings_instance()
         
         if self.embeddings is None:
@@ -4525,8 +4535,9 @@ class ExtractionResult(BaseModel):
             logger.critical("   -> RAG 系統（長期記憶和世界聖經）將被完全禁用。")
         
         if self.main_graph is None:
-            logger.info(f"[{self.user_id}] 正在創建並編譯主對話圖 (main_graph)...")
-            self.main_graph = create_main_response_graph()
+            logger.info(f"[{self.user_id}] 正在後台線程創建並編譯主對話圖 (main_graph)...")
+            # [v204.2 核心修正] 將同步的、CPU密集型的操作異步化
+            self.main_graph = await asyncio.to_thread(create_main_response_graph)
             logger.info(f"[{self.user_id}] ✅ 主對話圖已成功創建。")
 
         logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
@@ -6278,6 +6289,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
