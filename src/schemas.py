@@ -428,6 +428,10 @@ class BatchRefinementResult(BaseModel):
 
 
 
+class ValidationResult(BaseModel):
+    is_violating: bool = Field(description="如果文本违反了使用者主权原则，则为 true。")
+
+
 
 
 # --- 確保所有模型都已更新 ---
@@ -471,4 +475,5 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
 
