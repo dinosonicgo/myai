@@ -1,16 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T13:33:41.725861 ###
+### AI Lover Log - Last updated at 2025-10-12T13:39:42.995844 ###
 
-refined_profiles
-  Field required [type=missing, input_value={'name': '絲月的獻身...rrent_action': '站著'}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1906, in _invoke_local_ollama_parser
-    batch_result = BatchRefinementResult.model_validate(parsed_json)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 568, in model_validate
-    return cls.__pydantic_validator__.validate_python(
-pydantic_core._pydantic_core.ValidationError: 1 validation error for BatchRefinementResult
-refined_profiles
-  Field required [type=missing, input_value={'name': '絲月的獻身...rrent_action': '站著'}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 2025-10-12 10:07:59 - [WARNING] - [512280345618546699] [本地執行單元-備援] 正在觸發【純程式碼備援方案】，以确保数据保真度...
 2025-10-12 10:07:59 - [INFO] - [512280345618546699] [本地執行單元-備援] ✅ 純程式碼備援执行完毕。
@@ -300,3 +289,14 @@ KeyError: 'source'
 2025-10-12 13:17:40 - [INFO] - [512280345618546699] (Setup Graph|4/4) Node: generate_opening_scene -> 節點執行成功。
 2025-10-12 13:17:40 - [INFO] - [512280345618546699] [後台創世] 正在向使用者私訊發送最終開場白...
 2025-10-12 13:17:40 - [INFO] - [512280345618546699] 後台創世流程結束，狀態鎖已釋放。
+2025-10-12 13:37:11 - [INFO] - [512280345618546699] [Admin Command] 手動觸發強制更新與重啟流程...
+2025-10-12 13:37:11 - [INFO] - [512280345618546699] [Admin Command] 已獲取 Git 鎖，開始執行同步...
+2025-10-12 13:37:16 - [INFO] - [512280345618546699] [Admin Command] Git 鎖已釋放。
+2025-10-12 13:39:28 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 13:39:33 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 13:39:33 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 13:39:33 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 13:39:33 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 13:39:33 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 13:39:36 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 13:39:36 - [INFO] - 已成功發送啟動成功通知給管理員。
