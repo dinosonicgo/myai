@@ -1433,14 +1433,14 @@ class AILover:
 # 函式：獲取本地RAG重排器 Prompt (v1.0 - 全新創建)
 
 
-# 函式：將單條 LORE 物件格式化為 RAG 文檔內容 (v1.0 - 全新創建)
+# 函式：將單條 LORE 物件格式化為 RAG 文檔 (v2.0 - 返回完整物件)
 # 更新紀錄:
-# v1.0 (2025-12-11): [全新創建] 根據「本地預處理」+「智能聚合」架構的需求，創建此核心輔助函式。它的職責是接收一個結構化的 LORE Pydantic 物件（如 CharacterProfile），並將其轉換為一段對 RAG 友好的、人類可讀的文本描述字符串，供後續的聚合與編碼使用。
-    def _format_lore_into_document_content(self, lore_obj: BaseModel, category: str) -> str:
-        """將一個 LORE Pydantic 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
+# v2.0 (2025-10-12): [災難性BUG修復] 函式被重命名並徹底重構。它現在的職責是接收一個LORE python物件，並返回一個包含完整page_content和metadata的、可以直接注入RAG的langchain Document物件，從根源上解決KeyError: 'source'。
+# v1.0 (2025-12-11): [全新創建] 根據「本地預處理」+「智能聚合」架構的需求，創建此核心輔助函式。
+    def _format_lore_into_document(self, lore_obj: BaseModel, category: str, lore_id: Any) -> Document:
+        """(v2.0) 將一個 LORE Pydantic 物件轉換為一個包含完整元數據的 RAG Document 物件。"""
         text_parts = []
         
-        # 統一獲取 name 或 title
         title = getattr(lore_obj, 'name', None) or getattr(lore_obj, 'title', '未知標題')
 
         category_map = {
@@ -1468,8 +1468,18 @@ class AILover:
                     value_str = str(value).replace('\n', ' ')
                     text_parts.append(f"- {key_str}: {value_str}")
 
-        return "\n".join(text_parts)
-# 函式：將單條 LORE 物件格式化為 RAG 文檔內容 結束
+        page_content = "\n".join(text_parts)
+        
+        # 關鍵：創建包含完整元數據的 Document 物件
+        metadata = {
+            "source": "lore", 
+            "category": category, 
+            "key": title, # 使用 name/title 作為 key
+            "original_id": lore_id # 使用傳入的唯一ID
+        }
+        
+        return Document(page_content=page_content, metadata=metadata)
+# 函式：將單條 LORE 物件格式化為 RAG 文檔 結束
 
 
     
@@ -6331,6 +6341,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
