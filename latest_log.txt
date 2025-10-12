@@ -1,21 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T14:35:18.479311 ###
+### AI Lover Log - Last updated at 2025-10-12T14:41:36.381747 ###
 
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\cogs\core_cog.py", line 1164, in _perform_full_setup_flow
-    setup_graph = create_setup_graph()
-NameError: name 'create_setup_graph' is not defined
-2025-10-12 10:25:33 - [INFO] - 正在加載核心 Cog (core_cog)...
-2025-10-12 10:25:38 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
-2025-10-12 10:25:38 - [INFO] - ✅ 核心 Cog 加載成功。
-2025-10-12 10:25:38 - [INFO] - 正在全域同步應用程式指令...
-2025-10-12 10:25:38 - [INFO] - ✅ 指令已全域同步！
-2025-10-12 10:25:38 - [INFO] - Discord Bot setup hook finished!
-2025-10-12 10:25:41 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
-2025-10-12 10:25:42 - [INFO] - 已成功發送啟動成功通知給管理員。
-2025-10-12 10:28:07 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
-2025-10-12 10:28:09 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
-2025-10-12 10:28:09 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
-2025-10-12 10:28:09 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
 2025-10-12 10:28:11 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
 2025-10-12 10:28:17 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
 2025-10-12 10:28:17 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
@@ -300,3 +284,19 @@ KeyError: 'source'
 2025-10-12 14:07:26 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
 2025-10-12 14:07:26 - [INFO] - [512280345618546699] [事後分析] 檢測到 1 條【編碼的】LORE 更新，準備解碼並執行...
 2025-10-12 14:07:26 - [INFO] - [512280345618546699] [事後分析] 鳳凰架構背景分析任務完成。
+2025-10-12 14:40:49 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 14:40:52 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 14:40:52 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 14:40:52 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 14:40:53 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 14:40:53 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 14:40:55 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 14:40:56 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 14:41:22 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 14:41:25 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 14:41:25 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 14:41:25 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 14:41:25 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 14:41:25 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 14:41:28 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 14:41:28 - [INFO] - 已成功發送啟動成功通知給管理員。
