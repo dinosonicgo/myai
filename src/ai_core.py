@@ -1000,16 +1000,17 @@ class AILover:
 # 獲取角色檔案重寫器 Prompt 函式結束
 
 
-    # 函式：保存 BM25 語料庫到磁碟 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的一部分，負責將記憶體中的文檔語料庫持久化到 pickle 檔案。
-    def _save_bm25_corpus(self):
-        """將當前的 BM25 語料庫（文檔列表）保存到 pickle 檔案。"""
+# 函式：保存 BM25 語料庫到磁碟 (v2.0 - 異步化)
+# 更新紀錄:
+# v2.0 (2025-10-12): [災難性BUG修復] 將 `pickle.dump` 這個同步I/O操作用 `asyncio.to_thread` 包裹，並將整個函式改為異步，以防止其在保存索引時阻塞整個應用的事件循環。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的一部分。
+    async def _save_bm25_corpus(self):
+        """將當前的 BM25 語料庫（文檔列表）異步保存到 pickle 檔案。"""
         try:
-            with open(self.bm25_index_path, 'wb') as f:
-                pickle.dump(self.bm25_corpus, f)
+            await asyncio.to_thread(pickle.dump, self.bm25_corpus, open(self.bm25_index_path, 'wb'))
         except (IOError, pickle.PicklingError) as e:
             logger.error(f"[{self.user_id}] [RAG持久化] 保存 BM25 語料庫失敗: {e}", exc_info=True)
+# 函式：保存 BM25 語料庫到磁碟 結束
 
     # 函式：從磁碟加載 BM25 語料庫 (v1.0 - 全新創建)
     # 更新紀錄:
@@ -1027,15 +1028,15 @@ class AILover:
                 return False
         return False
 
-    # 函式：增量更新 RAG 索引 (v1.0 - 全新創建)
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。它負責處理單條LORE的新增或更新，在記憶體中對語料庫進行操作，然後觸發索引的輕量級重建和持久化。
+# 函式：增量更新 RAG 索引 (v2.0 - 異步適配)
+# 更新紀錄:
+# v2.0 (2025-10-12): [災難性BUG修復] 將 `BM25Retriever.from_documents` 這個同步CPU密集型操作用 `asyncio.to_thread` 包裹，並適配了對異步 `_save_bm25_corpus` 的調用，以防止增量更新時阻塞事件循環。
+# v1.0 (2025-09-23): [全新創建] 創建此函式作為RAG增量更新架構的核心。
     async def _update_rag_for_single_lore(self, lore: Lore):
-        """為單個LORE條目增量更新RAG索引。"""
+        """為單個LORE條目增量更新RAG索引，確保所有操作都對事件循環友好。"""
         new_doc = self._format_lore_into_document(lore)
         key_to_update = lore.key
         
-        # 在記憶體語料庫中查找並替換或追加
         found = False
         for i, doc in enumerate(self.bm25_corpus):
             if doc.metadata.get("key") == key_to_update:
@@ -1046,52 +1047,50 @@ class AILover:
         if not found:
             self.bm25_corpus.append(new_doc)
 
-        # 從更新後的記憶體語料庫輕量級重建檢索器
         if self.bm25_corpus:
-            self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+            # [v2.0 核心修正] 將 CPU 密集型操作異步化
+            self.bm25_retriever = await asyncio.to_thread(
+                BM25Retriever.from_documents,
+                self.bm25_corpus
+            )
             self.bm25_retriever.k = 15
             self.retriever = self.bm25_retriever
         
-        # 將更新後的語料庫持久化到磁碟
-        self._save_bm25_corpus()
+        # [v2.0 核心修正] 調用異步化的保存函式
+        await self._save_bm25_corpus()
         action = "更新" if found else "添加"
         logger.info(f"[{self.user_id}] [RAG增量更新] 已成功 {action} LORE '{key_to_update}' 到 RAG 索引。當前總文檔數: {len(self.bm25_corpus)}")
+# 函式：增量更新 RAG 索引 結束
 
 
 
-
-# 函式：加載或構建 RAG 檢索器 (v207.2 - 元數據補全)
+# 函式：加載或構建 RAG 檢索器 (v208.0 - 完全異步化)
 # 更新紀錄:
-# v207.2 (2025-12-10): [災難性BUG修復] 根據使用者反饋和進一步的日誌分析，修復了在「外部文檔注入模式」下 `docs_to_build` 缺少 `original_id` 元數據的致命問題。新版本會為這些初始文檔手動生成一個唯一的臨時 ID，確保它們在後續的 RAG 管線中能被正確地去重和引用，從而解決了創世後 RAG 立即失效的問題。同時，將混合檢索器的權重恢復到經過驗證的 [0.2, 0.8]。
+# v208.0 (2025-10-12): [災難性BUG修復] 將 `BM25Retriever.from_documents` 和 `_save_bm25_corpus` 等所有同步的、會阻塞事件循環的操作，全部改為使用 `asyncio.to_thread` 在單獨線程中執行，從根本上解決了程式在構建RAG時無響應的問題。
+# v207.2 (2025-12-10): [災難性BUG修復] 根據使用者反饋和進一步的日誌分析，修復了在「外部文檔注入模式」下 `docs_to_build` 缺少 `original_id` 元數據的致命問題。
 # v207.1 (2025-12-10): [災難性BUG修復] 統一了所有執行路徑，確保無論在哪種模式下，最終都一定會創建一個完整的 EnsembleRetriever。
-# v207.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，徹底重寫數據加載邏輯。
     async def _load_or_build_rag_retriever(self, force_rebuild: bool = False, docs_to_build: Optional[List[Document]] = None) -> Runnable:
         """
-        (v207.2) 加載或構建一個基於潔淨、編碼後數據的【混合式】RAG 檢索器。
+        (v208.0) 加載或構建一個基於潔淨、編碼後數據的【混合式】RAG 檢索器，並確保所有操作都對事件循環友好。
         """
         if not self.embeddings:
             logger.error(f"[{self.user_id}] (Retriever Builder) Embedding 模型未初始化，無法構建檢索器。")
             return RunnableLambda(lambda x: [])
 
-        # --- 數據準備 ---
         all_docs_for_rag = []
         log_reason = ""
         
         if docs_to_build is not None:
             log_reason = f"進入外部文檔注入模式，使用 {len(docs_to_build)} 條傳入文檔"
-            # [v207.2 核心修正] 為初始文檔手動添加 original_id
             for i, doc in enumerate(docs_to_build):
                 if 'original_id' not in doc.metadata:
-                    # 使用負數索引作為臨時唯一 ID，以區別於資料庫的自增 ID
                     doc.metadata['original_id'] = -1 * (i + 1)
             all_docs_for_rag = docs_to_build
             force_rebuild = True
         else:
             vector_store_exists = Path(self.vector_store_path).exists() and any(Path(self.vector_store_path).iterdir())
             if not force_rebuild and vector_store_exists:
-                # 這裡假設 load_retriever_from_persistence 是另一個函式，目前我們先專注於構建
-                # return await self._load_retriever_from_persistence()
-                pass # 暫時跳過，強制走重建邏輯以便測試
+                pass 
             
             log_reason = "強制重建觸發" if force_rebuild else "未找到持久化 RAG 索引"
             logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，正在從資料庫執行【潔淨的全量創始構建】...")
@@ -1107,7 +1106,6 @@ class AILover:
                 for lore in all_lores:
                     all_docs_for_rag.append(self._format_lore_into_document(lore))
         
-        # --- 統一的構建邏輯 ---
         logger.info(f"[{self.user_id}] (Retriever Builder) {log_reason}，準備使用 {len(all_docs_for_rag)} 條文檔進行構建...")
 
         if force_rebuild and Path(self.vector_store_path).exists():
@@ -1123,11 +1121,15 @@ class AILover:
                 vector_retriever = self.vector_store.as_retriever(search_kwargs={"k": 15})
 
                 self.bm25_corpus = all_docs_for_rag
-                self.bm25_retriever = BM25Retriever.from_documents(self.bm25_corpus)
+                # [v208.0 核心修正] 將同步的 CPU 密集型操作異步化
+                self.bm25_retriever = await asyncio.to_thread(
+                    BM25Retriever.from_documents,
+                    self.bm25_corpus
+                )
                 self.bm25_retriever.k = 10
-                self._save_bm25_corpus()
+                # [v208.0 核心修正] 調用異步化的保存函式
+                await self._save_bm25_corpus()
 
-                # [v207.2 核心修正] 恢復經過驗證的權重
                 self.retriever = EnsembleRetriever(retrievers=[self.bm25_retriever, vector_retriever], weights=[0.2, 0.8])
                 logger.info(f"[{self.user_id}] (Retriever Builder) ✅ 統一的【混合檢索器】構建成功。")
             else:
@@ -1557,7 +1559,7 @@ class AILover:
 # 函式：帶輪換和備援策略的原生 API 調用引擎 結束
 
 
-    
+
     
 
 # 函式：根據實體查詢 LORE (v2.2 - 職責簡化)
@@ -6276,6 +6278,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
