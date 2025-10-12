@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T11:35:59.394897 ###
+### AI Lover Log - Last updated at 2025-10-12T12:31:49.535067 ###
 
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.7.name
-  Field required [type=missing, input_value={'base_profile': {'name':...ption': '快樂派系'}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.8.name
-  Field required [type=missing, input_value={'base_profile': {'name':...', 'description': ''}}, input_type=dict]
-    For further information visit https://errors.pydantic.dev/2.8/v/missing
-refined_profiles.9.name
   Field required [type=missing, input_value={'base_profile': {'name':...者與外圍信徒。'}}, input_type=dict]
     For further information visit https://errors.pydantic.dev/2.8/v/missing
 refined_profiles.10.name
@@ -300,3 +292,11 @@ discord.errors.HTTPException: 401 Unauthorized (error code: 50027): Invalid Webh
 2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
 2025-10-12 11:12:43 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
 2025-10-12 11:12:45 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-12 12:31:33 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-12 12:31:40 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-12 12:31:40 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-12 12:31:40 - [INFO] - 正在全域同步應用程式指令...
+2025-10-12 12:31:40 - [INFO] - ✅ 指令已全域同步！
+2025-10-12 12:31:40 - [INFO] - Discord Bot setup hook finished!
+2025-10-12 12:31:43 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-12 12:31:44 - [INFO] - 已成功發送啟動成功通知給管理員。
