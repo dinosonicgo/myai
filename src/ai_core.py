@@ -4570,15 +4570,18 @@ class ExtractionResult(BaseModel):
 
     
 
-# 函式：配置前置資源 (v203.6 - 純本地 RAG 適配)
+# 函式：配置前置資源 (v204.0 - 初始化Graph)
 # 更新紀錄:
-# v203.6 (2025-12-10): [重大架構重構] 根據純本地 RAG 的決策，移除了所有與 Google API 金鑰相關的邏輯，簡化了 Embedding 引擎的初始化流程。
+# v204.0 (2025-10-12): [架構回歸] 新增了在配置階段創建並編譯主對話圖（main_graph）的邏輯，為回歸Graph作為主流程控制器做好準備。
+# v203.6 (2025-12-10): [重大架構重構] 根據純本地 RAG 的決策，移除了所有與 Google API 金鑰相關的邏輯。
 # v203.5 (2025-12-10): [健壯性強化] 修改了此函式，使其能夠處理 `_create_embeddings_instance` 在雲端和本地備援均失敗時返回 `None` 的極端情況。
-# v203.4 (2025-12-10): [災難性BUG修復] 在創建 `GoogleGenerativeAIEmbeddings` 實例時，增加了 `google_api_key` 參數的傳遞。
     async def _configure_pre_requisites(self):
         """
-        (v203.6) 僅配置輕量級的前置資源，不創建 RAG。
+        (v204.0) 配置輕量級的前置資源，並創建主對話圖（main_graph）。
         """
+        # [v204.0 核心修正] 導入 LangGraph 相關函式
+        from .graph import create_main_response_graph
+
         if not self.profile:
             raise ValueError("Cannot configure pre-requisites without a loaded profile.")
         
@@ -4588,7 +4591,6 @@ class ExtractionResult(BaseModel):
         all_lore_tools = lore_tools.get_lore_tools()
         self.available_tools = {t.name: t for t in all_core_action_tools + all_lore_tools}
         
-        # [v203.6 核心修正] 調用純本地的 Embedding 創建函式
         self.embeddings = self._create_embeddings_instance()
         
         if self.embeddings is None:
@@ -4596,6 +4598,12 @@ class ExtractionResult(BaseModel):
             logger.critical("   -> RAG 系統（長期記憶和世界聖經）將被完全禁用。")
             logger.critical("   -> AI 將只能依賴短期對話歷史進行回應，可能導致上下文遺忘和劇情不連貫。")
         
+        # [v204.0 核心修正] 創建並編譯主對話圖
+        if self.main_graph is None:
+            logger.info(f"[{self.user_id}] 正在創建並編譯主對話圖 (main_graph)...")
+            self.main_graph = create_main_response_graph()
+            logger.info(f"[{self.user_id}] ✅ 主對話圖已成功創建。")
+
         logger.info(f"[{self.user_id}] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。")
 # 函式：配置前置資源 結束
 
@@ -6342,6 +6350,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
