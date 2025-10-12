@@ -1,40 +1,4 @@
-### AI Lover Log - Last updated at 2025-10-12T09:00:36.920904 ###
-
-2025-10-12 00:19:32 - [INFO] - [512280345618546699] [数据入口-轨道B] 正在启动【终极架构v4.1：上下文隔离】LORE解析管线...
-2025-10-12 00:26:34 - [INFO] - [512280345618546699] [总指挥-P1&3] ✅ 程式码提取与融合完成，共计 333 个唯一实体。
-2025-10-12 00:26:34 - [INFO] - [512280345618546699] [总指挥-P4] 正在将融合情报提交至本地执行单元进行最终处理...
-2025-10-12 00:26:34 - [INFO] - [512280345618546699] [本地执行单元] 正在启动 v5.0 润色/备援流程...
-2025-10-12 00:26:34 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 1/67...
-2025-10-12 00:29:33 - [INFO] - [512280345618546699] [本地执行单元-LLM] 正在处理批次 2/67...
-2025-10-12 00:34:33 - [WARNING] - [512280345618546699] [本地执行单元-LLM] 🔥 LLM 批次化润色失败: 
-Traceback (most recent call last):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 69, in map_httpcore_exceptions
-    yield
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpx\_transports\default.py", line 373, in handle_async_request
-    resp = await self._pool.handle_async_request(req)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 256, in handle_async_request
-    raise exc from None
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection_pool.py", line 236, in handle_async_request
-    response = await connection.handle_async_request(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\connection.py", line 103, in handle_async_request
-    return await self._connection.handle_async_request(request)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 136, in handle_async_request
-    raise exc
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 106, in handle_async_request
-    ) = await self._receive_response_headers(**kwargs)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 177, in _receive_response_headers
-    event = await self._receive_event(timeout=timeout)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_async\http11.py", line 217, in _receive_event
-    data = await self._network_stream.read(
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_backends\anyio.py", line 32, in read
-    with map_exceptions(exc_map):
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\contextlib.py", line 153, in __exit__
-    self.gen.throw(typ, value, traceback)
-  File "C:\Users\USER\AppData\Local\Programs\Python\Python310\lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
-    raise to_exc(exc) from exc
-httpcore.ReadTimeout
-
-The above exception was the direct cause of the following exception:
+### AI Lover Log - Last updated at 2025-10-12T09:07:21.396453 ###
 
 Traceback (most recent call last):
   File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 1905, in _invoke_local_ollama_parser
@@ -300,3 +264,39 @@ NameError: name 'BatchRefinementInput' is not defined. Did you mean: 'BatchRefin
 2025-10-12 09:00:28 - [INFO] - Discord Bot setup hook finished!
 2025-10-12 09:00:30 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
 2025-10-12 09:00:32 - [INFO] - 已成功發送啟動成功通知給管理員。
+2025-10-12 09:00:42 - [INFO] - [512280345618546699] [Data Reset] 正在啟動使用者資料重置流程...
+2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 所有相關的資料庫記錄已成功刪除。
+2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 向量儲存目錄 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\data\vector_stores\512280345618546699' 已成功刪除。
+2025-10-12 09:00:43 - [INFO] - [512280345618546699] [Data Reset] 資料重置流程已全部完成。
+2025-10-12 09:00:45 - [INFO] - [512280345618546699] (UI Event) Persistent 'StartSetupView' button clicked.
+2025-10-12 09:00:50 - [INFO] - 使用者 512280345618546699 沒有活躍的 AI 實例，嘗試創建...
+2025-10-12 09:00:50 - [INFO] - [512280345618546699] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。
+2025-10-12 09:00:50 - [INFO] - [512280345618546699] 核心數據模板 'world_snapshot_template.txt' 已成功加載。
+2025-10-12 09:00:50 - [INFO] - [512280345618546699] 核心協議 '00_supreme_directive.txt' 已成功加載。
+2025-10-12 09:00:50 - [INFO] - ℹ️ [Embedding Loader] 正在啟動【純本地 RAG】Embedding 引擎...
+2025-10-12 09:00:50 - [INFO] -    - 檢測到本地模型路徑，正在嘗試從 'D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\models\stella-base-zh-v2' 加載...
+2025-10-12 09:00:58 - [INFO] - ✅ [Embedding Loader] 純本地 Embedding 模型成功加載。
+2025-10-12 09:00:58 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
+2025-10-12 09:00:58 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['world_settings']
+2025-10-12 09:00:58 - [WARNING] - [512280345618546699] 在持久化更新時找不到使用者資料，將創建新記錄。
+2025-10-12 09:00:58 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 09:01:00 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToUserSetupView' button clicked.
+2025-10-12 09:01:11 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'user', is_setup_flow: True
+2025-10-12 09:01:12 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['user_profile']
+2025-10-12 09:01:12 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 09:01:13 - [INFO] - [512280345618546699] (UI Event) Persistent 'ContinueToAiSetupView' button clicked.
+2025-10-12 09:01:25 - [INFO] - [512280345618546699] (UI Event) CharacterSettingsModal submitted for profile_type: 'ai', is_setup_flow: True
+2025-10-12 09:01:26 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['ai_profile']
+2025-10-12 09:01:26 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
+2025-10-12 09:01:28 - [INFO] - [512280345618546699] [創世流程] 檔案上傳開始，已設定 active_setups 狀態鎖。
+2025-10-12 09:01:36 - [INFO] - [512280345618546699] (on_message) 偵測到用戶處於活躍的創世流程中，已忽略常規訊息 '...' 以防止競爭。
+2025-10-12 09:01:39 - [INFO] - [512280345618546699] [數據入口-軌道B] 正在啟動【終極架構v5：智能分流】LORE解析管線...
+2025-10-12 09:01:39 - [INFO] - [512280345618546699] [總指揮-P1&3] 程式碼主導的情報收集與融合開始...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P1&3] ✅ 程式碼提取與融合完成，共計 333 個唯一實體。
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P3.5] 正在執行智能分流...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P3.5] ✅ 分流完成。雲端佇列: 263 個 (安全)，本地佇列: 70 個 (高風險)。
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4] 正在啟動雙軌並行潤色...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4-Cloud] 雲端潤色軌道啟動...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [總指揮-P4-Local] 本地潤色軌道啟動...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [本地執行單元] 正在啟動 v5.2 潤色/備援流程...
+2025-10-12 09:07:17 - [INFO] - [512280345618546699] [本地執行單元-LLM] 正在處理批次 1/24...
