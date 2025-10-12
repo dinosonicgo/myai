@@ -1,13 +1,5 @@
-### AI Lover Log - Last updated at 2025-10-12T23:49:11.467030 ###
+### AI Lover Log - Last updated at 2025-10-13T00:21:46.687013 ###
 
-2025-10-12 13:17:14 - [ERROR] - [512280345618546699] [鳳凰RAG] 檢索管線主體發生未知嚴重錯誤: 'source'
-Traceback (most recent call last):
-  File "D:\DINO\SD\ComfyUI\personal_server\ai_lover_service\src\ai_core.py", line 6250, in retrieve_and_summarize_memories
-    ids_by_source[doc.metadata['source']].append(doc.metadata['original_id'])
-KeyError: 'source'
-2025-10-12 13:17:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-pro' with API Key #0.
-2025-10-12 13:17:39 - [INFO] - [512280345618546699] [/start] 開場白已生成，正在從中反向提取權威地點...
-2025-10-12 13:17:39 - [INFO] - [512280345618546699] [LLM Success] Generation successful using model 'gemini-2.5-flash-lite' with API Key #0.
 2025-10-12 13:17:39 - [INFO] - [512280345618546699] [/start] ✅ 地點提取成功: 圖書館。正在更新 GameState...
 2025-10-12 13:17:39 - [INFO] - [512280345618546699] 接收到 profile 更新請求: ['game_state']
 2025-10-12 13:17:40 - [INFO] - [512280345618546699] Profile 更新並持久化成功。
@@ -300,3 +292,11 @@ KeyError: 'source'
 2025-10-12 23:40:44 - [INFO] - [512280345618546699] 所有輕量級前置資源已準備就緒 (RAG 創建已延遲)。
 2025-10-12 23:40:44 - [INFO] - [512280345618546699] 正在為新初始化的 AI 實例構建 RAG 索引...
 2025-10-12 23:40:44 - [INFO] - [512280345618546699] (Retriever Builder) 未找到持久化 RAG 索引，正在從資料庫執行【潔淨的全量創始構建】...
+2025-10-13 00:21:33 - [INFO] - 正在加載核心 Cog (core_cog)...
+2025-10-13 00:21:37 - [INFO] - ✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。
+2025-10-13 00:21:37 - [INFO] - ✅ 核心 Cog 加載成功。
+2025-10-13 00:21:37 - [INFO] - 正在全域同步應用程式指令...
+2025-10-13 00:21:37 - [INFO] - ✅ 指令已全域同步！
+2025-10-13 00:21:37 - [INFO] - Discord Bot setup hook finished!
+2025-10-13 00:21:40 - [INFO] - Logged in as AI#4450 (ID: 1358417100250808531)
+2025-10-13 00:21:41 - [INFO] - 已成功發送啟動成功通知給管理員。
