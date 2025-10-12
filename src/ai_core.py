@@ -156,11 +156,11 @@ class AILover:
     
     
     
-# 函式：初始化AI核心 (v237.0 - 補全屬性)
+# 函式：初始化AI核心 (v238.0 - 新增Graph屬性)
 # 更新紀錄:
-# v237.0 (2025-10-05): [災難性BUG修復] 根據 AttributeError，為所有使用延遲加載模式的 Prompt 模板，在 __init__ 中補全了對應的實例屬性定義（例如 self.batch_entity_resolution_chain = None），從根源上解決了屬性未定義的錯誤。
+# v238.0 (2025-10-12): [架構回歸] 新增了 `main_graph` 實例屬性，為回歸 LangGraph 作為原生API流程編排器做準備。
+# v237.0 (2025-10-05): [災難性BUG修復] 根據 AttributeError，為所有使用延遲加載模式的 Prompt 模板，在 __init__ 中補全了對應的實例屬性定義。
 # v236.0 (2025-10-04): [重大架構簡化] 徹底移除了已被證實無效的 DECODING_MAP 代碼化系統。
-# v235.0 (2025-10-03): [重大架構升級] 引入了「持久化 API Key 冷卻」機制的基礎設施。
     def __init__(self, user_id: str, is_ollama_available: bool):
         self.user_id: str = user_id
         self.is_ollama_available = is_ollama_available # 储存状态
@@ -183,6 +183,7 @@ class AILover:
         self.last_user_input: Optional[str] = None
         
         # [v237.0 核心修正] 為所有延遲加載的 Prompt 模板補全屬性定義
+        self.main_graph = None # [v238.0 新增]
         self.json_correction_chain: Optional[str] = None
         self.world_genesis_chain: Optional[str] = None
         self.profile_completion_prompt: Optional[str] = None
@@ -6341,6 +6342,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
