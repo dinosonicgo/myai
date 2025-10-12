@@ -5526,29 +5526,51 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
     
-# 函式：獲取角色細節深度解析器 Prompt (v4.0 - 批次潤色總結)
+# 函式：獲取角色細節深度解析器 Prompt (v5.0 - 極致明確化指令)
 # 更新紀錄:
-# v4.0 (2025-10-12): [根本性重構] 根據「批次精煉 + 程式化校驗」策略，徹底重寫此 Prompt。它不再負責從混亂的上下文中提取資訊，而是接收由程式碼預處理好的、乾淨的、批次化的「事實數據點」。其任務被降級為一個更簡單、更可靠的語言任務：將這些事實數據點批量地用通順的語言組織成多個完整的 `description`，並保留經過驗證的 `aliases` 列表。
-# v3.0 (2025-10-02): [根本性重構] 根據「分批RAG驅動精煉」策略，徹底重寫了此 Prompt。
+# v5.0 (2025-10-12): [災難性BUG修復] 根據ValidationError，徹底重寫Prompt。新版本採用「填空題」式的指令，為LLM提供了一個帶有明確數據來源說明的JSON模板，強制其輸出扁平化的、結構絕對正確的CharacterProfile對象，從根本上解決了因LLM誤解任務而返回巢狀輸入數據的問題。
+# v4.0 (2025-10-12): [根本性重構] 根據「批次精煉 + 程式化校驗」策略，徹底重寫此 Prompt。
     def get_character_details_parser_chain(self) -> str:
-        """獲取一個為“程式化歸因後批量潤色”策略設計的字符串模板。"""
+        """獲取一個為“程式化歸因後批量潤色”策略設計的、指令極致明確化的字符串模板。"""
         
-        base_prompt = """# TASK: 你是一位資深的傳記作家和文本潤色專家。
-# MISSION: 你的任務是接收一份包含【多個角色檔案草稿】的批量數據。對於數據中的【每一個角色】，你需要將其對應的、已經過【程式化事實核查】的數據點（`facts`），整合成一份專業的、最終的角色檔案 JSON。
+        base_prompt = """# TASK: 你是一位嚴謹的【數據填充專員】。
+# MISSION: 你的任務是接收一份包含【多個角色事實數據點】的批量數據。對於數據中的【每一個角色】，你必須嚴格按照下方提供的【JSON輸出模板】，將其對應的數據填充進去，生成最終的角色檔案列表。
 
 # === 【【【🚨 核心處理規則 (CORE PROCESSING RULES) - 絕對鐵則】】】 ===
 # 1. **【✍️ 潤色與總結原則】**:
-#    - 你的核心任務是將 `description_sentences` 列表中的所有句子，用通順、連貫、文學性的語言，**重寫並組織**成一段單一的、高質量的 `description` 字符串。
-#    - 你可以調整語序、刪除重複信息、增加銜接詞，但【絕對禁止】添加任何 `description_sentences` 中未提及的**新事實**。
+#    - 對於輸出模板中的 `description` 欄位，你的任務是將輸入數據 `facts.description_sentences` 列表中的所有句子，用通順、連貫、文學性的語言，**重寫並組織**成一段單一的、高質量的字符串。
+#    - 【絕對禁止】添加任何 `description_sentences` 中未提及的**新事實**。
 #
-# 2. **【🛡️ 數據保真原則】**:
-#    - `facts` 中的 `verified_aliases` 和 `verified_age` 是由程式算法精確提取的結果，是絕對可信的。你【必須】將這些值**原封不動地、不加任何修改地**複製到最終輸出的對應欄位中。
-#    - 你【必須】以每個條目中的 `base_profile` 為基礎，在其上進行更新和填充。
+# 2. **【🛡️ 數據填充原則】**:
+#    - 對於輸出模板中的其他所有欄位（如 `name`, `aliases`, `age`），你【必須】從輸入數據的對應位置**原封不動地、精確地複製**數值。
+#    - 你的輸出**必須**是一個扁平化的 `CharacterProfile` 結構，【絕對禁止】返回任何包含 `base_profile` 或 `facts` 鍵的巢狀結構。
 #
-# 3. **【🚫 絕對無害化輸出強制令】**:
-#    - 輸入的數據點可能包含技術代碼。你的最終JSON輸出，其所有字段的值【也必須】原封不動地保留這些技術代碼。
-#
-# 4. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的、符合 `BatchRefinementResult` Pydantic 模型的JSON物件。其 `refined_profiles` 列表必須包含對輸入中所有角色的潤色結果。
+# 3. **【JSON純淨輸出與結構強制】**: 你的唯一輸出【必須】是一個純淨的JSON物件，其頂層鍵【必须有且只有】一個 `refined_profiles`，其值是一個嚴格遵循模板結構的列表。
+
+# === 【【【⚙️ JSON輸出模板 (JSON OUTPUT TEMPLATE) - 必須嚴格遵守】】】 ===
+# 對於輸入數據中的每一個角色，你都必須生成一個與此結構完全匹配的JSON物件。
+# ```json
+# {
+#   "name": "[從 base_profile.name 複製]",
+#   "aliases": "[從 facts.verified_aliases 複製]",
+#   "gender": "未設定",
+#   "age": "[從 facts.verified_age 複製]",
+#   "race": "未知",
+#   "appearance": "",
+#   "appearance_details": {},
+#   "likes": [],
+#   "dislikes": [],
+#   "equipment": [],
+#   "skills": [],
+#   "description": "[將 facts.description_sentences 列表潤色總結後填寫於此]",
+#   "location": "",
+#   "location_path": [],
+#   "affinity": 0,
+#   "relationships": {},
+#   "status": "健康",
+#   "current_action": "站著"
+# }
+# ```
 
 # --- [INPUT DATA] ---
 
@@ -5556,7 +5578,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 {batch_verified_data_json}
 
 ---
-# 【最終生成的批量潤色結果JSON】:
+# 【你最終生成的、嚴格遵循模板的批量結果JSON】:
 """
         return base_prompt
 # 函式：獲取角色細節深度解析器 Prompt 結束
@@ -6358,6 +6380,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 函式：將互動記錄保存到資料庫 結束
 
 # AI核心類 結束
+
 
 
 
