@@ -5608,25 +5608,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-    # 函式：本地安全解碼LORE內容
-    # 更新紀錄:
-    # v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，作為“本地安全解碼”策略的執行者。它接收一個可能包含技術代碼的LORE字典，並一個“反向代碼表”，然後遞歸地遍歷字典的所有值，將所有技術代碼安全地、在本地替換回原始的NSFW詞彙。這是確保最終存儲的LORE信息完整且可用的關鍵一步。
-    def _decode_lore_content(self, content: Any, decoding_map: Dict[str, str]) -> Any:
+# 函式：本地安全解碼LORE內容 (v1.1 - 語義清晰化)
+# 更新紀錄:
+# v1.1 (2025-10-13): [程式碼品質] 將函式參數 `content` 重命名為 `data_struct`，以更清晰地表明其處理的是通用的資料結構（字典、列表等），而非特指 LORE 的內容。
+# v1.0 (2025-09-23): [全新創建] 創建此核心輔助函式，作為“本地安全解碼”策略的執行者。
+    def _decode_lore_content(self, data_struct: Any, decoding_map: Dict[str, str]) -> Any:
         """
         遞歸地遍歷一個LORE內容結構（字典、列表、字符串），並將所有技術代碼替換回原始詞彙。
         """
-        if isinstance(content, str):
+        if isinstance(data_struct, str):
             for code, word in decoding_map.items():
-                content = content.replace(code, word)
-            return content
-        elif isinstance(content, dict):
-            return {key: self._decode_lore_content(value, decoding_map) for key, value in content.items()}
-        elif isinstance(content, list):
-            return [self._decode_lore_content(item, decoding_map) for item in content]
+                data_struct = data_struct.replace(code, word)
+            return data_struct
+        elif isinstance(data_struct, dict):
+            return {key: self._decode_lore_content(value, decoding_map) for key, value in data_struct.items()}
+        elif isinstance(data_struct, list):
+            return [self._decode_lore_content(item, decoding_map) for item in data_struct]
         else:
-            return content
-    # 函式：本地安全解碼LORE內容
-
+            return data_struct
+# 函式：本地安全解碼LORE內容
     
 
 
@@ -6384,6 +6384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
