@@ -1,8 +1,8 @@
-# main.py 的中文註釋(v13.0 - 移除依賴檢查)
+# main.py 的中文註釋(v11.1 - Import修正)
 # 更新紀錄:
-# v13.0 (2025-11-26): [重大架構重構] 徹底移除了在 `main.py` 中直接調用 `_check_and_install_dependencies` 的邏輯。此職責已被更上游的 `launcher.py` 完全接管。此修改遵循了「關注點分離」原則，讓啟動器專注於環境準備，而主程式專注於應用邏輯，使架構更清晰、更健壯。
-# v12.0 (2025-11-26): [重大架構升級] 在程式啟動的最開始，增加了對 `_setup_huggingface_mirror()` 和 `_check_and_install_dependencies()` 的調用。
-# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句。
+# v11.1 (2025-09-26): [災難性BUG修復] 在文件頂部添加了所有運行FastAPI Web伺服器所需的、缺失的import語句（`FastAPI`, `Request`, `HTMLResponse`, `StaticFiles`, `Jinja2Templates`），並對import塊進行了PEP 8標準化分組，徹底解決了NameError問題。
+# v11.0 (2025-09-26): [重大架構升級] 引入了全局的、启动时的【Ollama健康检查】机制。
+# v10.1 (2025-09-26): [災難性BUG修復] 將 PROJ_DIR 和快取清理邏輯提升到所有 src 導入之前。
 
 import os
 import sys
@@ -232,13 +232,11 @@ async def read_root(request: Request):
 
 
 
-# main.py 的 start_git_log_pusher_task 函式 (v5.1 - Git工作流修正)
+# 函式：啟動 Git 日誌推送器任務 (v5.0 - Git 工作流修正)
 # 更新紀錄:
-# v5.1 (2025-10-13): [災難性BUG修復] 徹底重構了 `run_git_commands_sync` 的內部 Git 命令執行順序。新流程將 `git commit` 移至 `git pull --rebase` 之前，確保了本地的日誌變更在與遠端同步前被妥善提交，從根本上解決了因 `unstaged changes` 導致 rebase 失敗的致命錯誤。
-# v5.0 (2025-09-28): [災難性BUG修復] 移除了 `git status` 字串解析法。
-# v4.0 (2025-11-22): [體驗優化] 移除了成功推送後的確認訊息。
-
-# 函式：啟動 Git 日誌推送器任務
+# v5.0 (2025-09-28): [災難性BUG修復] 徹底重構了 `run_git_commands_sync` 的內部 Git 命令執行順序。新流程將 `git commit` 移至 `git pull --rebase` 之前，確保了本地的日誌變更在與遠端同步前被妥善提交，從根本上解決了因 `unstaged changes` 導致 rebase 失敗的致命錯誤。
+# v4.0 (2025-11-22): [體驗優化] 根據使用者最新回饋，移除了在成功推送新日誌後顯示的最終確認訊息，使此背景任務在無錯誤發生時實現完全靜默運行。
+# v3.0 (2025-11-22): [體驗優化] 移除了在日誌推送任務成功執行時產生的中間過程日誌。
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -264,7 +262,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
 
-            # [v5.1 核心修正] 調整 Git 命令執行順序
+            # [v5.0 核心修正] 調整 Git 命令執行順序
             
             # 步驟 2: 將本地變更加入暫存區並提交
             subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
@@ -324,77 +322,43 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
 
 
 
-# 函式：啟動 GitHub 更新檢查器任務 (v4.0 - 健壯性修正)
-# 更新紀錄:
-# v4.0 (2025-12-08): [災難性BUG修復] 將 `git status` 字串解析法替換為更可靠的 `git rev-list --count HEAD..origin/main` 數字比較法，徹底解決因 Git 版本或系統語言環境不同導致自動更新失效的問題。
-# v3.0 (2025-11-22): [重大架構重構] 將此任務從 Cog 遷移至主啟動流程，確保其作為一個獨立的守護進程運行。
-# v2.0 (2025-11-22): [健壯性] 增加了 Git 鎖機制，以防止日誌推送和程式碼更新之間的競爭條件。
 async def start_github_update_checker_task(lock: asyncio.Lock):
     """一個獨立的背景任務，檢查GitHub更新並在必要時觸發重啟。"""
     await asyncio.sleep(10)
     print("✅ [守護任務] GitHub 自動更新檢查器已啟動。")
     
     def run_git_command_sync(command: list) -> tuple[int, str, str]:
-        try:
-            process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
-            return process.returncode, process.stdout.strip(), process.stderr.strip()
-        except FileNotFoundError:
-            print("🔥 [Auto Update] 錯誤: 'git' 命令未找到。自動更新功能已停用。")
-            return -1, "", "Git command not found."
-        except Exception as e:
-            print(f"🔥 [Auto Update] 執行 Git 命令時發生未知錯誤: {e}")
-            return -1, "", str(e)
-
+        process = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', check=False, cwd=PROJ_DIR)
+        return process.returncode, process.stdout, process.stderr
+        
     while not shutdown_event.is_set():
         try:
             async with lock:
-                # 步驟 1: 從遠端獲取最新的變更資訊
-                fetch_rc, _, fetch_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
-                if fetch_rc != 0:
-                    print(f"🟡 [Auto Update] 'git fetch' 失敗: {fetch_stderr}。跳過本次檢查。")
-                    await asyncio.sleep(300)
-                    continue
-
-                # 步驟 2: [v4.0 核心修正] 使用 rev-list 比較本地與遠端的差異
-                rev_list_rc, rev_list_stdout, rev_list_stderr = await asyncio.to_thread(
-                    run_git_command_sync, ['git', 'rev-list', '--count', 'HEAD..origin/main']
-                )
-
-                if rev_list_rc != 0:
-                    print(f"🟡 [Auto Update] 'git rev-list' 失敗: {rev_list_stderr}。跳過本次檢查。")
-                else:
-                    try:
-                        update_count = int(rev_list_stdout)
-                        if update_count > 0:
-                            print(f"🔵 [Auto Update] 檢測到 {update_count} 個新版本，準備更新...")
-                            
-                            reset_rc, _, reset_stderr = await asyncio.to_thread(
-                                run_git_command_sync, ['git', 'reset', '--hard', 'origin/main']
-                            )
-                            if reset_rc == 0:
-                                print("✅ [Auto Update] 程式碼強制同步成功！")
-                                print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
-                                await asyncio.sleep(3)
-                                shutdown_event.set()
-                                break # 觸發關閉後，跳出循環
-                            else:
-                                print(f"🔥 [Auto Update] 'git reset' 失敗: {reset_stderr}")
-                        else:
-                            # 為了不在控制台刷屏，這條日誌可以註解掉或設定為 DEBUG 級別
-                            # print("⚪️ [Auto Update] 當前已是最新版本。")
-                            pass
-                    except (ValueError, TypeError):
-                        print(f"🟡 [Auto Update] 解析更新數量失敗。Git 輸出: '{rev_list_stdout}'")
-
-            await asyncio.sleep(300) # 每 5 分鐘檢查一次
+                await asyncio.to_thread(run_git_command_sync, ['git', 'fetch'])
+                rc, stdout, _ = await asyncio.to_thread(run_git_command_sync, ['git', 'status', '-uno'])
+                
+                if rc == 0 and ("Your branch is behind" in stdout or "您的分支落後" in stdout):
+                    print("🔵 [Auto Update] 已獲取 Git 鎖，檢測到新版本，準備更新...")
+                    print("\n🔄 [自動更新] 偵測到遠端倉庫有新版本，正在更新...")
+                    pull_rc, _, pull_stderr = await asyncio.to_thread(run_git_command_sync, ['git', 'reset', '--hard', 'origin/main'])
+                    if pull_rc == 0:
+                        print("✅ [自動更新] 程式碼強制同步成功！")
+                        print("🔄 應用程式將在 3 秒後發出優雅關閉信號，由啟動器負責重啟...")
+                        await asyncio.sleep(3)
+                        shutdown_event.set()
+                        print("🟢 [Auto Update] 更新完成，已釋放 Git 鎖。")
+                        break 
+                    else:
+                        print(f"🔥 [自動更新] 'git reset' 失敗: {pull_stderr}")
+            
+            await asyncio.sleep(300)
 
         except asyncio.CancelledError:
-            print("⚪️ [Auto Update] 背景任務被正常取消。")
+            print("⚪️ [自動更新] 背景任務被正常取消。")
             break
         except Exception as e:
-            print(f"🔥 [Auto Update] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
-            await asyncio.sleep(600) # 發生未知錯誤時，延長等待時間
-# 函式：啟動 GitHub 更新檢查器任務
+            print(f"🔥 [自動更新] 檢查更新時發生未預期的錯誤: {type(e).__name__}: {e}")
+            await asyncio.sleep(600)
 
 async def start_discord_bot_task(lock: asyncio.Lock, db_ready_event: asyncio.Event, is_ollama_available: bool):
     """啟動Discord Bot的核心服務。內建錯誤處理和啟動依賴等待。"""
@@ -533,5 +497,15 @@ if __name__ == "__main__":
         else:
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
-
         if os.name == 'nt': os.system("pause")
+
+
+
+
+
+
+
+
+
+
+

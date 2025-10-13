@@ -1,8 +1,8 @@
-# src/database.py 的中文註釋(v5.5 - LORE模型修正)
+# src/database.py 的中文註釋(v5.3 - 導入修正)
 # 更新紀錄:
-# v5.5 (2025-10-13): [災難性BUG修復] 將 Lore 模型中的 `content` 欄位重命名為 `data`，以解決 `no such column` 的資料庫結構不匹配錯誤。
-# v5.4 (2025-10-04): [災難性BUG修復] 將檔案頂部的 `from src.config import settings` 修正為相對導入 `from .config import settings`。
-# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
+# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`，以解決因在 `init_db` 函式簽名中使用 `asyncio.Event` 類型提示而導致的 `NameError`。
+# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持，以解決啟動時的競爭條件問題。
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -10,8 +10,7 @@ from sqlalchemy import Column, String, Integer, Float, JSON, TEXT
 import time
 import asyncio
 
-# [v5.4 核心修正] 將絕對導入改為相對導入
-from .config import settings
+from src.config import settings
 
 DATABASE_URL = settings.DATABASE_URL
 
@@ -48,6 +47,9 @@ class MemoryData(Base):
     sanitized_content = Column(String, nullable=True)
 # 長期記憶數據模型 類別結束
 
+# v5.1 (2025-09-24): [架構擴展] 在 Lore 模型中新增了 template_keys 欄位。這是實現「LORE繼承與規則注入系統」的資料庫層基礎，用於標識哪些LORE條目可以作為其他角色的行為模板。
+# v5.0 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
+# v4.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。
 # 類別：LORE (世界設定) 數據模型
 class Lore(Base):
     __tablename__ = "lore_book"
@@ -56,10 +58,10 @@ class Lore(Base):
     user_id = Column(String, index=True, nullable=False)
     category = Column(String, index=True, nullable=False)
     key = Column(String, index=True, nullable=False)
-    # [v3.0 核心修正] 將 'content' 重命名為 'data' 以解決資料庫欄位不匹配問題
-    data = Column(JSON, name="data", nullable=False)
+    content = Column(JSON, nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
+    # [v5.1 核心修正] 新增 template_keys 欄位，用於規則繼承
     template_keys = Column(JSON, nullable=True)
 # LORE (世界設定) 數據模型 類別結束
 
@@ -88,3 +90,5 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 # 獲取資料庫會話 函式結束
+
+

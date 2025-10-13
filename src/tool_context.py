@@ -1,9 +1,11 @@
-# src/tool_context.py 的中文註釋(v1.1 - 移除循環導入)
+# src/tool_context.py 的中文註釋(v1.0 - 全新創建)
 # 更新紀錄:
-# v1.1 (2025-10-04): [災難性BUG修復] 移除了在 TYPE_CHECKING 區塊中對 ai_core.AILover 的導入，並將類型提示改為 `Any`。此修改旨在打破 'ai_core -> tools -> tool_context -> ai_core' 的導入循環，從根本上解決因模組部分初始化導致的 NameError。
-# v1.0 (2025-09-02): [重大架構重構] 創建此檔案以提供一個單一的、全域共享的工具上下文實例。
+# v1.0 (2025-09-02): [重大架構重構] 創建此檔案以提供一個單一的、全域共享的工具上下文實例。此修改旨在解決 `tools.py` 和 `lore_tools.py` 中因重複定義 `ToolContext` 而導致的上下文不一致和工具執行失敗的嚴重問題。
 
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .ai_core import AILover
 
 # 類別：工具上下文
 class ToolContext:
@@ -13,9 +15,9 @@ class ToolContext:
     """
     def __init__(self):
         self.user_id: str | None = None
-        self.ai_core_instance: "Any" | None = None
+        self.ai_core_instance: "AILover" | None = None
 
-    def set_context(self, user_id: str, ai_core_instance: "Any"):
+    def set_context(self, user_id: str, ai_core_instance: "AILover"):
         """設置當前執行的上下文。"""
         self.user_id = user_id
         self.ai_core_instance = ai_core_instance
@@ -26,7 +28,7 @@ class ToolContext:
             raise ValueError("Tool context user_id is not set.")
         return self.user_id
 
-    def get_ai_core(self) -> "Any":
+    def get_ai_core(self) -> "AILover":
         """獲取當前的 AI 核心實例。"""
         if not self.ai_core_instance:
             raise ValueError("Tool context ai_core_instance is not set.")
