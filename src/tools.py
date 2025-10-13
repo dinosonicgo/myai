@@ -43,11 +43,7 @@ class BaseToolArgs(BaseModel):
 # [v17.0 移除] 刪除了本地的 ToolContext 類和實例的定義
 
 # --- 異步資料庫操作輔助函式 ---
-# 函式：獲取並更新角色檔案 (v18.0 - 混合式LORE)
-# 更新紀錄:
-# v18.0 (2025-12-09): [重大架構重構] 根據「鳳凰架構」，修改了與 lore_book 的交互方式。現在從 lore_book 讀取 structured_content 進行校驗，並在寫回時也只更新 structured_content。
-# v17.0 (2025-09-02): [重大架構重構] 移除了本地的 ToolContext 類。
-# v16.0 (2025-08-27): [根本性BUG修復] 徹底重構了 change_location 的路徑處理邏輯。
+# 函式：獲取並更新角色檔案
 async def _get_and_update_character_profile(
     character_name: str, 
     update_logic: Callable[[CharacterProfile, GameState], str]
@@ -78,7 +74,7 @@ async def _get_and_update_character_profile(
             logger.info(f"[{user_id}] 正在為更新操作解析 NPC 實體: '{character_name}'...")
             resolution_chain = ai_core.get_batch_entity_resolution_chain()
             existing_lores = await lore_book.get_lores_by_category_and_filter(user_id, 'npc_profile')
-            existing_entities_for_prompt = [{"key": lore.key, "name": lore.structured_content.get("name", "")} for lore in existing_lores if lore.structured_content]
+            existing_entities_for_prompt = [{"key": lore.key, "name": lore.content.get("name", "")} for lore in existing_lores]
             
             resolution_plan = await ai_core.ainvoke_with_rotation(resolution_chain, {
                 "category": "npc_profile",
@@ -94,10 +90,10 @@ async def _get_and_update_character_profile(
                 return f"錯誤：在當前場景中找不到名為 '{character_name}' 的 NPC 檔案可供更新。"
             
             found_npc_lore = await lore_book.get_lore(user_id, 'npc_profile', resolution.matched_key)
-            if not found_npc_lore or not found_npc_lore.structured_content:
-                return f"錯誤：資料庫中找不到 key 為 '{resolution.matched_key}' 的 NPC 的結構化數據。"
+            if not found_npc_lore:
+                return f"錯誤：資料庫中找不到 key 為 '{resolution.matched_key}' 的 NPC。"
 
-            target_profile_pydantic = CharacterProfile.model_validate(found_npc_lore.structured_content)
+            target_profile_pydantic = CharacterProfile.model_validate(found_npc_lore.content)
             is_npc = True
             npc_key = found_npc_lore.key
             logger.info(f"[{user_id}] 成功將 '{character_name}' 解析為現有 NPC，key: '{npc_key}'。")
@@ -111,12 +107,7 @@ async def _get_and_update_character_profile(
             ai_core.profile.game_state = gs 
 
             if is_npc and npc_key is not None:
-                await lore_book.add_or_update_lore(
-                    user_id=user_id, 
-                    category='npc_profile', 
-                    key=npc_key, 
-                    structured_content=target_profile_pydantic.model_dump()
-                )
+                await lore_book.add_or_update_lore(user_id, 'npc_profile', npc_key, target_profile_pydantic.model_dump())
             else:
                 if character_name.lower() == user_profile_pydantic.name.lower():
                     ai_core.profile.user_profile = target_profile_pydantic
@@ -134,7 +125,7 @@ async def _get_and_update_character_profile(
     except Exception as e:
         logger.error(f"[{user_id}] 更新角色 '{character_name}' 檔案時發生錯誤: {e}", exc_info=True)
         return f"更新角色 '{character_name}' 檔案時發生嚴重錯誤: {e}"
-# 函式：獲取並更新角色檔案 結束
+# 函式：獲取並更新角色檔案
 
 # 函式：更新遊戲狀態
 async def _update_game_state(update_func: Callable[[GameState], str]) -> str:
@@ -164,7 +155,8 @@ class SearchKnowledgeBaseArgs(BaseToolArgs):
 
 
 
-# 工具：搜尋知識庫 (v6.0 - 簡化改造)
+# 工具：搜尋知識庫
+# tools.py 的 search_knowledge_base 工具 (v6.0 - 簡化改造)
 # 更新紀錄:
 # v6.0 (2025-11-26): [根本性重構] 根據全新的本地混合檢索架構，徹底簡化了此工具的邏輯。它現在的唯一職責是直接調用穩定可靠的本地 EnsembleRetriever，移除了所有針對 Google API 失敗的複雜備援和降級方案，使程式碼更簡潔、更高效。
 # v5.0 (2025-10-15): [健壯性] 優化了備援流程的日誌敘事。
@@ -177,21 +169,15 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     
     rag_results: Optional[List[Document]] = None
     
-    if not ai_core or not ai_core.retriever:
+    if not ai_core.retriever:
         logger.error(f"[{user_id}] (Tool) 檢索器未初始化，無法執行搜尋。")
         return "錯誤：知識庫檢索功能當前不可用。"
     
     try:
-        logger.info(f"[{user_id}] (Tool) 正在使用混合檢索器查詢 '{query}'...")
-        # 鳳凰架構：對查詢進行編碼
-        encoded_query = ai_core._encode_text(query)
-        encoded_rag_results = await ai_core.retriever.ainvoke(encoded_query)
-        # 鳳凰架構：對結果進行解碼
-        if encoded_rag_results:
-            rag_results = [Document(page_content=ai_core._decode_lore_content(doc.page_content), metadata=doc.metadata) for doc in encoded_rag_results]
-
+        logger.info(f"[{user_id}] (Tool) 正在使用本地混合檢索器查詢 '{query}'...")
+        rag_results = await ai_core.retriever.ainvoke(query)
     except Exception as e:
-        logger.error(f"[{user_id}] (Tool) 混合檢索時發生未知錯誤: {e}", exc_info=True)
+        logger.error(f"[{user_id}] (Tool) 本地混合檢索時發生未知錯誤: {e}", exc_info=True)
         return f"錯誤：在知識庫中檢索 '{query}' 時發生問題。"
 
     # --- 查詢結構化 LORE (如果提供了 category) ---
@@ -206,10 +192,7 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     # --- 組合結果 ---
     output_parts = []
     if lore_result:
-        # 鳳凰架構：組合 structured 和 narrative 內容
-        structured_part = json.dumps(lore_result.structured_content, ensure_ascii=False, indent=2)
-        narrative_part = lore_result.narrative_content or "無"
-        output_parts.append(f"【結構化資料庫 (Lore) 精確查詢結果 for Key='{query}' in '{category}'】:\n結構化數據: {structured_part}\n敘事描述: {narrative_part}")
+        output_parts.append(f"【結構化資料庫 (Lore) 精確查詢結果 for Key='{query}' in '{category}'】:\n" + json.dumps(lore_result.content, ensure_ascii=False, indent=2))
     elif category:
         output_parts.append(f"【結構化資料庫 (Lore) 查詢結果】: 在類別 '{category}' 中找不到 Key 為 '{query}' 的精確條目。")
     
@@ -222,7 +205,7 @@ async def search_knowledge_base(query: str, category: Optional[str] = None) -> s
     final_output = "\n\n".join(output_parts)
     logger.info(f"[{user_id}] 執行了統一知識庫查詢 for '{query}', Category: {category}。結果長度: {len(final_output)}")
     return final_output
-# 工具：搜尋知識庫 結束
+# 工具：搜尋知識庫
 
 
 
@@ -488,8 +471,6 @@ def get_core_action_tools() -> List[Tool]:
         remove_item_from_inventory,
     ]
 # 函式：獲取所有核心動作工具
-
-
 
 
 

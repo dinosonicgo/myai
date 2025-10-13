@@ -1,8 +1,8 @@
-# src/cogs/core_cog.py 的中文註釋(v1.4 - 導入修正)
+# src/cogs/core_cog.py 的中文註釋(v1.3 - 穩定性與一致性修復)
 # 更新紀錄:
-# v1.4 (2025-12-11): [災難性BUG修復] 在文件頂部補全了對 `langchain_core.documents.Document` 的導入，以解決在創世流程中因 `NameError: name 'Document' is not defined` 導致的致命錯誤。
-# v1.3 (2025-10-08): [災難性BUG修復] 移除了重複的 /settings 指令定義與一個懸空的 on_submit 函式，並修正了 /admin_reset 指令遺漏清除 SceneHistoryData 的問題。
-# v1.2 (2025-12-08): [災難性BUG修復] 補全了 /start 指令所依賴的 ConfirmStartView 類別和 _reset_user_data 輔助函式。
+# v1.3 (2025-10-08): [災難性BUG修復] 移除了重複的 /settings 指令定義與一個懸空的 on_submit 函式，並修正了 /admin_reset 指令遺漏清除 SceneHistoryData 的問題，確保程式穩定性與數據一致性。
+# v1.2 (2025-12-08): [災難性BUG修復] 補全了 /start 指令所依賴的 ConfirmStartView 類別和 _reset_user_data 輔助函式，並恢復了其他所有缺失的 UI 元件，從根本上解決了指令無回應的問題。
+# v1.1 (2025-12-08): [功能補全] 新增了 _perform_update_and_restart 和 push_log_to_github_repo 兩個核心輔助函式，並將它們與 /admin_force_update 和 /admin_push_log 指令正確掛鉤，完整地實現了管理員的遠程更新與日誌推送功能。
 
 import discord
 from discord import app_commands, Embed
@@ -36,10 +36,6 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from google.generativeai.types import BlockedPromptException
-# [v1.4 核心修正] 補全對 Document 的導入
-from langchain_core.documents import Document
-# [v66.5 核心修正] 补全对创世图谱的导入
-from ..graph import create_setup_graph
 
 # 由於 AILoverBot 在另一個文件中，我們需要進行類型提示的特殊處理
 if sys.version_info >= (3, 9):
@@ -274,9 +270,7 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.response.send_modal(modal)
     # 函式：處理「貼上世界聖經」按鈕點擊事件
 
-# 處理「上傳世界聖經」按鈕點擊事件 (v1.1 - 接口適配修正)
-# 更新紀錄:
-# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
+    # 處理「上傳世界聖經」按鈕點擊事件
     @discord.ui.button(label="📄 上傳世界聖經 (.txt)", style=discord.ButtonStyle.success, custom_id="persistent_upload_canon")
     async def upload_canon(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -311,8 +305,7 @@ class ContinueToCanonSetupView(discord.ui.View):
             content_bytes = await attachment.read()
             content_text = content_bytes.decode('utf-8', errors='ignore')
             
-            # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
-            asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=content_text))
+            asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=content_text))
             
         except asyncio.TimeoutError:
             await interaction.followup.send("⏳ 操作已超時。請重新開始 `/start` 流程。", ephemeral=True)
@@ -323,11 +316,9 @@ class ContinueToCanonSetupView(discord.ui.View):
             self.cog.active_setups.discard(user_id)
         finally:
             self.stop()
-# 處理「上傳世界聖經」按鈕點擊事件 結束
+    # 處理「上傳世界聖經」按鈕點擊事件
 
-# 函式：處理「完成設定」按鈕點擊事件 (v1.1 - 接口適配修正)
-# 更新紀錄:
-# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
+    # 函式：處理「完成設定」按鈕點擊事件
     @discord.ui.button(label="✅ 完成設定並開始冒險（跳過聖經)", style=discord.ButtonStyle.primary, custom_id="persistent_finalize_setup")
     async def finalize(self, interaction: discord.Interaction, button: discord.ui.Button):
         user_id = str(interaction.user.id)
@@ -342,10 +333,9 @@ class ContinueToCanonSetupView(discord.ui.View):
         await interaction.followup.send("✅ 基礎設定完成！創世流程已在後台啟動，完成後您將收到開場白。這可能需要幾分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
-        # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
-        asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=None))
+        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=None))
         self.stop()
-# 函式：處理「完成設定」按鈕點擊事件 結束
+    # 函式：處理「完成設定」按鈕點擊事件
 # 類別：繼續到世界聖經設定的視圖
 
 # 類別：重新生成或撤銷回覆的視圖
@@ -461,9 +451,7 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         self.original_interaction_message_id = original_interaction_message_id
     # 函式：初始化 WorldCanonPasteModal
     
-# 函式：處理 Modal 提交事件 (v1.1 - 接口適配修正)
-# 更新紀錄:
-# v1.1 (2025-10-12): [災難性BUG修復] 修正了對 `_perform_full_setup_flow` 的調用方式，將傳遞 `user` 參數改為傳遞完整的 `interaction` 物件，以解決 TypeError。
+    # 函式：處理 Modal 提交事件
     async def on_submit(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
         if user_id in self.cog.active_setups:
@@ -481,9 +469,8 @@ class WorldCanonPasteModal(discord.ui.Modal, title="貼上您的世界聖經文�
         await interaction.response.send_message("✅ 文字已接收！創世流程已在後台啟動，完成後您將收到開場白。這可能需要數分鐘，請耐心等候。", ephemeral=True)
         
         self.cog.active_setups.add(user_id)
-        # [v1.1 核心修正] 傳遞完整的 interaction 物件，而不是 user
-        asyncio.create_task(self.cog._perform_full_setup_flow(interaction=interaction, canon_text=self.canon_text.value))
-# 函式：處理 Modal 提交事件 結束
+        asyncio.create_task(self.cog._perform_full_setup_flow(user=interaction.user, canon_text=self.canon_text.value))
+    # 函式：處理 Modal 提交事件
 # 類別：貼上世界聖經的 Modal
 
 # 類別：LORE 瀏覽器分頁視圖
@@ -1111,89 +1098,66 @@ class BotCog(commands.Cog, name="BotCog"):
         logger.info(f"[{interaction.user.id}] [Admin Command] Git 鎖已釋放。")
     # 函式：推送日誌到 GitHub 倉庫
 
-
-
-
-    
-# 函式：執行完整的設置流程 (v66.7 - RAG元數據注入)
+    # 函式：執行完整的後台創世流程 (v65.1 - 移除舊擴展邏輯)
 # 更新紀錄:
-# v66.7 (2025-10-12): [災難性BUG修復] 修正了 `docs_for_rag` 的創建邏輯，改為調用 `_format_lore_into_document` 來生成包含完整元數據的 `Document` 物件列表，從根源上解決 RAG 檢索時的 `KeyError: 'source'`。
-# v66.6 (2025-10-12): [災難性BUG修復] 將長時間任務的進度更新方式改為私訊，以規避互動令牌過期問題，並修正了 `finally` 塊中的清理語法。
-    async def _perform_full_setup_flow(self, interaction: discord.Interaction, canon_text: Optional[str]):
-        """
-        在背景執行完整的創世流程，包括解析、RAG構建和生成開場白。
-        """
-        user_id = str(interaction.user.id)
-        ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
-        
-        user_for_dm = interaction.user
-
-        if not ai_instance:
-            await user_for_dm.send("錯誤：AI 實例丟失，無法繼續創世流程。")
-            self.active_setups.discard(user_id)
-            return
-
+# v65.1 (2025-10-04): [架構簡化] 移除了對舊的、僅限於 NPC 的 LORE 擴展邏輯的殘餘調用。創世流程的職責被簡化為純粹的檔案補完和開場白生成。
+# v65.0 (2025-10-04): [重大架構重構] 徹底移除了對 LangGraph 的依賴，改為原生 Python 控制流。
+# v64.0 (2025-10-03): [重大架構重構] 改為調用 LangGraph 來驅動整個創世流程。
+    async def _perform_full_setup_flow(self, user: discord.User, canon_text: Optional[str] = None):
+        """(v65.1) 一個由原生 Python `await` 驅動的、獨立的後台創世流程。"""
+        user_id = str(user.id)
         try:
-            await interaction.edit_original_response(content="✅ 您的請求已收到！創世流程已在後台啟動，所有進度更新和最終結果將通過**私訊**發送給您。", view=None)
-
-            if canon_text and canon_text.strip():
-                await user_for_dm.send("⏳ **創世流程正在進行中... (1/4)**\n正在解析世界聖經並提取核心知識，這可能需要幾分鐘...")
-                
-                parsed_canon = await ai_instance.parse_and_create_lore_from_canon(canon_text)
-
-                all_lores_to_process = []
-                if parsed_canon:
-                    # 為每個 LORE 物件分配一個臨時的唯一 ID
-                    temp_id_counter = 0
-                    def get_temp_id():
-                        nonlocal temp_id_counter
-                        temp_id_counter -= 1
-                        return temp_id_counter
-
-                    if parsed_canon.npc_profiles: all_lores_to_process.extend([(p, 'npc_profile', get_temp_id()) for p in parsed_canon.npc_profiles])
-                    # 為了簡化，其他類別暫不處理，核心是修復NPC的RAG
-                
-                logger.info(f"[{user_id}] [後台創世] 步驟 2/3: 預解析完成，共發現 {len(all_lores_to_process)} 個 LORE 物件。準備構建 RAG 索引...")
-                await user_for_dm.send(f"⏳ **創世流程正在進行中... (2/4)**\n✅ 知識提取完畢 ({len(all_lores_to_process)} 個條目)！正在構建長期記憶和檢索系統...")
-                
-                # [v66.7 核心修正] 調用新的函式來創建包含完整元數據的 Document 物件
-                docs_for_rag = [ai_instance._format_lore_into_document(obj, category, temp_id) for obj, category, temp_id in all_lores_to_process]
-                await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag)
-                
-                logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成。")
-            else:
-                logger.info(f"[{user_id}] [後台創世] 未提供世界聖經，跳過解析與RAG構建步驟。")
-                await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=[])
-
-            await user_for_dm.send("⏳ **創世流程正在進行中... (3/4)**\n✅ 記憶系統構建完畢！AI 正在為您和角色進行最終設定...")
+            logger.info(f"[{user_id}] [創世流程 v65.1] 原生 Python 驅動的流程已啟動。")
             
-            setup_graph = create_setup_graph()
-            final_state = await setup_graph.ainvoke({
-                "user_id": user_id,
-                "ai_core": ai_instance,
-                "canon_text": canon_text
-            })
+            ai_instance = await self.get_or_create_ai_instance(user_id, is_setup_flow=True)
+            if not ai_instance or not ai_instance.profile:
+                await user.send("❌ 錯誤：無法初始化您的 AI 核心以進行創世。")
+                return
 
-            opening_scene = final_state.get("opening_scene", "錯誤：未能生成開場白。")
+            # --- 步驟 1: 構建 RAG 索引 ---
+            docs_for_rag = []
+            if canon_text and canon_text.strip():
+                logger.info(f"[{user_id}] [後台創世] 正在將世界聖經原文分割成文檔...")
+                text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200, length_function=len)
+                docs_for_rag = text_splitter.create_documents([canon_text], metadatas=[{"source": "canon"} for _ in [canon_text]])
+            
+            logger.info(f"[{user_id}] [後台創世] 正在觸發 RAG 索引創始構建...")
+            await ai_instance._load_or_build_rag_retriever(force_rebuild=True, docs_to_build=docs_for_rag if docs_for_rag else None)
+            logger.info(f"[{user_id}] [後台創世] RAG 索引構建完成，準備執行原生創世步驟...")
+
+            # --- 步驟 2: 原生順序執行創世流程 ---
+            
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 1/2: 正在補完角色檔案...")
+            await ai_instance.complete_character_profiles()
+            logger.info(f"[{user_id}] [後台創世-原生] 角色檔案補完成功。")
+
+            logger.info(f"[{user_id}] [後台創世-原生] 步驟 2/2: 正在生成開場白...")
+            opening_scene = await ai_instance.generate_opening_scene(canon_text=canon_text)
+            logger.info(f"[{user_id}] [後台創世-原生] 開場白生成成功。")
+
+            if not opening_scene:
+                 raise Exception("原生創世流程未能成功生成開場白。")
+
+            # --- 步驟 3: 發送開場白並清理 ---
+            scene_key = ai_instance._get_scene_key()
+            await ai_instance._add_message_to_scene_history(scene_key, AIMessage(content=opening_scene))
             
             logger.info(f"[{user_id}] [後台創世] 正在向使用者私訊發送最終開場白...")
-            await user_for_dm.send("**✅ 創世完成！**\n我已將故事的開端發送到您的私訊中，請查收。我們的冒險現在開始！")
-            await user_for_dm.send(opening_scene)
+            for i in range(0, len(opening_scene), 2000):
+                await user.send(opening_scene[i:i+2000])
+            logger.info(f"[{user_id}] [後台創世] 開場白發送完畢。")
 
         except Exception as e:
             logger.error(f"[{user_id}] 後台創世流程發生嚴重錯誤: {e}", exc_info=True)
             try:
-                await user_for_dm.send(f"🔥 **創世失敗！**\n在處理您的世界聖經時發生了無法恢復的錯誤，請檢查後台日誌。\n`{type(e).__name__}: {e}`")
-            except Exception as send_err:
-                logger.error(f"[{user_id}] 在創世失敗後，連發送錯誤訊息也失敗了: {send_err}", exc_info=True)
+                await user.send(f"❌ **創世失敗**：在後台執行時發生了未預期的嚴重錯誤: `{e}`")
+            except discord.errors.HTTPException as send_e:
+                 logger.error(f"[{user_id}] 無法向使用者發送最終的錯誤訊息: {send_e}")
         finally:
             self.active_setups.discard(user_id)
             logger.info(f"[{user_id}] 後台創世流程結束，狀態鎖已釋放。")
-# 函式：執行完整的設置流程 結束
+# 執行完整的後台創世流程 函式結束
 
-
-
-    
 
 
 # 函式：查看角色檔案指令 (v1.0 - 全新創建)
@@ -1242,53 +1206,44 @@ class BotCog(commands.Cog, name="BotCog"):
 # 查看角色檔案指令 函式結束
 
     
-# 函式：獲取或創建使用者的 AI 實例 (v2.0 - RAG即時構建)
-# 更新紀錄:
-# v2.0 (2025-10-12): [災難性BUG修復] 新增了RAG即時構建（Just-in-Time Build）機制。在成功初始化或創建實例後，此函數會立即檢查並在必要時觸發RAG索引的構建，確保在處理`on_message`時記憶系統永遠處於就緒狀態，從根源上解決`檢索器未初始化`的問題。
-# v1.1 (2025-12-11): [災難性BUG修復] 根據 RAG 索引在創世後丟失的致命問題，徹底重構了此函式的職責。
+    # 函式：獲取或創建使用者的 AI 實例
     async def get_or_create_ai_instance(self, user_id: str, is_setup_flow: bool = False) -> Optional[AILover]:
-        """(v2.0) 獲取或創建一個 AI 實例，並確保其 RAG 索引已構建。"""
         if user_id in self.ai_instances:
-            # 即使實例已存在，也檢查一次 RAG 是否就緒
-            existing_instance = self.ai_instances[user_id]
-            if not existing_instance.retriever:
-                logger.info(f"[{user_id}] 檢測到現有 AI 實例的 RAG 未就緒，正在為其構建...")
-                await existing_instance._load_or_build_rag_retriever()
-                logger.info(f"[{user_id}] ✅ 現有 AI 實例的 RAG 索引已成功構建。")
-            return existing_instance
+            return self.ai_instances[user_id]
         
         logger.info(f"使用者 {user_id} 沒有活躍的 AI 實例，嘗試創建...")
         ai_instance = AILover(user_id=user_id, is_ollama_available=self.is_ollama_available)
         
         if await ai_instance.initialize():
-            logger.info(f"為使用者 {user_id} 成功從資料庫初始化 AI 實例。")
+            logger.info(f"為使用者 {user_id} 成功創建並初始化 AI 實例。")
             await ai_instance._configure_pre_requisites()
-            # [v2.0 核心修正] RAG 即時構建
-            logger.info(f"[{user_id}] 正在為新初始化的 AI 實例構建 RAG 索引...")
-            await ai_instance._load_or_build_rag_retriever()
-            logger.info(f"[{user_id}] ✅ 新 AI 實例的 RAG 索引已成功構建。")
             
+            if not is_setup_flow:
+                await ai_instance._load_or_build_rag_retriever()
+
+            await ai_instance._rehydrate_scene_histories()
             self.ai_instances[user_id] = ai_instance
             return ai_instance
             
         elif is_setup_flow:
             logger.info(f"[{user_id}] 處於設定流程中，即使資料庫無記錄，也創建一個臨時的記憶體實例。")
             ai_instance.profile = UserProfile(user_id=user_id, user_profile=CharacterProfile(name=""), ai_profile=CharacterProfile(name=""))
-            await ai_instance._configure_pre_requisites()
+            try:
+                await ai_instance._configure_pre_requisites()
+            except Exception as e:
+                logger.error(f"[{user_id}] 為臨時實例配置前置資源時失敗: {e}", exc_info=True)
+            
             self.ai_instances[user_id] = ai_instance
             return ai_instance
             
         else:
-            logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗（資料庫中無記錄）。")
+            logger.warning(f"為使用者 {user_id} 初始化 AI 實例失敗。")
             await ai_instance.shutdown()
             del ai_instance
             gc.collect()
             return None
-# 函式：獲取或創建使用者的 AI 實例 結束
+    # 函式：獲取或創建使用者的 AI 實例
 
-# 函式：監聽並處理使用者訊息 (v2.0 - 回歸Graph)
-# 更新紀錄:
-# v2.0 (2025-10-12): [架構回歸] 將核心對話邏輯從調用功能簡陋的`direct_rag_generate`，改回調用功能完備、包含場景感知能力的`main_graph.ainvoke()`。此修改從根本上恢復了系統的遠程/本地視角判斷能力，解決了上下文混淆問題。
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot: return
@@ -1320,22 +1275,8 @@ class BotCog(commands.Cog, name="BotCog"):
 
         async with message.channel.typing():
             try:
-                # [v2.0 核心修正] 回歸到 Graph 調用
-                logger.info(f"[{user_id}] 啟動 main_graph 對話流程...")
-                
-                if not ai_instance.main_graph:
-                    raise RuntimeError("AI 實例的主對話圖 (main_graph) 未被初始化！")
-
-                # 準備 Graph 的初始狀態
-                initial_state = {
-                    "user_id": user_id,
-                    "ai_core": ai_instance,
-                    "messages": [HumanMessage(content=user_input)],
-                }
-                
-                # 異步調用 Graph
-                final_state = await ai_instance.main_graph.ainvoke(initial_state)
-                final_response = final_state.get("final_output")
+                logger.info(f"[{user_id}] 啟動 RAG 直通對話流程...")
+                final_response = await ai_instance.direct_rag_generate(user_input)
                 
                 if final_response and final_response.strip():
                     view = RegenerateView(cog=self)
@@ -1343,20 +1284,15 @@ class BotCog(commands.Cog, name="BotCog"):
                         current_view = view if i + 2000 >= len(final_response) else None
                         await message.channel.send(final_response[i:i+2000], view=current_view)
                     
-                    logger.info(f"[{user_id}] main_graph 流程執行完畢，回應已發送。事後學習任務已在背景啟動。")
+                    logger.info(f"[{user_id}] RAG 直通流程執行完畢，回應已發送。事後學習任務已在背景啟動。")
 
                 else:
-                    logger.error(f"為使用者 {user_id} 的 main_graph 流程返回了空的或無效的回應。")
+                    logger.error(f"為使用者 {user_id} 的 RAG 直通流程返回了空的或無效的回應。")
                     await message.channel.send("（抱歉，我好像突然斷線了...）")
 
             except Exception as e:
-                logger.error(f"處理使用者 {user_id} 的 main_graph 流程時發生異常: {e}", exc_info=True)
+                logger.error(f"處理使用者 {user_id} 的 RAG 直通流程時發生異常: {e}", exc_info=True)
                 await message.channel.send(f"處理您的訊息時發生了一個嚴重的內部錯誤: `{type(e).__name__}`")
-# 函式：監聽並處理使用者訊息 結束
-
-
-
-
     
     # 指令：開始全新的冒險（重置所有資料）
     @app_commands.command(name="start", description="開始全新的冒險（這將重置您所有的現有資料）")
@@ -1565,43 +1501,28 @@ class BotCog(commands.Cog, name="BotCog"):
             else: await interaction.response.send_message(f"錯誤：找不到使用者 {target_user}。", ephemeral=True)
     # 指令：[管理員] 查詢使用者狀態
             
-# 指令：[管理員] 查詢 Lore 詳細資料 (v1.1 - 鳳凰架構適配)
-# 更新紀錄:
-# v1.1 (2025-12-10): [災難性BUG修復] 根據「鳳凰架構」，徹底重構了此函式的數據讀取邏輯，使其能夠正確地從 `structured_content` 和 `narrative_content` 欄位中讀取並組合 LORE 數據。同時，增加了完整的 try...except 錯誤處理塊，從根本上解決了因 AttributeError 導致指令卡在「思考中」無回應的問題。
-# v1.0 (2025-10-04): [全新創建] 創建此指令。
+    # 指令：[管理員] 查詢 Lore 詳細資料
     @app_commands.command(name="admin_check_lore", description="[管理員] 查詢指定使用者的 Lore 詳細資料")
     @app_commands.check(is_admin)
     @app_commands.describe(target_user="要查詢的使用者", category="LORE 的類別", key="LORE 的主鍵")
     @app_commands.autocomplete(target_user=user_autocomplete, key=lore_key_autocomplete)
     @app_commands.choices(category=LORE_CATEGORIES)
     async def admin_check_lore(self, interaction: discord.Interaction, target_user: str, category: str, key: str):
-        await interaction.response.defer(ephemeral=True, thinking=True)
-        user_id = str(interaction.user.id)
-        
-        try:
-            lore_entry = await lore_book.get_lore(target_user, category, key)
+        await interaction.response.defer(ephemeral=True)
+        lore_entry = await lore_book.get_lore(target_user, category, key)
+        if lore_entry:
+            content_str = json.dumps(lore_entry.content, ensure_ascii=False, indent=2)
             
-            if not lore_entry:
-                await interaction.followup.send(f"❌ 錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
-                return
-
-            # [v1.1 核心修正] 適配鳳凰架構的混合式 LORE 模型
-            structured_str = json.dumps(lore_entry.structured_content, ensure_ascii=False, indent=2) if lore_entry.structured_content else "{}"
-            narrative_str = lore_entry.narrative_content or "無敘事性描述。"
-            
-            # 組合完整的 LORE 內容以供顯示
-            full_content_str = f"--- 結構化數據 (structured_content) ---\n{structured_str}\n\n--- 敘事性文本 (narrative_content) ---\n{narrative_str}"
-
-            if len(full_content_str) > 1900: # 預留一些空間給標題和程式碼塊標記
+            if len(content_str) > 1000:
                 try:
                     temp_dir = PROJ_DIR / "temp"
                     temp_dir.mkdir(exist_ok=True)
                     
-                    file_path = temp_dir / f"lore_{interaction.user.id}_{int(time.time())}.txt"
+                    file_path = temp_dir / f"lore_{interaction.user.id}_{int(time.time())}.json"
                     with open(file_path, 'w', encoding='utf-8') as f:
-                        f.write(full_content_str)
+                        f.write(content_str)
                     
-                    file_name = f"{key.replace(' > ', '_').replace('/', '_')}.txt"
+                    file_name = f"{key.replace(' > ', '_').replace('/', '_')}.json"
 
                     await interaction.followup.send(
                         f"📜 **Lore 查詢結果 for `{key}`**\n（由於內容過長，已作為檔案附件發送）", 
@@ -1610,21 +1531,16 @@ class BotCog(commands.Cog, name="BotCog"):
                     )
                     os.remove(file_path)
                 except Exception as e:
-                    logger.error(f"[{user_id}] 創建或發送LORE檔案時出錯: {e}", exc_info=True)
-                    await interaction.followup.send("❌ 錯誤：創建 LORE 檔案時發生問題。", ephemeral=True)
+                    logger.error(f"[{interaction.user.id}] 創建或發送LORE檔案時出錯: {e}", exc_info=True)
+                    await interaction.followup.send("錯誤：創建LORE檔案時發生問題。", ephemeral=True)
             else:
-                embed = Embed(
-                    title=f"📜 Lore 查詢: {key.split(' > ')[-1]}", 
-                    description=f"```json\n{full_content_str}\n```",
-                    color=discord.Color.green()
-                )
+                embed = Embed(title=f"📜 Lore 查詢: {key.split(' > ')[-1]}", color=discord.Color.green())
+                embed.add_field(name="詳細資料", value=f"```json\n{content_str}\n```", inline=False)
                 embed.set_footer(text=f"User: {target_user} | Category: {category}")
                 await interaction.followup.send(embed=embed, ephemeral=True)
-        
-        except Exception as e:
-            logger.error(f"[{user_id}] 執行 admin_check_lore 時發生未知錯誤: {e}", exc_info=True)
-            await interaction.followup.send(f"❌ 執行指令時發生嚴重錯誤: `{type(e).__name__}`\n請檢查後台日誌。", ephemeral=True)
-# 指令：[管理員] 查詢 Lore 詳細資料 結束
+        else: 
+            await interaction.followup.send(f"錯誤：在類別 `{category}` 中找不到 key 為 `{key}` 的 Lore。", ephemeral=True)
+    # 指令：[管理員] 查詢 Lore 詳細資料
         
     # 指令：[管理員] 推送日誌 (v1.1 - 呼叫修正)
     # 更新紀錄:
@@ -1884,21 +1800,3 @@ async def setup(bot: "AILoverBot"):
     bot.add_view(RegenerateView(cog=cog_instance))
     
     logger.info("✅ 核心 Cog (core_cog) 已加載，並且所有持久化視圖已成功註冊。")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

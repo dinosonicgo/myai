@@ -1,7 +1,7 @@
-# schemas.py v4.0 (定義順序修正)
+# schemas.py v4.0 (定义顺序修正)
 # 更新紀錄:
-# v4.0 (2025-10-02): [災難性BUG修復] 調整了文件內 Pydantic 模型的定義順序，將 CharacterProfile 和 RelationshipDetail 的定義移至文件靠前位置，以解決因前向引用導致的 NameError 啟動失敗問題。同時移除了重複的 BatchRefinementResult 定義。
-# v3.0 (2025-09-27): [災難性BUG修復] 補全了缺失的 LoreClassificationResult 和 BatchClassificationResult 類定義，并将 WorldLore 的 'title' 統一為 'name' 以解決 ValidationError。
+# v4.0 (2025-10-02): [灾难性BUG修复] 调整了文件内 Pydantic 模型的定义顺序，将 CharacterProfile 和 RelationshipDetail 的定义移至文件靠前位置，以解决因前向引用导致的 NameError 启动失败问题。同时移除了重复的 BatchRefinementResult 定义。
+# v3.0 (2025-09-27): [災難性BUG修復] 补全了缺失的 LoreClassificationResult 和 BatchClassificationResult 类定义，并将 WorldLore 的 'title' 统一为 'name' 以解决 ValidationError。
 # v2.0 (2025-09-27): [重大架構升級] 新增了 RelationshipDetail 模型，並將 CharacterProfile.relationships 升級為結構化字典。
 
 import json
@@ -420,16 +420,12 @@ class BatchRefinementResult(BaseModel):
 
 
 # 類別：場景選角結果
-# class SceneCastingResult(BaseModel):
-#     """用於包裹“AI场景导演”生成的动态世界元素的模型。"""
-#     newly_created_npcs: List[CharacterProfile] = Field(default_factory=list, description="根据场景动态创造出的、有名有姓的核心NPC列表。")
-#     quests: List[Quest] = Field(default_factory=list, description="根据场景动态创造出的、可供玩家发现的情节钩子或任务列表。")
-#     ambient_events: List[str] = Field(default_factory=list, description="为丰富世界而设计的、正在发生的背景事件的文字描述列表（可以是正面、中立或负面的）。")
+class SceneCastingResult(BaseModel):
+    """用於包裹“AI场景导演”生成的动态世界元素的模型。"""
+    newly_created_npcs: List[CharacterProfile] = Field(default_factory=list, description="根据场景动态创造出的、有名有姓的核心NPC列表。")
+    quests: List[Quest] = Field(default_factory=list, description="根据场景动态创造出的、可供玩家发现的情节钩子或任务列表。")
+    ambient_events: List[str] = Field(default_factory=list, description="为丰富世界而设计的、正在发生的背景事件的文字描述列表（可以是正面、中立或负面的）。")
 
-
-
-class ValidationResult(BaseModel):
-    is_violating: bool = Field(description="如果文本违反了使用者主权原则，则为 true。")
 
 
 
@@ -465,6 +461,7 @@ IntentClassificationResult.model_rebuild()
 StyleAnalysisResult.model_rebuild()
 SingleResolutionPlan.model_rebuild()
 SingleResolutionResult.model_rebuild()
+SceneCastingResult.model_rebuild()
 
 # (請將這兩行添加到您 schemas.py 文件末尾的 model_rebuild 列表中)
 BatchRefinementInput.model_rebuild()
@@ -475,5 +472,9 @@ BatchClassificationResult.model_rebuild()
 NarrativeExtractionResult.model_rebuild()
 PostGenerationAnalysisResult.model_rebuild()
 SceneLocationExtraction.model_rebuild()
+
+
+
+
 
 
