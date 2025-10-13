@@ -232,11 +232,13 @@ async def read_root(request: Request):
 
 
 
-# 函式：啟動 Git 日誌推送器任務 (v5.0 - Git 工作流修正)
+# main.py 的 start_git_log_pusher_task 函式 (v5.1 - Git工作流修正)
 # 更新紀錄:
-# v5.0 (2025-09-28): [災難性BUG修復] 徹底重構了 `run_git_commands_sync` 的內部 Git 命令執行順序。新流程將 `git commit` 移至 `git pull --rebase` 之前，確保了本地的日誌變更在與遠端同步前被妥善提交，從根本上解決了因 `unstaged changes` 導致 rebase 失敗的致命錯誤。
-# v4.0 (2025-11-22): [體驗優化] 根據使用者最新回饋，移除了在成功推送新日誌後顯示的最終確認訊息，使此背景任務在無錯誤發生時實現完全靜默運行。
-# v3.0 (2025-11-22): [體驗優化] 移除了在日誌推送任務成功執行時產生的中間過程日誌。
+# v5.1 (2025-10-13): [災難性BUG修復] 徹底重構了 `run_git_commands_sync` 的內部 Git 命令執行順序。新流程將 `git commit` 移至 `git pull --rebase` 之前，確保了本地的日誌變更在與遠端同步前被妥善提交，從根本上解決了因 `unstaged changes` 導致 rebase 失敗的致命錯誤。
+# v5.0 (2025-09-28): [災難性BUG修復] 移除了 `git status` 字串解析法。
+# v4.0 (2025-11-22): [體驗優化] 移除了成功推送後的確認訊息。
+
+# 函式：啟動 Git 日誌推送器任務
 async def start_git_log_pusher_task(lock: asyncio.Lock):
     """一個完全獨立的背景任務，定期將最新的日誌檔案推送到GitHub倉庫。"""
     await asyncio.sleep(15)
@@ -262,7 +264,7 @@ async def start_git_log_pusher_task(lock: asyncio.Lock):
                 f.write(f"### AI Lover Log - Last updated at {datetime.datetime.now().isoformat()} ###\n\n")
                 f.write(log_content_to_write)
 
-            # [v5.0 核心修正] 調整 Git 命令執行順序
+            # [v5.1 核心修正] 調整 Git 命令執行順序
             
             # 步驟 2: 將本地變更加入暫存區並提交
             subprocess.run(["git", "add", str(upload_log_path)], check=True, cwd=PROJ_DIR, capture_output=True)
@@ -531,4 +533,5 @@ if __name__ == "__main__":
         else:
             print(f"\n程式啟動失敗，發生致命錯誤: {e}")
         traceback.print_exc()
+
         if os.name == 'nt': os.system("pause")
