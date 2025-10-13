@@ -1,8 +1,8 @@
-# src/database.py 的中文註釋(v5.4 - 導入路徑修正)
+# src/database.py 的中文註釋(v5.5 - LORE模型修正)
 # 更新紀錄:
-# v5.4 (2025-10-04): [災難性BUG修復] 將檔案頂部的 `from src.config import settings` 修正為相對導入 `from .config import settings`，以解決因混合導入路徑導致的模組部分初始化與 NameError 問題。
-# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`，以解決 NameError。
-# v5.2 (2025-09-24): [健壯性強化] 增加了對 asyncio.Event 的支持。
+# v5.5 (2025-10-13): [災難性BUG修復] 將 Lore 模型中的 `content` 欄位重命名為 `data`，以解決 `no such column` 的資料庫結構不匹配錯誤。
+# v5.4 (2025-10-04): [災難性BUG修復] 將檔案頂部的 `from src.config import settings` 修正為相對導入 `from .config import settings`。
+# v5.3 (2025-09-24): [災難性BUG修復] 在文件頂部增加了 `import asyncio`。
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -56,7 +56,8 @@ class Lore(Base):
     user_id = Column(String, index=True, nullable=False)
     category = Column(String, index=True, nullable=False)
     key = Column(String, index=True, nullable=False)
-    content = Column(JSON, nullable=False)
+    # [v3.0 核心修正] 將 'content' 重命名為 'data' 以解決資料庫欄位不匹配問題
+    data = Column(JSON, name="data", nullable=False)
     timestamp = Column(Float, nullable=False)
     source = Column(String, index=True, nullable=True)
     template_keys = Column(JSON, nullable=True)
