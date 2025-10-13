@@ -88,6 +88,12 @@ async def get_lore(user_id: str, category: str, key: str) -> Optional[Lore]:
         return result.scalars().first()
 # 異步函式，根據 category 和 key 查詢單條 Lore 記錄
 
+# src/lore_book.py 的 get_lores_by_category_and_filter 函式 (v4.0 - DB模型適配)
+# 更新紀錄:
+# v4.0 (2025-10-13): [災難性BUG修復] 將所有對 `.content` 屬性的訪問修改為 `.data`，以適配 `database.py` 中修正後的 `Lore` 模型。
+# v3.1 (2025-09-03): [健壯性] 新增了 `get_all_lores_for_user` 函式。
+# v3.0 (2025-08-16): [重大架構重構] 移除了本地的 `Lore` 模型定義，改為從 `database.py` 導入。
+
 # 異步函式，根據 category 查詢多條 Lore 記錄，並可選地進行過濾
 async def get_lores_by_category_and_filter(
     user_id: str, 
@@ -96,7 +102,7 @@ async def get_lores_by_category_and_filter(
 ) -> List[Lore]:
     """
     根據 user_id 和 category 查詢多條 Lore 記錄。
-    如果提供了 filter_func，則會對查詢結果的 content 字段進行進一步的篩選。
+    如果提供了 filter_func，則會對查詢結果的 data 字段進行進一步的篩選。
     """
     async with AsyncSessionLocal() as session:
         stmt = select(Lore).where(
@@ -107,8 +113,8 @@ async def get_lores_by_category_and_filter(
         all_lores = result.scalars().all()
         
         if filter_func:
-            # 在 Python 層面對 JSON content 進行過濾
-            return [lore for lore in all_lores if filter_func(lore.content)]
+            # 在 Python 層面對 JSON data 進行過濾
+            return [lore for lore in all_lores if filter_func(lore.data)]
         else:
             return list(all_lores)
 # 異步函式，根據 category 查詢多條 Lore 記錄，並可選地進行過濾
@@ -207,5 +213,6 @@ async def get_lores_by_template_keys(user_id: str, keys: List[str]) -> List[Lore
                     
         return matching_lores
 # 函式：根據模板關鍵詞查詢LORE (v1.0 - 全新創建)
+
 
 
