@@ -460,14 +460,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
     
 
-# 函式：RAG 直通生成 (v7.0 - 构建消息列表)
+# RAG 直通生成 函式 (v7.1 - DB模型適配)
 # 更新紀錄:
-# v7.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”并从根源上解决顽固的审查问题，此函式不再拼接一个巨大的字符串 Prompt。取而代之的是，它会构建一个“消息列表”。不同的信息（系统指令、RAG上下文、对话历史）被分别封装在不同的消息物件中，然后将整个列表传递给新的 `ainvoke_with_rotation` v235.0。这利用了 Google 原生 SDK 推荐的最佳实践，以期获得更好的审查容忍度和逻辑清晰度。
+# v7.1 (2025-10-13): [災難性BUG修復] 將對 `.content` 屬性的訪問修改為 `.data`，以適配修正後的 `Lore` 模型。
+# v7.0 (2025-12-08): [根本性重构] 为了实现“上下文隔离”并从根源上解决顽固的审查问题，此函式不再拼接一个巨大的字符串 Prompt。
 # v6.0 (2025-12-08): [根本性重构] 在LORE创建流程的最前端，加入了“意图分析驱动的动态世界”机制。
-# v5.3 (2025-12-08): [根本性重构] 强化了风格指令的注入优先级。
     async def direct_rag_generate(self, user_input: str) -> str:
         """
-        (v7.0) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程，並使用“消息列表”範式。
+        (v7.1) 執行一個包含「前置LORE更新」和「RAG直通生成」的完整流程，並使用“消息列表”範式。
         """
         user_id = self.user_id
         if not self.profile:
@@ -501,7 +501,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             all_new_profiles = casting_result.newly_created_npcs if casting_result else []
             
             all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-            existing_lore_names = [lore.content.get("name") or lore.content.get("title") for lore in all_lores]
+            existing_lore_names = [lore.data.get("name") or lore.data.get("title") for lore in all_lores]
             
             expansion_result: Optional[CanonParsingResult] = None
             try:
@@ -564,9 +564,9 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
         
         absolute_truth_mandate = ""
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
-        relevant_lores = [lore for lore in all_lores if (lore.content.get("name") or lore.content.get("title")) in final_query_keywords]
+        relevant_lores = [lore for lore in all_lores if (lore.data.get("name") or lore.data.get("title")) in final_query_keywords]
         if relevant_lores:
-            truth_statements = [f"{(l.content.get('name') or l.content.get('title'))} ({l.category}): 當前身份={', '.join(l.content.get('aliases', []))}, 當前狀態={l.content.get('status', '未知')}" for l in relevant_lores]
+            truth_statements = [f"{(l.data.get('name') or l.data.get('title'))} ({l.category}): 當前身份={', '.join(l.data.get('aliases', []))}, 當前狀態={l.data.get('status', '未知')}" for l in relevant_lores]
             if truth_statements:
                 absolute_truth_mandate = "# === 【【【🚨 絕對事實強制令】】】 ===\n" + "\n".join([f"- {s}" for s in truth_statements])
 
@@ -2505,13 +2505,14 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
 
 
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
+# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.1 - DB模型適配)
 # 更新紀錄:
-# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此函式的格式化邏輯。舊版本在將結構化 LORE 轉換為文本時，錯誤地丟棄了所有屬性的鍵（Key），只保留了值（Value），導致存入 RAG 的數據是碎片化、無上下文的無意義詞彙，這是造成 RAG 檢索污染和失靈的根本原因。新版本確保將每個屬性都格式化為清晰的「Key: Value」字符串，保證了存入 RAG 的數據的完整性和可理解性。
-# v1.0 (2025-11-15): [重大架構升級] 根據【統一 RAG】策略，創建此核心函式。
+# v2.1 (2025-10-13): [災難性BUG修復] 將對 `.content` 屬性的訪問修改為 `.data`，以適配修正後的 `Lore` 模型。
+# v2.0 (2025-10-02): [災難性BUG修復] 徹底重寫了此函式的格式化邏輯。
+# v1.0 (2025-11-15): [重大架構重構] 根據【統一 RAG】策略，創建此核心函式。
     def _format_lore_into_document(self, lore: Lore) -> Document:
         """將一個 LORE 物件轉換為一段對 RAG 友好的、人類可讀的文本描述。"""
-        content = lore.content
+        content = lore.data
         text_parts = []
         
         title = content.get('name') or content.get('title') or lore.key
@@ -2549,25 +2550,25 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 
         full_text = "\n".join(text_parts)
         return Document(page_content=full_text, metadata={"source": "lore", "category": lore.category, "key": lore.key})
-# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.0 - 數據完整性修復)
+# 函式：將單條 LORE 格式化為 RAG 文檔 (v2.1 - DB模型適配)
 
 
-# 函式：从使用者输入中提取实体 (v2.3 - 移除普通名词提取)
+# 從使用者輸入中提取實體 函式 (v2.4 - DB模型適配)
 # 更新紀錄:
-# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。此修改牺牲了部分召回率，但极大地提升了提取结果的准确性（Precision），从根本上解决了因提取到“地毯”等无意义名词而污染 RAG 查询的问题。
+# v2.4 (2025-10-13): [災難性BUG修復] 將對 `.content` 屬性的訪問修改為 `.data`，以適配修正後的 `Lore` 模型。
+# v2.3 (2025-12-08): [健壮性强化] 彻底移除了在找不到命名实体时回退到提取普通名词的备援逻辑。
 # v2.2 (2025-10-05): [災難性BUG修復] 根据 RAG 查詢污染日誌，徹底重構了此函式。
-# v2.1 (2025-10-05): [邏輯修正] 移除了在函式內部無條件將主角名字添加到 `known_names` 集合的邏輯。
     async def _extract_entities_from_input(self, user_input: str) -> List[str]:
-        """(v2.3 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
+        """(v2.4 - 高精度版) 使用「字典匹配」+「強化NER」雙引擎，從使用者輸入中快速提取高質量命名實體。"""
         
         # --- 第一引擎：高精度字典匹配 ---
         all_lores = await lore_book.get_all_lores_for_user(self.user_id)
         known_names = set()
 
         for lore in all_lores:
-            if name := (lore.content.get("name") or lore.content.get("title")): 
+            if name := (lore.data.get("name") or lore.data.get("title")): 
                 known_names.add(name)
-            if aliases := lore.content.get("aliases"): 
+            if aliases := lore.data.get("aliases"): 
                 known_names.update(aliases)
         
         found_entities = set()
@@ -2593,7 +2594,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
             return list(found_entities)
         
         return []
-# 从使用者输入中提取实体 函式结束
+# 從使用者輸入中提取實體 函式結束
 
 
     
@@ -4627,11 +4628,11 @@ class ExtractionResult(BaseModel):
     
     
 
-# 函式：獲取場景中的相關 NPC (v3.1 - 焦點修正)
+# 函式：獲取場景中的相關 NPC (v3.2 - DB模型適配)
 # 更新紀錄:
-# v3.1 (2025-10-03): [災難性BUG修復] 根據 RAG 篩選失敗的日誌，徹底重構了此函式的焦點判斷邏輯。新版本引入了「指令優先原則」，會無條件地將用戶指令中明確提及的角色（來自 `explicitly_mentioned_profiles`）視為最高優先級的「核心目標」。只有在指令中沒有提及任何已知實體時，才會回退到舊的 LLM 判斷邏輯。此修改從根本上解決了在處理描述性指令時，AI 錯誤地將主角判定為核心、而被描述對象判定為背景的災難性誤判問題。
+# v3.2 (2025-10-13): [災難性BUG修復] 將對 `.content` 屬性的訪問修改為 `.data`，以適配修正後的 `Lore` 模型。
+# v3.1 (2025-10-03): [災難性BUG修復] 根據 RAG 篩選失敗的日誌，徹底重構了此函式的焦點判斷邏輯。
 # v3.0 (2025-09-27): [災難性BUG修復] 徹底重構了此函式的核心邏輯。
-# v2.0 (2025-09-27): [災難性BUG修復] 徹底重構了函式邏輯以解決核心目標丟失問題。
     async def _get_relevant_npcs(
         self, 
         user_input: str, 
@@ -4641,7 +4642,7 @@ class ExtractionResult(BaseModel):
         explicitly_mentioned_profiles: List[CharacterProfile]
     ) -> Tuple[List[CharacterProfile], List[CharacterProfile]]:
         """
-        (v3.1) 從場景中的所有角色裡，通過「指令優先」原則和 LLM 輔助，篩選出核心目標和背景角色。
+        (v3.2) 從場景中的所有角色裡，通過「指令優先」原則和 LLM 輔助，篩選出核心目標和背景角色。
         返回 (relevant_characters, background_characters) 的元組。
         """
         if not self.profile:
@@ -4655,7 +4656,7 @@ class ExtractionResult(BaseModel):
             all_possible_chars_map[profile.name] = profile
         for lore in all_scene_npcs:
             try:
-                profile = CharacterProfile.model_validate(lore.content)
+                profile = CharacterProfile.model_validate(lore.data)
                 if profile.name not in all_possible_chars_map:
                     all_possible_chars_map[profile.name] = profile
             except Exception: continue
@@ -4717,7 +4718,7 @@ class ExtractionResult(BaseModel):
         logger.info(f"[{self.user_id}] [上下文篩選 in '{viewing_mode}' mode] 核心目標: {[c.name for c in relevant_characters]}, 背景角色: {[c.name for c in background_characters]}")
         
         return relevant_characters, background_characters
-# 函式：獲取場景中的相關 NPC (v3.1 - 焦點修正)
+# 函式：獲取場景中的相關 NPC (v3.2 - DB模型適配)
 
 
     # ai_core.py 的 _release_rag_resources 函式 (v1.0 - 全新創建)
@@ -6383,6 +6384,7 @@ class CanonParsingResult(BaseModel): npc_profiles: List[CharacterProfile] = []; 
 # 將互動記錄保存到資料庫 函式結束
 
 # AI核心類 結束
+
 
 
 
